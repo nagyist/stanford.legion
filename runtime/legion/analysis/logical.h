@@ -166,7 +166,7 @@ namespace Legion {
     public:
       RegionTreeNode* const owner;
     public:
-      LegionList<FieldState, SHORT_LIFETIME> field_states;
+      shrt::list<FieldState> field_states;
       // Note that even though these are field mask sets keyed on pointers
       // we mark them as determinsitic so that shards always iterate over
       // these elements in the same order

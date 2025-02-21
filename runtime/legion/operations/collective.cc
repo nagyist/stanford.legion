@@ -913,7 +913,8 @@ namespace Legion {
       {
         IndexSpaceNode* expr = runtime->get_node(pit->first.get_index_space());
         std::vector<RtEvent> preconditions;
-        LegionList<FieldSet<std::pair<AddressSpaceID, EqSetTracker*> > > fields;
+        local::list<FieldSet<std::pair<AddressSpaceID, EqSetTracker*> > >
+            fields;
         compute_field_sets(FieldMask(), pit->second.trackers, fields);
         // Be a bit careful, there is an important heuristic here
         // This heuristic decides which of the targets will be the one
@@ -929,7 +930,7 @@ namespace Legion {
         // SingleTask::perform_replicate_collective_vesioning too
         const AddressSpaceID region_owner_space =
             IndexSpaceNode::get_owner_space(pit->first.get_index_space());
-        for (LegionList<FieldSet<std::pair<AddressSpaceID, EqSetTracker*> > >::
+        for (local::list<FieldSet<std::pair<AddressSpaceID, EqSetTracker*> > >::
                  const_iterator fit = fields.begin();
              fit != fields.end(); fit++)
         {
@@ -1185,11 +1186,11 @@ namespace Legion {
         // All the regions should be from the same region tree
         assert(tid == rit->first.get_tree_id());
 #endif
-        LegionList<FieldSet<DistributedID> > field_sets;
+        local::list<FieldSet<DistributedID> > field_sets;
         compute_field_sets(FieldMask(), rit->second.groups, field_sets);
         FieldMaskSet<CollectiveResult> results;
         std::vector<RtEvent> ready_events;
-        for (LegionList<FieldSet<DistributedID> >::const_iterator it =
+        for (local::list<FieldSet<DistributedID> >::const_iterator it =
                  field_sets.begin();
              it != field_sets.end(); it++)
         {

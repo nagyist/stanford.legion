@@ -79,7 +79,7 @@ namespace Legion {
       unsigned convert_dst_to_src(unsigned index);
     public:
       std::vector<CopySrcDstField> offsets;
-      LegionDeque<std::pair<FieldMask, FieldMask> > compressed_cache;
+      op::deque<std::pair<FieldMask, FieldMask> > compressed_cache;
     };
 
     /**

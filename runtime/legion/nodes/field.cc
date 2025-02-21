@@ -110,13 +110,11 @@ namespace Legion {
       // Next we can delete our layouts
       for (std::map<
                LEGION_FIELD_MASK_FIELD_TYPE,
-               LegionList<LayoutDescription*, LONG_LIFETIME>>::iterator it =
-               layouts.begin();
+               lng::list<LayoutDescription*>>::iterator it = layouts.begin();
            it != layouts.end(); it++)
       {
-        LegionList<LayoutDescription*, LONG_LIFETIME>& descs = it->second;
-        for (LegionList<LayoutDescription*, LONG_LIFETIME>::iterator it =
-                 descs.begin();
+        lng::list<LayoutDescription*>& descs = it->second;
+        for (lng::list<LayoutDescription*>::iterator it = descs.begin();
              it != descs.end(); it++)
         {
           if ((*it)->remove_reference())
@@ -3090,10 +3088,8 @@ namespace Legion {
       {
         uint64_t hash_key = mask.get_hash_key();
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
-        std::map<
-            LEGION_FIELD_MASK_FIELD_TYPE,
-            LegionList<LayoutDescription*, LONG_LIFETIME>>::const_iterator
-            finder = layouts.find(hash_key);
+        std::map<LEGION_FIELD_MASK_FIELD_TYPE, lng::list<LayoutDescription*>>::
+            const_iterator finder = layouts.find(hash_key);
         if (finder == layouts.end())
           return nullptr;
         // Get the ones with a matching mask
@@ -3132,10 +3128,8 @@ namespace Legion {
       // This one better work
       uint64_t hash_key = mask.get_hash_key();
       AutoLock n_lock(node_lock, 1, false /*exclusive*/);
-      std::map<
-          LEGION_FIELD_MASK_FIELD_TYPE,
-          LegionList<LayoutDescription*, LONG_LIFETIME>>::const_iterator
-          finder = layouts.find(hash_key);
+      std::map<LEGION_FIELD_MASK_FIELD_TYPE, lng::list<LayoutDescription*>>::
+          const_iterator finder = layouts.find(hash_key);
 #ifdef DEBUG_LEGION
       assert(finder != layouts.end());
 #endif
@@ -3178,11 +3172,10 @@ namespace Legion {
     {
       uint64_t hash_key = layout->allocated_fields.get_hash_key();
       AutoLock n_lock(node_lock);
-      LegionList<LayoutDescription*, LONG_LIFETIME>& descs = layouts[hash_key];
+      lng::list<LayoutDescription*>& descs = layouts[hash_key];
       if (!descs.empty())
       {
-        for (LegionList<LayoutDescription*, LONG_LIFETIME>::const_iterator it =
-                 descs.begin();
+        for (lng::list<LayoutDescription*>::const_iterator it = descs.begin();
              it != descs.end(); it++)
         {
           if (layout->match_layout(*it, layout->total_dims))
@@ -3754,17 +3747,15 @@ namespace Legion {
       std::vector<LEGION_FIELD_MASK_FIELD_TYPE> to_delete;
       for (std::map<
                LEGION_FIELD_MASK_FIELD_TYPE,
-               LegionList<LayoutDescription*, LONG_LIFETIME>>::iterator lit =
-               layouts.begin();
+               lng::list<LayoutDescription*>>::iterator lit = layouts.begin();
            lit != layouts.end(); lit++)
       {
         // If the bit is set, remove the layout descriptions
         if (lit->first & (1ULL << index))
         {
-          LegionList<LayoutDescription*, LONG_LIFETIME>& descs = lit->second;
+          lng::list<LayoutDescription*>& descs = lit->second;
           bool perform_delete = true;
-          for (LegionList<LayoutDescription*, LONG_LIFETIME>::iterator it =
-                   descs.begin();
+          for (lng::list<LayoutDescription*>::iterator it = descs.begin();
                it != descs.end();
                /*nothing*/)
           {

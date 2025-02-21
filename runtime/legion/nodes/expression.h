@@ -81,11 +81,11 @@ namespace Legion {
     public:
       virtual IndexSpaceExpression* inline_union(IndexSpaceExpression* rhs) = 0;
       virtual IndexSpaceExpression* inline_union(
-          const std::set<IndexSpaceExpression*>& exprs) = 0;
+          const SetView<IndexSpaceExpression*>& exprs) = 0;
       virtual IndexSpaceExpression* inline_intersection(
           IndexSpaceExpression* rhs) = 0;
       virtual IndexSpaceExpression* inline_intersection(
-          const std::set<IndexSpaceExpression*>& exprs) = 0;
+          const SetView<IndexSpaceExpression*>& exprs) = 0;
       virtual IndexSpaceExpression* inline_subtraction(
           IndexSpaceExpression* rhs) = 0;
     public:
@@ -116,7 +116,7 @@ namespace Legion {
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
           CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0) = 0;
       virtual IndexSpaceExpression* create_from_rectangles(
-          const std::set<Domain>& rectangles) = 0;
+          const local::set<Domain>& rectangles) = 0;
       virtual PieceIteratorImpl* create_piece_iterator(
           const void* piece_list, size_t piece_list_size,
           IndexSpaceNode* privilege_node) = 0;
@@ -222,13 +222,13 @@ namespace Legion {
       IndexSpaceExpression* inline_union_internal(IndexSpaceExpression* rhs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_union_internal(
-          const std::set<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_intersection_internal(
           IndexSpaceExpression* rhs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_intersection_internal(
-          const std::set<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_subtraction_internal(
           IndexSpaceExpression* rhs);
@@ -283,7 +283,7 @@ namespace Legion {
           const Domain* padding_delta);
       template<int DIM, typename T>
       inline IndexSpaceExpression* create_from_rectangles_internal(
-          const std::set<Domain>& rects);
+          const local::set<Domain>& rects);
     public:
       template<int DIM, typename T>
       inline IndexSpaceExpression* find_congruent_expression_internal(
@@ -455,18 +455,18 @@ namespace Legion {
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
           CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0);
       virtual IndexSpaceExpression* create_from_rectangles(
-          const std::set<Domain>& rectangles);
+          const local::set<Domain>& rectangles);
       virtual PieceIteratorImpl* create_piece_iterator(
           const void* piece_list, size_t piece_list_size,
           IndexSpaceNode* privilege_node);
     public:
       virtual IndexSpaceExpression* inline_union(IndexSpaceExpression* rhs);
       virtual IndexSpaceExpression* inline_union(
-          const std::set<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs);
       virtual IndexSpaceExpression* inline_intersection(
           IndexSpaceExpression* rhs);
       virtual IndexSpaceExpression* inline_intersection(
-          const std::set<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs);
       virtual IndexSpaceExpression* inline_subtraction(
           IndexSpaceExpression* rhs);
       virtual uint64_t get_canonical_hash(void);

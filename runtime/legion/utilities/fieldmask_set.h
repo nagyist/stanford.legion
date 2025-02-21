@@ -16,6 +16,8 @@
 #ifndef __LEGION_FIELDMASK_SET_H__
 #define __LEGION_FIELDMASK_SET_H__
 
+#include "legion/utilities/bitmask.h"
+
 namespace Legion {
   namespace Internal {
 
@@ -31,7 +33,7 @@ namespace Legion {
       FieldSet(const FieldMask& m) : set_mask(m) { }
     public:
       FieldMask set_mask;
-      std::set<T> elements;
+      local::set<T> elements;
     };
 
     /**
@@ -344,7 +346,7 @@ namespace Legion {
     public:
       inline void compute_field_sets(
           FieldMask universe_mask,
-          LegionList<FieldSet<T*> >& output_sets) const;
+          local::list<FieldSet<T*> >& output_sets) const;
     protected:
       template<typename T2, AllocationLifetime L2, bool D2>
       friend class FieldMaskSet;
@@ -361,6 +363,38 @@ namespace Legion {
       FieldMask valid_fields;
       bool single;
     };
+
+    // Create some insantiations of these templates in the lifetime namespaces
+    namespace local {
+      template<typename T, bool DETERMINISTIC = false>
+      using FieldMaskSet =
+          Legion::Internal::FieldMaskSet<T, TASK_LOCAL_LIFETIME, DETERMINISTIC>;
+    }  // namespace local
+    namespace op {
+      template<typename T, bool DETERMINISTIC = false>
+      using FieldMaskSet =
+          Legion::Internal::FieldMaskSet<T, OPERATION_LIFETIME, DETERMINISTIC>;
+    }  // namespace op
+    namespace ctx {
+      template<typename T, bool DETERMINISTIC = false>
+      using FieldMaskSet =
+          Legion::Internal::FieldMaskSet<T, CONTEXT_LIFETIME, DETERMINISTIC>;
+    }  // namespace ctx
+    namespace shrt {
+      template<typename T, bool DETERMINISTIC = false>
+      using FieldMaskSet =
+          Legion::Internal::FieldMaskSet<T, SHORT_LIFETIME, DETERMINISTIC>;
+    }  // namespace shrt
+    namespace lng {
+      template<typename T, bool DETERMINISTIC = false>
+      using FieldMaskSet =
+          Legion::Internal::FieldMaskSet<T, LONG_LIFETIME, DETERMINISTIC>;
+    }  // namespace lng
+    namespace rt {
+      template<typename T, bool DETERMINISTIC = false>
+      using FieldMaskSet =
+          Legion::Internal::FieldMaskSet<T, RUNTIME_LIFETIME, DETERMINISTIC>;
+    }  // namespace rt
 
   }  // namespace Internal
 }  // namespace Legion

@@ -456,7 +456,7 @@ namespace Legion {
       // in the wrong state so we still need to add a new state for them
       FieldMask next_child_fields;
       // Now we can look at all the children
-      for (LegionList<FieldState>::iterator it = state.field_states.begin();
+      for (shrt::list<FieldState>::iterator it = state.field_states.begin();
            it != state.field_states.end();
            /*nothing*/)
       {
@@ -1613,7 +1613,7 @@ namespace Legion {
     {
       LogicalState& state = get_logical_state(ctx);
       std::set<LogicalPartition> unique_partitions;
-      for (LegionList<FieldState>::const_iterator sit =
+      for (shrt::list<FieldState>::const_iterator sit =
                state.field_states.begin();
            sit != state.field_states.end(); sit++)
       {

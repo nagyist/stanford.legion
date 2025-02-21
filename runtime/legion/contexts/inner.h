@@ -1150,7 +1150,7 @@ namespace Legion {
       // this data structure requires the inline lock because
       // unordered detach operations can touch it without synchronizing
       // with the executing task
-      LegionList<PhysicalRegion, CONTEXT_LIFETIME> inline_regions;
+      ctx::list<PhysicalRegion> inline_regions;
     protected:
       mutable LocalLock child_op_lock;
       // Track whether this task has finished executing
@@ -1300,8 +1300,8 @@ namespace Legion {
           attach_functions;
     protected:
       // Resources that can build up over a task's lifetime
-      LegionDeque<Reservation, CONTEXT_LIFETIME> context_locks;
-      LegionDeque<ApBarrier, CONTEXT_LIFETIME> context_barriers;
+      ctx::deque<Reservation> context_locks;
+      ctx::deque<ApBarrier> context_barriers;
     protected:
       // Collective instance rendezvous data structures
       mutable LocalLock collective_lock;

@@ -95,7 +95,7 @@ namespace Legion {
       mutable LocalLock layout_lock;
       std::map<
           LEGION_FIELD_MASK_FIELD_TYPE,
-          LegionList<std::pair<FieldMask, FieldMask> > >
+          lng::list<std::pair<FieldMask, FieldMask> > >
           comp_cache;
     };
 

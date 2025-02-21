@@ -544,9 +544,9 @@ namespace Legion {
       else
       {
         // We have multiple views, so let's sort them
-        LegionList<FieldSet<LogicalView*> > view_sets;
+        local::list<FieldSet<LogicalView*> > view_sets;
         src_views.compute_field_sets(src_mask, view_sets);
-        for (LegionList<FieldSet<LogicalView*> >::const_iterator vit =
+        for (local::list<FieldSet<LogicalView*> >::const_iterator vit =
                  view_sets.begin();
              vit != view_sets.end(); vit++)
         {
@@ -1148,9 +1148,9 @@ namespace Legion {
           target_events = &finder->second;
         }
         // Group by fields first
-        LegionList<FieldSet<Update*> > field_groups;
+        local::list<FieldSet<Update*> > field_groups;
         uit->second.compute_field_sets(FieldMask(), field_groups);
-        for (LegionList<FieldSet<Update*> >::const_iterator fit =
+        for (local::list<FieldSet<Update*> >::const_iterator fit =
                  field_groups.begin();
              fit != field_groups.end(); fit++)
         {

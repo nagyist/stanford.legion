@@ -92,7 +92,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceExpression::inline_union_internal(
-        const std::set<IndexSpaceExpression*>& exprs)
+        const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
       // Disable the fast path for Legion Spy to avoid creating too many
@@ -100,7 +100,7 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         return nullptr;
       if (exprs.size() == 2)
-        return this->inline_union_internal<DIM, T>(*exprs.rbegin());
+        return this->inline_union_internal<DIM, T>(*std::next(exprs.begin()));
       DomainT<DIM, T> domain = get_tight_domain();
       ;
       if (!domain.dense())
@@ -112,7 +112,7 @@ namespace Legion {
       // Try to use the union bbox, we'll only be able to use this if all
       // the rects are disjoint or contained by each other and then we can
       // sum up the points that we should expect to find
-      for (std::set<IndexSpaceExpression*>::const_iterator eit = exprs.begin();
+      for (SetView<IndexSpaceExpression*>::const_iterator eit = exprs.begin();
            eit != exprs.end(); eit++)
       {
         domain = (*eit)->get_tight_domain();
@@ -227,7 +227,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceExpression::inline_intersection_internal(
-        const std::set<IndexSpaceExpression*>& exprs)
+        const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
       // Disable the fast path for Legion Spy to avoid creating too many
@@ -240,7 +240,7 @@ namespace Legion {
       Rect<DIM, T> result = domain.bounds;
       bool has_sparsity = !domain.dense();
       IndexSpaceExpression* smallest = nullptr;
-      for (std::set<IndexSpaceExpression*>::const_iterator it = exprs.begin();
+      for (SetView<IndexSpaceExpression*>::const_iterator it = exprs.begin();
            it != exprs.end(); it++)
       {
         domain = (*it)->get_tight_domain();
@@ -1153,7 +1153,7 @@ namespace Legion {
     template<int DIM, typename T>
     inline IndexSpaceExpression*
         IndexSpaceExpression::create_from_rectangles_internal(
-            const std::set<Domain>& rects)
+            const local::set<Domain>& rects)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1163,7 +1163,7 @@ namespace Legion {
       std::vector<Rect<DIM, T> > rectangles;
       rectangles.reserve(rects.size());
       // We're just assuming that all the rectangles here are non-overlapping
-      for (std::set<Domain>::const_iterator it = rects.begin();
+      for (local::set<Domain>::const_iterator it = rects.begin();
            it != rects.end(); it++)
       {
         Rect<DIM, T> rect = *it;
@@ -1692,7 +1692,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::create_from_rectangles(
-        const std::set<Domain>& rects)
+        const local::set<Domain>& rects)
     //--------------------------------------------------------------------------
     {
       return create_from_rectangles_internal<DIM, T>(rects);
@@ -1710,7 +1710,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::inline_union(
-        const std::set<IndexSpaceExpression*>& exprs)
+        const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
       return inline_union_internal<DIM, T>(exprs);
@@ -1728,7 +1728,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::inline_intersection(
-        const std::set<IndexSpaceExpression*>& exprs)
+        const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
       return inline_intersection_internal<DIM, T>(exprs);

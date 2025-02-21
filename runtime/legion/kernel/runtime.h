@@ -647,7 +647,7 @@ namespace Legion {
       IndexSpaceExpression* union_index_spaces(
           IndexSpaceExpression* lhs, IndexSpaceExpression* rhs);
       IndexSpaceExpression* union_index_spaces(
-          const std::set<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs);
     protected:
       // Internal version
       IndexSpaceExpression* union_index_spaces(
@@ -657,7 +657,7 @@ namespace Legion {
       IndexSpaceExpression* intersect_index_spaces(
           IndexSpaceExpression* lhs, IndexSpaceExpression* rhs);
       IndexSpaceExpression* intersect_index_spaces(
-          const std::set<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs);
     protected:
       IndexSpaceExpression* intersect_index_spaces(
           const std::vector<IndexSpaceExpression*>& exprs,
@@ -2240,7 +2240,7 @@ namespace Legion {
       std::map<ConcurrentID, ConcurrentColoringFunctor*> concurrent_functors;
     protected:
       mutable LocalLock group_lock;
-      LegionMap<uint64_t, LegionDeque<ProcessorGroupInfo>, RUNTIME_LIFETIME>
+      LegionMap<uint64_t, rt::deque<ProcessorGroupInfo>, RUNTIME_LIFETIME>
           processor_groups;
     protected:
       mutable LocalLock processor_mapping_lock;

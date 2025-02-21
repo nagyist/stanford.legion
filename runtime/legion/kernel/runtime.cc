@@ -607,10 +607,10 @@ namespace Legion {
         redop_table.erase(it);
       }
       for (LegionMap<
-               uint64_t, LegionDeque<ProcessorGroupInfo>,
+               uint64_t, rt::deque<ProcessorGroupInfo>,
                RUNTIME_LIFETIME>::const_iterator git = processor_groups.begin();
            git != processor_groups.end(); git++)
-        for (LegionDeque<ProcessorGroupInfo>::const_iterator it =
+        for (rt::deque<ProcessorGroupInfo>::const_iterator it =
                  git->second.begin();
              it != git->second.end(); it++)
           it->processor_group.destroy();
@@ -9673,11 +9673,11 @@ namespace Legion {
       ProcessorMask local_mask = find_processor_mask(procs);
       uint64_t hash = local_mask.get_hash_key();
       AutoLock g_lock(group_lock);
-      std::map<uint64_t, LegionDeque<ProcessorGroupInfo> >::iterator finder =
+      std::map<uint64_t, rt::deque<ProcessorGroupInfo> >::iterator finder =
           processor_groups.find(hash);
       if (finder != processor_groups.end())
       {
-        for (LegionDeque<ProcessorGroupInfo>::const_iterator it =
+        for (rt::deque<ProcessorGroupInfo>::const_iterator it =
                  finder->second.begin();
              it != finder->second.end(); it++)
         {
@@ -13371,12 +13371,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     IndexSpaceExpression* Runtime::union_index_spaces(
-        const std::set<IndexSpaceExpression*>& exprs)
+        const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!exprs.empty());
-      for (std::set<IndexSpaceExpression*>::const_iterator it = exprs.begin();
+      for (SetView<IndexSpaceExpression*>::const_iterator it = exprs.begin();
            it != exprs.end(); it++)
         assert((*it)->is_valid());
 #endif
@@ -13396,7 +13396,7 @@ namespace Legion {
       }
       std::vector<IndexSpaceExpression*> expressions;
       expressions.reserve(exprs.size());
-      for (std::set<IndexSpaceExpression*>::const_iterator it = exprs.begin();
+      for (SetView<IndexSpaceExpression*>::const_iterator it = exprs.begin();
            it != exprs.end(); it++)
       {
         // Remove any empty expressions on the way in
@@ -13664,12 +13664,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     IndexSpaceExpression* Runtime::intersect_index_spaces(
-        const std::set<IndexSpaceExpression*>& exprs)
+        const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!exprs.empty());
-      for (std::set<IndexSpaceExpression*>::const_iterator it = exprs.begin();
+      for (SetView<IndexSpaceExpression*>::const_iterator it = exprs.begin();
            it != exprs.end(); it++)
         assert((*it)->is_valid());
 #endif

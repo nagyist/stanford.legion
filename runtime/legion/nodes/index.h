@@ -333,7 +333,7 @@ namespace Legion {
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
           CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0) = 0;
       virtual IndexSpaceExpression* create_from_rectangles(
-          const std::set<Domain>& rectangles) = 0;
+          const local::set<Domain>& rectangles) = 0;
       virtual PieceIteratorImpl* create_piece_iterator(
           const void* piece_list, size_t piece_list_size,
           IndexSpaceNode* privilege_node) = 0;
@@ -553,7 +553,7 @@ namespace Legion {
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
           CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0);
       virtual IndexSpaceExpression* create_from_rectangles(
-          const std::set<Domain>& rectangles);
+          const local::set<Domain>& rectangles);
       virtual PieceIteratorImpl* create_piece_iterator(
           const void* piece_list, size_t piece_list_size,
           IndexSpaceNode* privilege_node);
@@ -710,11 +710,11 @@ namespace Legion {
     public:
       virtual IndexSpaceExpression* inline_union(IndexSpaceExpression* rhs);
       virtual IndexSpaceExpression* inline_union(
-          const std::set<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs);
       virtual IndexSpaceExpression* inline_intersection(
           IndexSpaceExpression* rhs);
       virtual IndexSpaceExpression* inline_intersection(
-          const std::set<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs);
       virtual IndexSpaceExpression* inline_subtraction(
           IndexSpaceExpression* rhs);
       virtual uint64_t get_canonical_hash(void);

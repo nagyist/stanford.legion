@@ -681,7 +681,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceNodeT<DIM, T>::create_from_rectangles(
-        const std::set<Domain>& rects)
+        const local::set<Domain>& rects)
     //--------------------------------------------------------------------------
     {
       return create_from_rectangles_internal<DIM, T>(rects);
@@ -3113,7 +3113,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceNodeT<DIM, T>::inline_union(
-        const std::set<IndexSpaceExpression*>& exprs)
+        const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
       return inline_union_internal<DIM, T>(exprs);
@@ -3131,7 +3131,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceNodeT<DIM, T>::inline_intersection(
-        const std::set<IndexSpaceExpression*>& exprs)
+        const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
       return inline_intersection_internal<DIM, T>(exprs);

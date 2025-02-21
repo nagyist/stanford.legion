@@ -773,17 +773,6 @@ namespace Legion {
           LegionAllocator<std::pair<const T1, T2>, RUNTIME_LIFETIME> >;
     }  // namespace rt
 
-    template<
-        typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME,
-        typename COMPARATOR = std::less<T> >
-    using LegionSet = std::set<T, COMPARATOR, LegionAllocator<T, L> >;
-
-    template<typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME>
-    using LegionList = std::list<T, LegionAllocator<T, L> >;
-
-    template<typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME>
-    using LegionDeque = std::deque<T, LegionAllocator<T, L> >;
-
     template<typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME>
     using LegionVector = std::vector<T, LegionAllocator<T, L> >;
 
@@ -792,7 +781,39 @@ namespace Legion {
         typename COMPARATOR = std::less<T1> >
     using LegionMap = std::map<
         T1, T2, COMPARATOR, LegionAllocator<std::pair<const T1, T2>, L> >;
-  };  // namespace Internal
-};  // namespace Legion
+
+    // Some helper classes to provide views so that we can deal with underlying
+    // data structures with different allocators
+    template<typename T, typename COMPARATOR = std::less<T> >
+    class SetView {
+    public:
+      using const_iterator = typename std::set<T, COMPARATOR>::const_iterator;
+    public:
+      template<typename ALLOCATOR>
+      inline SetView(const std::set<T, COMPARATOR, ALLOCATOR>& set)
+        : start(set.cbegin()), stop(set.cend()), full_size(set.size())
+      { }
+    public:
+      inline size_t size(void) const { return full_size; }
+      inline bool empty(void) const { return (start == stop); }
+      inline const_iterator begin(void) const { return start; }
+      inline const_iterator end(void) const { return stop; }
+      inline const_iterator cbegin(void) const { return start; }
+      inline const_iterator cend(void) const { return stop; }
+      inline const_iterator find(T value) const
+      {
+        const_iterator it = std::lower_bound(start, stop, value);
+        if ((it != stop) && ((*it) == value))
+          return it;
+        else
+          return stop;
+      }
+    private:
+      const const_iterator start, stop;
+      const size_t full_size;
+    };
+
+  }  // namespace Internal
+}  // namespace Legion
 
 #endif  // __LEGION_ALLOCATION__

@@ -359,9 +359,7 @@ namespace Legion {
       // Keep track of the layouts associated with this field space
       // Index them by their hash of their field mask to help
       // differentiate them.
-      std::map<
-          LEGION_FIELD_MASK_FIELD_TYPE,
-          LegionList<LayoutDescription*, LONG_LIFETIME> >
+      std::map<LEGION_FIELD_MASK_FIELD_TYPE, lng::list<LayoutDescription*> >
           layouts;
     private:
       LegionMap<SemanticTag, SemanticInfo> semantic_info;

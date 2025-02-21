@@ -394,7 +394,7 @@ namespace Legion {
         ContextID ctx, const FieldMask& deleted_mask)
     //--------------------------------------------------------------------------
     {
-      for (LegionList<FieldState>::iterator it = field_states.begin();
+      for (shrt::list<FieldState>::iterator it = field_states.begin();
            it != field_states.end();
            /*nothing*/)
       {
@@ -1014,8 +1014,7 @@ namespace Legion {
       if ((previous_child == nullptr) || !owner->are_all_children_disjoint())
       {
         // Now traverse any open children and record dependences on them as well
-        for (LegionList<FieldState, SHORT_LIFETIME>::const_iterator fit =
-                 field_states.begin();
+        for (shrt::list<FieldState>::const_iterator fit = field_states.begin();
              fit != field_states.end(); fit++)
         {
           const FieldMask field_overlap = fit->valid_fields() & refinement_mask;
@@ -1187,8 +1186,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // This will promote the child up to a read-write field state
-      for (LegionList<FieldState, SHORT_LIFETIME>::iterator it =
-               field_states.begin();
+      for (shrt::list<FieldState>::iterator it = field_states.begin();
            it != field_states.end(); it++)
       {
         const FieldMask overlap = mask & it->valid_fields();

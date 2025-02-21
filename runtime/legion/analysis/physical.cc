@@ -390,9 +390,9 @@ namespace Legion {
       std::vector<IndexSpaceExpression*> to_remove;
       if (remote_exprs.size() > 1)
       {
-        LegionList<FieldSet<IndexSpaceExpression*> > field_sets;
+        local::list<FieldSet<IndexSpaceExpression*> > field_sets;
         remote_exprs.compute_field_sets(FieldMask(), field_sets);
-        for (LegionList<FieldSet<IndexSpaceExpression*> >::const_iterator fit =
+        for (local::list<FieldSet<IndexSpaceExpression*> >::const_iterator fit =
                  field_sets.begin();
              fit != field_sets.end(); fit++)
         {

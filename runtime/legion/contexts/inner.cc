@@ -6262,7 +6262,7 @@ namespace Legion {
       }
       // Also unmap any of our inline mapped physical regions
       AutoLock i_lock(inline_lock);
-      for (LegionList<PhysicalRegion, CONTEXT_LIFETIME>::const_iterator it =
+      for (ctx::list<PhysicalRegion>::const_iterator it =
                inline_regions.begin();
            it != inline_regions.end(); it++)
       {

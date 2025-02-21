@@ -107,11 +107,11 @@ namespace Legion {
         AutoLock o_lock(layout_lock, 1, false /*exclusive*/);
         std::map<
             LEGION_FIELD_MASK_FIELD_TYPE,
-            LegionList<std::pair<FieldMask, FieldMask> > >::const_iterator
+            lng::list<std::pair<FieldMask, FieldMask> > >::const_iterator
             finder = comp_cache.find(hash_key);
         if (finder != comp_cache.end())
         {
-          for (LegionList<std::pair<FieldMask, FieldMask> >::const_iterator it =
+          for (lng::list<std::pair<FieldMask, FieldMask> >::const_iterator it =
                    finder->second.begin();
                it != finder->second.end(); it++)
           {

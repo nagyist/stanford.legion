@@ -140,7 +140,7 @@ namespace Legion {
     {
       FieldMask compressed;
       bool found_in_cache = false;
-      for (LegionDeque<std::pair<FieldMask, FieldMask> >::const_iterator it =
+      for (op::deque<std::pair<FieldMask, FieldMask> >::const_iterator it =
                compressed_cache.begin();
            it != compressed_cache.end(); it++)
       {

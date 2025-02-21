@@ -25,27 +25,27 @@ namespace Legion {
     template<typename T>
     inline void compute_field_sets(
         FieldMask universe_mask, const LegionMap<T, FieldMask>& inputs,
-        LegionList<FieldSet<T> >& output_sets)
+        local::list<FieldSet<T> >& output_sets)
     //--------------------------------------------------------------------------
     {
       // Special cases for empty and size 1 sets
       if (inputs.empty())
       {
         if (!!universe_mask)
-          output_sets.push_back(FieldSet<T>(universe_mask));
+          output_sets.emplace_back(FieldSet<T>(universe_mask));
         return;
       }
       else if (inputs.size() == 1)
       {
         typename LegionMap<T, FieldMask>::const_iterator first = inputs.begin();
-        output_sets.push_back(FieldSet<T>(first->second));
+        output_sets.emplace_back(FieldSet<T>(first->second));
         FieldSet<T>& last = output_sets.back();
         last.elements.insert(first->first);
         if (!!universe_mask)
         {
           universe_mask -= first->second;
           if (!!universe_mask)
-            output_sets.push_back(FieldSet<T>(universe_mask));
+            output_sets.emplace_back(FieldSet<T>(universe_mask));
         }
         return;
       }
@@ -60,7 +60,7 @@ namespace Legion {
           universe_mask -= pit->second;
         FieldMask remaining = pit->second;
         // Insert this event into the precondition sets
-        for (typename LegionList<FieldSet<T> >::iterator it =
+        for (typename local::list<FieldSet<T> >::iterator it =
                  output_sets.begin();
              it != output_sets.end(); it++)
         {
@@ -81,7 +81,7 @@ namespace Legion {
           {
             // Leave the existing set and make it the difference
             it->set_mask -= overlap;
-            output_sets.push_back(FieldSet<T>(overlap));
+            output_sets.emplace_back(FieldSet<T>(overlap));
             FieldSet<T>& last = output_sets.back();
             last.elements = it->elements;
             last.elements.insert(pit->first);
@@ -103,7 +103,7 @@ namespace Legion {
           // place and reduce scope, add new one at the
           // end for overlap, continue iterating for right one
           it->set_mask -= overlap;
-          const std::set<T>& temp_elements = it->elements;
+          const local::set<T>& temp_elements = it->elements;
           it = output_sets.insert(it, FieldSet<T>(overlap));
           it->elements = temp_elements;
           it->elements.insert(pit->first);
@@ -112,7 +112,7 @@ namespace Legion {
         }
         if (!inserted)
         {
-          output_sets.push_back(FieldSet<T>(remaining));
+          output_sets.emplace_back(FieldSet<T>(remaining));
           FieldSet<T>& last = output_sets.back();
           last.elements.insert(pit->first);
         }
@@ -122,7 +122,7 @@ namespace Legion {
       // Put it on the front because it is the copy with
       // no elements so it can start right away!
       if (!!universe_mask)
-        output_sets.push_front(FieldSet<T>(universe_mask));
+        output_sets.emplace_front(FieldSet<T>(universe_mask));
     }
 
     // This is a generalization of the above method but takes a list of
@@ -131,27 +131,27 @@ namespace Legion {
     template<typename T, typename CT>
     inline void compute_field_sets(
         FieldMask universe_mask, const LegionMap<T, FieldMask>& inputs,
-        LegionList<CT>& output_sets)
+        local::list<CT>& output_sets)
     //--------------------------------------------------------------------------
     {
       // Special cases for empty and size 1 sets
       if (inputs.empty())
       {
         if (!!universe_mask)
-          output_sets.push_back(CT(universe_mask));
+          output_sets.emplace_back(CT(universe_mask));
         return;
       }
       else if (inputs.size() == 1)
       {
         typename LegionMap<T, FieldMask>::const_iterator first = inputs.begin();
-        output_sets.push_back(CT(first->second));
+        output_sets.emplace_back(CT(first->second));
         CT& last = output_sets.back();
         last.elements.insert(first->first);
         if (!!universe_mask)
         {
           universe_mask -= first->second;
           if (!!universe_mask)
-            output_sets.push_back(CT(universe_mask));
+            output_sets.emplace_back(CT(universe_mask));
         }
         return;
       }
@@ -166,7 +166,7 @@ namespace Legion {
           universe_mask -= pit->second;
         FieldMask remaining = pit->second;
         // Insert this event into the precondition sets
-        for (typename LegionList<CT>::iterator it = output_sets.begin();
+        for (typename local::list<CT>::iterator it = output_sets.begin();
              it != output_sets.end(); it++)
         {
           // Easy case, check for equality
@@ -186,7 +186,7 @@ namespace Legion {
           {
             // Leave the existing set and make it the difference
             it->set_mask -= overlap;
-            output_sets.push_back(CT(overlap));
+            output_sets.emplace_back(CT(overlap));
             CT& last = output_sets.back();
             last.elements = it->elements;
             last.elements.insert(pit->first);
@@ -208,7 +208,7 @@ namespace Legion {
           // place and reduce scope, add new one at the
           // end for overlap, continue iterating for right one
           it->set_mask -= overlap;
-          const std::set<T>& temp_elements = it->elements;
+          const local::set<T>& temp_elements = it->elements;
           it = output_sets.insert(it, CT(overlap));
           it->elements = temp_elements;
           it->elements.insert(pit->first);
@@ -217,7 +217,7 @@ namespace Legion {
         }
         if (!inserted)
         {
-          output_sets.push_back(CT(remaining));
+          output_sets.emplace_back(CT(remaining));
           CT& last = output_sets.back();
           last.elements.insert(pit->first);
         }
@@ -543,7 +543,7 @@ namespace Legion {
           {
             it->second -= filter;
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           if (!to_delete.empty())
           {
@@ -826,32 +826,32 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L, bool D>
     inline void FieldMaskSet<T, L, D>::compute_field_sets(
-        FieldMask universe_mask, LegionList<FieldSet<T*> >& output_sets) const
+        FieldMask universe_mask, local::list<FieldSet<T*> >& output_sets) const
     //--------------------------------------------------------------------------
     {
       // Handle special cases for single entry and single fields
       if (empty())
       {
         if (!!universe_mask)
-          output_sets.push_back(FieldSet<T*>(universe_mask));
+          output_sets.emplace_back(FieldSet<T*>(universe_mask));
         return;
       }
       else if (single)
       {
-        output_sets.push_back(FieldSet<T*>(valid_fields));
+        output_sets.emplace_back(FieldSet<T*>(valid_fields));
         FieldSet<T*>& last = output_sets.back();
         last.elements.insert(entries.single_entry);
         if (!!universe_mask)
         {
           universe_mask -= valid_fields;
           if (!!universe_mask)
-            output_sets.push_back(FieldSet<T*>(universe_mask));
+            output_sets.emplace_back(FieldSet<T*>(universe_mask));
         }
         return;
       }
       else if (valid_fields.pop_count() == 1)
       {
-        output_sets.push_back(FieldSet<T*>(valid_fields));
+        output_sets.emplace_back(FieldSet<T*>(valid_fields));
         FieldSet<T*>& last = output_sets.back();
         bool has_empty = false;
         for (const_iterator pit = this->begin(); pit != this->end(); pit++)
@@ -863,7 +863,7 @@ namespace Legion {
         }
         if (has_empty)
         {
-          output_sets.push_back(FieldSet<T*>(FieldMask()));
+          output_sets.emplace_back(FieldSet<T*>(FieldMask()));
           last = output_sets.back();
           for (const_iterator pit = this->begin(); pit != this->end(); pit++)
             if (!pit->second)
@@ -873,7 +873,7 @@ namespace Legion {
         {
           universe_mask -= valid_fields;
           if (!!universe_mask)
-            output_sets.push_back(FieldSet<T*>(universe_mask));
+            output_sets.emplace_back(FieldSet<T*>(universe_mask));
         }
         return;
       }
@@ -887,7 +887,7 @@ namespace Legion {
           universe_mask -= pit->second;
         FieldMask remaining = pit->second;
         // Insert this event into the precondition sets
-        for (typename LegionList<FieldSet<T*> >::iterator it =
+        for (typename local::list<FieldSet<T*> >::iterator it =
                  output_sets.begin();
              it != output_sets.end(); it++)
         {
@@ -908,7 +908,7 @@ namespace Legion {
           {
             // Leave the existing set and make it the difference
             it->set_mask -= overlap;
-            output_sets.push_back(FieldSet<T*>(overlap));
+            output_sets.emplace_back(FieldSet<T*>(overlap));
             FieldSet<T*>& last = output_sets.back();
             last.elements = it->elements;
             last.elements.insert(pit->first);
@@ -930,7 +930,7 @@ namespace Legion {
           // place and reduce scope, add new one at the
           // end for overlap, continue iterating for right one
           it->set_mask -= overlap;
-          const std::set<T*>& temp_elements = it->elements;
+          const local::set<T*>& temp_elements = it->elements;
           it = output_sets.insert(it, FieldSet<T*>(overlap));
           it->elements = temp_elements;
           it->elements.insert(pit->first);
@@ -939,7 +939,7 @@ namespace Legion {
         }
         if (!inserted)
         {
-          output_sets.push_back(FieldSet<T*>(remaining));
+          output_sets.emplace_back(FieldSet<T*>(remaining));
           FieldSet<T*>& last = output_sets.back();
           last.elements.insert(pit->first);
         }
@@ -949,7 +949,7 @@ namespace Legion {
       // Put it on the front because it is the copy with
       // no elements so it can start right away!
       if (!!universe_mask)
-        output_sets.push_front(FieldSet<T*>(universe_mask));
+        output_sets.emplace_front(FieldSet<T*>(universe_mask));
     }
 
     //--------------------------------------------------------------------------

@@ -1194,9 +1194,9 @@ namespace Legion {
                const_iterator it = intermediate.begin();
            it != intermediate.end(); it++)
         expr_fields.insert(it->first, it->second.get_valid_mask());
-      LegionList<FieldSet<IndexSpaceExpression*> > field_exprs;
+      local::list<FieldSet<IndexSpaceExpression*> > field_exprs;
       expr_fields.compute_field_sets(FieldMask(), field_exprs);
-      for (LegionList<FieldSet<IndexSpaceExpression*> >::const_iterator eit =
+      for (local::list<FieldSet<IndexSpaceExpression*> >::const_iterator eit =
                field_exprs.begin();
            eit != field_exprs.end(); eit++)
       {

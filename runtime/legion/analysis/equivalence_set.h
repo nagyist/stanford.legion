@@ -333,7 +333,8 @@ namespace Legion {
           FieldMaskSet<EquivalenceSet>& created_sets,
           FieldMaskSet<EquivalenceSet>& unique_sources,
           LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-          std::map<EquivalenceSet*, LegionList<SourceState> >& creation_sources,
+          std::map<EquivalenceSet*, local::list<SourceState> >&
+              creation_sources,
           const CollectiveMapping& target_mapping,
           const std::vector<EqSetTracker*>& targets);
       EquivalenceSet* find_congruent_existing_equivalence_set(
@@ -345,7 +346,7 @@ namespace Legion {
           LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_notify);
       RtEvent initialize_new_equivalence_set(
           EquivalenceSet* set, const FieldMask& mask, bool filter_invalidations,
-          std::map<EquivalenceSet*, LegionList<SourceState> >&
+          std::map<EquivalenceSet*, local::list<SourceState> >&
               creation_sources);
       void finalize_equivalence_sets(
           RtUserEvent compute_event, InnerContext* enclosing,

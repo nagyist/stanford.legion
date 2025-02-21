@@ -369,10 +369,10 @@ namespace Legion {
         LegionMap<InstanceView*, FieldMaskSet<IndexSpaceExpression> >& updates)
     //--------------------------------------------------------------------------
     {
-      LegionList<FieldSet<IndexSpaceExpression*> > field_sets;
+      local::list<FieldSet<IndexSpaceExpression*> > field_sets;
       valid_exprs.compute_field_sets(mask, field_sets);
       InstanceView* local_view = view;
-      for (LegionList<FieldSet<IndexSpaceExpression*> >::const_iterator fit =
+      for (local::list<FieldSet<IndexSpaceExpression*> >::const_iterator fit =
                field_sets.begin();
            fit != field_sets.end(); fit++)
       {
@@ -488,9 +488,9 @@ namespace Legion {
       if (!valid_exprs.empty())
       {
         // Sort into field sets, union, and then compare to the expression
-        LegionList<FieldSet<IndexSpaceExpression*> > field_sets;
+        local::list<FieldSet<IndexSpaceExpression*> > field_sets;
         valid_exprs.compute_field_sets(allvalid_mask, field_sets);
-        for (LegionList<FieldSet<IndexSpaceExpression*> >::const_iterator it =
+        for (local::list<FieldSet<IndexSpaceExpression*> >::const_iterator it =
                  field_sets.begin();
              it != field_sets.end(); it++)
         {
@@ -531,9 +531,9 @@ namespace Legion {
         // new subfield entries along them
         dominated_mask |= mask;
         // Sort into field sets, union, and then compare to the expression
-        LegionList<FieldSet<IndexSpaceExpression*> > field_sets;
+        local::list<FieldSet<IndexSpaceExpression*> > field_sets;
         valid_exprs.compute_field_sets(mask, field_sets);
-        for (LegionList<FieldSet<IndexSpaceExpression*> >::const_iterator it =
+        for (local::list<FieldSet<IndexSpaceExpression*> >::const_iterator it =
                  field_sets.begin();
              it != field_sets.end(); it++)
         {
@@ -1502,9 +1502,9 @@ namespace Legion {
                 continue;
               if (partial_valid_exprs.size() > 1)
               {
-                LegionList<FieldSet<IndexSpaceExpression*> > field_sets;
+                local::list<FieldSet<IndexSpaceExpression*> > field_sets;
                 partial_valid_exprs.compute_field_sets(FieldMask(), field_sets);
-                for (LegionList<
+                for (local::list<
                          FieldSet<IndexSpaceExpression*> >::const_iterator it =
                          field_sets.begin();
                      it != field_sets.end(); it++)
@@ -1843,10 +1843,10 @@ namespace Legion {
               {
                 // Last chance, see if the union of all the partial valid
                 // expressions are enough to cover the instance
-                LegionList<FieldSet<IndexSpaceExpression*> > expr_field_sets;
+                local::list<FieldSet<IndexSpaceExpression*> > expr_field_sets;
                 partial_valid_exprs.compute_field_sets(
                     invalid_mask, expr_field_sets);
-                for (LegionList<
+                for (local::list<
                          FieldSet<IndexSpaceExpression*> >::const_iterator it =
                          expr_field_sets.begin();
                      it != expr_field_sets.end(); it++)
@@ -3493,10 +3493,10 @@ namespace Legion {
       }
       // Sort these into grouped field sets so we can union them before
       // doing the subtraction to figure out what we can record
-      LegionList<FieldSet<IndexSpaceExpression*> > restricted_sets;
+      local::list<FieldSet<IndexSpaceExpression*> > restricted_sets;
       restrictions.compute_field_sets(record_mask, restricted_sets);
       bool need_partial_rebuild = false;
-      for (LegionList<FieldSet<IndexSpaceExpression*> >::const_iterator rit =
+      for (local::list<FieldSet<IndexSpaceExpression*> >::const_iterator rit =
                restricted_sets.begin();
            rit != restricted_sets.end(); rit++)
       {
@@ -4071,9 +4071,9 @@ namespace Legion {
       assert(!!filter_mask);
 #endif
       // compute the field sets and take the field differences
-      LegionList<FieldSet<IndexSpaceExpression*> > field_sets;
+      local::list<FieldSet<IndexSpaceExpression*> > field_sets;
       restricted_sets.compute_field_sets(filter_mask, field_sets);
-      for (LegionList<FieldSet<IndexSpaceExpression*> >::iterator it =
+      for (local::list<FieldSet<IndexSpaceExpression*> >::iterator it =
                field_sets.begin();
            it != field_sets.end(); it++)
       {
@@ -4299,9 +4299,9 @@ namespace Legion {
           if (!applied_reductions.empty())
           {
             // Handle the partial cases here
-            LegionList<FieldSet<IndexSpaceExpression*> > reduced_sets;
+            local::list<FieldSet<IndexSpaceExpression*> > reduced_sets;
             applied_reductions.compute_field_sets(FieldMask(), reduced_sets);
-            for (LegionList<FieldSet<IndexSpaceExpression*> >::iterator it =
+            for (local::list<FieldSet<IndexSpaceExpression*> >::iterator it =
                      reduced_sets.begin();
                  it != reduced_sets.end(); it++)
             {
@@ -4472,12 +4472,12 @@ namespace Legion {
             {
               // Group expressions by fields since unions
               // and differences are expensive and hard to group later
-              LegionList<FieldSet<IndexSpaceExpression*> > expr_groups;
+              local::list<FieldSet<IndexSpaceExpression*> > expr_groups;
               partial_valid_exprs.compute_field_sets(FieldMask(), expr_groups);
               // Clear this in case we want to use it later
               partial_valid_exprs.clear();
               // Compute differences for each of the field groups
-              for (LegionList<FieldSet<IndexSpaceExpression*> >::const_iterator
+              for (local::list<FieldSet<IndexSpaceExpression*> >::const_iterator
                        it = expr_groups.begin();
                    it != expr_groups.end(); it++)
               {
@@ -6214,9 +6214,9 @@ namespace Legion {
         // Add in the new sets
         if (!to_union.empty())
         {
-          LegionList<FieldSet<IndexSpaceExpression*> > expr_sets;
+          local::list<FieldSet<IndexSpaceExpression*> > expr_sets;
           to_union.compute_field_sets(FieldMask(), expr_sets);
-          for (LegionList<FieldSet<IndexSpaceExpression*> >::iterator it =
+          for (local::list<FieldSet<IndexSpaceExpression*> >::iterator it =
                    expr_sets.begin();
                it != expr_sets.end(); it++)
           {
@@ -8322,9 +8322,9 @@ namespace Legion {
       FieldMaskSet<IndexSpaceExpression> unique_dirty_exprs;
       if (tracing_dirty_fields != nullptr)
       {
-        LegionList<FieldSet<IndexSpaceExpression*> > field_sets;
+        local::list<FieldSet<IndexSpaceExpression*> > field_sets;
         tracing_dirty_fields->compute_field_sets(FieldMask(), field_sets);
-        for (LegionList<FieldSet<IndexSpaceExpression*> >::const_iterator it =
+        for (local::list<FieldSet<IndexSpaceExpression*> >::const_iterator it =
                  field_sets.begin();
              it != field_sets.end(); it++)
         {
@@ -11157,17 +11157,17 @@ namespace Legion {
       // as we can use those to check for dominating the new set of rectangles
       // so we might be able to skip making a new equivalence set
       FieldMaskSet<EquivalenceSet> unique_sources;
-      std::map<EquivalenceSet*, LegionList<SourceState> > set_sources;
+      std::map<EquivalenceSet*, local::list<SourceState> > set_sources;
       {
         FieldMask multiple_sources;
         for (std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >::
                  const_iterator eit = creation_srcs.begin();
              eit != creation_srcs.end(); eit++)
         {
-          LegionList<SourceState>& src_rects = set_sources[eit->first];
+          local::list<SourceState>& src_rects = set_sources[eit->first];
           compute_field_sets(FieldMask(), eit->second, src_rects);
           FieldMask src_fields;
-          for (LegionList<SourceState>::const_iterator it = src_rects.begin();
+          for (local::list<SourceState>::const_iterator it = src_rects.begin();
                it != src_rects.end(); it++)
             src_fields |= it->set_mask;
           if (!!multiple_sources)
@@ -11214,7 +11214,7 @@ namespace Legion {
       }
       // Sort the rectangles into field sets and make an equivlaence set
       // for each of them if their sources are not the same
-      LegionList<FieldSet<Domain> > rectangle_sets;
+      local::list<FieldSet<Domain> > rectangle_sets;
       // In release mode we just leave the unverse mask empty as that tells
       // the field sets routine to just make sets for the represented field
       // In debug mode, we populate the universe mask to make sure it aligns
@@ -11230,7 +11230,8 @@ namespace Legion {
       FieldMaskSet<EquivalenceSet> created_sets;
       IndexSpaceExpression* tracker_expr = get_tracker_expression();
       const ReferenceSource ref_kind = get_reference_source_kind();
-      for (LegionList<FieldSet<Domain> >::iterator rit = rectangle_sets.begin();
+      for (local::list<FieldSet<Domain> >::iterator rit =
+               rectangle_sets.begin();
            rit != rectangle_sets.end(); rit++)
       {
 #ifdef DEBUG_LEGION
@@ -11489,7 +11490,7 @@ namespace Legion {
         FieldMaskSet<EquivalenceSet>& created_sets,
         FieldMaskSet<EquivalenceSet>& unique_sources,
         LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-        std::map<EquivalenceSet*, LegionList<SourceState> >& set_sources,
+        std::map<EquivalenceSet*, local::list<SourceState> >& set_sources,
         const CollectiveMapping& target_mapping,
         const std::vector<EqSetTracker*>& targets)
     //--------------------------------------------------------------------------
@@ -11507,12 +11508,12 @@ namespace Legion {
         const FieldMask src_mask = dest.set_mask & eit->second;
         if (!src_mask)
           continue;
-        std::map<EquivalenceSet*, LegionList<SourceState> >::iterator
+        std::map<EquivalenceSet*, local::list<SourceState> >::iterator
             source_finder = set_sources.find(eit->first);
 #ifdef DEBUG_LEGION
         assert(source_finder != set_sources.end());
 #endif
-        for (LegionList<SourceState>::iterator sit =
+        for (local::list<SourceState>::iterator sit =
                  source_finder->second.begin();
              sit != source_finder->second.end();
              /*nothing*/)
@@ -11650,7 +11651,7 @@ namespace Legion {
             sit->set_mask -= overlap;
             if (!sit->set_mask)
             {
-              LegionList<SourceState>::iterator to_delete = sit++;
+              local::list<SourceState>::iterator to_delete = sit++;
               source_finder->second.erase(to_delete);
             }
             else
@@ -11773,7 +11774,7 @@ namespace Legion {
     RtEvent EqSetTracker::initialize_new_equivalence_set(
         EquivalenceSet* target, const FieldMask& mask,
         bool filter_invalidations,
-        std::map<EquivalenceSet*, LegionList<SourceState> >& set_sources)
+        std::map<EquivalenceSet*, local::list<SourceState> >& set_sources)
     //--------------------------------------------------------------------------
     {
       std::vector<RtEvent> ready_events;
@@ -11784,12 +11785,12 @@ namespace Legion {
         if (filtered.exists())
           ready_events.push_back(filtered);
       }
-      for (std::map<EquivalenceSet*, LegionList<SourceState> >::iterator eit =
+      for (std::map<EquivalenceSet*, local::list<SourceState> >::iterator eit =
                set_sources.begin();
            eit != set_sources.end();
            /*nothing*/)
       {
-        for (LegionList<SourceState>::iterator sit = eit->second.begin();
+        for (local::list<SourceState>::iterator sit = eit->second.begin();
              sit != eit->second.end();
              /*nothing*/)
         {
@@ -11834,7 +11835,7 @@ namespace Legion {
           sit->set_mask -= overlap;
           if (!sit->set_mask)
           {
-            LegionList<SourceState>::iterator to_delete = sit++;
+            local::list<SourceState>::iterator to_delete = sit++;
             eit->second.erase(to_delete);
           }
           else
@@ -11842,7 +11843,7 @@ namespace Legion {
         }
         if (eit->second.empty())
         {
-          std::map<EquivalenceSet*, LegionList<SourceState> >::iterator
+          std::map<EquivalenceSet*, local::list<SourceState> >::iterator
               to_delete = eit++;
           set_sources.erase(to_delete);
         }
@@ -12338,7 +12339,7 @@ namespace Legion {
       LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
           local_finder = to_notify.find(runtime->address_space);
       EqSetTracker* local_target = nullptr;
-      std::set<Domain> rectangles_set;
+      local::set<Domain> rectangles_set;
       // Check to see if we have a local target to notify here
       if (target_mapping.contains(runtime->address_space))
       {
