@@ -4,7 +4,18 @@ repos:
     rev: v19.1.7
     hooks:
       - id: clang-format
-        name: clang-format
+        name: legion-format
+        description: Check if all Legion Runtime files are formatted
         entry: clang-format
         files: ^runtime/legion/.*\.(cc|inl|h)$
         args: ["-i", "-style=file:runtime/legion/.clang-format"]
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: legion-prof-format
+        description: Check if all Legion Prof files follow the rustfmt style
+        entry: rustfmt
+        language: system
+        files: ^tools/legion_prof_rs/src/.*\.rs$
+        args: ["--check", "--color", "always"]
+
