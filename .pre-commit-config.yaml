@@ -7,7 +7,7 @@ repos:
         name: legion-format
         description: Check if all Legion Runtime files are formatted
         entry: clang-format
-        files: ^runtime/legion/.*\.(cc|inl|h)$
+        files: ^runtime/legion/.*\.(cc|cu|inl|h)$
         args: ["-i", "-style=file:runtime/legion/.clang-format"]
   - repo: local
     hooks:
