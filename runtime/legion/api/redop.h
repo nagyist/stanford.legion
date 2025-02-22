@@ -16,6 +16,7 @@
 #ifndef __LEGION_REDOP_H__
 #define __LEGION_REDOP_H__
 
+#include <atomic>
 #include <cstring>
 
 #include "legion/api/config.h"
