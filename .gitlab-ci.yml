@@ -1417,4 +1417,4 @@ check_pre_commit:
     - when: never
   <<: [*linux, *image_2404, *pre_commit_check]
   variables:
-    <<: [*gcc12, *cxx17_normal, *short]
+    <<: [*gcc12, *cxx17_normal, *short, *prof]
