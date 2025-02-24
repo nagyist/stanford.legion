@@ -73,7 +73,7 @@ namespace Legion {
           const FieldMaskSet<LogicalView>& total_valid_views);
       void traverse_partial(
           const FieldMask& mask,
-          const LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+          const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
               partial_valid_views);
     protected:
       CollectiveView* const collective;
@@ -113,7 +113,7 @@ namespace Legion {
           const FieldMaskSet<IndexSpaceExpression>& exprs);
       void visit_leaf(
           const FieldMask& mask, InnerContext* context, RegionTreeID tid,
-          LegionMap<InstanceView*, FieldMaskSet<IndexSpaceExpression> >&
+          local::map<InstanceView*, FieldMaskSet<IndexSpaceExpression> >&
               updates);
     public:
       InstanceView* const view;
@@ -160,7 +160,7 @@ namespace Legion {
       void visit_leaf(
           const FieldMask& mask, FieldMask& dominated_mask,
           InnerContext* context, RegionTreeID tree_id, CollectiveView* view,
-          LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+          local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
               non_dominated,
           IndexSpaceExpression* expr);
       // This version used by TraceViewSet::antialias_collective_view
@@ -253,9 +253,8 @@ namespace Legion {
           InnerContext* context, const FieldMask& mask,
           FieldMaskSet<EquivalenceSet>& eq_sets,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           FieldMaskSet<EqKDTree>& subscriptions, unsigned new_references,
           AddressSpaceID source, unsigned expected_responses,
           std::vector<RtEvent>& ready_events,
@@ -276,11 +275,12 @@ namespace Legion {
           const FieldMask& mask, EqKDTree* tree, AddressSpaceID source,
           std::vector<RtEvent>& invalidated_events);
       void cancel_subscriptions(
-          const LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_cancel,
+          const MapView<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_cancel,
           std::vector<RtEvent>* cancelled_events = nullptr);
       static void invalidate_subscriptions(
           EqKDTree* source,
-          LegionMap<AddressSpaceID, FieldMaskSet<EqSetTracker> >& subscribers,
+          const MapView<AddressSpaceID, FieldMaskSet<EqSetTracker> >&
+              subscribers,
           std::vector<RtEvent>& applied_events);
       static void handle_cancel_subscription(
           Deserializer& derez, AddressSpaceID source);
@@ -297,21 +297,18 @@ namespace Legion {
           AddressSpaceID source, const FieldMaskSet<EqKDTree>& new_subs);
       void record_creation_sets(
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects, AddressSpaceID source,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs);
+          op::map<EqKDTree*, Domain>& creation_rects, AddressSpaceID source,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs);
       void extract_creation_sets(
           const FieldMask& mask,
-          LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-          LegionMap<Domain, FieldMask>& create_now_rectangles,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs);
+          op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+          op::map<Domain, FieldMask>& create_now_rectangles,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs);
       void create_new_equivalence_sets(
           InnerContext* context, std::vector<RtEvent>& ready_events,
-          LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-          LegionMap<Domain, FieldMask>& create_now_rectangles,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+          op::map<Domain, FieldMask>& create_now_rectangles,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           const CollectiveMapping& target_mapping,
           const std::vector<EqSetTracker*>& targets);
       struct SourceState : public FieldSet<Domain> {
@@ -332,8 +329,8 @@ namespace Legion {
           FieldSet<Domain>& dest, std::vector<RtEvent>& ready_events,
           FieldMaskSet<EquivalenceSet>& created_sets,
           FieldMaskSet<EquivalenceSet>& unique_sources,
-          LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-          std::map<EquivalenceSet*, local::list<SourceState> >&
+          op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+          local::map<EquivalenceSet*, local::list<SourceState> >&
               creation_sources,
           const CollectiveMapping& target_mapping,
           const std::vector<EqSetTracker*>& targets);
@@ -342,11 +339,11 @@ namespace Legion {
           FieldMaskSet<EquivalenceSet>& created_sets, InnerContext* context);
       void extract_remote_notifications(
           const FieldMask& mask, AddressSpaceID local_space,
-          LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-          LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_notify);
+          op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+          op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_notify);
       RtEvent initialize_new_equivalence_set(
           EquivalenceSet* set, const FieldMask& mask, bool filter_invalidations,
-          std::map<EquivalenceSet*, local::list<SourceState> >&
+          local::map<EquivalenceSet*, local::list<SourceState> >&
               creation_sources);
       void finalize_equivalence_sets(
           RtUserEvent compute_event, InnerContext* enclosing,
@@ -384,11 +381,10 @@ namespace Legion {
       FieldMask pending_invalidations;
       // These all help with the creation of equivalence sets for which we
       // are the first request to access them
-      LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >* creation_requests;
-      LegionMap<Domain, FieldMask>* creation_rectangles;
-      std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >*
-          creation_sources;
-      LegionMap<unsigned, FieldMask>* remaining_responses;
+      op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >* creation_requests;
+      op::map<Domain, FieldMask>* creation_rectangles;
+      op::map<EquivalenceSet*, op::map<Domain, FieldMask> >* creation_sources;
+      shrt::map<unsigned, FieldMask>* remaining_responses;
     };
 
     /**
@@ -653,7 +649,7 @@ namespace Legion {
           IndexSpaceExpression* expr, const bool expr_covers,
           const FieldMask& user_mask,
           const std::vector<PhysicalManager*>& targets,
-          const LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          const VectorView<FieldMaskSet<InstanceView> >& target_views,
           const std::vector<IndividualView*>& source_views,
           const PhysicalTraceInfo& trace_info, const bool record_valid,
           const bool record_release = false);
@@ -663,7 +659,7 @@ namespace Legion {
           IndexSpaceExpression* expr, const bool expr_covers,
           const FieldMask& update_mask,
           const std::vector<PhysicalManager*>& targets,
-          const LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          const VectorView<FieldMaskSet<InstanceView> >& target_views,
           const std::vector<IndividualView*>& source_views,
           const PhysicalTraceInfo& trace_info, const bool skip_check = false,
           const ReductionOpID redop = 0,
@@ -681,7 +677,7 @@ namespace Legion {
           const bool expr_covers, const FieldMask& user_mask);
       void apply_reductions(
           const std::vector<PhysicalManager*>& targets,
-          const LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          const VectorView<FieldMaskSet<InstanceView> >& target_views,
           IndexSpaceExpression* expr, const bool expr_covers,
           const FieldMask& reduction_mask, CopyFillAggregator*& aggregator,
           CopyFillGuard* previous_guard, PhysicalAnalysis* analysis,
@@ -707,7 +703,7 @@ namespace Legion {
           IndexSpaceExpression* expr, const bool expr_covers,
           const FieldMask& restricted_mask,
           const std::vector<PhysicalManager*>& target_instances,
-          const LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          const VectorView<FieldMaskSet<InstanceView> >& target_views,
           PhysicalAnalysis* analysis, const PhysicalTraceInfo& trace_info,
           CopyFillAggregator*& aggregator);
       template<typename T>

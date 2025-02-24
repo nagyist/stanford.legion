@@ -34,7 +34,7 @@ namespace Legion {
         Operation* o, unsigned src_idx, unsigned dst_idx,
         const RegionRequirement& src_req, const RegionRequirement& dst_req,
         const InstanceSet& target_insts,
-        const LegionVector<FieldMaskSet<InstanceView> >& target_vws,
+        const op::vector<FieldMaskSet<InstanceView> >& target_vws,
         const std::vector<IndividualView*>& source_vws, const ApEvent pre,
         const ApEvent dst_ready, const PredEvent pred, const ReductionOpID red,
         const std::vector<unsigned>& src_idxes,
@@ -68,7 +68,7 @@ namespace Legion {
         const RegionUsage& dst_use, const LogicalRegion src_reg,
         const LogicalRegion dst_reg, const ApEvent dst_ready,
         std::vector<PhysicalManager*>&& target_insts,
-        LegionVector<FieldMaskSet<InstanceView> >&& target_vws,
+        op::vector<FieldMaskSet<InstanceView> >&& target_vws,
         std::vector<IndividualView*>&& source_vws, const ApEvent pre,
         const PredEvent pred, const ReductionOpID red,
         const std::vector<unsigned>& src_idxes,
@@ -168,7 +168,7 @@ namespace Legion {
       assert(target_instances.size() == target_views.size());
       assert(src_indexes.size() == dst_indexes.size());
 #endif
-      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -333,7 +333,7 @@ namespace Legion {
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
       std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
-      LegionVector<FieldMask> eq_masks(num_eq_sets);
+      op::vector<FieldMask> eq_masks(num_eq_sets);
       FieldMask src_mask;
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {
@@ -358,7 +358,7 @@ namespace Legion {
       size_t num_dsts;
       derez.deserialize(num_dsts);
       std::vector<PhysicalManager*> dst_instances(num_dsts);
-      LegionVector<FieldMaskSet<InstanceView> > dst_views(num_dsts);
+      op::vector<FieldMaskSet<InstanceView> > dst_views(num_dsts);
       for (unsigned idx1 = 0; idx1 < num_dsts; idx1++)
       {
         DistributedID did;

@@ -379,7 +379,7 @@ namespace Legion {
       assert(!remote_sets.empty());
 #endif
       FieldMaskSet<IndexSpaceExpression> remote_exprs;
-      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
         for (FieldMaskSet<EquivalenceSet>::const_iterator it =

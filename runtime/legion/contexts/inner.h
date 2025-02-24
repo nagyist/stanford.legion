@@ -454,9 +454,8 @@ namespace Legion {
           FieldMaskSet<EquivalenceSet>& eq_sets,
           FieldMaskSet<EqKDTree>& new_subscriptions,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           size_t expected_responses, std::vector<RtEvent>& ready_events);
       RtEvent report_output_registrations(
           EqSetTracker* target, AddressSpaceID target_space,
@@ -879,7 +878,6 @@ namespace Legion {
     public:
       virtual void initialize_region_tree_contexts(
           const std::vector<RegionRequirement>& clone_requirements,
-          const LegionVector<VersionInfo>& version_infos,
           const std::vector<ApUserEvent>& unmap_events);
       virtual EquivalenceSet* create_initial_equivalence_set(
           unsigned idx1, const RegionRequirement& req);
@@ -1033,7 +1031,7 @@ namespace Legion {
           CollectiveMapping* mapping = nullptr);
       void convert_analysis_views(
           const InstanceSet& targets,
-          LegionVector<FieldMaskSet<InstanceView> >& target_views);
+          op::vector<FieldMaskSet<InstanceView> >& target_views);
       IndividualView* create_instance_top_view(
           PhysicalManager* manager, AddressSpaceID source,
           CollectiveMapping* mapping = nullptr);

@@ -9838,8 +9838,8 @@ namespace Legion {
       FieldMaskSet<EquivalenceSet> eq_sets;
       std::vector<RtEvent> pending_sets;
       FieldMaskSet<EqKDTree> new_subscriptions;
-      std::map<EqKDTree*, Domain> creation_rects;
-      std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> > creation_srcs;
+      op::map<EqKDTree*, Domain> creation_rects;
+      op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
       std::map<ShardID, LegionMap<Domain, FieldMask> > remote_shard_rects;
       std::vector<unsigned> new_target_references(targets.size(), 0);
       expr->compute_equivalence_sets(
@@ -10201,8 +10201,8 @@ namespace Legion {
       FieldMaskSet<EquivalenceSet> eq_sets;
       std::vector<RtEvent> pending_sets;
       FieldMaskSet<EqKDTree> new_subscriptions;
-      std::map<EqKDTree*, Domain> creation_rects;
-      std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> > creation_srcs;
+      op::map<EqKDTree*, Domain> creation_rects;
+      op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
       LocalLock* tree_lock = nullptr;
       EqKDTree* tree = find_equivalence_set_kd_tree(req_index, tree_lock);
       std::vector<unsigned> new_target_references(num_targets, 0);

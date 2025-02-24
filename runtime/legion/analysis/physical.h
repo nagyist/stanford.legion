@@ -240,7 +240,7 @@ namespace Legion {
       bool parallel_traversals;
     protected:
       bool restricted;
-      LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> > remote_sets;
+      op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> > remote_sets;
       FieldMaskSet<LogicalView>* recorded_instances;
     protected:
       CollectiveMapping* collective_mapping;

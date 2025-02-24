@@ -108,7 +108,7 @@ namespace Legion {
         return defer_remote(perform_precondition, applied_events);
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
-      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -174,7 +174,7 @@ namespace Legion {
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
       std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
-      LegionVector<FieldMask> eq_masks(num_eq_sets);
+      op::vector<FieldMask> eq_masks(num_eq_sets);
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {
         DistributedID did;

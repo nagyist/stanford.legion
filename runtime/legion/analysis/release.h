@@ -37,7 +37,7 @@ namespace Legion {
           unsigned index, RegionNode* node, ApEvent precondition,
           ReleaseAnalysis* target,
           std::vector<PhysicalManager*>&& target_instances,
-          LegionVector<FieldMaskSet<InstanceView> >&& target_views,
+          op::vector<FieldMaskSet<InstanceView> >&& target_views,
           std::vector<IndividualView*>&& source_views,
           const PhysicalTraceInfo& info, CollectiveMapping* mapping,
           const bool first_local);

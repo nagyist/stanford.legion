@@ -316,7 +316,7 @@ namespace Legion {
     protected:
       std::vector<unsigned> parent_req_indexes;
       // The version infos for this task
-      LegionVector<VersionInfo> version_infos;
+      op::vector<VersionInfo> version_infos;
     protected:
       // Whether we have an optional future return value
       std::optional<size_t> future_return_size;

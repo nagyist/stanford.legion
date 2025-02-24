@@ -109,7 +109,7 @@ namespace Legion {
       public:
         inline bool empty(void) const { return vector.empty(); }
       public:
-        LegionVector<InstanceRef> vector;
+        op::vector<InstanceRef> vector;
       };
     public:
       InstanceSet(size_t init_size = 0);

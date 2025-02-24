@@ -192,8 +192,8 @@ namespace Legion {
         ~RendezvousResult(void);
       public:
         bool matches(const InstanceSet& insts) const;
-        static LegionVector<std::pair<DistributedID, FieldMask> >
-            init_instances(const InstanceSet& insts);
+        static op::vector<std::pair<DistributedID, FieldMask> > init_instances(
+            const InstanceSet& insts);
         bool finalize_rendezvous(
             CollectiveMapping* mapping,
             const FieldMaskSet<CollectiveResult>& views,
@@ -204,13 +204,13 @@ namespace Legion {
         InnerContext* const physical_ctx;
         const PendingRendezvousKey key;
         // These are the instances represented for this particular result
-        const LegionVector<std::pair<DistributedID, FieldMask> > instances;
+        const op::vector<std::pair<DistributedID, FieldMask> > instances;
         const RtUserEvent ready;
       public:
         // These are the places to put the results when ready
         std::vector<CollectiveMapping**> target_mappings;
         std::vector<bool*> target_first_locals;
-        std::vector<LegionVector<FieldMaskSet<InstanceView> >*> target_views;
+        std::vector<op::vector<FieldMaskSet<InstanceView> >*> target_views;
         std::vector<std::map<InstanceView*, size_t>*> target_arrivals;
       };
       struct CollectiveRendezvous {
@@ -233,7 +233,7 @@ namespace Legion {
           unsigned index, unsigned analysis, LogicalRegion region,
           const InstanceSet& targets, InnerContext* physical_ctx,
           CollectiveMapping*& analysis_mapping, bool& first_local,
-          LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          op::vector<FieldMaskSet<InstanceView> >& target_views,
           std::map<InstanceView*, size_t>& collective_arrivals);
       bool remove_pending_rendezvous(RendezvousResult* result);
       static void finalize_collective_mapping(
@@ -289,14 +289,14 @@ namespace Legion {
           LogicalRegion region, const InstanceSet& targets,
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
-          LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          op::vector<FieldMaskSet<InstanceView> >& target_views,
           std::map<InstanceView*, size_t>& collective_arrivals);
       // This always needs to happen on the origin node for the operation
       // so we override it in the case of slice task to handle the remote case
       virtual void rendezvous_collective_mapping(
           unsigned requirement_index, unsigned analysis_index,
           LogicalRegion region, RendezvousResult* result, AddressSpaceID source,
-          const LegionVector<std::pair<DistributedID, FieldMask> >& insts);
+          const op::vector<std::pair<DistributedID, FieldMask> >& insts);
       void rendezvous_collective_mapping(
           const RendezvousKey& key,
           std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);

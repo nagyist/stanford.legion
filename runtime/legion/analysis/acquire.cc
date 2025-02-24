@@ -179,7 +179,7 @@ namespace Legion {
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
       std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
-      LegionVector<FieldMask> eq_masks(num_eq_sets);
+      op::vector<FieldMask> eq_masks(num_eq_sets);
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {
         DistributedID did;

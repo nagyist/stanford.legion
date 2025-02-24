@@ -36,7 +36,7 @@ namespace Legion {
           AddressSpaceID src, AddressSpaceID prev, Operation* op,
           unsigned index, RegionNode* node, bool on_heap,
           std::vector<PhysicalManager*>&& target_insts,
-          LegionVector<FieldMaskSet<InstanceView> >&& target_views,
+          op::vector<FieldMaskSet<InstanceView> >&& target_views,
           std::vector<IndividualView*>&& source_views,
           const PhysicalTraceInfo& trace_info,
           CollectiveMapping* collective_mapping, bool first_local,
@@ -70,7 +70,7 @@ namespace Legion {
     public:
       // Be careful to only access these after they are ready
       std::vector<PhysicalManager*> target_instances;
-      LegionVector<FieldMaskSet<InstanceView> > target_views;
+      op::vector<FieldMaskSet<InstanceView> > target_views;
       std::map<InstanceView*, size_t> collective_arrivals;
       std::vector<IndividualView*> source_views;
     };

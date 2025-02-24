@@ -58,9 +58,8 @@ namespace Legion {
           std::vector<RtEvent>& pending_sets,
           FieldMaskSet<EqKDTree>& subscriptions,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           ShardID local_shard) = 0;
       virtual unsigned record_shard_output_equivalence_set(
           EquivalenceSet* set, const Domain& rect, const FieldMask& mask,
@@ -114,9 +113,8 @@ namespace Legion {
           std::vector<RtEvent>& pending_sets,
           FieldMaskSet<EqKDTree>& subscriptions,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           ShardID local_shard);
       virtual void compute_equivalence_sets(
           const Rect<DIM, T>& rect, const FieldMask& mask,
@@ -127,9 +125,8 @@ namespace Legion {
           std::vector<RtEvent>& pending_sets,
           FieldMaskSet<EqKDTree>& subscriptions,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0) = 0;
       virtual unsigned record_shard_output_equivalence_set(
@@ -209,9 +206,8 @@ namespace Legion {
           std::vector<RtEvent>& pending_sets,
           FieldMaskSet<EqKDTree>& subscriptions,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0);
       virtual void record_equivalence_set(
@@ -254,8 +250,7 @@ namespace Legion {
     public:
       void find_all_previous_sets(
           FieldMask mask,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs);
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs);
       void invalidate_all_previous_sets(const FieldMask& mask);
       void find_shard_equivalence_sets(
           const Rect<DIM, T>& rect,
@@ -342,9 +337,8 @@ namespace Legion {
           std::vector<RtEvent>& pending_sets,
           FieldMaskSet<EqKDTree>& subscriptions,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0);
       virtual void record_equivalence_set(
@@ -416,9 +410,8 @@ namespace Legion {
           std::vector<RtEvent>& pending_sets,
           FieldMaskSet<EqKDTree>& subscriptions,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0);
       virtual void record_equivalence_set(

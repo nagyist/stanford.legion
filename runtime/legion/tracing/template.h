@@ -187,7 +187,7 @@ namespace Legion {
         IndexSpaceExpression* expr;
         FieldMask mask;
       };
-      typedef LegionVector<InstanceUser> InstUsers;
+      typedef ctx::vector<InstanceUser> InstUsers;
       struct LastUserResult {
       public:
         LastUserResult(const InstanceUser& u) : user(u) { }

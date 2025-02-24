@@ -2230,7 +2230,7 @@ namespace Legion {
         return ApEvent::NO_AP_EVENT;
       // Perform the copies/reductions across
       InnerContext* context = find_physical_context(dst_index);
-      LegionVector<FieldMaskSet<InstanceView> > target_views;
+      op::vector<FieldMaskSet<InstanceView> > target_views;
       context->convert_analysis_views(dst_targets, target_views);
       if (!src_targets.empty())
       {

@@ -51,7 +51,7 @@ namespace Legion {
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
         const RegionUsage& use, RegionNode* rn,
         std::vector<PhysicalManager*>&& target_insts,
-        LegionVector<FieldMaskSet<InstanceView> >&& target_vws,
+        op::vector<FieldMaskSet<InstanceView> >&& target_vws,
         std::vector<IndividualView*>&& source_vws,
         const PhysicalTraceInfo& info, CollectiveMapping* mapping,
         const RtEvent user_reg, const ApEvent pre, const ApEvent term,
@@ -345,7 +345,7 @@ namespace Legion {
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
       std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
-      LegionVector<FieldMask> eq_masks(num_eq_sets);
+      op::vector<FieldMask> eq_masks(num_eq_sets);
       FieldMask user_mask;
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {
@@ -368,7 +368,7 @@ namespace Legion {
       size_t num_targets;
       derez.deserialize(num_targets);
       std::vector<PhysicalManager*> targets(num_targets);
-      LegionVector<FieldMaskSet<InstanceView> > target_views(num_targets);
+      op::vector<FieldMaskSet<InstanceView> > target_views(num_targets);
       for (unsigned idx1 = 0; idx1 < num_targets; idx1++)
       {
         DistributedID did;

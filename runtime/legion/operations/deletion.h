@@ -118,7 +118,7 @@ namespace Legion {
       std::vector<unsigned> deletion_req_indexes;
       std::vector<bool> returnable_privileges;
       std::vector<RegionRequirement> deletion_requirements;
-      LegionVector<VersionInfo> version_infos;
+      op::vector<VersionInfo> version_infos;
       std::set<RtEvent> map_applied_conditions;
       std::map<Operation*, GenerationID> dependences;
       bool has_preconditions;

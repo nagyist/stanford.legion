@@ -789,9 +789,8 @@ namespace Legion {
           std::vector<RtEvent>& pending_sets,
           FieldMaskSet<EqKDTree>& subscriptions,
           FieldMaskSet<EqKDTree>& to_create,
-          std::map<EqKDTree*, Domain>& creation_rects,
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
-              creation_srcs,
+          op::map<EqKDTree*, Domain>& creation_rects,
+          op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0);
       virtual unsigned record_output_equivalence_set(

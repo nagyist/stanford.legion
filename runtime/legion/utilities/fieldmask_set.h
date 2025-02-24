@@ -59,6 +59,9 @@ namespace Legion {
       using Comparator = typename std::conditional<
           DETERMINISTIC, DeterministicComparator<T>,
           std::less<const T*> >::type;
+      using FSMap = std::map<
+          T*, FieldMask, Comparator,
+          LegionAllocator<std::pair<T* const, FieldMask>, L> >;
     public:
       // forward declaration
       class const_iterator;
@@ -75,9 +78,7 @@ namespace Legion {
           : set(_set), result(_result), single(true)
         { }
         iterator(
-            FieldMaskSet* _set,
-            typename LegionMap<T*, FieldMask, L, Comparator>::iterator _it,
-            bool end = false)
+            FieldMaskSet* _set, typename FSMap::iterator _it, bool end = false)
           : set(_set), result(end ? nullptr : &(*_it)), it(_it), single(false)
         { }
       public:
@@ -167,7 +168,7 @@ namespace Legion {
         }
         inline void clear(void) { result->second.clear(); }
       public:
-        inline void erase(LegionMap<T*, FieldMask, L, Comparator>& target)
+        inline void erase(FSMap& target)
         {
 #ifdef DEBUG_LEGION
           assert(!single);
@@ -182,7 +183,7 @@ namespace Legion {
         friend class const_iterator;
         FieldMaskSet* set;
         std::pair<T* const, FieldMask>* result;
-        typename LegionMap<T*, FieldMask, L, Comparator>::iterator it;
+        typename FSMap::iterator it;
         bool single;
       };
     public:
@@ -201,9 +202,7 @@ namespace Legion {
           : set(_set), result(_result), single(true)
         { }
         const_iterator(
-            const FieldMaskSet* _set,
-            typename LegionMap<T*, FieldMask, L, Comparator>::const_iterator
-                _it,
+            const FieldMaskSet* _set, typename FSMap::const_iterator _it,
             bool end = false)
           : set(_set), result(end ? nullptr : &(*_it)), it(_it), single(false)
         { }
@@ -295,7 +294,7 @@ namespace Legion {
       private:
         const FieldMaskSet* set;
         const std::pair<T* const, FieldMask>* result;
-        typename LegionMap<T*, FieldMask, L, Comparator>::const_iterator it;
+        typename FSMap::const_iterator it;
         bool single;
       };
     public:
@@ -357,7 +356,7 @@ namespace Legion {
       // provides goodness for the iterator
       union {
         T* single_entry;
-        LegionMap<T*, FieldMask, L, Comparator>* multi_entries;
+        FSMap* multi_entries;
       } entries;
       // This can be an overapproximation if we have multiple entries
       FieldMask valid_fields;

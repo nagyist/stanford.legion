@@ -2026,7 +2026,7 @@ namespace Legion {
         LogicalRegion region, const InstanceSet& targets,
         InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
         bool& first_local,
-        LegionVector<FieldMaskSet<InstanceView> >& target_views,
+        op::vector<FieldMaskSet<InstanceView> >& target_views,
         std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
@@ -2044,7 +2044,7 @@ namespace Legion {
     void SliceTask::rendezvous_collective_mapping(
         unsigned requirement_index, unsigned analysis_index,
         LogicalRegion region, RendezvousResult* result, AddressSpaceID source,
-        const LegionVector<std::pair<DistributedID, FieldMask> >& insts)
+        const op::vector<std::pair<DistributedID, FieldMask> >& insts)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2061,7 +2061,7 @@ namespace Legion {
         rez.serialize(region);
         rez.serialize(result);
         rez.serialize<size_t>(insts.size());
-        for (LegionVector<std::pair<DistributedID, FieldMask> >::const_iterator
+        for (op::vector<std::pair<DistributedID, FieldMask> >::const_iterator
                  it = insts.begin();
              it != insts.end(); it++)
         {
@@ -2089,7 +2089,7 @@ namespace Legion {
       derez.deserialize(result);
       size_t num_insts;
       derez.deserialize(num_insts);
-      LegionVector<std::pair<DistributedID, FieldMask> > instances(num_insts);
+      op::vector<std::pair<DistributedID, FieldMask> > instances(num_insts);
       for (unsigned idx = 0; idx < num_insts; idx++)
       {
         derez.deserialize(instances[idx].first);

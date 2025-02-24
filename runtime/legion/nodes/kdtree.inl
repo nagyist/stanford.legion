@@ -649,8 +649,8 @@ namespace Legion {
         std::vector<RtEvent>& pending_sets,
         FieldMaskSet<EqKDTree>& subscriptions,
         FieldMaskSet<EqKDTree>& to_create,
-        std::map<EqKDTree*, Domain>& creation_rects,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs,
+        op::map<EqKDTree*, Domain>& creation_rects,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
@@ -876,8 +876,8 @@ namespace Legion {
         std::vector<RtEvent>& pending_sets,
         FieldMaskSet<EqKDTree>& new_subscriptions,
         FieldMaskSet<EqKDTree>& to_create,
-        std::map<EqKDTree*, Domain>& creation_rects,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs,
+        op::map<EqKDTree*, Domain>& creation_rects,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
@@ -1193,7 +1193,7 @@ namespace Legion {
     template<int DIM, typename T>
     void EqKDNode<DIM, T>::find_all_previous_sets(
         FieldMask mask,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs)
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs)
     //--------------------------------------------------------------------------
     {
       FieldMaskSet<EqKDNode<DIM, T> > to_get_previous;
@@ -2872,8 +2872,8 @@ namespace Legion {
         std::vector<RtEvent>& pending_sets,
         FieldMaskSet<EqKDTree>& subscriptions,
         FieldMaskSet<EqKDTree>& to_create,
-        std::map<EqKDTree*, Domain>& creation_rects,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs,
+        op::map<EqKDTree*, Domain>& creation_rects,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
@@ -3116,8 +3116,8 @@ namespace Legion {
         std::vector<RtEvent>& pending_sets,
         FieldMaskSet<EqKDTree>& subscriptions,
         FieldMaskSet<EqKDTree>& to_create,
-        std::map<EqKDTree*, Domain>& creation_rects,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs,
+        op::map<EqKDTree*, Domain>& creation_rects,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------

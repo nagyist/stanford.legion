@@ -1052,8 +1052,8 @@ namespace Legion {
       FieldMaskSet<EqKDTree> to_create, new_subscriptions;
       FieldMaskSet<EquivalenceSet> eq_sets;
       std::vector<RtEvent> pending_sets;
-      std::map<EqKDTree*, Domain> creation_rects;
-      std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> > creation_srcs;
+      op::map<EqKDTree*, Domain> creation_rects;
+      op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
       std::map<ShardID, LegionMap<Domain, FieldMask> > remote_shard_rects;
       std::vector<unsigned> new_target_references(targets.size(), 0);
       expr->compute_equivalence_sets(
@@ -1081,8 +1081,8 @@ namespace Legion {
         FieldMaskSet<EquivalenceSet>& eq_sets,
         FieldMaskSet<EqKDTree>& new_subscriptions,
         FieldMaskSet<EqKDTree>& to_create,
-        std::map<EqKDTree*, Domain>& creation_rects,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs,
+        op::map<EqKDTree*, Domain>& creation_rects,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         size_t expected_responses, std::vector<RtEvent>& ready_events)
     //--------------------------------------------------------------------------
     {
@@ -1169,7 +1169,7 @@ namespace Legion {
               rez.serialize(creation_rects[it->first]);
             }
             rez.serialize<size_t>(creation_srcs.size());
-            for (std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >::
+            for (op::map<EquivalenceSet*, op::map<Domain, FieldMask> >::
                      const_iterator sit = creation_srcs.begin();
                  sit != creation_srcs.end(); sit++)
             {
@@ -1178,7 +1178,7 @@ namespace Legion {
               // until we're done making the new equivalence sets
               rez.serialize(sit->first->did);
               rez.serialize<size_t>(sit->second.size());
-              for (LegionMap<Domain, FieldMask>::const_iterator it =
+              for (op::map<Domain, FieldMask>::const_iterator it =
                        sit->second.begin();
                    it != sit->second.end(); it++)
               {
@@ -1282,7 +1282,7 @@ namespace Legion {
       size_t num_creations;
       derez.deserialize(num_creations);
       FieldMaskSet<EqKDTree> to_create;
-      std::map<EqKDTree*, Domain> creation_rects;
+      op::map<EqKDTree*, Domain> creation_rects;
       for (unsigned idx = 0; idx < num_creations; idx++)
       {
         EqKDTree* tree;
@@ -1292,8 +1292,8 @@ namespace Legion {
         to_create.insert(tree, tree_mask);
         derez.deserialize(creation_rects[tree]);
       }
-      std::map<DistributedID, LegionMap<Domain, FieldMask> > temporary_srcs;
-      std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> > creation_srcs;
+      local::map<DistributedID, local::map<Domain, FieldMask> > temporary_srcs;
+      op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
       size_t num_sources;
       derez.deserialize(num_sources);
       std::vector<RtEvent> ready_events;
@@ -1308,7 +1308,7 @@ namespace Legion {
               runtime->find_or_request_equivalence_set(did, ready);
           if (ready.exists())
             ready_events.emplace_back(ready);
-          LegionMap<Domain, FieldMask>& rects = creation_srcs[set];
+          op::map<Domain, FieldMask>& rects = creation_srcs[set];
           size_t num_rects;
           derez.deserialize(num_rects);
           for (unsigned idx2 = 0; idx2 < num_rects; idx2++)
@@ -1325,7 +1325,7 @@ namespace Legion {
         {
           DistributedID did;
           derez.deserialize(did);
-          LegionMap<Domain, FieldMask>& rects = temporary_srcs[did];
+          local::map<Domain, FieldMask>& rects = temporary_srcs[did];
           size_t num_rects;
           derez.deserialize(num_rects);
           for (unsigned idx2 = 0; idx2 < num_rects; idx2++)
@@ -9680,7 +9680,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void InnerContext::initialize_region_tree_contexts(
         const std::vector<RegionRequirement>& clone_requirements,
-        const LegionVector<VersionInfo>& version_infos,
         const std::vector<ApUserEvent>& unmap_events)
     //--------------------------------------------------------------------------
     {
@@ -10305,7 +10304,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void InnerContext::convert_analysis_views(
         const InstanceSet& targets,
-        LegionVector<FieldMaskSet<InstanceView> >& target_views)
+        op::vector<FieldMaskSet<InstanceView> >& target_views)
     //--------------------------------------------------------------------------
     {
       target_views.resize(targets.size());

@@ -310,15 +310,15 @@ namespace Legion {
     protected:
       std::vector<unsigned> src_parent_indexes;
       std::vector<unsigned> dst_parent_indexes;
-      LegionVector<VersionInfo> src_versions;
-      LegionVector<VersionInfo> dst_versions;
+      op::vector<VersionInfo> src_versions;
+      op::vector<VersionInfo> dst_versions;
     public:  // These are only used for indirect copies
       std::vector<unsigned> gather_parent_indexes;
       std::vector<unsigned> scatter_parent_indexes;
       std::vector<bool> gather_is_range;
       std::vector<bool> scatter_is_range;
-      LegionVector<VersionInfo> gather_versions;
-      LegionVector<VersionInfo> scatter_versions;
+      op::vector<VersionInfo> gather_versions;
+      op::vector<VersionInfo> scatter_versions;
       std::vector<std::vector<IndirectRecord> > src_indirect_records;
       std::vector<std::vector<IndirectRecord> > dst_indirect_records;
       std::vector<std::map<Reservation, bool> > atomic_locks;

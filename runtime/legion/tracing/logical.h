@@ -75,7 +75,7 @@ namespace Legion {
       public:
         MergeCloseOp* close_op;  // only valid during capture
         RegionRequirement requirement;
-        LegionVector<DependenceRecord> dependences;
+        ctx::vector<DependenceRecord> dependences;
         FieldMask close_mask;
         unsigned creator_idx;
 #ifdef DEBUG_LEGION_COLLECTIVES
@@ -84,20 +84,20 @@ namespace Legion {
       };
       struct OperationInfo {
       public:
-        LegionVector<DependenceRecord> dependences;
+        ctx::vector<DependenceRecord> dependences;
         // Note that in this data structure the "context_index"
         // field of PointwiseDependence data structure is actually the
         // relative offset in the trace of the prior operation
         std::map<unsigned, std::vector<PointwiseDependence>>
             pointwise_dependences;
-        LegionVector<CloseInfo> closes;
+        ctx::vector<CloseInfo> closes;
         // Only need this during trace capture
         // It records dependences for internal operations (that are not merge
         // close ops, mainly refinement ops) based on the region
         // requirement the internal operations were made for so we can forward
         // them on when later things depende on them. This data structure is
         // cleared after we're done with the trace recording
-        std::map<unsigned, LegionVector<DependenceRecord>> internal_dependences;
+        std::map<unsigned, ctx::vector<DependenceRecord>> internal_dependences;
       };
       struct VerificationInfo {
       public:
@@ -226,7 +226,7 @@ namespace Legion {
           const std::map<Color, CollectiveID>& concurrent_exchange_colors);
     protected:
       void replay_operation_dependences(
-          Operation* op, const LegionVector<DependenceRecord>& dependences);
+          Operation* op, const ctx::vector<DependenceRecord>& dependences);
       void replay_pointwise_dependences(
           Operation* op,
           const std::map<unsigned, std::vector<PointwiseDependence>>&

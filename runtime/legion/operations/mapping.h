@@ -206,7 +206,7 @@ namespace Legion {
     public:
       void verify(const InstanceSet& instances, MapperManager* mapper);
     protected:
-      typedef LegionVector<std::pair<ShardID, FieldMask> > ShardFields;
+      typedef op::vector<std::pair<ShardID, FieldMask> > ShardFields;
       std::map<PhysicalInstance, ShardFields> mapped_instances;
     };
 

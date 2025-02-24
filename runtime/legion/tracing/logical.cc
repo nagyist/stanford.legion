@@ -327,7 +327,7 @@ namespace Legion {
         frontiers.insert(key);
         // First make any close operations needed for this operation and
         // register their dependences
-        for (LegionVector<CloseInfo>::const_iterator cit = info.closes.begin();
+        for (ctx::vector<CloseInfo>::const_iterator cit = info.closes.begin();
              cit != info.closes.end(); cit++)
         {
 #ifdef DEBUG_LEGION_COLLECTIVES
@@ -404,10 +404,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LogicalTrace::replay_operation_dependences(
-        Operation* op, const LegionVector<DependenceRecord>& dependences)
+        Operation* op, const ctx::vector<DependenceRecord>& dependences)
     //--------------------------------------------------------------------------
     {
-      for (LegionVector<DependenceRecord>::const_iterator it =
+      for (ctx::vector<DependenceRecord>::const_iterator it =
                dependences.begin();
            it != dependences.end(); it++)
       {
@@ -507,7 +507,7 @@ namespace Legion {
 #endif
       OperationInfo& info = replay_info.back();
       DependenceRecord record(target_finder->second.first);
-      for (LegionVector<DependenceRecord>::iterator it =
+      for (ctx::vector<DependenceRecord>::iterator it =
                info.dependences.begin();
            it != info.dependences.end(); it++)
         if (it->merge(record))
@@ -593,11 +593,11 @@ namespace Legion {
 #endif
             const OperationInfo& target_info =
                 replay_info[target_finder->second.second];
-            std::map<unsigned, LegionVector<DependenceRecord>>::const_iterator
+            std::map<unsigned, ctx::vector<DependenceRecord>>::const_iterator
                 finder = target_info.internal_dependences.find(target_idx);
             if (finder != target_info.internal_dependences.end())
             {
-              for (LegionVector<DependenceRecord>::const_iterator rit =
+              for (ctx::vector<DependenceRecord>::const_iterator rit =
                        finder->second.begin();
                    rit != finder->second.end(); rit++)
               {
@@ -608,7 +608,7 @@ namespace Legion {
                     rit->operation_idx, rit->prev_idx, source_idx, dtype,
                     overlap);
                 bool found2 = false;
-                for (LegionVector<DependenceRecord>::iterator it =
+                for (ctx::vector<DependenceRecord>::iterator it =
                          close.dependences.begin();
                      it != close.dependences.end(); it++)
                 {
@@ -627,7 +627,7 @@ namespace Legion {
             DependenceRecord record(
                 target_finder->second.first, target_idx, source_idx, dtype,
                 dep_mask);
-            for (LegionVector<DependenceRecord>::iterator it =
+            for (ctx::vector<DependenceRecord>::iterator it =
                      close.dependences.begin();
                  it != close.dependences.end(); it++)
               if (it->merge(record))
@@ -644,7 +644,7 @@ namespace Legion {
       {
         // Record the dependence on the correct region requirement
         // of the internal operations
-        LegionVector<DependenceRecord>& internal_dependences =
+        ctx::vector<DependenceRecord>& internal_dependences =
             info.internal_dependences[source_idx];
         if (target->is_internal_op() &&
             (target->get_operation_kind() != MERGE_CLOSE_OP_KIND))
@@ -654,11 +654,11 @@ namespace Legion {
 #endif
           const OperationInfo& target_info =
               replay_info[target_finder->second.second];
-          std::map<unsigned, LegionVector<DependenceRecord>>::const_iterator
+          std::map<unsigned, ctx::vector<DependenceRecord>>::const_iterator
               finder = target_info.internal_dependences.find(target_idx);
           if (finder != target_info.internal_dependences.end())
           {
-            for (LegionVector<DependenceRecord>::const_iterator rit =
+            for (ctx::vector<DependenceRecord>::const_iterator rit =
                      finder->second.begin();
                  rit != finder->second.end(); rit++)
             {
@@ -669,7 +669,7 @@ namespace Legion {
                   rit->operation_idx, rit->prev_idx, source_idx, dtype,
                   overlap);
               bool found = false;
-              for (LegionVector<DependenceRecord>::iterator it =
+              for (ctx::vector<DependenceRecord>::iterator it =
                        internal_dependences.begin();
                    it != internal_dependences.end(); it++)
               {
@@ -688,7 +688,7 @@ namespace Legion {
           DependenceRecord record(
               target_finder->second.first, target_idx, source_idx, dtype,
               dep_mask);
-          for (LegionVector<DependenceRecord>::iterator it =
+          for (ctx::vector<DependenceRecord>::iterator it =
                    internal_dependences.begin();
                it != internal_dependences.end(); it++)
             if (it->merge(record))
@@ -708,11 +708,11 @@ namespace Legion {
         // any of those instead
         const OperationInfo& target_info =
             replay_info[target_finder->second.second];
-        std::map<unsigned, LegionVector<DependenceRecord>>::const_iterator
+        std::map<unsigned, ctx::vector<DependenceRecord>>::const_iterator
             finder = target_info.internal_dependences.find(target_idx);
         if (finder != target_info.internal_dependences.end())
         {
-          for (LegionVector<DependenceRecord>::const_iterator rit =
+          for (ctx::vector<DependenceRecord>::const_iterator rit =
                    finder->second.begin();
                rit != finder->second.end(); rit++)
           {
@@ -722,7 +722,7 @@ namespace Legion {
             DependenceRecord record(
                 rit->operation_idx, rit->prev_idx, source_idx, dtype, overlap);
             bool found = false;
-            for (LegionVector<DependenceRecord>::iterator it =
+            for (ctx::vector<DependenceRecord>::iterator it =
                      info.dependences.begin();
                  it != info.dependences.end(); it++)
             {
@@ -741,7 +741,7 @@ namespace Legion {
         DependenceRecord record(
             target_finder->second.first, target_idx, source_idx, dtype,
             dep_mask);
-        for (LegionVector<DependenceRecord>::iterator it =
+        for (ctx::vector<DependenceRecord>::iterator it =
                  info.dependences.begin();
              it != info.dependences.end(); it++)
           if (it->merge(record))

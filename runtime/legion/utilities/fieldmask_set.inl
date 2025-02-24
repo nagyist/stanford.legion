@@ -24,7 +24,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename T>
     inline void compute_field_sets(
-        FieldMask universe_mask, const LegionMap<T, FieldMask>& inputs,
+        FieldMask universe_mask, const MapView<T, FieldMask>& inputs,
         local::list<FieldSet<T> >& output_sets)
     //--------------------------------------------------------------------------
     {
@@ -37,7 +37,7 @@ namespace Legion {
       }
       else if (inputs.size() == 1)
       {
-        typename LegionMap<T, FieldMask>::const_iterator first = inputs.begin();
+        typename MapView<T, FieldMask>::const_iterator first = inputs.begin();
         output_sets.emplace_back(FieldSet<T>(first->second));
         FieldSet<T>& last = output_sets.back();
         last.elements.insert(first->first);
@@ -49,8 +49,7 @@ namespace Legion {
         }
         return;
       }
-      for (typename LegionMap<T, FieldMask>::const_iterator pit =
-               inputs.begin();
+      for (typename MapView<T, FieldMask>::const_iterator pit = inputs.begin();
            pit != inputs.end(); pit++)
       {
         bool inserted = false;
@@ -130,7 +129,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename T, typename CT>
     inline void compute_field_sets(
-        FieldMask universe_mask, const LegionMap<T, FieldMask>& inputs,
+        FieldMask universe_mask, const MapView<T, FieldMask>& inputs,
         local::list<CT>& output_sets)
     //--------------------------------------------------------------------------
     {
@@ -143,7 +142,7 @@ namespace Legion {
       }
       else if (inputs.size() == 1)
       {
-        typename LegionMap<T, FieldMask>::const_iterator first = inputs.begin();
+        typename MapView<T, FieldMask>::const_iterator first = inputs.begin();
         output_sets.emplace_back(CT(first->second));
         CT& last = output_sets.back();
         last.elements.insert(first->first);
@@ -155,8 +154,7 @@ namespace Legion {
         }
         return;
       }
-      for (typename LegionMap<T, FieldMask>::const_iterator pit =
-               inputs.begin();
+      for (typename MapView<T, FieldMask>::const_iterator pit = inputs.begin();
            pit != inputs.end(); pit++)
       {
         bool inserted = false;
@@ -253,7 +251,7 @@ namespace Legion {
       if (single)
         entries.single_entry = rhs.entries.single_entry;
       else
-        entries.multi_entries = new LegionMap<T*, FieldMask, L, Comparator>(
+        entries.multi_entries = new FSMap(
             rhs.entries.multi_entries->begin(),
             rhs.entries.multi_entries->end());
     }
@@ -285,7 +283,7 @@ namespace Legion {
         if (single)
           entries.single_entry = rhs.entries.single_entry;
         else
-          entries.multi_entries = new LegionMap<T*, FieldMask, L, Comparator>(
+          entries.multi_entries = new FSMap(
               rhs.entries.multi_entries->begin(),
               rhs.entries.multi_entries->end());
       }
@@ -313,7 +311,7 @@ namespace Legion {
         // Different data structures
         if (single)
         {
-          entries.multi_entries = new LegionMap<T*, FieldMask, L, Comparator>(
+          entries.multi_entries = new FSMap(
               rhs.entries.multi_entries->begin(),
               rhs.entries.multi_entries->end());
         }
@@ -393,8 +391,7 @@ namespace Legion {
       if (single)
         return valid_fields;
       valid_fields.clear();
-      for (typename LegionMap<T*, FieldMask, L, Comparator>::const_iterator it =
-               entries.multi_entries->begin();
+      for (typename FSMap::const_iterator it = entries.multi_entries->begin();
            it != entries.multi_entries->end(); it++)
         valid_fields |= it->second;
       return valid_fields;
@@ -411,7 +408,7 @@ namespace Legion {
           return;
         // have to avoid the aliasing case
         T* entry = entries.single_entry;
-        entries.multi_entries = new LegionMap<T*, FieldMask, L, Comparator>();
+        entries.multi_entries = new FSMap();
         entries.multi_entries->insert(std::make_pair(entry, valid_fields));
         single = false;
       }
@@ -448,8 +445,8 @@ namespace Legion {
       }
       else
       {
-        typename LegionMap<T*, FieldMask, L, Comparator>::const_iterator
-            finder = entries.multi_entries->find(entry);
+        typename FSMap::const_iterator finder =
+            entries.multi_entries->find(entry);
 #ifdef DEBUG_LEGION
         assert(finder != entries.multi_entries->end());
 #endif
@@ -478,8 +475,7 @@ namespace Legion {
         else
         {
           // Go to multi
-          LegionMap<T*, FieldMask, L, Comparator>* multi =
-              new LegionMap<T*, FieldMask, L, Comparator>();
+          FSMap* multi = new FSMap();
           (*multi)[entries.single_entry] = valid_fields;
           (*multi)[entry] = mask;
           entries.multi_entries = multi;
@@ -492,8 +488,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(entries.multi_entries != nullptr);
 #endif
-        typename LegionMap<T*, FieldMask, L, Comparator>::iterator finder =
-            entries.multi_entries->find(entry);
+        typename FSMap::iterator finder = entries.multi_entries->find(entry);
         if (finder == entries.multi_entries->end())
           (*entries.multi_entries)[entry] = mask;
         else
@@ -537,8 +532,7 @@ namespace Legion {
         {
           // Manually remove entries
           typename std::vector<T*> to_delete;
-          for (typename LegionMap<T*, FieldMask, L, Comparator>::iterator it =
-                   entries.multi_entries->begin();
+          for (typename FSMap::iterator it = entries.multi_entries->begin();
                it != entries.multi_entries->end(); it++)
           {
             it->second -= filter;
@@ -563,8 +557,7 @@ namespace Legion {
                   (entries.multi_entries->size() == 1) &&
                   (entries.multi_entries->begin()->second == valid_fields))
               {
-                typename LegionMap<T*, FieldMask, L, Comparator>::iterator
-                    last = entries.multi_entries->begin();
+                typename FSMap::iterator last = entries.multi_entries->begin();
                 T* temp = last->first;
                 delete entries.multi_entries;
                 entries.single_entry = temp;
@@ -597,8 +590,7 @@ namespace Legion {
       }
       else
       {
-        typename LegionMap<T*, FieldMask, L, Comparator>::iterator finder =
-            entries.multi_entries->find(to_erase);
+        typename FSMap::iterator finder = entries.multi_entries->find(to_erase);
 #ifdef DEBUG_LEGION
         assert(finder != entries.multi_entries->end());
 #endif
@@ -710,8 +702,7 @@ namespace Legion {
       }
       else
       {
-        typename LegionMap<T*, FieldMask, L, Comparator>::iterator finder =
-            entries.multi_entries->find(e);
+        typename FSMap::iterator finder = entries.multi_entries->find(e);
         if (finder == entries.multi_entries->end())
           return end();
         return iterator(this, finder);
@@ -740,8 +731,7 @@ namespace Legion {
         if (entries.multi_entries->size() == 1)
         {
           // go back to single
-          typename LegionMap<T*, FieldMask, L, Comparator>::iterator finder =
-              entries.multi_entries->begin();
+          typename FSMap::iterator finder = entries.multi_entries->begin();
           valid_fields = finder->second;
           T* first = finder->first;
           delete entries.multi_entries;
@@ -803,8 +793,7 @@ namespace Legion {
       }
       else
       {
-        typename LegionMap<T*, FieldMask, L, Comparator>::const_iterator
-            finder = entries.multi_entries->find(e);
+        typename FSMap::const_iterator finder = entries.multi_entries->find(e);
         if (finder == entries.multi_entries->end())
           return end();
         return const_iterator(this, finder);
@@ -956,7 +945,7 @@ namespace Legion {
     template<typename T1, typename T2>
     inline void unique_join_on_field_mask_sets(
         const FieldMaskSet<T1>& left, const FieldMaskSet<T2>& right,
-        LegionMap<std::pair<T1*, T2*>, FieldMask>& results)
+        local::map<std::pair<T1*, T2*>, FieldMask>& results)
     //--------------------------------------------------------------------------
     {
       if (left.empty() || right.empty())

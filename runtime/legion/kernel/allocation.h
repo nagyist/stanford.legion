@@ -773,9 +773,6 @@ namespace Legion {
           LegionAllocator<std::pair<const T1, T2>, RUNTIME_LIFETIME> >;
     }  // namespace rt
 
-    template<typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME>
-    using LegionVector = std::vector<T, LegionAllocator<T, L> >;
-
     template<
         typename T1, typename T2, AllocationLifetime L = TASK_LOCAL_LIFETIME,
         typename COMPARATOR = std::less<T1> >
@@ -811,6 +808,60 @@ namespace Legion {
     private:
       const const_iterator start, stop;
       const size_t full_size;
+    };
+
+    template<typename T1, typename T2, typename COMPARATOR = std::less<T1> >
+    class MapView {
+    public:
+      using const_iterator =
+          typename std::map<T1, T2, COMPARATOR>::const_iterator;
+    public:
+      template<typename ALLOCATOR>
+      inline MapView(const std::map<T1, T2, COMPARATOR, ALLOCATOR>& map)
+        : start(map.cbegin()), stop(map.cend()), full_size(map.size())
+      { }
+    public:
+      inline size_t size(void) const { return full_size; }
+      inline bool empty(void) const { return (start == stop); }
+      inline const_iterator begin(void) const { return start; }
+      inline const_iterator end(void) const { return stop; }
+      inline const_iterator cbegin(void) const { return start; }
+      inline const_iterator cend(void) const { return stop; }
+      inline const_iterator find(T1 key) const
+      {
+        const_iterator it = std::lower_bound(start, stop, key);
+        if ((it != stop) && (it->first == key))
+          return it;
+        else
+          return stop;
+      }
+    private:
+      const const_iterator start, stop;
+      const size_t full_size;
+    };
+
+    template<typename T>
+    class VectorView {
+    public:
+      using const_iterator = typename std::vector<T>::const_iterator;
+    public:
+      template<typename ALLOCATOR>
+      inline VectorView(const std::vector<T, ALLOCATOR>& vector)
+        : start(vector.cbegin()), stop(vector.cend())
+      { }
+    public:
+      inline size_t size(void) const { return std::distance(start, stop); }
+      inline bool empty(void) const { return (start == stop); }
+      inline const_iterator begin(void) const { return start; }
+      inline const_iterator end(void) const { return stop; }
+      inline const_iterator cbegin(void) const { return start; }
+      inline const_iterator cend(void) const { return stop; }
+      inline const T& operator[](unsigned idx) const
+      {
+        return *std::next(start, idx);
+      }
+    private:
+      const const_iterator start, stop;
     };
 
   }  // namespace Internal

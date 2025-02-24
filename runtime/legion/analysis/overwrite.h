@@ -108,7 +108,7 @@ namespace Legion {
       CopyFillAggregator* output_aggregator;
     protected:
       std::vector<PhysicalManager*> target_instances;
-      LegionVector<FieldMaskSet<InstanceView> > target_views;
+      op::vector<FieldMaskSet<InstanceView> > target_views;
       std::map<InstanceView*, size_t> collective_arrivals;
     };
 

@@ -51,12 +51,12 @@ namespace Legion {
     { }
 
     //--------------------------------------------------------------------------
-    /*static*/ LegionVector<std::pair<DistributedID, FieldMask> >
+    /*static*/ op::vector<std::pair<DistributedID, FieldMask> >
         CollectiveViewCreatorBase::RendezvousResult::init_instances(
             const InstanceSet& insts)
     //--------------------------------------------------------------------------
     {
-      LegionVector<std::pair<DistributedID, FieldMask> > result(insts.size());
+      op::vector<std::pair<DistributedID, FieldMask> > result(insts.size());
       for (unsigned idx = 0; idx < insts.size(); idx++)
       {
         const InstanceRef& ref = insts[idx];
@@ -103,7 +103,7 @@ namespace Legion {
         first = false;
       }
       std::vector<RtEvent> ready_events;
-      LegionVector<FieldMaskSet<InstanceView> > result_views(instances.size());
+      op::vector<FieldMaskSet<InstanceView> > result_views(instances.size());
       std::map<InstanceView*, size_t> collective_arrivals;
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
@@ -251,7 +251,7 @@ namespace Legion {
             unsigned index, unsigned analysis, LogicalRegion region,
             const InstanceSet& targets, InnerContext* physical_ctx,
             CollectiveMapping*& analysis_mapping, bool& first_local,
-            LegionVector<FieldMaskSet<InstanceView> >& target_views,
+            op::vector<FieldMaskSet<InstanceView> >& target_views,
             std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
@@ -915,7 +915,7 @@ namespace Legion {
         std::vector<RtEvent> preconditions;
         local::list<FieldSet<std::pair<AddressSpaceID, EqSetTracker*> > >
             fields;
-        compute_field_sets(FieldMask(), pit->second.trackers, fields);
+        compute_field_sets(FieldMask(), MapView(pit->second.trackers), fields);
         // Be a bit careful, there is an important heuristic here
         // This heuristic decides which of the targets will be the one
         // responsible for creating any new equivalence sets if there
@@ -1020,7 +1020,7 @@ namespace Legion {
         unsigned index, unsigned analysis, LogicalRegion region,
         const InstanceSet& targets, InnerContext* physical_ctx,
         CollectiveMapping*& analysis_mapping, bool& first_local,
-        LegionVector<FieldMaskSet<InstanceView> >& target_views,
+        op::vector<FieldMaskSet<InstanceView> >& target_views,
         std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
@@ -1044,7 +1044,7 @@ namespace Legion {
     void CollectiveViewCreator<OP>::rendezvous_collective_mapping(
         unsigned requirement_index, unsigned analysis, LogicalRegion region,
         RendezvousResult* result, AddressSpaceID source,
-        const LegionVector<std::pair<DistributedID, FieldMask> >& insts)
+        const op::vector<std::pair<DistributedID, FieldMask> >& insts)
     //--------------------------------------------------------------------------
     {
       std::map<LogicalRegion, CollectiveRendezvous> to_construct;
@@ -1069,7 +1069,7 @@ namespace Legion {
           std::sort(collective.results.begin(), collective.results.end());
         }
         // Now update the counts for all the instances
-        for (LegionVector<std::pair<DistributedID, FieldMask> >::const_iterator
+        for (op::vector<std::pair<DistributedID, FieldMask> >::const_iterator
                  it = insts.begin();
              it != insts.end(); it++)
           update_groups_and_counts(collective, it->first, it->second);
@@ -1187,7 +1187,8 @@ namespace Legion {
         assert(tid == rit->first.get_tree_id());
 #endif
         local::list<FieldSet<DistributedID> > field_sets;
-        compute_field_sets(FieldMask(), rit->second.groups, field_sets);
+        compute_field_sets(
+            FieldMask(), MapView(rit->second.groups), field_sets);
         FieldMaskSet<CollectiveResult> results;
         std::vector<RtEvent> ready_events;
         for (local::list<FieldSet<DistributedID> >::const_iterator it =

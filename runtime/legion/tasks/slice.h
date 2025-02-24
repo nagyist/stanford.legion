@@ -167,12 +167,12 @@ namespace Legion {
           LogicalRegion region, const InstanceSet& targets,
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
-          LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          op::vector<FieldMaskSet<InstanceView> >& target_views,
           std::map<InstanceView*, size_t>& collective_arrivals);
       virtual void rendezvous_collective_mapping(
           unsigned requirement_index, unsigned analysis_index,
           LogicalRegion region, RendezvousResult* result, AddressSpaceID source,
-          const LegionVector<std::pair<DistributedID, FieldMask> >& insts);
+          const op::vector<std::pair<DistributedID, FieldMask> >& insts);
       static void handle_collective_rendezvous(
           Deserializer& derez, AddressSpaceID source);
       static void handle_collective_versioning_rendezvous(Deserializer& derez);

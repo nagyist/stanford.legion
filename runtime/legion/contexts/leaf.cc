@@ -1608,7 +1608,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void LeafContext::initialize_region_tree_contexts(
         const std::vector<RegionRequirement>& clone_requirements,
-        const LegionVector<VersionInfo>& version_infos,
         const std::vector<ApUserEvent>& unmap_events)
     //--------------------------------------------------------------------------
     {

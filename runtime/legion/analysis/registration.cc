@@ -44,7 +44,7 @@ namespace Legion {
         AddressSpaceID src, AddressSpaceID prev, Operation* op, unsigned index,
         RegionNode* node, bool on_heap,
         std::vector<PhysicalManager*>&& target_insts,
-        LegionVector<FieldMaskSet<InstanceView> >&& target_vws,
+        op::vector<FieldMaskSet<InstanceView> >&& target_vws,
         std::vector<IndividualView*>&& source_vws,
         const PhysicalTraceInfo& t_info, CollectiveMapping* mapping,
         bool first_local, bool exclusive)

@@ -274,11 +274,11 @@ namespace Legion {
     template<typename T>
     void CollectiveRefinementTree<T>::traverse_partial(
         const FieldMask& mask,
-        const LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+        const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
             partial_valid_views)
     //--------------------------------------------------------------------------
     {
-      for (LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+      for (MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
                const_iterator it = partial_valid_views.begin();
            it != partial_valid_views.end(); it++)
       {
@@ -4244,7 +4244,7 @@ namespace Legion {
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& user_mask,
         const std::vector<PhysicalManager*>& target_instances,
-        const LegionVector<FieldMaskSet<InstanceView> >& target_views,
+        const VectorView<FieldMaskSet<InstanceView> >& target_views,
         const std::vector<IndividualView*>& source_views,
         const PhysicalTraceInfo& trace_info, const bool record_valid,
         const bool record_release)
@@ -4398,7 +4398,7 @@ namespace Legion {
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& update_mask,
         const std::vector<PhysicalManager*>& target_instances,
-        const LegionVector<FieldMaskSet<InstanceView> >& target_views,
+        const VectorView<FieldMaskSet<InstanceView> >& target_views,
         const std::vector<IndividualView*>& source_views,
         const PhysicalTraceInfo& trace_info, const bool skip_valid_check,
         const ReductionOpID redop /*= 0*/,
@@ -5337,7 +5337,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EquivalenceSet::apply_reductions(
         const std::vector<PhysicalManager*>& target_instances,
-        const LegionVector<FieldMaskSet<InstanceView> >& target_views,
+        const VectorView<FieldMaskSet<InstanceView> >& target_views,
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& reduction_mask, CopyFillAggregator*& aggregator,
         CopyFillGuard* previous_guard, PhysicalAnalysis* analysis,
@@ -5634,7 +5634,7 @@ namespace Legion {
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& restricted_mask,
         const std::vector<PhysicalManager*>& src_insts,
-        const LegionVector<FieldMaskSet<InstanceView> >& src_views,
+        const VectorView<FieldMaskSet<InstanceView> >& src_views,
         PhysicalAnalysis* analysis, const PhysicalTraceInfo& trace_info,
         CopyFillAggregator*& aggregator)
     //--------------------------------------------------------------------------
@@ -6092,7 +6092,7 @@ namespace Legion {
           // views in non-control replicated settings and we can never be
           // here if we're in a control replicated context
           std::vector<PhysicalManager*> targets(it->second.size());
-          LegionVector<FieldMaskSet<InstanceView> > views(it->second.size());
+          local::vector<FieldMaskSet<InstanceView> > views(it->second.size());
           unsigned index = 0;
           for (FieldMaskSet<InstanceView>::const_iterator vit =
                    it->second.begin();
@@ -7157,7 +7157,7 @@ namespace Legion {
         // so that we can issue them in bulk
         FieldMaskSet<CopyAcrossHelper> target_across;
         // We also need to convert the target views over to source fields
-        LegionVector<FieldMaskSet<InstanceView> > converted_target_views(
+        local::vector<FieldMaskSet<InstanceView> > converted_target_views(
             analysis.target_views.size());
         for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
         {
@@ -10646,8 +10646,8 @@ namespace Legion {
         InnerContext* context, const FieldMask& mask,
         FieldMaskSet<EquivalenceSet>& eq_sets,
         FieldMaskSet<EqKDTree>& to_create,
-        std::map<EqKDTree*, Domain>& creation_rects,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs,
+        op::map<EqKDTree*, Domain>& creation_rects,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         FieldMaskSet<EqKDTree>& new_subscriptions, unsigned new_references,
         AddressSpaceID source, unsigned total_responses,
         std::vector<RtEvent>& ready_events,
@@ -10678,10 +10678,9 @@ namespace Legion {
         creation_rects.clear();
         creation_srcs.clear();
       }
-      LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> > create_now;
-      LegionMap<Domain, FieldMask> create_now_rectangles;
-      std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >
-          create_now_sources;
+      op::map<AddressSpaceID, FieldMaskSet<EqKDTree> > create_now;
+      op::map<Domain, FieldMask> create_now_rectangles;
+      op::map<EquivalenceSet*, op::map<Domain, FieldMask> > create_now_sources;
       // If we have just one response, we can just move things over
       if ((total_responses == 1) && !to_create.empty())
       {
@@ -10768,7 +10767,7 @@ namespace Legion {
           FieldMask remaining = mask;
           if (remaining_responses != nullptr)
           {
-            for (LegionMap<unsigned, FieldMask>::iterator it =
+            for (shrt::map<unsigned, FieldMask>::iterator it =
                      remaining_responses->begin();
                  it != remaining_responses->end();
                  /*nothing*/)
@@ -10790,7 +10789,7 @@ namespace Legion {
               it->second -= overlap;
               if (!it->second)
               {
-                LegionMap<unsigned, FieldMask>::iterator to_delete = it++;
+                shrt::map<unsigned, FieldMask>::iterator to_delete = it++;
                 remaining_responses->erase(to_delete);
               }
               else
@@ -10808,7 +10807,7 @@ namespace Legion {
           if (!!remaining)
           {
             if (remaining_responses == nullptr)
-              remaining_responses = new LegionMap<unsigned, FieldMask>();
+              remaining_responses = new shrt::map<unsigned, FieldMask>();
             (*remaining_responses)[total_responses - 1] |= remaining;
           }
         }
@@ -10878,13 +10877,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EqSetTracker::record_creation_sets(
         FieldMaskSet<EqKDTree>& to_create,
-        std::map<EqKDTree*, Domain>& creation_rects, AddressSpaceID source,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs)
+        op::map<EqKDTree*, Domain>& creation_rects, AddressSpaceID source,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs)
     //--------------------------------------------------------------------------
     {
       // Lock held by caller
       // Save these into the creation requests
-      for (std::map<EqKDTree*, Domain>::const_iterator it =
+      for (op::map<EqKDTree*, Domain>::const_iterator it =
                creation_rects.begin();
            it != creation_rects.end(); it++)
       {
@@ -10893,7 +10892,7 @@ namespace Legion {
 #endif
         if (creation_rectangles != nullptr)
         {
-          LegionMap<Domain, FieldMask>::iterator finder =
+          op::map<Domain, FieldMask>::iterator finder =
               creation_rectangles->find(it->second);
           if (finder != creation_rectangles->end())
             finder->second |= to_create[it->first];
@@ -10902,13 +10901,13 @@ namespace Legion {
         }
         else
         {
-          creation_rectangles = new LegionMap<Domain, FieldMask>();
+          creation_rectangles = new op::map<Domain, FieldMask>();
           (*creation_rectangles)[it->second] = to_create[it->first];
         }
       }
       if (creation_requests == nullptr)
         creation_requests =
-            new LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >();
+            new op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >();
       FieldMaskSet<EqKDTree>& requests = (*creation_requests)[source];
       if (!requests.empty())
       {
@@ -10921,15 +10920,15 @@ namespace Legion {
       // Save the creation sources
       if (creation_sources != nullptr)
       {
-        for (std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >::iterator
+        for (op::map<EquivalenceSet*, op::map<Domain, FieldMask> >::iterator
                  sit = creation_srcs.begin();
              sit != creation_srcs.end(); sit++)
         {
-          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >::iterator
+          std::map<EquivalenceSet*, op::map<Domain, FieldMask> >::iterator
               finder = creation_sources->find(sit->first);
           if (finder != creation_sources->end())
           {
-            for (LegionMap<Domain, FieldMask>::const_iterator it =
+            for (op::map<Domain, FieldMask>::const_iterator it =
                      sit->second.begin();
                  it != sit->second.end(); it++)
               finder->second[it->first] |= it->second;
@@ -10941,7 +10940,7 @@ namespace Legion {
       else
       {
         creation_sources =
-            new std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >();
+            new op::map<EquivalenceSet*, op::map<Domain, FieldMask> >();
         creation_sources->swap(creation_srcs);
       }
     }
@@ -10949,9 +10948,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EqSetTracker::extract_creation_sets(
         const FieldMask& mask,
-        LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-        LegionMap<Domain, FieldMask>& create_now_rectangles,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
+        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+        op::map<Domain, FieldMask>& create_now_rectangles,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >&
             create_now_sources)
     //--------------------------------------------------------------------------
     {
@@ -11050,13 +11049,12 @@ namespace Legion {
         }
         if (creation_sources != nullptr)
         {
-          for (std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >::
-                   iterator sit = creation_sources->begin();
+          for (op::map<EquivalenceSet*, op::map<Domain, FieldMask> >::iterator
+                   sit = creation_sources->begin();
                sit != creation_sources->end();
                /*nothing*/)
           {
-            for (LegionMap<Domain, FieldMask>::iterator it =
-                     sit->second.begin();
+            for (op::map<Domain, FieldMask>::iterator it = sit->second.begin();
                  it != sit->second.end();
                  /*nothing*/)
             {
@@ -11067,7 +11065,7 @@ namespace Legion {
                 it->second -= overlap;
                 if (!it->second)
                 {
-                  LegionMap<Domain, FieldMask>::iterator to_delete = it++;
+                  op::map<Domain, FieldMask>::iterator to_delete = it++;
                   sit->second.erase(to_delete);
                 }
                 else
@@ -11078,7 +11076,7 @@ namespace Legion {
             }
             if (sit->second.empty())
             {
-              std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >::iterator
+              op::map<EquivalenceSet*, op::map<Domain, FieldMask> >::iterator
                   to_delete = sit++;
               creation_sources->erase(to_delete);
             }
@@ -11147,9 +11145,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EqSetTracker::create_new_equivalence_sets(
         InnerContext* context, std::vector<RtEvent>& ready_events,
-        LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-        LegionMap<Domain, FieldMask>& create_now_rectangles,
-        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs,
+        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+        op::map<Domain, FieldMask>& create_now_rectangles,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         const CollectiveMapping& target_mapping,
         const std::vector<EqSetTracker*>& targets)
     //--------------------------------------------------------------------------
@@ -11159,15 +11157,15 @@ namespace Legion {
       // as we can use those to check for dominating the new set of rectangles
       // so we might be able to skip making a new equivalence set
       FieldMaskSet<EquivalenceSet> unique_sources;
-      std::map<EquivalenceSet*, local::list<SourceState> > set_sources;
+      local::map<EquivalenceSet*, local::list<SourceState> > set_sources;
       {
         FieldMask multiple_sources;
-        for (std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >::
+        for (op::map<EquivalenceSet*, op::map<Domain, FieldMask> >::
                  const_iterator eit = creation_srcs.begin();
              eit != creation_srcs.end(); eit++)
         {
           local::list<SourceState>& src_rects = set_sources[eit->first];
-          compute_field_sets(FieldMask(), eit->second, src_rects);
+          compute_field_sets(FieldMask(), MapView(eit->second), src_rects);
           FieldMask src_fields;
           for (local::list<SourceState>::const_iterator it = src_rects.begin();
                it != src_rects.end(); it++)
@@ -11223,12 +11221,13 @@ namespace Legion {
       // with all the kd-nodes that we're supposed to target
       FieldMask universe_mask;
 #ifdef DEBUG_LEGION
-      for (LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::const_iterator
-               it = create_now.begin();
+      for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::const_iterator it =
+               create_now.begin();
            it != create_now.end(); it++)
         universe_mask |= it->second.get_valid_mask();
 #endif
-      compute_field_sets(universe_mask, create_now_rectangles, rectangle_sets);
+      compute_field_sets(
+          universe_mask, MapView(create_now_rectangles), rectangle_sets);
       FieldMaskSet<EquivalenceSet> created_sets;
       IndexSpaceExpression* tracker_expr = get_tracker_expression();
       const ReferenceSource ref_kind = get_reference_source_kind();
@@ -11252,12 +11251,12 @@ namespace Legion {
         IndexSpaceExpression* expr =
             tracker_expr->create_from_rectangles(rit->elements);
         // Extract the things that we need to notify about this set
-        LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> > to_notify;
+        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_notify;
         if (rectangle_sets.size() == 1)
         {
           to_notify.swap(create_now);
           // But swap our local space back out if there is one
-          LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator finder =
+          op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator finder =
               to_notify.find(runtime->address_space);
           if (finder != to_notify.end())
           {
@@ -11271,7 +11270,7 @@ namespace Legion {
         // Next compute the CollectiveMapping for the equivalence set
         std::vector<AddressSpaceID> spaces;
         spaces.reserve(to_notify.size());
-        for (LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::const_iterator
+        for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::const_iterator
                  it = to_notify.begin();
              it != to_notify.end(); it++)
           spaces.emplace_back(it->first);
@@ -11366,7 +11365,7 @@ namespace Legion {
                 mapping->pack(rez);
                 rez.serialize(ready);
                 rez.serialize<size_t>(to_notify.size());
-                for (LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::
+                for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::
                          const_iterator nit = to_notify.begin();
                      nit != to_notify.end(); nit++)
                 {
@@ -11407,7 +11406,7 @@ namespace Legion {
                 mapping->pack(rez);
                 rez.serialize(ready);
                 rez.serialize<size_t>(to_notify.size());
-                for (LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::
+                for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::
                          const_iterator nit = to_notify.begin();
                      nit != to_notify.end(); nit++)
                 {
@@ -11434,7 +11433,7 @@ namespace Legion {
           }
         }
         // Notify any local EqKDTree objects
-        LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator finder =
+        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator finder =
             create_now.find(runtime->address_space);
         if (finder != create_now.end())
         {
@@ -11491,8 +11490,8 @@ namespace Legion {
         FieldSet<Domain>& dest, std::vector<RtEvent>& ready_events,
         FieldMaskSet<EquivalenceSet>& created_sets,
         FieldMaskSet<EquivalenceSet>& unique_sources,
-        LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-        std::map<EquivalenceSet*, local::list<SourceState> >& set_sources,
+        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+        local::map<EquivalenceSet*, local::list<SourceState> >& set_sources,
         const CollectiveMapping& target_mapping,
         const std::vector<EqSetTracker*>& targets)
     //--------------------------------------------------------------------------
@@ -11545,7 +11544,7 @@ namespace Legion {
             // This equivalence set is already valid for exactly the
             // point of the overlapping fields
             // Get the set of EqKDTree nodes that we need to notify
-            LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> > to_notify;
+            op::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_notify;
             extract_remote_notifications(
                 overlap, runtime->address_space, create_now, to_notify);
             std::vector<AddressSpaceID> spaces;
@@ -11721,11 +11720,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EqSetTracker::extract_remote_notifications(
         const FieldMask& mask, AddressSpaceID local_space,
-        LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-        LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_notify)
+        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_notify)
     //--------------------------------------------------------------------------
     {
-      for (LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator cit =
+      for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator cit =
                create_now.begin();
            cit != create_now.end();
            /*nothing*/)
@@ -11776,7 +11775,7 @@ namespace Legion {
     RtEvent EqSetTracker::initialize_new_equivalence_set(
         EquivalenceSet* target, const FieldMask& mask,
         bool filter_invalidations,
-        std::map<EquivalenceSet*, local::list<SourceState> >& set_sources)
+        local::map<EquivalenceSet*, local::list<SourceState> >& set_sources)
     //--------------------------------------------------------------------------
     {
       std::vector<RtEvent> ready_events;
@@ -11787,8 +11786,8 @@ namespace Legion {
         if (filtered.exists())
           ready_events.emplace_back(filtered);
       }
-      for (std::map<EquivalenceSet*, local::list<SourceState> >::iterator eit =
-               set_sources.begin();
+      for (local::map<EquivalenceSet*, local::list<SourceState> >::iterator
+               eit = set_sources.begin();
            eit != set_sources.end();
            /*nothing*/)
       {
@@ -12677,7 +12676,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void EqSetTracker::cancel_subscriptions(
-        const LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_cancel,
+        const MapView<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_cancel,
         std::vector<RtEvent>* cancelled_events)
     //--------------------------------------------------------------------------
     {
@@ -12786,7 +12785,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ void EqSetTracker::invalidate_subscriptions(
         EqKDTree* owner,
-        LegionMap<AddressSpaceID, FieldMaskSet<EqSetTracker> >& subscribers,
+        const MapView<AddressSpaceID, FieldMaskSet<EqSetTracker> >& subscribers,
         std::vector<RtEvent>& invalidated_events)
     //--------------------------------------------------------------------------
     {
