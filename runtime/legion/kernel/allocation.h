@@ -847,21 +847,19 @@ namespace Legion {
     public:
       template<typename ALLOCATOR>
       inline VectorView(const std::vector<T, ALLOCATOR>& vector)
-        : start(vector.cbegin()), stop(vector.cend())
+        : length(vector.size()), ptr((length > 0) ? &vector.front() : nullptr)
       { }
     public:
-      inline size_t size(void) const { return std::distance(start, stop); }
-      inline bool empty(void) const { return (start == stop); }
-      inline const_iterator begin(void) const { return start; }
-      inline const_iterator end(void) const { return stop; }
-      inline const_iterator cbegin(void) const { return start; }
-      inline const_iterator cend(void) const { return stop; }
-      inline const T& operator[](unsigned idx) const
-      {
-        return *std::next(start, idx);
-      }
+      inline size_t size(void) const { return length; }
+      inline bool empty(void) const { return (length > 0); }
+      inline const_iterator begin(void) const { return ptr; }
+      inline const_iterator end(void) const { return ptr + length; }
+      inline const_iterator cbegin(void) const { return ptr; }
+      inline const_iterator cend(void) const { return ptr + length; }
+      inline const T& operator[](unsigned idx) const { return ptr[idx]; }
     private:
-      const const_iterator start, stop;
+      const size_t length;
+      const T* const ptr;
     };
 
   }  // namespace Internal
