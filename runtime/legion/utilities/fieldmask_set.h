@@ -301,14 +301,15 @@ namespace Legion {
       FieldMaskSet(void) : single(true) { entries.single_entry = nullptr; }
       inline FieldMaskSet(T* init, const FieldMask& m, bool no_null = true);
       inline FieldMaskSet(const FieldMaskSet<T, L, DETERMINISTIC>& rhs);
-      inline FieldMaskSet(FieldMaskSet<T, L, DETERMINISTIC>&& rhs);
+      inline FieldMaskSet(FieldMaskSet<T, L, DETERMINISTIC>&& rhs) noexcept;
       // If copy is set to false then this is a move constructor
       inline FieldMaskSet(FieldMaskSet<T, L, DETERMINISTIC>& rhs, bool copy);
       ~FieldMaskSet(void) { clear(); }
     public:
       inline FieldMaskSet& operator=(
           const FieldMaskSet<T, L, DETERMINISTIC>& rh);
-      inline FieldMaskSet& operator=(FieldMaskSet<T, L, DETERMINISTIC>&& rhs);
+      inline FieldMaskSet& operator=(
+          FieldMaskSet<T, L, DETERMINISTIC>&& rhs) noexcept;
     public:
       inline bool empty(void) const
       {

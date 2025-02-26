@@ -31,11 +31,11 @@ namespace Legion {
       PointwiseDependence(void);
       PointwiseDependence(const LogicalUser& previous);
       PointwiseDependence(const PointwiseDependence& rhs);
-      PointwiseDependence(PointwiseDependence&& rhs);
+      PointwiseDependence(PointwiseDependence&& rhs) noexcept;
       ~PointwiseDependence(void);
     public:
       PointwiseDependence& operator=(const PointwiseDependence& rhs);
-      PointwiseDependence& operator=(PointwiseDependence&& rhs);
+      PointwiseDependence& operator=(PointwiseDependence&& rhs) noexcept;
     public:
       bool matches(const LogicalUser& user) const;
       void find_dependences(

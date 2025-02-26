@@ -172,7 +172,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FieldSpaceNode::FieldInfo::FieldInfo(FieldInfo&& rhs)
+    FieldSpaceNode::FieldInfo::FieldInfo(FieldInfo&& rhs) noexcept
       : field_size(rhs.field_size), size_ready(rhs.size_ready), idx(rhs.idx),
         serdez_id(rhs.serdez_id), provenance(rhs.provenance),
         collective(rhs.collective), local(rhs.local)
@@ -210,7 +210,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldSpaceNode::FieldInfo& FieldSpaceNode::FieldInfo::operator=(
-        FieldInfo&& rhs)
+        FieldInfo&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())

@@ -320,7 +320,7 @@ namespace Legion {
           expr->add_base_expression_reference(LIVE_EXPR_REF);
       }
       IndexSpaceExprRef(const IndexSpaceExprRef& rhs) = delete;
-      IndexSpaceExprRef(IndexSpaceExprRef&& rhs) : expr(rhs.expr)
+      IndexSpaceExprRef(IndexSpaceExprRef&& rhs) noexcept : expr(rhs.expr)
       {
         rhs.expr = nullptr;
       }
@@ -331,7 +331,7 @@ namespace Legion {
           delete expr;
       }
       IndexSpaceExprRef& operator=(const IndexSpaceExprRef& rhs) = delete;
-      inline IndexSpaceExprRef& operator=(IndexSpaceExprRef&& rhs)
+      inline IndexSpaceExprRef& operator=(IndexSpaceExprRef&& rhs) noexcept
       {
         if ((expr != nullptr) &&
             expr->remove_base_expression_reference(LIVE_EXPR_REF))

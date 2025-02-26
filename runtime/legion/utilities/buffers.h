@@ -31,7 +31,8 @@ namespace Legion {
     public:
       BufferManager(void) : buffer(nullptr), size(0) { }
       BufferManager(const BufferManager& rhs) = delete;
-      BufferManager(BufferManager&& rhs) : buffer(rhs.buffer), size(rhs.size)
+      BufferManager(BufferManager&& rhs) noexcept
+        : buffer(rhs.buffer), size(rhs.size)
       {
         rhs.buffer = nullptr;
         rhs.size = 0;
@@ -39,7 +40,7 @@ namespace Legion {
       ~BufferManager(void) { clear(); }
     public:
       BufferManager& operator=(const BufferManager& rhs) = delete;
-      BufferManager& operator=(BufferManager&& rhs)
+      BufferManager& operator=(BufferManager&& rhs) noexcept
       {
         save_buffer(rhs.buffer, rhs.size);
         rhs.buffer = nullptr;

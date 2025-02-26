@@ -48,7 +48,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedRegion::DeletedRegion(DeletedRegion&& rhs)
+    ResourceTracker::DeletedRegion::DeletedRegion(DeletedRegion&& rhs) noexcept
       : region(rhs.region), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -79,7 +79,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedRegion& ResourceTracker::DeletedRegion::operator=(
-        DeletedRegion&& rhs)
+        DeletedRegion&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -139,7 +139,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedField::DeletedField(DeletedField&& rhs)
+    ResourceTracker::DeletedField::DeletedField(DeletedField&& rhs) noexcept
       : space(rhs.space), fid(rhs.fid), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -171,7 +171,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedField& ResourceTracker::DeletedField::operator=(
-        DeletedField&& rhs)
+        DeletedField&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -236,7 +236,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedFieldSpace::DeletedFieldSpace(
-        DeletedFieldSpace&& rhs)
+        DeletedFieldSpace&& rhs) noexcept
       : space(rhs.space), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -268,7 +268,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedFieldSpace&
-        ResourceTracker::DeletedFieldSpace::operator=(DeletedFieldSpace&& rhs)
+        ResourceTracker::DeletedFieldSpace::operator=(
+            DeletedFieldSpace&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -330,7 +331,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedIndexSpace::DeletedIndexSpace(
-        DeletedIndexSpace&& rhs)
+        DeletedIndexSpace&& rhs) noexcept
       : space(rhs.space), provenance(rhs.provenance), recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
@@ -363,7 +364,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedIndexSpace&
-        ResourceTracker::DeletedIndexSpace::operator=(DeletedIndexSpace&& rhs)
+        ResourceTracker::DeletedIndexSpace::operator=(
+            DeletedIndexSpace&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -428,7 +430,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedPartition::DeletedPartition(DeletedPartition&& rhs)
+    ResourceTracker::DeletedPartition::DeletedPartition(
+        DeletedPartition&& rhs) noexcept
       : partition(rhs.partition), provenance(rhs.provenance),
         recurse(rhs.recurse)
     //--------------------------------------------------------------------------
@@ -462,7 +465,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedPartition&
-        ResourceTracker::DeletedPartition::operator=(DeletedPartition&& rhs)
+        ResourceTracker::DeletedPartition::operator=(
+            DeletedPartition&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())

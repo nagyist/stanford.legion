@@ -258,7 +258,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L, bool D>
-    inline FieldMaskSet<T, L, D>::FieldMaskSet(FieldMaskSet<T, L, D>&& rhs)
+    inline FieldMaskSet<T, L, D>::FieldMaskSet(
+        FieldMaskSet<T, L, D>&& rhs) noexcept
       : valid_fields(rhs.valid_fields), single(rhs.single)
     //--------------------------------------------------------------------------
     {
@@ -343,7 +344,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L, bool D>
     inline FieldMaskSet<T, L, D>& FieldMaskSet<T, L, D>::operator=(
-        FieldMaskSet<T, L, D>&& rhs)
+        FieldMaskSet<T, L, D>&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       // Check our current state

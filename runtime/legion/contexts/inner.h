@@ -1117,11 +1117,11 @@ namespace Legion {
         EqKDRoot(void);
         EqKDRoot(EqKDTree* tree);
         EqKDRoot(const EqKDRoot& rhs) = delete;
-        EqKDRoot(EqKDRoot&& rhs);
+        EqKDRoot(EqKDRoot&& rhs) noexcept;
         ~EqKDRoot(void);
       public:
         EqKDRoot& operator=(const EqKDRoot& rhs) = delete;
-        EqKDRoot& operator=(EqKDRoot&& rhs);
+        EqKDRoot& operator=(EqKDRoot&& rhs) noexcept;
       public:
         EqKDTree* tree;
         LocalLock* lock;

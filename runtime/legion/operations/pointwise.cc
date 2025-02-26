@@ -77,7 +77,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PointwiseDependence::PointwiseDependence(PointwiseDependence&& rhs)
+    PointwiseDependence::PointwiseDependence(PointwiseDependence&& rhs) noexcept
       : context_index(rhs.context_index), unique_id(rhs.unique_id),
         kind(rhs.kind), region_index(rhs.region_index), domain(rhs.domain),
         projection(rhs.projection), sharding(rhs.sharding),
@@ -133,7 +133,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PointwiseDependence& PointwiseDependence::operator=(
-        PointwiseDependence&& rhs)
+        PointwiseDependence&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((domain != nullptr) &&

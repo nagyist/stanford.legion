@@ -97,7 +97,8 @@ namespace Legion {
       public:
         ReplBarrier(void) : owner(false) { }
         ReplBarrier(const ReplBarrier& rhs) = delete;
-        ReplBarrier(ReplBarrier&& rhs) : barrier(rhs.barrier), owner(rhs.owner)
+        ReplBarrier(ReplBarrier&& rhs) noexcept
+          : barrier(rhs.barrier), owner(rhs.owner)
         {
           rhs.owner = false;
         }
@@ -108,7 +109,7 @@ namespace Legion {
         }
       public:
         ReplBarrier& operator=(const ReplBarrier& rhs) = delete;
-        inline ReplBarrier& operator=(ReplBarrier&& rhs)
+        inline ReplBarrier& operator=(ReplBarrier&& rhs) noexcept
         {
           if (owner && barrier.exists())
             barrier.destroy_barrier();

@@ -1617,7 +1617,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    InnerContext::EqKDRoot::EqKDRoot(EqKDRoot&& rhs)
+    InnerContext::EqKDRoot::EqKDRoot(EqKDRoot&& rhs) noexcept
       : tree(rhs.tree), lock(rhs.lock)
     //--------------------------------------------------------------------------
     {
@@ -1642,7 +1642,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    InnerContext::EqKDRoot& InnerContext::EqKDRoot::operator=(EqKDRoot&& rhs)
+    InnerContext::EqKDRoot& InnerContext::EqKDRoot::operator=(
+        EqKDRoot&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if (tree == nullptr)

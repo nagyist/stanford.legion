@@ -219,7 +219,7 @@ namespace Legion {
         TaskLocalInstanceAllocator(void) = delete;
         TaskLocalInstanceAllocator(LgEvent unique_event);
         TaskLocalInstanceAllocator(const TaskLocalInstanceAllocator&) = delete;
-        TaskLocalInstanceAllocator(TaskLocalInstanceAllocator&& rhs);
+        TaskLocalInstanceAllocator(TaskLocalInstanceAllocator&& rhs) noexcept;
         virtual ~TaskLocalInstanceAllocator(void) { ready.wait(); }
       public:
         TaskLocalInstanceAllocator& operator=(

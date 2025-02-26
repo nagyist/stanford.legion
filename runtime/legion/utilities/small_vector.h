@@ -27,11 +27,11 @@ namespace Legion {
     public:
       inline SmallPointerVector(void);
       SmallPointerVector(const SmallPointerVector& rhs) = delete;
-      inline SmallPointerVector(SmallPointerVector&& rhs);
+      inline SmallPointerVector(SmallPointerVector&& rhs) noexcept;
       inline ~SmallPointerVector(void);
     public:
       SmallPointerVector& operator=(const SmallPointerVector& rhs) = delete;
-      inline SmallPointerVector& operator=(SmallPointerVector&& rhs);
+      inline SmallPointerVector& operator=(SmallPointerVector&& rhs) noexcept;
     public:
       inline bool empty(void) const;
       inline size_t size(void) const;

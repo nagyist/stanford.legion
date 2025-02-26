@@ -52,11 +52,11 @@ namespace Legion {
             ApEvent ready, unsigned id, CustomSerdezID sid, Provenance* prov,
             bool loc = false, bool collect = false);
         FieldInfo(const FieldInfo& rhs);
-        FieldInfo(FieldInfo&& rhs);
+        FieldInfo(FieldInfo&& rhs) noexcept;
         ~FieldInfo(void);
       public:
         FieldInfo& operator=(const FieldInfo& rhs);
-        FieldInfo& operator=(FieldInfo&& rhs);
+        FieldInfo& operator=(FieldInfo&& rhs) noexcept;
       public:
         void serialize(Serializer& rez) const;
         void deserialize(Deserializer& derez);

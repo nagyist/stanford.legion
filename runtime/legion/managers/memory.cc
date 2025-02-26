@@ -5302,7 +5302,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     MemoryManager::TaskLocalInstanceAllocator::TaskLocalInstanceAllocator(
-        TaskLocalInstanceAllocator&& rhs)
+        TaskLocalInstanceAllocator&& rhs) noexcept
       : ready(rhs.ready), unique_event(rhs.unique_event),
         caller_fevent(implicit_fevent), success(rhs.success)
     //--------------------------------------------------------------------------

@@ -30,7 +30,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
     inline SmallPointerVector<T, SORTED>::SmallPointerVector(
-        SmallPointerVector&& rhs)
+        SmallPointerVector&& rhs) noexcept
       : ptr(rhs.ptr)
     //--------------------------------------------------------------------------
     {
@@ -49,7 +49,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
     inline SmallPointerVector<T, SORTED>&
-        SmallPointerVector<T, SORTED>::operator=(SmallPointerVector&& rhs)
+        SmallPointerVector<T, SORTED>::operator=(
+            SmallPointerVector&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if (ptr & 0x1)

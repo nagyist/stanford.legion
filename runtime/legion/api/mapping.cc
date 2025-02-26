@@ -194,7 +194,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PhysicalInstance::PhysicalInstance(PhysicalInstance&& rhs) : impl(rhs.impl)
+    PhysicalInstance::PhysicalInstance(PhysicalInstance&& rhs) noexcept
+      : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
       rhs.impl = nullptr;
@@ -218,7 +219,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PhysicalInstance& PhysicalInstance::operator=(PhysicalInstance&& rhs)
+    PhysicalInstance& PhysicalInstance::operator=(
+        PhysicalInstance&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((impl != nullptr) && impl->remove_base_gc_ref(Internal::MAPPER_REF))
@@ -492,7 +494,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    CollectiveView::CollectiveView(CollectiveView&& rhs) : impl(rhs.impl)
+    CollectiveView::CollectiveView(CollectiveView&& rhs) noexcept
+      : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
       rhs.impl = nullptr;
@@ -515,7 +518,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    CollectiveView& CollectiveView::operator=(CollectiveView&& rhs)
+    CollectiveView& CollectiveView::operator=(CollectiveView&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       if ((impl != nullptr) && impl->remove_base_gc_ref(Internal::MAPPER_REF))

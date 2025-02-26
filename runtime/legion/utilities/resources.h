@@ -37,11 +37,11 @@ namespace Legion {
         DeletedRegion(void);
         DeletedRegion(LogicalRegion r, Provenance* provenance = nullptr);
         DeletedRegion(const DeletedRegion& rhs);
-        DeletedRegion(DeletedRegion&& rhs);
+        DeletedRegion(DeletedRegion&& rhs) noexcept;
         ~DeletedRegion(void);
       public:
         DeletedRegion& operator=(const DeletedRegion& rhs);
-        DeletedRegion& operator=(DeletedRegion&& rhs);
+        DeletedRegion& operator=(DeletedRegion&& rhs) noexcept;
       public:
         void serialize(Serializer& rez) const;
         void deserialize(Deserializer& derez);
@@ -55,11 +55,11 @@ namespace Legion {
         DeletedField(
             FieldSpace sp, FieldID f, Provenance* provenance = nullptr);
         DeletedField(const DeletedField& rhs);
-        DeletedField(DeletedField&& rhs);
+        DeletedField(DeletedField&& rhs) noexcept;
         ~DeletedField(void);
       public:
         DeletedField& operator=(const DeletedField& rhs);
-        DeletedField& operator=(DeletedField&& rhs);
+        DeletedField& operator=(DeletedField&& rhs) noexcept;
       public:
         void serialize(Serializer& rez) const;
         void deserialize(Deserializer& derez);
@@ -73,11 +73,11 @@ namespace Legion {
         DeletedFieldSpace(void);
         DeletedFieldSpace(FieldSpace sp, Provenance* provenance = nullptr);
         DeletedFieldSpace(const DeletedFieldSpace& rhs);
-        DeletedFieldSpace(DeletedFieldSpace&& rhs);
+        DeletedFieldSpace(DeletedFieldSpace&& rhs) noexcept;
         ~DeletedFieldSpace(void);
       public:
         DeletedFieldSpace& operator=(const DeletedFieldSpace& rhs);
-        DeletedFieldSpace& operator=(DeletedFieldSpace&& rhs);
+        DeletedFieldSpace& operator=(DeletedFieldSpace&& rhs) noexcept;
       public:
         void serialize(Serializer& rez) const;
         void deserialize(Deserializer& derez);
@@ -91,11 +91,11 @@ namespace Legion {
         DeletedIndexSpace(
             IndexSpace sp, bool recurse, Provenance* provenance = nullptr);
         DeletedIndexSpace(const DeletedIndexSpace& rhs);
-        DeletedIndexSpace(DeletedIndexSpace&& rhs);
+        DeletedIndexSpace(DeletedIndexSpace&& rhs) noexcept;
         ~DeletedIndexSpace(void);
       public:
         DeletedIndexSpace& operator=(const DeletedIndexSpace& rhs);
-        DeletedIndexSpace& operator=(DeletedIndexSpace&& rhs);
+        DeletedIndexSpace& operator=(DeletedIndexSpace&& rhs) noexcept;
       public:
         void serialize(Serializer& rez) const;
         void deserialize(Deserializer& derez);
@@ -110,11 +110,11 @@ namespace Legion {
         DeletedPartition(
             IndexPartition p, bool recurse, Provenance* provenance = nullptr);
         DeletedPartition(const DeletedPartition& rhs);
-        DeletedPartition(DeletedPartition&& rhs);
+        DeletedPartition(DeletedPartition&& rhs) noexcept;
         ~DeletedPartition(void);
       public:
         DeletedPartition& operator=(const DeletedPartition& rhs);
-        DeletedPartition& operator=(DeletedPartition&& rhs);
+        DeletedPartition& operator=(DeletedPartition&& rhs) noexcept;
       public:
         void serialize(Serializer& rez) const;
         void deserialize(Deserializer& derez);

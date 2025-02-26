@@ -405,11 +405,11 @@ namespace Legion {
     class PhysicalInstance {
     public:
       PhysicalInstance(void);
-      PhysicalInstance(PhysicalInstance&& rhs);
+      PhysicalInstance(PhysicalInstance&& rhs) noexcept;
       PhysicalInstance(const PhysicalInstance& rhs);
       ~PhysicalInstance(void);
     public:
-      PhysicalInstance& operator=(PhysicalInstance&& rhs);
+      PhysicalInstance& operator=(PhysicalInstance&& rhs) noexcept;
       PhysicalInstance& operator=(const PhysicalInstance& rhs);
     public:
       bool operator<(const PhysicalInstance& rhs) const;
@@ -481,11 +481,11 @@ namespace Legion {
     class CollectiveView {
     public:
       CollectiveView(void);
-      CollectiveView(CollectiveView&& rhs);
+      CollectiveView(CollectiveView&& rhs) noexcept;
       CollectiveView(const CollectiveView& rhs);
       ~CollectiveView(void);
     public:
-      CollectiveView& operator=(CollectiveView&& rhs);
+      CollectiveView& operator=(CollectiveView&& rhs) noexcept;
       CollectiveView& operator=(const CollectiveView& rhs);
     public:
       bool operator<(const CollectiveView& rhs) const;

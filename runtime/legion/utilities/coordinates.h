@@ -35,7 +35,7 @@ namespace Legion {
       inline ContextCoordinate(const ContextCoordinate& rhs)
         : context_index(rhs.context_index), index_point(rhs.index_point)
       { }
-      inline ContextCoordinate(ContextCoordinate&& rhs)
+      inline ContextCoordinate(ContextCoordinate&& rhs) noexcept
         : context_index(rhs.context_index), index_point(rhs.index_point)
       { }
       inline ContextCoordinate(uint64_t index) : context_index(index) { }
@@ -48,7 +48,7 @@ namespace Legion {
         index_point = rhs.index_point;
         return *this;
       }
-      inline ContextCoordinate& operator=(ContextCoordinate&& rhs)
+      inline ContextCoordinate& operator=(ContextCoordinate&& rhs) noexcept
       {
         context_index = rhs.context_index;
         index_point = rhs.index_point;
