@@ -1248,17 +1248,17 @@ namespace Legion {
       {
         // Do the volumetric extraction to send all of the equivalence sets
         // from the source shard to the right shards in this context
-        std::map<
-            ShardID, LegionMap<RegionNode*, FieldMaskSet<EquivalenceSet> > >
+        local::map<
+            ShardID, local::map<RegionNode*, FieldMaskSet<EquivalenceSet> > >
             eq_sets;
         for (unsigned idx = 0; idx < created_nodes.size(); idx++)
           if (created_trees[idx] != nullptr)
             created_trees[idx]->find_shard_equivalence_sets(
                 eq_sets, source_shard, 0 /*lower shard id*/,
                 total_shards - 1 /*upper shard id*/, created_nodes[idx]);
-        for (std::map<
+        for (local::map<
                  ShardID,
-                 LegionMap<RegionNode*, FieldMaskSet<EquivalenceSet> > >::
+                 local::map<RegionNode*, FieldMaskSet<EquivalenceSet> > >::
                  const_iterator sit = eq_sets.begin();
              sit != eq_sets.end(); sit++)
         {
@@ -1266,7 +1266,7 @@ namespace Legion {
           rez.serialize(shard_manager->did);
           rez.serialize(sit->first);
           rez.serialize<size_t>(sit->second.size());
-          for (LegionMap<RegionNode*, FieldMaskSet<EquivalenceSet> >::
+          for (local::map<RegionNode*, FieldMaskSet<EquivalenceSet> >::
                    const_iterator rit = sit->second.begin();
                rit != sit->second.end(); rit++)
           {
@@ -9840,7 +9840,7 @@ namespace Legion {
       FieldMaskSet<EqKDTree> new_subscriptions;
       op::map<EqKDTree*, Domain> creation_rects;
       op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
-      std::map<ShardID, LegionMap<Domain, FieldMask> > remote_shard_rects;
+      op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
       std::vector<unsigned> new_target_references(targets.size(), 0);
       expr->compute_equivalence_sets(
           tree, tree_lock, mask, targets, target_spaces, new_target_references,
@@ -9850,8 +9850,8 @@ namespace Legion {
       assert(to_create.size() == creation_rects.size());
 #endif
       // Send out messages to any shards we need to compute remotely
-      for (std::map<ShardID, LegionMap<Domain, FieldMask> >::const_iterator
-               sit = remote_shard_rects.begin();
+      for (op::map<ShardID, op::map<Domain, FieldMask> >::const_iterator sit =
+               remote_shard_rects.begin();
            sit != remote_shard_rects.end(); sit++)
       {
         const RtUserEvent ready = Runtime::create_rt_user_event();
@@ -9868,7 +9868,7 @@ namespace Legion {
         rez.serialize(req_index);
         rez.serialize(mask);
         rez.serialize<size_t>(sit->second.size());
-        for (LegionMap<Domain, FieldMask>::const_iterator it =
+        for (op::map<Domain, FieldMask>::const_iterator it =
                  sit->second.begin();
              it != sit->second.end(); it++)
         {
@@ -9901,14 +9901,14 @@ namespace Legion {
       LocalLock* tree_lock = nullptr;
       EqKDTree* tree = find_or_create_output_set_kd_tree(req_index, tree_lock);
       FieldMaskSet<EqKDTree> new_subscriptions;
-      std::map<ShardID, LegionMap<Domain, FieldMask> > remote_shard_rects;
+      op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
       unsigned references = set->set_expr->record_output_equivalence_set(
           tree, tree_lock, set, mask, source, source_space, new_subscriptions,
           remote_shard_rects, owner_shard->shard_id);
       std::vector<RtEvent> recorded_events;
       // Send out messages to any shards we need to do the recording on
-      for (std::map<ShardID, LegionMap<Domain, FieldMask> >::const_iterator
-               sit = remote_shard_rects.begin();
+      for (op::map<ShardID, op::map<Domain, FieldMask> >::const_iterator sit =
+               remote_shard_rects.begin();
            sit != remote_shard_rects.end(); sit++)
       {
         const RtUserEvent ready = Runtime::create_rt_user_event();
@@ -9921,7 +9921,7 @@ namespace Legion {
         rez.serialize(set->did);
         set->pack_global_ref();
         rez.serialize<size_t>(sit->second.size());
-        for (LegionMap<Domain, FieldMask>::const_iterator it =
+        for (op::map<Domain, FieldMask>::const_iterator it =
                  sit->second.begin();
              it != sit->second.end(); it++)
         {
@@ -9983,13 +9983,13 @@ namespace Legion {
       {
         LocalLock* tree_lock = nullptr;
         EqKDTree* tree = find_equivalence_set_kd_tree(req_index, tree_lock);
-        std::map<ShardID, LegionMap<Domain, FieldMask> > remote_shard_rects;
+        op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
         node->invalidate_shard_equivalence_set_kd_tree(
             tree, tree_lock, refinement_mask, applied_events,
             remote_shard_rects, owner_shard->shard_id);
         // If there are any remote then send them to the target shard
-        for (std::map<ShardID, LegionMap<Domain, FieldMask> >::const_iterator
-                 sit = remote_shard_rects.begin();
+        for (op::map<ShardID, op::map<Domain, FieldMask> >::const_iterator sit =
+                 remote_shard_rects.begin();
              sit != remote_shard_rects.end(); sit++)
         {
           // If there is a collective mapping and it already contains the
@@ -10010,7 +10010,7 @@ namespace Legion {
           rez.serialize(sit->first);
           rez.serialize(req_index);
           rez.serialize<size_t>(sit->second.size());
-          for (LegionMap<Domain, FieldMask>::const_iterator it =
+          for (op::map<Domain, FieldMask>::const_iterator it =
                    sit->second.begin();
                it != sit->second.end(); it++)
           {
@@ -10055,7 +10055,7 @@ namespace Legion {
       {
         LocalLock* tree_lock = nullptr;
         EqKDTree* tree = find_equivalence_set_kd_tree(req_index, tree_lock);
-        LegionMap<ShardID, FieldMask> remote_shards;
+        local::map<ShardID, FieldMask> remote_shards;
         node->find_shard_trace_local_sets_kd_tree(
             tree, tree_lock, mask, req_index, current_sets, remote_shards,
             owner_shard->shard_id);
@@ -10065,7 +10065,7 @@ namespace Legion {
           LocalLock current_set_lock;
           std::vector<RtEvent> ready_events;
           // If there are any remote then send them to the target shard
-          for (LegionMap<ShardID, FieldMask>::const_iterator it =
+          for (local::map<ShardID, FieldMask>::const_iterator it =
                    remote_shards.begin();
                it != remote_shards.end(); it++)
           {

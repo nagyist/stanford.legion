@@ -316,7 +316,7 @@ namespace Legion {
         const FieldMask& mask, size_t count)
     //--------------------------------------------------------------------------
     {
-      LegionMap<DistributedID, FieldMask>::iterator group_finder =
+      op::map<DistributedID, FieldMask>::iterator group_finder =
           collective.groups.find(did);
       if (group_finder != collective.groups.end())
       {
@@ -339,7 +339,7 @@ namespace Legion {
           // compute the collective arrivals are not going to
           // work in this case so the arrival counts will need
           // to look something like:
-          //   std::map<InstanceView*,LegionMap<size_t,FieldMask> >
+          //   std::map<InstanceView*,op::map<size_t,FieldMask> >
           Exception(FATAL_EXCEPTION)
               << "Something requested a very strange pattern for collective "
               << "instance rendezvous with different points asking to "
@@ -549,7 +549,7 @@ namespace Legion {
           rez.serialize(it->second);
         }
         rez.serialize<size_t>(rit->second.groups.size());
-        for (LegionMap<DistributedID, FieldMask>::const_iterator it =
+        for (op::map<DistributedID, FieldMask>::const_iterator it =
                  rit->second.groups.begin();
              it != rit->second.groups.end(); it++)
         {
@@ -596,7 +596,7 @@ namespace Legion {
                 region_finder->second.results[offset + idx2].second);
           }
           // unpack these and then do the merge
-          LegionMap<DistributedID, FieldMask> groups;
+          op::map<DistributedID, FieldMask> groups;
           std::map<DistributedID, size_t> counts;
           size_t num_groups;
           derez.deserialize(num_groups);
@@ -615,7 +615,7 @@ namespace Legion {
             derez.deserialize(counts[did]);
           }
           // merge the groups and counts into the existing case
-          for (LegionMap<DistributedID, FieldMask>::const_iterator it =
+          for (op::map<DistributedID, FieldMask>::const_iterator it =
                    groups.begin();
                it != groups.end(); it++)
           {
@@ -669,11 +669,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ void CollectiveVersioningBase::pack_collective_versioning(
         Serializer& rez,
-        const LegionMap<LogicalRegion, RegionVersioning>& pending_versions)
+        const op::map<LogicalRegion, RegionVersioning>& pending_versions)
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(pending_versions.size());
-      for (LegionMap<LogicalRegion, RegionVersioning>::const_iterator pit =
+      for (op::map<LogicalRegion, RegionVersioning>::const_iterator pit =
                pending_versions.begin();
            pit != pending_versions.end(); pit++)
       {
@@ -683,7 +683,7 @@ namespace Legion {
         rez.serialize(pit->first);
         rez.serialize(pit->second.ready_event);
         rez.serialize<size_t>(pit->second.trackers.size());
-        for (LegionMap<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask>::
+        for (op::map<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask>::
                  const_iterator it = pit->second.trackers.begin();
              it != pit->second.trackers.end(); it++)
         {
@@ -697,7 +697,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ bool CollectiveVersioningBase::unpack_collective_versioning(
         Deserializer& derez,
-        LegionMap<LogicalRegion, RegionVersioning>& pending_versions)
+        op::map<LogicalRegion, RegionVersioning>& pending_versions)
     //--------------------------------------------------------------------------
     {
       size_t num_regions;
@@ -708,7 +708,7 @@ namespace Legion {
         derez.deserialize(region);
         RtUserEvent ready_event;
         derez.deserialize(ready_event);
-        LegionMap<LogicalRegion, RegionVersioning>::iterator finder =
+        op::map<LogicalRegion, RegionVersioning>::iterator finder =
             pending_versions.find(region);
         if (finder == pending_versions.end())
         {
@@ -769,7 +769,7 @@ namespace Legion {
     {
       RtEvent result;
       bool done = false;
-      LegionMap<LogicalRegion, RegionVersioning> to_perform;
+      op::map<LogicalRegion, RegionVersioning> to_perform;
       {
         AutoLock v_lock(versioning_lock);
         std::map<unsigned, PendingVersioning>::iterator finder =
@@ -824,7 +824,7 @@ namespace Legion {
     template<typename OP>
     void CollectiveVersioning<OP>::rendezvous_collective_versioning_analysis(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
+        op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
       bool done = false;
@@ -841,7 +841,7 @@ namespace Legion {
         }
         if (!finder->second.region_versioning.empty())
         {
-          for (LegionMap<LogicalRegion, RegionVersioning>::iterator pit =
+          for (op::map<LogicalRegion, RegionVersioning>::iterator pit =
                    to_perform.begin();
                pit != to_perform.end();
                /*nothing*/)
@@ -859,13 +859,13 @@ namespace Legion {
             else
             {
               // Merge everything
-              for (LegionMap<
+              for (op::map<
                        std::pair<AddressSpaceID, EqSetTracker*>,
                        FieldMask>::const_iterator it =
                        pit->second.trackers.begin();
                    it != pit->second.trackers.end(); it++)
               {
-                LegionMap<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask>::
+                op::map<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask>::
                     iterator tracker_finder =
                         region_finder->second.trackers.find(it->first);
                 if (tracker_finder == region_finder->second.trackers.end())
@@ -876,7 +876,7 @@ namespace Legion {
               Runtime::trigger_event(
                   pit->second.ready_event, region_finder->second.ready_event);
             }
-            LegionMap<LogicalRegion, RegionVersioning>::iterator delete_it =
+            op::map<LogicalRegion, RegionVersioning>::iterator delete_it =
                 pit++;
             to_perform.erase(delete_it);
           }
@@ -903,11 +903,11 @@ namespace Legion {
     template<typename OP>
     void CollectiveVersioning<OP>::finalize_collective_versioning_analysis(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
+        op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
       InnerContext* context = this->get_context();
-      for (LegionMap<LogicalRegion, RegionVersioning>::const_iterator pit =
+      for (op::map<LogicalRegion, RegionVersioning>::const_iterator pit =
                to_perform.begin();
            pit != to_perform.end(); pit++)
       {
@@ -1135,7 +1135,7 @@ namespace Legion {
                   region_finder->second.results.begin(),
                   region_finder->second.results.end());
             }
-            for (LegionMap<DistributedID, FieldMask>::iterator it =
+            for (op::map<DistributedID, FieldMask>::iterator it =
                      rit->second.groups.begin();
                  it != rit->second.groups.end(); it++)
             {
@@ -1386,7 +1386,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void CollectiveVersioningRendezvous::perform_rendezvous(
         unsigned parent_index,
-        LegionMap<LogicalRegion, RegionVersioning>& pending)
+        op::map<LogicalRegion, RegionVersioning>& pending)
     //--------------------------------------------------------------------------
     {
       parent_req_index = parent_index;
@@ -1422,7 +1422,7 @@ namespace Legion {
     template<typename OP>
     void ReplCollectiveVersioning<OP>::finalize_collective_versioning_analysis(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
+        op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
       std::map<unsigned, CollectiveVersioningRendezvous*>::const_iterator
@@ -1437,7 +1437,7 @@ namespace Legion {
     template<typename OP>
     void ReplCollectiveVersioning<OP>::finalize_collective_versioning(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
+        op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
       // Invoke the base class version of the finalize method
@@ -1482,7 +1482,7 @@ namespace Legion {
         std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
-      LegionMap<LogicalRegion, RegionVersioning> empty_versions;
+      op::map<LogicalRegion, RegionVersioning> empty_versions;
       for (typename std::map<
                unsigned, CollectiveVersioningRendezvous*>::const_iterator it =
                collective_versioning_rendezvous.begin();

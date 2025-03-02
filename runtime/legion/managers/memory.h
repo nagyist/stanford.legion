@@ -495,9 +495,8 @@ namespace Legion {
       // For collectable instances they have non-nullptr GCHole that
       // represents a range of memory that can be collected
       // This data structure is protected by the manager_lock
-      typedef LegionMap<PhysicalManager*, GCPriority, LONG_LIFETIME>
-          TreeInstances;
-      std::map<RegionTreeID, TreeInstances> current_instances;
+      typedef lng::map<PhysicalManager*, GCPriority> TreeInstances;
+      lng::map<RegionTreeID, TreeInstances> current_instances;
       // Keep track of all groupings of instances based on their
       // garbage collection priorities and placement in memory
       std::map<

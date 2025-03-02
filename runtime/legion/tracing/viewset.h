@@ -52,7 +52,8 @@ namespace Legion {
           LogicalView* view, IndexSpaceExpression* expr, const FieldMask& mask,
           bool antialiased = false);
       void insert(
-          LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >& views,
+          const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+              views,
           bool antialiased = false);
       void invalidate(
           LogicalView* view, IndexSpaceExpression* expr, const FieldMask& mask,
@@ -73,7 +74,7 @@ namespace Legion {
           FieldMask& non_dominated) const;
       void dominates(
           LogicalView* view, IndexSpaceExpression* expr, FieldMask mask,
-          LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+          local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
               non_dominated) const;
       void filter_independent_fields(
           IndexSpaceExpression* expr, FieldMask& mask) const;
@@ -86,7 +87,7 @@ namespace Legion {
           FailedPrecondition* condition = nullptr) const;
       void record_first_failed(FailedPrecondition* condition = nullptr) const;
       void transpose_uniquely(
-          LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >& target)
+          local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >& target)
           const;
       void find_overlaps(
           TraceViewSet& target, IndexSpaceExpression* expr,
@@ -116,7 +117,7 @@ namespace Legion {
           CollectiveView* view, FieldMask mask,
           FieldMaskSet<InstanceView>& altviews);
     protected:
-      typedef LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+      typedef shrt::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
           ViewExprs;
     public:
       InnerContext* const context;

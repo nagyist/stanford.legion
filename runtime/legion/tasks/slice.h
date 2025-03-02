@@ -154,14 +154,13 @@ namespace Legion {
           const FieldMask& mask, unsigned parent_req_index);
       void perform_replicate_collective_versioning(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform);
       void convert_replicate_collective_views(
           const RendezvousKey& key,
           std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);
-
       virtual void finalize_collective_versioning_analysis(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform);
       virtual RtEvent convert_collective_views(
           unsigned requirement_index, unsigned analysis_index,
           LogicalRegion region, const InstanceSet& targets,

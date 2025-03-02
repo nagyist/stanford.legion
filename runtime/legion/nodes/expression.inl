@@ -1900,7 +1900,7 @@ namespace Legion {
         FieldMaskSet<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
-        std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+        op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
@@ -1922,7 +1922,7 @@ namespace Legion {
         EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
         const FieldMask& mask, EqSetTracker* tracker,
         AddressSpaceID tracker_space, FieldMaskSet<EqKDTree>& subscriptions,
-        std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+        op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {

@@ -83,7 +83,7 @@ namespace Legion {
     public:
       PhysicalTemplate* const owner;
       IndexSpaceExpression* const condition_expr;
-      const FieldMaskSet<LogicalView> views;
+      const FieldMaskSet<LogicalView> views;  // should be long-lived
       const RegionTreeID tree_id;
       const unsigned parent_req_index;
     private:
@@ -145,7 +145,7 @@ namespace Legion {
         std::map<Memory, PoolBounds> pool_bounds;
         std::deque<InstanceSet> physical_instances;
       };
-      typedef LegionMap<TraceLocalID, CachedMapping> CachedMappings;
+      typedef lng::map<TraceLocalID, CachedMapping> CachedMappings;
     private:
       struct CachedAllreduce {
         std::vector<Memory> target_memories;
@@ -600,7 +600,7 @@ namespace Legion {
       // Capture the names of all the instances that are mutated by this trace
       // and the index space expressions and fields that were mutated
       // THIS IS SHARDED FOR CONTROL REPLICATION!!!
-      LegionMap<UniqueInst, FieldMaskSet<IndexSpaceExpression> > mutated_insts;
+      shrt::map<UniqueInst, FieldMaskSet<IndexSpaceExpression> > mutated_insts;
     private:
       // THESE ARE SHARDED FOR CONTROL REPLICATION!!!
       // Each share has a disjoint set of trace conditions that they are

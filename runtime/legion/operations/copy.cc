@@ -2270,7 +2270,7 @@ namespace Legion {
           trace_info.record_issue_across(
               result, precondition, precondition, ApEvent::NO_AP_EVENT,
               ApEvent::NO_AP_EVENT, across);
-          LegionMap<UniqueInst, FieldMask> tracing_srcs, tracing_dsts;
+          local::map<UniqueInst, FieldMask> tracing_srcs, tracing_dsts;
           InnerContext* src_context = find_physical_context(src_index);
           std::vector<IndividualView*> source_views;
           src_context->convert_individual_views(src_targets, source_views);
@@ -2454,7 +2454,7 @@ namespace Legion {
             copy_post, local_precondition, copy_precondition,
             src_indirect_ready, ApEvent::NO_AP_EVENT, across);
         // If we're tracing record the insts for this copy
-        LegionMap<UniqueInst, FieldMask> src_insts, idx_insts, dst_insts;
+        local::map<UniqueInst, FieldMask> src_insts, idx_insts, dst_insts;
         // Get the src_insts
         InnerContext* src_context = find_physical_context(src_index);
         std::vector<IndividualView*> source_views;
@@ -2595,7 +2595,7 @@ namespace Legion {
             copy_post, local_precondition, copy_precondition,
             ApEvent::NO_AP_EVENT, dst_indirect_ready, across);
         // If we're tracing record the insts for this copy
-        LegionMap<UniqueInst, FieldMask> src_insts, idx_insts, dst_insts;
+        local::map<UniqueInst, FieldMask> src_insts, idx_insts, dst_insts;
         InnerContext* context = find_physical_context(src_index);
         std::vector<IndividualView*> source_views;
         context->convert_individual_views(src_targets, source_views);
@@ -2756,7 +2756,7 @@ namespace Legion {
             copy_post, local_precondition, copy_precondition,
             src_indirect_ready, dst_indirect_ready, across);
         // If we're tracing record the insts for this copy
-        LegionMap<UniqueInst, FieldMask> src_insts, src_idx_insts, dst_insts,
+        local::map<UniqueInst, FieldMask> src_insts, src_idx_insts, dst_insts,
             dst_idx_insts;
         // Get the src_insts
         std::vector<IndividualView*> source_views;

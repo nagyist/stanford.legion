@@ -2402,7 +2402,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool done = false;
-      LegionMap<LogicalRegion, RegionVersioning> to_perform;
+      op::map<LogicalRegion, RegionVersioning> to_perform;
       {
         size_t num_regions;
         derez.deserialize(num_regions);
@@ -2422,7 +2422,7 @@ namespace Legion {
           derez.deserialize(region);
           RtUserEvent ready_event;
           derez.deserialize(ready_event);
-          LegionMap<LogicalRegion, RegionVersioning>::iterator region_finder =
+          op::map<LogicalRegion, RegionVersioning>::iterator region_finder =
               finder->second.region_versioning.find(region);
           if (region_finder == finder->second.region_versioning.end())
           {

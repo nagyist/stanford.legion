@@ -2240,8 +2240,7 @@ namespace Legion {
       std::map<ConcurrentID, ConcurrentColoringFunctor*> concurrent_functors;
     protected:
       mutable LocalLock group_lock;
-      LegionMap<uint64_t, rt::deque<ProcessorGroupInfo>, RUNTIME_LIFETIME>
-          processor_groups;
+      rt::map<uint64_t, rt::deque<ProcessorGroupInfo> > processor_groups;
     protected:
       mutable LocalLock processor_mapping_lock;
       std::map<Processor, unsigned> processor_mapping;
@@ -2249,8 +2248,7 @@ namespace Legion {
       std::atomic<DistributedID> unique_distributed_id;
     protected:
       mutable LocalLock distributed_collectable_lock;
-      LegionMap<DistributedID, DistributedCollectable*, LONG_LIFETIME>
-          dist_collectables;
+      lng::map<DistributedID, DistributedCollectable*> dist_collectables;
       std::map<DistributedID, std::pair<DistributedCollectable*, RtUserEvent> >
           pending_collectables;
     protected:

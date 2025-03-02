@@ -1948,7 +1948,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void SliceTask::perform_replicate_collective_versioning(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
+        op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
       if (is_remote())
@@ -1974,7 +1974,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void SliceTask::finalize_collective_versioning_analysis(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
+        op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1987,7 +1987,7 @@ namespace Legion {
         rez.serialize(index);
         rez.serialize<size_t>(points.size());
         rez.serialize<size_t>(to_perform.size());
-        for (LegionMap<LogicalRegion, RegionVersioning>::const_iterator pit =
+        for (op::map<LogicalRegion, RegionVersioning>::const_iterator pit =
                  to_perform.begin();
              pit != to_perform.end(); pit++)
         {
@@ -1997,7 +1997,7 @@ namespace Legion {
 #endif
           rez.serialize(pit->second.ready_event);
           rez.serialize<size_t>(pit->second.trackers.size());
-          for (LegionMap<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask>::
+          for (op::map<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask>::
                    const_iterator it = pit->second.trackers.begin();
                it != pit->second.trackers.end(); it++)
           {

@@ -1631,7 +1631,7 @@ namespace Legion {
       std::vector<PhysicalManager*> to_check;
       {
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
-        for (std::map<RegionTreeID, TreeInstances>::const_iterator cit =
+        for (lng::map<RegionTreeID, TreeInstances>::const_iterator cit =
                  current_instances.begin();
              cit != current_instances.end(); cit++)
           for (TreeInstances::const_iterator it = cit->second.begin();
@@ -1663,7 +1663,7 @@ namespace Legion {
       std::vector<PhysicalManager*> to_delete;
       {
         AutoLock m_lock(manager_lock);
-        for (std::map<RegionTreeID, TreeInstances>::iterator cit =
+        for (lng::map<RegionTreeID, TreeInstances>::iterator cit =
                  current_instances.begin();
              cit != current_instances.end(); cit++)
         {
@@ -1740,7 +1740,7 @@ namespace Legion {
       // collected since we already waited for any pending collections to
       // finish and their meta tasks to run to prune them out of the
       // current_instances data structure
-      for (std::map<RegionTreeID, TreeInstances>::const_iterator cit =
+      for (lng::map<RegionTreeID, TreeInstances>::const_iterator cit =
                current_instances.begin();
            cit != current_instances.end(); cit++)
         for (TreeInstances::const_iterator it = cit->second.begin();
@@ -1779,7 +1779,7 @@ namespace Legion {
       assert(!is_owner);
 #endif
       AutoLock m_lock(manager_lock);
-      std::map<RegionTreeID, TreeInstances>::iterator finder =
+      lng::map<RegionTreeID, TreeInstances>::iterator finder =
           current_instances.find(manager->tree_id);
 #ifdef DEBUG_LEGION
       assert(finder != current_instances.end());
@@ -1799,7 +1799,7 @@ namespace Legion {
 #endif
       {
         AutoLock m_lock(manager_lock);
-        std::map<RegionTreeID, TreeInstances>::iterator tree_finder =
+        lng::map<RegionTreeID, TreeInstances>::iterator tree_finder =
             current_instances.find(manager->tree_id);
 #ifdef DEBUG_LEGION
         assert(tree_finder != current_instances.end());
@@ -2661,7 +2661,7 @@ namespace Legion {
       std::vector<PhysicalManager*> to_delete;
       {
         AutoLock m_lock(manager_lock);
-        std::map<RegionTreeID, TreeInstances>::iterator finder =
+        lng::map<RegionTreeID, TreeInstances>::iterator finder =
             current_instances.find(tree_id);
         if (finder != current_instances.end())
         {
@@ -2709,7 +2709,7 @@ namespace Legion {
       assert(is_owner);
 #endif
       AutoLock m_lock(manager_lock);
-      std::map<RegionTreeID, TreeInstances>::iterator tree_finder =
+      lng::map<RegionTreeID, TreeInstances>::iterator tree_finder =
           current_instances.find(manager->tree_id);
 #ifdef DEBUG_LEGION
       assert(tree_finder != current_instances.end());
@@ -3459,7 +3459,7 @@ namespace Legion {
       {
         // Hold the lock while searching here
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
-        std::map<RegionTreeID, TreeInstances>::const_iterator finder =
+        lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
             current_instances.find(tree_id);
         if (finder == current_instances.end())
           return false;
@@ -3476,7 +3476,7 @@ namespace Legion {
       {
         // Just get all the instances since we don't care about regions
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
-        for (std::map<RegionTreeID, TreeInstances>::const_iterator rit =
+        for (lng::map<RegionTreeID, TreeInstances>::const_iterator rit =
                  current_instances.begin();
              rit != current_instances.end(); rit++)
         {
@@ -3578,7 +3578,7 @@ namespace Legion {
       {
         // Hold the lock while searching here
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
-        std::map<RegionTreeID, TreeInstances>::const_iterator finder =
+        lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
             current_instances.find(tree_id);
         if (finder == current_instances.end())
           return;
@@ -3595,7 +3595,7 @@ namespace Legion {
       {
         // Just get all the instances since we don't care about regions
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
-        for (std::map<RegionTreeID, TreeInstances>::const_iterator rit =
+        for (lng::map<RegionTreeID, TreeInstances>::const_iterator rit =
                  current_instances.begin();
              rit != current_instances.end(); rit++)
         {
@@ -3693,7 +3693,7 @@ namespace Legion {
       {
         // Hold the lock while searching here
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
-        std::map<RegionTreeID, TreeInstances>::const_iterator finder =
+        lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
             current_instances.find(tree_id);
         if (finder == current_instances.end())
           return false;
@@ -4438,7 +4438,7 @@ namespace Legion {
                  instances.begin();
              it != instances.end(); it++)
         {
-          std::map<RegionTreeID, TreeInstances>::iterator current_finder =
+          lng::map<RegionTreeID, TreeInstances>::iterator current_finder =
               current_instances.find((*it)->tree_id);
           if (current_finder == current_instances.end())
             continue;

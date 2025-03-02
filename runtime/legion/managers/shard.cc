@@ -380,7 +380,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void ShardManager::finalize_collective_versioning_analysis(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
+        op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -437,7 +437,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void ShardManager::finalize_replicate_collective_versioning(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
+        op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
       // Dispatch back to the base class
@@ -2791,7 +2791,7 @@ namespace Legion {
       unsigned index, parent_req_index;
       derez.deserialize(index);
       derez.deserialize(parent_req_index);
-      LegionMap<LogicalRegion, RegionVersioning> to_perform;
+      op::map<LogicalRegion, RegionVersioning> to_perform;
       unpack_collective_versioning(derez, to_perform);
 
       ShardManager* manager = runtime->find_shard_manager(did);

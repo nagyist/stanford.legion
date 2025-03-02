@@ -249,7 +249,7 @@ namespace Legion {
         std::set<RtEvent> applied_events;
         RtUserEvent applied_event;
       };
-      LegionMap<std::pair<uint64_t, int>, AllReduceStage> remaining_stages;
+      op::map<std::pair<uint64_t, int>, AllReduceStage> remaining_stages;
     protected:
       std::atomic<uint64_t> unique_allreduce_tag;
       // A boolean flag that says whether this collective instance

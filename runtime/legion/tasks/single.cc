@@ -1379,7 +1379,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void SingleTask::perform_replicate_collective_versioning(
         unsigned index, unsigned parent_req_index,
-        LegionMap<LogicalRegion, CollectiveVersioningBase::RegionVersioning>&
+        op::map<LogicalRegion, CollectiveVersioningBase::RegionVersioning>&
             to_perform)
     //--------------------------------------------------------------------------
     {

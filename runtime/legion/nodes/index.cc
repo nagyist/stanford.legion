@@ -55,7 +55,7 @@ namespace Legion {
       {
         AutoLock n_lock(node_lock);
         // See if it already exists
-        LegionMap<SemanticTag, SemanticInfo>::iterator finder =
+        lng::map<SemanticTag, SemanticInfo>::iterator finder =
             semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
@@ -139,7 +139,7 @@ namespace Legion {
       const bool is_remote = (owner_space != runtime->address_space);
       {
         AutoLock n_lock(node_lock);
-        LegionMap<SemanticTag, SemanticInfo>::const_iterator finder =
+        lng::map<SemanticTag, SemanticInfo>::const_iterator finder =
             semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
@@ -204,7 +204,7 @@ namespace Legion {
       }
       // When we wake up, we should be able to find everything
       AutoLock n_lock(node_lock, 1, false /*exclusive*/);
-      LegionMap<SemanticTag, SemanticInfo>::const_iterator finder =
+      lng::map<SemanticTag, SemanticInfo>::const_iterator finder =
           semantic_info.find(tag);
       if (finder == semantic_info.end())
       {
@@ -390,7 +390,7 @@ namespace Legion {
       {
         AutoLock n_lock(node_lock);
         // See if we already have the data
-        LegionMap<SemanticTag, SemanticInfo>::iterator finder =
+        lng::map<SemanticTag, SemanticInfo>::iterator finder =
             semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
@@ -931,7 +931,7 @@ namespace Legion {
         rez.serialize<size_t>(0);  // total spaces
       rez.serialize<bool>(valid);  // whether the tree is valid or not
       rez.serialize<size_t>(semantic_info.size());
-      for (LegionMap<SemanticTag, SemanticInfo>::iterator it =
+      for (lng::map<SemanticTag, SemanticInfo>::iterator it =
                semantic_info.begin();
            it != semantic_info.end(); it++)
       {
@@ -1964,7 +1964,7 @@ namespace Legion {
       {
         AutoLock n_lock(node_lock);
         // See if we already have the data
-        LegionMap<SemanticTag, SemanticInfo>::iterator finder =
+        lng::map<SemanticTag, SemanticInfo>::iterator finder =
             semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
@@ -3377,7 +3377,7 @@ namespace Legion {
       else
         Provenance::serialize_null(rez);
       rez.serialize<size_t>(semantic_info.size());
-      for (LegionMap<SemanticTag, SemanticInfo>::iterator it =
+      for (lng::map<SemanticTag, SemanticInfo>::iterator it =
                semantic_info.begin();
            it != semantic_info.end(); it++)
       {

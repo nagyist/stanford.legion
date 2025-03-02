@@ -192,7 +192,7 @@ namespace Legion {
     protected:
       mutable LocalLock node_lock;
     protected:
-      LegionMap<SemanticTag, SemanticInfo> semantic_info;
+      lng::map<SemanticTag, SemanticInfo> semantic_info;
     };
 
     /**

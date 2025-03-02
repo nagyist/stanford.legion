@@ -148,13 +148,13 @@ namespace Legion {
     public:
       virtual void finalize_collective_versioning_analysis(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform);
       virtual void construct_collective_mapping(
           const RendezvousKey& key,
           std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);
       void finalize_replicate_collective_versioning(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, CollectiveVersioningBase::RegionVersioning>&
+          op::map<LogicalRegion, CollectiveVersioningBase::RegionVersioning>&
               to_perform);
       void finalize_replicate_collective_views(
           const CollectiveViewCreatorBase::RendezvousKey& key,

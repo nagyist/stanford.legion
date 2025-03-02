@@ -1205,7 +1205,7 @@ namespace Legion {
       CompletionQueue deferred_commit_comp_queue;
     protected:
       // Traces for this task's execution
-      LegionMap<TraceID, LogicalTrace*, CONTEXT_LIFETIME> traces;
+      ctx::map<TraceID, LogicalTrace*> traces;
       LogicalTrace* current_trace;
       LogicalTrace* previous_trace;
       uint64_t current_trace_blocking_index;

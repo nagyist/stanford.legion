@@ -773,12 +773,6 @@ namespace Legion {
           LegionAllocator<std::pair<const T1, T2>, RUNTIME_LIFETIME> >;
     }  // namespace rt
 
-    template<
-        typename T1, typename T2, AllocationLifetime L = TASK_LOCAL_LIFETIME,
-        typename COMPARATOR = std::less<T1> >
-    using LegionMap = std::map<
-        T1, T2, COMPARATOR, LegionAllocator<std::pair<const T1, T2>, L> >;
-
     // Some helper classes to provide views so that we can deal with underlying
     // data structures with different allocators
     template<typename T, typename COMPARATOR = std::less<T> >
@@ -800,7 +794,7 @@ namespace Legion {
       inline const_iterator find(T value) const
       {
         const_iterator it = std::lower_bound(start, stop, value);
-        if ((it != stop) && ((*it) == value))
+        if ((it != stop) && !COMPARATOR()(value, *it))
           return it;
         else
           return stop;
@@ -827,16 +821,18 @@ namespace Legion {
       inline const_iterator end(void) const { return stop; }
       inline const_iterator cbegin(void) const { return start; }
       inline const_iterator cend(void) const { return stop; }
-      const_iterator find(T1 key) const;
-#if 0
+      const_iterator find(T1 key) const
       {
-        const_iterator it = std::lower_bound(start, stop, key);
-        if ((it != stop) && (it->first == key))
+        const_iterator it = std::lower_bound(
+            start, stop, key,
+            [](const std::pair<const T1, T2>& pair, const T1& k) -> bool {
+              return COMPARATOR()(pair.first, k);
+            });
+        if ((it != stop) && !COMPARATOR()(key, it->first))
           return it;
         else
           return stop;
       }
-#endif
     private:
       const const_iterator start, stop;
       const size_t full_size;

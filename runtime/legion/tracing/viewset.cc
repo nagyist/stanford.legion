@@ -294,11 +294,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void TraceViewSet::insert(
-        LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >& views,
+        const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >& views,
         bool antialiased)
     //--------------------------------------------------------------------------
     {
-      for (LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+      for (MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
                const_iterator vit = views.begin();
            vit != views.end(); vit++)
       {
@@ -699,7 +699,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void TraceViewSet::dominates(
         LogicalView* view, IndexSpaceExpression* expr, FieldMask mask,
-        LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+        local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
             non_dominated) const
     //--------------------------------------------------------------------------
     {
@@ -799,12 +799,12 @@ namespace Legion {
           if (!collective_view->aliases(inst_view))
             continue;
           // Only record expressions that are relevant
-          LegionMap<
+          local::map<
               std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
               FieldMask>
               join;
           unique_join_on_field_mask_sets(non_view, vit->second, join);
-          for (LegionMap<
+          for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
                    FieldMask>::const_iterator it = join.begin();
                it != join.end(); it++)
@@ -868,12 +868,12 @@ namespace Legion {
           if (!individual_view->aliases(vit->first->as_collective_view()))
             continue;
           // Join on the fields to find expressions that match
-          LegionMap<
+          local::map<
               std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
               FieldMask>
               join;
           unique_join_on_field_mask_sets(non_view, vit->second, join);
-          for (LegionMap<
+          for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
                    FieldMask>::const_iterator it = join.begin();
                it != join.end(); it++)
@@ -945,7 +945,7 @@ namespace Legion {
              eit != vit->second.end(); ++eit)
         {
           // First check to see what fields and expressions are not dominated
-          LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+          local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
               non_dominated;
           set.dominates(vit->first, eit->first, eit->second, non_dominated);
           if (non_dominated.empty())
@@ -956,7 +956,7 @@ namespace Legion {
           // subsumed. If the non-dominated fields are not dirty, then it's
           // ok for them to not be subsumed as that means they are just
           // read-only and any additional copies in the postconditions.
-          for (LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+          for (local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
                    iterator dit = non_dominated.begin();
                dit != non_dominated.end();
                /*nothing*/)
@@ -1027,7 +1027,7 @@ namespace Legion {
             }
             if (dit->second.empty())
             {
-              LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+              local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
                   iterator delete_it = dit++;
               non_dominated.erase(delete_it);
             }
@@ -1038,7 +1038,7 @@ namespace Legion {
           // add them to the postconditions because views that are both
           // non-dirty and non-dominated need to be in the postconditions
           // so we don't invalidate them when we do the overwriting
-          for (LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+          for (local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
                    iterator dit = non_dominated.begin();
                dit != non_dominated.end(); dit++)
           {
@@ -1128,11 +1128,11 @@ namespace Legion {
         FailedPrecondition* condition) const
     //--------------------------------------------------------------------------
     {
-      LegionMap<
+      local::map<
           std::pair<IndexSpaceExpression*, IndexSpaceExpression*>, FieldMask>
           overlaps;
       unique_join_on_field_mask_sets(left_exprs, right_exprs, overlaps);
-      for (LegionMap<
+      for (local::map<
                std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
                FieldMask>::const_iterator it = overlaps.begin();
            it != overlaps.end(); it++)
@@ -1167,7 +1167,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void TraceViewSet::transpose_uniquely(
-        LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >& target)
+        local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >& target)
         const
     //--------------------------------------------------------------------------
     {
@@ -1188,9 +1188,10 @@ namespace Legion {
       // necessary for correctness in the postcondition case where we cannot
       // have multiple overwrites for the same fields and index expressions
       FieldMaskSet<IndexSpaceExpression> expr_fields;
-      LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> > intermediate;
+      local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+          intermediate;
       intermediate.swap(target);
-      for (LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
+      for (local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
                const_iterator it = intermediate.begin();
            it != intermediate.end(); it++)
         expr_fields.insert(it->first, it->second.get_valid_mask());

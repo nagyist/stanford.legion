@@ -101,7 +101,7 @@ namespace Legion {
       // This is a mapping from the parent region requirements
       // to the sets of fields referred to in the trace. We use
       // this to find the equivalence sets for a template
-      LegionMap<unsigned, FieldMask> parent_req_fields;
+      ctx::map<unsigned, FieldMask> parent_req_fields;
       std::vector<PhysicalTemplate*> templates;
       PhysicalTemplate* current_template;
       unsigned nonreplayable_count;

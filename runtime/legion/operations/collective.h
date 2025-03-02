@@ -51,19 +51,19 @@ namespace Legion {
     class CollectiveVersioningBase {
     public:
       struct RegionVersioning {
-        LegionMap<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask> trackers;
+        op::map<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask> trackers;
         RtUserEvent ready_event;
       };
       struct PendingVersioning {
-        LegionMap<LogicalRegion, RegionVersioning> region_versioning;
+        op::map<LogicalRegion, RegionVersioning> region_versioning;
         size_t remaining_arrivals;
       };
       static void pack_collective_versioning(
           Serializer& rez,
-          const LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+          const op::map<LogicalRegion, RegionVersioning>& to_perform);
       static bool unpack_collective_versioning(
           Deserializer& derez,
-          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform);
     protected:
       mutable LocalLock versioning_lock;
       std::map<unsigned, PendingVersioning> pending_versioning;
@@ -93,10 +93,10 @@ namespace Legion {
           unsigned parent_req_index);
       void rendezvous_collective_versioning_analysis(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform);
       virtual void finalize_collective_versioning_analysis(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform);
     };
 
     /**
@@ -216,7 +216,7 @@ namespace Legion {
       struct CollectiveRendezvous {
       public:
         std::vector<std::pair<AddressSpaceID, RendezvousResult*> > results;
-        LegionMap<DistributedID, FieldMask> groups;
+        op::map<DistributedID, FieldMask> groups;
         std::map<DistributedID, size_t> counts;
       };
       struct PendingCollective {
@@ -319,7 +319,7 @@ namespace Legion {
       public:
         virtual void finalize_collective_versioning(
             unsigned index, unsigned parent_req_index,
-            LegionMap<LogicalRegion, RegionVersioning>& pending_versions) = 0;
+            op::map<LogicalRegion, RegionVersioning>& pending_versions) = 0;
       };
     public:
       CollectiveVersioningRendezvous(
@@ -342,13 +342,13 @@ namespace Legion {
     public:
       void perform_rendezvous(
           unsigned parent_req_index,
-          LegionMap<LogicalRegion, RegionVersioning>& pending_versions);
+          op::map<LogicalRegion, RegionVersioning>& pending_versions);
     public:
       Operation* const op;
       Finalizer* const finalizer;
       const unsigned index;
     protected:
-      LegionMap<LogicalRegion, RegionVersioning> pending_versions;
+      op::map<LogicalRegion, RegionVersioning> pending_versions;
       unsigned parent_req_index;
     };
 
@@ -372,10 +372,10 @@ namespace Legion {
       virtual void deactivate(bool free = true);
       virtual void finalize_collective_versioning_analysis(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform);
       virtual void finalize_collective_versioning(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, RegionVersioning>& pending_versions);
+          op::map<LogicalRegion, RegionVersioning>& pending_versions);
     public:
       void create_collective_rendezvous(unsigned requirement_index);
       virtual void shard_off_collective_rendezvous(

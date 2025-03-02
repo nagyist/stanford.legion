@@ -362,8 +362,8 @@ namespace Legion {
       std::map<LEGION_FIELD_MASK_FIELD_TYPE, lng::list<LayoutDescription*> >
           layouts;
     private:
-      LegionMap<SemanticTag, SemanticInfo> semantic_info;
-      LegionMap<std::pair<FieldID, SemanticTag>, SemanticInfo>
+      lng::map<SemanticTag, SemanticInfo> semantic_info;
+      lng::map<std::pair<FieldID, SemanticTag>, SemanticInfo>
           semantic_field_info;
     private:
       // Track which node is the owner for allocation privileges

@@ -3363,7 +3363,7 @@ namespace Legion {
         FieldMaskSet<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
-        std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+        op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
@@ -3385,7 +3385,7 @@ namespace Legion {
         EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
         const FieldMask& mask, EqSetTracker* tracker,
         AddressSpaceID tracker_space, FieldMaskSet<EqKDTree>& subscriptions,
-        std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+        op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
@@ -3424,7 +3424,7 @@ namespace Legion {
     void IndexSpaceNodeT<DIM, T>::invalidate_shard_equivalence_set_kd_tree(
         EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
         std::vector<RtEvent>& invalidated,
-        std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+        op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
@@ -3461,7 +3461,7 @@ namespace Legion {
     void IndexSpaceNodeT<DIM, T>::find_shard_trace_local_sets_kd_tree(
         EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
         unsigned req_index, std::map<EquivalenceSet*, unsigned>& current_sets,
-        LegionMap<ShardID, FieldMask>& remote_shards, ShardID local_shard)
+        local::map<ShardID, FieldMask>& remote_shards, ShardID local_shard)
     //--------------------------------------------------------------------------
     {
       DomainT<DIM, T> realm_index_space = get_tight_index_space();

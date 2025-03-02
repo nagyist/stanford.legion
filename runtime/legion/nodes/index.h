@@ -158,7 +158,7 @@ namespace Legion {
     protected:
       std::map<IndexTreeNode*, bool> dominators;
     protected:
-      LegionMap<SemanticTag, SemanticInfo> semantic_info;
+      lng::map<SemanticTag, SemanticInfo> semantic_info;
     };
 
     /**
@@ -471,7 +471,7 @@ namespace Legion {
       virtual void invalidate_shard_equivalence_set_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           std::vector<RtEvent>& invalidated,
-          std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+          op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard) = 0;
       virtual void find_trace_local_sets_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
@@ -480,7 +480,7 @@ namespace Legion {
       virtual void find_shard_trace_local_sets_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           unsigned req_index, std::map<EquivalenceSet*, unsigned>& current_sets,
-          LegionMap<ShardID, FieldMask>& remote_shards,
+          local::map<ShardID, FieldMask>& remote_shards,
           ShardID local_shard) = 0;
     public:
       const IndexSpace handle;
@@ -791,13 +791,13 @@ namespace Legion {
           FieldMaskSet<EqKDTree>& to_create,
           op::map<EqKDTree*, Domain>& creation_rects,
           op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
-          std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+          op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0);
       virtual unsigned record_output_equivalence_set(
           EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
           const FieldMask& mask, EqSetTracker* tracker,
           AddressSpaceID tracker_space, FieldMaskSet<EqKDTree>& subscriptions,
-          std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+          op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0);
       virtual void invalidate_equivalence_set_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
@@ -805,7 +805,7 @@ namespace Legion {
       virtual void invalidate_shard_equivalence_set_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           std::vector<RtEvent>& invalidated,
-          std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+          op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard);
       virtual void find_trace_local_sets_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
@@ -814,7 +814,7 @@ namespace Legion {
       virtual void find_shard_trace_local_sets_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           unsigned req_index, std::map<EquivalenceSet*, unsigned>& current_sets,
-          LegionMap<ShardID, FieldMask>& remote_shards, ShardID local_shard);
+          local::map<ShardID, FieldMask>& remote_shards, ShardID local_shard);
     public:
       bool contains_point(const Point<DIM, T>& point);
     protected:

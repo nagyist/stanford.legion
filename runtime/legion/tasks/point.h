@@ -147,7 +147,7 @@ namespace Legion {
     public:  // Collective stuff for replicated versions of this point task
       virtual void perform_replicate_collective_versioning(
           unsigned index, unsigned parent_req_index,
-          LegionMap<LogicalRegion, CollectiveVersioningBase::RegionVersioning>&
+          op::map<LogicalRegion, CollectiveVersioningBase::RegionVersioning>&
               to_perform);
       virtual void convert_replicate_collective_views(
           const CollectiveViewCreatorBase::RendezvousKey& key,

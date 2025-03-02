@@ -1054,7 +1054,7 @@ namespace Legion {
       std::vector<RtEvent> pending_sets;
       op::map<EqKDTree*, Domain> creation_rects;
       op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
-      std::map<ShardID, LegionMap<Domain, FieldMask> > remote_shard_rects;
+      op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
       std::vector<unsigned> new_target_references(targets.size(), 0);
       expr->compute_equivalence_sets(
           tree, tree_lock, mask, targets, target_spaces, new_target_references,
@@ -1414,7 +1414,7 @@ namespace Legion {
               rez.serialize(creation_rects[it->first]);
             }
             rez.serialize<size_t>(temporary_srcs.size());
-            for (std::map<DistributedID, LegionMap<Domain, FieldMask> >::
+            for (local::map<DistributedID, local::map<Domain, FieldMask> >::
                      const_iterator sit = temporary_srcs.begin();
                  sit != temporary_srcs.end(); sit++)
             {
@@ -1423,7 +1423,7 @@ namespace Legion {
               // until we're done making the new equivalence sets
               rez.serialize(sit->first);
               rez.serialize<size_t>(sit->second.size());
-              for (LegionMap<Domain, FieldMask>::const_iterator it =
+              for (local::map<Domain, FieldMask>::const_iterator it =
                        sit->second.begin();
                    it != sit->second.end(); it++)
               {
@@ -1486,7 +1486,7 @@ namespace Legion {
       LocalLock* tree_lock = nullptr;
       EqKDTree* tree = find_or_create_output_set_kd_tree(req_index, tree_lock);
       FieldMaskSet<EqKDTree> new_subscriptions;
-      std::map<ShardID, LegionMap<Domain, FieldMask> > remote_shard_rects;
+      op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
       unsigned references = set->set_expr->record_output_equivalence_set(
           tree, tree_lock, set, mask, source, source_space, new_subscriptions,
           remote_shard_rects);
@@ -10537,7 +10537,7 @@ namespace Legion {
       bool found = false;
       {
         AutoLock c_lock(collective_lock);
-        LegionMap<RegionTreeID, std::vector<CollectiveResult*> >::iterator
+        std::map<RegionTreeID, std::vector<CollectiveResult*> >::iterator
             finder = collective_results.find(tid);
         if (finder == collective_results.end())
           return;

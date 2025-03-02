@@ -606,9 +606,8 @@ namespace Legion {
         free(it->second);
         redop_table.erase(it);
       }
-      for (LegionMap<
-               uint64_t, rt::deque<ProcessorGroupInfo>,
-               RUNTIME_LIFETIME>::const_iterator git = processor_groups.begin();
+      for (rt::map<uint64_t, rt::deque<ProcessorGroupInfo> >::const_iterator
+               git = processor_groups.begin();
            git != processor_groups.end(); git++)
         for (rt::deque<ProcessorGroupInfo>::const_iterator it =
                  git->second.begin();
@@ -9673,7 +9672,7 @@ namespace Legion {
       ProcessorMask local_mask = find_processor_mask(procs);
       uint64_t hash = local_mask.get_hash_key();
       AutoLock g_lock(group_lock);
-      std::map<uint64_t, rt::deque<ProcessorGroupInfo> >::iterator finder =
+      rt::map<uint64_t, rt::deque<ProcessorGroupInfo> >::iterator finder =
           processor_groups.find(hash);
       if (finder != processor_groups.end())
       {
@@ -9911,7 +9910,7 @@ namespace Legion {
     {
       did &= LEGION_DISTRIBUTED_ID_MASK;
       AutoLock d_lock(distributed_collectable_lock);
-      std::map<DistributedID, DistributedCollectable*>::iterator finder =
+      lng::map<DistributedID, DistributedCollectable*>::iterator finder =
           dist_collectables.find(did);
 #ifdef DEBUG_LEGION
       assert(finder != dist_collectables.end());
@@ -9938,7 +9937,7 @@ namespace Legion {
       const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
       {
         AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
-        std::map<DistributedID, DistributedCollectable*>::const_iterator
+        lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(to_find);
         if (finder == dist_collectables.end())
         {
@@ -9960,7 +9959,7 @@ namespace Legion {
       {
         AutoLock d_lock(distributed_collectable_lock);
         // Try again to see if we lost the race
-        std::map<DistributedID, DistributedCollectable*>::const_iterator
+        lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(to_find);
         if (finder == dist_collectables.end())
         {
@@ -9991,7 +9990,7 @@ namespace Legion {
       if (result != nullptr)
         return result;
       AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
-      std::map<DistributedID, DistributedCollectable*>::const_iterator finder =
+      lng::map<DistributedID, DistributedCollectable*>::const_iterator finder =
           dist_collectables.find(to_find);
 #ifdef DEBUG_LEGION
       assert(finder != dist_collectables.end());
@@ -10006,7 +10005,7 @@ namespace Legion {
     {
       const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
       AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
-      std::map<DistributedID, DistributedCollectable*>::const_iterator finder =
+      lng::map<DistributedID, DistributedCollectable*>::const_iterator finder =
           dist_collectables.find(to_find);
       if (finder == dist_collectables.end())
         return nullptr;
@@ -10148,7 +10147,7 @@ namespace Legion {
       {
         const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
         AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
-        std::map<DistributedID, DistributedCollectable*>::const_iterator
+        lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(to_find);
         if (finder == dist_collectables.end())
           return nullptr;
@@ -10169,7 +10168,7 @@ namespace Legion {
       DistributedCollectable* result = nullptr;
       {
         AutoLock d_lock(distributed_collectable_lock);
-        std::map<DistributedID, DistributedCollectable*>::const_iterator
+        lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(did);
         // If we've already got it, then we are done
         if (finder != dist_collectables.end())
@@ -10227,7 +10226,7 @@ namespace Legion {
       did &= LEGION_DISTRIBUTED_ID_MASK;
       {
         AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
-        std::map<DistributedID, DistributedCollectable*>::const_iterator
+        lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(did);
         if (finder != dist_collectables.end())
         {
@@ -10246,7 +10245,7 @@ namespace Legion {
           provenance, mapping);
       // Retake the lock and see if we lost the race
       AutoLock d_lock(distributed_collectable_lock);
-      std::map<DistributedID, DistributedCollectable*>::const_iterator finder =
+      lng::map<DistributedID, DistributedCollectable*>::const_iterator finder =
           dist_collectables.find(did);
       if (finder != dist_collectables.end())
       {
@@ -10274,7 +10273,7 @@ namespace Legion {
       did &= LEGION_DISTRIBUTED_ID_MASK;
       {
         AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
-        std::map<DistributedID, DistributedCollectable*>::const_iterator
+        lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(did);
         if (finder != dist_collectables.end())
         {
@@ -10295,7 +10294,7 @@ namespace Legion {
           ctx, domain_node, did, coord, ctx_index, provenance,
           false /*register now*/);
       AutoLock d_lock(distributed_collectable_lock);
-      std::map<DistributedID, DistributedCollectable*>::const_iterator finder =
+      lng::map<DistributedID, DistributedCollectable*>::const_iterator finder =
           dist_collectables.find(did);
       if (finder != dist_collectables.end())
       {
@@ -10564,7 +10563,7 @@ namespace Legion {
       {
         // Also have any leaking futures force delete their instances
         AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
-        for (std::map<DistributedID, DistributedCollectable*>::const_iterator
+        for (lng::map<DistributedID, DistributedCollectable*>::const_iterator
                  it = dist_collectables.begin();
              it != dist_collectables.end(); it++)
         {

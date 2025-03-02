@@ -745,10 +745,11 @@ namespace Legion {
       // them with any of the preconditions or anticonditions
       if (postviews != nullptr)
       {
-        LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> > expr_views;
+        local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+            expr_views;
         postviews->transpose_uniquely(expr_views);
         postsets.reserve(expr_views.size());
-        for (LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
+        for (local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
                  iterator it = expr_views.begin();
              it != expr_views.end(); it++)
         {
@@ -766,9 +767,10 @@ namespace Legion {
       // the postviews so we can minimize the number of EqSetTrackers
       if (previews != nullptr)
       {
-        LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> > expr_views;
+        local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+            expr_views;
         previews->transpose_uniquely(expr_views);
-        for (LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
+        for (local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
                  iterator eit = expr_views.begin();
              eit != expr_views.end(); eit++)
         {
@@ -795,9 +797,10 @@ namespace Legion {
       }
       if (antiviews != nullptr)
       {
-        LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> > expr_views;
+        local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+            expr_views;
         antiviews->transpose_uniquely(expr_views);
-        for (LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
+        for (local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
                  iterator eit = expr_views.begin();
              eit != expr_views.end(); eit++)
         {
@@ -3982,7 +3985,7 @@ namespace Legion {
            vit != inst_users.end(); vit++)
       {
         // Scan through the other users and look for anything overlapping
-        LegionMap<UniqueInst, FieldMaskSet<IndexSpaceExpression> >::
+        shrt::map<UniqueInst, FieldMaskSet<IndexSpaceExpression> >::
             const_iterator finder = mutated_insts.find(vit->instance);
         if (finder == mutated_insts.end())
           continue;

@@ -59,8 +59,6 @@ namespace Legion {
         unsigned index;  // uniquely name analysis for op by region req index
       };
     public:
-      typedef LegionMap<ApEvent, FieldMask> EventFieldMap;
-      typedef LegionMap<ApEvent, FieldMaskSet<PhysicalUser> > EventFieldUsers;
       typedef FieldMaskSet<PhysicalUser> EventUsers;
     public:
       InstanceView(

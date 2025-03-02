@@ -72,7 +72,7 @@ namespace Legion {
         unsigned index, const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
-      LegionMap<unsigned, FieldMask>::iterator finder =
+      ctx::map<unsigned, FieldMask>::iterator finder =
           parent_req_fields.find(index);
       if (finder == parent_req_fields.end())
         parent_req_fields[index] = mask;
@@ -96,7 +96,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       InnerContext* context = logical_trace->context;
-      for (LegionMap<unsigned, FieldMask>::const_iterator it =
+      for (ctx::map<unsigned, FieldMask>::const_iterator it =
                parent_req_fields.begin();
            it != parent_req_fields.end(); it++)
         context->find_trace_local_sets(it->first, it->second, current_sets);

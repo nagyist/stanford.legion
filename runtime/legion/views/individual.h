@@ -174,7 +174,7 @@ namespace Legion {
       // Lock for serializing creation of ExprView objects
       mutable LocalLock expr_lock;
       // Mapping from user expressions to ExprViews to attach to
-      std::map<IndexSpaceExprID, ExprView*> expr_cache;
+      lng::map<IndexSpaceExprID, ExprView*> expr_cache;
       // Number of users to be added between cache invalidations
       static constexpr unsigned USER_CACHE_TIMEOUT = 1024;
       // A timeout counter for the cache so we don't permanently keep growing
@@ -278,8 +278,6 @@ namespace Legion {
     class ExprView : public Heapify<ExprView, CONTEXT_LIFETIME>,
                      public Collectable {
     public:
-      typedef LegionMap<ApEvent, FieldMaskSet<PhysicalUser> > EventFieldUsers;
-    public:
       ExprView(
           DistributedID view_did, IndexSpaceExpression* expr,
           bool unbound = false);
@@ -311,7 +309,7 @@ namespace Legion {
       void insert_subview(ExprView* subview, FieldMask& subview_mask);
       void find_tightest_subviews(
           IndexSpaceExpression* expr, FieldMask& expr_mask,
-          LegionMap<std::pair<size_t, ExprView*>, FieldMask>& bounding_views);
+          local::map<std::pair<size_t, ExprView*>, FieldMask>& bounding_views);
       void add_partial_user(
           const RegionUsage& usage, UniqueID op_id, unsigned index,
           FieldMask user_mask, const ApEvent term_event,

@@ -1875,7 +1875,7 @@ namespace Legion {
         const UniqueInst& src_inst, const LgEvent src_unique_event)
     //--------------------------------------------------------------------------
     {
-      LegionMap<std::pair<uint64_t, int>, AllReduceStage>::iterator finder;
+      op::map<std::pair<uint64_t, int>, AllReduceStage>::iterator finder;
       {
         AutoLock v_lock(view_lock);
         const std::pair<uint64_t, int> stage_key(allreduce_tag, stage);

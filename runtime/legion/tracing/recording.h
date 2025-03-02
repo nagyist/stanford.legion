@@ -158,7 +158,7 @@ namespace Legion {
           const FieldMask& src_mask, const FieldMask& dst_mask,
           PrivilegeMode src_mode, PrivilegeMode dst_mode, ReductionOpID redop,
           std::set<RtEvent>& applied) = 0;
-      typedef LegionMap<UniqueInst, FieldMask> AcrossInsts;
+      typedef local::map<UniqueInst, FieldMask> AcrossInsts;
       virtual void record_across_insts(
           ApEvent lhs, const TraceLocalID& tlid, unsigned src_idx,
           unsigned dst_idx, IndexSpaceExpression* expr,
@@ -594,7 +594,7 @@ namespace Legion {
             (redop > 0) ? LEGION_REDUCE_PRIV : LEGION_WRITE_PRIV, redop,
             applied);
       }
-      typedef LegionMap<UniqueInst, FieldMask> AcrossInsts;
+      typedef local::map<UniqueInst, FieldMask> AcrossInsts;
       inline void record_across_insts(
           ApEvent lhs, unsigned idx1, unsigned idx2, PrivilegeMode mode1,
           PrivilegeMode mode2, IndexSpaceExpression* expr,

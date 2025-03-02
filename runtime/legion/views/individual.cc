@@ -571,7 +571,7 @@ namespace Legion {
             // We need to deduplicate finding or making the new ExprView
             // First check to see if we have it already in one sub-tree
             // If not, we'll pick the one with the smallest bounding volume
-            LegionMap<std::pair<size_t /*volume*/, ExprView*>, FieldMask>
+            local::map<std::pair<size_t /*volume*/, ExprView*>, FieldMask>
                 sorted_subviews;
             for (FieldMaskSet<ExprView>::const_iterator it =
                      dominating_subviews.begin();
@@ -582,7 +582,7 @@ namespace Legion {
               it->first->find_tightest_subviews(
                   subview->view_expr, overlap, sorted_subviews);
             }
-            for (LegionMap<std::pair<size_t, ExprView*>, FieldMask>::
+            for (local::map<std::pair<size_t, ExprView*>, FieldMask>::
                      const_iterator it = sorted_subviews.begin();
                  it != sorted_subviews.end(); it++)
             {
@@ -630,7 +630,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void ExprView::find_tightest_subviews(
         IndexSpaceExpression* expr, FieldMask& expr_mask,
-        LegionMap<std::pair<size_t, ExprView*>, FieldMask>& bounding_views)
+        local::map<std::pair<size_t, ExprView*>, FieldMask>& bounding_views)
     //--------------------------------------------------------------------------
     {
       if (!subviews.empty() && !(expr_mask * subviews.get_valid_mask()))
@@ -1982,7 +1982,7 @@ namespace Legion {
         AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
         // See if we can find the entry in the cache and it's valid
         // for all of our fields
-        LegionMap<IndexSpaceExprID, ExprView*>::const_iterator finder =
+        lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
             expr_cache.find(user_expr->expr_id);
         if (finder != expr_cache.end())
         {
@@ -2016,7 +2016,7 @@ namespace Legion {
         }
         // Now we can do the normal lookup
         // Have the lock in exclusive mode so can make nodes if needed
-        LegionMap<IndexSpaceExprID, ExprView*>::const_iterator finder =
+        lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
             expr_cache.find(user_expr->expr_id);
         if (finder == expr_cache.end())
         {
@@ -2053,7 +2053,7 @@ namespace Legion {
         if (target_view == nullptr)
         {
           // Check to see if someone else made it when we released the lock
-          LegionMap<IndexSpaceExprID, ExprView*>::const_iterator finder =
+          lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
               expr_cache.find(user_expr->expr_id);
           if (finder == expr_cache.end())
           {
@@ -2141,7 +2141,7 @@ namespace Legion {
         AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
         // See if we can find the entry in the cache and it's valid
         // for all of our fields
-        LegionMap<IndexSpaceExprID, ExprView*>::const_iterator finder =
+        lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
             expr_cache.find(user_expr->expr_id);
         if (finder != expr_cache.end())
         {
@@ -2174,7 +2174,7 @@ namespace Legion {
             clean_cache();
         }
         // Now we can do the normal lookup
-        LegionMap<IndexSpaceExprID, ExprView*>::const_iterator finder =
+        lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
             expr_cache.find(user_expr->expr_id);
         if (finder != expr_cache.end())
         {
@@ -2207,7 +2207,7 @@ namespace Legion {
         if (target_view == nullptr)
         {
           // Check to see if someone else made it when we released the lock
-          LegionMap<IndexSpaceExprID, ExprView*>::const_iterator finder =
+          lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
               expr_cache.find(user_expr->expr_id);
           if (finder != expr_cache.end())
             target_view = finder->second;
