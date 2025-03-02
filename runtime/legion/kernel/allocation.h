@@ -827,7 +827,8 @@ namespace Legion {
       inline const_iterator end(void) const { return stop; }
       inline const_iterator cbegin(void) const { return start; }
       inline const_iterator cend(void) const { return stop; }
-      inline const_iterator find(T1 key) const
+      const_iterator find(T1 key) const;
+#if 0
       {
         const_iterator it = std::lower_bound(start, stop, key);
         if ((it != stop) && (it->first == key))
@@ -835,6 +836,7 @@ namespace Legion {
         else
           return stop;
       }
+#endif
     private:
       const const_iterator start, stop;
       const size_t full_size;

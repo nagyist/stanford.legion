@@ -353,7 +353,7 @@ namespace Legion {
           VersionInfo* version_info, const FieldMask& mask) const;
       void find_cancellations(
           const FieldMask& mask,
-          LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_cancel);
+          local::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_cancel);
     protected:
       LocalLock& tracker_lock;
       // Member varialbes that are pointers are transient and only used in
@@ -364,7 +364,7 @@ namespace Legion {
       // These are the EqKDTree objects that we are currently subscribed to
       // for different fields in each address space, this data mirrors the
       // same data structure in EqKDNode
-      LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> > current_subscriptions;
+      lng::map<AddressSpaceID, FieldMaskSet<EqKDTree> > current_subscriptions;
       // Equivalence sets that are about to become part of the canonical
       // equivalence sets once the compute_equivalence_sets process completes
       FieldMaskSet<EquivalenceSet>* pending_equivalence_sets;
@@ -373,7 +373,7 @@ namespace Legion {
       // VERSION_MANAGER_REF on this local node
       FieldMaskSet<EquivalenceSet>* created_equivalence_sets;
       // User events marking when our current equivalence sets are ready
-      LegionMap<RtUserEvent, FieldMask>* equivalence_sets_ready;
+      shrt::map<RtUserEvent, FieldMask>* equivalence_sets_ready;
       // Version infos that need to be updated once equivalence sets are ready
       FieldMaskSet<VersionInfo>* waiting_infos;
       // Track whether there were any intermediate invalidations that occurred
@@ -424,13 +424,13 @@ namespace Legion {
       struct DeferApplyStateArgs : public LgTaskArgs<DeferApplyStateArgs> {
       public:
         static const LgTaskID TASK_ID = LG_DEFER_APPLY_STATE_TASK_ID;
-        typedef LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+        typedef shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
             ExprLogicalViews;
         typedef std::map<
             unsigned,
             std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >
             ExprReductionViews;
-        typedef LegionMap<IndexSpaceExpression*, FieldMaskSet<InstanceView> >
+        typedef shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >
             ExprInstanceViews;
       public:
         DeferApplyStateArgs(
@@ -783,7 +783,7 @@ namespace Legion {
       void find_overlap_updates(
           IndexSpaceExpression* overlap, const bool overlap_covers,
           const FieldMask& mask, const bool find_invalidates,
-          LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
+          shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
               valid_updates,
           FieldMaskSet<IndexSpaceExpression>& initialized_updates,
           FieldMaskSet<IndexSpaceExpression>& invalidated_updates,
@@ -791,9 +791,9 @@ namespace Legion {
               unsigned,
               std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >&
               reduction_updates,
-          LegionMap<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+          shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
               restricted_updates,
-          LegionMap<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+          shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
               released_updates,
           FieldMaskSet<CopyFillGuard>* read_only_guard_updates,
           FieldMaskSet<CopyFillGuard>* reduction_fill_guard_updates,
@@ -803,7 +803,7 @@ namespace Legion {
           FieldMaskSet<IndexSpaceExpression>*& dirty_updates,
           DistributedID target, IndexSpaceExpression* target_expr) const;
       void apply_state(
-          LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
+          shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
               valid_updates,
           FieldMaskSet<IndexSpaceExpression>& initialized_updates,
           FieldMaskSet<IndexSpaceExpression>& invalidated_updates,
@@ -811,9 +811,9 @@ namespace Legion {
               unsigned,
               std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >&
               reduction_updates,
-          LegionMap<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+          shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
               restricted_updates,
-          LegionMap<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+          shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
               released_updates,
           TraceViewSet* precondition_updates,
           TraceViewSet* anticondition_updates,
@@ -825,7 +825,7 @@ namespace Legion {
           const bool forward_to_owner, const bool unpack_tracing_references);
       static void pack_updates(
           Serializer& rez, const AddressSpaceID target,
-          const LegionMap<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
+          const MapView<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
               valid_updates,
           const FieldMaskSet<IndexSpaceExpression>& initialized_updates,
           const FieldMaskSet<IndexSpaceExpression>& invalidated_updates,
@@ -833,9 +833,9 @@ namespace Legion {
               unsigned,
               std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >&
               reduction_updates,
-          const LegionMap<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+          const MapView<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
               restricted_updates,
-          const LegionMap<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+          const MapView<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
               released_updates,
           const FieldMaskSet<CopyFillGuard>* read_only_updates,
           const FieldMaskSet<CopyFillGuard>* reduction_fill_updates,
@@ -877,7 +877,7 @@ namespace Legion {
       mutable LocalLock eq_lock;
       // This is the physical state of the equivalence set
       FieldMaskSet<LogicalView> total_valid_instances;
-      typedef LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+      typedef shrt::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
           ViewExprMaskSets;
       ViewExprMaskSets partial_valid_instances;
       FieldMask partial_valid_fields;
@@ -896,7 +896,7 @@ namespace Legion {
       FieldMask reduction_fields;
       // The list of expressions with the single instance for each
       // field that represents the restriction of that expression
-      typedef LegionMap<IndexSpaceExpression*, FieldMaskSet<InstanceView> >
+      typedef shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >
           ExprViewMaskSets;
       ExprViewMaskSets restricted_instances;
       // Summary of any field that has a restriction

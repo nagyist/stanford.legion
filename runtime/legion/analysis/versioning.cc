@@ -184,7 +184,7 @@ namespace Legion {
         // be a fairly rare thing to do
         if (equivalence_sets_ready != nullptr)
         {
-          for (LegionMap<RtUserEvent, FieldMask>::const_iterator it =
+          for (shrt::map<RtUserEvent, FieldMask>::const_iterator it =
                    equivalence_sets_ready->begin();
                it != equivalence_sets_ready->end(); it++)
           {
@@ -217,7 +217,7 @@ namespace Legion {
         AutoLock m_lock(manager_lock);
         if (equivalence_sets_ready != nullptr)
         {
-          for (LegionMap<RtUserEvent, FieldMask>::const_iterator it =
+          for (shrt::map<RtUserEvent, FieldMask>::const_iterator it =
                    equivalence_sets_ready->begin();
                it != equivalence_sets_ready->end(); it++)
           {
@@ -249,7 +249,7 @@ namespace Legion {
         {
           compute_event = Runtime::create_rt_user_event();
           if (equivalence_sets_ready == nullptr)
-            equivalence_sets_ready = new LegionMap<RtUserEvent, FieldMask>();
+            equivalence_sets_ready = new shrt::map<RtUserEvent, FieldMask>();
           equivalence_sets_ready->insert(
               std::make_pair(compute_event, remaining_mask));
           ready_events.insert(compute_event);
@@ -369,7 +369,7 @@ namespace Legion {
     {
       // We need to remove any tracked equivalence sets that we have
       FieldMaskSet<EquivalenceSet> to_remove;
-      LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
+      lng::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
       {
         AutoLock m_lock(manager_lock);
 #ifdef DEBUG_LEGION

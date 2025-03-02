@@ -301,7 +301,7 @@ namespace Legion {
           delete (*it);
       all_views.clear();
       // Delete all our copy updates
-      for (LegionMap<InstanceView*, FieldMaskSet<Update> >::const_iterator mit =
+      for (op::map<InstanceView*, FieldMaskSet<Update> >::const_iterator mit =
                sources.begin();
            mit != sources.end(); mit++)
       {
@@ -309,12 +309,12 @@ namespace Legion {
              it != mit->second.end(); it++)
           delete it->first;
       }
-      for (std::vector<LegionMap<InstanceView*, FieldMaskSet<Update> > >::
+      for (std::vector<op::map<InstanceView*, FieldMaskSet<Update> > >::
                const_iterator rit = reductions.begin();
            rit != reductions.end(); rit++)
       {
-        for (LegionMap<InstanceView*, FieldMaskSet<Update> >::const_iterator
-                 mit = rit->begin();
+        for (op::map<InstanceView*, FieldMaskSet<Update> >::const_iterator mit =
+                 rit->begin();
              mit != rit->end(); mit++)
         {
           for (FieldMaskSet<Update>::const_iterator it = mit->second.begin();
@@ -628,7 +628,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void CopyFillAggregator::record_partial_updates(
         InstanceView* dst_view, PhysicalManager* dst_man,
-        const LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+        const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
             src_views,
         const FieldMask& src_mask, IndexSpaceExpression* expr,
         const PhysicalTraceInfo& trace_info, EquivalenceSet* tracing_eq,
@@ -647,7 +647,7 @@ namespace Legion {
       remainders.insert(expr, src_mask);
       // Issue deferred immediately, otherwise record instances so that
       // we can ask the mapper what order it wants us to issue copies from
-      for (LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+      for (MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
                const_iterator vit = src_views.begin();
            vit != src_views.end(); vit++)
       {
@@ -664,14 +664,14 @@ namespace Legion {
           if (redop > 0)
             continue;
           // Join in the fields to see what overlaps
-          LegionMap<
+          local::map<
               std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
               FieldMask>
               deferred_exprs;
           unique_join_on_field_mask_sets(
               remainders, vit->second, deferred_exprs);
           bool need_tighten = false;
-          for (LegionMap<
+          for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
                    FieldMask>::const_iterator it = deferred_exprs.begin();
                it != deferred_exprs.end(); it++)
@@ -751,19 +751,19 @@ namespace Legion {
           }
           else
             src_man = src_view->as_individual_view()->get_manager();
-          LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+          MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
               const_iterator finder = src_views.find(src_view);
 #ifdef DEBUG_LEGION
           assert(finder != src_views.end());
 #endif
-          LegionMap<
+          local::map<
               std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
               FieldMask>
               src_expressions;
           unique_join_on_field_mask_sets(
               remainders, finder->second, src_expressions);
           bool need_tighten = false;
-          for (LegionMap<
+          for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
                    FieldMask>::const_iterator it = src_expressions.begin();
                it != src_expressions.end(); it++)
@@ -918,7 +918,7 @@ namespace Legion {
     void CopyFillAggregator::resize_reductions(size_t new_size)
     //--------------------------------------------------------------------------
     {
-      std::vector<LegionMap<InstanceView*, FieldMaskSet<Update> > >
+      std::vector<op::map<InstanceView*, FieldMaskSet<Update> > >
           new_reductions(new_size);
       for (unsigned idx = 0; idx < reductions.size(); idx++)
         new_reductions[idx].swap(reductions[idx]);
@@ -1102,7 +1102,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool CopyFillAggregator::perform_updates(
-        const LegionMap<InstanceView*, FieldMaskSet<Update> >& updates,
+        const MapView<InstanceView*, FieldMaskSet<Update> >& updates,
         const PhysicalTraceInfo& trace_info, const ApEvent precondition,
         std::set<RtEvent>& recorded_events, const int redop_index,
         const bool manage_dst_events, const bool restricted_output,
@@ -1111,7 +1111,7 @@ namespace Legion {
     {
       bool pipelined = true;
       std::vector<ApEvent>* target_events = nullptr;
-      for (LegionMap<InstanceView*, FieldMaskSet<Update> >::const_iterator uit =
+      for (MapView<InstanceView*, FieldMaskSet<Update> >::const_iterator uit =
                updates.begin();
            uit != updates.end(); uit++)
       {

@@ -95,7 +95,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldMaskSet<EquivalenceSet> to_remove;
-      LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
+      lng::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
       {
         AutoLock s_lock(set_lock);
         if (current_subscriptions.empty())
@@ -303,7 +303,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(equivalence_sets_ready == nullptr);
 #endif
-          equivalence_sets_ready = new LegionMap<RtUserEvent, FieldMask>();
+          equivalence_sets_ready = new shrt::map<RtUserEvent, FieldMask>();
           equivalence_sets_ready->insert(
               std::make_pair(compute_event, invalid_mask));
         }

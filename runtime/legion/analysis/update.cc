@@ -131,7 +131,7 @@ namespace Legion {
         remote_user_registered = user_registered;
       }
       std::set<RtEvent> remote_events;
-      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {

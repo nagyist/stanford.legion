@@ -133,9 +133,9 @@ namespace Legion {
         const bool restricted_output;
       };
     public:
-      typedef LegionMap<InstanceView*, FieldMaskSet<IndexSpaceExpression> >
+      typedef op::map<InstanceView*, FieldMaskSet<IndexSpaceExpression> >
           InstanceFieldExprs;
-      typedef LegionMap<ApEvent, FieldMask> EventFieldMap;
+      typedef op::map<ApEvent, FieldMask> EventFieldMap;
       class CopyUpdate;
       class FillUpdate;
       class Update {
@@ -204,7 +204,7 @@ namespace Legion {
         // from the base predicate guard for the aggregator
         const PredEvent fill_guard;
       };
-      typedef LegionMap<ApEvent, FieldMaskSet<Update> > EventFieldUpdates;
+      typedef op::map<ApEvent, FieldMaskSet<Update> > EventFieldUpdates;
     public:
       CopyFillAggregator(
           PhysicalAnalysis* analysis, CopyFillGuard* previous,
@@ -234,7 +234,7 @@ namespace Legion {
           CopyAcrossHelper* across_helper = nullptr);
       void record_partial_updates(
           InstanceView* dst_view, PhysicalManager* dst_man,
-          const LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+          const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
               src_views,
           const FieldMask& src_mask, IndexSpaceExpression* expr,
           const PhysicalTraceInfo& trace_info, EquivalenceSet* tracing_eq,
@@ -280,7 +280,7 @@ namespace Legion {
           InstanceView* target, PhysicalManager* target_manager,
           const std::vector<InstanceView*>& sources);
       bool perform_updates(
-          const LegionMap<InstanceView*, FieldMaskSet<Update> >& updates,
+          const MapView<InstanceView*, FieldMaskSet<Update> >& updates,
           const PhysicalTraceInfo& trace_info, const ApEvent all_precondition,
           std::set<RtEvent>& recorded_events, const int redop_index,
           const bool manage_dst_events, const bool restricted_output,
@@ -318,9 +318,9 @@ namespace Legion {
       const bool track_events;
     protected:
       FieldMask update_fields;
-      LegionMap<InstanceView*, FieldMaskSet<Update> > sources;
+      op::map<InstanceView*, FieldMaskSet<Update> > sources;
       std::vector</*vector over reduction epochs*/
-                  LegionMap<InstanceView*, FieldMaskSet<Update> > >
+                  op::map<InstanceView*, FieldMaskSet<Update> > >
           reductions;
       // Figure out the reduction operator is for each epoch of a
       // given destination instance and field

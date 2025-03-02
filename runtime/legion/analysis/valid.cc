@@ -282,7 +282,7 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> ready_events;
-      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -508,7 +508,7 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> ready_events;
-      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
