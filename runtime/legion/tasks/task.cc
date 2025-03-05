@@ -2179,7 +2179,7 @@ namespace Legion {
             "simultaneously.",
             variant_name, vid, owner->get_name(), owner->task_id)
       if (runtime->record_registration)
-        log_run.print(
+        log_registration.print(
             "Task variant %s of task %s (ID %d) has Realm ID %ld", variant_name,
             owner->get_name(), owner->task_id, descriptor_id);
     }

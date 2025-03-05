@@ -70,13 +70,6 @@ namespace Legion {
 
     // If you add a logger, update the forward delarations in types.h
     Realm::Logger log_legion("legion");
-    Realm::Logger log_run("runtime");
-    Realm::Logger log_task("tasks");
-    Realm::Logger log_index("index_spaces");
-    Realm::Logger log_field("field_spaces");
-    Realm::Logger log_region("regions");
-    Realm::Logger log_inst("instances");
-    Realm::Logger log_variant("variants");
     Realm::Logger log_allocation("allocation");
     Realm::Logger log_migration("migration");
     Realm::Logger log_prof("legion_prof");
@@ -85,6 +78,7 @@ namespace Legion {
     Realm::Logger log_tracing("tracing");
     Realm::Logger log_auto_trace("auto_trace");
     Realm::Logger log_spy("legion_spy");
+    Realm::Logger log_registration("registration");
 
 #ifdef DEBUG_LEGION_CALLERS
     thread_local LgTaskID implicit_task_kind = LG_SCHEDULER_ID;
@@ -409,8 +403,6 @@ namespace Legion {
             "'LEGION_MAX_NUM_NODES' in legion_config.h and recompile. "
             "Please note that 'LEGION_MAX_NUM_NODES' must be a power of two.",
             address_space, LEGION_MAX_NUM_NODES)
-      log_run.debug(
-          "Initializing Legion runtime in address space %x", address_space);
       // Construct a local utility processor group
       if (local_utils.empty())
       {
@@ -1121,7 +1113,6 @@ namespace Legion {
           get_pending_registration_callbacks();
       if (!registration_callbacks.empty())
       {
-        log_run.info("Invoking registration callback functions...");
         for (std::vector<RegistrationCallback>::const_iterator it =
                  registration_callbacks.begin();
              it != registration_callbacks.end(); it++)
@@ -1135,7 +1126,6 @@ namespace Legion {
           if (it->buffer.get_size() > 0)
             free(it->buffer.get_ptr());
         }
-        log_run.info("Finished execution of registration callbacks");
         registration_callbacks.clear();
       }
       // If we have main top-level task, make a context for it
@@ -9606,7 +9596,6 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(local_procs.find(proc) != local_procs.end());
 #endif
-      log_run.debug("Running scheduler on processor " IDFMT "", proc.id);
       ProcessorManager* manager = proc_managers[proc];
       manager->perform_scheduling();
 #ifdef LEGION_TRACE_ALLOCATION
@@ -16107,16 +16096,17 @@ namespace Legion {
 
       if (config.record_registration)
       {
-        log_run.print(
+        log_registration.print(
             "Legion startup task has Realm ID %d", LG_STARTUP_TASK_ID);
-        log_run.print(
+        log_registration.print(
             "Legion runtime shutdown task has Realm ID %d",
             LG_SHUTDOWN_TASK_ID);
-        log_run.print("Legion runtime meta-task has Realm ID %d", LG_TASK_ID);
-        log_run.print(
+        log_registration.print(
+            "Legion runtime meta-task has Realm ID %d", LG_TASK_ID);
+        log_registration.print(
             "Legion runtime profiling task Realm ID %d",
             LG_LEGION_PROFILING_ID);
-        log_run.print(
+        log_registration.print(
             "Legion endpoint task has Realm ID %d", LG_ENDPOINT_TASK_ID);
 #ifdef LEGION_SEPARATE_META_TASKS
         LG_TASK_DESCRIPTIONS(descs);
@@ -16126,16 +16116,16 @@ namespace Legion {
           {
             LG_MESSAGE_DESCRIPTIONS(msg_descs);
             for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
-              log_run.print(
+              log_registration.print(
                   "Legion message %s meta-task has Realm ID %d", msg_descs[msg],
                   LG_TASK_ID + idx + msg);
           }
           else
           {
-            log_run.print(
+            log_registration.print(
                 "Legion runtime %s meta-task has Realm ID %d", descs[idx],
                 LG_TASK_ID + idx);
-            log_run.print(
+            log_registration.print(
                 "Legion application %s meta-task has Realm ID %d", descs[idx],
                 LG_APP_PROC_TASK_ID + idx);
           }
@@ -16830,7 +16820,7 @@ namespace Legion {
         int id, const char* file_name, const int line, const char* message)
     //--------------------------------------------------------------------------
     {
-      log_run.fatal(
+      log_legion.fatal(
           "LEGION FATAL: %s (from file %s:%d)", message, file_name, line);
       abort();
     }
@@ -16840,7 +16830,7 @@ namespace Legion {
         int id, const char* file_name, const int line, const char* message)
     //--------------------------------------------------------------------------
     {
-      log_run.error(
+      log_legion.error(
           "LEGION ERROR: %s (from file %s:%d)", message, file_name, line);
       abort();
     }
@@ -16850,13 +16840,13 @@ namespace Legion {
         int id, const char* file_name, const int line, const char* message)
     //--------------------------------------------------------------------------
     {
-      log_run.warning(
+      log_legion.warning(
           "LEGION WARNING: %s (from file %s:%d)", message, file_name, line);
       if ((runtime != nullptr) && runtime->warnings_backtrace)
       {
         Realm::Backtrace bt;
         bt.capture_backtrace();
-        log_run.warning() << bt;
+        log_legion.warning() << bt;
       }
 #ifndef LEGION_WARNINGS_FATAL
       if (runtime->warnings_are_errors)

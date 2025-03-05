@@ -221,7 +221,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Task* RemoteContext::get_task(void)
+    const Task* RemoteContext::get_task(void) const
     //--------------------------------------------------------------------------
     {
       return &remote_task;

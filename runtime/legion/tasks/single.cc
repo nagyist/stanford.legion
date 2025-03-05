@@ -910,7 +910,7 @@ namespace Legion {
                     LEGION_NAME_SEMANTIC_TAG, name, name_size,
                     true /*can fail*/, false))
               name = "(no name)";
-            log_run.error(
+            log_legion.error(
                 "Missing instance for field %s (FieldID: %d)",
                 static_cast<const char*>(name), *it);
           }

@@ -370,11 +370,6 @@ namespace Legion {
               parent, part, output_region_extents[idx],
               output_region_extents[idx]);
 
-          log_index.debug()
-              << "[Task " << get_task_name() << "(UID: " << get_unique_op_id()
-              << ")] setting " << root_domain << " to index space " << std::hex
-              << parent->handle.get_id();
-
           if (parent->set_domain(
                   root_domain, ApEvent::NO_AP_EVENT, false /*take ownership*/))
             delete parent;
@@ -4402,11 +4397,6 @@ namespace Legion {
           Domain root_domain = compute_global_output_ranges(
               parent, part, output_region_extents[idx],
               local_output_extents[idx]);
-
-          log_index.debug()
-              << "[Task " << get_task_name() << "(UID: " << get_unique_op_id()
-              << ")] setting " << root_domain << " to index space " << std::hex
-              << parent->handle.get_id();
 
           if (parent->set_domain(
                   root_domain, ApEvent::NO_AP_EVENT, false /*take ownership*/))

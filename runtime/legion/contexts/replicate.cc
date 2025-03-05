@@ -1201,15 +1201,13 @@ namespace Legion {
         assert(finder != hashes.end());
 #endif
         if (finder->second == owner_shard->shard_id)
-          log_run.error(
+          log_legion.error(
               "Detected control replication violation when invoking %s in "
               "task %s (UID %lld) on shard %d [Provenance: %.*s]. The hash "
               "summary"
               " for the function does not align with the hash summaries from "
-              "other"
-              " call sites. We'll run the hash algorithm again to try to "
-              "recognize"
-              " what value differs between the shards, hang tight...",
+              "other call sites. We'll run the hash algorithm again to try to "
+              "recognize what value differs between the shards, hang tight...",
               description, get_task_name(), get_unique_id(),
               owner_shard->shard_id,
               (provenance == nullptr) ? 7 : int(provenance->human.length()),
@@ -1486,11 +1484,6 @@ namespace Legion {
             &collective_mapping, true /*add root reference*/);
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-#ifdef DEBUG_LEGION
-        log_index.debug(
-            "Creating index space %llu in task%s (ID %lld)", handle.get_id(),
-            get_task_name(), get_unique_id());
-#endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
@@ -1638,11 +1631,6 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-#ifdef DEBUG_LEGION
-        log_index.debug(
-            "Creating index space %llu in task%s (ID %lld)", handle.get_id(),
-            get_task_name(), get_unique_id());
-#endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
@@ -1833,11 +1821,6 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-#ifdef DEBUG_LEGION
-        log_index.debug(
-            "Creating index space %llu in task%s (ID %lld)", handle.get_id(),
-            get_task_name(), get_unique_id());
-#endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
@@ -1940,11 +1923,6 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-#ifdef DEBUG_LEGION
-        log_index.debug(
-            "Creating index space %llu in task%s (ID %lld)", handle.get_id(),
-            get_task_name(), get_unique_id());
-#endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
@@ -2037,11 +2015,6 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-#ifdef DEBUG_LEGION
-        log_index.debug(
-            "Creating index space %llu in task%s (ID %lld)", handle.get_id(),
-            get_task_name(), get_unique_id());
-#endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
@@ -2144,12 +2117,6 @@ namespace Legion {
       }
       if (!handle.exists())
         return;
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_index.debug(
-            "Destroying index space %llu in task %s (ID %lld)", handle.get_id(),
-            get_task_name(), get_unique_id());
-#endif
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
@@ -2281,12 +2248,6 @@ namespace Legion {
       }
       if (!handle.exists())
         return;
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_index.debug(
-            "Destroying index partition %llu in task %s (ID %lld)",
-            handle.get_id(), get_task_name(), get_unique_id());
-#endif
       std::vector<IndexPartition> sub_partitions;
       {
         AutoLock priv_lock(privilege_lock);
@@ -2506,13 +2467,9 @@ namespace Legion {
         color_generated = true;
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, color_space, provenance,
-              LEGION_DISJOINT_COMPLETE_KIND, partition_color, color_generated))
-        log_index.debug(
-            "Creating equal partition %llu with parent index space %llu"
-            " in task %s (ID %lld)",
-            pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, color_space, provenance,
+          LEGION_DISJOINT_COMPLETE_KIND, partition_color, color_generated);
       part_op->initialize_equal_partition(this, pid, granularity, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -2551,13 +2508,9 @@ namespace Legion {
         color_generated = true;
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, color_space, provenance,
-              LEGION_DISJOINT_COMPLETE_KIND, partition_color, color_generated))
-        log_index.debug(
-            "Creating equal partition %llu with parent index space %llu"
-            " in task %s (ID %lld)",
-            pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, color_space, provenance,
+          LEGION_DISJOINT_COMPLETE_KIND, partition_color, color_generated);
       part_op->initialize_weight_partition(
           this, pid, weights, granularity, provenance);
       // Now we can add the operation to the queue
@@ -2648,13 +2601,9 @@ namespace Legion {
           0 /*temp*/, parent.get_tree_id(), parent.get_type_tag());
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, color_space, provenance, kind,
-              partition_color, color_generated))
-        log_index.debug(
-            "Creating union partition %llu with parent index "
-            "space %llu in task %s (ID %lld)",
-            pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, color_space, provenance, kind, partition_color,
+          color_generated);
       part_op->initialize_union_partition(
           this, pid, handle1, handle2, provenance);
       // Now we can add the operation to the queue
@@ -2746,13 +2695,9 @@ namespace Legion {
           0 /*temp*/, parent.get_tree_id(), parent.get_type_tag());
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, color_space, provenance, kind,
-              partition_color, color_generated))
-        log_index.debug(
-            "Creating intersection partition %llu with parent "
-            "index space %llu in task %s (ID %lld)",
-            pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, color_space, provenance, kind, partition_color,
+          color_generated);
       part_op->initialize_intersection_partition(
           this, pid, handle1, handle2, provenance);
       // Now we can add the operation to the queue
@@ -2822,13 +2767,9 @@ namespace Legion {
           0 /*temp*/, parent.get_tree_id(), parent.get_type_tag());
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, part_node->color_space->handle, provenance,
-              kind, partition_color, color_generated))
-        log_index.debug(
-            "Creating intersection partition %llu with parent "
-            "index space %llu in task %s (ID %lld)",
-            pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, part_node->color_space->handle, provenance,
+          kind, partition_color, color_generated);
       part_op->initialize_intersection_partition(
           this, pid, partition, dominates, provenance);
       // Now we can add the operation to the queue
@@ -2907,13 +2848,9 @@ namespace Legion {
           0 /*temp*/, parent.get_tree_id(), parent.get_type_tag());
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, color_space, provenance, kind,
-              partition_color, color_generated))
-        log_index.debug(
-            "Creating difference partition %llu with parent "
-            "index space %llu in task %s (ID %lld)",
-            pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, color_space, provenance, kind, partition_color,
+          color_generated);
       part_op->initialize_difference_partition(
           this, pid, handle1, handle2, provenance);
       // Now we can add the operation to the queue
@@ -2948,10 +2885,6 @@ namespace Legion {
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind);
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating cross product partitions in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
       if (handle1.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(
             ERROR_INDEX_TREE_MISMATCH,
@@ -2959,7 +2892,6 @@ namespace Legion {
             "index tree as IndexPartition %llu in create "
             "cross product partitions!",
             handle1.get_id(), handle2.get_id())
-#endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3111,10 +3043,6 @@ namespace Legion {
       ReplDependentPartitionOp* part_op =
           runtime->get_operation<ReplDependentPartitionOp>();
 #ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_index.debug(
-            "Creating association in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
       part_op->set_sharding_collective(new ShardingGatherCollective(
           this, 0 /*owner shard*/, COLLECTIVE_LOC_37));
 #endif
@@ -3128,7 +3056,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around create_association call "
               "in task %s (UID %lld).",
@@ -3180,12 +3108,9 @@ namespace Legion {
           0 /*temp*/, parent.get_tree_id(), parent.get_type_tag());
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, color_space, provenance, part_kind,
-              part_color, color_generated))
-        log_index.debug(
-            "Creating restricted partition in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, color_space, provenance, part_kind, part_color,
+          color_generated);
       part_op->initialize_restricted_partition(
           this, pid, transform, transform_size, extent, extent_size,
           provenance);
@@ -3233,12 +3158,9 @@ namespace Legion {
           0 /*temp*/, parent.get_tree_id(), parent.get_type_tag());
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, color_space, provenance, part_kind,
-              part_color, color_generated))
-        log_index.debug(
-            "Creating partition by domain in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, color_space, provenance, part_kind, part_color,
+          color_generated);
       part_op->initialize_by_domain(
           this, pid, domains, perform_intersections, provenance);
       // Now we can add the operation to the queue
@@ -3291,12 +3213,9 @@ namespace Legion {
           0 /*temp*/, parent.get_tree_id(), parent.get_type_tag());
       ReplDependentPartitionOp* part_op =
           runtime->get_operation<ReplDependentPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, parent, color_space, provenance, part_kind,
-              part_color, color_generated))
-        log_index.debug(
-            "Creating partition by field in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
+      create_shard_partition(
+          part_op, pid, parent, color_space, provenance, part_kind, part_color,
+          color_generated);
       part_op->initialize_by_field(
           this, pid, handle, parent_priv, color_space, fid, id, tag, marg,
           provenance);
@@ -3312,7 +3231,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around create_partition_by_field call "
               "in task %s (UID %lld).",
@@ -3372,12 +3291,9 @@ namespace Legion {
           0 /*temp*/, handle.get_tree_id(), handle.get_type_tag());
       ReplDependentPartitionOp* part_op =
           runtime->get_operation<ReplDependentPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, handle, color_space, provenance, part_kind,
-              part_color, color_generated))
-        log_index.debug(
-            "Creating partition by image in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
+      create_shard_partition(
+          part_op, pid, handle, color_space, provenance, part_kind, part_color,
+          color_generated);
       part_op->initialize_by_image(
           this, pid, handle, projection, parent, fid, id, tag, marg,
           provenance);
@@ -3393,7 +3309,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around create_partition_by_image call "
               "in task %s (UID %lld).",
@@ -3453,13 +3369,9 @@ namespace Legion {
           0 /*temp*/, handle.get_tree_id(), handle.get_type_tag());
       ReplDependentPartitionOp* part_op =
           runtime->get_operation<ReplDependentPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, handle, color_space, provenance, part_kind,
-              part_color, color_generated))
-        log_index.debug(
-            "Creating partition by image range in task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, handle, color_space, provenance, part_kind, part_color,
+          color_generated);
       part_op->initialize_by_image_range(
           this, pid, handle, projection, parent, fid, id, tag, marg,
           provenance);
@@ -3475,7 +3387,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around create_partition_by_image_range call "
               "in task %s (UID %lld).",
@@ -3553,12 +3465,9 @@ namespace Legion {
           handle.get_type_tag());
       ReplDependentPartitionOp* part_op =
           runtime->get_operation<ReplDependentPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, handle.get_index_space(), color_space, provenance,
-              part_kind, part_color, color_generated))
-        log_index.debug(
-            "Creating partition by preimage in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, handle.get_index_space(), color_space, provenance,
+          part_kind, part_color, color_generated);
       part_op->initialize_by_preimage(
           this, pid, projection, handle, parent, fid, id, tag, marg,
           provenance);
@@ -3574,7 +3483,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around create_partition_by_preimage call "
               "in task %s (UID %lld).",
@@ -3635,13 +3544,9 @@ namespace Legion {
           handle.get_type_tag());
       ReplDependentPartitionOp* part_op =
           runtime->get_operation<ReplDependentPartitionOp>();
-      if (create_shard_partition(
-              part_op, pid, handle.get_index_space(), color_space, provenance,
-              part_kind, part_color, color_generated))
-        log_index.debug(
-            "Creating partition by preimage range in task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id());
+      create_shard_partition(
+          part_op, pid, handle.get_index_space(), color_space, provenance,
+          part_kind, part_color, color_generated);
       part_op->initialize_by_preimage_range(
           this, pid, projection, handle, parent, fid, id, tag, marg,
           provenance);
@@ -3657,7 +3562,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around create_partition_by_preimage_range call "
               "in task %s (UID %lld).",
@@ -3707,12 +3612,9 @@ namespace Legion {
         color_generated = true;
       IndexPartition pid(
           0 /*temp*/, parent.get_tree_id(), parent.get_type_tag());
-      if (create_shard_partition(
-              nullptr /*op*/, pid, parent, color_space, provenance, part_kind,
-              part_color, color_generated))
-        log_index.debug(
-            "Creating pending partition in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
+      create_shard_partition(
+          nullptr /*op*/, pid, parent, color_space, provenance, part_kind,
+          part_color, color_generated);
       if (runtime->verify_partitions && !trust)
       {
         // We can't block to check this here because the user needs
@@ -3748,11 +3650,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space union in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -3783,11 +3680,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space union in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -3821,11 +3713,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space intersection in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -3857,11 +3744,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space intersection in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -3897,11 +3779,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space difference in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       ReplPendingPartitionOp* part_op =
           runtime->get_operation<ReplPendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -4124,11 +4001,6 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_field_space(value.did);
-#ifdef DEBUG_LEGION
-        log_field.debug(
-            "Creating field space %llu in task %s (ID %lld)", space.get_id(),
-            get_task_name(), get_unique_id());
-#endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_field_space(
               space.get_id(), runtime->address_space,
@@ -4473,12 +4345,6 @@ namespace Legion {
       }
       if (!handle.exists())
         return;
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_field.debug(
-            "Destroying field space %llu in task %s (ID %lld)", handle.get_id(),
-            get_task_name(), get_unique_id());
-#endif
       // Check to see if this is one that we should be allowed to destory
       {
         AutoLock priv_lock(privilege_lock);
@@ -5217,13 +5083,6 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_region_tree(value.tid);
-#ifdef DEBUG_LEGION
-        log_region.debug(
-            "Creating logical region in task %s (ID %lld) with "
-            "index space %llu and field space %llu in new tree %lld",
-            get_task_name(), get_unique_id(), index_space.get_id(),
-            field_space.get_id(), handle.get_tree_id());
-#endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_region(
               index_space.get_id(), field_space.get_id(), handle.get_tree_id(),
@@ -5378,13 +5237,6 @@ namespace Legion {
       }
       if (!handle.exists())
         return;
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_region.debug(
-            "Deleting logical region (%llu,%llu) in task %s (ID %lld)",
-            handle.index_space.get_id(), handle.field_space.get_id(),
-            get_task_name(), get_unique_id());
-#endif
       // Check to see if this is a top-level logical region, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_region(handle))
@@ -5818,13 +5670,6 @@ namespace Legion {
           this, launcher, provenance, false /*top_level*/, false /*must epoch*/,
           outputs);
 #ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_task.debug(
-            "Registering new single task with unique id %lld "
-            "and task %s (ID %lld) with high level runtime in "
-            "addresss space %d",
-            task->get_unique_id(), task->get_task_name(), task->get_unique_id(),
-            runtime->address_space);
       task->set_sharding_collective(new ShardingGatherCollective(
           this, 0 /*owner shard*/, COLLECTIVE_LOC_43));
 #endif
@@ -5874,7 +5719,7 @@ namespace Legion {
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
-        log_run.warning(
+        log_legion.warning(
             "Ignoring empty index task launch in task %s (ID %lld)",
             get_task_name(), get_unique_id());
         return FutureMap();
@@ -5890,13 +5735,6 @@ namespace Legion {
       FutureMap result = task->initialize_task(
           this, launcher, launch_space, provenance, true /*track*/, outputs);
 #ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_task.debug(
-            "Registering new index space task with unique id "
-            "%lld and task %s (ID %lld) with high level runtime in "
-            "address space %d",
-            task->get_unique_id(), task->get_task_name(), task->get_unique_id(),
-            runtime->address_space);
       task->set_sharding_collective(new ShardingGatherCollective(
           this, 0 /*owner shard*/, COLLECTIVE_LOC_44));
 #endif
@@ -5979,13 +5817,6 @@ namespace Legion {
           this, launcher, launch_space, provenance, redop, deterministic,
           true /*track*/, outputs);
 #ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_task.debug(
-            "Registering new index space task with unique id "
-            "%lld and task %s (ID %lld) with high level runtime in "
-            "address space %d",
-            task->get_unique_id(), task->get_task_name(), task->get_unique_id(),
-            runtime->address_space);
       task->set_sharding_collective(new ShardingGatherCollective(
           this, 0 /*owner shard*/, COLLECTIVE_LOC_45));
 #endif
@@ -6365,15 +6196,6 @@ namespace Legion {
         return PhysicalRegion();
       ReplMapOp* map_op = runtime->get_operation<ReplMapOp>();
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Registering a map operation for region "
-          "(%llu,%llu,%llu) in task %s (ID %lld)",
-          launcher.requirement.region.index_space.get_id(),
-          launcher.requirement.region.field_space.get_id(),
-          launcher.requirement.region.get_tree_id(), get_task_name(),
-          get_unique_id());
-#endif
       map_op->initialize_replication(this);
       if (current_trace != nullptr)
         REPORT_LEGION_ERROR(
@@ -6522,11 +6344,6 @@ namespace Legion {
       }
       ReplFillOp* fill_op = runtime->get_operation<ReplFillOp>();
       fill_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Registering a fill operation in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       fill_op->initialize_replication(
           this, get_next_distributed_id(),
           shard_manager->is_first_local_shard(owner_shard));
@@ -6610,7 +6427,7 @@ namespace Legion {
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
-        log_run.warning(
+        log_legion.warning(
             "Ignoring empty index space fill in task %s (ID %lld)",
             get_task_name(), get_unique_id());
         return;
@@ -6622,11 +6439,6 @@ namespace Legion {
       ReplIndexFillOp* fill_op = runtime->get_operation<ReplIndexFillOp>();
       fill_op->initialize(this, launcher, launch_space, provenance);
 #ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Registering an index fill operation in task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id());
       fill_op->set_sharding_collective(new ShardingGatherCollective(
           this, 0 /*owner shard*/, COLLECTIVE_LOC_46));
 #endif
@@ -6639,7 +6451,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around fill_fields call in task %s (UID %lld).",
               get_task_name(), get_unique_id());
@@ -6769,10 +6581,6 @@ namespace Legion {
       ReplCopyOp* copy_op = runtime->get_operation<ReplCopyOp>();
       copy_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Registering a copy operation in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
       copy_op->set_sharding_collective(new ShardingGatherCollective(
           this, 0 /*owner shard*/, COLLECTIVE_LOC_47));
 #endif
@@ -6785,7 +6593,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around issue_copy_operation call in "
               "task %s (UID %lld).",
@@ -6861,7 +6669,7 @@ namespace Legion {
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
-        log_run.warning(
+        log_legion.warning(
             "Ignoring empty index space copy in task %s "
             "(ID %lld)",
             get_task_name(), get_unique_id());
@@ -6874,11 +6682,6 @@ namespace Legion {
       ReplIndexCopyOp* copy_op = runtime->get_operation<ReplIndexCopyOp>();
       copy_op->initialize(this, launcher, launch_space, provenance);
 #ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Registering an index copy operation in task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id());
       copy_op->set_sharding_collective(new ShardingGatherCollective(
           this, 0 /*owner shard*/, COLLECTIVE_LOC_48));
 #endif
@@ -6891,7 +6694,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around issue_copy_operation call in "
               "task %s (UID %lld).",
@@ -6946,11 +6749,6 @@ namespace Legion {
       }
       ReplAcquireOp* acquire_op = runtime->get_operation<ReplAcquireOp>();
       acquire_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing an acquire operation in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       acquire_op->initialize_replication(
           this, shard_manager->is_first_local_shard(owner_shard));
       // Check to see if we need to do any unmappings and remappings
@@ -7018,11 +6816,6 @@ namespace Legion {
       }
       ReplReleaseOp* release_op = runtime->get_operation<ReplReleaseOp>();
       release_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing a release operation in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       release_op->initialize_replication(
           this, shard_manager->is_first_local_shard(owner_shard));
       // Check to see if we need to do any unmappings and remappings
@@ -7420,10 +7213,6 @@ namespace Legion {
       ReplMustEpochOp* epoch_op = runtime->get_operation<ReplMustEpochOp>();
       FutureMap result = epoch_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Executing a must epoch in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
       epoch_op->set_sharding_collective(new ShardingGatherCollective(
           this, 0 /*owner shard*/, COLLECTIVE_LOC_49));
 #endif
@@ -7435,7 +7224,7 @@ namespace Legion {
       if (!unmapped_regions.empty())
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
-          log_run.warning(
+          log_legion.warning(
               "WARNING: Runtime is unmapping and remapping "
               "physical regions around issue_release call in "
               "task %s (UID %lld).",
@@ -7473,12 +7262,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Issuing a timing measurement in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
-#endif
       ReplTimingOp* timing_op = runtime->get_operation<ReplTimingOp>();
       Future result = timing_op->initialize(this, launcher, provenance);
       ValueBroadcast<long long>* timing_collective =
@@ -7514,12 +7297,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Issuing a tunable request in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
-#endif
       ReplTunableOp* tunable_op = runtime->get_operation<ReplTunableOp>();
       Future result = tunable_op->initialize(this, launcher, provenance);
       tunable_op->initialize_replication(this);
@@ -7542,12 +7319,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Issuing a mapping fence in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
-#endif
       ReplFenceOp* fence_op = runtime->get_operation<ReplFenceOp>();
       Future result =
           fence_op->initialize(this, FenceOp::MAPPING_FENCE, true, provenance);
@@ -7570,12 +7341,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Issuing an execution fence in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
-#endif
       ReplFenceOp* fence_op = runtime->get_operation<ReplFenceOp>();
       Future result = fence_op->initialize(
           this, FenceOp::EXECUTION_FENCE, true, provenance);
@@ -7610,11 +7375,6 @@ namespace Legion {
         return;
       if (runtime->no_physical_tracing)
         logical_only = true;
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Beginning a trace in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       // No need to hold the lock here, this is only ever called
       // by the one thread that is running the task.
       if (current_trace != nullptr)
@@ -8350,12 +8110,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Advancing phase barrier in task %s (ID %lld)", get_task_name(),
-            get_unique_id());
-#endif
       PhaseBarrier result = bar;
       Runtime::advance_barrier(result);
 #ifdef LEGION_SPY
@@ -8445,12 +8199,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-#ifdef DEBUG_LEGION
-      if (owner_shard->shard_id == 0)
-        log_run.debug(
-            "Advancing dynamic collective in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
-#endif
       DynamicCollective result = dc;
       Runtime::advance_barrier(result);
 #ifdef LEGION_SPY

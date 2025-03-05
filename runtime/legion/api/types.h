@@ -1036,13 +1036,7 @@ namespace Legion {
     thread_local LgTaskID implicit_task_kind;
     thread_local LgTaskID implicit_task_caller;
 #endif
-    extern Realm::Logger log_run;
-    extern Realm::Logger log_task;
-    extern Realm::Logger log_index;
-    extern Realm::Logger log_field;
-    extern Realm::Logger log_region;
-    extern Realm::Logger log_inst;
-    extern Realm::Logger log_variant;
+    extern Realm::Logger log_legion;
     extern Realm::Logger log_allocation;
     extern Realm::Logger log_migration;
     extern Realm::Logger log_prof;
@@ -1051,7 +1045,7 @@ namespace Legion {
     extern Realm::Logger log_shutdown;
     extern Realm::Logger log_tracing;
     extern Realm::Logger log_auto_trace;
-    extern Realm::Logger log_legion;
+    extern Realm::Logger log_registration;
 
     /////////////////////////////////////////////////////////////
     // AutoLock

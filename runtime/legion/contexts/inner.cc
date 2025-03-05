@@ -2556,11 +2556,6 @@ namespace Legion {
       IndexSpace handle(
           runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), type_tag);
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space %llu in task%s (ID %lld)", handle.get_id(),
-          get_task_name(), get_unique_id());
-#endif
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(
             handle.get_id(), runtime->address_space,
@@ -2741,11 +2736,6 @@ namespace Legion {
       IndexSpace handle(
           runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), type_tag);
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space %llu in task%s (ID %lld)", handle.get_id(),
-          get_task_name(), get_unique_id());
-#endif
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(
             handle.get_id(), runtime->address_space,
@@ -2772,11 +2762,6 @@ namespace Legion {
     {
       if (!handle.exists())
         return;
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Destroying index space %llu in task %s (ID %lld)", handle.get_id(),
-          get_task_name(), get_unique_id());
-#endif
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
@@ -2878,11 +2863,6 @@ namespace Legion {
     {
       if (!handle.exists())
         return;
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Destroying index partition %llu in task %s (ID %lld)",
-          handle.get_id(), get_task_name(), get_unique_id());
-#endif
       std::vector<IndexPartition> sub_partitions;
       {
         AutoLock priv_lock(privilege_lock);
@@ -2959,12 +2939,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating equal partition %llud with parent index space %llu "
-          "in task %s (ID %lld)",
-          pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
-#endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -2991,12 +2965,6 @@ namespace Legion {
       const IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating partition %llu by weights with parent index "
-          "space %llu in task %s (ID %lld)",
-          pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
-#endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3028,11 +2996,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating union partition %llu with parent index "
-          "space %llu in task %s (ID %lld)",
-          pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(
             ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
@@ -3047,7 +3010,6 @@ namespace Legion {
             "index tree as IndexSpace %llu in create "
             "partition by union!",
             handle2.get_id(), parent.get_id())
-#endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3110,11 +3072,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating intersection partition %llu with parent "
-          "index space %llu in task %s (ID %lld)",
-          pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(
             ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
@@ -3129,7 +3086,6 @@ namespace Legion {
             "index tree as IndexSpace %llu in create partition by "
             "intersection!",
             handle2.get_id(), parent.get_id())
-#endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3190,11 +3146,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating intersection partition %llu with parent "
-          "index space %llu in task %s (ID %lld)",
-          pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
       if (parent.get_type_tag() != partition.get_type_tag())
         REPORT_LEGION_ERROR(
             ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
@@ -3202,7 +3153,6 @@ namespace Legion {
             "parent index space %llu in task %s (UID %lld)",
             partition.get_id(), parent.get_id(), get_task_name(),
             get_unique_id())
-#endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3252,11 +3202,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating difference partition %llu with parent "
-          "index space %llu in task %s (ID %lld)",
-          pid.get_id(), parent.get_id(), get_task_name(), get_unique_id());
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(
             ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
@@ -3271,7 +3216,6 @@ namespace Legion {
             "index tree as IndexSpace %llu in create "
             "partition by difference!",
             handle2.get_id(), parent.get_id())
-#endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3314,10 +3258,6 @@ namespace Legion {
         Color color, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating cross product partitions in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
       if (handle1.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(
             ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
@@ -3325,7 +3265,6 @@ namespace Legion {
             "index tree as IndexPartition %llu in create "
             "cross product partitions!",
             handle1.get_id(), handle2.get_id())
-#endif
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind);
@@ -3398,11 +3337,6 @@ namespace Legion {
         const UntypedBuffer& marg, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating association in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       DependentPartitionOp* part_op =
           runtime->get_operation<DependentPartitionOp>();
       part_op->initialize_by_association(
@@ -3446,11 +3380,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating restricted partition in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
@@ -3484,11 +3413,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating partition by domain in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
@@ -3524,11 +3448,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating partition by field in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
@@ -3587,11 +3506,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), handle.get_tree_id(),
           handle.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating partition by image in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
@@ -3650,11 +3564,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), handle.get_tree_id(),
           handle.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating partition by image range in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
@@ -3713,11 +3622,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(),
           handle.get_index_space().get_tree_id(), handle.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating partition by preimage in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
@@ -3794,12 +3698,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(),
           handle.get_index_space().get_tree_id(), handle.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating partition by preimage range in task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
@@ -3857,11 +3755,6 @@ namespace Legion {
       IndexPartition pid(
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating pending partition in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
@@ -3888,11 +3781,6 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space union in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       PendingPartitionOp* part_op =
           runtime->get_operation<PendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -3908,11 +3796,6 @@ namespace Legion {
         TypeTag type_tag, IndexPartition handle, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space union in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       PendingPartitionOp* part_op =
           runtime->get_operation<PendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -3929,11 +3812,6 @@ namespace Legion {
         Provenance* prov)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space intersection in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       PendingPartitionOp* part_op =
           runtime->get_operation<PendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -3949,11 +3827,6 @@ namespace Legion {
         TypeTag type_tag, IndexPartition handle, Provenance* prov)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space intersection in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       PendingPartitionOp* part_op =
           runtime->get_operation<PendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -3970,11 +3843,6 @@ namespace Legion {
         const std::vector<IndexSpace>& handles, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_index.debug(
-          "Creating index space difference in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       PendingPartitionOp* part_op =
           runtime->get_operation<PendingPartitionOp>();
       IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
@@ -4161,11 +4029,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldSpace space(runtime->get_unique_field_space_id());
-#ifdef DEBUG_LEGION
-      log_field.debug(
-          "Creating field space %llu in task %s (ID %lld)", space.get_id(),
-          get_task_name(), get_unique_id());
-#endif
       if (runtime->legion_spy_enabled)
         LegionSpy::log_field_space(
             space.get_id(), runtime->address_space,
@@ -4183,11 +4046,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldSpace space(runtime->get_unique_field_space_id());
-#ifdef DEBUG_LEGION
-      log_field.debug(
-          "Creating field space %llu in task %s (ID %lld)", space.get_id(),
-          get_task_name(), get_unique_id());
-#endif
       if (runtime->legion_spy_enabled)
         LegionSpy::log_field_space(
             space.get_id(), runtime->address_space,
@@ -4287,11 +4145,6 @@ namespace Legion {
     {
       if (!handle.exists())
         return;
-#ifdef DEBUG_LEGION
-      log_field.debug(
-          "Destroying field space %llu in task %s (ID %lld)", handle.get_id(),
-          get_task_name(), get_unique_id());
-#endif
       // Check to see if this is one that we should be allowed to destory
       {
         AutoLock priv_lock(privilege_lock);
@@ -4882,13 +4735,6 @@ namespace Legion {
     {
       RegionTreeID tid = runtime->get_unique_region_tree_id();
       LogicalRegion region(tid, index_space, field_space);
-#ifdef DEBUG_LEGION
-      log_region.debug(
-          "Creating logical region in task %s (ID %lld) with "
-          "index space %llu and field space %llu in new tree %lld",
-          get_task_name(), get_unique_id(), index_space.get_id(),
-          field_space.get_id(), tid);
-#endif
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_region(
             index_space.get_id(), field_space.get_id(), tid,
@@ -4953,12 +4799,6 @@ namespace Legion {
     {
       if (!handle.exists())
         return;
-#ifdef DEBUG_LEGION
-      log_region.debug(
-          "Deleting logical region (%llu,%llu) in task %s (ID %lld)",
-          handle.index_space.get_id(), handle.field_space.get_id(),
-          get_task_name(), get_unique_id());
-#endif
       // Check to see if this is a top-level logical region, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_region(handle))
@@ -5866,14 +5706,6 @@ namespace Legion {
       Future result = task->initialize_task(
           this, launcher, provenance, false /*top level*/, false /*must epoch*/,
           outputs);
-#ifdef DEBUG_LEGION
-      log_task.debug(
-          "Registering new single task with unique id %lld "
-          "and task %s (ID %lld) with high level runtime in "
-          "addresss space %d",
-          task->get_unique_id(), task->get_task_name(), task->get_unique_id(),
-          runtime->address_space);
-#endif
       execute_task_launch(
           task, false /*index*/, launcher.static_dependences, provenance,
           launcher.silence_warnings, launcher.enable_inlining);
@@ -5921,14 +5753,6 @@ namespace Legion {
       IndexTask* task = runtime->get_operation<IndexTask>();
       FutureMap result = task->initialize_task(
           this, launcher, launch_space, provenance, true /*track*/, outputs);
-#ifdef DEBUG_LEGION
-      log_task.debug(
-          "Registering new index space task with unique id "
-          "%lld and task %s (ID %lld) with high level runtime in "
-          "address space %d",
-          task->get_unique_id(), task->get_task_name(), task->get_unique_id(),
-          runtime->address_space);
-#endif
       execute_task_launch(
           task, true /*index*/, launcher.static_dependences, provenance,
           launcher.silence_warnings, launcher.enable_inlining);
@@ -5985,14 +5809,6 @@ namespace Legion {
       Future result = task->initialize_task(
           this, launcher, launch_space, provenance, redop, deterministic,
           true /*track*/, outputs);
-#ifdef DEBUG_LEGION
-      log_task.debug(
-          "Registering new index space task with unique id "
-          "%lld and task %s (ID %lld) with high level runtime in "
-          "address space %d",
-          task->get_unique_id(), task->get_task_name(), task->get_unique_id(),
-          runtime->address_space);
-#endif
       execute_task_launch(
           task, true /*index*/, launcher.static_dependences, provenance,
           launcher.silence_warnings, launcher.enable_inlining);
@@ -6156,15 +5972,6 @@ namespace Legion {
         return PhysicalRegion();
       MapOp* map_op = runtime->get_operation<MapOp>();
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Registering a map operation for region "
-          "(%llu,%llu,%llu) in task %s (ID %lld)",
-          launcher.requirement.region.index_space.get_id(),
-          launcher.requirement.region.field_space.get_id(),
-          launcher.requirement.region.get_tree_id(), get_task_name(),
-          get_unique_id());
-#endif
       if (current_trace != nullptr)
         REPORT_LEGION_ERROR(
             ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
@@ -6289,11 +6096,6 @@ namespace Legion {
       }
       FillOp* fill_op = runtime->get_operation<FillOp>();
       fill_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Registering a fill operation in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       // Check to see if we need to do any unmappings and remappings
       // before we can issue this copy operation
       std::vector<PhysicalRegion> unmapped_regions;
@@ -6348,11 +6150,6 @@ namespace Legion {
             find_index_launch_space(launcher.launch_domain, provenance);
       IndexFillOp* fill_op = runtime->get_operation<IndexFillOp>();
       fill_op->initialize(this, launcher, launch_space, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Registering an index fill operation in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       // Check to see if we need to do any unmappings and remappings
       // before we can issue this copy operation
       std::vector<PhysicalRegion> unmapped_regions;
@@ -6427,11 +6224,6 @@ namespace Legion {
     {
       CopyOp* copy_op = runtime->get_operation<CopyOp>();
       copy_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Registering a copy operation in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       // Check to see if we need to do any unmappings and remappings
       // before we can issue this copy operation
       std::vector<PhysicalRegion> unmapped_regions;
@@ -6480,11 +6272,6 @@ namespace Legion {
             find_index_launch_space(launcher.launch_domain, provenance);
       IndexCopyOp* copy_op = runtime->get_operation<IndexCopyOp>();
       copy_op->initialize(this, launcher, launch_space, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Registering an index copy operation in task %s (ID %lld)",
-          get_task_name(), get_unique_id());
-#endif
       // Check to see if we need to do any unmappings and remappings
       // before we can issue this copy operation
       std::vector<PhysicalRegion> unmapped_regions;
@@ -6519,11 +6306,6 @@ namespace Legion {
     {
       AcquireOp* acquire_op = runtime->get_operation<AcquireOp>();
       acquire_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing an acquire operation in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       // Check to see if we need to do any unmappings and remappings
       // before we can issue this acquire operation.
       std::vector<PhysicalRegion> unmapped_regions;
@@ -6557,11 +6339,6 @@ namespace Legion {
     {
       ReleaseOp* release_op = runtime->get_operation<ReleaseOp>();
       release_op->initialize(this, launcher, provenance);
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing a release operation in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       // Check to see if we need to do any unmappings and remappings
       // before we can issue the release operation
       std::vector<PhysicalRegion> unmapped_regions;
@@ -7043,11 +6820,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       MustEpochOp* epoch_op = runtime->get_operation<MustEpochOp>();
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Executing a must epoch in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       FutureMap result = epoch_op->initialize(this, launcher, provenance);
       // Now find all the parent task regions we need to invalidate
       std::vector<PhysicalRegion> unmapped_regions;
@@ -7080,11 +6852,6 @@ namespace Legion {
         const TimingLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing a timing measurement in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       TimingOp* timing_op = runtime->get_operation<TimingOp>();
       Future result = timing_op->initialize(this, launcher, provenance);
       add_to_dependence_queue(timing_op);
@@ -7096,11 +6863,6 @@ namespace Legion {
         const TunableLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing a tunable request in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       TunableOp* tunable_op = runtime->get_operation<TunableOp>();
       Future result = tunable_op->initialize(this, launcher, provenance);
       add_to_dependence_queue(tunable_op);
@@ -7112,11 +6874,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FenceOp* fence_op = runtime->get_operation<FenceOp>();
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing a mapping fence in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       Future f = fence_op->initialize(
           this, FenceOp::MAPPING_FENCE, true /*return future*/, provenance);
       add_to_dependence_queue(fence_op);
@@ -7128,11 +6885,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FenceOp* fence_op = runtime->get_operation<FenceOp>();
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing an execution fence in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       Future f = fence_op->initialize(
           this, FenceOp::EXECUTION_FENCE, true /*return future*/, provenance);
       add_to_dependence_queue(fence_op);
@@ -7144,11 +6896,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FrameOp* frame_op = runtime->get_operation<FrameOp>();
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Issuing a frame in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       frame_op->initialize(this, provenance);
       RtEvent wait_on;
       if (context_configuration.max_outstanding_frames > 0)
@@ -9082,11 +8829,6 @@ namespace Legion {
       if (runtime->no_physical_tracing)
         logical_only = true;
 
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Beginning a trace in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       // No need to hold the lock here, this is only ever called
       // by the one thread that is running the task.
       if (current_trace != nullptr)
@@ -9185,11 +8927,6 @@ namespace Legion {
       if (runtime->no_tracing)
         return;
 
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Ending a trace in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       if (current_trace == nullptr)
         REPORT_LEGION_ERROR(
             ERROR_UMATCHED_END_TRACE,
@@ -9633,11 +9370,6 @@ namespace Legion {
         DynamicCollective dc, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      log_run.debug(
-          "Get dynamic collective result in task %s (ID %lld)", get_task_name(),
-          get_unique_id());
-#endif
       DynamicCollectiveOp* collective =
           runtime->get_operation<DynamicCollectiveOp>();
       Future result = collective->initialize(this, dc, provenance);

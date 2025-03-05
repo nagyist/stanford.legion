@@ -70,7 +70,7 @@ namespace Legion {
     public:
       static Mapper::ContextConfigOutput configure_remote_context(void);
     public:
-      virtual Task* get_task(void);
+      virtual const Task* get_task(void) const;
       virtual UniqueID get_unique_id(void) const;
       virtual ShardID get_shard_id(void) const { return shard_id; }
       virtual DistributedID get_replication_id(void) const { return repl_id; }

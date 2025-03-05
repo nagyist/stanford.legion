@@ -74,7 +74,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Task* TaskContext::get_task(void)
+    const Task* TaskContext::get_task(void) const
     //--------------------------------------------------------------------------
     {
       return owner_task;
@@ -580,9 +580,6 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         LegionSpy::log_task_processor(get_unique_id(), executing_processor.id);
 #ifdef DEBUG_LEGION
-      log_task.debug(
-          "Task %s (ID %lld) starting on processor " IDFMT "", get_task_name(),
-          get_unique_id(), executing_processor.id);
       assert(regions.size() == physical_regions.size());
 #endif
       // Issue a utility task to decrement the number of outstanding

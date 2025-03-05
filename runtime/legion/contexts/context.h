@@ -66,7 +66,7 @@ namespace Legion {
       {
         executing_processor = p;
       }
-      inline const char* get_task_name(void)
+      inline const char* get_task_name(void) const
       {
         return get_task()->get_task_name();
       }
@@ -86,7 +86,7 @@ namespace Legion {
       // Interface for task contexts
       virtual ContextID get_logical_tree_context(void) const = 0;
       virtual ContextID get_physical_tree_context(void) const = 0;
-      virtual Task* get_task(void);
+      virtual const Task* get_task(void) const;
       virtual UniqueID get_unique_id(void) const;
       virtual InnerContext* find_parent_context(void);
       virtual void compute_task_tree_coordinates(

@@ -2391,14 +2391,9 @@ namespace Legion {
       sharding_collective->contribute(this->sharding_functor);
       if (sharding_collective->is_target() &&
           !sharding_collective->validate(this->sharding_functor))
-      {
-        log_run.error(
-            "ERROR: Mapper %s chose different sharding functions "
-            "for must epoch launch in %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id());
-        std::abort();
-      }
+        Exception(MAPPER_EXCEPTION, this)
+            << "Mapper " << *mapper << " chose different sharding "
+            << "functions for must epoch launch in " << *parent_ctx;
       ReplFutureMapImpl* impl =
           dynamic_cast<ReplFutureMapImpl*>(result_map.impl);
       assert(impl != nullptr);

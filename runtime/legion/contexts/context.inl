@@ -117,5 +117,13 @@ namespace Legion {
       }
     }
 
+    //--------------------------------------------------------------------------
+    inline std::ostream& operator<<(std::ostream& os, const TaskContext& ctx)
+    //--------------------------------------------------------------------------
+    {
+      os << ctx.get_task_name() << "(UID: " << ctx.get_unique_id() << ")";
+      return os;
+    }
+
   }  // namespace Internal
 }  // namespace Legion

@@ -80,8 +80,6 @@ namespace Legion {
       // Don't do this if we are doing replay execution
       if (!skip_replay && replay_execution)
         return;
-      log_run.spew(
-          "Adding mapper %d on processor " IDFMT "", mid, local_proc.id);
       if (check && (mid == 0))
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_MAPPING_ID, "Invalid mapping ID. ID 0 is reserved.");
@@ -378,11 +376,6 @@ namespace Legion {
         Processor thief, const std::vector<MapperID>& thieves)
     //--------------------------------------------------------------------------
     {
-      log_run.spew(
-          "handling a steal request on processor " IDFMT
-          " "
-          "from processor " IDFMT "",
-          local_proc.id, thief.id);
       // Iterate over the task descriptions, asking the appropriate mapper
       // whether we can steal the task
       std::vector<SingleTask*> stolen;
@@ -515,17 +508,6 @@ namespace Legion {
       }
       if (!stolen.empty())
       {
-#ifdef DEBUG_LEGION
-        for (std::vector<SingleTask*>::const_iterator it = stolen.begin();
-             it != stolen.end(); it++)
-        {
-          log_task.debug(
-              "task %s (ID %lld) stolen from processor " IDFMT
-              " by processor " IDFMT "",
-              (*it)->get_task_name(), (*it)->get_unique_id(), local_proc.id,
-              thief.id);
-        }
-#endif
         runtime->send_tasks(thief, stolen);
         // Also have to send advertisements to the mappers that
         // successfully stole so they know that they can try again

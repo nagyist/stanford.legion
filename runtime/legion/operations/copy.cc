@@ -1978,7 +1978,7 @@ namespace Legion {
                   req.region.get_field_space(), *it, LEGION_NAME_SEMANTIC_TAG,
                   name, name_size, true, false))
             name = "(no name)";
-          log_run.error(
+          log_legion.error(
               "Missing instance for field %s (FieldID: %d)",
               static_cast<const char*>(name), *it);
         }
