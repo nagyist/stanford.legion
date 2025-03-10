@@ -3444,6 +3444,14 @@ namespace Legion {
       }
       else
       {
+        for (std::map<Memory, MemoryPool*>::const_iterator it =
+                 leaf_memory_pools.begin();
+             it != leaf_memory_pools.end(); it++)
+        {
+          const ApEvent ready = it->second->get_ready_event();
+          if (ready.exists())
+            launch_events.insert(ready);
+        }
         LeafContext* leaf_ctx =
             new LeafContext(this, std::move(leaf_memory_pools), inline_task);
         leaf_memory_pools.clear();
