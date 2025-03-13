@@ -152,7 +152,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void RemoteTraceRecorder::record_replay_mapping(
         ApEvent lhs, unsigned op_kind, const TraceLocalID& tlid,
-        bool register_memo, std::set<RtEvent>& applied_events)
+        std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
       if (runtime->address_space != origin_space)
@@ -167,14 +167,12 @@ namespace Legion {
           rez.serialize(lhs);
           rez.serialize(op_kind);
           tlid.serialize(rez);
-          rez.serialize<bool>(register_memo);
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied_events.insert(applied);
       }
       else
-        remote_tpl->record_replay_mapping(
-            lhs, op_kind, tlid, register_memo, applied_events);
+        remote_tpl->record_replay_mapping(lhs, op_kind, tlid, applied_events);
     }
 
     //--------------------------------------------------------------------------
@@ -918,11 +916,8 @@ namespace Legion {
             derez.deserialize(op_kind);
             TraceLocalID tlid;
             tlid.deserialize(derez);
-            bool register_memo;
-            derez.deserialize<bool>(register_memo);
             std::set<RtEvent> applied_events;
-            tpl->record_replay_mapping(
-                lhs, op_kind, tlid, register_memo, applied_events);
+            tpl->record_replay_mapping(lhs, op_kind, tlid, applied_events);
             if (!applied_events.empty())
               Runtime::trigger_event(
                   applied, Runtime::merge_events(applied_events));

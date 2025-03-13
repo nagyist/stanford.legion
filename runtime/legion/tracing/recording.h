@@ -98,7 +98,7 @@ namespace Legion {
     public:
       virtual void record_replay_mapping(
           ApEvent lhs, unsigned op_kind, const TraceLocalID& tlid,
-          bool register_memo, std::set<RtEvent>& applied_events) = 0;
+          std::set<RtEvent>& applied_events) = 0;
       virtual void request_term_event(ApUserEvent& term_event) = 0;
       virtual void record_create_ap_user_event(
           ApUserEvent& lhs, const TraceLocalID& tlid) = 0;
@@ -248,7 +248,7 @@ namespace Legion {
     public:
       virtual void record_replay_mapping(
           ApEvent lhs, unsigned op_kind, const TraceLocalID& tlid,
-          bool register_memo, std::set<RtEvent>& applied_events);
+          std::set<RtEvent>& applied_events);
       virtual void request_term_event(ApUserEvent& term_event);
       virtual void record_create_ap_user_event(
           ApUserEvent& hs, const TraceLocalID& tlid);
@@ -375,12 +375,11 @@ namespace Legion {
       TraceInfo(PhysicalTraceRecorder* rec, const TraceLocalID& tlid);
     public:
       inline void record_replay_mapping(
-          ApEvent lhs, unsigned op_kind, bool register_memo,
+          ApEvent lhs, unsigned op_kind,
           std::set<RtEvent>& applied_events) const
       {
         base_sanity_check();
-        rec->record_replay_mapping(
-            lhs, op_kind, tlid, register_memo, applied_events);
+        rec->record_replay_mapping(lhs, op_kind, tlid, applied_events);
       }
       inline void request_term_event(ApUserEvent& term_event) const
       {

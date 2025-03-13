@@ -2990,7 +2990,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void PhysicalTemplate::record_replay_mapping(
         ApEvent lhs, unsigned op_kind, const TraceLocalID& tlid,
-        bool register_memo, std::set<RtEvent>& applied_events)
+        std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
@@ -2998,8 +2998,6 @@ namespace Legion {
       assert(is_recording());
 #endif
       unsigned lhs_ = convert_event(lhs);
-      if (register_memo)
-        record_memo_entry(tlid, lhs_, op_kind);
       insert_instruction(new ReplayMapping(*this, lhs_, tlid));
     }
 
