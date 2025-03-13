@@ -2998,6 +2998,7 @@ namespace Legion {
       assert(is_recording());
 #endif
       unsigned lhs_ = convert_event(lhs);
+      record_memo_entry(tlid, lhs_, op_kind);
       insert_instruction(new ReplayMapping(*this, lhs_, tlid));
     }
 
