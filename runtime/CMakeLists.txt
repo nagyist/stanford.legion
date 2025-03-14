@@ -989,7 +989,7 @@ list(APPEND LEGION_SRC
   legion/utilities/collectives.h          legion/utilities/collectives.cc
   legion/utilities/coordinates.h          legion/utilities/coordinates.cc
   legion/utilities/dynamic_table.h        legion/utilities/dynamic_table.inl
-  legion/utilities/fieldmask_set.h        legion/utilities/fieldmask_set.inl
+  legion/utilities/fieldmask_map.h        legion/utilities/fieldmask_map.inl
   legion/utilities/hasher.h               legion/utilities/hasher.inl
   legion/utilities/instance_set.h         legion/utilities/instance_set.cc
   legion/utilities/privileges.h
