@@ -481,7 +481,7 @@ namespace Legion {
           start = const_iterator(result);
           stop = const_iterator(nullptr);
         }
-        else
+        else if (full_size > 1)
         {
           start = const_iterator(map.entries.multi_entries->begin());
           stop = const_iterator(map.entries.multi_entries->end());
