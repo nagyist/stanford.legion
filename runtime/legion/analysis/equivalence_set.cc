@@ -4525,7 +4525,8 @@ namespace Legion {
               // Use an aliased instance analysis to do any dynamic
               // refinements as necessary for finding overlaps for
               // different sets of instances
-              MakeCollectiveValid alias_analysis(collective, needed_exprs);
+              const FieldMapView needed_view(needed_exprs);
+              MakeCollectiveValid alias_analysis(collective, needed_view);
               // See if we alias instances with any of the existing valid
               // views. The common case will be that we don't find any
               // and we'll be able to issue the updates freely.

@@ -197,13 +197,15 @@ namespace Legion {
         typedef std::pair<T* const, FieldMask>& reference;
 
         const_iterator(const std::pair<T* const, FieldMask>* _result)
-          : result(_result), single(true)
+          : result(_result), it(typename FMMap::const_iterator()), single(true)
         { }
         const_iterator(typename FMMap::const_iterator _it)
-          : it(_it), single(false)
+          : result(nullptr), it(_it), single(false)
         { }
       public:
-        const_iterator(const const_iterator& rhs) : single(rhs.single)
+        const_iterator(const const_iterator& rhs)
+          : result(nullptr), it(typename FMMap::const_iterator()),
+            single(rhs.single)
         {
           if (single)
             result = rhs.result;
@@ -211,7 +213,9 @@ namespace Legion {
             it = rhs.it;
         }
         // We can also make a const_iterator from a normal iterator
-        const_iterator(const iterator& rhs) : single(rhs.single)
+        const_iterator(const iterator& rhs)
+          : result(nullptr), it(typename FMMap::const_iterator()),
+            single(rhs.single)
         {
           if (single)
             result = rhs.result;
@@ -379,6 +383,7 @@ namespace Legion {
       using Comparator = typename std::conditional<
           DETERMINISTIC, DeterministicComparator<T>,
           std::less<const T*> >::type;
+      using FMMap = std::map<T*, FieldMask, Comparator>;
       class const_iterator {
       public:
         // explicitly set iterator traits
@@ -389,14 +394,16 @@ namespace Legion {
         typedef std::pair<T* const, FieldMask>& reference;
 
         const_iterator(const std::pair<T* const, FieldMask>* _result)
-          : result(_result), single(true)
+          : result(_result), it(typename FMMap::const_iterator()), single(true)
         { }
         const_iterator(
             typename std::map<T*, FieldMask, Comparator>::const_iterator _it)
-          : it(_it), single(false)
+          : result(nullptr), it(_it), single(false)
         { }
       public:
-        const_iterator(const const_iterator& rhs) : single(rhs.single)
+        const_iterator(const const_iterator& rhs)
+          : result(nullptr), it(typename FMMap::const_iterator()),
+            single(rhs.single)
         {
           if (single)
             result = rhs.result;
@@ -463,7 +470,7 @@ namespace Legion {
         }
       private:
         const std::pair<T* const, FieldMask>* result;
-        typename std::map<T*, FieldMask, Comparator>::const_iterator it;
+        typename FMMap::const_iterator it;
         bool single;
       };
     public:
@@ -487,6 +494,8 @@ namespace Legion {
           stop = const_iterator(map.entries.multi_entries->end());
         }
       }
+      FieldMapView(const FieldMapView& rhs) = default;
+      FieldMapView& operator=(const FieldMapView& rhs) = default;
     public:
       inline size_t size(void) const { return full_size; }
       inline bool empty(void) const { return (start == stop); }
