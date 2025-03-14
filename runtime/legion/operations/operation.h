@@ -25,49 +25,41 @@
 namespace Legion {
   namespace Internal {
 
+    // clang-format off
 #define LEGION_OPERATION_KINDS(__op__)                                                  \
-  __op__(MAP_OP_KIND, "Inline Mapping") __op__(COPY_OP_KIND, "Copy") __op__(            \
-      FENCE_OP_KIND, "Fence") __op__(FRAME_OP_KIND, "Frame")                            \
-      __op__(CREATION_OP_KIND, "Creation") __op__(DELETION_OP_KIND, "Deletion") __op__( \
-          MERGE_CLOSE_OP_KIND,                                                          \
-          "Merge Close") __op__(POST_CLOSE_OP_KIND, "Post Close")                       \
-          __op__(REFINEMENT_OP_KIND, "Refinement") __op__(                              \
-              RESET_OP_KIND, "Reset") __op__(ACQUIRE_OP_KIND, "Acquire")                \
-              __op__(RELEASE_OP_KIND, "Release") __op__(                                \
-                  DYNAMIC_COLLECTIVE_OP_KIND, "Dynamic Collective")                     \
-                  __op__(FUTURE_PRED_OP_KIND, "Future Predicate") __op__(               \
-                      NOT_PRED_OP_KIND, "Not Predicate")                                \
-                      __op__(AND_PRED_OP_KIND, "And Predicate") __op__(                 \
-                          OR_PRED_OP_KIND, "Or Predicate")                              \
-                          __op__(MUST_EPOCH_OP_KIND, "Must Epoch") __op__(              \
-                              PENDING_PARTITION_OP_KIND, "Pending Partition")           \
-                              __op__(                                                   \
-                                  DEPENDENT_PARTITION_OP_KIND,                          \
-                                  "Dependent Partition")                                \
-                                  __op__(FILL_OP_KIND, "Fill") __op__(                  \
-                                      DISCARD_OP_KIND,                                  \
-                                      "Discard") __op__(ATTACH_OP_KIND, "Attach")       \
-                                      __op__(DETACH_OP_KIND, "Detach") __op__(          \
-                                          TIMING_OP_KIND, "Timing")                     \
-                                          __op__(TUNABLE_OP_KIND, "Tunable") __op__(    \
-                                              ALL_REDUCE_OP_KIND,                       \
-                                              "All-Reduce")                             \
-                                              __op__(                                   \
-                                                  TRACE_BEGIN_OP_KIND,                  \
-                                                  "Trace Begin")                        \
-                                                  __op__(                               \
-                                                      TRACE_RECURRENT_OP_KIND,          \
-                                                      "Trace Recurrent")                \
-                                                      __op__(                           \
-                                                          TRACE_COMPLETE_OP_KIND,       \
-                                                          "Trace Complete")             \
-                                                          __op__(                       \
-                                                              TASK_OP_KIND,             \
-                                                              "Task")                   \
-                                                              __op__(                   \
-                                                                  LAST_OP_KIND,         \
-                                                                  "Last")
-
+  __op__(MAP_OP_KIND, "Inline Mapping")                                                 \
+  __op__(COPY_OP_KIND, "Copy")                                                          \
+  __op__(FENCE_OP_KIND, "Fence")                                                        \
+  __op__(FRAME_OP_KIND, "Frame")                                                        \
+  __op__(CREATION_OP_KIND, "Creation")                                                  \
+  __op__(DELETION_OP_KIND, "Deletion")                                                  \
+  __op__(MERGE_CLOSE_OP_KIND, "Merge Close")                                            \
+  __op__(POST_CLOSE_OP_KIND, "Post Close")                                              \
+  __op__(REFINEMENT_OP_KIND, "Refinement")                                              \
+  __op__(RESET_OP_KIND, "Reset")                                                        \
+  __op__(ACQUIRE_OP_KIND, "Acquire")                                                    \
+  __op__(RELEASE_OP_KIND, "Release")                                                    \
+  __op__(DYNAMIC_COLLECTIVE_OP_KIND, "Dynamic Collective")                              \
+  __op__(FUTURE_PRED_OP_KIND, "Future Predicate")                                       \
+  __op__(NOT_PRED_OP_KIND, "Not Predicate")                                             \
+  __op__(AND_PRED_OP_KIND, "And Predicate")                                             \
+  __op__(OR_PRED_OP_KIND, "Or Predicate")                                               \
+  __op__(MUST_EPOCH_OP_KIND, "Must Epoch")                                              \
+  __op__(PENDING_PARTITION_OP_KIND, "Pending Partition")                                \
+  __op__(DEPENDENT_PARTITION_OP_KIND, "Dependent Partition")                            \
+  __op__(FILL_OP_KIND, "Fill")                                                          \
+  __op__(DISCARD_OP_KIND, "Discard")                                                    \
+  __op__(ATTACH_OP_KIND, "Attach")                                                      \
+  __op__(DETACH_OP_KIND, "Detach")                                                      \
+  __op__(TIMING_OP_KIND, "Timing")                                                      \
+  __op__(TUNABLE_OP_KIND, "Tunable")                                                    \
+  __op__(ALL_REDUCE_OP_KIND, "All-Reduce")                                              \
+  __op__(TRACE_BEGIN_OP_KIND, "Trace Begin")                                            \
+  __op__(TRACE_RECURRENT_OP_KIND, "Trace Recurrent")                                    \
+  __op__(TRACE_COMPLETE_OP_KIND, "Trace Complete")                                      \
+  __op__(TASK_OP_KIND, "Task")                                                          \
+  __op__(LAST_OP_KIND, "Last")
+    // clang-format on
     enum OpKind {
 #define LEGION_OPERATION_ENUM(kind, name) kind,
       LEGION_OPERATION_KINDS(LEGION_OPERATION_ENUM)
