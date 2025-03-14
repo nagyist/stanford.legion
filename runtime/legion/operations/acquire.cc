@@ -688,7 +688,7 @@ namespace Legion {
       {
         if (remote_ready.exists() && !remote_ready.has_triggered())
           remote_ready.wait();
-        FieldMaskSet<LogicalView> instances;
+        op::FieldMaskMap<LogicalView> instances;
         analysis->report_instances(instances);
         restricted_instances.resize(instances.size());
         analysis->target_instances.resize(instances.size());
@@ -701,7 +701,8 @@ namespace Legion {
         // explicitly provide a PhysicalRegion argument so we should
         // always go through the known_targets path, therefore there
         // should be no collective views here.
-        for (FieldMaskSet<LogicalView>::const_iterator it = instances.begin();
+        for (op::FieldMaskMap<LogicalView>::const_iterator it =
+                 instances.begin();
              it != instances.end(); it++, inst_index++)
         {
 #ifdef DEBUG_LEGION

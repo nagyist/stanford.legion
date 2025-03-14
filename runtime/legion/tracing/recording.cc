@@ -1156,7 +1156,6 @@ namespace Legion {
             derez.deserialize(dst_mode);
             IndexSpaceExpression* expr =
                 IndexSpaceExpression::unpack_expression(derez, source);
-            FieldMaskSet<InstanceView> tracing_srcs, tracing_dsts;
             UniqueInst src_inst, dst_inst;
             src_inst.deserialize(derez);
             dst_inst.deserialize(derez);

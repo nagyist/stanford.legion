@@ -52,8 +52,8 @@ namespace Legion {
           LogicalView* view, IndexSpaceExpression* expr, const FieldMask& mask,
           bool antialiased = false);
       void insert(
-          const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
-              views,
+          const MapView<
+              LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >& views,
           bool antialiased = false);
       void invalidate(
           LogicalView* view, IndexSpaceExpression* expr, const FieldMask& mask,
@@ -74,21 +74,21 @@ namespace Legion {
           FieldMask& non_dominated) const;
       void dominates(
           LogicalView* view, IndexSpaceExpression* expr, FieldMask mask,
-          local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+          local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >&
               non_dominated) const;
       void filter_independent_fields(
           IndexSpaceExpression* expr, FieldMask& mask) const;
       bool subsumed_by(
           TraceViewSet& set,
-          const FieldMaskSet<IndexSpaceExpression>& unique_dirty_exprs,
+          const FieldMapView<IndexSpaceExpression>& unique_dirty_exprs,
           FailedPrecondition* condition = nullptr) const;
       bool independent_of(
           const TraceViewSet& set,
           FailedPrecondition* condition = nullptr) const;
       void record_first_failed(FailedPrecondition* condition = nullptr) const;
       void transpose_uniquely(
-          local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >& target)
-          const;
+          local::map<IndexSpaceExpression*, local::FieldMaskMap<LogicalView> >&
+              target) const;
       void find_overlaps(
           TraceViewSet& target, IndexSpaceExpression* expr,
           const bool expr_covers, const FieldMask& mask) const;
@@ -109,15 +109,15 @@ namespace Legion {
     protected:
       bool has_overlapping_expressions(
           LogicalView* view,
-          const FieldMaskSet<IndexSpaceExpression>& left_exprs,
-          const FieldMaskSet<IndexSpaceExpression>& right_exprs,
+          const FieldMapView<IndexSpaceExpression>& left_exprs,
+          const FieldMapView<IndexSpaceExpression>& right_exprs,
           FailedPrecondition* condition) const;
       void antialias_individual_view(IndividualView* view, FieldMask mask);
       void antialias_collective_view(
           CollectiveView* view, FieldMask mask,
-          FieldMaskSet<InstanceView>& altviews);
+          local::FieldMaskMap<InstanceView>& altviews);
     protected:
-      typedef shrt::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+      typedef shrt::map<LogicalView*, shrt::FieldMaskMap<IndexSpaceExpression> >
           ViewExprs;
     public:
       InnerContext* const context;

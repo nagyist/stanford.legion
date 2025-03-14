@@ -20,7 +20,7 @@
 #include "legion/instances/physical.h"
 #include "legion/operations/collective.h"
 #include "legion/tasks/single.h"
-#include "legion/utilities/fieldmask_set.h"
+#include "legion/utilities/fieldmask_map.h"
 #include "legion/utilities/collectives.h"
 
 namespace Legion {
@@ -451,15 +451,16 @@ namespace Legion {
           const std::vector<EqSetTracker*>& targets,
           const AddressSpaceID creation_target_space, const FieldMask& mask,
           std::vector<unsigned>& new_target_references,
-          FieldMaskSet<EquivalenceSet>& eq_sets,
-          FieldMaskSet<EqKDTree>& new_subscriptions,
-          FieldMaskSet<EqKDTree>& to_create,
+          op::FieldMaskMap<EquivalenceSet>& eq_sets,
+          op::FieldMaskMap<EqKDTree>& new_subscriptions,
+          op::FieldMaskMap<EqKDTree>& to_create,
           op::map<EqKDTree*, Domain>& creation_rects,
           op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           size_t expected_responses, std::vector<RtEvent>& ready_events);
       RtEvent report_output_registrations(
           EqSetTracker* target, AddressSpaceID target_space,
-          unsigned references, FieldMaskSet<EqKDTree>& new_subscriptions);
+          unsigned references,
+          local::FieldMaskMap<EqKDTree>& new_subscriptions);
       virtual EqKDTree* create_equivalence_set_kd_tree(IndexSpaceNode* node);
     public:
       bool inline_child_task(TaskOp* child);
@@ -1031,7 +1032,7 @@ namespace Legion {
           CollectiveMapping* mapping = nullptr);
       void convert_analysis_views(
           const InstanceSet& targets,
-          op::vector<FieldMaskSet<InstanceView> >& target_views);
+          op::vector<op::FieldMaskMap<InstanceView> >& target_views);
       IndividualView* create_instance_top_view(
           PhysicalManager* manager, AddressSpaceID source,
           CollectiveMapping* mapping = nullptr);
@@ -1040,9 +1041,6 @@ namespace Legion {
           RtEvent& ready);
       void notify_collective_deletion(RegionTreeID tid, DistributedID did);
     protected:
-      RtEvent dispatch_collective_invalidation(
-          const CollectiveResult* collective, const FieldMask& invalid_mask,
-          const FieldMaskSet<CollectiveResult>& replacements);
       CollectiveResult* find_or_create_collective_view(
           RegionTreeID tid, const std::vector<DistributedID>& instances);
       RtEvent create_collective_view(

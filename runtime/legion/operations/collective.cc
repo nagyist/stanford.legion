@@ -89,7 +89,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool CollectiveViewCreatorBase::RendezvousResult::finalize_rendezvous(
-        CollectiveMapping* mapping, const FieldMaskSet<CollectiveResult>& views,
+        CollectiveMapping* mapping, const FieldMapView<CollectiveResult>& views,
         const std::map<DistributedID, size_t>& counts, bool first,
         size_t local_analyses)
     //--------------------------------------------------------------------------
@@ -103,13 +103,14 @@ namespace Legion {
         first = false;
       }
       std::vector<RtEvent> ready_events;
-      op::vector<FieldMaskSet<InstanceView> > result_views(instances.size());
+      op::vector<op::FieldMaskMap<InstanceView> > result_views(
+          instances.size());
       std::map<InstanceView*, size_t> collective_arrivals;
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
         const DistributedID inst_did = instances[idx].first;
         const FieldMask& mask = instances[idx].second;
-        for (FieldMaskSet<CollectiveResult>::const_iterator vit = views.begin();
+        for (FieldMapView<CollectiveResult>::const_iterator vit = views.begin();
              vit != views.end(); vit++)
         {
           const FieldMask overlap = mask & vit->second;
@@ -251,7 +252,7 @@ namespace Legion {
             unsigned index, unsigned analysis, LogicalRegion region,
             const InstanceSet& targets, InnerContext* physical_ctx,
             CollectiveMapping*& analysis_mapping, bool& first_local,
-            op::vector<FieldMaskSet<InstanceView> >& target_views,
+            op::vector<op::FieldMaskMap<InstanceView> >& target_views,
             std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
@@ -361,7 +362,7 @@ namespace Legion {
         CollectiveMapping* mapping, AddressSpaceID owner,
         std::vector<std::pair<AddressSpaceID, RendezvousResult*> >& results,
         const std::map<DistributedID, size_t>& counts,
-        const FieldMaskSet<CollectiveResult>& views)
+        const FieldMapView<CollectiveResult>& views)
     //--------------------------------------------------------------------------
     {
       // Next figure out which targets to send the results to
@@ -400,7 +401,7 @@ namespace Legion {
               rez.serialize(cit->second);
             }
             rez.serialize<size_t>(views.size());
-            for (FieldMaskSet<CollectiveResult>::const_iterator vit =
+            for (FieldMapView<CollectiveResult>::const_iterator vit =
                      views.begin();
                  vit != views.end(); vit++)
             {
@@ -500,7 +501,7 @@ namespace Legion {
       }
       size_t num_views;
       derez.deserialize(num_views);
-      FieldMaskSet<CollectiveResult> views;
+      local::FieldMaskMap<CollectiveResult> views;
       for (unsigned idx = 0; idx < num_views; idx++)
       {
         DistributedID collective_did;
@@ -520,7 +521,8 @@ namespace Legion {
         views.insert(view, mask);
       }
       finalize_collective_mapping(mapping, owner, results, counts, views);
-      for (FieldMaskSet<CollectiveResult>::const_iterator it = views.begin();
+      for (local::FieldMaskMap<CollectiveResult>::const_iterator it =
+               views.begin();
            it != views.end(); it++)
         if (it->first->remove_reference())
           delete it->first;
@@ -1020,7 +1022,7 @@ namespace Legion {
         unsigned index, unsigned analysis, LogicalRegion region,
         const InstanceSet& targets, InnerContext* physical_ctx,
         CollectiveMapping*& analysis_mapping, bool& first_local,
-        op::vector<FieldMaskSet<InstanceView> >& target_views,
+        op::vector<op::FieldMaskMap<InstanceView> >& target_views,
         std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
@@ -1189,7 +1191,7 @@ namespace Legion {
         local::list<FieldSet<DistributedID> > field_sets;
         compute_field_sets(
             FieldMask(), MapView(rit->second.groups), field_sets);
-        FieldMaskSet<CollectiveResult> results;
+        local::FieldMaskMap<CollectiveResult> results;
         std::vector<RtEvent> ready_events;
         for (local::list<FieldSet<DistributedID> >::const_iterator it =
                  field_sets.begin();
@@ -1256,7 +1258,7 @@ namespace Legion {
             mapping, owner, rit->second.results, rit->second.counts, results);
         if (mapping->remove_reference())
           delete mapping;
-        for (FieldMaskSet<CollectiveResult>::const_iterator it =
+        for (local::FieldMaskMap<CollectiveResult>::const_iterator it =
                  results.begin();
              it != results.end(); it++)
           if (it->first->remove_reference())

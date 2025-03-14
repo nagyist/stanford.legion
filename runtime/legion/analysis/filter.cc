@@ -41,7 +41,7 @@ namespace Legion {
     FilterAnalysis::FilterAnalysis(
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
         RegionNode* node, const PhysicalTraceInfo& t_info,
-        const FieldMaskSet<InstanceView>& views, CollectiveMapping* mapping,
+        const op::FieldMaskMap<InstanceView>& views, CollectiveMapping* mapping,
         const bool first, const bool remove_restrict)
       : RegistrationAnalysis(
             src, prev, o, idx, node, true /*on heap*/, t_info, mapping, first,
@@ -58,7 +58,7 @@ namespace Legion {
       if ((runtime->address_space != original_source) ||
           (previous != original_source))
       {
-        for (FieldMaskSet<InstanceView>::const_iterator it =
+        for (op::FieldMaskMap<InstanceView>::const_iterator it =
                  filter_views.begin();
              it != filter_views.end(); it++)
           it->first->unpack_global_ref();
@@ -108,7 +108,7 @@ namespace Legion {
         return defer_remote(perform_precondition, applied_events);
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
-      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -122,7 +122,7 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -133,7 +133,7 @@ namespace Legion {
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
           rez.serialize<size_t>(filter_views.size());
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (op::FieldMaskMap<InstanceView>::const_iterator it =
                    filter_views.begin();
                it != filter_views.end(); it++)
           {
@@ -191,7 +191,7 @@ namespace Legion {
       RemoteOp* op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
-      FieldMaskSet<InstanceView> filter_views;
+      op::FieldMaskMap<InstanceView> filter_views;
       size_t num_views;
       derez.deserialize(num_views);
       for (unsigned idx = 0; idx < num_views; idx++)

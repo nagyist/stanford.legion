@@ -275,8 +275,10 @@ namespace Legion {
       if (precondition.exists() && !precondition.has_triggered())
         return defer_traversal(precondition, info, applied_events);
       std::set<RtEvent> deferral_events;
-      const FieldMaskSet<EquivalenceSet>& eq_sets = info.get_equivalence_sets();
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it = eq_sets.begin();
+      const op::FieldMaskMap<EquivalenceSet>& eq_sets =
+          info.get_equivalence_sets();
+      for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
+               eq_sets.begin();
            it != eq_sets.end(); it++)
         analyze(it->first, it->second, deferral_events, applied_events);
       if (!deferral_events.empty())
@@ -334,7 +336,7 @@ namespace Legion {
       derez.deserialize(num_views);
       AutoLock a_lock(*this);
       if (recorded_instances == nullptr)
-        recorded_instances = new FieldMaskSet<LogicalView>();
+        recorded_instances = new op::FieldMaskMap<LogicalView>();
       for (unsigned idx = 0; idx < num_views; idx++)
       {
         DistributedID view_did;
@@ -356,13 +358,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PhysicalAnalysis::process_local_instances(
-        const FieldMaskSet<LogicalView>& views, const bool local_restricted)
+        const FieldMapView<LogicalView>& views, const bool local_restricted)
     //--------------------------------------------------------------------------
     {
       AutoLock a_lock(*this);
       if (recorded_instances == nullptr)
-        recorded_instances = new FieldMaskSet<LogicalView>();
-      for (FieldMaskSet<LogicalView>::const_iterator it = views.begin();
+        recorded_instances = new op::FieldMaskMap<LogicalView>();
+      for (FieldMapView<LogicalView>::const_iterator it = views.begin();
            it != views.end(); it++)
         if (it->first->is_instance_view())
           recorded_instances->insert(it->first, it->second);
@@ -372,21 +374,21 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PhysicalAnalysis::filter_remote_expressions(
-        FieldMaskSet<IndexSpaceExpression>& exprs)
+        op::FieldMaskMap<IndexSpaceExpression>& exprs)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!remote_sets.empty());
 #endif
-      FieldMaskSet<IndexSpaceExpression> remote_exprs;
-      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      local::FieldMaskMap<IndexSpaceExpression> remote_exprs;
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+        for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                  rit->second.begin();
              it != rit->second.end(); it++)
           remote_exprs.insert(it->first->set_expr, it->second);
-      FieldMaskSet<IndexSpaceExpression> to_add;
+      local::FieldMaskMap<IndexSpaceExpression> to_add;
       std::vector<IndexSpaceExpression*> to_remove;
       if (remote_exprs.size() > 1)
       {
@@ -400,7 +402,8 @@ namespace Legion {
               (fit->elements.size() == 1) ?
                   *(fit->elements.begin()) :
                   runtime->union_index_spaces(fit->elements);
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it = exprs.begin();
+          for (op::FieldMaskMap<IndexSpaceExpression>::iterator it =
+                   exprs.begin();
                it != exprs.end(); it++)
           {
             const FieldMask overlap = it->second & fit->set_mask;
@@ -418,10 +421,11 @@ namespace Legion {
       }
       else
       {
-        FieldMaskSet<IndexSpaceExpression>::const_iterator first =
+        local::FieldMaskMap<IndexSpaceExpression>::const_iterator first =
             remote_exprs.begin();
 
-        for (FieldMaskSet<IndexSpaceExpression>::iterator it = exprs.begin();
+        for (op::FieldMaskMap<IndexSpaceExpression>::iterator it =
+                 exprs.begin();
              it != exprs.end(); it++)
         {
           const FieldMask overlap = it->second & first->second;
@@ -445,7 +449,7 @@ namespace Legion {
       }
       if (!to_add.empty())
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  to_add.begin();
              it != to_add.end(); it++)
           exprs.insert(it->first, it->second);
@@ -453,7 +457,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool PhysicalAnalysis::report_instances(FieldMaskSet<LogicalView>& insts)
+    bool PhysicalAnalysis::report_instances(
+        op::FieldMaskMap<LogicalView>& insts)
     //--------------------------------------------------------------------------
     {
       // No need for the lock since we shouldn't be mutating anything at
@@ -485,7 +490,7 @@ namespace Legion {
     {
       // Lock held from caller
       if (recorded_instances == nullptr)
-        recorded_instances = new FieldMaskSet<LogicalView>();
+        recorded_instances = new op::FieldMaskMap<LogicalView>();
       recorded_instances->insert(view, mask);
     }
 

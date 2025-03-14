@@ -3357,10 +3357,10 @@ namespace Legion {
         const std::vector<EqSetTracker*>& trackers,
         const std::vector<AddressSpaceID>& tracker_spaces,
         std::vector<unsigned>& new_tracker_references,
-        FieldMaskSet<EquivalenceSet>& eq_sets,
+        op::FieldMaskMap<EquivalenceSet>& eq_sets,
         std::vector<RtEvent>& pending_sets,
-        FieldMaskSet<EqKDTree>& subscriptions,
-        FieldMaskSet<EqKDTree>& to_create,
+        op::FieldMaskMap<EqKDTree>& subscriptions,
+        op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
@@ -3384,7 +3384,8 @@ namespace Legion {
     unsigned IndexSpaceNodeT<DIM, T>::record_output_equivalence_set(
         EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
         const FieldMask& mask, EqSetTracker* tracker,
-        AddressSpaceID tracker_space, FieldMaskSet<EqKDTree>& subscriptions,
+        AddressSpaceID tracker_space,
+        local::FieldMaskMap<EqKDTree>& subscriptions,
         op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------

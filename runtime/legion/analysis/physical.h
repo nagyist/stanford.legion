@@ -19,7 +19,7 @@
 #include "legion/kernel/metatask.h"
 #include "legion/kernel/garbage_collection.h"
 #include "legion/api/types.h"
-#include "legion/utilities/fieldmask_set.h"
+#include "legion/utilities/fieldmask_map.h"
 #include "legion/utilities/privileges.h"
 
 namespace Legion {
@@ -197,10 +197,11 @@ namespace Legion {
       void process_remote_instances(
           Deserializer& derez, std::set<RtEvent>& ready_events);
       void process_local_instances(
-          const FieldMaskSet<LogicalView>& views, const bool local_restricted);
-      void filter_remote_expressions(FieldMaskSet<IndexSpaceExpression>& exprs);
+          const FieldMapView<LogicalView>& views, const bool local_restricted);
+      void filter_remote_expressions(
+          op::FieldMaskMap<IndexSpaceExpression>& exprs);
       // Return true if any are restricted
-      bool report_instances(FieldMaskSet<LogicalView>& instances);
+      bool report_instances(op::FieldMaskMap<LogicalView>& instances);
     public:
       // Lock taken by these methods if needed
       void record_remote(
@@ -240,8 +241,8 @@ namespace Legion {
       bool parallel_traversals;
     protected:
       bool restricted;
-      op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> > remote_sets;
-      FieldMaskSet<LogicalView>* recorded_instances;
+      op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> > remote_sets;
+      op::FieldMaskMap<LogicalView>* recorded_instances;
     protected:
       CollectiveMapping* collective_mapping;
     private:

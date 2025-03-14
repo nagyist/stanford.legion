@@ -80,7 +80,7 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> remote_events;
-      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -95,7 +95,7 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -148,7 +148,7 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (op::FieldMaskMap<LogicalView>::const_iterator it =
                      recorded_instances->begin();
                  it != recorded_instances->end(); it++)
             {

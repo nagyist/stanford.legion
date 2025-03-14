@@ -196,7 +196,7 @@ namespace Legion {
             const InstanceSet& insts);
         bool finalize_rendezvous(
             CollectiveMapping* mapping,
-            const FieldMaskSet<CollectiveResult>& views,
+            const FieldMapView<CollectiveResult>& views,
             const std::map<DistributedID, size_t>& counts, bool first,
             size_t local);
       public:
@@ -210,7 +210,7 @@ namespace Legion {
         // These are the places to put the results when ready
         std::vector<CollectiveMapping**> target_mappings;
         std::vector<bool*> target_first_locals;
-        std::vector<op::vector<FieldMaskSet<InstanceView> >*> target_views;
+        std::vector<op::vector<op::FieldMaskMap<InstanceView> >*> target_views;
         std::vector<std::map<InstanceView*, size_t>*> target_arrivals;
       };
       struct CollectiveRendezvous {
@@ -233,7 +233,7 @@ namespace Legion {
           unsigned index, unsigned analysis, LogicalRegion region,
           const InstanceSet& targets, InnerContext* physical_ctx,
           CollectiveMapping*& analysis_mapping, bool& first_local,
-          op::vector<FieldMaskSet<InstanceView> >& target_views,
+          op::vector<op::FieldMaskMap<InstanceView> >& target_views,
           std::map<InstanceView*, size_t>& collective_arrivals);
       bool remove_pending_rendezvous(RendezvousResult* result);
       static void finalize_collective_mapping(
@@ -243,7 +243,7 @@ namespace Legion {
           // Instance DID to counts of users
           const std::map<DistributedID, size_t>& counts,
           // The collective views that describes the results for this region
-          const FieldMaskSet<CollectiveResult>& views);
+          const FieldMapView<CollectiveResult>& views);
       static void handle_finalize_collective_mapping(Deserializer& derez);
       static void update_groups_and_counts(
           CollectiveRendezvous& target, DistributedID did,
@@ -289,7 +289,7 @@ namespace Legion {
           LogicalRegion region, const InstanceSet& targets,
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
-          op::vector<FieldMaskSet<InstanceView> >& target_views,
+          op::vector<op::FieldMaskMap<InstanceView> >& target_views,
           std::map<InstanceView*, size_t>& collective_arrivals);
       // This always needs to happen on the origin node for the operation
       // so we override it in the case of slice task to handle the remote case

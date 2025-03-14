@@ -987,7 +987,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < src_requirements.size(); idx++)
         {
           InstanceSet valid_instances;
-          FieldMaskSet<ReplicatedView> collectives;
+          local::FieldMaskMap<ReplicatedView> collectives;
           physical_premap_region(
               idx, src_requirements[idx], src_versions[idx], valid_instances,
               collectives, map_applied_conditions);
@@ -1000,7 +1000,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
         {
           InstanceSet valid_instances;
-          FieldMaskSet<ReplicatedView> collectives;
+          local::FieldMaskMap<ReplicatedView> collectives;
           // Little bit of a hack here, if we are going to do a reduction
           // explicit copy, switch the privileges to read-write when doing
           // the registration since we know we are using normal instances
@@ -1026,7 +1026,7 @@ namespace Legion {
           for (unsigned idx = 0; idx < src_indirect_requirements.size(); idx++)
           {
             InstanceSet valid_instances;
-            FieldMaskSet<ReplicatedView> collectives;
+            local::FieldMaskMap<ReplicatedView> collectives;
             physical_premap_region(
                 offset + idx, src_indirect_requirements[idx],
                 gather_versions[idx], valid_instances, collectives,
@@ -1046,7 +1046,7 @@ namespace Legion {
           for (unsigned idx = 0; idx < dst_indirect_requirements.size(); idx++)
           {
             InstanceSet valid_instances;
-            FieldMaskSet<ReplicatedView> collectives;
+            local::FieldMaskMap<ReplicatedView> collectives;
             physical_premap_region(
                 offset + idx, dst_indirect_requirements[idx],
                 scatter_versions[idx], valid_instances, collectives,
@@ -2230,7 +2230,7 @@ namespace Legion {
         return ApEvent::NO_AP_EVENT;
       // Perform the copies/reductions across
       InnerContext* context = find_physical_context(dst_index);
-      op::vector<FieldMaskSet<InstanceView> > target_views;
+      op::vector<op::FieldMaskMap<InstanceView> > target_views;
       context->convert_analysis_views(dst_targets, target_views);
       if (!src_targets.empty())
       {
@@ -2285,7 +2285,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             assert(target_views[idx].size() == 1);
 #endif
-            FieldMaskSet<InstanceView>::const_iterator it =
+            op::FieldMaskMap<InstanceView>::const_iterator it =
                 target_views[idx].begin();
 #ifdef DEBUG_LEGION
             assert(it->first->is_individual_view());

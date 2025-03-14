@@ -38,12 +38,12 @@ namespace Legion {
       {
         return !equivalence_sets.empty();
       }
-      inline const FieldMaskSet<EquivalenceSet>& get_equivalence_sets(
+      inline const op::FieldMaskMap<EquivalenceSet>& get_equivalence_sets(
           void) const
       {
         return equivalence_sets;
       }
-      inline void swap(FieldMaskSet<EquivalenceSet>& others)
+      inline void swap(op::FieldMaskMap<EquivalenceSet>& others)
       {
         equivalence_sets.swap(others);
       }
@@ -63,7 +63,7 @@ namespace Legion {
       void record_equivalence_set(EquivalenceSet* set, const FieldMask& mask);
       void clear(void);
     protected:
-      FieldMaskSet<EquivalenceSet> equivalence_sets;
+      op::FieldMaskMap<EquivalenceSet> equivalence_sets;
     };
 
     /**

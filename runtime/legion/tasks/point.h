@@ -139,7 +139,7 @@ namespace Legion {
           LogicalRegion region, const InstanceSet& targets,
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
-          op::vector<FieldMaskSet<InstanceView> >& target_views,
+          op::vector<op::FieldMaskMap<InstanceView> >& target_views,
           std::map<InstanceView*, size_t>& collective_arrivals);
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,

@@ -77,7 +77,7 @@ namespace Legion {
         delete view_expr;
       if (!subviews.empty())
       {
-        for (FieldMaskSet<ExprView>::iterator it = subviews.begin();
+        for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
              it != subviews.end(); it++)
           if (it->first->remove_reference())
             delete it->first;
@@ -85,7 +85,7 @@ namespace Legion {
       // If we have any current or previous users filter them out now
       if (!current_epoch_users.empty())
       {
-        for (FieldMaskSet<PhysicalUser>::const_iterator it =
+        for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                  current_epoch_users.begin();
              it != current_epoch_users.end(); it++)
           if (it->first->remove_reference())
@@ -94,7 +94,7 @@ namespace Legion {
       }
       if (!previous_epoch_users.empty())
       {
-        for (FieldMaskSet<PhysicalUser>::const_iterator it =
+        for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                  previous_epoch_users.begin();
              it != previous_epoch_users.end(); it++)
           if (it->first->remove_reference())
@@ -124,15 +124,15 @@ namespace Legion {
     {
       // No need for any locks here since we're in the view destructor
       // and there should be no more races between anything
-      for (FieldMaskSet<PhysicalUser>::const_iterator it =
+      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                current_epoch_users.begin();
            it != current_epoch_users.end(); it++)
         all_done.insert(it->first->term_event);
-      for (FieldMaskSet<PhysicalUser>::const_iterator it =
+      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                previous_epoch_users.begin();
            it != previous_epoch_users.end(); it++)
         all_done.insert(it->first->term_event);
-      for (FieldMaskSet<ExprView>::const_iterator it = subviews.begin();
+      for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
            it != subviews.end(); it++)
         it->first->find_all_done_events(all_done);
     }
@@ -140,7 +140,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ void ExprView::verify_current_to_filter(
         const FieldMask& dominated,
-        FieldMaskSet<PhysicalUser>& current_to_filter)
+        local::FieldMaskMap<PhysicalUser>& current_to_filter)
     //--------------------------------------------------------------------------
     {
       if (!!dominated)
@@ -153,7 +153,7 @@ namespace Legion {
         {
           // Selectively filter
           std::vector<PhysicalUser*> to_delete;
-          for (FieldMaskSet<PhysicalUser>::iterator it =
+          for (local::FieldMaskMap<PhysicalUser>::iterator it =
                    current_to_filter.begin();
                it != current_to_filter.end(); it++)
           {
@@ -174,7 +174,7 @@ namespace Legion {
         }
       }
       // Otherwise we fall through here and clean out all the users
-      for (FieldMaskSet<PhysicalUser>::const_iterator it =
+      for (local::FieldMaskMap<PhysicalUser>::const_iterator it =
                current_to_filter.begin();
            it != current_to_filter.end(); it++)
         if (it->first->remove_reference())
@@ -192,7 +192,7 @@ namespace Legion {
     {
       FieldMask dominated;
       std::set<PhysicalUser*> dead_users;
-      FieldMaskSet<PhysicalUser> current_to_filter, previous_to_filter;
+      local::FieldMaskMap<PhysicalUser> current_to_filter, previous_to_filter;
       // Perform the analysis with a read-only lock
       {
         AutoLock v_lock(view_lock, 1, false /*exclusive*/);
@@ -265,9 +265,9 @@ namespace Legion {
       // Then see if there are any users below that we need to traverse
       if (!subviews.empty() && !(subviews.get_valid_mask() * user_mask))
       {
-        FieldMaskSet<ExprView> to_traverse;
+        local::FieldMaskMap<ExprView> to_traverse;
         std::map<ExprView*, IndexSpaceExpression*> traverse_exprs;
-        for (FieldMaskSet<ExprView>::const_iterator it = subviews.begin();
+        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
              it != subviews.end(); it++)
         {
           FieldMask overlap = it->second & user_mask;
@@ -298,7 +298,7 @@ namespace Legion {
         {
           if (user_dominates)
           {
-            for (FieldMaskSet<ExprView>::const_iterator it =
+            for (local::FieldMaskMap<ExprView>::const_iterator it =
                      to_traverse.begin();
                  it != to_traverse.end(); it++)
               it->first->find_user_preconditions(
@@ -307,7 +307,7 @@ namespace Legion {
           }
           else
           {
-            for (FieldMaskSet<ExprView>::const_iterator it =
+            for (local::FieldMaskMap<ExprView>::const_iterator it =
                      to_traverse.begin();
                  it != to_traverse.end(); it++)
             {
@@ -334,7 +334,7 @@ namespace Legion {
     {
       FieldMask dominated;
       std::set<PhysicalUser*> dead_users;
-      FieldMaskSet<PhysicalUser> current_to_filter, previous_to_filter;
+      local::FieldMaskMap<PhysicalUser> current_to_filter, previous_to_filter;
       // Do the first pass with a read-only lock on the events
       {
         AutoLock v_lock(view_lock, 1, false /*exclusive*/);
@@ -407,7 +407,7 @@ namespace Legion {
       // Then see if there are any users below that we need to traverse
       if (!subviews.empty() && !(subviews.get_valid_mask() * copy_mask))
       {
-        for (FieldMaskSet<ExprView>::const_iterator it = subviews.begin();
+        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
              it != subviews.end(); it++)
         {
           FieldMask overlap = it->second & copy_mask;
@@ -454,7 +454,7 @@ namespace Legion {
       // See if there are any users below that we need to traverse
       if (!subviews.empty() && !(subviews.get_valid_mask() * mask))
       {
-        for (FieldMaskSet<ExprView>::const_iterator it = subviews.begin();
+        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
              it != subviews.end(); it++)
         {
           FieldMask overlap = it->second & mask;
@@ -522,9 +522,9 @@ namespace Legion {
       {
         bool need_tighten = true;
         std::vector<ExprView*> to_delete;
-        FieldMaskSet<ExprView> dominating_subviews;
+        local::FieldMaskMap<ExprView> dominating_subviews;
 
-        for (FieldMaskSet<ExprView>::iterator it = subviews.begin();
+        for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
              it != subviews.end(); it++)
         {
           // See if we intersect on fields
@@ -573,7 +573,7 @@ namespace Legion {
             // If not, we'll pick the one with the smallest bounding volume
             local::map<std::pair<size_t /*volume*/, ExprView*>, FieldMask>
                 sorted_subviews;
-            for (FieldMaskSet<ExprView>::const_iterator it =
+            for (local::FieldMaskMap<ExprView>::const_iterator it =
                      dominating_subviews.begin();
                  it != dominating_subviews.end(); it++)
             {
@@ -601,7 +601,7 @@ namespace Legion {
           }
           else
           {
-            FieldMaskSet<ExprView>::const_iterator first =
+            local::FieldMaskMap<ExprView>::const_iterator first =
                 dominating_subviews.begin();
             FieldMask dominated_mask = first->second;
             subview_mask -= dominated_mask;
@@ -636,7 +636,7 @@ namespace Legion {
       if (!subviews.empty() && !(expr_mask * subviews.get_valid_mask()))
       {
         FieldMask dominated_mask;
-        for (FieldMaskSet<ExprView>::iterator it = subviews.begin();
+        for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
              it != subviews.end(); it++)
         {
           // See if we intersect on fields
@@ -689,7 +689,7 @@ namespace Legion {
         // No need for the view lock anymore since we're protected
         // by the expr_lock at the top of the tree
         // AutoLock v_lock(view_lock,1,false/*exclusive*/);
-        for (FieldMaskSet<ExprView>::const_iterator it = subviews.begin();
+        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
              it != subviews.end(); it++)
         {
           // If the fields don't overlap then we don't care
@@ -755,11 +755,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ExprView::clean_views(
-        FieldMask& valid_mask, FieldMaskSet<ExprView>& clean_set)
+        FieldMask& valid_mask, local::FieldMaskMap<ExprView>& clean_set)
     //--------------------------------------------------------------------------
     {
       // Handle the base case if we already did it
-      FieldMaskSet<ExprView>::const_iterator finder = clean_set.find(this);
+      local::FieldMaskMap<ExprView>::const_iterator finder =
+          clean_set.find(this);
       if (finder != clean_set.end())
       {
         valid_mask = finder->second;
@@ -767,9 +768,9 @@ namespace Legion {
       }
       // No need to hold the lock for this part we know that no one
       // is going to be modifying this data structure at the same time
-      FieldMaskSet<ExprView> new_subviews;
+      lng::FieldMaskMap<ExprView> new_subviews;
       std::vector<ExprView*> to_delete;
-      for (FieldMaskSet<ExprView>::iterator it = subviews.begin();
+      for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
            it != subviews.end(); it++)
       {
         FieldMask new_mask;
@@ -835,7 +836,7 @@ namespace Legion {
       {
         unsigned refs_to_remove = 1;
 #ifndef LEGION_DISABLE_EVENT_PRUNING
-        FieldMaskSet<PhysicalUser>::iterator finder =
+        shrt::FieldMaskMap<PhysicalUser>::iterator finder =
             current_epoch_users.find(*it);
         if (finder != current_epoch_users.end())
         {
@@ -856,15 +857,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ExprView::filter_current_users(
-        const FieldMaskSet<PhysicalUser>& to_filter)
+        const FieldMapView<PhysicalUser>& to_filter)
     //--------------------------------------------------------------------------
     {
       // Lock needs to be held by caller
-      for (FieldMaskSet<PhysicalUser>::const_iterator it = to_filter.begin();
+      for (FieldMapView<PhysicalUser>::const_iterator it = to_filter.begin();
            it != to_filter.end(); it++)
       {
         unsigned refs_to_remove = 1;
-        FieldMaskSet<PhysicalUser>::iterator finder =
+        shrt::FieldMaskMap<PhysicalUser>::iterator finder =
             current_epoch_users.find(it->first);
         if (finder != current_epoch_users.end())
         {
@@ -891,15 +892,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ExprView::filter_previous_users(
-        const FieldMaskSet<PhysicalUser>& to_filter)
+        const FieldMapView<PhysicalUser>& to_filter)
     //--------------------------------------------------------------------------
     {
       // Lock needs to be held by caller
-      for (FieldMaskSet<PhysicalUser>::const_iterator it = to_filter.begin();
+      for (FieldMapView<PhysicalUser>::const_iterator it = to_filter.begin();
            it != to_filter.end(); it++)
       {
         unsigned refs_to_remove = 1;
-        FieldMaskSet<PhysicalUser>::iterator finder =
+        shrt::FieldMaskMap<PhysicalUser>::iterator finder =
             previous_epoch_users.find(it->first);
         if (finder != previous_epoch_users.end())
         {
@@ -923,7 +924,7 @@ namespace Legion {
         IndexSpaceExpression* user_expr, ApEvent term_event,
         const UniqueID op_id, const unsigned index, const bool user_covers,
         std::set<ApEvent>& preconditions, std::set<PhysicalUser*>& dead_users,
-        FieldMaskSet<PhysicalUser>& filter_users, FieldMask& observed,
+        local::FieldMaskMap<PhysicalUser>& filter_users, FieldMask& observed,
         FieldMask& non_dominated, const bool trace_recording,
         const bool copy_user)
     //--------------------------------------------------------------------------
@@ -931,7 +932,7 @@ namespace Legion {
       // Caller must be holding the lock
       if (user_mask * current_epoch_users.get_valid_mask())
         return;
-      for (FieldMaskSet<PhysicalUser>::const_iterator it =
+      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                current_epoch_users.begin();
            it != current_epoch_users.end(); it++)
       {
@@ -992,7 +993,7 @@ namespace Legion {
       // Caller must be holding the lock
       if (user_mask * previous_epoch_users.get_valid_mask())
         return;
-      for (FieldMaskSet<PhysicalUser>::const_iterator it =
+      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                previous_epoch_users.begin();
            it != previous_epoch_users.end(); it++)
       {
@@ -1039,7 +1040,7 @@ namespace Legion {
       // Caller must be holding the lock
       if (mask * current_epoch_users.get_valid_mask())
         return;
-      for (FieldMaskSet<PhysicalUser>::const_iterator it =
+      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                current_epoch_users.begin();
            it != current_epoch_users.end(); it++)
       {
@@ -1074,7 +1075,7 @@ namespace Legion {
       // Caller must be holding the lock
       if (mask * previous_epoch_users.get_valid_mask())
         return;
-      for (FieldMaskSet<PhysicalUser>::const_iterator it =
+      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                previous_epoch_users.begin();
            it != previous_epoch_users.end(); it++)
       {
@@ -1092,13 +1093,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ExprView::find_previous_filter_users(
-        const FieldMask& dom_mask, FieldMaskSet<PhysicalUser>& filter_users)
+        const FieldMask& dom_mask,
+        local::FieldMaskMap<PhysicalUser>& filter_users)
     //--------------------------------------------------------------------------
     {
       // Lock better be held by caller
       if (dom_mask * previous_epoch_users.get_valid_mask())
         return;
-      for (FieldMaskSet<PhysicalUser>::const_iterator it =
+      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                previous_epoch_users.begin();
            it != previous_epoch_users.end(); it++)
       {
@@ -2285,11 +2287,11 @@ namespace Legion {
       // view tree and see if there are any views we can
       // remove because they no longer have live users
       FieldMask dummy_mask;
-      FieldMaskSet<ExprView> clean_set;
+      local::FieldMaskMap<ExprView> clean_set;
       current_users->clean_views(dummy_mask, clean_set);
       // We can safely repopulate the cache with any view expressions which
       // are still valid, remove all references for views in the clean set
-      for (FieldMaskSet<ExprView>::const_iterator it = clean_set.begin();
+      for (local::FieldMaskMap<ExprView>::const_iterator it = clean_set.begin();
            it != clean_set.end(); it++)
       {
         if (!!(~(it->first->invalid_fields)))

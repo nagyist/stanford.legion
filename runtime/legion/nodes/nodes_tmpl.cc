@@ -27,7 +27,7 @@
 #include "legion/kernel/runtime.h"
 #include "legion/api/functors_impl.h"
 #include "legion/api/future_impl.h"
-#include "legion/utilities/fieldmask_set.h"
+#include "legion/utilities/fieldmask_map.h"
 #include "legion/managers/mapper.h"
 #include "legion/nodes/kdtree.h"
 #include "legion/nodes/expression.h"

@@ -77,7 +77,7 @@ namespace Legion {
       // This will allow us to detect when physical instances are no
       // longer valid from a particular view when doing rollbacks for
       // resilience or mis-speculation.
-      // typedef shrt::map<VersionID,FieldMaskSet<IndexSpaceExpression>,
+      // typedef shrt::map<VersionID,FieldMaskMap<IndexSpaceExpression>,
       //                    PHYSICAL_VERSION_ALLOC> VersionFieldExprs;
       // VersionFieldExprs current_versions;
     };

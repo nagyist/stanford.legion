@@ -152,7 +152,7 @@ namespace Legion {
       for (ViewExprs::const_iterator vit = conditions.begin();
            vit != conditions.end(); vit++)
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  vit->second.begin();
              it != vit->second.end(); it++)
           if (it->first->remove_nested_expression_reference(owner_did))
@@ -209,9 +209,9 @@ namespace Legion {
             if (finder->second.insert(expr, mask))
               expr->add_nested_expression_reference(owner_did);
           }
-          FieldMaskSet<IndexSpaceExpression> to_add;
+          local::FieldMaskMap<IndexSpaceExpression> to_add;
           std::vector<IndexSpaceExpression*> to_delete;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    finder->second.begin();
                it != finder->second.end(); it++)
           {
@@ -246,7 +246,7 @@ namespace Legion {
             if (!set_overlap)
               break;
           }
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    to_add.begin();
                it != to_add.end(); it++)
             if (finder->second.insert(it->first, it->second))
@@ -271,11 +271,11 @@ namespace Legion {
         {
           if (view->is_collective_view())
           {
-            FieldMaskSet<InstanceView> antialiased_views;
+            local::FieldMaskMap<InstanceView> antialiased_views;
             antialias_collective_view(
                 view->as_collective_view(), mask, antialiased_views);
             // Now we can insert all the antialiased
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (local::FieldMaskMap<InstanceView>::const_iterator it =
                      antialiased_views.begin();
                  it != antialiased_views.end(); it++)
               insert(it->first, expr, it->second, true /*antialiased*/);
@@ -294,15 +294,16 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void TraceViewSet::insert(
-        const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >& views,
+        const MapView<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >&
+            views,
         bool antialiased)
     //--------------------------------------------------------------------------
     {
-      for (MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+      for (MapView<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >::
                const_iterator vit = views.begin();
            vit != views.end(); vit++)
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  vit->second.begin();
              it != vit->second.end(); it++)
           insert(vit->first, it->first, it->second);
@@ -324,11 +325,11 @@ namespace Legion {
         {
           if (view->is_collective_view())
           {
-            FieldMaskSet<InstanceView> antialiased_views;
+            local::FieldMaskMap<InstanceView> antialiased_views;
             antialias_collective_view(
                 view->as_collective_view(), mask, antialiased_views);
             // Now we can insert all the antialiased
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (local::FieldMaskMap<InstanceView>::const_iterator it =
                      antialiased_views.begin();
                  it != antialiased_views.end(); it++)
               invalidate(
@@ -358,7 +359,7 @@ namespace Legion {
         if (!(finder->second.get_valid_mask() - mask))
         {
           // Dominate all fields so just filter everything
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    finder->second.begin();
                it != finder->second.end(); it++)
           {
@@ -391,7 +392,7 @@ namespace Legion {
         {
           // Filter on fields
           std::vector<IndexSpaceExpression*> to_delete;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    finder->second.begin();
                it != finder->second.end(); it++)
           {
@@ -438,9 +439,9 @@ namespace Legion {
       else
       {
         // We need intersection tests as part of filtering
-        FieldMaskSet<IndexSpaceExpression> to_add;
+        local::FieldMaskMap<IndexSpaceExpression> to_add;
         std::vector<IndexSpaceExpression*> to_delete;
-        for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                  finder->second.begin();
              it != finder->second.end(); it++)
         {
@@ -471,7 +472,7 @@ namespace Legion {
           if (!it->second)
             to_delete.emplace_back(it->first);
         }
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  to_add.begin();
              it != to_add.end(); it++)
           if (finder->second.insert(it->first, it->second))
@@ -526,11 +527,11 @@ namespace Legion {
       {
         if (except->is_collective_view())
         {
-          FieldMaskSet<InstanceView> antialiased_views;
+          local::FieldMaskMap<InstanceView> antialiased_views;
           antialias_collective_view(
               except->as_collective_view(), mask, antialiased_views);
           // Now we can insert all the antialiased
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (local::FieldMaskMap<InstanceView>::const_iterator it =
                    antialiased_views.begin();
                it != antialiased_views.end(); it++)
             invalidate_all_but(
@@ -587,7 +588,7 @@ namespace Legion {
         {
           // Expression is for the whole view, so will only be dominated
           // by the expression for the full view
-          FieldMaskSet<IndexSpaceExpression>::const_iterator expr_finder =
+          shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator expr_finder =
               finder->second.find(total_expr);
           if (expr_finder != finder->second.end())
           {
@@ -597,7 +598,7 @@ namespace Legion {
           }
         }
         // There is at most one expression per field so just iterate and compare
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  finder->second.begin();
              it != finder->second.end(); it++)
         {
@@ -636,7 +637,7 @@ namespace Legion {
           if (vit->second.get_valid_mask() * non_dominated)
             continue;
           InstanceView* inst_view = vit->first->as_instance_view();
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    vit->second.begin();
                it != vit->second.end(); it++)
           {
@@ -649,7 +650,7 @@ namespace Legion {
           }
         }
         FieldMask dominated = non_dominated;
-        FieldMaskSet<IndexSpaceExpression> empty_exprs;
+        local::FieldMaskMap<IndexSpaceExpression> empty_exprs;
         alias_analysis.visit_leaves(
             non_dominated, dominated, expr, empty_exprs);
         if (!!dominated)
@@ -667,7 +668,7 @@ namespace Legion {
             continue;
           if (!individual_view->aliases(vit->first->as_collective_view()))
             continue;
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    vit->second.begin();
                it != vit->second.end(); it++)
           {
@@ -699,7 +700,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void TraceViewSet::dominates(
         LogicalView* view, IndexSpaceExpression* expr, FieldMask mask,
-        local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+        local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >&
             non_dominated) const
     //--------------------------------------------------------------------------
     {
@@ -726,7 +727,7 @@ namespace Legion {
         {
           // Expression is for the whole view, so will only be dominated
           // for the full view
-          FieldMaskSet<IndexSpaceExpression>::const_iterator expr_finder =
+          shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator expr_finder =
               finder->second.find(total_expr);
           if (expr_finder != finder->second.end())
           {
@@ -740,7 +741,7 @@ namespace Legion {
           }
         }
         // There is at most one expression per field so just iterate and compare
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  finder->second.begin();
              it != finder->second.end(); it++)
         {
@@ -782,7 +783,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!non_dominated.empty());
 #endif
-      FieldMaskSet<IndexSpaceExpression>& non_view = non_dominated[view];
+      local::FieldMaskMap<IndexSpaceExpression>& non_view = non_dominated[view];
       // Now do the checks for any aliasing with collective views
       if (view->is_collective_view())
       {
@@ -803,7 +804,8 @@ namespace Legion {
               std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
               FieldMask>
               join;
-          unique_join_on_field_mask_sets(non_view, vit->second, join);
+          unique_join_on_field_mask_sets(
+              FieldMapView(non_view), FieldMapView(vit->second), join);
           for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
                    FieldMask>::const_iterator it = join.begin();
@@ -833,7 +835,8 @@ namespace Legion {
         // alias analysis and get new expressions that are still not
         // dominated even after the alias analysis
         std::vector<IndexSpaceExpression*> to_remove;
-        for (FieldMaskSet<IndexSpaceExpression>::iterator it = non_view.begin();
+        for (local::FieldMaskMap<IndexSpaceExpression>::iterator it =
+                 non_view.begin();
              it != non_view.end(); it++)
         {
           FieldMask dominated_mask;
@@ -872,7 +875,8 @@ namespace Legion {
               std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
               FieldMask>
               join;
-          unique_join_on_field_mask_sets(non_view, vit->second, join);
+          unique_join_on_field_mask_sets(
+              FieldMapView(non_view), FieldMapView(vit->second), join);
           for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
                    FieldMask>::const_iterator it = join.begin();
@@ -882,7 +886,7 @@ namespace Legion {
                 it->first.first, it->first.second);
             if (difference->get_volume() < it->first.first->get_volume())
             {
-              FieldMaskSet<IndexSpaceExpression>::iterator finder =
+              local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                   non_view.find(it->first.first);
               finder.filter(it->second);
               if (!finder->second)
@@ -906,7 +910,7 @@ namespace Legion {
       {
         if (independent * vit->second.get_valid_mask())
           continue;
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  vit->second.begin();
              it != vit->second.end(); it++)
         {
@@ -932,7 +936,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool TraceViewSet::subsumed_by(
         TraceViewSet& set,
-        const FieldMaskSet<IndexSpaceExpression>& unique_dirty_exprs,
+        const FieldMapView<IndexSpaceExpression>& unique_dirty_exprs,
         FailedPrecondition* condition) const
     //--------------------------------------------------------------------------
     {
@@ -940,12 +944,12 @@ namespace Legion {
       for (ViewExprs::const_iterator vit = conditions.begin();
            vit != conditions.end(); ++vit)
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator eit =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator eit =
                  vit->second.begin();
              eit != vit->second.end(); ++eit)
         {
           // First check to see what fields and expressions are not dominated
-          local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+          local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
               non_dominated;
           set.dominates(vit->first, eit->first, eit->second, non_dominated);
           if (non_dominated.empty())
@@ -956,21 +960,23 @@ namespace Legion {
           // subsumed. If the non-dominated fields are not dirty, then it's
           // ok for them to not be subsumed as that means they are just
           // read-only and any additional copies in the postconditions.
-          for (local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
-                   iterator dit = non_dominated.begin();
+          for (local::map<
+                   LogicalView*,
+                   local::FieldMaskMap<IndexSpaceExpression> >::iterator dit =
+                   non_dominated.begin();
                dit != non_dominated.end();
                /*nothing*/)
           {
-            FieldMaskSet<IndexSpaceExpression> to_add;
+            local::FieldMaskMap<IndexSpaceExpression> to_add;
             std::vector<IndexSpaceExpression*> to_delete;
-            for (FieldMaskSet<IndexSpaceExpression>::iterator nit =
+            for (local::FieldMaskMap<IndexSpaceExpression>::iterator nit =
                      dit->second.begin();
                  nit != dit->second.end(); nit++)
             {
               // Check to see if it interferes with the dirty expressions
               if (nit->second * unique_dirty_exprs.get_valid_mask())
                 continue;
-              for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+              for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                        unique_dirty_exprs.begin();
                    it != unique_dirty_exprs.end(); it++)
               {
@@ -1017,8 +1023,8 @@ namespace Legion {
             {
               if (!dit->second.empty())
               {
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                         to_add.begin();
+                for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         it = to_add.begin();
                      it != to_add.end(); it++)
                   dit->second.insert(it->first, it->second);
               }
@@ -1027,8 +1033,10 @@ namespace Legion {
             }
             if (dit->second.empty())
             {
-              local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
-                  iterator delete_it = dit++;
+              local::map<
+                  LogicalView*,
+                  local::FieldMaskMap<IndexSpaceExpression> >::iterator
+                  delete_it = dit++;
               non_dominated.erase(delete_it);
             }
             else
@@ -1038,11 +1046,13 @@ namespace Legion {
           // add them to the postconditions because views that are both
           // non-dirty and non-dominated need to be in the postconditions
           // so we don't invalidate them when we do the overwriting
-          for (local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
-                   iterator dit = non_dominated.begin();
+          for (local::map<
+                   LogicalView*,
+                   local::FieldMaskMap<IndexSpaceExpression> >::iterator dit =
+                   non_dominated.begin();
                dit != non_dominated.end(); dit++)
           {
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator nit =
+            for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator nit =
                      dit->second.begin();
                  nit != dit->second.end(); nit++)
             {
@@ -1123,8 +1133,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool TraceViewSet::has_overlapping_expressions(
-        LogicalView* view, const FieldMaskSet<IndexSpaceExpression>& left_exprs,
-        const FieldMaskSet<IndexSpaceExpression>& right_exprs,
+        LogicalView* view, const FieldMapView<IndexSpaceExpression>& left_exprs,
+        const FieldMapView<IndexSpaceExpression>& right_exprs,
         FailedPrecondition* condition) const
     //--------------------------------------------------------------------------
     {
@@ -1158,7 +1168,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ViewExprs::const_iterator vit = conditions.begin();
-      FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+      shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
           vit->second.begin();
       condition->view = vit->first;
       condition->expr = it->first;
@@ -1167,8 +1177,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void TraceViewSet::transpose_uniquely(
-        local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >& target)
-        const
+        local::map<IndexSpaceExpression*, local::FieldMaskMap<LogicalView> >&
+            target) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1176,7 +1186,7 @@ namespace Legion {
 #endif
       for (ViewExprs::const_iterator vit = conditions.begin();
            vit != conditions.end(); ++vit)
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  vit->second.begin();
              it != vit->second.end(); it++)
           target[it->first].insert(vit->first, it->second);
@@ -1187,12 +1197,14 @@ namespace Legion {
       // number of analyses in the precondition/anticondition cases, and is
       // necessary for correctness in the postcondition case where we cannot
       // have multiple overwrites for the same fields and index expressions
-      FieldMaskSet<IndexSpaceExpression> expr_fields;
-      local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+      local::FieldMaskMap<IndexSpaceExpression> expr_fields;
+      local::map<IndexSpaceExpression*, local::FieldMaskMap<LogicalView> >
           intermediate;
       intermediate.swap(target);
-      for (local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
-               const_iterator it = intermediate.begin();
+      for (local::map<
+               IndexSpaceExpression*,
+               local::FieldMaskMap<LogicalView> >::const_iterator it =
+               intermediate.begin();
            it != intermediate.end(); it++)
         expr_fields.insert(it->first, it->second.get_valid_mask());
       local::list<FieldSet<IndexSpaceExpression*> > field_exprs;
@@ -1204,13 +1216,13 @@ namespace Legion {
         if (eit->elements.size() == 1)
         {
           IndexSpaceExpression* expr = *(eit->elements.begin());
-          FieldMaskSet<LogicalView>& src_views = intermediate[expr];
-          FieldMaskSet<LogicalView>& dst_views = target[expr];
+          local::FieldMaskMap<LogicalView>& src_views = intermediate[expr];
+          local::FieldMaskMap<LogicalView>& dst_views = target[expr];
           // No chance of overlapping so just move everything over
           if (eit->set_mask != src_views.get_valid_mask())
           {
             // Move over the relevant expressions
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (local::FieldMaskMap<LogicalView>::const_iterator it =
                      src_views.begin();
                  it != src_views.end(); it++)
             {
@@ -1222,7 +1234,7 @@ namespace Legion {
           }
           else if (!dst_views.empty())
           {
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (local::FieldMaskMap<LogicalView>::const_iterator it =
                      src_views.begin();
                  it != src_views.end(); it++)
               dst_views.insert(it->first, it->second);
@@ -1310,7 +1322,7 @@ namespace Legion {
         // can now build the actual output target
         for (unsigned idx = 0; idx < disjoint_expressions.size(); idx++)
         {
-          FieldMaskSet<LogicalView>& dst_views =
+          local::FieldMaskMap<LogicalView>& dst_views =
               target[disjoint_expressions[idx]];
           for (std::vector<IndexSpaceExpression*>::const_iterator sit =
                    disjoint_components[idx].begin();
@@ -1319,8 +1331,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             assert(intermediate.find(*sit) != intermediate.end());
 #endif
-            const FieldMaskSet<LogicalView>& src_views = intermediate[*sit];
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            const local::FieldMaskMap<LogicalView>& src_views =
+                intermediate[*sit];
+            for (local::FieldMaskMap<LogicalView>::const_iterator it =
                      src_views.begin();
                  it != src_views.end(); it++)
             {
@@ -1348,7 +1361,7 @@ namespace Legion {
           if (!(vit->second.get_valid_mask() - mask))
           {
             // sending everything
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      vit->second.begin();
                  it != vit->second.end(); it++)
               target.insert(vit->first, it->first, it->second);
@@ -1356,7 +1369,7 @@ namespace Legion {
           else
           {
             // filtering on fields
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      vit->second.begin();
                  it != vit->second.end(); it++)
             {
@@ -1376,7 +1389,7 @@ namespace Legion {
           FieldMask view_overlap = vit->second.get_valid_mask() & mask;
           if (!view_overlap)
             continue;
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    vit->second.begin();
                it != vit->second.end(); it++)
           {
@@ -1416,7 +1429,7 @@ namespace Legion {
     {
       for (ViewExprs::const_iterator vit = conditions.begin();
            vit != conditions.end(); ++vit)
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  vit->second.begin();
              it != vit->second.end(); it++)
           target.insert(vit->first, it->first, it->second);
@@ -1434,7 +1447,7 @@ namespace Legion {
       {
         rez.serialize(vit->first->did);
         rez.serialize<size_t>(vit->second.size());
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  vit->second.begin();
              it != vit->second.end(); it++)
         {
@@ -1460,7 +1473,7 @@ namespace Legion {
         LogicalView* view = runtime->find_or_request_logical_view(did, ready);
         size_t num_exprs;
         derez.deserialize(num_exprs);
-        FieldMaskSet<IndexSpaceExpression>& exprs = conditions[view];
+        shrt::FieldMaskMap<IndexSpaceExpression>& exprs = conditions[view];
         for (unsigned idx2 = 0; idx2 < num_exprs; idx2++)
         {
           IndexSpaceExpression* expr =
@@ -1498,7 +1511,7 @@ namespace Legion {
            vit != conditions.end(); ++vit)
       {
         LogicalView* view = vit->first;
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  vit->second.begin();
              it != vit->second.end(); ++it)
         {
@@ -1565,7 +1578,7 @@ namespace Legion {
         if (!mask)
           return;
       }
-      FieldMaskSet<CollectiveView> to_refine;
+      local::FieldMaskMap<CollectiveView> to_refine;
       for (ViewExprs::const_iterator it = conditions.begin();
            it != conditions.end(); it++)
       {
@@ -1588,7 +1601,8 @@ namespace Legion {
       std::vector<RtEvent> views_ready;
       std::map<CollectiveView*, PhysicalManager*> individual_results;
       std::map<CollectiveView*, InnerContext::CollectiveResult*> results;
-      for (FieldMaskSet<CollectiveView>::const_iterator it = to_refine.begin();
+      for (local::FieldMaskMap<CollectiveView>::const_iterator it =
+               to_refine.begin();
            it != to_refine.end(); it++)
       {
         std::vector<DistributedID> dids = it->first->instances;
@@ -1621,7 +1635,8 @@ namespace Legion {
         if (wait_on.exists() && !wait_on.has_triggered())
           wait_on.wait();
       }
-      for (FieldMaskSet<CollectiveView>::const_iterator rit = to_refine.begin();
+      for (local::FieldMaskMap<CollectiveView>::const_iterator rit =
+               to_refine.begin();
            rit != to_refine.end(); rit++)
       {
         RtEvent ready;
@@ -1661,9 +1676,9 @@ namespace Legion {
         else
         {
           // Need to filter over specific expression in this case
-          FieldMaskSet<IndexSpaceExpression>& to_add = conditions[view];
+          shrt::FieldMaskMap<IndexSpaceExpression>& to_add = conditions[view];
           std::vector<IndexSpaceExpression*> to_delete;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    finder->second.begin();
                it != finder->second.end(); it++)
           {
@@ -1692,7 +1707,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void TraceViewSet::antialias_collective_view(
         CollectiveView* collective, FieldMask mask,
-        FieldMaskSet<InstanceView>& alternative_views)
+        local::FieldMaskMap<InstanceView>& alternative_views)
     //--------------------------------------------------------------------------
     {
       ViewExprs::const_iterator collective_finder = conditions.find(collective);
@@ -1796,7 +1811,7 @@ namespace Legion {
             if (to_add.find(inter_view) == to_add.end())
               inter_view->add_nested_gc_ref(owner_did);
             std::vector<IndexSpaceExpression*> to_delete;
-            for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                      vit->second.begin();
                  it != vit->second.end(); it++)
             {
@@ -1865,7 +1880,7 @@ namespace Legion {
           {
             // Remove duplicate view reference
             vit->first->remove_nested_gc_ref(owner_did);
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      vit->second.begin();
                  it != vit->second.end(); it++)
               // Remove duplicate references

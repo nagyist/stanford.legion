@@ -18,7 +18,7 @@
 
 #include "legion/kernel/metatask.h"
 #include "legion/tracing/recording.h"
-#include "legion/utilities/fieldmask_set.h"
+#include "legion/utilities/fieldmask_map.h"
 #include "legion/utilities/serdez.h"
 
 namespace Legion {
@@ -133,7 +133,7 @@ namespace Legion {
         const bool restricted_output;
       };
     public:
-      typedef op::map<InstanceView*, FieldMaskSet<IndexSpaceExpression> >
+      typedef op::map<InstanceView*, op::FieldMaskMap<IndexSpaceExpression> >
           InstanceFieldExprs;
       typedef op::map<ApEvent, FieldMask> EventFieldMap;
       class CopyUpdate;
@@ -204,7 +204,7 @@ namespace Legion {
         // from the base predicate guard for the aggregator
         const PredEvent fill_guard;
       };
-      typedef op::map<ApEvent, FieldMaskSet<Update> > EventFieldUpdates;
+      typedef op::map<ApEvent, op::FieldMaskMap<Update> > EventFieldUpdates;
     public:
       CopyFillAggregator(
           PhysicalAnalysis* analysis, CopyFillGuard* previous,
@@ -228,13 +228,14 @@ namespace Legion {
           CopyAcrossHelper* across_helper = nullptr);
       void record_updates(
           InstanceView* dst_view, PhysicalManager* dst_man,
-          const FieldMaskSet<LogicalView>& src_views, const FieldMask& src_mask,
+          const FieldMapView<LogicalView>& src_views, const FieldMask& src_mask,
           IndexSpaceExpression* expr, const PhysicalTraceInfo& trace_info,
           EquivalenceSet* tracing_eq, ReductionOpID redop = 0,
           CopyAcrossHelper* across_helper = nullptr);
       void record_partial_updates(
           InstanceView* dst_view, PhysicalManager* dst_man,
-          const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+          const MapView<
+              LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >&
               src_views,
           const FieldMask& src_mask, IndexSpaceExpression* expr,
           const PhysicalTraceInfo& trace_info, EquivalenceSet* tracing_eq,
@@ -280,7 +281,7 @@ namespace Legion {
           InstanceView* target, PhysicalManager* target_manager,
           const std::vector<InstanceView*>& sources);
       bool perform_updates(
-          const MapView<InstanceView*, FieldMaskSet<Update> >& updates,
+          const MapView<InstanceView*, op::FieldMaskMap<Update> >& updates,
           const PhysicalTraceInfo& trace_info, const ApEvent all_precondition,
           std::set<RtEvent>& recorded_events, const int redop_index,
           const bool manage_dst_events, const bool restricted_output,
@@ -318,9 +319,9 @@ namespace Legion {
       const bool track_events;
     protected:
       FieldMask update_fields;
-      op::map<InstanceView*, FieldMaskSet<Update> > sources;
+      op::map<InstanceView*, op::FieldMaskMap<Update> > sources;
       std::vector</*vector over reduction epochs*/
-                  op::map<InstanceView*, FieldMaskSet<Update> > >
+                  op::map<InstanceView*, op::FieldMaskMap<Update> > >
           reductions;
       // Figure out the reduction operator is for each epoch of a
       // given destination instance and field

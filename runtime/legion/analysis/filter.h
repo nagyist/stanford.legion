@@ -35,7 +35,7 @@ namespace Legion {
       FilterAnalysis(
           AddressSpaceID src, AddressSpaceID prev, Operation* op,
           unsigned index, RegionNode* node, const PhysicalTraceInfo& trace_info,
-          const FieldMaskSet<InstanceView>& filter_views,
+          const op::FieldMaskMap<InstanceView>& filter_views,
           CollectiveMapping* mapping, const bool first_local,
           const bool remove_restriction);
       FilterAnalysis(const FilterAnalysis& rhs) = delete;
@@ -58,7 +58,7 @@ namespace Legion {
       static void handle_remote_filters(
           Deserializer& derez, AddressSpaceID previous);
     public:
-      FieldMaskSet<InstanceView> filter_views;
+      op::FieldMaskMap<InstanceView> filter_views;
       const bool remove_restriction;
     };
 

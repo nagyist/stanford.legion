@@ -75,7 +75,7 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> ready_events;
-      for (std::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (std::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -90,7 +90,7 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -132,7 +132,7 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (op::FieldMaskMap<LogicalView>::const_iterator it =
                      recorded_instances->begin();
                  it != recorded_instances->end(); it++)
             {
@@ -235,7 +235,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     InvalidInstAnalysis::InvalidInstAnalysis(
         Operation* o, unsigned idx, IndexSpaceExpression* expr,
-        const FieldMaskSet<LogicalView>& valid_insts)
+        const lng::FieldMaskMap<LogicalView>& valid_insts)
       : PhysicalAnalysis(o, idx, expr, true /*on heap*/, true /*immutable*/),
         valid_instances(valid_insts), target_analysis(this)
     //--------------------------------------------------------------------------
@@ -245,7 +245,7 @@ namespace Legion {
     InvalidInstAnalysis::InvalidInstAnalysis(
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
         IndexSpaceExpression* expr, InvalidInstAnalysis* t,
-        const FieldMaskSet<LogicalView>& valid_insts)
+        const op::FieldMaskMap<LogicalView>& valid_insts)
       : PhysicalAnalysis(src, prev, o, idx, expr, true /*on heap*/),
         valid_instances(valid_insts), target_analysis(t)
     //--------------------------------------------------------------------------
@@ -282,7 +282,7 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> ready_events;
-      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -297,7 +297,7 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -308,7 +308,7 @@ namespace Legion {
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
           rez.serialize<size_t>(valid_instances.size());
-          for (FieldMaskSet<LogicalView>::const_iterator it =
+          for (op::FieldMaskMap<LogicalView>::const_iterator it =
                    valid_instances.begin();
                it != valid_instances.end(); it++)
           {
@@ -346,7 +346,7 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (op::FieldMaskMap<LogicalView>::const_iterator it =
                      recorded_instances->begin();
                  it != recorded_instances->end(); it++)
             {
@@ -393,7 +393,7 @@ namespace Legion {
       RemoteOp* op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
-      FieldMaskSet<LogicalView> valid_instances;
+      op::FieldMaskMap<LogicalView> valid_instances;
       size_t num_valid_instances;
       derez.deserialize<size_t>(num_valid_instances);
       for (unsigned idx = 0; idx < num_valid_instances; idx++)
@@ -461,7 +461,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     AntivalidInstAnalysis::AntivalidInstAnalysis(
         Operation* o, unsigned idx, IndexSpaceExpression* expr,
-        const FieldMaskSet<LogicalView>& anti_insts)
+        const op::FieldMaskMap<LogicalView>& anti_insts)
       : PhysicalAnalysis(o, idx, expr, true /*on heap*/, true /*immutable*/),
         antivalid_instances(anti_insts), target_analysis(this)
     //--------------------------------------------------------------------------
@@ -471,7 +471,7 @@ namespace Legion {
     AntivalidInstAnalysis::AntivalidInstAnalysis(
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
         IndexSpaceExpression* expr, AntivalidInstAnalysis* a,
-        const FieldMaskSet<LogicalView>& anti_insts)
+        const op::FieldMaskMap<LogicalView>& anti_insts)
       : PhysicalAnalysis(src, prev, o, idx, expr, true /*on heap*/),
         antivalid_instances(anti_insts), target_analysis(a)
     //--------------------------------------------------------------------------
@@ -508,7 +508,7 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> ready_events;
-      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -523,7 +523,7 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -534,7 +534,7 @@ namespace Legion {
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
           rez.serialize<size_t>(antivalid_instances.size());
-          for (FieldMaskSet<LogicalView>::const_iterator it =
+          for (op::FieldMaskMap<LogicalView>::const_iterator it =
                    antivalid_instances.begin();
                it != antivalid_instances.end(); it++)
           {
@@ -572,7 +572,7 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (op::FieldMaskMap<LogicalView>::const_iterator it =
                      recorded_instances->begin();
                  it != recorded_instances->end(); it++)
             {
@@ -619,7 +619,7 @@ namespace Legion {
       RemoteOp* op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
-      FieldMaskSet<LogicalView> antivalid_instances;
+      op::FieldMaskMap<LogicalView> antivalid_instances;
       size_t num_antivalid_instances;
       derez.deserialize<size_t>(num_antivalid_instances);
       for (unsigned idx = 0; idx < num_antivalid_instances; idx++)

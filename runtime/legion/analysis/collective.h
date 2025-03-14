@@ -103,7 +103,7 @@ namespace Legion {
           AddressSpaceID src, AddressSpaceID prev, Operation* op,
           unsigned index, RegionNode* node, bool on_heap,
           std::vector<PhysicalManager*>&& target_insts,
-          op::vector<FieldMaskSet<InstanceView> >&& target_views,
+          op::vector<op::FieldMaskMap<InstanceView> >&& target_views,
           std::vector<IndividualView*>&& source_views,
           const PhysicalTraceInfo& trace_info,
           CollectiveMapping* collective_mapping, bool first_local,

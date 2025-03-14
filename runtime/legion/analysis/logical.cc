@@ -302,7 +302,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // For every child and every field, it should only be open in one mode
-      FieldMaskSet<RegionTreeNode> previous_children;
+      local::FieldMaskMap<RegionTreeNode> previous_children;
       for (std::list<FieldState>::const_iterator fit = field_states.begin();
            fit != field_states.end(); fit++)
       {
@@ -312,7 +312,7 @@ namespace Legion {
              it != fit->open_children.end(); it++)
         {
           actually_valid |= it->second;
-          FieldMaskSet<RegionTreeNode>::iterator finder =
+          local::FieldMaskMap<RegionTreeNode>::iterator finder =
               previous_children.find(it->first);
           if (finder != previous_children.end())
           {
@@ -329,7 +329,7 @@ namespace Legion {
       if (!refinement_trackers.empty())
       {
         FieldMask disjoint_refinements;
-        for (FieldMaskSet<RefinementTracker>::const_iterator it =
+        for (lng::FieldMaskMap<RefinementTracker>::const_iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
         {
@@ -373,7 +373,7 @@ namespace Legion {
       }
       if (!refinement_trackers.empty())
       {
-        for (FieldMaskSet<RefinementTracker>::const_iterator it =
+        for (lng::FieldMaskMap<RefinementTracker>::const_iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
           delete it->first;
@@ -447,7 +447,7 @@ namespace Legion {
           !(deleted_mask * refinement_trackers.get_valid_mask()))
       {
         std::vector<RefinementTracker*> to_delete;
-        for (FieldMaskSet<RefinementTracker>::iterator it =
+        for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
         {
@@ -767,9 +767,9 @@ namespace Legion {
       FieldMask need_tracker = refinement_mask;
       if (!(refinement_mask * refinement_trackers.get_valid_mask()))
       {
-        FieldMaskSet<RefinementTracker> to_add;
+        local::FieldMaskMap<RefinementTracker> to_add;
         std::vector<RefinementTracker*> to_delete;
-        for (FieldMaskSet<RefinementTracker>::iterator it =
+        for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
         {
@@ -807,7 +807,7 @@ namespace Legion {
           delete (*it);
         }
         // Add new entries
-        for (FieldMaskSet<RefinementTracker>::const_iterator it =
+        for (local::FieldMaskMap<RefinementTracker>::const_iterator it =
                  to_add.begin();
              it != to_add.end(); it++)
           refinement_trackers.insert(it->first, it->second);
@@ -837,9 +837,9 @@ namespace Legion {
       FieldMask need_tracker = refinement_mask;
       if (!(refinement_mask * refinement_trackers.get_valid_mask()))
       {
-        FieldMaskSet<RefinementTracker> to_add;
+        local::FieldMaskMap<RefinementTracker> to_add;
         std::vector<RefinementTracker*> to_delete;
-        for (FieldMaskSet<RefinementTracker>::iterator it =
+        for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
         {
@@ -877,7 +877,7 @@ namespace Legion {
           delete (*it);
         }
         // Add new entries
-        for (FieldMaskSet<RefinementTracker>::const_iterator it =
+        for (local::FieldMaskMap<RefinementTracker>::const_iterator it =
                  to_add.begin();
              it != to_add.end(); it++)
           refinement_trackers.insert(it->first, it->second);
@@ -905,9 +905,9 @@ namespace Legion {
       // sure that each field is accurately represented
       if (!(refinement_mask * refinement_trackers.get_valid_mask()))
       {
-        FieldMaskSet<RefinementTracker> to_add;
+        local::FieldMaskMap<RefinementTracker> to_add;
         std::vector<RefinementTracker*> to_delete;
-        for (FieldMaskSet<RefinementTracker>::iterator it =
+        for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
         {
@@ -942,7 +942,7 @@ namespace Legion {
           delete (*it);
         }
         // Add new entries
-        for (FieldMaskSet<RefinementTracker>::const_iterator it =
+        for (local::FieldMaskMap<RefinementTracker>::const_iterator it =
                  to_add.begin();
              it != to_add.end(); it++)
           refinement_trackers.insert(it->first, it->second);
@@ -962,7 +962,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<RefinementTracker*> to_delete;
-      for (FieldMaskSet<RefinementTracker>::iterator it =
+      for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                refinement_trackers.begin();
            it != refinement_trackers.end(); it++)
       {

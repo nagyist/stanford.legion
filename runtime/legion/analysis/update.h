@@ -37,7 +37,7 @@ namespace Legion {
           AddressSpaceID src, AddressSpaceID prev, Operation* op,
           unsigned index, const RegionUsage& usage, RegionNode* node,
           std::vector<PhysicalManager*>&& target_instances,
-          op::vector<FieldMaskSet<InstanceView> >&& target_views,
+          op::vector<op::FieldMaskMap<InstanceView> >&& target_views,
           std::vector<IndividualView*>&& source_views,
           const PhysicalTraceInfo& trace_info,
           CollectiveMapping* collective_mapping, const RtEvent user_registered,

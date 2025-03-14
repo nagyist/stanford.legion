@@ -70,7 +70,7 @@ namespace Legion {
     OverwriteAnalysis::OverwriteAnalysis(
         Operation* o, unsigned idx, const RegionUsage& use,
         IndexSpaceExpression* expr,
-        const FieldMaskSet<LogicalView>& overwrite_views,
+        const op::FieldMaskMap<LogicalView>& overwrite_views,
         const PhysicalTraceInfo& t_info, const ApEvent pre,
         const bool restriction)
       : PhysicalAnalysis(
@@ -80,7 +80,7 @@ namespace Legion {
         add_restriction(restriction), output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
-      for (FieldMaskSet<LogicalView>::const_iterator it =
+      for (op::FieldMaskMap<LogicalView>::const_iterator it =
                overwrite_views.begin();
            it != overwrite_views.end(); it++)
       {
@@ -95,7 +95,8 @@ namespace Legion {
     OverwriteAnalysis::OverwriteAnalysis(
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
         IndexSpaceExpression* expr, const RegionUsage& use,
-        FieldMaskSet<LogicalView>& vws, FieldMaskSet<InstanceView>& reductions,
+        op::FieldMaskMap<LogicalView>& vws,
+        op::FieldMaskMap<InstanceView>& reductions,
         const PhysicalTraceInfo& t_info, const ApEvent pre,
         const PredEvent true_g, const PredEvent false_g,
         CollectiveMapping* mapping, const bool first_local,
@@ -161,7 +162,7 @@ namespace Legion {
         return defer_traversal(precondition, version_info, applied_events);
       if (!target_views.empty())
       {
-        for (FieldMaskSet<InstanceView>::const_iterator it =
+        for (op::FieldMaskMap<InstanceView>::const_iterator it =
                  target_views[0].begin();
              it != target_views[0].end(); it++)
         {
@@ -200,7 +201,7 @@ namespace Legion {
       // If there are no sets we're done
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
-      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -214,7 +215,7 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -228,7 +229,8 @@ namespace Legion {
           rez.serialize<size_t>(views.size());
           if (!views.empty())
           {
-            for (FieldMaskSet<LogicalView>::const_iterator it = views.begin();
+            for (op::FieldMaskMap<LogicalView>::const_iterator it =
+                     views.begin();
                  it != views.end(); it++)
             {
               rez.serialize(it->first->did);
@@ -238,7 +240,7 @@ namespace Legion {
           rez.serialize<size_t>(reduction_views.size());
           if (!reduction_views.empty())
           {
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (op::FieldMaskMap<InstanceView>::const_iterator it =
                      reduction_views.begin();
                  it != reduction_views.end(); it++)
             {
@@ -300,7 +302,7 @@ namespace Legion {
       std::vector<ApEvent> inst_ready_events;
       for (unsigned idx = 0; idx < target_views.size(); idx++)
       {
-        for (FieldMaskSet<InstanceView>::const_iterator it =
+        for (op::FieldMaskMap<InstanceView>::const_iterator it =
                  target_views[idx].begin();
              it != target_views[idx].end(); it++)
         {
@@ -396,7 +398,7 @@ namespace Legion {
       derez.deserialize(usage);
       size_t num_views;
       derez.deserialize(num_views);
-      FieldMaskSet<LogicalView> views;
+      op::FieldMaskMap<LogicalView> views;
       for (unsigned idx = 0; idx < num_views; idx++)
       {
         DistributedID did;
@@ -411,7 +413,7 @@ namespace Legion {
       }
       size_t num_reductions;
       derez.deserialize(num_reductions);
-      FieldMaskSet<InstanceView> reductions;
+      op::FieldMaskMap<InstanceView> reductions;
       for (unsigned idx = 0; idx < num_reductions; idx++)
       {
         DistributedID did;

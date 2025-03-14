@@ -250,7 +250,7 @@ namespace Legion {
         const ProjectionInfo& proj_info, const FieldMask& user_mask,
         FieldMask& unopened_field_mask, FieldMask& refinement_mask,
         LogicalAnalysis& logical_analysis,
-        FieldMaskSet<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements,
+        FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements,
         const bool root_node)
     //--------------------------------------------------------------------------
     {
@@ -369,7 +369,7 @@ namespace Legion {
         const ProjectionInfo no_projection_info(
             nullptr, nullptr, nullptr, IndexSpace::NO_SPACE);
         const RegionUsage ref_usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
-        for (FieldMaskSet<
+        for (FieldMaskMap<
                  RefinementOp, TASK_LOCAL_LIFETIME, true>::const_iterator it =
                  refinements.begin();
              it != refinements.end(); it++)

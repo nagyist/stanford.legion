@@ -320,14 +320,14 @@ namespace Legion {
       // the tree while still allowing precondition searches to proceed
       // in parallel. Right now we stop the world to prune out such nodes
       void clean_views(
-          FieldMask& valid_mask, FieldMaskSet<ExprView>& clean_set);
+          FieldMask& valid_mask, local::FieldMaskMap<ExprView>& clean_set);
     protected:
       void find_current_preconditions(
           const RegionUsage& usage, const FieldMask& user_mask,
           IndexSpaceExpression* user_expr, ApEvent term_event,
           const UniqueID op_id, const unsigned index, const bool user_covers,
           std::set<ApEvent>& preconditions, std::set<PhysicalUser*>& dead_users,
-          FieldMaskSet<PhysicalUser>& filter_users, FieldMask& observed,
+          local::FieldMaskMap<PhysicalUser>& filter_users, FieldMask& observed,
           FieldMask& non_dominated, const bool trace_recording,
           const bool copy_user);
       void find_previous_preconditions(
@@ -338,7 +338,7 @@ namespace Legion {
           const bool trace_recording, const bool copy_user);
       void find_previous_filter_users(
           const FieldMask& dominated_mask,
-          FieldMaskSet<PhysicalUser>& filter_users);
+          local::FieldMaskMap<PhysicalUser>& filter_users);
       // Overloads for find_last_users
       void find_current_preconditions(
           const RegionUsage& usage, const FieldMask& user_mask,
@@ -359,11 +359,11 @@ namespace Legion {
       void find_all_done_events(std::set<ApEvent>& all_done) const;
     protected:
       void filter_dead_users(const std::set<PhysicalUser*>& dead_users);
-      void filter_current_users(const FieldMaskSet<PhysicalUser>& to_filter);
-      void filter_previous_users(const FieldMaskSet<PhysicalUser>& to_filter);
+      void filter_current_users(const FieldMapView<PhysicalUser>& to_filter);
+      void filter_previous_users(const FieldMapView<PhysicalUser>& to_filter);
       static void verify_current_to_filter(
           const FieldMask& dominated,
-          FieldMaskSet<PhysicalUser>& current_to_filter);
+          local::FieldMaskMap<PhysicalUser>& current_to_filter);
     public:
       IndexSpaceExpression* const view_expr;
       std::atomic<size_t> view_volume;
@@ -391,11 +391,11 @@ namespace Legion {
       // hold locks in read-only mode prevent user fragmentation. It also
       // deals better with the common case which are higher views in
       // the view tree that less frequently filter their sub-users.
-      FieldMaskSet<PhysicalUser> current_epoch_users;
-      FieldMaskSet<PhysicalUser> previous_epoch_users;
+      shrt::FieldMaskMap<PhysicalUser> current_epoch_users;
+      shrt::FieldMaskMap<PhysicalUser> previous_epoch_users;
     protected:
       // Subviews for fields that have users in subexpressions
-      FieldMaskSet<ExprView> subviews;
+      lng::FieldMaskMap<ExprView> subviews;
     };
 
   }  // namespace Internal

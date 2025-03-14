@@ -47,14 +47,14 @@ namespace Legion {
       OverwriteAnalysis(
           Operation* op, unsigned index, const RegionUsage& usage,
           IndexSpaceExpression* expr,
-          const FieldMaskSet<LogicalView>& overwrite_views,
+          const op::FieldMaskMap<LogicalView>& overwrite_views,
           const PhysicalTraceInfo& trace_info, const ApEvent precondition,
           const bool add_restriction = false);
       OverwriteAnalysis(
           AddressSpaceID src, AddressSpaceID prev, Operation* op,
           unsigned index, IndexSpaceExpression* expr, const RegionUsage& usage,
-          FieldMaskSet<LogicalView>& views,
-          FieldMaskSet<InstanceView>& reduction_views,
+          op::FieldMaskMap<LogicalView>& views,
+          op::FieldMaskMap<InstanceView>& reduction_views,
           const PhysicalTraceInfo& trace_info, const ApEvent precondition,
           const PredEvent true_guard, const PredEvent false_guard,
           CollectiveMapping* mapping, const bool first_local,
@@ -97,8 +97,8 @@ namespace Legion {
     public:
       const RegionUsage usage;
       const PhysicalTraceInfo trace_info;
-      FieldMaskSet<LogicalView> views;
-      FieldMaskSet<InstanceView> reduction_views;
+      op::FieldMaskMap<LogicalView> views;
+      op::FieldMaskMap<InstanceView> reduction_views;
       const ApEvent precondition;
       const PredEvent true_guard;
       const PredEvent false_guard;
@@ -108,7 +108,7 @@ namespace Legion {
       CopyFillAggregator* output_aggregator;
     protected:
       std::vector<PhysicalManager*> target_instances;
-      op::vector<FieldMaskSet<InstanceView> > target_views;
+      op::vector<op::FieldMaskMap<InstanceView> > target_views;
       std::map<InstanceView*, size_t> collective_arrivals;
     };
 

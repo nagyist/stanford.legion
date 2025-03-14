@@ -887,7 +887,7 @@ namespace Legion {
         LogicalRegion region, const InstanceSet& targets,
         InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
         bool& first_local,
-        op::vector<FieldMaskSet<InstanceView> >& target_views,
+        op::vector<op::FieldMaskMap<InstanceView> >& target_views,
         std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
@@ -1767,7 +1767,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ void Operation::prepare_for_mapping(
         const InstanceSet& valid,
-        const FieldMaskSet<ReplicatedView>& collectives,
+        const local::FieldMaskMap<ReplicatedView>& collectives,
         std::vector<MappingInstance>& input_valid,
         std::vector<MappingCollective>& collectives_valid)
     //--------------------------------------------------------------------------
@@ -1790,7 +1790,7 @@ namespace Legion {
       {
         collectives_valid.reserve(
             collectives_valid.size() + collectives.size());
-        for (FieldMaskSet<ReplicatedView>::const_iterator it =
+        for (local::FieldMaskMap<ReplicatedView>::const_iterator it =
                  collectives.begin();
              it != collectives.end(); it++)
           collectives_valid.emplace_back(MappingCollective(it->first));
@@ -1800,7 +1800,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ void Operation::prepare_for_mapping(
         const InstanceSet& valid,
-        const FieldMaskSet<ReplicatedView>& collectives,
+        const local::FieldMaskMap<ReplicatedView>& collectives,
         const std::set<Memory>& visible_filter,
         std::vector<MappingInstance>& input_valid,
         std::vector<MappingCollective>& collectives_valid)
@@ -1826,7 +1826,7 @@ namespace Legion {
       {
         collectives_valid.reserve(
             collectives_valid.size() + collectives.size());
-        for (FieldMaskSet<ReplicatedView>::const_iterator it =
+        for (local::FieldMaskMap<ReplicatedView>::const_iterator it =
                  collectives.begin();
              it != collectives.end(); it++)
           collectives_valid.emplace_back(MappingCollective(it->first));
@@ -2077,7 +2077,7 @@ namespace Legion {
         if ((get_must_epoch_op() == nullptr) &&
             (get_operation_kind() != RESET_OP_KIND))
           refinement_mask = user_mask;
-        FieldMaskSet<RefinementOp, TASK_LOCAL_LIFETIME, true> refinements;
+        FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true> refinements;
         parent_node->register_logical_user(
             req.parent, *user, path, trace_info, proj_info, user_mask,
             unopened_mask, refinement_mask, logical_analysis, refinements,
@@ -2116,7 +2116,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void Operation::physical_premap_region(
         unsigned index, RegionRequirement& req, const VersionInfo& version_info,
-        InstanceSet& targets, FieldMaskSet<ReplicatedView>& collectives,
+        InstanceSet& targets, local::FieldMaskMap<ReplicatedView>& collectives,
         std::set<RtEvent>& map_applied_events)
     //--------------------------------------------------------------------------
     {
@@ -2142,11 +2142,11 @@ namespace Legion {
       // Wait for all the responses to be ready
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
-      FieldMaskSet<LogicalView> instances;
+      op::FieldMaskMap<LogicalView> instances;
       if (analysis.report_instances(instances))
         req.flags |= LEGION_RESTRICTED_FLAG;
       const std::vector<LogicalRegion> to_meet(1, req.region);
-      for (FieldMaskSet<LogicalView>::const_iterator it = instances.begin();
+      for (op::FieldMaskMap<LogicalView>::const_iterator it = instances.begin();
            it != instances.end(); it++)
       {
 #ifdef DEBUG_LEGION

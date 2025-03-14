@@ -35,7 +35,7 @@ namespace Legion {
       TraceConditionSet(
           PhysicalTemplate* tpl, unsigned parent_req_index,
           RegionTreeID tree_id, IndexSpaceExpression* expr,
-          FieldMaskSet<LogicalView>&& views);
+          lng::FieldMaskMap<LogicalView>&& views);
       TraceConditionSet(const TraceConditionSet& rhs) = delete;
       virtual ~TraceConditionSet(void);
     public:
@@ -64,7 +64,7 @@ namespace Legion {
     public:
       bool matches(
           IndexSpaceExpression* expr,
-          const FieldMaskSet<LogicalView>& views) const;
+          const FieldMapView<LogicalView>& views) const;
       void invalidate_equivalence_sets(void);
       void refresh_equivalence_sets(
           FenceOp* op, std::set<RtEvent>& ready_events);
@@ -83,7 +83,7 @@ namespace Legion {
     public:
       PhysicalTemplate* const owner;
       IndexSpaceExpression* const condition_expr;
-      const FieldMaskSet<LogicalView> views;  // should be long-lived
+      const lng::FieldMaskMap<LogicalView> views;
       const RegionTreeID tree_id;
       const unsigned parent_req_index;
     private:
@@ -249,7 +249,7 @@ namespace Legion {
       void receive_trace_conditions(
           TraceViewSet* preconditions, TraceViewSet* anticonditions,
           TraceViewSet* postconditions,
-          const FieldMaskSet<IndexSpaceExpression>& unique_dirty_exprs,
+          const FieldMapView<IndexSpaceExpression>& unique_dirty_exprs,
           unsigned parent_req_index, RegionTreeID tree_id,
           std::atomic<unsigned>* result);
       void refresh_condition_sets(
@@ -600,7 +600,8 @@ namespace Legion {
       // Capture the names of all the instances that are mutated by this trace
       // and the index space expressions and fields that were mutated
       // THIS IS SHARDED FOR CONTROL REPLICATION!!!
-      shrt::map<UniqueInst, FieldMaskSet<IndexSpaceExpression> > mutated_insts;
+      shrt::map<UniqueInst, shrt::FieldMaskMap<IndexSpaceExpression> >
+          mutated_insts;
     private:
       // THESE ARE SHARDED FOR CONTROL REPLICATION!!!
       // Each share has a disjoint set of trace conditions that they are

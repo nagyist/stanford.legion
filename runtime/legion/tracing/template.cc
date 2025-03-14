@@ -37,13 +37,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     TraceConditionSet::TraceConditionSet(
         PhysicalTemplate* tpl, unsigned req_index, RegionTreeID tid,
-        IndexSpaceExpression* expr, FieldMaskSet<LogicalView>&& vws)
+        IndexSpaceExpression* expr, lng::FieldMaskMap<LogicalView>&& vws)
       : EqSetTracker(set_lock), owner(tpl), condition_expr(expr), views(vws),
         tree_id(tid), parent_req_index(req_index), shared(false)
     //--------------------------------------------------------------------------
     {
       condition_expr->add_base_expression_reference(TRACE_REF);
-      for (FieldMaskSet<LogicalView>::const_iterator it = views.begin();
+      for (lng::FieldMaskMap<LogicalView>::const_iterator it = views.begin();
            it != views.end(); it++)
         it->first->add_base_gc_ref(TRACE_REF);
 #ifdef DEBUG_LEGION
@@ -61,7 +61,7 @@ namespace Legion {
 #endif
       if (condition_expr->remove_base_expression_reference(TRACE_REF))
         delete condition_expr;
-      for (FieldMaskSet<LogicalView>::const_iterator it = views.begin();
+      for (lng::FieldMaskMap<LogicalView>::const_iterator it = views.begin();
            it != views.end(); it++)
         if (it->first->remove_base_gc_ref(TRACE_REF))
           delete it->first;
@@ -70,17 +70,17 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool TraceConditionSet::matches(
         IndexSpaceExpression* other_expr,
-        const FieldMaskSet<LogicalView>& other_views) const
+        const FieldMapView<LogicalView>& other_views) const
     //--------------------------------------------------------------------------
     {
       if (condition_expr != other_expr)
         return false;
       if (views.size() != other_views.size())
         return false;
-      for (FieldMaskSet<LogicalView>::const_iterator it = views.begin();
+      for (lng::FieldMaskMap<LogicalView>::const_iterator it = views.begin();
            it != views.end(); it++)
       {
-        FieldMaskSet<LogicalView>::const_iterator finder =
+        FieldMapView<LogicalView>::const_iterator finder =
             other_views.find(it->first);
         if (finder == other_views.end())
           return false;
@@ -94,8 +94,8 @@ namespace Legion {
     void TraceConditionSet::invalidate_equivalence_sets(void)
     //--------------------------------------------------------------------------
     {
-      FieldMaskSet<EquivalenceSet> to_remove;
-      lng::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
+      lng::FieldMaskMap<EquivalenceSet> to_remove;
+      lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> > to_cancel;
       {
         AutoLock s_lock(set_lock);
         if (current_subscriptions.empty())
@@ -110,8 +110,12 @@ namespace Legion {
         to_remove.swap(equivalence_sets);
         to_cancel.swap(current_subscriptions);
       }
-      cancel_subscriptions(to_cancel);
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it = to_remove.begin();
+      for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> >::
+               const_iterator it = to_cancel.begin();
+           it != to_cancel.end(); it++)
+        cancel_subscriptions(it->first, FieldMapView(it->second));
+      for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
+               to_remove.begin();
            it != to_remove.end(); it++)
         if (it->first->remove_base_gc_ref(TRACE_REF))
           delete it->first;
@@ -124,7 +128,7 @@ namespace Legion {
       TraceViewSet view_set(
           owner->trace->logical_trace->context, 0 /*did*/, condition_expr,
           tree_id);
-      for (FieldMaskSet<LogicalView>::const_iterator it = views.begin();
+      for (lng::FieldMaskMap<LogicalView>::const_iterator it = views.begin();
            it != views.end(); it++)
         view_set.insert(it->first, condition_expr, it->second);
       view_set.dump();
@@ -149,7 +153,7 @@ namespace Legion {
           new InvalidInstAnalysis(op, index, condition_expr, views);
       analysis.invalid->add_reference();
       std::set<RtEvent> deferral_events;
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+      for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                equivalence_sets.begin();
            it != equivalence_sets.end(); it++)
       {
@@ -206,7 +210,7 @@ namespace Legion {
           new AntivalidInstAnalysis(op, index, condition_expr, views);
       analysis.antivalid->add_reference();
       std::set<RtEvent> deferral_events;
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+      for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                equivalence_sets.begin();
            it != equivalence_sets.end(); it++)
       {
@@ -265,7 +269,7 @@ namespace Legion {
           PhysicalTraceInfo(trace_info, index), ApEvent::NO_AP_EVENT);
       analysis->add_reference();
       std::set<RtEvent> deferral_events;
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+      for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                equivalence_sets.begin();
            it != equivalence_sets.end(); it++)
       {
@@ -701,7 +705,7 @@ namespace Legion {
     void PhysicalTemplate::receive_trace_conditions(
         TraceViewSet* previews, TraceViewSet* antiviews,
         TraceViewSet* postviews,
-        const FieldMaskSet<IndexSpaceExpression>& unique_dirty_exprs,
+        const FieldMapView<IndexSpaceExpression>& unique_dirty_exprs,
         unsigned parent_req_index, RegionTreeID tree_id,
         std::atomic<unsigned>* result)
     //--------------------------------------------------------------------------
@@ -745,12 +749,14 @@ namespace Legion {
       // them with any of the preconditions or anticonditions
       if (postviews != nullptr)
       {
-        local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+        local::map<IndexSpaceExpression*, local::FieldMaskMap<LogicalView> >
             expr_views;
         postviews->transpose_uniquely(expr_views);
         postsets.reserve(expr_views.size());
-        for (local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
-                 iterator it = expr_views.begin();
+        for (local::map<
+                 IndexSpaceExpression*,
+                 local::FieldMaskMap<LogicalView> >::iterator it =
+                 expr_views.begin();
              it != expr_views.end(); it++)
         {
           TraceConditionSet* set = new TraceConditionSet(
@@ -767,11 +773,13 @@ namespace Legion {
       // the postviews so we can minimize the number of EqSetTrackers
       if (previews != nullptr)
       {
-        local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+        local::map<IndexSpaceExpression*, local::FieldMaskMap<LogicalView> >
             expr_views;
         previews->transpose_uniquely(expr_views);
-        for (local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
-                 iterator eit = expr_views.begin();
+        for (local::map<
+                 IndexSpaceExpression*,
+                 local::FieldMaskMap<LogicalView> >::iterator eit =
+                 expr_views.begin();
              eit != expr_views.end(); eit++)
         {
           TraceConditionSet* set = nullptr;
@@ -797,11 +805,13 @@ namespace Legion {
       }
       if (antiviews != nullptr)
       {
-        local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+        local::map<IndexSpaceExpression*, local::FieldMaskMap<LogicalView> >
             expr_views;
         antiviews->transpose_uniquely(expr_views);
-        for (local::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
-                 iterator eit = expr_views.begin();
+        for (local::map<
+                 IndexSpaceExpression*,
+                 local::FieldMaskMap<LogicalView> >::iterator eit =
+                 expr_views.begin();
              eit != expr_views.end(); eit++)
         {
           TraceConditionSet* set = nullptr;
@@ -3403,7 +3413,7 @@ namespace Legion {
         const FieldMask& mask, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-      FieldMaskSet<IndexSpaceExpression>& insts = mutated_insts[inst];
+      shrt::FieldMaskMap<IndexSpaceExpression>& insts = mutated_insts[inst];
       if (insts.empty() &&
           (recorded_views.find(inst.view_did) == recorded_views.end()))
       {
@@ -3984,13 +3994,13 @@ namespace Legion {
            vit != inst_users.end(); vit++)
       {
         // Scan through the other users and look for anything overlapping
-        shrt::map<UniqueInst, FieldMaskSet<IndexSpaceExpression> >::
+        shrt::map<UniqueInst, shrt::FieldMaskMap<IndexSpaceExpression> >::
             const_iterator finder = mutated_insts.find(vit->instance);
         if (finder == mutated_insts.end())
           continue;
         if (vit->mask * finder->second.get_valid_mask())
           continue;
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  finder->second.begin();
              it != finder->second.end(); it++)
         {

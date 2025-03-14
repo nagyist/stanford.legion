@@ -27,8 +27,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhiView::PhiView(
         DistributedID did, PredEvent tguard, PredEvent fguard,
-        FieldMaskSet<DeferredView>&& true_vws,
-        FieldMaskSet<DeferredView>&& false_vws, bool register_now)
+        shrt::FieldMaskMap<DeferredView>&& true_vws,
+        shrt::FieldMaskMap<DeferredView>&& false_vws, bool register_now)
       : DeferredView(encode_phi_did(did), register_now), true_guard(tguard),
         false_guard(fguard), true_views(true_vws), false_views(false_vws)
     //--------------------------------------------------------------------------
@@ -51,11 +51,13 @@ namespace Legion {
     PhiView::~PhiView(void)
     //--------------------------------------------------------------------------
     {
-      for (FieldMaskSet<DeferredView>::const_iterator it = true_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               true_views.begin();
            it != true_views.end(); it++)
         if (it->first->remove_nested_resource_ref(did))
           delete it->first;
-      for (FieldMaskSet<DeferredView>::const_iterator it = false_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               false_views.begin();
            it != false_views.end(); it++)
         if (it->first->remove_nested_resource_ref(did))
           delete it->first;
@@ -65,10 +67,12 @@ namespace Legion {
     void PhiView::notify_local(void)
     //--------------------------------------------------------------------------
     {
-      for (FieldMaskSet<DeferredView>::const_iterator it = true_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               true_views.begin();
            it != true_views.end(); it++)
         it->first->remove_nested_gc_ref(did);
-      for (FieldMaskSet<DeferredView>::const_iterator it = false_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               false_views.begin();
            it != false_views.end(); it++)
         it->first->remove_nested_gc_ref(did);
     }
@@ -78,10 +82,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       pack_global_ref();
-      for (FieldMaskSet<DeferredView>::const_iterator it = true_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               true_views.begin();
            it != true_views.end(); it++)
         it->first->pack_valid_ref();
-      for (FieldMaskSet<DeferredView>::const_iterator it = false_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               false_views.begin();
            it != false_views.end(); it++)
         it->first->pack_valid_ref();
     }
@@ -90,10 +96,12 @@ namespace Legion {
     void PhiView::unpack_valid_ref(void)
     //--------------------------------------------------------------------------
     {
-      for (FieldMaskSet<DeferredView>::const_iterator it = true_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               true_views.begin();
            it != true_views.end(); it++)
         it->first->unpack_valid_ref();
-      for (FieldMaskSet<DeferredView>::const_iterator it = false_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               false_views.begin();
            it != false_views.end(); it++)
         it->first->unpack_valid_ref();
       unpack_global_ref();
@@ -103,7 +111,8 @@ namespace Legion {
     void PhiView::add_initial_references(bool unpack_references)
     //--------------------------------------------------------------------------
     {
-      for (FieldMaskSet<DeferredView>::const_iterator it = true_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               true_views.begin();
            it != true_views.end(); it++)
       {
         it->first->add_nested_resource_ref(did);
@@ -111,7 +120,8 @@ namespace Legion {
         if (unpack_references)
           it->first->unpack_global_ref();
       }
-      for (FieldMaskSet<DeferredView>::const_iterator it = false_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               false_views.begin();
            it != false_views.end(); it++)
       {
         it->first->add_nested_resource_ref(did);
@@ -136,7 +146,8 @@ namespace Legion {
         rez.serialize(true_guard);
         rez.serialize(false_guard);
         rez.serialize<size_t>(true_views.size());
-        for (FieldMaskSet<DeferredView>::const_iterator it = true_views.begin();
+        for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+                 true_views.begin();
              it != true_views.end(); it++)
         {
           it->first->pack_global_ref();
@@ -144,7 +155,7 @@ namespace Legion {
           rez.serialize(it->second);
         }
         rez.serialize<size_t>(false_views.size());
-        for (FieldMaskSet<DeferredView>::const_iterator it =
+        for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
                  false_views.begin();
              it != false_views.end(); it++)
         {
@@ -173,7 +184,8 @@ namespace Legion {
           !pred_guard.exists() ?
               true_guard :
               Runtime::merge_events(&trace_info, pred_guard, true_guard);
-      for (FieldMaskSet<DeferredView>::const_iterator it = true_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               true_views.begin();
            it != true_views.end(); it++)
       {
         const FieldMask overlap = src_mask & it->second;
@@ -187,7 +199,8 @@ namespace Legion {
           !pred_guard.exists() ?
               false_guard :
               Runtime::merge_events(&trace_info, pred_guard, false_guard);
-      for (FieldMaskSet<DeferredView>::const_iterator it = false_views.begin();
+      for (shrt::FieldMaskMap<DeferredView>::const_iterator it =
+               false_views.begin();
            it != false_views.end(); it++)
       {
         const FieldMask overlap = src_mask & it->second;
@@ -210,7 +223,7 @@ namespace Legion {
       derez.deserialize(true_guard);
       derez.deserialize(false_guard);
       std::set<RtEvent> ready_events;
-      FieldMaskSet<DeferredView> true_views, false_views;
+      shrt::FieldMaskMap<DeferredView> true_views, false_views;
       size_t num_true_views;
       derez.deserialize(num_true_views);
       for (unsigned idx = 0; idx < num_true_views; idx++)

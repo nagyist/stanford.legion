@@ -19,7 +19,7 @@
 #include "legion/kernel/garbage_collection.h"
 #include "legion/api/launchers.h"
 #include "legion/tools/profiler.h"
-#include "legion/utilities/fieldmask_set.h"
+#include "legion/utilities/fieldmask_map.h"
 #include "legion/utilities/hasher.h"
 
 namespace Legion {
@@ -294,7 +294,7 @@ namespace Legion {
           LogicalRegion region, const InstanceSet& targets,
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
-          op::vector<FieldMaskSet<InstanceView> >& target_views,
+          op::vector<op::FieldMaskMap<InstanceView> >& target_views,
           std::map<InstanceView*, size_t>& collective_arrivals);
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
@@ -443,12 +443,12 @@ namespace Legion {
           std::vector<MappingCollective>& collective_valid);
       static void prepare_for_mapping(
           const InstanceSet& valid,
-          const FieldMaskSet<ReplicatedView>& collectives,
+          const local::FieldMaskMap<ReplicatedView>& collectives,
           std::vector<MappingInstance>& input_valid,
           std::vector<MappingCollective>& collective_valid);
       static void prepare_for_mapping(
           const InstanceSet& valid,
-          const FieldMaskSet<ReplicatedView>& collectives,
+          const local::FieldMaskMap<ReplicatedView>& collectives,
           const std::set<Memory>& filter_memories,
           std::vector<MappingInstance>& input_valid,
           std::vector<MappingCollective>& collective_valid);
@@ -485,7 +485,7 @@ namespace Legion {
       void physical_premap_region(
           unsigned index, RegionRequirement& req,
           const VersionInfo& version_info, InstanceSet& valid_instances,
-          FieldMaskSet<ReplicatedView>& collectives,
+          local::FieldMaskMap<ReplicatedView>& collectives,
           std::set<RtEvent>& map_applied_events);
       void physical_convert_sources(
           const RegionRequirement& req,

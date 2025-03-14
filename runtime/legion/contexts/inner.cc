@@ -1049,8 +1049,8 @@ namespace Legion {
       EqKDTree* tree = find_equivalence_set_kd_tree(req_index, tree_lock);
       // Then ask the index space expression to traverse the tree for
       // all of its rectangles and find the equivalence sets that are needed
-      FieldMaskSet<EqKDTree> to_create, new_subscriptions;
-      FieldMaskSet<EquivalenceSet> eq_sets;
+      op::FieldMaskMap<EqKDTree> to_create, new_subscriptions;
+      op::FieldMaskMap<EquivalenceSet> eq_sets;
       std::vector<RtEvent> pending_sets;
       op::map<EqKDTree*, Domain> creation_rects;
       op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
@@ -1078,9 +1078,9 @@ namespace Legion {
         const std::vector<EqSetTracker*>& targets,
         const AddressSpaceID creation_target_space, const FieldMask& mask,
         std::vector<unsigned>& new_target_references,
-        FieldMaskSet<EquivalenceSet>& eq_sets,
-        FieldMaskSet<EqKDTree>& new_subscriptions,
-        FieldMaskSet<EqKDTree>& to_create,
+        op::FieldMaskMap<EquivalenceSet>& eq_sets,
+        op::FieldMaskMap<EqKDTree>& new_subscriptions,
+        op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         size_t expected_responses, std::vector<RtEvent>& ready_events)
@@ -1138,7 +1138,7 @@ namespace Legion {
           rez.serialize(creation_target_space);
           rez.serialize(mask);
           rez.serialize<size_t>(eq_sets.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    eq_sets.begin();
                it != eq_sets.end(); it++)
           {
@@ -1146,7 +1146,7 @@ namespace Legion {
             rez.serialize(it->second);
           }
           rez.serialize<size_t>(new_subscriptions.size());
-          for (FieldMaskSet<EqKDTree>::const_iterator it =
+          for (op::FieldMaskMap<EqKDTree>::const_iterator it =
                    new_subscriptions.begin();
                it != new_subscriptions.end(); it++)
           {
@@ -1158,7 +1158,8 @@ namespace Legion {
           if ((*cit) == creation_child)
           {
             rez.serialize<size_t>(to_create.size());
-            for (FieldMaskSet<EqKDTree>::const_iterator it = to_create.begin();
+            for (op::FieldMaskMap<EqKDTree>::const_iterator it =
+                     to_create.begin();
                  it != to_create.end(); it++)
             {
 #ifdef DEBUG_LEGION
@@ -1250,7 +1251,7 @@ namespace Legion {
       derez.deserialize(mask);
       size_t num_sets;
       derez.deserialize(num_sets);
-      FieldMaskSet<EquivalenceSet> eq_sets;
+      op::FieldMaskMap<EquivalenceSet> eq_sets;
       std::map<EquivalenceSet*, DistributedID> did_map;
       std::vector<RtEvent> done_events;
       for (unsigned idx = 0; idx < num_sets; idx++)
@@ -1270,7 +1271,7 @@ namespace Legion {
       }
       size_t num_subscriptions;
       derez.deserialize(num_subscriptions);
-      FieldMaskSet<EqKDTree> new_subscriptions;
+      op::FieldMaskMap<EqKDTree> new_subscriptions;
       for (unsigned idx = 0; idx < num_subscriptions; idx++)
       {
         EqKDTree* tree;
@@ -1281,7 +1282,7 @@ namespace Legion {
       }
       size_t num_creations;
       derez.deserialize(num_creations);
-      FieldMaskSet<EqKDTree> to_create;
+      op::FieldMaskMap<EqKDTree> to_create;
       op::map<EqKDTree*, Domain> creation_rects;
       for (unsigned idx = 0; idx < num_creations; idx++)
       {
@@ -1377,7 +1378,7 @@ namespace Legion {
           rez.serialize(creation_target_space);
           rez.serialize(mask);
           rez.serialize<size_t>(eq_sets.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    eq_sets.begin();
                it != eq_sets.end(); it++)
           {
@@ -1388,7 +1389,7 @@ namespace Legion {
             rez.serialize(it->second);
           }
           rez.serialize<size_t>(new_subscriptions.size());
-          for (FieldMaskSet<EqKDTree>::const_iterator it =
+          for (op::FieldMaskMap<EqKDTree>::const_iterator it =
                    new_subscriptions.begin();
                it != new_subscriptions.end(); it++)
           {
@@ -1403,7 +1404,8 @@ namespace Legion {
             assert(creation_srcs.empty());
 #endif
             rez.serialize<size_t>(to_create.size());
-            for (FieldMaskSet<EqKDTree>::const_iterator it = to_create.begin();
+            for (op::FieldMaskMap<EqKDTree>::const_iterator it =
+                     to_create.begin();
                  it != to_create.end(); it++)
             {
 #ifdef DEBUG_LEGION
@@ -1485,7 +1487,7 @@ namespace Legion {
       // exist and then register ourselves with it
       LocalLock* tree_lock = nullptr;
       EqKDTree* tree = find_or_create_output_set_kd_tree(req_index, tree_lock);
-      FieldMaskSet<EqKDTree> new_subscriptions;
+      local::FieldMaskMap<EqKDTree> new_subscriptions;
       op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
       unsigned references = set->set_expr->record_output_equivalence_set(
           tree, tree_lock, set, mask, source, source_space, new_subscriptions,
@@ -1530,7 +1532,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     RtEvent InnerContext::report_output_registrations(
         EqSetTracker* target, AddressSpaceID target_space, unsigned references,
-        FieldMaskSet<EqKDTree>& new_subscriptions)
+        local::FieldMaskMap<EqKDTree>& new_subscriptions)
     //--------------------------------------------------------------------------
     {
       if (new_subscriptions.empty())
@@ -1549,7 +1551,7 @@ namespace Legion {
           rez.serialize(target);
           rez.serialize(references);
           rez.serialize<size_t>(new_subscriptions.size());
-          for (FieldMaskSet<EqKDTree>::const_iterator it =
+          for (local::FieldMaskMap<EqKDTree>::const_iterator it =
                    new_subscriptions.begin();
                it != new_subscriptions.end(); it++)
           {
@@ -1585,7 +1587,7 @@ namespace Legion {
         tracker->add_subscription_reference(references);
       size_t num_subscriptions;
       derez.deserialize(num_subscriptions);
-      FieldMaskSet<EqKDTree> new_subscriptions;
+      local::FieldMaskMap<EqKDTree> new_subscriptions;
       for (unsigned idx = 0; idx < num_subscriptions; idx++)
       {
         EqKDTree* tree;
@@ -9732,11 +9734,11 @@ namespace Legion {
           // This happens when we're merging multiple trees coming back
           // from a sub-task that was control replicated, so we extract
           // the equivalence sets and add them into our tree
-          FieldMaskSet<EquivalenceSet> eq_sets;
+          local::FieldMaskMap<EquivalenceSet> eq_sets;
           created_trees[idx]->find_local_equivalence_sets(
               eq_sets, source_shard);
           const ShardID local_shard = get_shard_id();
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (local::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    eq_sets.begin();
                it != eq_sets.end(); it++)
             it->first->set_expr->initialize_equivalence_set_kd_tree(
@@ -10037,7 +10039,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void InnerContext::convert_analysis_views(
         const InstanceSet& targets,
-        op::vector<FieldMaskSet<InstanceView> >& target_views)
+        op::vector<op::FieldMaskMap<InstanceView> >& target_views)
     //--------------------------------------------------------------------------
     {
       target_views.resize(targets.size());

@@ -44,7 +44,7 @@ namespace Legion {
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
         RegionNode* node, ApEvent pre, ReleaseAnalysis* t,
         std::vector<PhysicalManager*>&& target_insts,
-        op::vector<FieldMaskSet<InstanceView> >&& target_vws,
+        op::vector<op::FieldMaskMap<InstanceView> >&& target_vws,
         std::vector<IndividualView*>&& source_vws,
         const PhysicalTraceInfo& info, CollectiveMapping* mapping,
         const bool first)
@@ -87,7 +87,7 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> remote_events;
-      for (op::map<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
@@ -102,7 +102,7 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -114,7 +114,7 @@ namespace Legion {
           {
             rez.serialize(target_instances[idx]->did);
             rez.serialize<size_t>(target_views[idx].size());
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (op::FieldMaskMap<InstanceView>::const_iterator it =
                      target_views[idx].begin();
                  it != target_views[idx].end(); it++)
             {
@@ -176,7 +176,7 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (op::FieldMaskMap<LogicalView>::const_iterator it =
                      recorded_instances->begin();
                  it != recorded_instances->end(); it++)
             {
@@ -246,7 +246,7 @@ namespace Legion {
       size_t num_targets;
       derez.deserialize(num_targets);
       std::vector<PhysicalManager*> targets(num_targets);
-      op::vector<FieldMaskSet<InstanceView> > target_views(num_targets);
+      op::vector<op::FieldMaskMap<InstanceView> > target_views(num_targets);
       for (unsigned idx1 = 0; idx1 < num_targets; idx1++)
       {
         DistributedID did;

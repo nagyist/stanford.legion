@@ -63,7 +63,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(equivalence_sets.size());
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+      for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                equivalence_sets.begin();
            it != equivalence_sets.end(); it++)
       {
@@ -262,7 +262,7 @@ namespace Legion {
         if (version_info != nullptr)
         {
           if (waiting_infos == nullptr)
-            waiting_infos = new FieldMaskSet<VersionInfo>();
+            waiting_infos = new shrt::FieldMaskMap<VersionInfo>();
           waiting_infos->insert(version_info, waiting_mask);
         }
       }
@@ -317,7 +317,7 @@ namespace Legion {
       FieldMask set_mask;
       {
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
-        FieldMaskSet<EquivalenceSet>::const_iterator finder =
+        lng::FieldMaskMap<EquivalenceSet>::const_iterator finder =
             equivalence_sets.find(set);
 #ifdef DEBUG_LEGION
         assert(finder != equivalence_sets.end());
@@ -368,8 +368,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We need to remove any tracked equivalence sets that we have
-      FieldMaskSet<EquivalenceSet> to_remove;
-      lng::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
+      lng::FieldMaskMap<EquivalenceSet> to_remove;
+      lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> > to_cancel;
       {
         AutoLock m_lock(manager_lock);
 #ifdef DEBUG_LEGION
@@ -390,8 +390,14 @@ namespace Legion {
       assert(node->is_region());
 #endif
       if (!to_cancel.empty())
-        cancel_subscriptions(to_cancel);
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it = to_remove.begin();
+      {
+        for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> >::
+                 const_iterator it = to_cancel.begin();
+             it != to_cancel.end(); it++)
+          cancel_subscriptions(it->first, FieldMapView(it->second));
+      }
+      for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
+               to_remove.begin();
            it != to_remove.end(); it++)
       {
 #ifdef DEBUG_LEGION

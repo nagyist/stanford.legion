@@ -301,23 +301,24 @@ namespace Legion {
           delete (*it);
       all_views.clear();
       // Delete all our copy updates
-      for (op::map<InstanceView*, FieldMaskSet<Update> >::const_iterator mit =
-               sources.begin();
+      for (op::map<InstanceView*, op::FieldMaskMap<Update> >::const_iterator
+               mit = sources.begin();
            mit != sources.end(); mit++)
       {
-        for (FieldMaskSet<Update>::const_iterator it = mit->second.begin();
+        for (op::FieldMaskMap<Update>::const_iterator it = mit->second.begin();
              it != mit->second.end(); it++)
           delete it->first;
       }
-      for (std::vector<op::map<InstanceView*, FieldMaskSet<Update> > >::
+      for (std::vector<op::map<InstanceView*, op::FieldMaskMap<Update> > >::
                const_iterator rit = reductions.begin();
            rit != reductions.end(); rit++)
       {
-        for (op::map<InstanceView*, FieldMaskSet<Update> >::const_iterator mit =
-                 rit->begin();
+        for (op::map<InstanceView*, op::FieldMaskMap<Update> >::const_iterator
+                 mit = rit->begin();
              mit != rit->end(); mit++)
         {
-          for (FieldMaskSet<Update>::const_iterator it = mit->second.begin();
+          for (op::FieldMaskMap<Update>::const_iterator it =
+                   mit->second.begin();
                it != mit->second.end(); it++)
             delete it->first;
         }
@@ -347,8 +348,9 @@ namespace Legion {
         InstanceFieldExprs& src_exprs) const
     //--------------------------------------------------------------------------
     {
-      FieldMaskSet<IndexSpaceExpression>& exprs = src_exprs[source];
-      FieldMaskSet<IndexSpaceExpression>::iterator finder = exprs.find(expr);
+      op::FieldMaskMap<IndexSpaceExpression>& exprs = src_exprs[source];
+      op::FieldMaskMap<IndexSpaceExpression>::iterator finder =
+          exprs.find(expr);
       if (finder == exprs.end())
         exprs.insert(expr, src_mask);
       else
@@ -444,7 +446,7 @@ namespace Legion {
       record_view(src_view);
       CopyUpdate* update =
           new CopyUpdate(src_view, src_man, src_mask, expr, redop, helper);
-      FieldMaskSet<Update>& updates = sources[dst_view];
+      op::FieldMaskMap<Update>& updates = sources[dst_view];
       if (helper == nullptr)
         updates.insert(update, src_mask);
       else
@@ -522,7 +524,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void CopyFillAggregator::record_updates(
         InstanceView* dst_view, PhysicalManager* dst_man,
-        const FieldMaskSet<LogicalView>& src_views, const FieldMask& src_mask,
+        const FieldMapView<LogicalView>& src_views, const FieldMask& src_mask,
         IndexSpaceExpression* expr, const PhysicalTraceInfo& trace_info,
         EquivalenceSet* tracing_eq, ReductionOpID redop /*=0*/,
         CopyAcrossHelper* helper /*=nullptr*/)
@@ -628,7 +630,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void CopyFillAggregator::record_partial_updates(
         InstanceView* dst_view, PhysicalManager* dst_man,
-        const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+        const MapView<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >&
             src_views,
         const FieldMask& src_mask, IndexSpaceExpression* expr,
         const PhysicalTraceInfo& trace_info, EquivalenceSet* tracing_eq,
@@ -643,11 +645,11 @@ namespace Legion {
       update_fields |= src_mask;
       record_view(dst_view);
       std::vector<InstanceView*> instances;
-      FieldMaskSet<IndexSpaceExpression> remainders;
+      local::FieldMaskMap<IndexSpaceExpression> remainders;
       remainders.insert(expr, src_mask);
       // Issue deferred immediately, otherwise record instances so that
       // we can ask the mapper what order it wants us to issue copies from
-      for (MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+      for (MapView<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >::
                const_iterator vit = src_views.begin();
            vit != src_views.end(); vit++)
       {
@@ -669,7 +671,8 @@ namespace Legion {
               FieldMask>
               deferred_exprs;
           unique_join_on_field_mask_sets(
-              remainders, vit->second, deferred_exprs);
+              FieldMapView(remainders), FieldMapView(vit->second),
+              deferred_exprs);
           bool need_tighten = false;
           for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
@@ -681,7 +684,7 @@ namespace Legion {
             const size_t overlap_size = overlap->get_volume();
             if (overlap_size == 0)
               continue;
-            FieldMaskSet<IndexSpaceExpression>::iterator finder =
+            local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                 remainders.find(it->first.first);
 #ifdef DEBUG_LEGION
             assert(finder != remainders.end());
@@ -751,7 +754,7 @@ namespace Legion {
           }
           else
             src_man = src_view->as_individual_view()->get_manager();
-          MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+          MapView<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >::
               const_iterator finder = src_views.find(src_view);
 #ifdef DEBUG_LEGION
           assert(finder != src_views.end());
@@ -761,7 +764,8 @@ namespace Legion {
               FieldMask>
               src_expressions;
           unique_join_on_field_mask_sets(
-              remainders, finder->second, src_expressions);
+              FieldMapView(remainders), FieldMapView(finder->second),
+              src_expressions);
           bool need_tighten = false;
           for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
@@ -773,7 +777,7 @@ namespace Legion {
             const size_t overlap_size = overlap->get_volume();
             if (overlap_size == 0)
               continue;
-            FieldMaskSet<IndexSpaceExpression>::iterator finder =
+            local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                 remainders.find(it->first.first);
 #ifdef DEBUG_LEGION
             assert(finder != remainders.end());
@@ -918,7 +922,7 @@ namespace Legion {
     void CopyFillAggregator::resize_reductions(size_t new_size)
     //--------------------------------------------------------------------------
     {
-      std::vector<op::map<InstanceView*, FieldMaskSet<Update> > >
+      std::vector<op::map<InstanceView*, op::FieldMaskMap<Update> > >
           new_reductions(new_size);
       for (unsigned idx = 0; idx < reductions.size(); idx++)
         new_reductions[idx].swap(reductions[idx]);
@@ -1102,7 +1106,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool CopyFillAggregator::perform_updates(
-        const MapView<InstanceView*, FieldMaskSet<Update> >& updates,
+        const MapView<InstanceView*, op::FieldMaskMap<Update> >& updates,
         const PhysicalTraceInfo& trace_info, const ApEvent precondition,
         std::set<RtEvent>& recorded_events, const int redop_index,
         const bool manage_dst_events, const bool restricted_output,
@@ -1111,8 +1115,8 @@ namespace Legion {
     {
       bool pipelined = true;
       std::vector<ApEvent>* target_events = nullptr;
-      for (MapView<InstanceView*, FieldMaskSet<Update> >::const_iterator uit =
-               updates.begin();
+      for (MapView<InstanceView*, op::FieldMaskMap<Update> >::const_iterator
+               uit = updates.begin();
            uit != updates.end(); uit++)
       {
         ApEvent dst_precondition = precondition;

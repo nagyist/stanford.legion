@@ -64,7 +64,8 @@ namespace Legion {
     CollectiveRefinementTree<T>::~CollectiveRefinementTree(void)
     //--------------------------------------------------------------------------
     {
-      for (typename FieldMaskSet<T>::const_iterator it = refinements.begin();
+      for (typename local::FieldMaskMap<T>::const_iterator it =
+               refinements.begin();
            it != refinements.end(); it++)
         delete it->first;
     }
@@ -187,7 +188,8 @@ namespace Legion {
           }
         }
       }
-      for (typename FieldMaskSet<T>::const_iterator it = refinements.begin();
+      for (typename local::FieldMaskMap<T>::const_iterator it =
+               refinements.begin();
            it != refinements.end(); it++)
       {
         const FieldMask& overlap = mask & it->second;
@@ -250,12 +252,12 @@ namespace Legion {
     template<typename T>
     void CollectiveRefinementTree<T>::traverse_total(
         const FieldMask& mask, IndexSpaceExpression* set_expr,
-        const FieldMaskSet<LogicalView>& total_valid_views)
+        const FieldMapView<LogicalView>& total_valid_views)
     //--------------------------------------------------------------------------
     {
       if (mask * total_valid_views.get_valid_mask())
         return;
-      for (FieldMaskSet<LogicalView>::const_iterator it =
+      for (FieldMapView<LogicalView>::const_iterator it =
                total_valid_views.begin();
            it != total_valid_views.end(); it++)
       {
@@ -274,11 +276,11 @@ namespace Legion {
     template<typename T>
     void CollectiveRefinementTree<T>::traverse_partial(
         const FieldMask& mask,
-        const MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+        const MapView<LogicalView*, shrt::FieldMaskMap<IndexSpaceExpression> >&
             partial_valid_views)
     //--------------------------------------------------------------------------
     {
-      for (MapView<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
+      for (MapView<LogicalView*, shrt::FieldMaskMap<IndexSpaceExpression> >::
                const_iterator it = partial_valid_views.begin();
            it != partial_valid_views.end(); it++)
       {
@@ -299,7 +301,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     MakeCollectiveValid::MakeCollectiveValid(
-        CollectiveView* v, const FieldMaskSet<IndexSpaceExpression>& exprs)
+        CollectiveView* v, const FieldMapView<IndexSpaceExpression>& exprs)
       : CollectiveRefinementTree<MakeCollectiveValid>(v), view(v),
         needed_exprs(exprs)
     //--------------------------------------------------------------------------
@@ -308,8 +310,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     MakeCollectiveValid::MakeCollectiveValid(
         std::vector<DistributedID>&& insts,
-        const FieldMaskSet<IndexSpaceExpression>& exprs,
-        const FieldMaskSet<IndexSpaceExpression>& valid, const FieldMask& mask,
+        const FieldMapView<IndexSpaceExpression>& exprs,
+        const FieldMapView<IndexSpaceExpression>& valid, const FieldMask& mask,
         InstanceView* v)
       : CollectiveRefinementTree<MakeCollectiveValid>(std::move(insts)),
         view(v), needed_exprs(exprs)
@@ -339,19 +341,19 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void MakeCollectiveValid::analyze(
         InstanceView* view, const FieldMask& mask,
-        const FieldMaskSet<IndexSpaceExpression>& exprs)
+        const FieldMapView<IndexSpaceExpression>& exprs)
     //--------------------------------------------------------------------------
     {
       if (!(exprs.get_valid_mask() - mask))
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                  exprs.begin();
              it != exprs.end(); it++)
           valid_exprs.insert(it->first, it->second);
       }
       else
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                  exprs.begin();
              it != exprs.end(); it++)
         {
@@ -366,7 +368,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void MakeCollectiveValid::visit_leaf(
         const FieldMask& mask, InnerContext* context, RegionTreeID tid,
-        local::map<InstanceView*, FieldMaskSet<IndexSpaceExpression> >& updates)
+        local::map<InstanceView*, local::FieldMaskMap<IndexSpaceExpression> >&
+            updates)
     //--------------------------------------------------------------------------
     {
       local::list<FieldSet<IndexSpaceExpression*> > field_sets;
@@ -381,7 +384,7 @@ namespace Legion {
             (fit->elements.size() == 1) ?
                                     *(fit->elements.begin()) :
                                     runtime->union_index_spaces(fit->elements);
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                  needed_exprs.begin();
              it != needed_exprs.end(); it++)
         {
@@ -418,7 +421,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     CollectiveAntiAlias::CollectiveAntiAlias(
         std::vector<DistributedID>&& insts,
-        const FieldMaskSet<IndexSpaceExpression>& valid, const FieldMask& mask)
+        const FieldMapView<IndexSpaceExpression>& valid, const FieldMask& mask)
       : CollectiveRefinementTree<CollectiveAntiAlias>(std::move(insts))
     //--------------------------------------------------------------------------
     {
@@ -445,19 +448,19 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void CollectiveAntiAlias::analyze(
         InstanceView* view, const FieldMask& mask,
-        const FieldMaskSet<IndexSpaceExpression>& exprs)
+        const FieldMapView<IndexSpaceExpression>& exprs)
     //--------------------------------------------------------------------------
     {
       if (!(exprs.get_valid_mask() - mask))
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                  exprs.begin();
              it != exprs.end(); it++)
           valid_exprs.insert(it->first, it->second);
       }
       else
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                  exprs.begin();
              it != exprs.end(); it++)
         {
@@ -473,14 +476,14 @@ namespace Legion {
     void CollectiveAntiAlias::visit_leaf(
         const FieldMask& mask, FieldMask& allvalid_mask,
         IndexSpaceExpression* expr,
-        const FieldMaskSet<IndexSpaceExpression>& partial_valid_exprs)
+        const FieldMapView<IndexSpaceExpression>& partial_valid_exprs)
     //--------------------------------------------------------------------------
     {
       if (!allvalid_mask)
         return;
       if (!partial_valid_exprs.empty())
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                  partial_valid_exprs.begin();
              it != partial_valid_exprs.end(); it++)
           valid_exprs.insert(it->first, it->second);
@@ -517,7 +520,7 @@ namespace Legion {
     void CollectiveAntiAlias::visit_leaf(
         const FieldMask& mask, FieldMask& dominated_mask, InnerContext* context,
         RegionTreeID tree_id, CollectiveView* view,
-        local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >&
+        local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >&
             non_dominated,
         IndexSpaceExpression* expr)
     //--------------------------------------------------------------------------
@@ -576,7 +579,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void CollectiveAntiAlias::visit_leaf(
         const FieldMask& mask, FieldMask& allvalid_mask, TraceViewSet& view_set,
-        FieldMaskSet<InstanceView>& alt_views)
+        local::FieldMaskMap<InstanceView>& alt_views)
     //--------------------------------------------------------------------------
     {
       if (valid_exprs.empty())
@@ -608,7 +611,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     InitializeCollectiveReduction::InitializeCollectiveReduction(
         std::vector<DistributedID>&& insts, IndexSpaceExpression* expr,
-        InstanceView* v, const FieldMaskSet<IndexSpaceExpression>& remainders,
+        InstanceView* v,
+        const local::FieldMaskMap<IndexSpaceExpression>& remainders,
         const FieldMask& covered)
       : CollectiveRefinementTree<InitializeCollectiveReduction>(
             std::move(insts)),
@@ -636,9 +640,9 @@ namespace Legion {
       FieldMask remainder_mask = mask - found_covered;
       if (!!remainder_mask)
       {
-        FieldMaskSet<IndexSpaceExpression> to_add;
+        local::FieldMaskMap<IndexSpaceExpression> to_add;
         std::vector<IndexSpaceExpression*> to_delete;
-        for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+        for (local::FieldMaskMap<IndexSpaceExpression>::iterator it =
                  remainder_exprs.begin();
              it != remainder_exprs.end(); it++)
         {
@@ -690,7 +694,7 @@ namespace Legion {
         {
           if (!remainder_exprs.empty())
           {
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      to_add.begin();
                  it != to_add.end(); it++)
               remainder_exprs.insert(it->first, it->second);
@@ -726,7 +730,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void InitializeCollectiveReduction::analyze(
         InstanceView* view, const FieldMask& mask,
-        const FieldMaskSet<IndexSpaceExpression>& exprs)
+        const FieldMapView<IndexSpaceExpression>& exprs)
     //--------------------------------------------------------------------------
     {
       // This method should never be called
@@ -742,7 +746,7 @@ namespace Legion {
       {
         if (!(mask * remainder_exprs.get_valid_mask()))
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    remainder_exprs.begin();
                it != remainder_exprs.end(); it++)
           {
@@ -793,7 +797,7 @@ namespace Legion {
         // Issue fills for any remainders
         if (!remainder_exprs.empty())
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    remainder_exprs.begin();
                it != remainder_exprs.end(); it++)
           {
@@ -923,7 +927,7 @@ namespace Legion {
     {
       if (!total_valid_instances.empty())
       {
-        for (FieldMaskSet<LogicalView>::const_iterator it =
+        for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
                  total_valid_instances.begin();
              it != total_valid_instances.end(); it++)
           if (it->first->remove_nested_valid_ref(did))
@@ -935,7 +939,7 @@ namespace Legion {
         for (ViewExprMaskSets::iterator pit = partial_valid_instances.begin();
              pit != partial_valid_instances.end(); pit++)
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    pit->second.begin();
                it != pit->second.end(); it++)
             if (it->first->remove_nested_expression_reference(did))
@@ -949,7 +953,7 @@ namespace Legion {
       }
       if (!initialized_data.empty())
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  initialized_data.begin();
              it != initialized_data.end(); it++)
           if (it->first->remove_nested_expression_reference(did))
@@ -958,7 +962,7 @@ namespace Legion {
       }
       if (!partial_invalidations.empty())
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  partial_invalidations.begin();
              it != partial_invalidations.end(); it++)
           if (it->first->remove_nested_expression_reference(did))
@@ -992,7 +996,7 @@ namespace Legion {
         for (ExprViewMaskSets::iterator rit = restricted_instances.begin();
              rit != restricted_instances.end(); rit++)
         {
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
             if (it->first->remove_nested_valid_ref(did))
@@ -1009,7 +1013,7 @@ namespace Legion {
         for (ExprViewMaskSets::iterator rit = released_instances.begin();
              rit != released_instances.end(); rit++)
         {
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
             if (it->first->remove_nested_valid_ref(did))
@@ -1022,7 +1026,7 @@ namespace Legion {
       }
       if (!collective_instances.empty())
       {
-        for (FieldMaskSet<CollectiveView>::const_iterator it =
+        for (lng::FieldMaskMap<CollectiveView>::const_iterator it =
                  collective_instances.begin();
              it != collective_instances.end(); it++)
           if (it->first->remove_nested_resource_ref(did))
@@ -1046,7 +1050,7 @@ namespace Legion {
       }
       if (tracing_dirty_fields != nullptr)
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  tracing_dirty_fields->begin();
              it != tracing_dirty_fields->end(); it++)
           if (it->first->remove_nested_expression_reference(did))
@@ -1107,7 +1111,7 @@ namespace Legion {
         {
           const FieldMask& view_mask = sources[idx].get_valid_fields();
           IndividualView* view = corresponding[idx];
-          FieldMaskSet<LogicalView>::iterator finder =
+          shrt::FieldMaskMap<LogicalView>::iterator finder =
               total_valid_instances.find(view);
           if (finder == total_valid_instances.end())
           {
@@ -1130,7 +1134,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(!view->is_reduction_kind());
 #endif
-          FieldMaskSet<LogicalView>::iterator finder =
+          shrt::FieldMaskMap<LogicalView>::iterator finder =
               total_valid_instances.find(view);
           if (finder == total_valid_instances.end())
           {
@@ -1197,7 +1201,7 @@ namespace Legion {
         if (!!invalid_mask)
         {
           traversal_mask -= invalid_mask;
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    partial_invalidations.begin();
                it != partial_invalidations.end(); it++)
           {
@@ -1277,7 +1281,7 @@ namespace Legion {
       {
         if (!(user_mask * total_valid_instances.get_valid_mask()))
         {
-          for (FieldMaskSet<LogicalView>::const_iterator it =
+          for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
                    total_valid_instances.begin();
                it != total_valid_instances.end(); it++)
           {
@@ -1309,7 +1313,7 @@ namespace Legion {
             else if (user_mask * pit->second.get_valid_mask())
               continue;
             FieldMask total_overlap;
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      pit->second.begin();
                  it != pit->second.end(); it++)
             {
@@ -1370,7 +1374,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Already holding the eq_lock from EquivalenceSet::analyze method
-      for (FieldMaskSet<LogicalView>::const_iterator vit =
+      for (op::FieldMaskMap<LogicalView>::const_iterator vit =
                analysis.valid_instances.begin();
            vit != analysis.valid_instances.end(); vit++)
       {
@@ -1389,7 +1393,7 @@ namespace Legion {
           if (!total_valid_instances.empty())
           {
             // Check names for the easy case
-            FieldMaskSet<LogicalView>::const_iterator finder =
+            shrt::FieldMaskMap<LogicalView>::const_iterator finder =
                 total_valid_instances.find(vit->first);
             if (finder != total_valid_instances.end())
             {
@@ -1398,7 +1402,7 @@ namespace Legion {
                 continue;
             }
             // Check to see if we have another fill view that matches
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
                      total_valid_instances.begin();
                  it != total_valid_instances.end(); it++)
             {
@@ -1418,21 +1422,21 @@ namespace Legion {
           if (!partial_valid_instances.empty() &&
               !(invalid_mask * partial_valid_fields))
           {
-            FieldMaskSet<IndexSpaceExpression> partial_valid_exprs;
+            local::FieldMaskMap<IndexSpaceExpression> partial_valid_exprs;
             ViewExprMaskSets::const_iterator finder =
                 partial_valid_instances.find(vit->first);
             if ((finder != partial_valid_instances.end()) &&
                 !(finder->second.get_valid_mask() * invalid_mask))
             {
-              FieldMaskSet<IndexSpaceExpression>::const_iterator expr_finder =
-                  finder->second.find(expr);
+              shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                  expr_finder = finder->second.find(expr);
               if (expr_finder != finder->second.end())
               {
                 invalid_mask -= expr_finder->second;
                 if (!invalid_mask)
                   continue;
               }
-              for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+              for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                        finder->second.begin();
                    it != finder->second.end(); it++)
               {
@@ -1467,16 +1471,16 @@ namespace Legion {
                   continue;
                 if (!fill->matches(pit->first->as_fill_view()))
                   continue;
-                FieldMaskSet<IndexSpaceExpression>::const_iterator expr_finder =
-                    finder->second.find(expr);
+                shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                    expr_finder = finder->second.find(expr);
                 if (expr_finder != finder->second.end())
                 {
                   invalid_mask -= expr_finder->second;
                   if (!invalid_mask)
                     break;
                 }
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                         finder->second.begin();
+                for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         it = finder->second.begin();
                      it != finder->second.end(); it++)
                 {
                   if (it->first == expr)
@@ -1572,7 +1576,7 @@ namespace Legion {
                 fidx = invalid_mask.find_next_set(fidx + 1);
               }
               FieldMask allvalid_mask = invalid_mask;
-              FieldMaskSet<IndexSpaceExpression> no_partial_valid_exprs;
+              local::FieldMaskMap<IndexSpaceExpression> no_partial_valid_exprs;
               alias_analysis.visit_leaves(
                   invalid_mask, allvalid_mask, expr, no_partial_valid_exprs);
               if (!!allvalid_mask)
@@ -1648,7 +1652,7 @@ namespace Legion {
           // Always perform a simple name check since that is easy
           if (!total_valid_instances.empty())
           {
-            FieldMaskSet<LogicalView>::const_iterator finder =
+            shrt::FieldMaskMap<LogicalView>::const_iterator finder =
                 total_valid_instances.find(vit->first);
             if (finder != total_valid_instances.end())
             {
@@ -1662,21 +1666,21 @@ namespace Legion {
             // Collective view case
             // Next check the partially valid views and see if they
             // cover expression
-            FieldMaskSet<IndexSpaceExpression> partial_valid_exprs;
+            local::FieldMaskMap<IndexSpaceExpression> partial_valid_exprs;
             ViewExprMaskSets::const_iterator finder =
                 partial_valid_instances.find(vit->first);
             if ((finder != partial_valid_instances.end()) &&
                 !(finder->second.get_valid_mask() * invalid_mask))
             {
-              FieldMaskSet<IndexSpaceExpression>::const_iterator expr_finder =
-                  finder->second.find(expr);
+              shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                  expr_finder = finder->second.find(expr);
               if (expr_finder != finder->second.end())
               {
                 invalid_mask -= expr_finder->second;
                 if (!invalid_mask)
                   continue;
               }
-              for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+              for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                        finder->second.begin();
                    it != finder->second.end(); it++)
               {
@@ -1725,7 +1729,7 @@ namespace Legion {
           {
             // Non-collective view
             // See if there are any collective aliases
-            FieldMaskSet<IndexSpaceExpression> partial_valid_exprs;
+            local::FieldMaskMap<IndexSpaceExpression> partial_valid_exprs;
             if (vit->first->is_individual_view() &&
                 !collective_instances.empty() &&
                 !(collective_instances.get_valid_mask() * invalid_mask))
@@ -1734,7 +1738,7 @@ namespace Legion {
               IndividualView* view = vit->first->as_individual_view();
               // Scan through all the collective views and see which ones
               // we alias with and what they are valid for
-              for (FieldMaskSet<CollectiveView>::const_iterator cit =
+              for (lng::FieldMaskMap<CollectiveView>::const_iterator cit =
                        collective_instances.begin();
                    cit != collective_instances.end(); cit++)
               {
@@ -1743,7 +1747,7 @@ namespace Legion {
                 if (!view->aliases(cit->first))
                   continue;
                 // Alias on fields and instances, check expressions
-                FieldMaskSet<LogicalView>::const_iterator total_finder =
+                shrt::FieldMaskMap<LogicalView>::const_iterator total_finder =
                     total_valid_instances.find(cit->first);
                 if (total_finder != total_valid_instances.end())
                 {
@@ -1757,7 +1761,7 @@ namespace Legion {
                 if ((finder != partial_valid_instances.end()) &&
                     !(finder->second.get_valid_mask() * invalid_mask))
                 {
-                  FieldMaskSet<IndexSpaceExpression>::const_iterator
+                  shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
                       expr_finder = finder->second.find(expr);
                   if (expr_finder != finder->second.end())
                   {
@@ -1765,8 +1769,8 @@ namespace Legion {
                     if (!invalid_mask)
                       break;
                   }
-                  for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                           finder->second.begin();
+                  for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                           it = finder->second.begin();
                        it != finder->second.end(); it++)
                   {
                     if (it->first == expr)
@@ -1803,16 +1807,16 @@ namespace Legion {
               if ((finder != partial_valid_instances.end()) &&
                   !(finder->second.get_valid_mask() * invalid_mask))
               {
-                FieldMaskSet<IndexSpaceExpression>::const_iterator expr_finder =
-                    finder->second.find(expr);
+                shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                    expr_finder = finder->second.find(expr);
                 if (expr_finder != finder->second.end())
                 {
                   invalid_mask -= expr_finder->second;
                   if (!invalid_mask)
                     continue;
                 }
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                         finder->second.begin();
+                for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         it = finder->second.begin();
                      it != finder->second.end(); it++)
                 {
                   if (it->first == expr)
@@ -1891,7 +1895,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Already holding the eq_lock from EquivalenceSet::analyze method
-      for (FieldMaskSet<LogicalView>::const_iterator ait =
+      for (op::FieldMaskMap<LogicalView>::const_iterator ait =
                analysis.antivalid_instances.begin();
            ait != analysis.antivalid_instances.end(); ait++)
       {
@@ -1954,7 +1958,7 @@ namespace Legion {
         {
           // Normal instance case
           // Check for it in the total valid instances first
-          FieldMaskSet<LogicalView>::const_iterator total_finder =
+          shrt::FieldMaskMap<LogicalView>::const_iterator total_finder =
               total_valid_instances.find(ait->first);
           if (total_finder != total_valid_instances.end())
           {
@@ -1970,7 +1974,7 @@ namespace Legion {
               partial_valid_instances.find(ait->first);
           if (finder != partial_valid_instances.end())
           {
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      finder->second.begin();
                  it != finder->second.end(); it++)
             {
@@ -2009,7 +2013,7 @@ namespace Legion {
             // Check for aliasing with any of the valid views
             if (!(antivalid_mask * total_valid_instances.get_valid_mask()))
             {
-              for (FieldMaskSet<LogicalView>::const_iterator it =
+              for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
                        total_valid_instances.begin();
                    it != total_valid_instances.end(); it++)
               {
@@ -2036,8 +2040,8 @@ namespace Legion {
                   continue;
                 if (!collective->aliases(pit->first->as_instance_view()))
                   continue;
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                         pit->second.begin();
+                for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         it = pit->second.begin();
                      it != pit->second.end(); it++)
                 {
                   const FieldMask overlap = it->second & antivalid_mask;
@@ -2076,7 +2080,7 @@ namespace Legion {
           {
             IndividualView* view = ait->first->as_individual_view();
             // Check against any collective views to see if we alias
-            for (FieldMaskSet<CollectiveView>::const_iterator cit =
+            for (lng::FieldMaskMap<CollectiveView>::const_iterator cit =
                      collective_instances.begin();
                  cit != collective_instances.end(); cit++)
             {
@@ -2097,8 +2101,8 @@ namespace Legion {
               finder = partial_valid_instances.find(cit->first);
               if (finder != partial_valid_instances.end())
               {
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                         finder->second.begin();
+                for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         it = finder->second.begin();
                      it != finder->second.end(); it++)
                 {
                   const FieldMask overlap = it->second & antivalid_mask;
@@ -2237,14 +2241,14 @@ namespace Legion {
         const FieldMask reduce_filter = reduction_fields & user_mask;
         if (!!reduce_filter)
           filter_reduction_instances(expr, expr_covers, reduce_filter);
-        FieldMaskSet<InstanceView> new_instances;
+        local::FieldMaskMap<InstanceView> new_instances;
         for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
         {
           const FieldMask overlap =
               user_mask & analysis.target_views[idx].get_valid_mask();
           if (!overlap)
             continue;
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (op::FieldMaskMap<InstanceView>::const_iterator it =
                    analysis.target_views[idx].begin();
                it != analysis.target_views[idx].end(); it++)
           {
@@ -2260,14 +2264,15 @@ namespace Legion {
         {
           filter_valid_instances(expr, expr_covers, non_restricted);
           // Record any non-restricted instances
-          record_instances(expr, expr_covers, non_restricted, new_instances);
+          record_instances(
+              expr, expr_covers, non_restricted, FieldMapView(new_instances));
         }
         // Update any tracing views
         if (analysis.trace_info.recording)
         {
           for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
           {
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (op::FieldMaskMap<InstanceView>::const_iterator it =
                      analysis.target_views[idx].begin();
                  it != analysis.target_views[idx].end(); it++)
             {
@@ -2286,10 +2291,11 @@ namespace Legion {
             filter_unrestricted_instances(expr, expr_covers, restricted_mask);
             // Record any of our instances that are unrestricted
             record_unrestricted_instances(
-                expr, expr_covers, restricted_mask, new_instances);
+                expr, expr_covers, restricted_mask,
+                FieldMapView(new_instances));
             copy_out(
-                expr, expr_covers, restricted_mask, new_instances, &analysis,
-                analysis.trace_info, analysis.output_aggregator);
+                expr, expr_covers, restricted_mask, FieldMapView(new_instances),
+                &analysis, analysis.trace_info, analysis.output_aggregator);
           }
         }
       }
@@ -2302,8 +2308,8 @@ namespace Legion {
         // ensures that we serialize read-only operations correctly
         // In order to avoid deadlock we have to make different copy fill
         // aggregators for each of the different fields of prior updates
-        FieldMaskSet<CopyFillAggregator> to_add;
-        for (FieldMaskSet<CopyFillGuard>::iterator it =
+        local::FieldMaskMap<CopyFillAggregator> to_add;
+        for (shrt::FieldMaskMap<CopyFillGuard>::iterator it =
                  read_only_guards.begin();
              it != read_only_guards.end(); it++)
         {
@@ -2360,7 +2366,7 @@ namespace Legion {
         }
         if (!to_add.empty())
         {
-          for (FieldMaskSet<CopyFillAggregator>::const_iterator it =
+          for (local::FieldMaskMap<CopyFillAggregator>::const_iterator it =
                    to_add.begin();
                it != to_add.end(); it++)
             read_only_guards.insert(it->first, it->second);
@@ -2406,7 +2412,7 @@ namespace Legion {
         {
           for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
           {
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (op::FieldMaskMap<InstanceView>::const_iterator it =
                      analysis.target_views[idx].begin();
                  it != analysis.target_views[idx].end(); it++)
             {
@@ -2473,7 +2479,7 @@ namespace Legion {
         {
           for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
           {
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (op::FieldMaskMap<InstanceView>::const_iterator it =
                      analysis.target_views[idx].begin();
                  it != analysis.target_views[idx].end(); it++)
             {
@@ -2710,7 +2716,7 @@ namespace Legion {
       invalidate_state(set_expr, true /*covers*/, all_ones, false /*record*/);
       // Also invalidate the partial invalidations since we know we migrated
       // them all to the new owner node
-      for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+      for (lng::FieldMaskMap<IndexSpaceExpression>::iterator it =
                partial_invalidations.begin();
            it != partial_invalidations.end(); it++)
         if (it->first->remove_nested_expression_reference(did))
@@ -2987,7 +2993,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Do the easy check for the full cover which will be the common case
-      FieldMaskSet<IndexSpaceExpression>::const_iterator finder =
+      lng::FieldMaskMap<IndexSpaceExpression>::const_iterator finder =
           initialized_data.find(set_expr);
       if (finder != initialized_data.end())
       {
@@ -3009,7 +3015,7 @@ namespace Legion {
       // expr_covers is false because we know they aren't covered otherwise
       if (!expr_covers)
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  initialized_data.begin();
              it != initialized_data.end(); it++)
         {
@@ -3039,7 +3045,7 @@ namespace Legion {
       if (!expr_covers)
       {
         FieldMask subinit = user_mask;
-        FieldMaskSet<IndexSpaceExpression>::iterator finder =
+        lng::FieldMaskMap<IndexSpaceExpression>::iterator finder =
             initialized_data.find(set_expr);
         // Check to see if we've already initialized it for the full set_expr
         if (finder != initialized_data.end())
@@ -3049,9 +3055,9 @@ namespace Legion {
           if (!subinit)
             return;
         }
-        FieldMaskSet<IndexSpaceExpression> to_add;
+        local::FieldMaskMap<IndexSpaceExpression> to_add;
         std::vector<IndexSpaceExpression*> to_delete;
-        for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+        for (lng::FieldMaskMap<IndexSpaceExpression>::iterator it =
                  initialized_data.begin();
              it != initialized_data.end(); it++)
         {
@@ -3110,7 +3116,7 @@ namespace Legion {
         // Add new ones
         if (!to_add.empty())
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    to_add.begin();
                it != to_add.end(); it++)
             if (initialized_data.insert(it->first, it->second))
@@ -3140,7 +3146,7 @@ namespace Legion {
         if (!(user_mask * initialized_data.get_valid_mask()))
         {
           std::vector<IndexSpaceExpression*> to_delete;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (lng::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    initialized_data.begin();
                it != initialized_data.end(); it++)
           {
@@ -3208,7 +3214,7 @@ namespace Legion {
         {
           // Remove any partial invalidations with overlapping fields
           std::vector<IndexSpaceExpression*> to_delete;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (lng::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    partial_invalidations.begin();
                it != partial_invalidations.end(); it++)
           {
@@ -3256,7 +3262,7 @@ namespace Legion {
     template<typename T>
     void EquivalenceSet::record_instances(
         IndexSpaceExpression* expr, const bool expr_covers,
-        const FieldMask& record_mask, const FieldMaskSet<T>& target_insts)
+        const FieldMask& record_mask, const FieldMapView<T>& target_insts)
     //--------------------------------------------------------------------------
     {
       bool rebuild_partial = false;
@@ -3264,7 +3270,7 @@ namespace Legion {
       {
         if (!(target_insts.get_valid_mask() - record_mask))
         {
-          for (typename FieldMaskSet<T>::const_iterator it =
+          for (typename FieldMapView<T>::const_iterator it =
                    target_insts.begin();
                it != target_insts.end(); it++)
           {
@@ -3286,8 +3292,8 @@ namespace Legion {
               if (!(finder->second.get_valid_mask() - it->second))
               {
                 // We're pruning everything so remove them all now
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator eit =
-                         finder->second.begin();
+                for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         eit = finder->second.begin();
                      eit != finder->second.end(); eit++)
                   if (eit->first->remove_nested_expression_reference(did))
                     delete eit->first;
@@ -3300,7 +3306,7 @@ namespace Legion {
               {
                 // Filter out the ones we now subsume
                 std::vector<IndexSpaceExpression*> to_delete;
-                for (FieldMaskSet<IndexSpaceExpression>::iterator eit =
+                for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator eit =
                          finder->second.begin();
                      eit != finder->second.end(); eit++)
                 {
@@ -3331,7 +3337,7 @@ namespace Legion {
         }
         else
         {
-          for (typename FieldMaskSet<T>::const_iterator it =
+          for (typename FieldMapView<T>::const_iterator it =
                    target_insts.begin();
                it != target_insts.end(); it++)
           {
@@ -3357,8 +3363,8 @@ namespace Legion {
               if (!(finder->second.get_valid_mask() - valid_mask))
               {
                 // We're pruning everything so remove them all now
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator eit =
-                         finder->second.begin();
+                for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         eit = finder->second.begin();
                      eit != finder->second.end(); eit++)
                   if (eit->first->remove_nested_expression_reference(did))
                     delete eit->first;
@@ -3371,7 +3377,7 @@ namespace Legion {
               {
                 // Filter out the ones we now subsume
                 std::vector<IndexSpaceExpression*> to_delete;
-                for (FieldMaskSet<IndexSpaceExpression>::iterator eit =
+                for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator eit =
                          finder->second.begin();
                      eit != finder->second.end(); eit++)
                 {
@@ -3405,7 +3411,7 @@ namespace Legion {
       {
         if (!(target_insts.get_valid_mask() - record_mask))
         {
-          for (typename FieldMaskSet<T>::const_iterator it =
+          for (typename FieldMapView<T>::const_iterator it =
                    target_insts.begin();
                it != target_insts.end(); it++)
             if (record_partial_valid_instance(it->first, expr, it->second))
@@ -3413,7 +3419,7 @@ namespace Legion {
         }
         else
         {
-          for (typename FieldMaskSet<T>::const_iterator it =
+          for (typename FieldMapView<T>::const_iterator it =
                    target_insts.begin();
                it != target_insts.end(); it++)
           {
@@ -3439,7 +3445,7 @@ namespace Legion {
     template<typename T>
     void EquivalenceSet::record_unrestricted_instances(
         IndexSpaceExpression* expr, const bool expr_covers,
-        FieldMask record_mask, const FieldMaskSet<T>& target_insts)
+        FieldMask record_mask, const FieldMapView<T>& target_insts)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -3463,7 +3469,7 @@ namespace Legion {
           return;
       }
       // The only fields left here are the partial restrictions
-      FieldMaskSet<IndexSpaceExpression> restrictions;
+      local::FieldMaskMap<IndexSpaceExpression> restrictions;
       for (ExprViewMaskSets::const_iterator it = restricted_instances.begin();
            it != restricted_instances.end(); it++)
       {
@@ -3511,7 +3517,7 @@ namespace Legion {
           diff_expr = expr;
         if (!diff_expr->is_empty())
         {
-          for (typename FieldMaskSet<T>::const_iterator it =
+          for (typename FieldMapView<T>::const_iterator it =
                    target_insts.begin();
                it != target_insts.end(); it++)
           {
@@ -3548,7 +3554,7 @@ namespace Legion {
       bool need_rebuild = false;
       if (check_total_valid)
       {
-        FieldMaskSet<LogicalView>::const_iterator finder =
+        shrt::FieldMaskMap<LogicalView>::const_iterator finder =
             total_valid_instances.find(target);
         if (finder != total_valid_instances.end())
         {
@@ -3565,9 +3571,9 @@ namespace Legion {
         if (!(valid_mask * finder->second.get_valid_mask()))
         {
           std::vector<IndexSpaceExpression*> to_delete;
-          FieldMaskSet<IndexSpaceExpression> to_add;
+          local::FieldMaskMap<IndexSpaceExpression> to_add;
           bool need_tighten = false;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    finder->second.begin();
                it != finder->second.end(); it++)
           {
@@ -3615,7 +3621,7 @@ namespace Legion {
             if (!valid_mask)
               break;
           }
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    to_add.begin();
                it != to_add.end(); it++)
             if (finder->second.insert(it->first, it->second))
@@ -3683,7 +3689,7 @@ namespace Legion {
         if (!!(collective_instances.get_valid_mask() - filter_mask))
         {
           std::vector<CollectiveView*> to_delete;
-          for (FieldMaskSet<CollectiveView>::iterator it =
+          for (lng::FieldMaskMap<CollectiveView>::iterator it =
                    collective_instances.begin();
                it != collective_instances.end(); it++)
           {
@@ -3708,7 +3714,7 @@ namespace Legion {
         }
         else
         {
-          for (FieldMaskSet<CollectiveView>::const_iterator it =
+          for (lng::FieldMaskMap<CollectiveView>::const_iterator it =
                    collective_instances.begin();
                it != collective_instances.end(); it++)
             if (it->first->remove_nested_resource_ref(did))
@@ -3723,7 +3729,7 @@ namespace Legion {
         {
           // Clear out the total valid instances first
           std::vector<LogicalView*> to_delete;
-          for (FieldMaskSet<LogicalView>::iterator it =
+          for (shrt::FieldMaskMap<LogicalView>::iterator it =
                    total_valid_instances.begin();
                it != total_valid_instances.end(); it++)
           {
@@ -3769,7 +3775,7 @@ namespace Legion {
             else if (!(summary_mask - filter_mask))
             {
               // Invalidating all the expressions
-              for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+              for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                        pit->second.begin();
                    it != pit->second.end(); it++)
               {
@@ -3791,7 +3797,7 @@ namespace Legion {
             {
               // Only invalidating some of the expressions
               std::vector<IndexSpaceExpression*> to_erase;
-              for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+              for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                        pit->second.begin();
                    it != pit->second.end(); it++)
               {
@@ -3860,8 +3866,8 @@ namespace Legion {
             if (!view_overlap)
               continue;
             std::vector<IndexSpaceExpression*> to_erase;
-            FieldMaskSet<IndexSpaceExpression> to_add;
-            for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+            local::FieldMaskMap<IndexSpaceExpression> to_add;
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                      pit->second.begin();
                  it != pit->second.end(); it++)
             {
@@ -3891,7 +3897,7 @@ namespace Legion {
               if (!view_overlap)
                 break;
             }
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      to_add.begin();
                  it != to_add.end(); it++)
               if (pit->second.insert(it->first, it->second))
@@ -3904,7 +3910,7 @@ namespace Legion {
               // Don't delete if we just added it
               if (to_add.find(*it) != to_add.end())
                 continue;
-              FieldMaskSet<IndexSpaceExpression>::iterator finder =
+              shrt::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                   pit->second.find(*it);
 #ifdef DEBUG_LEGION
               assert(finder != pit->second.end());
@@ -3963,7 +3969,7 @@ namespace Legion {
           std::vector<LogicalView*> to_delete;
           bool need_partial_rebuild = false;
           IndexSpaceExpression* diff_expr = nullptr;
-          for (FieldMaskSet<LogicalView>::iterator it =
+          for (shrt::FieldMaskMap<LogicalView>::iterator it =
                    total_valid_instances.begin();
                it != total_valid_instances.end(); it++)
           {
@@ -4047,7 +4053,7 @@ namespace Legion {
       }
       // If we're still here, then we now have to do the hard part of
       // computing the intefering expression sets
-      FieldMaskSet<IndexSpaceExpression> restricted_sets;
+      local::FieldMaskMap<IndexSpaceExpression> restricted_sets;
       for (ExprViewMaskSets::const_iterator it = restricted_instances.begin();
            it != restricted_instances.end(); it++)
       {
@@ -4244,7 +4250,7 @@ namespace Legion {
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& user_mask,
         const std::vector<PhysicalManager*>& target_instances,
-        const VectorView<FieldMaskSet<InstanceView> >& target_views,
+        const VectorView<op::FieldMaskMap<InstanceView> >& target_views,
         const std::vector<IndividualView*>& source_views,
         const PhysicalTraceInfo& trace_info, const bool record_valid,
         const bool record_release)
@@ -4262,7 +4268,7 @@ namespace Legion {
       if (!!reduce_mask)
       {
         // Apply any reductions
-        FieldMaskSet<IndexSpaceExpression> applied_reductions;
+        local::FieldMaskMap<IndexSpaceExpression> applied_reductions;
         apply_reductions(
             target_instances, target_views, expr, expr_covers, reduce_mask,
             input_aggregator, previous_guard, analysis, false /*track*/,
@@ -4276,7 +4282,7 @@ namespace Legion {
           assert(!is_write);
 #endif
           // See if covered the full expressions for invalidation
-          FieldMaskSet<IndexSpaceExpression>::iterator finder =
+          local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
               applied_reductions.find(expr);
           if (finder != applied_reductions.end())
           {
@@ -4327,7 +4333,7 @@ namespace Legion {
                 filter_valid_instances(union_expr, union_covers, it->set_mask);
             }
             // Remove expression references that flowed back
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      applied_reductions.begin();
                  it != applied_reductions.end(); it++)
               if (it->first->remove_nested_expression_reference(did))
@@ -4368,25 +4374,27 @@ namespace Legion {
           {
             for (unsigned idx = 0; idx < target_views.size(); idx++)
             {
-              const FieldMaskSet<InstanceView>& targets = target_views[idx];
+              const op::FieldMaskMap<InstanceView>& targets = target_views[idx];
               if (non_restricted * targets.get_valid_mask())
                 continue;
-              record_instances(expr, expr_covers, non_restricted, targets);
+              record_instances(
+                  expr, expr_covers, non_restricted, FieldMapView(targets));
             }
           }
           for (unsigned idx = 0; idx < target_views.size(); idx++)
           {
-            const FieldMaskSet<InstanceView>& targets = target_views[idx];
+            const op::FieldMaskMap<InstanceView>& targets = target_views[idx];
             if (restricted_mask * targets.get_valid_mask())
               continue;
             record_unrestricted_instances(
-                expr, expr_covers, restricted_mask, targets);
+                expr, expr_covers, restricted_mask, FieldMapView(targets));
           }
         }
         else
         {
           for (unsigned idx = 0; idx < target_views.size(); idx++)
-            record_instances(expr, expr_covers, user_mask, target_views[idx]);
+            record_instances(
+                expr, expr_covers, user_mask, FieldMapView(target_views[idx]));
         }
       }
     }
@@ -4398,7 +4406,7 @@ namespace Legion {
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& update_mask,
         const std::vector<PhysicalManager*>& target_instances,
-        const VectorView<FieldMaskSet<InstanceView> >& target_views,
+        const VectorView<op::FieldMaskMap<InstanceView> >& target_views,
         const std::vector<IndividualView*>& source_views,
         const PhysicalTraceInfo& trace_info, const bool skip_valid_check,
         const ReductionOpID redop /*= 0*/,
@@ -4411,7 +4419,7 @@ namespace Legion {
       {
         if (target_views[idx].get_valid_mask() * update_mask)
           continue;
-        for (FieldMaskSet<InstanceView>::const_iterator vit =
+        for (op::FieldMaskMap<InstanceView>::const_iterator vit =
                  target_views[idx].begin();
              vit != target_views[idx].end(); vit++)
         {
@@ -4426,7 +4434,7 @@ namespace Legion {
             if (find_fully_valid_fields(target, inst_mask, expr, expr_covers))
               continue;
             // Next compute the partial valid expressions
-            FieldMaskSet<IndexSpaceExpression> partial_valid_exprs;
+            local::FieldMaskMap<IndexSpaceExpression> partial_valid_exprs;
             // If we're an individual view and there are potentially aliasing
             // collective views then we do an additional analysis here to see
             // if we are already valid for those other expression fields
@@ -4439,7 +4447,7 @@ namespace Legion {
               // expressions and fields which are already valid
               const DistributedID inst_did =
                   target->as_individual_view()->get_manager()->did;
-              for (FieldMaskSet<CollectiveView>::const_iterator cit =
+              for (lng::FieldMaskMap<CollectiveView>::const_iterator cit =
                        collective_instances.begin();
                    cit != collective_instances.end(); cit++)
               {
@@ -4467,7 +4475,7 @@ namespace Legion {
             if (find_partial_valid_fields(
                     target, inst_mask, expr, expr_covers, partial_valid_exprs))
               continue;
-            FieldMaskSet<IndexSpaceExpression> needed_exprs;
+            local::FieldMaskMap<IndexSpaceExpression> needed_exprs;
             if (!partial_valid_exprs.empty())
             {
               // Group expressions by fields since unions
@@ -4527,17 +4535,18 @@ namespace Legion {
               if (!(needed_mask * partial_valid_fields))
                 alias_analysis.traverse_partial(
                     needed_mask, partial_valid_instances);
-              local::map<InstanceView*, FieldMaskSet<IndexSpaceExpression> >
+              local::map<
+                  InstanceView*, local::FieldMaskMap<IndexSpaceExpression> >
                   updates;
               alias_analysis.visit_leaves(
                   needed_mask, context, tree_id, updates);
               for (local::map<
                        InstanceView*,
-                       FieldMaskSet<IndexSpaceExpression> >::const_iterator
-                       uit = updates.begin();
+                       local::FieldMaskMap<IndexSpaceExpression> >::
+                       const_iterator uit = updates.begin();
                    uit != updates.end(); uit++)
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                         uit->second.begin();
+                for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         it = uit->second.begin();
                      it != uit->second.end(); it++)
                   issue_update_copies_and_fills(
                       uit->first, target_instances[idx], source_views,
@@ -4554,8 +4563,8 @@ namespace Legion {
               // At this point, any remaining needed_exprs are ones that
               // we can just issue the udpate copies and fills for from
               // the original target instance
-              for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                       needed_exprs.begin();
+              for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                       it = needed_exprs.begin();
                    it != needed_exprs.end(); it++)
                 issue_update_copies_and_fills(
                     target, target_instances[idx], source_views, aggregator,
@@ -4580,7 +4589,7 @@ namespace Legion {
         const bool expr_covers) const
     //--------------------------------------------------------------------------
     {
-      FieldMaskSet<LogicalView>::const_iterator total_finder =
+      shrt::FieldMaskMap<LogicalView>::const_iterator total_finder =
           total_valid_instances.find(target);
       if (total_finder != total_valid_instances.end())
       {
@@ -4597,8 +4606,8 @@ namespace Legion {
               partial_valid_instances.find(target);
           if (partial_finder != partial_valid_instances.end())
           {
-            FieldMaskSet<IndexSpaceExpression>::const_iterator expr_finder =
-                partial_finder->second.find(expr);
+            shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                expr_finder = partial_finder->second.find(expr);
             if (expr_finder != partial_finder->second.end())
             {
               inst_mask -= expr_finder->second;
@@ -4615,7 +4624,7 @@ namespace Legion {
     bool EquivalenceSet::find_partial_valid_fields(
         InstanceView* target, FieldMask& inst_mask, IndexSpaceExpression* expr,
         const bool expr_covers,
-        FieldMaskSet<IndexSpaceExpression>& partial_valid_exprs) const
+        local::FieldMaskMap<IndexSpaceExpression>& partial_valid_exprs) const
     //--------------------------------------------------------------------------
     {
       ViewExprMaskSets::const_iterator partial_finder =
@@ -4626,7 +4635,7 @@ namespace Legion {
             inst_mask & partial_finder->second.get_valid_mask();
         if (!!partial_valid)
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator eit =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator eit =
                    partial_finder->second.begin();
                eit != partial_finder->second.end(); eit++)
           {
@@ -4658,9 +4667,9 @@ namespace Legion {
               // (which can happen if this function is called more
               // than once for the same target), then we need to
               // merge expressions for any overlapping fields
-              FieldMaskSet<IndexSpaceExpression> to_add;
+              local::FieldMaskMap<IndexSpaceExpression> to_add;
               std::vector<IndexSpaceExpression*> to_delete;
-              for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+              for (local::FieldMaskMap<IndexSpaceExpression>::iterator it =
                        partial_valid_exprs.begin();
                    it != partial_valid_exprs.end(); it++)
               {
@@ -4681,8 +4690,8 @@ namespace Legion {
                        to_delete.begin();
                    it != to_delete.end(); it++)
                 partial_valid_exprs.erase(*it);
-              for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                       to_add.begin();
+              for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                       it = to_add.begin();
                    it != to_add.end(); it++)
                 partial_valid_exprs.insert(it->first, it->second);
               if (!overlap)
@@ -4711,20 +4720,20 @@ namespace Legion {
       // them before we do anything else
       if (!source_views.empty())
       {
-        FieldMaskSet<IndexSpaceExpression> remainders;
+        local::FieldMaskMap<IndexSpaceExpression> remainders;
         remainders.insert(expr, update_mask);
         for (std::vector<IndividualView*>::const_iterator src_it =
                  source_views.begin();
              src_it != source_views.end(); src_it++)
         {
           // Check to see if it is in the list of total valid instances
-          FieldMaskSet<LogicalView>::const_iterator total_finder =
+          shrt::FieldMaskMap<LogicalView>::const_iterator total_finder =
               total_valid_instances.find(*src_it);
           if ((total_finder != total_valid_instances.end()) &&
               !(remainders.get_valid_mask() * total_finder->second))
           {
             std::vector<IndexSpaceExpression*> to_delete;
-            for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+            for (local::FieldMaskMap<IndexSpaceExpression>::iterator it =
                      remainders.begin();
                  it != remainders.end(); it++)
             {
@@ -4766,7 +4775,8 @@ namespace Legion {
               FieldMask>
               join_expressions;
           unique_join_on_field_mask_sets(
-              remainders, partial_finder->second, join_expressions);
+              FieldMapView(remainders), FieldMapView(partial_finder->second),
+              join_expressions);
           bool need_tighten = false;
           for (local::map<
                    std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
@@ -4779,7 +4789,7 @@ namespace Legion {
             const size_t overlap_size = overlap->get_volume();
             if (overlap_size == 0)
               continue;
-            FieldMaskSet<IndexSpaceExpression>::iterator finder =
+            local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                 remainders.find(it->first.first);
 #ifdef DEBUG_LEGION
             assert(finder != remainders.end());
@@ -4828,7 +4838,7 @@ namespace Legion {
         // time, so we recurse on this method for any expressions that
         // are not the same as the original expression except this
         // time we will not have any sources to consider
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  remainders.begin();
              it != remainders.end(); it++)
         {
@@ -4862,8 +4872,8 @@ namespace Legion {
         if (total_fields != total_valid_instances.get_valid_mask())
         {
           // Compute selected instances that are valid for us
-          FieldMaskSet<LogicalView> total_instances;
-          for (FieldMaskSet<LogicalView>::const_iterator it =
+          local::FieldMaskMap<LogicalView> total_instances;
+          for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
                    total_valid_instances.begin();
                it != total_valid_instances.end(); it++)
           {
@@ -4888,8 +4898,8 @@ namespace Legion {
       }
       // Now look through the partial valid instances for both instances
       // that cover us as well as partially valid instances
-      FieldMaskSet<LogicalView> cover_instances;
-      local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+      local::FieldMaskMap<LogicalView> cover_instances;
+      local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           partial_instances;
       for (ViewExprMaskSets::const_iterator pit =
                partial_valid_instances.begin();
@@ -4897,7 +4907,7 @@ namespace Legion {
       {
         if (pit->second.get_valid_mask() * update_mask)
           continue;
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  pit->second.begin();
              it != pit->second.end(); it++)
         {
@@ -4985,7 +4995,7 @@ namespace Legion {
       FieldMask guard_fill_mask;
       for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
       {
-        for (FieldMaskSet<InstanceView>::const_iterator rit =
+        for (op::FieldMaskMap<InstanceView>::const_iterator rit =
                  analysis.target_views[idx].begin();
              rit != analysis.target_views[idx].end(); rit++)
         {
@@ -5077,7 +5087,7 @@ namespace Legion {
             int fidx = reduction_mask.find_first_set();
             // Figure out which fields require a fill operation
             // in order initialize the reduction instances
-            FieldMaskSet<IndexSpaceExpression> fill_exprs;
+            local::FieldMaskMap<IndexSpaceExpression> fill_exprs;
             while (fidx >= 0)
             {
               std::list<std::pair<InstanceView*, IndexSpaceExpression*> >&
@@ -5268,8 +5278,8 @@ namespace Legion {
                     fill_aggregator;
               }
               // Record the fill operation on the aggregator
-              for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                       fill_exprs.begin();
+              for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                       it = fill_exprs.begin();
                    it != fill_exprs.end(); it++)
                 fill_aggregator->record_fill(
                     red_view, fill_view, it->second, it->first,
@@ -5297,7 +5307,7 @@ namespace Legion {
       if (!reduction_fill_guards.empty() && !!guard_fill_mask &&
           !(reduction_fill_guards.get_valid_mask() * guard_fill_mask))
       {
-        for (FieldMaskSet<CopyFillGuard>::iterator it =
+        for (shrt::FieldMaskMap<CopyFillGuard>::iterator it =
                  reduction_fill_guards.begin();
              it != reduction_fill_guards.end(); it++)
         {
@@ -5322,7 +5332,7 @@ namespace Legion {
       {
         for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
         {
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (op::FieldMaskMap<InstanceView>::const_iterator it =
                    analysis.target_views[idx].begin();
                it != analysis.target_views[idx].end(); it++)
           {
@@ -5337,12 +5347,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EquivalenceSet::apply_reductions(
         const std::vector<PhysicalManager*>& target_instances,
-        const VectorView<FieldMaskSet<InstanceView> >& target_views,
+        const VectorView<op::FieldMaskMap<InstanceView> >& target_views,
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& reduction_mask, CopyFillAggregator*& aggregator,
         CopyFillGuard* previous_guard, PhysicalAnalysis* analysis,
         const bool track_events, const PhysicalTraceInfo& trace_info,
-        FieldMaskSet<IndexSpaceExpression>* applied_exprs,
+        local::FieldMaskMap<IndexSpaceExpression>* applied_exprs,
         CopyAcrossHelper* across_helper /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
@@ -5352,7 +5362,7 @@ namespace Legion {
 #endif
       for (unsigned idx = 0; idx < target_views.size(); idx++)
       {
-        for (FieldMaskSet<InstanceView>::const_iterator it =
+        for (op::FieldMaskMap<InstanceView>::const_iterator it =
                  target_views[idx].begin();
              it != target_views[idx].end(); it++)
         {
@@ -5369,19 +5379,19 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void EquivalenceSet::apply_restricted_reductions(
-        const FieldMaskSet<InstanceView>& reduction_targets,
+        const FieldMapView<InstanceView>& reduction_targets,
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& reduction_mask, CopyFillAggregator*& aggregator,
         CopyFillGuard* previous_guard, PhysicalAnalysis* analysis,
         const bool track_events, const PhysicalTraceInfo& trace_info,
-        FieldMaskSet<IndexSpaceExpression>* applied_exprs)
+        local::FieldMaskMap<IndexSpaceExpression>* applied_exprs)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!!reduction_targets.get_valid_mask());
       assert(!set_expr->is_empty());
 #endif
-      for (FieldMaskSet<InstanceView>::const_iterator it =
+      for (FieldMapView<InstanceView>::const_iterator it =
                reduction_targets.begin();
            it != reduction_targets.end(); it++)
       {
@@ -5402,7 +5412,7 @@ namespace Legion {
         const FieldMask& reduction_mask, CopyFillAggregator*& aggregator,
         CopyFillGuard* previous_guard, PhysicalAnalysis* analysis,
         const bool track_events, const PhysicalTraceInfo& trace_info,
-        FieldMaskSet<IndexSpaceExpression>* applied_exprs,
+        local::FieldMaskMap<IndexSpaceExpression>* applied_exprs,
         CopyAcrossHelper* across_helper)
     //--------------------------------------------------------------------------
     {
@@ -5634,7 +5644,7 @@ namespace Legion {
         IndexSpaceExpression* expr, const bool expr_covers,
         const FieldMask& restricted_mask,
         const std::vector<PhysicalManager*>& src_insts,
-        const VectorView<FieldMaskSet<InstanceView> >& src_views,
+        const VectorView<op::FieldMaskMap<InstanceView> >& src_views,
         PhysicalAnalysis* analysis, const PhysicalTraceInfo& trace_info,
         CopyFillAggregator*& aggregator)
     //--------------------------------------------------------------------------
@@ -5644,13 +5654,13 @@ namespace Legion {
 #endif
       for (unsigned idx = 0; idx < src_views.size(); idx++)
       {
-        const FieldMaskSet<InstanceView>& sources = src_views[idx];
+        const op::FieldMaskMap<InstanceView>& sources = src_views[idx];
         const FieldMask overlap = sources.get_valid_mask() & restricted_mask;
         if (!overlap)
           continue;
         copy_out(
-            expr, expr_covers, overlap, sources, analysis, trace_info,
-            aggregator);
+            expr, expr_covers, overlap, FieldMapView(sources), analysis,
+            trace_info, aggregator);
       }
     }
 
@@ -5658,7 +5668,7 @@ namespace Legion {
     template<typename T>
     void EquivalenceSet::copy_out(
         IndexSpaceExpression* expr, const bool expr_covers,
-        const FieldMask& restricted_mask, const FieldMaskSet<T>& src_insts,
+        const FieldMask& restricted_mask, const FieldMapView<T>& src_insts,
         PhysicalAnalysis* analysis, const PhysicalTraceInfo& trace_info,
         CopyFillAggregator*& aggregator)
     //--------------------------------------------------------------------------
@@ -5695,7 +5705,8 @@ namespace Legion {
         // Find the restricted destination instances for these fields
         local::map<std::pair<InstanceView*, T*>, FieldMask> restricted_copies;
         unique_join_on_field_mask_sets(
-            rit->second, src_insts, restricted_copies);
+            FieldMapView(rit->second), FieldMapView(src_insts),
+            restricted_copies);
         if (restricted_copies.empty())
           continue;
         for (typename local::map<
@@ -5775,7 +5786,7 @@ namespace Legion {
             if (!release_finder->second.empty())
             {
               // Insert and remove duplicate references
-              for (FieldMaskSet<InstanceView>::const_iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                        eit->second.begin();
                    it != eit->second.end(); it++)
               {
@@ -5788,7 +5799,7 @@ namespace Legion {
             }
             else
             {
-              for (FieldMaskSet<InstanceView>::const_iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                        eit->second.begin();
                    it != eit->second.end(); it++)
                 analysis.record_instance(it->first, it->second);
@@ -5800,7 +5811,8 @@ namespace Legion {
           {
             // Filter instances whose fields overlap
             std::vector<InstanceView*> to_erase;
-            for (FieldMaskSet<InstanceView>::iterator it = eit->second.begin();
+            for (shrt::FieldMaskMap<InstanceView>::iterator it =
+                     eit->second.begin();
                  it != eit->second.end(); it++)
             {
               const FieldMask inst_overlap = overlap & it->second;
@@ -5839,7 +5851,7 @@ namespace Legion {
           // and record that we'll pull valid instances from here
           to_add[eit->first] = runtime->subtract_index_spaces(eit->first, expr);
           // The intersection gets merged back into relased sets
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                    eit->second.begin();
                it != eit->second.end(); it++)
           {
@@ -5867,14 +5879,15 @@ namespace Legion {
         if (restricted_instances.find(eit->second) ==
             restricted_instances.end())
           eit->second->add_nested_expression_reference(did);
-        FieldMaskSet<InstanceView>& old_insts =
+        shrt::FieldMaskMap<InstanceView>& old_insts =
             restricted_instances[eit->first];
-        FieldMaskSet<InstanceView>& new_insts =
+        shrt::FieldMaskMap<InstanceView>& new_insts =
             restricted_instances[eit->second];
         if (!new_insts.empty() || !!(old_insts.get_valid_mask() & acquire_mask))
         {
           std::vector<InstanceView*> to_erase;
-          for (FieldMaskSet<InstanceView>::iterator it = old_insts.begin();
+          for (shrt::FieldMaskMap<InstanceView>::iterator it =
+                   old_insts.begin();
                it != old_insts.end(); it++)
           {
             const FieldMask overlap = it->second & acquire_mask;
@@ -5934,7 +5947,7 @@ namespace Legion {
       // need to filter out any previously released instances
       if (analysis.target_views.empty())
       {
-        local::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >
+        local::map<IndexSpaceExpression*, local::FieldMaskMap<InstanceView> >
             to_update;
         std::vector<IndexSpaceExpression*> to_delete;
         std::map<IndexSpaceExpression*, IndexSpaceExpression*> to_add;
@@ -5965,8 +5978,9 @@ namespace Legion {
             // Total covering of expressions
             // so move all instances back to being restricted
             std::vector<InstanceView*> to_erase;
-            FieldMaskSet<InstanceView>& updates = to_update[eit->first];
-            for (FieldMaskSet<InstanceView>::iterator it = eit->second.begin();
+            local::FieldMaskMap<InstanceView>& updates = to_update[eit->first];
+            for (shrt::FieldMaskMap<InstanceView>::iterator it =
+                     eit->second.begin();
                  it != eit->second.end(); it++)
             {
               const FieldMask inst_overlap = overlap & it->second;
@@ -6005,9 +6019,10 @@ namespace Legion {
             // and record that we'll pull valid instances from here
             to_add[eit->first] =
                 runtime->subtract_index_spaces(eit->first, expr);
-            FieldMaskSet<InstanceView>& updates = to_update[overlap_expr];
+            local::FieldMaskMap<InstanceView>& updates =
+                to_update[overlap_expr];
             // The intersection gets merged back into relased sets
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                      eit->second.begin();
                  it != eit->second.end(); it++)
             {
@@ -6033,15 +6048,16 @@ namespace Legion {
         {
           if (released_instances.find(eit->first) == released_instances.end())
             eit->first->add_nested_expression_reference(did);
-          FieldMaskSet<InstanceView>& new_insts =
+          shrt::FieldMaskMap<InstanceView>& new_insts =
               released_instances[eit->first];
-          FieldMaskSet<InstanceView>& old_insts =
+          shrt::FieldMaskMap<InstanceView>& old_insts =
               released_instances[eit->second];
           if (!new_insts.empty() ||
               !!(old_insts.get_valid_mask() & release_mask))
           {
             std::vector<InstanceView*> to_erase;
-            for (FieldMaskSet<InstanceView>::iterator it = old_insts.begin();
+            for (shrt::FieldMaskMap<InstanceView>::iterator it =
+                     old_insts.begin();
                  it != old_insts.end(); it++)
             {
               const FieldMask overlap = it->second & release_mask;
@@ -6084,8 +6100,10 @@ namespace Legion {
         if (analysis.release_aggregator != nullptr)
           analysis.release_aggregator->clear_update_fields();
         const RegionUsage release_usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
-        for (local::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
-                 const_iterator it = to_update.begin();
+        for (local::map<
+                 IndexSpaceExpression*,
+                 local::FieldMaskMap<InstanceView> >::const_iterator it =
+                 to_update.begin();
              it != to_update.end(); it++)
         {
           // If we found all these views that means that they should all be
@@ -6093,9 +6111,10 @@ namespace Legion {
           // views in non-control replicated settings and we can never be
           // here if we're in a control replicated context
           std::vector<PhysicalManager*> targets(it->second.size());
-          local::vector<FieldMaskSet<InstanceView> > views(it->second.size());
+          local::vector<op::FieldMaskMap<InstanceView> > views(
+              it->second.size());
           unsigned index = 0;
-          for (FieldMaskSet<InstanceView>::const_iterator vit =
+          for (local::FieldMaskMap<InstanceView>::const_iterator vit =
                    it->second.begin();
                vit != it->second.end(); vit++, index++)
           {
@@ -6129,7 +6148,7 @@ namespace Legion {
         filter_released_instances(expr, expr_covers, release_mask);
         for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
         {
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (op::FieldMaskMap<InstanceView>::const_iterator it =
                    analysis.target_views[idx].begin();
                it != analysis.target_views[idx].end(); it++)
           {
@@ -6186,12 +6205,12 @@ namespace Legion {
       else
       {
         // Check to see if we can union this expression with any others
-        FieldMaskSet<IndexSpaceExpression> to_union;
+        local::FieldMaskMap<IndexSpaceExpression> to_union;
         std::vector<IndexSpaceExpression*> to_delete;
         for (ExprViewMaskSets::iterator eit = restricted_instances.begin();
              eit != restricted_instances.end(); eit++)
         {
-          FieldMaskSet<InstanceView>::iterator finder =
+          shrt::FieldMaskMap<InstanceView>::iterator finder =
               eit->second.find(restrict_view);
           if (finder == eit->second.end())
             continue;
@@ -6330,7 +6349,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EquivalenceSet::update_released(
         IndexSpaceExpression* expr, const bool expr_covers,
-        FieldMaskSet<InstanceView>& updates)
+        shrt::FieldMaskMap<InstanceView>& updates)
     //--------------------------------------------------------------------------
     {
       if (expr->get_volume() == set_expr->get_volume())
@@ -6338,7 +6357,8 @@ namespace Legion {
       ExprViewMaskSets::iterator finder = released_instances.find(expr);
       if (finder != released_instances.end())
       {
-        for (FieldMaskSet<InstanceView>::const_iterator it = updates.begin();
+        for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
+                 updates.begin();
              it != updates.end(); it++)
           if (finder->second.insert(it->first, it->second))
             it->first->add_nested_valid_ref(did);
@@ -6346,7 +6366,8 @@ namespace Legion {
       else
       {
         expr->add_nested_expression_reference(did);
-        for (FieldMaskSet<InstanceView>::const_iterator it = updates.begin();
+        for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
+                 updates.begin();
              it != updates.end(); it++)
           it->first->add_nested_valid_ref(did);
         released_instances[expr].swap(updates);
@@ -6368,7 +6389,7 @@ namespace Legion {
         if (!(initialized_data.get_valid_mask() - filter_mask))
         {
           // filter everything
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    initialized_data.begin();
                it != initialized_data.end(); it++)
           {
@@ -6390,7 +6411,7 @@ namespace Legion {
         {
           // filter fields
           std::vector<IndexSpaceExpression*> to_delete;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (lng::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    initialized_data.begin();
                it != initialized_data.end(); it++)
           {
@@ -6426,8 +6447,8 @@ namespace Legion {
       {
         // Filter on fields first and then on expressions
         std::vector<IndexSpaceExpression*> to_delete;
-        FieldMaskSet<IndexSpaceExpression> to_add;
-        for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+        local::FieldMaskMap<IndexSpaceExpression> to_add;
+        for (lng::FieldMaskMap<IndexSpaceExpression>::iterator it =
                  initialized_data.begin();
              it != initialized_data.end(); it++)
         {
@@ -6464,7 +6485,7 @@ namespace Legion {
         }
         if (!to_add.empty())
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    to_add.begin();
                it != to_add.end(); it++)
             if (initialized_data.insert(it->first, it->second))
@@ -6527,7 +6548,7 @@ namespace Legion {
             }
             else if (rit->first->remove_nested_expression_reference(did))
               delete rit->first;
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                      rit->second.begin();
                  it != rit->second.end(); it++)
             {
@@ -6557,7 +6578,7 @@ namespace Legion {
             if (!(rit->second.get_valid_mask() - filter_mask))
             {
               // delete all the views in this one
-              for (FieldMaskSet<InstanceView>::const_iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                        rit->second.begin();
                    it != rit->second.end(); it++)
               {
@@ -6579,7 +6600,7 @@ namespace Legion {
             {
               // filter views based on fields
               std::vector<InstanceView*> to_erase;
-              for (FieldMaskSet<InstanceView>::iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::iterator it =
                        rit->second.begin();
                    it != rit->second.end(); it++)
               {
@@ -6633,7 +6654,8 @@ namespace Legion {
       {
         // Expression does not cover this equivalence set
         std::vector<IndexSpaceExpression*> to_delete;
-        local::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> > to_add;
+        shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >
+            to_add;
         for (ExprViewMaskSets::iterator rit = restricted_instances.begin();
              rit != restricted_instances.end(); rit++)
         {
@@ -6652,7 +6674,7 @@ namespace Legion {
             if (!(rit->second.get_valid_mask() - filter_mask))
             {
               // filter all of them
-              for (FieldMaskSet<InstanceView>::const_iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                        rit->second.begin();
                    it != rit->second.end(); it++)
               {
@@ -6674,7 +6696,7 @@ namespace Legion {
             {
               // fitler by fields
               std::vector<InstanceView*> to_erase;
-              for (FieldMaskSet<InstanceView>::iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::iterator it =
                        rit->second.begin();
                    it != rit->second.end(); it++)
               {
@@ -6713,12 +6735,14 @@ namespace Legion {
             if (!(rit->second.get_valid_mask() - filter_mask))
             {
               // All the views are flowing into to_add
-              local::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
-                  iterator finder = to_add.find(diff);
+              shrt::map<
+                  IndexSpaceExpression*,
+                  shrt::FieldMaskMap<InstanceView> >::iterator finder =
+                  to_add.find(diff);
               if (finder != to_add.end())
               {
                 // Deduplicate references in to add
-                for (FieldMaskSet<InstanceView>::const_iterator it =
+                for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                          rit->second.begin();
                      it != rit->second.end(); it++)
                   if (!finder->second.insert(it->first, it->second) &&
@@ -6732,9 +6756,9 @@ namespace Legion {
             else
             {
               // Filter by fields
-              FieldMaskSet<InstanceView>& add_set = to_add[diff];
+              shrt::FieldMaskMap<InstanceView>& add_set = to_add[diff];
               std::vector<InstanceView*> to_erase;
-              for (FieldMaskSet<InstanceView>::iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::iterator it =
                        rit->second.begin();
                    it != rit->second.end(); it++)
               {
@@ -6771,8 +6795,10 @@ namespace Legion {
             }
           }
         }
-        for (local::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
-                 iterator ait = to_add.begin();
+        for (shrt::map<
+                 IndexSpaceExpression*,
+                 shrt::FieldMaskMap<InstanceView> >::iterator ait =
+                 to_add.begin();
              ait != to_add.end(); ait++)
         {
           ExprViewMaskSets::iterator finder =
@@ -6784,7 +6810,7 @@ namespace Legion {
           }
           else
           {
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                      ait->second.begin();
                  it != ait->second.end(); it++)
               // remove duplicate references
@@ -6844,7 +6870,7 @@ namespace Legion {
           if (!(rit->second.get_valid_mask() - filter_mask))
           {
             // delete all the views in this one
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                      rit->second.begin();
                  it != rit->second.end(); it++)
             {
@@ -6866,7 +6892,8 @@ namespace Legion {
           {
             // filter views based on fields
             std::vector<InstanceView*> to_erase;
-            for (FieldMaskSet<InstanceView>::iterator it = rit->second.begin();
+            for (shrt::FieldMaskMap<InstanceView>::iterator it =
+                     rit->second.begin();
                  it != rit->second.end(); it++)
             {
               it.filter(filter_mask);
@@ -6917,7 +6944,8 @@ namespace Legion {
       {
         // Expression does not cover this equivalence set
         std::vector<IndexSpaceExpression*> to_delete;
-        local::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> > to_add;
+        shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >
+            to_add;
         for (ExprViewMaskSets::iterator rit = released_instances.begin();
              rit != released_instances.end(); rit++)
         {
@@ -6936,7 +6964,7 @@ namespace Legion {
             if (!(rit->second.get_valid_mask() - filter_mask))
             {
               // filter all of them
-              for (FieldMaskSet<InstanceView>::const_iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                        rit->second.begin();
                    it != rit->second.end(); it++)
               {
@@ -6958,7 +6986,7 @@ namespace Legion {
             {
               // fitler by fields
               std::vector<InstanceView*> to_erase;
-              for (FieldMaskSet<InstanceView>::iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::iterator it =
                        rit->second.begin();
                    it != rit->second.end(); it++)
               {
@@ -6997,12 +7025,14 @@ namespace Legion {
             if (!(rit->second.get_valid_mask() - filter_mask))
             {
               // All the views are flowing into to_add
-              local::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
-                  iterator finder = to_add.find(diff);
+              shrt::map<
+                  IndexSpaceExpression*,
+                  shrt::FieldMaskMap<InstanceView> >::iterator finder =
+                  to_add.find(diff);
               if (finder != to_add.end())
               {
                 // Deduplicate references in to add
-                for (FieldMaskSet<InstanceView>::const_iterator it =
+                for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                          rit->second.begin();
                      it != rit->second.end(); it++)
                   if (!finder->second.insert(it->first, it->second) &&
@@ -7016,9 +7046,9 @@ namespace Legion {
             else
             {
               // Filter by fields
-              FieldMaskSet<InstanceView>& add_set = to_add[diff];
+              shrt::FieldMaskMap<InstanceView>& add_set = to_add[diff];
               std::vector<InstanceView*> to_erase;
-              for (FieldMaskSet<InstanceView>::iterator it =
+              for (shrt::FieldMaskMap<InstanceView>::iterator it =
                        rit->second.begin();
                    it != rit->second.end(); it++)
               {
@@ -7055,8 +7085,10 @@ namespace Legion {
             }
           }
         }
-        for (local::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
-                 iterator ait = to_add.begin();
+        for (shrt::map<
+                 IndexSpaceExpression*,
+                 shrt::FieldMaskMap<InstanceView> >::iterator ait =
+                 to_add.begin();
              ait != to_add.end(); ait++)
         {
           ExprViewMaskSets::iterator finder =
@@ -7068,7 +7100,7 @@ namespace Legion {
           }
           else
           {
-            for (FieldMaskSet<InstanceView>::const_iterator it =
+            for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                      ait->second.begin();
                  it != ait->second.end(); it++)
               // remove duplicate references
@@ -7119,7 +7151,7 @@ namespace Legion {
       if (!read_only_guards.empty() &&
           !(src_mask * read_only_guards.get_valid_mask()))
       {
-        for (FieldMaskSet<CopyFillGuard>::iterator it =
+        for (shrt::FieldMaskMap<CopyFillGuard>::iterator it =
                  read_only_guards.begin();
              it != read_only_guards.end(); it++)
         {
@@ -7156,9 +7188,9 @@ namespace Legion {
           dst_to_src[analysis.dst_indexes[idx]] = analysis.src_indexes[idx];
         // We want to group all the target views with their across helpers
         // so that we can issue them in bulk
-        FieldMaskSet<CopyAcrossHelper> target_across;
+        local::FieldMaskMap<CopyAcrossHelper> target_across;
         // We also need to convert the target views over to source fields
-        local::vector<FieldMaskSet<InstanceView> > converted_target_views(
+        op::vector<op::FieldMaskMap<InstanceView> > converted_target_views(
             analysis.target_views.size());
         for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
         {
@@ -7183,7 +7215,7 @@ namespace Legion {
           if (!overlap)
             continue;
           target_across.insert(analysis.across_helpers[idx], overlap);
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (op::FieldMaskMap<InstanceView>::const_iterator it =
                    analysis.target_views[idx].begin();
                it != analysis.target_views[idx].end(); it++)
           {
@@ -7195,7 +7227,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(!target_across.empty());
 #endif
-        for (FieldMaskSet<CopyAcrossHelper>::const_iterator it =
+        for (local::FieldMaskMap<CopyAcrossHelper>::const_iterator it =
                  target_across.begin();
              it != target_across.end(); it++)
         {
@@ -7282,7 +7314,7 @@ namespace Legion {
         assert(!analysis.views.empty());
         assert(analysis.reduction_views.empty());
 #endif
-        for (FieldMaskSet<LogicalView>::const_iterator it =
+        for (op::FieldMaskMap<LogicalView>::const_iterator it =
                  analysis.views.begin();
              it != analysis.views.end(); it++)
         {
@@ -7311,7 +7343,9 @@ namespace Legion {
           // Easy case, just filter everything and add the new view
           filter_valid_instances(expr, expr_covers, overwrite_mask);
           if (!analysis.views.empty())
-            record_instances(expr, expr_covers, overwrite_mask, analysis.views);
+            record_instances(
+                expr, expr_covers, overwrite_mask,
+                FieldMapView(analysis.views));
         }
         else
         {
@@ -7325,18 +7359,21 @@ namespace Legion {
           if (!analysis.views.empty())
           {
             record_unrestricted_instances(
-                expr, expr_covers, restricted_mask, analysis.views);
+                expr, expr_covers, restricted_mask,
+                FieldMapView(analysis.views));
             copy_out(
-                expr, expr_covers, restricted_mask, analysis.views, &analysis,
-                analysis.trace_info, analysis.output_aggregator);
+                expr, expr_covers, restricted_mask,
+                FieldMapView(analysis.views), &analysis, analysis.trace_info,
+                analysis.output_aggregator);
             if (!!non_restricted)
               record_instances(
-                  expr, expr_covers, non_restricted, analysis.views);
+                  expr, expr_covers, non_restricted,
+                  FieldMapView(analysis.views));
           }
         }
         if (!analysis.reduction_views.empty())
         {
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (op::FieldMaskMap<InstanceView>::const_iterator it =
                    analysis.reduction_views.begin();
                it != analysis.reduction_views.end(); it++)
           {
@@ -7356,7 +7393,8 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION
           assert(analysis.views.size() == 1);
-          FieldMaskSet<LogicalView>::const_iterator it = analysis.views.begin();
+          op::FieldMaskMap<LogicalView>::const_iterator it =
+              analysis.views.begin();
           LogicalView* log_view = it->first;
           assert(log_view->is_instance_view());
           assert(!(overwrite_mask - it->second));
@@ -7374,7 +7412,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(analysis.reduction_views.empty());
 #endif
-        for (FieldMaskSet<LogicalView>::const_iterator it =
+        for (op::FieldMaskMap<LogicalView>::const_iterator it =
                  analysis.views.begin();
              it != analysis.views.end(); it++)
         {
@@ -7399,7 +7437,8 @@ namespace Legion {
       // have added the necessary references to them
       std::map<DeferredView*, unsigned> deferred_refs_to_remove;
       std::map<IndexSpaceExpression*, unsigned> expr_refs_to_remove;
-      local::map<IndexSpaceExpression*, FieldMaskSet<DeferredView> > phi_views;
+      shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<DeferredView> >
+          phi_views;
       // Do the partial valid views first
       if (!(fill_mask * partial_valid_fields))
       {
@@ -7412,9 +7451,9 @@ namespace Legion {
           if (vit->first->is_deferred_view())
           {
             DeferredView* deferred = vit->first->as_deferred_view();
-            FieldMaskSet<IndexSpaceExpression> to_add;
+            local::FieldMaskMap<IndexSpaceExpression> to_add;
             std::vector<IndexSpaceExpression*> to_remove;
-            for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                      vit->second.begin();
                  it != vit->second.end(); it++)
             {
@@ -7468,8 +7507,8 @@ namespace Legion {
             }
             if (!to_add.empty())
             {
-              for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                       to_add.begin();
+              for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                       it = to_add.begin();
                    it != to_add.end(); it++)
                 if (vit->second.insert(it->first, it->second))
                   it->first->add_nested_expression_reference(did);
@@ -7483,7 +7522,7 @@ namespace Legion {
           {
             InstanceView* inst_view = vit->first->as_instance_view();
             // Physical instance so we can just record the predicated fills
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      vit->second.begin();
                  it != vit->second.end(); it++)
             {
@@ -7530,7 +7569,7 @@ namespace Legion {
       if (!(fill_mask * total_valid_instances.get_valid_mask()))
       {
         std::vector<DeferredView*> to_delete;
-        for (FieldMaskSet<LogicalView>::iterator it =
+        for (shrt::FieldMaskMap<LogicalView>::iterator it =
                  total_valid_instances.begin();
              it != total_valid_instances.end(); it++)
         {
@@ -7590,12 +7629,14 @@ namespace Legion {
       if (!phi_views.empty())
       {
         // Create the phi views and record them in the right data structure
-        for (local::map<IndexSpaceExpression*, FieldMaskSet<DeferredView> >::
-                 iterator it = phi_views.begin();
+        for (shrt::map<
+                 IndexSpaceExpression*,
+                 shrt::FieldMaskMap<DeferredView> >::iterator it =
+                 phi_views.begin();
              it != phi_views.end(); it++)
         {
           const FieldMask phi_mask = it->second.get_valid_mask();
-          FieldMaskSet<DeferredView> true_view;
+          shrt::FieldMaskMap<DeferredView> true_view;
           true_view.insert(fill_view, phi_mask);
           PhiView* phi_view = new PhiView(
               runtime->get_available_distributed_id(), true_guard, false_guard,
@@ -7655,7 +7696,7 @@ namespace Legion {
         return;
       }
       // We're filtering specific views from this set
-      for (FieldMaskSet<InstanceView>::const_iterator fit =
+      for (op::FieldMaskMap<InstanceView>::const_iterator fit =
                analysis.filter_views.begin();
            fit != analysis.filter_views.end(); fit++)
       {
@@ -7666,11 +7707,11 @@ namespace Legion {
         // Handle any aliasing with collective views
         if (fit->first->is_collective_view())
         {
-          FieldMaskSet<InstanceView> to_filter;
+          local::FieldMaskMap<InstanceView> to_filter;
           // Collective view case, need to check against all other views
           if (!(overlap * total_valid_instances.get_valid_mask()))
           {
-            for (FieldMaskSet<LogicalView>::const_iterator it =
+            for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
                      total_valid_instances.begin();
                  it != total_valid_instances.end(); it++)
             {
@@ -7703,7 +7744,7 @@ namespace Legion {
               to_filter.insert(view, partial_overlap);
             }
           }
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (local::FieldMaskMap<InstanceView>::const_iterator it =
                    to_filter.begin();
                it != to_filter.end(); it++)
             filter_valid_instance(it->first, expr, expr_covers, it->second);
@@ -7713,7 +7754,7 @@ namespace Legion {
             !(collective_instances.get_valid_mask() * overlap))
         {
           // Individual view case, just check against the collective views
-          for (FieldMaskSet<CollectiveView>::const_iterator cit =
+          for (lng::FieldMaskMap<CollectiveView>::const_iterator cit =
                    collective_instances.begin();
                cit != collective_instances.end(); cit++)
           {
@@ -7736,19 +7777,19 @@ namespace Legion {
         // here (e.g. between collective and non-collective) since we
         // should always be releasing the same views that we acquired
         // in restricted mode at this point
-        for (FieldMaskSet<InstanceView>::const_iterator fit =
+        for (op::FieldMaskMap<InstanceView>::const_iterator fit =
                  analysis.filter_views.begin();
              fit != analysis.filter_views.end(); fit++)
         {
           const FieldMask inst_overlap = fit->second & filter_mask;
           if (!inst_overlap)
             continue;
-          FieldMaskSet<IndexSpaceExpression> to_add;
+          local::FieldMaskMap<IndexSpaceExpression> to_add;
           std::vector<IndexSpaceExpression*> to_delete;
           for (ExprViewMaskSets::iterator rit = restricted_instances.begin();
                rit != restricted_instances.end(); rit++)
           {
-            FieldMaskSet<InstanceView>::iterator finder =
+            shrt::FieldMaskMap<InstanceView>::iterator finder =
                 rit->second.find(fit->first);
             if (finder == rit->second.end())
               continue;
@@ -7789,7 +7830,7 @@ namespace Legion {
             else
               rit->second.filter_valid_mask(overlap);
           }
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    to_add.begin();
                it != to_add.end(); it++)
           {
@@ -7846,7 +7887,7 @@ namespace Legion {
             }
             if (!!to_check)
             {
-              FieldMaskSet<IndexSpaceExpression> to_filter;
+              local::FieldMaskMap<IndexSpaceExpression> to_filter;
               to_filter.insert(expr, to_check);
               for (ViewExprMaskSets::const_iterator pit =
                        partial_valid_instances.begin();
@@ -7859,7 +7900,8 @@ namespace Legion {
                     FieldMask>
                     filter_sets;
                 unique_join_on_field_mask_sets(
-                    to_filter, pit->second, filter_sets);
+                    FieldMapView(to_filter), FieldMapView(pit->second),
+                    filter_sets);
                 for (local::map<
                          std::pair<
                              IndexSpaceExpression*, IndexSpaceExpression*>,
@@ -7870,7 +7912,7 @@ namespace Legion {
                       it->first.first, it->first.second);
                   if (diff->get_volume() == it->first.first->get_volume())
                     continue;
-                  FieldMaskSet<IndexSpaceExpression>::iterator finder =
+                  local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                       to_filter.find(it->first.first);
 #ifdef DEBUG_LEGION
                   assert(finder != to_filter.end());
@@ -7888,8 +7930,8 @@ namespace Legion {
               }
               if (!to_filter.empty())
               {
-                for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                         to_filter.begin();
+                for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator
+                         it = to_filter.begin();
                      it != to_filter.end(); it++)
                 {
                   const bool covers =
@@ -7919,9 +7961,9 @@ namespace Legion {
             part_finder->second.get_valid_mask() & filter_mask;
         if (!!part_overlap)
         {
-          FieldMaskSet<IndexSpaceExpression> to_add;
+          local::FieldMaskMap<IndexSpaceExpression> to_add;
           std::vector<IndexSpaceExpression*> to_delete;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    part_finder->second.begin();
                it != part_finder->second.end(); it++)
           {
@@ -7954,7 +7996,7 @@ namespace Legion {
             if (!part_overlap)
               break;
           }
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    to_add.begin();
                it != to_add.end(); it++)
             if (part_finder->second.insert(it->first, it->second))
@@ -7966,7 +8008,7 @@ namespace Legion {
                      to_delete.begin();
                  it != to_delete.end(); it++)
             {
-              FieldMaskSet<IndexSpaceExpression>::iterator finder =
+              shrt::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                   part_finder->second.find(*it);
 #ifdef DEBUG_LEGION
               assert(finder != part_finder->second.end());
@@ -7997,7 +8039,7 @@ namespace Legion {
           }
         }
       }
-      FieldMaskSet<LogicalView>::iterator total_finder =
+      shrt::FieldMaskMap<LogicalView>::iterator total_finder =
           total_valid_instances.find(to_filter);
       if (total_finder != total_valid_instances.end())
       {
@@ -8046,7 +8088,7 @@ namespace Legion {
       assert(!view->is_reduction_kind());
 #endif
       // Check to see if this instance has already been made by the trace
-      local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+      local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           not_dominated;
       if (tracing_postconditions != nullptr)
         tracing_postconditions->dominates(view, expr, view_mask, not_dominated);
@@ -8075,7 +8117,7 @@ namespace Legion {
             new TraceViewSet(context, did, set_expr, tree_id);
       tracing_postconditions->insert(view, expr, view_mask);
       if (tracing_dirty_fields == nullptr)
-        tracing_dirty_fields = new FieldMaskSet<IndexSpaceExpression>();
+        tracing_dirty_fields = new shrt::FieldMaskMap<IndexSpaceExpression>();
       if (tracing_dirty_fields->insert(expr, view_mask))
         expr->add_nested_expression_reference(did);
     }
@@ -8100,7 +8142,7 @@ namespace Legion {
       assert(view->is_reduction_kind());
 #endif
       // Check to see if we initialized the view in this trace
-      local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+      local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           not_dominated;
       if (tracing_anticonditions != nullptr)
         tracing_anticonditions->dominates(view, expr, view_mask, not_dominated);
@@ -8143,7 +8185,7 @@ namespace Legion {
         // we don't need to add the equivalence set to the anti-conditions,
         // as the reduction data has already been consumed, and can be read
         // out from the resulting instance.
-        local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+        local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
             not_dominated;
         if (tracing_preconditions != nullptr)
           tracing_preconditions->dominates(
@@ -8172,7 +8214,7 @@ namespace Legion {
       assert(!dst_view->is_reduction_kind());
 #endif
       // record src view in the preconditions if not dominated by post
-      local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+      local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           not_dominated;
       if (tracing_postconditions != nullptr)
         tracing_postconditions->dominates(
@@ -8205,7 +8247,7 @@ namespace Legion {
       assert(src_view->is_reduction_kind());
 #endif
       // Check to see if we made the reduction instance in the trace
-      local::map<LogicalView*, FieldMaskSet<IndexSpaceExpression> >
+      local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           not_dominated;
       if (tracing_anticonditions != nullptr)
         tracing_anticonditions->dominates(
@@ -8264,21 +8306,21 @@ namespace Legion {
             new TraceViewSet(context, did, set_expr, tree_id);
       tracing_postconditions->insert(dst_view, expr, view_mask);
       if (tracing_dirty_fields == nullptr)
-        tracing_dirty_fields = new FieldMaskSet<IndexSpaceExpression>();
+        tracing_dirty_fields = new shrt::FieldMaskMap<IndexSpaceExpression>();
       if (tracing_dirty_fields->insert(expr, view_mask))
         expr->add_nested_expression_reference(did);
     }
 
     //--------------------------------------------------------------------------
     void EquivalenceSet::invalidate_tracing_restricted_views(
-        const FieldMaskSet<InstanceView>& restricted_views,
+        const FieldMapView<InstanceView>& restricted_views,
         IndexSpaceExpression* expr, FieldMask& restricted_mask)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(tracing_postconditions != nullptr);
 #endif
-      for (FieldMaskSet<InstanceView>::const_iterator it =
+      for (FieldMapView<InstanceView>::const_iterator it =
                restricted_views.begin();
            it != restricted_views.end(); it++)
       {
@@ -8321,7 +8363,7 @@ namespace Legion {
         return ready_event;
       }
       // Uniquify the tracing dirty fields so there is one expression per field
-      FieldMaskSet<IndexSpaceExpression> unique_dirty_exprs;
+      local::FieldMaskMap<IndexSpaceExpression> unique_dirty_exprs;
       if (tracing_dirty_fields != nullptr)
       {
         local::list<FieldSet<IndexSpaceExpression*> > field_sets;
@@ -8374,7 +8416,7 @@ namespace Legion {
           else
             rez.serialize<size_t>(0);
           rez.serialize<size_t>(unique_dirty_exprs.size());
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    unique_dirty_exprs.begin();
                it != unique_dirty_exprs.end(); it++)
           {
@@ -8411,7 +8453,7 @@ namespace Legion {
       }
       if (tracing_dirty_fields != nullptr)
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  tracing_dirty_fields->begin();
              it != tracing_dirty_fields->end(); it++)
           if (it->first->remove_nested_expression_reference(did))
@@ -8459,7 +8501,7 @@ namespace Legion {
       // We could get here when we're not the logical owner if we've unpacked
       // ourselves but haven't become the owner yet, in which case we still
       // need to prune ourselves out of the list
-      FieldMaskSet<CopyFillGuard>::iterator finder =
+      shrt::FieldMaskMap<CopyFillGuard>::iterator finder =
           read_only_guards.find(guard);
       // It's also possible that the equivalence set is migrated away and
       // then migrated back before this guard is removed in which case we
@@ -8484,7 +8526,7 @@ namespace Legion {
       // We could get here when we're not the logical owner if we've unpacked
       // ourselves but haven't become the owner yet, in which case we still
       // need to prune ourselves out of the list
-      FieldMaskSet<CopyFillGuard>::iterator finder =
+      shrt::FieldMaskMap<CopyFillGuard>::iterator finder =
           reduction_fill_guards.find(guard);
       // It's also possible that the equivalence set is migrated away and
       // then migrated back before this guard is removed in which case we
@@ -8794,20 +8836,21 @@ namespace Legion {
         const bool pack_invalidates)
     //--------------------------------------------------------------------------
     {
-      shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+      shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >
           valid_updates;
-      FieldMaskSet<IndexSpaceExpression> initialized_updates, invalid_updates;
+      shrt::FieldMaskMap<IndexSpaceExpression> initialized_updates,
+          invalid_updates;
       std::map<
           unsigned,
           std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >
           reduction_updates;
-      shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >
+      shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >
           restricted_updates, released_updates;
-      FieldMaskSet<CopyFillGuard> read_only_guards, reduction_fill_guards;
+      shrt::FieldMaskMap<CopyFillGuard> read_only_guards, reduction_fill_guards;
       TraceViewSet* precondition_updates = nullptr;
       TraceViewSet* anticondition_updates = nullptr;
       TraceViewSet* postcondition_updates = nullptr;
-      FieldMaskSet<IndexSpaceExpression>* dirty_updates = nullptr;
+      shrt::FieldMaskMap<IndexSpaceExpression>* dirty_updates = nullptr;
       find_overlap_updates(
           expr, expr_covers, mask, pack_invalidates, valid_updates,
           initialized_updates, invalid_updates, reduction_updates,
@@ -8835,35 +8878,36 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ void EquivalenceSet::pack_updates(
         Serializer& rez, const AddressSpaceID target,
-        const MapView<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
+        const MapView<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >&
             valid_updates,
-        const FieldMaskSet<IndexSpaceExpression>& initialized_updates,
-        const FieldMaskSet<IndexSpaceExpression>& invalidated_updates,
+        const FieldMapView<IndexSpaceExpression>& initialized_updates,
+        const FieldMapView<IndexSpaceExpression>& invalidated_updates,
         const std::map<
             unsigned,
             std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >&
             reduction_updates,
-        const MapView<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+        const MapView<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >&
             restricted_updates,
-        const MapView<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+        const MapView<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >&
             released_updates,
-        const FieldMaskSet<CopyFillGuard>* read_only_updates,
-        const FieldMaskSet<CopyFillGuard>* reduction_fill_updates,
+        const shrt::FieldMaskMap<CopyFillGuard>* read_only_updates,
+        const shrt::FieldMaskMap<CopyFillGuard>* reduction_fill_updates,
         const TraceViewSet* precondition_updates,
         const TraceViewSet* anticondition_updates,
         const TraceViewSet* postcondition_updates,
-        const FieldMaskSet<IndexSpaceExpression>* dirty_updates,
+        const shrt::FieldMaskMap<IndexSpaceExpression>* dirty_updates,
         const bool pack_references, const bool pack_tracing_references)
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(valid_updates.size());
-      for (MapView<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
+      for (MapView<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >::
                const_iterator vit = valid_updates.begin();
            vit != valid_updates.end(); vit++)
       {
         vit->first->pack_expression(rez, target);
         rez.serialize<size_t>(vit->second.size());
-        for (FieldMaskSet<LogicalView>::const_iterator it = vit->second.begin();
+        for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
+                 vit->second.begin();
              it != vit->second.end(); it++)
         {
           rez.serialize(it->first->did);
@@ -8873,7 +8917,7 @@ namespace Legion {
         }
       }
       rez.serialize<size_t>(initialized_updates.size());
-      for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+      for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                initialized_updates.begin();
            it != initialized_updates.end(); it++)
       {
@@ -8881,7 +8925,7 @@ namespace Legion {
         rez.serialize(it->second);
       }
       rez.serialize<size_t>(invalidated_updates.size());
-      for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+      for (FieldMapView<IndexSpaceExpression>::const_iterator it =
                invalidated_updates.begin();
            it != invalidated_updates.end(); it++)
       {
@@ -8908,13 +8952,13 @@ namespace Legion {
         }
       }
       rez.serialize<size_t>(restricted_updates.size());
-      for (MapView<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
+      for (MapView<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >::
                const_iterator rit = restricted_updates.begin();
            rit != restricted_updates.end(); rit++)
       {
         rit->first->pack_expression(rez, target);
         rez.serialize<size_t>(rit->second.size());
-        for (FieldMaskSet<InstanceView>::const_iterator it =
+        for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                  rit->second.begin();
              it != rit->second.end(); it++)
         {
@@ -8925,13 +8969,13 @@ namespace Legion {
         }
       }
       rez.serialize<size_t>(released_updates.size());
-      for (MapView<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
+      for (MapView<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >::
                const_iterator rit = released_updates.begin();
            rit != released_updates.end(); rit++)
       {
         rit->first->pack_expression(rez, target);
         rez.serialize<size_t>(rit->second.size());
-        for (FieldMaskSet<InstanceView>::const_iterator it =
+        for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                  rit->second.begin();
              it != rit->second.end(); it++)
         {
@@ -8944,7 +8988,7 @@ namespace Legion {
       if ((read_only_updates != nullptr) && !read_only_updates->empty())
       {
         rez.serialize<size_t>(read_only_updates->size());
-        for (FieldMaskSet<CopyFillGuard>::const_iterator it =
+        for (shrt::FieldMaskMap<CopyFillGuard>::const_iterator it =
                  read_only_updates->begin();
              it != read_only_updates->end(); it++)
         {
@@ -8958,7 +9002,7 @@ namespace Legion {
           !reduction_fill_updates->empty())
       {
         rez.serialize<size_t>(reduction_fill_updates->size());
-        for (FieldMaskSet<CopyFillGuard>::const_iterator it =
+        for (shrt::FieldMaskMap<CopyFillGuard>::const_iterator it =
                  reduction_fill_updates->begin();
              it != reduction_fill_updates->end(); it++)
         {
@@ -8983,7 +9027,7 @@ namespace Legion {
       if (dirty_updates != nullptr)
       {
         rez.serialize<size_t>(dirty_updates->size());
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  dirty_updates->begin();
              it != dirty_updates->end(); it++)
         {
@@ -9001,16 +9045,18 @@ namespace Legion {
         std::vector<RtEvent>& applied_events, const bool forward_to_owner)
     //--------------------------------------------------------------------------
     {
-      shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+      shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >
           valid_updates;
-      FieldMaskSet<IndexSpaceExpression> initialized_updates, invalid_updates;
+      shrt::FieldMaskMap<IndexSpaceExpression> initialized_updates,
+          invalid_updates;
       std::map<
           unsigned,
           std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >
           reduction_updates;
-      shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >
+      shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >
           restricted_updates, released_updates;
-      FieldMaskSet<CopyFillGuard> read_only_updates, reduction_fill_updates;
+      shrt::FieldMaskMap<CopyFillGuard> read_only_updates,
+          reduction_fill_updates;
       std::set<RtEvent> ready_events;
       size_t num_valid;
       derez.deserialize(num_valid);
@@ -9020,7 +9066,7 @@ namespace Legion {
             IndexSpaceExpression::unpack_expression(derez, source);
         size_t num_views;
         derez.deserialize(num_views);
-        FieldMaskSet<LogicalView>& views = valid_updates[expr];
+        shrt::FieldMaskMap<LogicalView>& views = valid_updates[expr];
         for (unsigned idx2 = 0; idx2 < num_views; idx2++)
         {
           DistributedID did;
@@ -9087,7 +9133,8 @@ namespace Legion {
             IndexSpaceExpression::unpack_expression(derez, source);
         size_t num_views;
         derez.deserialize(num_views);
-        FieldMaskSet<InstanceView>& restrictions = restricted_updates[expr];
+        shrt::FieldMaskMap<InstanceView>& restrictions =
+            restricted_updates[expr];
         for (unsigned idx2 = 0; idx2 < num_views; idx2++)
         {
           DistributedID did;
@@ -9109,7 +9156,7 @@ namespace Legion {
             IndexSpaceExpression::unpack_expression(derez, source);
         size_t num_views;
         derez.deserialize(num_views);
-        FieldMaskSet<InstanceView>& releases = released_updates[expr];
+        shrt::FieldMaskMap<InstanceView>& releases = released_updates[expr];
         for (unsigned idx2 = 0; idx2 < num_views; idx2++)
         {
           DistributedID did;
@@ -9193,10 +9240,10 @@ namespace Legion {
       }
       size_t num_dirty;
       derez.deserialize(num_dirty);
-      FieldMaskSet<IndexSpaceExpression>* dirty_updates = nullptr;
+      shrt::FieldMaskMap<IndexSpaceExpression>* dirty_updates = nullptr;
       if (num_dirty > 0)
       {
-        dirty_updates = new FieldMaskSet<IndexSpaceExpression>();
+        dirty_updates = new shrt::FieldMaskMap<IndexSpaceExpression>();
         for (unsigned idx = 0; idx < num_dirty; idx++)
         {
           IndexSpaceExpression* expr =
@@ -9236,29 +9283,33 @@ namespace Legion {
     //--------------------------------------------------------------------------
     EquivalenceSet::DeferApplyStateArgs::DeferApplyStateArgs(
         EquivalenceSet* s, bool forward, std::vector<RtEvent>& applied_events,
-        ExprLogicalViews& valid, FieldMaskSet<IndexSpaceExpression>& init,
-        FieldMaskSet<IndexSpaceExpression>& invd,
+        ExprLogicalViews& valid, shrt::FieldMaskMap<IndexSpaceExpression>& init,
+        shrt::FieldMaskMap<IndexSpaceExpression>& invd,
         ExprReductionViews& reductions, ExprInstanceViews& restricted,
-        ExprInstanceViews& released, FieldMaskSet<CopyFillGuard>& read_only,
-        FieldMaskSet<CopyFillGuard>& reduc_fill, TraceViewSet* preconditions,
-        TraceViewSet* anticonditions, TraceViewSet* postconditions,
-        FieldMaskSet<IndexSpaceExpression>* dirt)
+        ExprInstanceViews& released,
+        shrt::FieldMaskMap<CopyFillGuard>& read_only,
+        shrt::FieldMaskMap<CopyFillGuard>& reduc_fill,
+        TraceViewSet* preconditions, TraceViewSet* anticonditions,
+        TraceViewSet* postconditions,
+        shrt::FieldMaskMap<IndexSpaceExpression>* dirt)
       : LgTaskArgs<DeferApplyStateArgs>(implicit_provenance), set(s),
         valid_updates(
-            new shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >()),
-        initialized_updates(new FieldMaskSet<IndexSpaceExpression>()),
-        invalidated_updates(new FieldMaskSet<IndexSpaceExpression>()),
+            new shrt::map<
+                IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >()),
+        initialized_updates(new shrt::FieldMaskMap<IndexSpaceExpression>()),
+        invalidated_updates(new shrt::FieldMaskMap<IndexSpaceExpression>()),
         reduction_updates(
             new std::map<
                 unsigned, std::list<std::pair<
                               InstanceView*, IndexSpaceExpression*> > >()),
         restricted_updates(
             new shrt::map<
-                IndexSpaceExpression*, FieldMaskSet<InstanceView> >()),
-        released_updates(new shrt::map<
-                         IndexSpaceExpression*, FieldMaskSet<InstanceView> >()),
-        read_only_updates(new FieldMaskSet<CopyFillGuard>()),
-        reduction_fill_updates(new FieldMaskSet<CopyFillGuard>()),
+                IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >()),
+        released_updates(
+            new shrt::map<
+                IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >()),
+        read_only_updates(new shrt::FieldMaskMap<CopyFillGuard>()),
+        reduction_fill_updates(new shrt::FieldMaskMap<CopyFillGuard>()),
         precondition_updates(preconditions),
         anticondition_updates(anticonditions),
         postcondition_updates(postconditions), dirty_updates(dirt),
@@ -9271,12 +9322,14 @@ namespace Legion {
         if (expr_references->insert(it->first).second)
           it->first->add_base_expression_reference(META_TASK_REF);
       valid_updates->swap(valid);
-      for (FieldMaskSet<IndexSpaceExpression>::const_iterator it = init.begin();
+      for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
+               init.begin();
            it != init.end(); it++)
         if (expr_references->insert(it->first).second)
           it->first->add_base_expression_reference(META_TASK_REF);
       initialized_updates->swap(init);
-      for (FieldMaskSet<IndexSpaceExpression>::const_iterator it = invd.begin();
+      for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
+               invd.begin();
            it != invd.end(); it++)
         if (expr_references->insert(it->first).second)
           it->first->add_base_expression_reference(META_TASK_REF);
@@ -9303,7 +9356,7 @@ namespace Legion {
       reduction_fill_updates->swap(reduc_fill);
       if (dirty_updates != nullptr)
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  dirty_updates->begin();
              it != dirty_updates->end(); it++)
           if (expr_references->insert(it->first).second)
@@ -9391,9 +9444,9 @@ namespace Legion {
       }
       if (tracing_dirty_fields != nullptr)
       {
-        FieldMaskSet<IndexSpaceExpression> to_add;
+        local::FieldMaskMap<IndexSpaceExpression> to_add;
         std::vector<IndexSpaceExpression*> to_delete;
-        for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
                  tracing_dirty_fields->begin();
              it != tracing_dirty_fields->end(); it++)
         {
@@ -9420,7 +9473,7 @@ namespace Legion {
           if ((*it)->remove_nested_expression_reference(did))
             delete (*it);
         }
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  to_add.begin();
              it != to_add.end(); it++)
           if (tracing_dirty_fields->insert(it->first, it->second))
@@ -9440,9 +9493,9 @@ namespace Legion {
           assert(!expr_covers);
 #endif
           FieldMask remaining = mask;
-          FieldMaskSet<IndexSpaceExpression> to_add;
+          local::FieldMaskMap<IndexSpaceExpression> to_add;
           std::vector<IndexSpaceExpression*> to_delete;
-          for (FieldMaskSet<IndexSpaceExpression>::iterator it =
+          for (lng::FieldMaskMap<IndexSpaceExpression>::iterator it =
                    partial_invalidations.begin();
                it != partial_invalidations.end(); it++)
           {
@@ -9476,7 +9529,7 @@ namespace Legion {
             if ((*it)->remove_nested_expression_reference(did))
               delete (*it);
           }
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (local::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    to_add.begin();
                it != to_add.end(); it++)
             if (partial_invalidations.insert(it->first, it->second))
@@ -9499,19 +9552,20 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(dst->tree_id == tree_id);
 #endif
-      shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >
+      shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >
           valid_updates;
-      FieldMaskSet<IndexSpaceExpression> initialized_updates, invalid_updates;
+      shrt::FieldMaskMap<IndexSpaceExpression> initialized_updates,
+          invalid_updates;
       std::map<
           unsigned,
           std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >
           reduction_updates;
-      shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >
+      shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >
           restricted_updates, released_updates;
       TraceViewSet* precondition_updates = nullptr;
       TraceViewSet* anticondition_updates = nullptr;
       TraceViewSet* postcondition_updates = nullptr;
-      FieldMaskSet<IndexSpaceExpression>* dirty_updates = nullptr;
+      shrt::FieldMaskMap<IndexSpaceExpression>* dirty_updates = nullptr;
       std::vector<IndexSpaceExpression*> temp_refs;
       {
         // Lock in exclusive mode since we're doing an invalidate
@@ -9567,8 +9621,10 @@ namespace Legion {
         // to do an invalidation of the state, pack references to views in
         // case they ultimately need to be forwarded to a remote node when
         // we end up calling apply_state
-        for (shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
-                 const_iterator vit = valid_updates.begin();
+        for (shrt::map<
+                 IndexSpaceExpression*,
+                 shrt::FieldMaskMap<LogicalView> >::const_iterator vit =
+                 valid_updates.begin();
              vit != valid_updates.end(); vit++)
         {
           if (!std::binary_search(
@@ -9578,12 +9634,12 @@ namespace Legion {
             temp_refs.emplace_back(vit->first);
             std::sort(temp_refs.begin(), temp_refs.end());
           }
-          for (FieldMaskSet<LogicalView>::const_iterator it =
+          for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
                    vit->second.begin();
                it != vit->second.end(); it++)
             it->first->pack_valid_ref();
         }
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  initialized_updates.begin();
              it != initialized_updates.end(); it++)
         {
@@ -9595,7 +9651,7 @@ namespace Legion {
             std::sort(temp_refs.begin(), temp_refs.end());
           }
         }
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  invalid_updates.begin();
              it != invalid_updates.end(); it++)
         {
@@ -9627,8 +9683,10 @@ namespace Legion {
             }
           }
         }
-        for (shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
-                 const_iterator rit = restricted_updates.begin();
+        for (shrt::map<
+                 IndexSpaceExpression*,
+                 shrt::FieldMaskMap<InstanceView> >::const_iterator rit =
+                 restricted_updates.begin();
              rit != restricted_updates.end(); rit++)
         {
           if (!std::binary_search(
@@ -9638,13 +9696,15 @@ namespace Legion {
             temp_refs.emplace_back(rit->first);
             std::sort(temp_refs.begin(), temp_refs.end());
           }
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
             it->first->pack_valid_ref();
         }
-        for (shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
-                 const_iterator rit = released_updates.begin();
+        for (shrt::map<
+                 IndexSpaceExpression*,
+                 shrt::FieldMaskMap<InstanceView> >::const_iterator rit =
+                 released_updates.begin();
              rit != released_updates.end(); rit++)
         {
           if (!std::binary_search(
@@ -9654,7 +9714,7 @@ namespace Legion {
             temp_refs.emplace_back(rit->first);
             std::sort(temp_refs.begin(), temp_refs.end());
           }
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
             it->first->pack_valid_ref();
@@ -9663,7 +9723,7 @@ namespace Legion {
         // are already keeping their own references to everything
         if (dirty_updates != nullptr)
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    dirty_updates->begin();
                it != dirty_updates->end(); it++)
           {
@@ -9760,24 +9820,24 @@ namespace Legion {
     void EquivalenceSet::find_overlap_updates(
         IndexSpaceExpression* overlap_expr, const bool overlap_covers,
         const FieldMask& mask, const bool find_invalidates,
-        shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
+        shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >&
             valid_updates,
-        FieldMaskSet<IndexSpaceExpression>& initialized_updates,
-        FieldMaskSet<IndexSpaceExpression>& invalidated_updates,
+        shrt::FieldMaskMap<IndexSpaceExpression>& initialized_updates,
+        shrt::FieldMaskMap<IndexSpaceExpression>& invalidated_updates,
         std::map<
             unsigned,
             std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >&
             reduction_updates,
-        shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+        shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >&
             restricted_updates,
-        shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+        shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >&
             released_updates,
-        FieldMaskSet<CopyFillGuard>* read_only_guard_updates,
-        FieldMaskSet<CopyFillGuard>* reduction_fill_guard_updates,
+        shrt::FieldMaskMap<CopyFillGuard>* read_only_guard_updates,
+        shrt::FieldMaskMap<CopyFillGuard>* reduction_fill_guard_updates,
         TraceViewSet*& precondition_updates,
         TraceViewSet*& anticondition_updates,
         TraceViewSet*& postcondition_updates,
-        FieldMaskSet<IndexSpaceExpression>*& dirty_updates,
+        shrt::FieldMaskMap<IndexSpaceExpression>*& dirty_updates,
         DistributedID target_did, IndexSpaceExpression* target_expr) const
     //--------------------------------------------------------------------------
     {
@@ -9788,7 +9848,7 @@ namespace Legion {
         if (!!(total_valid_instances.get_valid_mask() - mask))
         {
           // Need to filter on fields
-          for (FieldMaskSet<LogicalView>::const_iterator it =
+          for (shrt::FieldMaskMap<LogicalView>::const_iterator it =
                    total_valid_instances.begin();
                it != total_valid_instances.end(); it++)
           {
@@ -9821,7 +9881,7 @@ namespace Legion {
           {
             if (pit->second.get_valid_mask() * mask)
               continue;
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      pit->second.begin();
                  it != pit->second.end(); it++)
             {
@@ -9855,7 +9915,7 @@ namespace Legion {
                    partial_valid_instances.begin();
                pit != partial_valid_instances.end(); pit++)
           {
-            for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+            for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                      pit->second.begin();
                  it != pit->second.end(); it++)
             {
@@ -9886,7 +9946,7 @@ namespace Legion {
       {
         if (!overlap_covers || !!(initialized_data.get_valid_mask() - mask))
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    initialized_data.begin();
                it != initialized_data.end(); it++)
           {
@@ -9912,7 +9972,12 @@ namespace Legion {
           }
         }
         else
-          initialized_updates = initialized_data;
+        {
+          for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
+                   initialized_data.begin();
+               it != initialized_data.end(); it++)
+            initialized_updates.insert(it->first, it->second);
+        }
       }
       if (find_invalidates && !partial_invalidations.empty())
       {
@@ -9922,7 +9987,10 @@ namespace Legion {
         assert(overlap_covers);
         assert(!(partial_invalidations.get_valid_mask() - mask));
 #endif
-        invalidated_updates = partial_invalidations;
+        for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
+                 partial_invalidations.begin();
+             it != partial_invalidations.end(); it++)
+          invalidated_updates.insert(it->first, it->second);
       }
       // Get updates from the reductions
       if (!reduction_instances.empty() && !(mask * reduction_fields))
@@ -9992,9 +10060,9 @@ namespace Legion {
             else if (volume < rit->first->get_volume())
               restricted_overlap = intersection;
           }
-          FieldMaskSet<InstanceView>& updates =
+          shrt::FieldMaskMap<InstanceView>& updates =
               restricted_updates[restricted_overlap];
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -10026,9 +10094,9 @@ namespace Legion {
             else if (volume < rit->first->get_volume())
               released_overlap = intersection;
           }
-          FieldMaskSet<InstanceView>& updates =
+          shrt::FieldMaskMap<InstanceView>& updates =
               released_updates[released_overlap];
-          for (FieldMaskSet<InstanceView>::const_iterator it =
+          for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                    rit->second.begin();
                it != rit->second.end(); it++)
           {
@@ -10051,7 +10119,7 @@ namespace Legion {
       if (!read_only_guards.empty() && (read_only_guard_updates != nullptr) &&
           !(mask * read_only_guards.get_valid_mask()))
       {
-        for (FieldMaskSet<CopyFillGuard>::const_iterator it =
+        for (shrt::FieldMaskMap<CopyFillGuard>::const_iterator it =
                  read_only_guards.begin();
              it != read_only_guards.end(); it++)
         {
@@ -10066,7 +10134,7 @@ namespace Legion {
           (reduction_fill_guard_updates != nullptr) &&
           !(mask * reduction_fill_guards.get_valid_mask()))
       {
-        for (FieldMaskSet<CopyFillGuard>::const_iterator it =
+        for (shrt::FieldMaskMap<CopyFillGuard>::const_iterator it =
                  reduction_fill_guards.begin();
              it != reduction_fill_guards.end(); it++)
         {
@@ -10132,7 +10200,7 @@ namespace Legion {
       }
       if (tracing_dirty_fields != nullptr)
       {
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  tracing_dirty_fields->begin();
              it != tracing_dirty_fields->end(); it++)
         {
@@ -10144,7 +10212,7 @@ namespace Legion {
           if (overlap_expr->is_empty())
             continue;
           if (dirty_updates == nullptr)
-            dirty_updates = new FieldMaskSet<IndexSpaceExpression>();
+            dirty_updates = new shrt::FieldMaskMap<IndexSpaceExpression>();
           dirty_updates->insert(overlap_expr, overlap);
         }
       }
@@ -10152,23 +10220,23 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void EquivalenceSet::apply_state(
-        shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >&
+        shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >&
             valid_updates,
-        FieldMaskSet<IndexSpaceExpression>& initialized_updates,
-        FieldMaskSet<IndexSpaceExpression>& invalidated_updates,
+        shrt::FieldMaskMap<IndexSpaceExpression>& initialized_updates,
+        shrt::FieldMaskMap<IndexSpaceExpression>& invalidated_updates,
         std::map<
             unsigned,
             std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >&
             reduction_updates,
-        shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+        shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >&
             restricted_updates,
-        shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >&
+        shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >&
             released_updates,
         TraceViewSet* precondition_updates, TraceViewSet* anticondition_updates,
         TraceViewSet* postcondition_updates,
-        FieldMaskSet<IndexSpaceExpression>* dirty_updates,
-        FieldMaskSet<CopyFillGuard>* read_only_guard_updates,
-        FieldMaskSet<CopyFillGuard>* reduction_fill_guard_updates,
+        shrt::FieldMaskMap<IndexSpaceExpression>* dirty_updates,
+        shrt::FieldMaskMap<CopyFillGuard>* read_only_guard_updates,
+        shrt::FieldMaskMap<CopyFillGuard>* reduction_fill_guard_updates,
         std::vector<RtEvent>& applied_events, const bool needs_lock,
         const bool forward_to_owner, const bool unpack_tracing_references)
     //--------------------------------------------------------------------------
@@ -10194,7 +10262,7 @@ namespace Legion {
         if (read_only_guard_updates != nullptr)
         {
           std::vector<CopyFillGuard*> to_delete;
-          for (FieldMaskSet<CopyFillGuard>::const_iterator it =
+          for (shrt::FieldMaskMap<CopyFillGuard>::const_iterator it =
                    read_only_guard_updates->begin();
                it != read_only_guard_updates->end(); it++)
             if (read_only_guards.find(it->first) == read_only_guards.end())
@@ -10210,7 +10278,7 @@ namespace Legion {
         if (reduction_fill_guard_updates != nullptr)
         {
           std::vector<CopyFillGuard*> to_delete;
-          for (FieldMaskSet<CopyFillGuard>::const_iterator it =
+          for (shrt::FieldMaskMap<CopyFillGuard>::const_iterator it =
                    reduction_fill_guard_updates->begin();
                it != reduction_fill_guard_updates->end(); it++)
             if (reduction_fill_guards.find(it->first) ==
@@ -10244,23 +10312,24 @@ namespace Legion {
         return;
       }
       const size_t dst_volume = set_expr->get_volume();
-      for (shrt::map<IndexSpaceExpression*, FieldMaskSet<LogicalView> >::
+      for (shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >::
                const_iterator it = valid_updates.begin();
            it != valid_updates.end(); it++)
       {
         if (it->first->get_volume() == dst_volume)
           record_instances(
               set_expr, true /*covers*/, it->second.get_valid_mask(),
-              it->second);
+              FieldMapView(it->second));
         else
           record_instances(
               it->first, false /*covers*/, it->second.get_valid_mask(),
-              it->second);
-        for (FieldMaskSet<LogicalView>::const_iterator vit = it->second.begin();
+              FieldMapView(it->second));
+        for (shrt::FieldMaskMap<LogicalView>::const_iterator vit =
+                 it->second.begin();
              vit != it->second.end(); vit++)
           vit->first->unpack_valid_ref();
       }
-      for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+      for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                initialized_updates.begin();
            it != initialized_updates.end(); it++)
       {
@@ -10277,11 +10346,11 @@ namespace Legion {
         // we should just be able to swap it in
         assert(partial_invalidations.empty());
 #endif
-        partial_invalidations.swap(invalidated_updates);
-        for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
-                 partial_invalidations.begin();
-             it != partial_invalidations.end(); it++)
-          it->first->add_nested_expression_reference(did);
+        for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
+                 invalidated_updates.begin();
+             it != invalidated_updates.end(); it++)
+          if (partial_invalidations.insert(it->first, it->second))
+            it->first->add_nested_expression_reference(did);
       }
       for (std::map<
                unsigned,
@@ -10304,12 +10373,12 @@ namespace Legion {
              it != local_reductions.end(); it++)
           (*it)->unpack_valid_ref();
       }
-      for (shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
+      for (shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >::
                const_iterator rit = restricted_updates.begin();
            rit != restricted_updates.end(); rit++)
       {
         const bool covers = (rit->first->get_volume() == dst_volume);
-        for (FieldMaskSet<InstanceView>::const_iterator it =
+        for (shrt::FieldMaskMap<InstanceView>::const_iterator it =
                  rit->second.begin();
              it != rit->second.end(); it++)
         {
@@ -10318,13 +10387,13 @@ namespace Legion {
           it->first->unpack_valid_ref();
         }
       }
-      for (shrt::map<IndexSpaceExpression*, FieldMaskSet<InstanceView> >::
+      for (shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >::
                iterator it = released_updates.begin();
            it != released_updates.end(); it++)
       {
         update_released(
             it->first, (it->first->get_volume() == dst_volume), it->second);
-        for (FieldMaskSet<InstanceView>::const_iterator vit =
+        for (shrt::FieldMaskMap<InstanceView>::const_iterator vit =
                  it->second.begin();
              vit != it->second.end(); vit++)
           vit->first->unpack_valid_ref();
@@ -10397,14 +10466,14 @@ namespace Legion {
         if (tracing_dirty_fields == nullptr)
         {
           tracing_dirty_fields = dirty_updates;
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    dirty_updates->begin();
                it != dirty_updates->end(); it++)
             it->first->add_nested_expression_reference(did);
         }
         else
         {
-          for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                    dirty_updates->begin();
                it != dirty_updates->end(); it++)
             if (tracing_dirty_fields->insert(it->first, it->second))
@@ -10570,7 +10639,7 @@ namespace Legion {
       }
       size_t num_dirty_exprs;
       derez.deserialize(num_dirty_exprs);
-      FieldMaskSet<IndexSpaceExpression> unique_dirty_exprs;
+      local::FieldMaskMap<IndexSpaceExpression> unique_dirty_exprs;
       for (unsigned idx = 0; idx < num_dirty_exprs; idx++)
       {
         IndexSpaceExpression* expr =
@@ -10645,11 +10714,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EqSetTracker::record_equivalence_sets(
         InnerContext* context, const FieldMask& mask,
-        FieldMaskSet<EquivalenceSet>& eq_sets,
-        FieldMaskSet<EqKDTree>& to_create,
+        op::FieldMaskMap<EquivalenceSet>& eq_sets,
+        op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
-        FieldMaskSet<EqKDTree>& new_subscriptions, unsigned new_references,
+        op::FieldMaskMap<EqKDTree>& new_subscriptions, unsigned new_references,
         AddressSpaceID source, unsigned total_responses,
         std::vector<RtEvent>& ready_events,
         const CollectiveMapping& target_mapping,
@@ -10679,7 +10748,7 @@ namespace Legion {
         creation_rects.clear();
         creation_srcs.clear();
       }
-      op::map<AddressSpaceID, FieldMaskSet<EqKDTree> > create_now;
+      op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> > create_now;
       op::map<Domain, FieldMask> create_now_rectangles;
       op::map<EquivalenceSet*, op::map<Domain, FieldMask> > create_now_sources;
       // If we have just one response, we can just move things over
@@ -10726,29 +10795,17 @@ namespace Legion {
         if (!eq_sets.empty())
         {
           if (pending_equivalence_sets == nullptr)
-          {
-            pending_equivalence_sets = new FieldMaskSet<EquivalenceSet>();
-            pending_equivalence_sets->swap(eq_sets);
-          }
-          else
-          {
-            for (FieldMaskSet<EquivalenceSet>::const_iterator it =
-                     eq_sets.begin();
-                 it != eq_sets.end(); it++)
-              pending_equivalence_sets->insert(it->first, it->second);
-          }
+            pending_equivalence_sets = new shrt::FieldMaskMap<EquivalenceSet>();
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
+                   eq_sets.begin();
+               it != eq_sets.end(); it++)
+            pending_equivalence_sets->insert(it->first, it->second);
         }
         if (new_references > 0)
           add_subscription_reference(new_references);
         // Record subscription owners
         if (!new_subscriptions.empty())
-        {
-          FieldMaskSet<EqKDTree>& subscriptions = current_subscriptions[source];
-          if (subscriptions.empty())
-            subscriptions.swap(new_subscriptions);
-          else
-            record_subscriptions(source, new_subscriptions);
-        }
+          record_subscriptions(source, new_subscriptions);
         if (!to_create.empty())
           // Even though we're going to make these equivalence sets, we'll
           // still effectively be recorded as subscribers of these nodes
@@ -10822,62 +10879,54 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void EqSetTracker::record_output_subscriptions(
-        AddressSpaceID source, FieldMaskSet<EqKDTree>& new_subscriptions)
+        AddressSpaceID source, local::FieldMaskMap<EqKDTree>& new_subscriptions)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!new_subscriptions.empty());
 #endif
       AutoLock t_lock(tracker_lock);
-      FieldMaskSet<EqKDTree>& subscriptions = current_subscriptions[source];
-      if (!subscriptions.empty())
+      lng::FieldMaskMap<EqKDTree>& subscriptions =
+          current_subscriptions[source];
+      for (local::FieldMaskMap<EqKDTree>::const_iterator it =
+               new_subscriptions.begin();
+           it != new_subscriptions.end(); it++)
       {
-        for (FieldMaskSet<EqKDTree>::const_iterator it =
-                 new_subscriptions.begin();
-             it != new_subscriptions.end(); it++)
-        {
 #ifdef DEBUG_LEGION
-          assert(
-              (subscriptions.find(it->first) == subscriptions.end()) ||
-              (subscriptions.find(it->first)->second * it->second));
+        assert(
+            (subscriptions.find(it->first) == subscriptions.end()) ||
+            (subscriptions.find(it->first)->second * it->second));
 #endif
-          subscriptions.insert(it->first, it->second);
-        }
+        subscriptions.insert(it->first, it->second);
       }
-      else
-        subscriptions.swap(new_subscriptions);
     }
 
     //--------------------------------------------------------------------------
     void EqSetTracker::record_subscriptions(
-        AddressSpaceID source, const FieldMaskSet<EqKDTree>& new_subscriptions)
+        AddressSpaceID source, const FieldMapView<EqKDTree>& new_subscriptions)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!new_subscriptions.empty());
 #endif
-      FieldMaskSet<EqKDTree>& subscriptions = current_subscriptions[source];
-      if (!subscriptions.empty())
+      lng::FieldMaskMap<EqKDTree>& subscriptions =
+          current_subscriptions[source];
+      for (FieldMapView<EqKDTree>::const_iterator it =
+               new_subscriptions.begin();
+           it != new_subscriptions.end(); it++)
       {
-        for (FieldMaskSet<EqKDTree>::const_iterator it =
-                 new_subscriptions.begin();
-             it != new_subscriptions.end(); it++)
-        {
 #ifdef DEBUG_LEGION
-          assert(
-              (subscriptions.find(it->first) == subscriptions.end()) ||
-              (subscriptions.find(it->first)->second * it->second));
+        assert(
+            (subscriptions.find(it->first) == subscriptions.end()) ||
+            (subscriptions.find(it->first)->second * it->second));
 #endif
-          subscriptions.insert(it->first, it->second);
-        }
+        subscriptions.insert(it->first, it->second);
       }
-      else
-        subscriptions = new_subscriptions;
     }
 
     //--------------------------------------------------------------------------
     void EqSetTracker::record_creation_sets(
-        FieldMaskSet<EqKDTree>& to_create,
+        op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects, AddressSpaceID source,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs)
     //--------------------------------------------------------------------------
@@ -10908,11 +10957,11 @@ namespace Legion {
       }
       if (creation_requests == nullptr)
         creation_requests =
-            new op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >();
-      FieldMaskSet<EqKDTree>& requests = (*creation_requests)[source];
+            new op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >();
+      op::FieldMaskMap<EqKDTree>& requests = (*creation_requests)[source];
       if (!requests.empty())
       {
-        for (FieldMaskSet<EqKDTree>::const_iterator it = to_create.begin();
+        for (op::FieldMaskMap<EqKDTree>::const_iterator it = to_create.begin();
              it != to_create.end(); it++)
           requests.insert(it->first, it->second);
       }
@@ -10949,7 +10998,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EqSetTracker::extract_creation_sets(
         const FieldMask& mask,
-        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+        op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >& create_now,
         op::map<Domain, FieldMask>& create_now_rectangles,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >&
             create_now_sources)
@@ -10968,8 +11017,8 @@ namespace Legion {
         // Pull out the entries just for our fields
         if (creation_requests != nullptr)
         {
-          for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator cit =
-                   creation_requests->begin();
+          for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::iterator
+                   cit = creation_requests->begin();
                cit != creation_requests->end();
                /*nothing*/)
           {
@@ -10978,14 +11027,15 @@ namespace Legion {
             else if (mask == cit->second.get_valid_mask())
             {
               create_now[cit->first].swap(cit->second);
-              op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
+              op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::iterator
                   to_delete = cit++;
               creation_requests->erase(to_delete);
             }
             else
             {
               std::vector<EqKDTree*> to_delete;
-              for (FieldMaskSet<EqKDTree>::iterator it = cit->second.begin();
+              for (op::FieldMaskMap<EqKDTree>::iterator it =
+                       cit->second.begin();
                    it != cit->second.end(); it++)
               {
                 const FieldMask overlap = mask & it->second;
@@ -11002,7 +11052,7 @@ namespace Legion {
                 cit->second.erase(*it);
               if (cit->second.empty())
               {
-                op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
+                op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::iterator
                     to_delete = cit++;
                 creation_requests->erase(to_delete);
               }
@@ -11146,7 +11196,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EqSetTracker::create_new_equivalence_sets(
         InnerContext* context, std::vector<RtEvent>& ready_events,
-        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+        op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >& create_now,
         op::map<Domain, FieldMask>& create_now_rectangles,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         const CollectiveMapping& target_mapping,
@@ -11157,7 +11207,7 @@ namespace Legion {
       // Also track which source equivalence sets have a unique set of fields
       // as we can use those to check for dominating the new set of rectangles
       // so we might be able to skip making a new equivalence set
-      FieldMaskSet<EquivalenceSet> unique_sources;
+      local::FieldMaskMap<EquivalenceSet> unique_sources;
       local::map<EquivalenceSet*, local::list<SourceState> > set_sources;
       {
         FieldMask multiple_sources;
@@ -11181,7 +11231,7 @@ namespace Legion {
           if (!(src_fields * unique_sources.get_valid_mask()))
           {
             std::vector<EquivalenceSet*> to_delete;
-            for (FieldMaskSet<EquivalenceSet>::iterator it =
+            for (local::FieldMaskMap<EquivalenceSet>::iterator it =
                      unique_sources.begin();
                  it != unique_sources.end(); it++)
             {
@@ -11222,14 +11272,14 @@ namespace Legion {
       // with all the kd-nodes that we're supposed to target
       FieldMask universe_mask;
 #ifdef DEBUG_LEGION
-      for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::const_iterator it =
-               create_now.begin();
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::const_iterator
+               it = create_now.begin();
            it != create_now.end(); it++)
         universe_mask |= it->second.get_valid_mask();
 #endif
       compute_field_sets(
           universe_mask, MapView(create_now_rectangles), rectangle_sets);
-      FieldMaskSet<EquivalenceSet> created_sets;
+      shrt::FieldMaskMap<EquivalenceSet> created_sets;
       IndexSpaceExpression* tracker_expr = get_tracker_expression();
       const ReferenceSource ref_kind = get_reference_source_kind();
       for (local::list<FieldSet<Domain> >::iterator rit =
@@ -11252,13 +11302,13 @@ namespace Legion {
         IndexSpaceExpression* expr =
             tracker_expr->create_from_rectangles(rit->elements);
         // Extract the things that we need to notify about this set
-        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_notify;
+        op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> > to_notify;
         if (rectangle_sets.size() == 1)
         {
           to_notify.swap(create_now);
           // But swap our local space back out if there is one
-          op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator finder =
-              to_notify.find(runtime->address_space);
+          op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::iterator
+              finder = to_notify.find(runtime->address_space);
           if (finder != to_notify.end())
           {
             create_now[runtime->address_space].swap(finder->second);
@@ -11271,8 +11321,8 @@ namespace Legion {
         // Next compute the CollectiveMapping for the equivalence set
         std::vector<AddressSpaceID> spaces;
         spaces.reserve(to_notify.size());
-        for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::const_iterator
-                 it = to_notify.begin();
+        for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::
+                 const_iterator it = to_notify.begin();
              it != to_notify.end(); it++)
           spaces.emplace_back(it->first);
         // Also add in any spaces for any targets that we need to send to also
@@ -11366,13 +11416,13 @@ namespace Legion {
                 mapping->pack(rez);
                 rez.serialize(ready);
                 rez.serialize<size_t>(to_notify.size());
-                for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::
+                for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::
                          const_iterator nit = to_notify.begin();
                      nit != to_notify.end(); nit++)
                 {
                   rez.serialize(nit->first);
                   rez.serialize(nit->second.size());
-                  for (FieldMaskSet<EqKDTree>::const_iterator it =
+                  for (op::FieldMaskMap<EqKDTree>::const_iterator it =
                            nit->second.begin();
                        it != nit->second.end(); it++)
                   {
@@ -11407,13 +11457,13 @@ namespace Legion {
                 mapping->pack(rez);
                 rez.serialize(ready);
                 rez.serialize<size_t>(to_notify.size());
-                for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::
+                for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::
                          const_iterator nit = to_notify.begin();
                      nit != to_notify.end(); nit++)
                 {
                   rez.serialize(nit->first);
                   rez.serialize(nit->second.size());
-                  for (FieldMaskSet<EqKDTree>::const_iterator it =
+                  for (op::FieldMaskMap<EqKDTree>::const_iterator it =
                            nit->second.begin();
                        it != nit->second.end(); it++)
                   {
@@ -11434,12 +11484,12 @@ namespace Legion {
           }
         }
         // Notify any local EqKDTree objects
-        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator finder =
+        op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::iterator finder =
             create_now.find(runtime->address_space);
         if (finder != create_now.end())
         {
           std::vector<EqKDTree*> to_delete;
-          for (FieldMaskSet<EqKDTree>::iterator it = finder->second.begin();
+          for (op::FieldMaskMap<EqKDTree>::iterator it = finder->second.begin();
                it != finder->second.end(); it++)
           {
             const FieldMask overlap = rit->set_mask & it->second;
@@ -11467,12 +11517,12 @@ namespace Legion {
       AutoLock t_lock(tracker_lock);
       if (created_equivalence_sets == nullptr)
       {
-        created_equivalence_sets = new FieldMaskSet<EquivalenceSet>();
+        created_equivalence_sets = new shrt::FieldMaskMap<EquivalenceSet>();
         created_equivalence_sets->swap(created_sets);
       }
       else
       {
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+        for (shrt::FieldMaskMap<EquivalenceSet>::const_iterator it =
                  created_sets.begin();
              it != created_sets.end(); it++)
         {
@@ -11489,9 +11539,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool EqSetTracker::check_for_congruent_source_equivalence_sets(
         FieldSet<Domain>& dest, std::vector<RtEvent>& ready_events,
-        FieldMaskSet<EquivalenceSet>& created_sets,
-        FieldMaskSet<EquivalenceSet>& unique_sources,
-        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
+        shrt::FieldMaskMap<EquivalenceSet>& created_sets,
+        local::FieldMaskMap<EquivalenceSet>& unique_sources,
+        op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >& create_now,
         local::map<EquivalenceSet*, local::list<SourceState> >& set_sources,
         const CollectiveMapping& target_mapping,
         const std::vector<EqSetTracker*>& targets)
@@ -11504,7 +11554,8 @@ namespace Legion {
       std::vector<EquivalenceSet*> to_remove;
       const AddressSpaceID local_space = runtime->address_space;
       const ReferenceSource ref_kind = get_reference_source_kind();
-      for (FieldMaskSet<EquivalenceSet>::iterator eit = unique_sources.begin();
+      for (local::FieldMaskMap<EquivalenceSet>::iterator eit =
+               unique_sources.begin();
            eit != unique_sources.end(); eit++)
       {
         const FieldMask src_mask = dest.set_mask & eit->second;
@@ -11545,12 +11596,12 @@ namespace Legion {
             // This equivalence set is already valid for exactly the
             // point of the overlapping fields
             // Get the set of EqKDTree nodes that we need to notify
-            op::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_notify;
+            op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> > to_notify;
             extract_remote_notifications(
                 overlap, runtime->address_space, create_now, to_notify);
             std::vector<AddressSpaceID> spaces;
             spaces.reserve(to_notify.size());
-            for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::
+            for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::
                      const_iterator it = to_notify.begin();
                  it != to_notify.end(); it++)
               spaces.emplace_back(it->first);
@@ -11587,13 +11638,13 @@ namespace Legion {
                   mapping.pack(rez);
                   rez.serialize(RtEvent::NO_RT_EVENT);
                   rez.serialize<size_t>(to_notify.size());
-                  for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::
+                  for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::
                            const_iterator nit = to_notify.begin();
                        nit != to_notify.end(); nit++)
                   {
                     rez.serialize(nit->first);
                     rez.serialize(nit->second.size());
-                    for (FieldMaskSet<EqKDTree>::const_iterator it =
+                    for (op::FieldMaskMap<EqKDTree>::const_iterator it =
                              nit->second.begin();
                          it != nit->second.end(); it++)
                     {
@@ -11616,13 +11667,13 @@ namespace Legion {
               }
             }
             // Check to see if there are any local notifications to perform
-            op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
+            op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::iterator
                 local_finder = create_now.find(local_space);
             if ((local_finder != create_now.end()) &&
                 !(overlap * local_finder->second.get_valid_mask()))
             {
               std::vector<EqKDTree*> to_delete;
-              for (FieldMaskSet<EqKDTree>::iterator it =
+              for (op::FieldMaskMap<EqKDTree>::iterator it =
                        local_finder->second.begin();
                    it != local_finder->second.end(); it++)
               {
@@ -11677,7 +11728,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     EquivalenceSet* EqSetTracker::find_congruent_existing_equivalence_set(
         IndexSpaceExpression* expr, const FieldMask& mask,
-        FieldMaskSet<EquivalenceSet>& created_sets, InnerContext* context)
+        shrt::FieldMaskMap<EquivalenceSet>& created_sets, InnerContext* context)
     //--------------------------------------------------------------------------
     {
       const int depth = context->get_depth();
@@ -11691,7 +11742,7 @@ namespace Legion {
       // We're just reading though so we don't need exclusive access
       const ReferenceSource ref_kind = get_reference_source_kind();
       AutoLock t_lock(tracker_lock, 1, false /*exclusive*/);
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+      for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                equivalence_sets.begin();
            it != equivalence_sets.end(); it++)
       {
@@ -11721,11 +11772,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void EqSetTracker::extract_remote_notifications(
         const FieldMask& mask, AddressSpaceID local_space,
-        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& create_now,
-        op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_notify)
+        op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >& create_now,
+        op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >& to_notify)
     //--------------------------------------------------------------------------
     {
-      for (op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator cit =
+      for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::iterator cit =
                create_now.begin();
            cit != create_now.end();
            /*nothing*/)
@@ -11740,11 +11791,11 @@ namespace Legion {
           cit++;
           continue;
         }
-        FieldMaskSet<EqKDTree>& notify = to_notify[cit->first];
+        op::FieldMaskMap<EqKDTree>& notify = to_notify[cit->first];
         if (mask != cit->second.get_valid_mask())
         {
           std::vector<EqKDTree*> to_delete;
-          for (FieldMaskSet<EqKDTree>::iterator it = cit->second.begin();
+          for (op::FieldMaskMap<EqKDTree>::iterator it = cit->second.begin();
                it != cit->second.end(); it++)
           {
             const FieldMask overlap = mask & it->second;
@@ -11763,8 +11814,8 @@ namespace Legion {
           notify.swap(cit->second);
         if (cit->second.empty())
         {
-          op::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator to_delete =
-              cit++;
+          op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::iterator
+              to_delete = cit++;
           create_now.erase(to_delete);
         }
         else
@@ -11865,7 +11916,7 @@ namespace Legion {
     {
       AutoLock t_lock(tracker_lock);
       if (pending_equivalence_sets == nullptr)
-        pending_equivalence_sets = new FieldMaskSet<EquivalenceSet>();
+        pending_equivalence_sets = new shrt::FieldMaskMap<EquivalenceSet>();
       pending_equivalence_sets->insert(set, mask);
     }
 
@@ -11906,7 +11957,7 @@ namespace Legion {
           // We've now seen all the responses, so we need to do the actual
           // work of the invalidations now that we're in a consistent state
           // First invalidate any subscriptions
-          local::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
+          local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> > to_cancel;
           find_cancellations(invalidated, to_cancel);
           // Then we can prune states out of the pending equivalence sets
           if ((pending_equivalence_sets != nullptr) &&
@@ -11922,7 +11973,7 @@ namespace Legion {
             {
               // Partial invalidation of only some fields
               std::vector<EquivalenceSet*> to_delete;
-              for (FieldMaskSet<EquivalenceSet>::iterator it =
+              for (shrt::FieldMaskMap<EquivalenceSet>::iterator it =
                        pending_equivalence_sets->begin();
                    it != pending_equivalence_sets->end(); it++)
               {
@@ -11950,7 +12001,7 @@ namespace Legion {
             if (!(created_equivalence_sets->get_valid_mask() - invalidated))
             {
               // Invalidate everyhting so we can just delete things
-              for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+              for (shrt::FieldMaskMap<EquivalenceSet>::const_iterator it =
                        created_equivalence_sets->begin();
                    it != created_equivalence_sets->end(); it++)
                 if (it->first->remove_base_gc_ref(ref_kind))
@@ -11961,7 +12012,7 @@ namespace Legion {
             else
             {
               std::vector<EquivalenceSet*> to_delete;
-              for (FieldMaskSet<EquivalenceSet>::iterator it =
+              for (shrt::FieldMaskMap<EquivalenceSet>::iterator it =
                        created_equivalence_sets->begin();
                    it != created_equivalence_sets->end(); it++)
               {
@@ -11992,7 +12043,11 @@ namespace Legion {
           if (!to_cancel.empty())
           {
             std::vector<RtEvent> cancelled_events;
-            cancel_subscriptions(to_cancel, &cancelled_events);
+            for (local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> >::
+                     const_iterator it = to_cancel.begin();
+                 it != to_cancel.end(); it++)
+              cancel_subscriptions(
+                  it->first, FieldMapView(it->second), &cancelled_events);
             // Make sure all the cancellations are done before we try
             // again so we don't double count references
             if (!cancelled_events.empty())
@@ -12035,7 +12090,7 @@ namespace Legion {
           if (!(pending_equivalence_sets->get_valid_mask() - finder->second))
           {
             // They're all ready so we can move them over
-            for (FieldMaskSet<EquivalenceSet>::iterator it =
+            for (shrt::FieldMaskMap<EquivalenceSet>::iterator it =
                      pending_equivalence_sets->begin();
                  it != pending_equivalence_sets->end(); it++)
               if (equivalence_sets.insert(it->first, it->second))
@@ -12046,7 +12101,7 @@ namespace Legion {
           else
           {
             std::vector<EquivalenceSet*> to_delete;
-            for (FieldMaskSet<EquivalenceSet>::iterator it =
+            for (shrt::FieldMaskMap<EquivalenceSet>::iterator it =
                      pending_equivalence_sets->begin();
                  it != pending_equivalence_sets->end(); it++)
             {
@@ -12081,7 +12136,7 @@ namespace Legion {
           {
             // All fields are ready so we can move them all over
             // Make sure to remove duplicate references
-            for (FieldMaskSet<EquivalenceSet>::iterator it =
+            for (shrt::FieldMaskMap<EquivalenceSet>::iterator it =
                      created_equivalence_sets->begin();
                  it != created_equivalence_sets->end(); it++)
               if (!equivalence_sets.insert(it->first, it->second) &&
@@ -12093,7 +12148,7 @@ namespace Legion {
           else
           {
             std::vector<EquivalenceSet*> to_delete;
-            for (FieldMaskSet<EquivalenceSet>::iterator it =
+            for (shrt::FieldMaskMap<EquivalenceSet>::iterator it =
                      created_equivalence_sets->begin();
                  it != created_equivalence_sets->end(); it++)
             {
@@ -12136,7 +12191,8 @@ namespace Legion {
         if (waiting_infos != nullptr)
         {
           std::vector<VersionInfo*> to_delete;
-          for (FieldMaskSet<VersionInfo>::iterator wit = waiting_infos->begin();
+          for (shrt::FieldMaskMap<VersionInfo>::iterator wit =
+                   waiting_infos->begin();
                wit != waiting_infos->end(); wit++)
           {
             const FieldMask info_overlap = wit->second & finder->second;
@@ -12183,7 +12239,7 @@ namespace Legion {
         VersionInfo* version_info, const FieldMask& mask) const
     //--------------------------------------------------------------------------
     {
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+      for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                equivalence_sets.begin();
            it != equivalence_sets.end(); it++)
       {
@@ -12254,12 +12310,12 @@ namespace Legion {
       // Make sure that we'll know when this is triggered
       ready_event.subscribe();
       derez.deserialize(num_spaces);
-      local::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_notify;
+      local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> > to_notify;
       for (unsigned idx1 = 0; idx1 < num_spaces; idx1++)
       {
         AddressSpaceID space;
         derez.deserialize(space);
-        FieldMaskSet<EqKDTree>& trees = to_notify[space];
+        local::FieldMaskMap<EqKDTree>& trees = to_notify[space];
         size_t num_trees;
         derez.deserialize(num_trees);
         for (unsigned idx2 = 0; idx2 < num_trees; idx2++)
@@ -12314,13 +12370,13 @@ namespace Legion {
             mapping->pack(rez);
             rez.serialize(local_ready);
             rez.serialize<size_t>(to_notify.size());
-            for (local::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::
+            for (local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> >::
                      const_iterator nit = to_notify.begin();
                  nit != to_notify.end(); nit++)
             {
               rez.serialize(nit->first);
               rez.serialize(nit->second.size());
-              for (FieldMaskSet<EqKDTree>::const_iterator it =
+              for (local::FieldMaskMap<EqKDTree>::const_iterator it =
                        nit->second.begin();
                    it != nit->second.end(); it++)
               {
@@ -12338,7 +12394,7 @@ namespace Legion {
           notified_events.emplace_back(notified);
         }
       }
-      local::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
+      local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> >::iterator
           local_finder = to_notify.find(runtime->address_space);
       EqSetTracker* local_target = nullptr;
       local::set<Domain> rectangles_set;
@@ -12373,7 +12429,7 @@ namespace Legion {
       // Register it with any local trees
       if (local_finder != to_notify.end())
       {
-        for (FieldMaskSet<EqKDTree>::const_iterator it =
+        for (local::FieldMaskMap<EqKDTree>::const_iterator it =
                  local_finder->second.begin();
              it != local_finder->second.end(); it++)
           it->first->record_equivalence_set(
@@ -12411,12 +12467,12 @@ namespace Legion {
       derez.deserialize(ready_event);
       size_t num_notifications;
       derez.deserialize(num_notifications);
-      local::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_notify;
+      local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> > to_notify;
       for (unsigned idx1 = 0; idx1 < num_notifications; idx1++)
       {
         AddressSpaceID space;
         derez.deserialize(space);
-        FieldMaskSet<EqKDTree>& trees = to_notify[space];
+        local::FieldMaskMap<EqKDTree>& trees = to_notify[space];
         size_t num_trees;
         derez.deserialize(num_trees);
         for (unsigned idx2 = 0; idx2 < num_trees; idx2++)
@@ -12457,13 +12513,13 @@ namespace Legion {
           mapping.pack(rez);
           rez.serialize(ready_event);
           rez.serialize<size_t>(to_notify.size());
-          for (local::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::
+          for (local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> >::
                    const_iterator nit = to_notify.begin();
                nit != to_notify.end(); nit++)
           {
             rez.serialize(nit->first);
             rez.serialize(nit->second.size());
-            for (FieldMaskSet<EqKDTree>::const_iterator it =
+            for (local::FieldMaskMap<EqKDTree>::const_iterator it =
                      nit->second.begin();
                  it != nit->second.end(); it++)
             {
@@ -12481,13 +12537,13 @@ namespace Legion {
         runtime->send_equivalence_set_reuse(*cit, rez);
         done_events.emplace_back(notified);
       }
-      local::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
+      local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> >::iterator
           local_finder = to_notify.find(runtime->address_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       if (local_finder != to_notify.end())
       {
-        for (FieldMaskSet<EqKDTree>::const_iterator it =
+        for (local::FieldMaskMap<EqKDTree>::const_iterator it =
                  local_finder->second.begin();
              it != local_finder->second.end(); it++)
           it->first->record_equivalence_set(
@@ -12512,7 +12568,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       unsigned source_references_to_remove = 0;
-      local::map<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
+      local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> > to_cancel;
       {
         FieldMask remaining = mask;
         AutoLock t_lock(tracker_lock);
@@ -12563,11 +12619,11 @@ namespace Legion {
           }
         }
         // See if we won the race to invalidating the source
-        lng::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator finder =
-            current_subscriptions.find(source);
+        lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> >::iterator
+            finder = current_subscriptions.find(source);
         if (finder != current_subscriptions.end())
         {
-          FieldMaskSet<EqKDTree>::iterator source_finder =
+          lng::FieldMaskMap<EqKDTree>::iterator source_finder =
               finder->second.find(tree);
           if (source_finder != finder->second.end())
           {
@@ -12594,7 +12650,7 @@ namespace Legion {
         if (!(remaining * equivalence_sets.get_valid_mask()))
         {
           std::vector<EquivalenceSet*> to_delete;
-          for (FieldMaskSet<EquivalenceSet>::iterator it =
+          for (lng::FieldMaskMap<EquivalenceSet>::iterator it =
                    equivalence_sets.begin();
                it != equivalence_sets.end(); it++)
           {
@@ -12618,19 +12674,25 @@ namespace Legion {
         }
       }
       if (!to_cancel.empty())
-        cancel_subscriptions(to_cancel, &invalidated_events);
+      {
+        for (local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> >::
+                 const_iterator it = to_cancel.begin();
+             it != to_cancel.end(); it++)
+          cancel_subscriptions(
+              it->first, FieldMapView(it->second), &invalidated_events);
+      }
       return source_references_to_remove;
     }
 
     //--------------------------------------------------------------------------
     void EqSetTracker::find_cancellations(
         const FieldMask& mask,
-        local::map<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_cancel)
+        local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> >& to_cancel)
     //--------------------------------------------------------------------------
     {
       // Lock held from caller
-      for (lng::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator cit =
-               current_subscriptions.begin();
+      for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> >::iterator
+               cit = current_subscriptions.begin();
            cit != current_subscriptions.end();
            /*nothing*/)
       {
@@ -12643,8 +12705,8 @@ namespace Legion {
         {
           // Selectively filter matches
           std::vector<EqKDTree*> to_delete;
-          FieldMaskSet<EqKDTree>& invalidations = to_cancel[cit->first];
-          for (FieldMaskSet<EqKDTree>::iterator it = cit->second.begin();
+          local::FieldMaskMap<EqKDTree>& invalidations = to_cancel[cit->first];
+          for (lng::FieldMaskMap<EqKDTree>::iterator it = cit->second.begin();
                it != cit->second.end(); it++)
           {
             const FieldMask overlap = it->second & mask;
@@ -12660,10 +12722,15 @@ namespace Legion {
             cit->second.erase(*it);
         }
         else  // Filtering all the fields so we can swap it out
-          to_cancel[cit->first].swap(cit->second);
+        {
+          for (lng::FieldMaskMap<EqKDTree>::iterator it = cit->second.begin();
+               it != cit->second.end(); it++)
+            to_cancel[cit->first].insert(it->first, it->second);
+          cit->second.clear();
+        }
         if (cit->second.empty())
         {
-          lng::map<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
+          lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> >::iterator
               delete_it = cit++;
           current_subscriptions.erase(delete_it);
         }
@@ -12677,58 +12744,51 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void EqSetTracker::cancel_subscriptions(
-        const MapView<AddressSpaceID, FieldMaskSet<EqKDTree> >& to_cancel,
+        AddressSpaceID target, const FieldMapView<EqKDTree>& to_cancel,
         std::vector<RtEvent>* cancelled_events)
     //--------------------------------------------------------------------------
     {
-      const AddressSpaceID local_space = runtime->address_space;
-      for (MapView<AddressSpaceID, FieldMaskSet<EqKDTree> >::const_iterator
-               cit = to_cancel.begin();
-           cit != to_cancel.end(); cit++)
+      if (target != runtime->address_space)
       {
-        if (cit->first != local_space)
+        Serializer rez;
         {
-          Serializer rez;
-          {
-            RezCheck z(rez);
+          RezCheck z(rez);
 #ifdef DEBUG_LEGION
-            assert(!cit->second.empty());
+          assert(!to_cancel.empty());
 #endif
-            rez.serialize<size_t>(cit->second.size());
-            rez.serialize(this);
-            for (FieldMaskSet<EqKDTree>::const_iterator it =
-                     cit->second.begin();
-                 it != cit->second.end(); it++)
-            {
-              rez.serialize(it->first);
-              rez.serialize(it->second);
-            }
-            if (cancelled_events != nullptr)
-            {
-              const RtUserEvent cancelled = Runtime::create_rt_user_event();
-              rez.serialize(cancelled);
-              cancelled_events->emplace_back(cancelled);
-            }
-            else
-              rez.serialize(RtUserEvent::NO_RT_USER_EVENT);
-          }
-          runtime->send_cancel_equivalence_sets_subscription(cit->first, rez);
-        }
-        else
-        {
-          unsigned references_to_remove = 0;
-          for (FieldMaskSet<EqKDTree>::const_iterator it = cit->second.begin();
-               it != cit->second.end(); it++)
+          rez.serialize<size_t>(to_cancel.size());
+          rez.serialize(this);
+          for (FieldMapView<EqKDTree>::const_iterator it = to_cancel.begin();
+               it != to_cancel.end(); it++)
           {
-            references_to_remove +=
-                it->first->cancel_subscription(this, local_space, it->second);
-            if (it->first->remove_reference(it->second.pop_count()))
-              delete it->first;
+            rez.serialize(it->first);
+            rez.serialize(it->second);
           }
-          if ((references_to_remove > 0) &&
-              remove_subscription_reference(references_to_remove))
-            std::abort();  // should never end up deleting ourselves
+          if (cancelled_events != nullptr)
+          {
+            const RtUserEvent cancelled = Runtime::create_rt_user_event();
+            rez.serialize(cancelled);
+            cancelled_events->emplace_back(cancelled);
+          }
+          else
+            rez.serialize(RtUserEvent::NO_RT_USER_EVENT);
         }
+        runtime->send_cancel_equivalence_sets_subscription(target, rez);
+      }
+      else
+      {
+        unsigned references_to_remove = 0;
+        for (FieldMapView<EqKDTree>::const_iterator it = to_cancel.begin();
+             it != to_cancel.end(); it++)
+        {
+          references_to_remove += it->first->cancel_subscription(
+              this, runtime->address_space, it->second);
+          if (it->first->remove_reference(it->second.pop_count()))
+            delete it->first;
+        }
+        if ((references_to_remove > 0) &&
+            remove_subscription_reference(references_to_remove))
+          std::abort();  // should never end up deleting ourselves
       }
     }
 
@@ -12786,13 +12846,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ void EqSetTracker::invalidate_subscriptions(
         EqKDTree* owner,
-        const MapView<AddressSpaceID, FieldMaskSet<EqSetTracker> >& subscribers,
+        const MapView<AddressSpaceID, local::FieldMaskMap<EqSetTracker> >&
+            subscribers,
         std::vector<RtEvent>& invalidated_events)
     //--------------------------------------------------------------------------
     {
       const AddressSpaceID local_space = runtime->address_space;
-      for (MapView<AddressSpaceID, FieldMaskSet<EqSetTracker> >::const_iterator
-               sit = subscribers.begin();
+      for (MapView<AddressSpaceID, local::FieldMaskMap<EqSetTracker> >::
+               const_iterator sit = subscribers.begin();
            sit != subscribers.end(); sit++)
       {
         if (sit->first != local_space)
@@ -12806,7 +12867,7 @@ namespace Legion {
 #endif
             rez.serialize<size_t>(sit->second.size());
             rez.serialize(owner);
-            for (FieldMaskSet<EqSetTracker>::const_iterator it =
+            for (local::FieldMaskMap<EqSetTracker>::const_iterator it =
                      sit->second.begin();
                  it != sit->second.end(); it++)
             {
@@ -12822,7 +12883,7 @@ namespace Legion {
         else
         {
           unsigned references_to_remove = 0;
-          for (FieldMaskSet<EqSetTracker>::const_iterator it =
+          for (local::FieldMaskMap<EqSetTracker>::const_iterator it =
                    sit->second.begin();
                it != sit->second.end(); it++)
           {

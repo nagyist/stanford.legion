@@ -364,9 +364,9 @@ namespace Legion {
           // Make sure we keep the equivalence sets alive while the
           // invalidation analysis is running since we're about to
           // invalidate the equivalence sets in the next step
-          const FieldMaskSet<EquivalenceSet>& eq_sets =
+          const op::FieldMaskMap<EquivalenceSet>& eq_sets =
               version_info.get_equivalence_sets();
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    eq_sets.begin();
                it != eq_sets.end(); it++)
             it->first->add_base_gc_ref(FIELD_ALLOCATOR_REF);
@@ -462,9 +462,10 @@ namespace Legion {
       // Remove any references that we added to the equivalence sets
       for (unsigned idx = 0; idx < version_infos.size(); idx++)
       {
-        const FieldMaskSet<EquivalenceSet>& eq_sets =
+        const op::FieldMaskMap<EquivalenceSet>& eq_sets =
             version_infos[idx].get_equivalence_sets();
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it = eq_sets.begin();
+        for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
+                 eq_sets.begin();
              it != eq_sets.end(); it++)
           if (it->first->remove_base_gc_ref(FIELD_ALLOCATOR_REF))
             delete it->first;
@@ -651,9 +652,9 @@ namespace Legion {
             // Make sure we keep the equivalence sets alive while the
             // invalidation analysis is running since we're about to
             // invalidate the equivalence sets in the next step
-            const FieldMaskSet<EquivalenceSet>& eq_sets =
+            const op::FieldMaskMap<EquivalenceSet>& eq_sets =
                 version_info.get_equivalence_sets();
-            for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+            for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
                      eq_sets.begin();
                  it != eq_sets.end(); it++)
               it->first->add_base_gc_ref(FIELD_ALLOCATOR_REF);
@@ -792,9 +793,10 @@ namespace Legion {
       // Remove any references that we added to the equivalence sets
       for (unsigned idx = 0; idx < version_infos.size(); idx++)
       {
-        const FieldMaskSet<EquivalenceSet>& eq_sets =
+        const op::FieldMaskMap<EquivalenceSet>& eq_sets =
             version_infos[idx].get_equivalence_sets();
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it = eq_sets.begin();
+        for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
+                 eq_sets.begin();
              it != eq_sets.end(); it++)
           if (it->first->remove_base_gc_ref(FIELD_ALLOCATOR_REF))
             delete it->first;

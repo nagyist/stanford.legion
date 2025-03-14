@@ -71,12 +71,12 @@ namespace Legion {
     public:
       InvalidInstAnalysis(
           Operation* op, unsigned index, IndexSpaceExpression* expr,
-          const FieldMaskSet<LogicalView>& valid_instances);
+          const lng::FieldMaskMap<LogicalView>& valid_instances);
       InvalidInstAnalysis(
           AddressSpaceID src, AddressSpaceID prev, Operation* op,
           unsigned index, IndexSpaceExpression* expr,
           InvalidInstAnalysis* target,
-          const FieldMaskSet<LogicalView>& valid_instances);
+          const op::FieldMaskMap<LogicalView>& valid_instances);
       InvalidInstAnalysis(const InvalidInstAnalysis& rhs) = delete;
       virtual ~InvalidInstAnalysis(void);
     public:
@@ -103,7 +103,7 @@ namespace Legion {
       static void handle_remote_request_invalid(
           Deserializer& derez, AddressSpaceID previous);
     public:
-      const FieldMaskSet<LogicalView> valid_instances;
+      const op::FieldMaskMap<LogicalView> valid_instances;
       InvalidInstAnalysis* const target_analysis;
     };
 
@@ -117,12 +117,12 @@ namespace Legion {
     public:
       AntivalidInstAnalysis(
           Operation* op, unsigned index, IndexSpaceExpression* expr,
-          const FieldMaskSet<LogicalView>& anti_instances);
+          const op::FieldMaskMap<LogicalView>& anti_instances);
       AntivalidInstAnalysis(
           AddressSpaceID src, AddressSpaceID prev, Operation* op,
           unsigned index, IndexSpaceExpression* expr,
           AntivalidInstAnalysis* target,
-          const FieldMaskSet<LogicalView>& anti_instances);
+          const op::FieldMaskMap<LogicalView>& anti_instances);
       AntivalidInstAnalysis(const AntivalidInstAnalysis& rhs) = delete;
       virtual ~AntivalidInstAnalysis(void);
     public:
@@ -149,7 +149,7 @@ namespace Legion {
       static void handle_remote_request_antivalid(
           Deserializer& derez, AddressSpaceID previous);
     public:
-      const FieldMaskSet<LogicalView> antivalid_instances;
+      const op::FieldMaskMap<LogicalView> antivalid_instances;
       AntivalidInstAnalysis* const target_analysis;
     };
 

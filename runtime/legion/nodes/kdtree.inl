@@ -645,10 +645,10 @@ namespace Legion {
         const std::vector<EqSetTracker*>& trackers,
         const std::vector<AddressSpaceID>& tracker_spaces,
         std::vector<unsigned>& new_tracker_references,
-        FieldMaskSet<EquivalenceSet>& eq_sets,
+        op::FieldMaskMap<EquivalenceSet>& eq_sets,
         std::vector<RtEvent>& pending_sets,
-        FieldMaskSet<EqKDTree>& subscriptions,
-        FieldMaskSet<EqKDTree>& to_create,
+        op::FieldMaskMap<EqKDTree>& subscriptions,
+        op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         ShardID local_shard)
@@ -671,7 +671,7 @@ namespace Legion {
     unsigned EqKDTreeT<DIM, T>::record_shard_output_equivalence_set(
         EquivalenceSet* set, const Domain& domain, const FieldMask& mask,
         EqSetTracker* tracker, AddressSpaceID tracker_space,
-        FieldMaskSet<EqKDTree>& new_subscriptions, ShardID local_shard)
+        local::FieldMaskMap<EqKDTree>& new_subscriptions, ShardID local_shard)
     //--------------------------------------------------------------------------
     {
       const Rect<DIM, T> rect = domain;
@@ -724,7 +724,7 @@ namespace Legion {
 #endif
       if (lefts != nullptr)
       {
-        for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+        for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                  lefts->begin();
              it != lefts->end(); it++)
           if (it->first->remove_reference())
@@ -733,7 +733,7 @@ namespace Legion {
       }
       if (rights != nullptr)
       {
-        for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+        for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                  rights->begin();
              it != rights->end(); it++)
           if (it->first->remove_reference())
@@ -742,7 +742,7 @@ namespace Legion {
       }
       if (current_sets != nullptr)
       {
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+        for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                  current_sets->begin();
              it != current_sets->end(); it++)
           if (it->first->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
@@ -751,7 +751,7 @@ namespace Legion {
       }
       if (previous_sets != nullptr)
       {
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+        for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                  previous_sets->begin();
              it != previous_sets->end(); it++)
           if (it->first->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
@@ -769,7 +769,7 @@ namespace Legion {
         ShardID local_shard, bool current)
     //--------------------------------------------------------------------------
     {
-      FieldMaskSet<EqKDNode<DIM, T> > to_traverse;
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_traverse;
       {
         FieldMask remaining, unrefined = mask;
         AutoLock n_lock(node_lock);
@@ -782,14 +782,14 @@ namespace Legion {
             if (current)
             {
               if (current_sets == nullptr)
-                current_sets = new FieldMaskSet<EquivalenceSet>();
+                current_sets = new lng::FieldMaskMap<EquivalenceSet>();
               if (current_sets->insert(set, unrefined))
                 set->add_base_gc_ref(DISJOINT_COMPLETE_REF);
             }
             else
             {
               if (previous_sets == nullptr)
-                previous_sets = new FieldMaskSet<EquivalenceSet>();
+                previous_sets = new lng::FieldMaskMap<EquivalenceSet>();
               if (previous_sets->insert(set, unrefined))
                 set->add_base_gc_ref(DISJOINT_COMPLETE_REF);
             }
@@ -815,7 +815,7 @@ namespace Legion {
         assert(!!remaining);
         assert((lefts != nullptr) && (rights != nullptr));
 #endif
-        for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+        for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                  lefts->begin();
              it != lefts->end(); it++)
         {
@@ -835,8 +835,8 @@ namespace Legion {
         }
         if (!!remaining)
         {
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                   rights->begin();
+          for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                   it = rights->begin();
                it != rights->end(); it++)
           {
             const FieldMask overlap = remaining & it->second;
@@ -852,7 +852,7 @@ namespace Legion {
           }
         }
       }
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_traverse.begin();
            it != to_traverse.end(); it++)
       {
@@ -872,10 +872,10 @@ namespace Legion {
         const std::vector<EqSetTracker*>& trackers,
         const std::vector<AddressSpaceID>& tracker_spaces,
         std::vector<unsigned>& new_tracker_references,
-        FieldMaskSet<EquivalenceSet>& eq_sets,
+        op::FieldMaskMap<EquivalenceSet>& eq_sets,
         std::vector<RtEvent>& pending_sets,
-        FieldMaskSet<EqKDTree>& new_subscriptions,
-        FieldMaskSet<EqKDTree>& to_create,
+        op::FieldMaskMap<EqKDTree>& new_subscriptions,
+        op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
@@ -885,7 +885,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(this->bounds.contains(rect));
 #endif
-      FieldMaskSet<EqKDNode<DIM, T> > to_traverse, to_get_previous,
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_traverse, to_get_previous,
           to_invalidate_previous;
       {
         FieldMask remaining = mask;
@@ -896,7 +896,7 @@ namespace Legion {
             !(remaining * current_sets->get_valid_mask()))
         {
           FieldMask check_preconditions;
-          for (FieldMaskSet<EquivalenceSet>::const_iterator cit =
+          for (lng::FieldMaskMap<EquivalenceSet>::const_iterator cit =
                    current_sets->begin();
                cit != current_sets->end(); cit++)
           {
@@ -990,8 +990,8 @@ namespace Legion {
             if ((lefts != nullptr) && !(remaining * lefts->get_valid_mask()))
             {
               FieldMask right_mask;
-              for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                       lefts->begin();
+              for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                       it = lefts->begin();
                    it != lefts->end(); it++)
               {
                 const FieldMask overlap = it->second & remaining;
@@ -1011,8 +1011,9 @@ namespace Legion {
               }
               if (!!right_mask)
               {
-                for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator
-                         it = rights->begin();
+                for (typename lng::FieldMaskMap<
+                         EqKDNode<DIM, T> >::const_iterator it =
+                         rights->begin();
                      it != rights->end(); it++)
                 {
                   const FieldMask overlap = it->second & right_mask;
@@ -1055,7 +1056,7 @@ namespace Legion {
                 if ((previous_sets != nullptr) &&
                     !(remaining * previous_sets->get_valid_mask()))
                 {
-                  for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+                  for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                            previous_sets->begin();
                        it != previous_sets->end(); it++)
                   {
@@ -1083,8 +1084,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
                 assert((lefts != nullptr) && (rights != nullptr));
 #endif
-                for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator
-                         it = lefts->begin();
+                for (typename lng::FieldMaskMap<
+                         EqKDNode<DIM, T> >::const_iterator it = lefts->begin();
                      it != lefts->end(); it++)
                 {
                   const FieldMask overlap = remaining & it->second;
@@ -1104,8 +1105,9 @@ namespace Legion {
                 }
                 if (!!remaining)
                 {
-                  for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator
-                           it = rights->begin();
+                  for (typename lng::FieldMaskMap<
+                           EqKDNode<DIM, T> >::const_iterator it =
+                           rights->begin();
                        it != rights->end(); it++)
                   {
                     const FieldMask overlap = remaining & it->second;
@@ -1136,11 +1138,11 @@ namespace Legion {
               !(to_traverse.get_valid_mask() *
                 child_previous_below->get_valid_mask()))
           {
-            for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                     to_traverse.begin();
+            for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                     it = to_traverse.begin();
                  it != to_traverse.end(); it++)
             {
-              typename FieldMaskSet<EqKDNode<DIM, T> >::iterator finder =
+              typename lng::FieldMaskMap<EqKDNode<DIM, T> >::iterator finder =
                   child_previous_below->find(it->first);
               if (finder == child_previous_below->end())
                 continue;
@@ -1161,7 +1163,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(to_traverse.get_valid_mask() * to_get_previous.get_valid_mask());
 #endif
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_traverse.begin();
            it != to_traverse.end(); it++)
       {
@@ -1175,11 +1177,11 @@ namespace Legion {
             to_create, creation_rects, creation_srcs, remote_shard_rects,
             local_shard);
       }
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_get_previous.begin();
            it != to_get_previous.end(); it++)
         it->first->find_all_previous_sets(it->second, creation_srcs);
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_invalidate_previous.begin();
            it != to_invalidate_previous.end(); it++)
       {
@@ -1196,7 +1198,7 @@ namespace Legion {
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs)
     //--------------------------------------------------------------------------
     {
-      FieldMaskSet<EqKDNode<DIM, T> > to_get_previous;
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_get_previous;
       {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
 #ifdef DEBUG_LEGION
@@ -1206,7 +1208,7 @@ namespace Legion {
 #endif
         if (previous_sets != nullptr)
         {
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    previous_sets->begin();
                it != previous_sets->end(); it++)
           {
@@ -1224,7 +1226,7 @@ namespace Legion {
 #endif
         find_to_get_previous(mask, to_get_previous);
       }
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_get_previous.begin();
            it != to_get_previous.end(); it++)
         it->first->find_all_previous_sets(it->second, creation_srcs);
@@ -1234,7 +1236,7 @@ namespace Legion {
     template<int DIM, typename T>
     void EqKDNode<DIM, T>::find_to_get_previous(
         FieldMask& all_prev_below,
-        FieldMaskSet<EqKDNode<DIM, T> >& to_get_previous) const
+        local::FieldMaskMap<EqKDNode<DIM, T> >& to_get_previous) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1242,7 +1244,7 @@ namespace Legion {
 #endif
       // We're going to pull these out of the lefts and rights
       // since we're just going to use them to get the sets
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                lefts->begin();
            it != lefts->end(); it++)
       {
@@ -1251,7 +1253,7 @@ namespace Legion {
           continue;
         to_get_previous.insert(it->first, overlap);
       }
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                rights->begin();
            it != rights->end(); it++)
       {
@@ -1300,7 +1302,7 @@ namespace Legion {
       if (subscriptions != nullptr)
       {
         // We should never be refining something which has subscribers
-        for (lng::map<AddressSpaceID, FieldMaskSet<EqSetTracker> >::
+        for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqSetTracker> >::
                  const_iterator it = subscriptions->begin();
              it != subscriptions->end(); it++)
           assert(mask * it->second.get_valid_mask());
@@ -1383,7 +1385,7 @@ namespace Legion {
       if (lefts != nullptr)
       {
         EqKDNode<DIM, T>* prior_left = nullptr;
-        for (typename FieldMaskSet<EqKDNode<DIM, T> >::iterator it =
+        for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::iterator it =
                  lefts->begin();
              it != lefts->end(); it++)
         {
@@ -1396,7 +1398,7 @@ namespace Legion {
         if (prior_left != nullptr)
         {
           EqKDNode<DIM, T>* prior_right = nullptr;
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::iterator it =
+          for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::iterator it =
                    rights->begin();
                it != rights->end(); it++)
           {
@@ -1426,11 +1428,11 @@ namespace Legion {
       EqKDNode<DIM, T>* new_left = new EqKDNode<DIM, T>(left_bounds);
       EqKDNode<DIM, T>* new_right = new EqKDNode<DIM, T>(right_bounds);
       if (lefts == nullptr)
-        lefts = new FieldMaskSet<EqKDNode<DIM, T> >();
+        lefts = new lng::FieldMaskMap<EqKDNode<DIM, T> >();
       if (lefts->insert(new_left, mask))
         new_left->add_reference();
       if (rights == nullptr)
-        rights = new FieldMaskSet<EqKDNode<DIM, T> >();
+        rights = new lng::FieldMaskMap<EqKDNode<DIM, T> >();
       if (rights->insert(new_right, mask))
         new_right->add_reference();
       if (previous_sets != nullptr)
@@ -1455,11 +1457,11 @@ namespace Legion {
       assert(!creators.empty());
       assert(creator_spaces.size() == creators.size());
 #endif
-      FieldMaskSet<EqKDNode<DIM, T> > to_invalidate_previous;
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_invalidate_previous;
       {
         AutoLock n_lock(node_lock);
         if (current_sets == nullptr)
-          current_sets = new FieldMaskSet<EquivalenceSet>();
+          current_sets = new lng::FieldMaskMap<EquivalenceSet>();
 #ifdef DEBUG_LEGION
         assert(mask * current_sets->get_valid_mask());
 #endif
@@ -1469,7 +1471,7 @@ namespace Legion {
         // the set to be sent to them
         if (subscriptions != nullptr)
         {
-          for (lng::map<AddressSpaceID, FieldMaskSet<EqSetTracker> >::
+          for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqSetTracker> >::
                    const_iterator sit = subscriptions->begin();
                sit != subscriptions->end(); sit++)
           {
@@ -1484,8 +1486,8 @@ namespace Legion {
             }
             if (sit->first != runtime->address_space)
             {
-              FieldMaskSet<EqSetTracker> to_notify;
-              for (FieldMaskSet<EqSetTracker>::const_iterator it =
+              local::FieldMaskMap<EqSetTracker> to_notify;
+              for (lng::FieldMaskMap<EqSetTracker>::const_iterator it =
                        sit->second.begin();
                    it != sit->second.end(); it++)
               {
@@ -1506,7 +1508,7 @@ namespace Legion {
                   RezCheck z(rez);
                   rez.serialize(set->did);
                   rez.serialize<size_t>(to_notify.size());
-                  for (FieldMaskSet<EqSetTracker>::const_iterator it =
+                  for (local::FieldMaskMap<EqSetTracker>::const_iterator it =
                            to_notify.begin();
                        it != to_notify.end(); it++)
                   {
@@ -1536,7 +1538,7 @@ namespace Legion {
             else
             {
               // Local case so we can notify these directly
-              for (FieldMaskSet<EqSetTracker>::const_iterator it =
+              for (lng::FieldMaskMap<EqSetTracker>::const_iterator it =
                        sit->second.begin();
                    it != sit->second.end(); it++)
               {
@@ -1623,7 +1625,7 @@ namespace Legion {
           // sets are done and it's safe to remove the references
           invalidate_previous_sets(mask, to_invalidate_previous);
       }
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_invalidate_previous.begin();
            it != to_invalidate_previous.end(); it++)
       {
@@ -1638,13 +1640,13 @@ namespace Legion {
     unsigned EqKDNode<DIM, T>::record_output_equivalence_set(
         EquivalenceSet* set, const Rect<DIM, T>& rect, const FieldMask& mask,
         EqSetTracker* tracker, AddressSpaceID tracker_space,
-        FieldMaskSet<EqKDTree>& subscriptions,
+        local::FieldMaskMap<EqKDTree>& subscriptions,
         op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
       unsigned new_subs = 0;
-      FieldMaskSet<EqKDNode<DIM, T> > to_traverse;
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_traverse;
       {
         FieldMask submask = mask;
         AutoLock n_lock(node_lock);
@@ -1665,7 +1667,7 @@ namespace Legion {
                 (local_fields * previous_sets->get_valid_mask()));
 #endif
             if (current_sets == nullptr)
-              current_sets = new FieldMaskSet<EquivalenceSet>();
+              current_sets = new lng::FieldMaskMap<EquivalenceSet>();
             if (current_sets->insert(set, local_fields))
               set->add_base_gc_ref(DISJOINT_COMPLETE_REF);
             subscriptions.insert(this, local_fields);
@@ -1688,8 +1690,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert((lefts != nullptr) && (rights != nullptr));
 #endif
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                   lefts->begin();
+          for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                   it = lefts->begin();
                it != lefts->end(); it++)
           {
             const FieldMask overlap = submask & it->second;
@@ -1707,8 +1709,8 @@ namespace Legion {
           }
           if (!!submask)
           {
-            for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                     rights->begin();
+            for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                     it = rights->begin();
                  it != rights->end(); it++)
             {
               const FieldMask overlap = submask & it->second;
@@ -1726,7 +1728,7 @@ namespace Legion {
         }
       }
       // Continue the traversal for anything below
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_traverse.begin();
            it != to_traverse.end(); it++)
       {
@@ -1743,12 +1745,12 @@ namespace Legion {
     void EqKDNode<DIM, T>::invalidate_all_previous_sets(const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
-      FieldMaskSet<EqKDNode<DIM, T> > to_invalidate_previous;
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_invalidate_previous;
       {
         AutoLock n_lock(node_lock);
         invalidate_previous_sets(mask, to_invalidate_previous);
       }
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_invalidate_previous.begin();
            it != to_invalidate_previous.end(); it++)
       {
@@ -1762,14 +1764,15 @@ namespace Legion {
     template<int DIM, typename T>
     void EqKDNode<DIM, T>::invalidate_previous_sets(
         const FieldMask& mask,
-        FieldMaskSet<EqKDNode<DIM, T> >& to_invalidate_previous)
+        local::FieldMaskMap<EqKDNode<DIM, T> >& to_invalidate_previous)
     //--------------------------------------------------------------------------
     {
       if ((previous_sets != nullptr) &&
           !(mask * previous_sets->get_valid_mask()))
       {
         std::vector<EquivalenceSet*> to_delete;
-        for (FieldMaskSet<EquivalenceSet>::iterator it = previous_sets->begin();
+        for (lng::FieldMaskMap<EquivalenceSet>::iterator it =
+                 previous_sets->begin();
              it != previous_sets->end(); it++)
         {
           it.filter(mask);
@@ -1799,7 +1802,7 @@ namespace Legion {
 #endif
         all_previous_below -= mask;
         std::vector<EqKDNode<DIM, T>*> to_delete;
-        for (typename FieldMaskSet<EqKDNode<DIM, T> >::iterator it =
+        for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::iterator it =
                  lefts->begin();
              it != lefts->end(); it++)
         {
@@ -1826,7 +1829,7 @@ namespace Legion {
         else
           lefts->tighten_valid_mask();
         to_delete.clear();
-        for (typename FieldMaskSet<EqKDNode<DIM, T> >::iterator it =
+        for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::iterator it =
                  rights->begin();
              it != rights->end(); it++)
         {
@@ -1864,9 +1867,10 @@ namespace Legion {
     {
       if (subscriptions == nullptr)
         subscriptions =
-            new lng::map<AddressSpaceID, FieldMaskSet<EqSetTracker> >();
-      FieldMaskSet<EqSetTracker>& trackers = (*subscriptions)[tracker_space];
-      FieldMaskSet<EqSetTracker>::iterator finder = trackers.find(tracker);
+            new lng::map<AddressSpaceID, lng::FieldMaskMap<EqSetTracker> >();
+      lng::FieldMaskMap<EqSetTracker>& trackers =
+          (*subscriptions)[tracker_space];
+      lng::FieldMaskMap<EqSetTracker>::iterator finder = trackers.find(tracker);
       if (finder != trackers.end())
       {
         FieldMask new_fields = mask - finder->second;
@@ -1891,14 +1895,14 @@ namespace Legion {
     template<int DIM, typename T>
     void EqKDNode<DIM, T>::clone_sets(
         EqKDNode<DIM, T>* left, EqKDNode<DIM, T>* right, FieldMask mask,
-        FieldMaskSet<EquivalenceSet>*& sets, bool current)
+        lng::FieldMaskMap<EquivalenceSet>*& sets, bool current)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(sets != nullptr);
 #endif
       std::vector<EquivalenceSet*> to_delete;
-      for (FieldMaskSet<EquivalenceSet>::iterator it = sets->begin();
+      for (lng::FieldMaskMap<EquivalenceSet>::iterator it = sets->begin();
            it != sets->end(); it++)
       {
         const FieldMask overlap = it->second & mask;
@@ -1939,14 +1943,14 @@ namespace Legion {
       if (current)
       {
         if (current_sets == nullptr)
-          current_sets = new FieldMaskSet<EquivalenceSet>();
+          current_sets = new lng::FieldMaskMap<EquivalenceSet>();
         if (current_sets->insert(set, mask))
           set->add_base_gc_ref(DISJOINT_COMPLETE_REF);
       }
       else
       {
         if (previous_sets == nullptr)
-          previous_sets = new FieldMaskSet<EquivalenceSet>();
+          previous_sets = new lng::FieldMaskMap<EquivalenceSet>();
         if (previous_sets->insert(set, mask))
           set->add_base_gc_ref(DISJOINT_COMPLETE_REF);
       }
@@ -1955,14 +1959,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     void EqKDNode<DIM, T>::find_local_equivalence_sets(
-        FieldMaskSet<EquivalenceSet>& eq_sets, ShardID local_shard) const
+        local::FieldMaskMap<EquivalenceSet>& eq_sets, ShardID local_shard) const
     //--------------------------------------------------------------------------
     {
       // No need for the lock here since this should be done exclusively
       // while nothing else is modifying the state of this tree
       if (current_sets != nullptr)
       {
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+        for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                  current_sets->begin();
              it != current_sets->end(); it++)
           eq_sets.insert(it->first, it->second);
@@ -1970,7 +1974,7 @@ namespace Legion {
       if (previous_sets != nullptr)
       {
         // Only record previous sets if we didn't have current sets
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+        for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                  previous_sets->begin();
              it != previous_sets->end(); it++)
         {
@@ -1986,14 +1990,14 @@ namespace Legion {
       }
       if (lefts != nullptr)
       {
-        for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+        for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                  lefts->begin();
              it != lefts->end(); it++)
           it->first->find_local_equivalence_sets(eq_sets, local_shard);
       }
       if (rights != nullptr)
       {
-        for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+        for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                  rights->begin();
              it != rights->end(); it++)
           it->first->find_local_equivalence_sets(eq_sets, local_shard);
@@ -2004,7 +2008,8 @@ namespace Legion {
     template<int DIM, typename T>
     void EqKDNode<DIM, T>::find_shard_equivalence_sets(
         local::map<
-            ShardID, local::map<RegionNode*, FieldMaskSet<EquivalenceSet> > >&
+            ShardID,
+            local::map<RegionNode*, local::FieldMaskMap<EquivalenceSet> > >&
             eq_sets,
         ShardID source_shard, ShardID dst_lower_shard, ShardID dst_upper_shard,
         RegionNode* region) const
@@ -2026,7 +2031,8 @@ namespace Legion {
     void EqKDNode<DIM, T>::find_shard_equivalence_sets(
         const Rect<DIM, T>& rect,
         local::map<
-            ShardID, local::map<RegionNode*, FieldMaskSet<EquivalenceSet> > >&
+            ShardID,
+            local::map<RegionNode*, local::FieldMaskMap<EquivalenceSet> > >&
             eq_sets,
         ShardID dst_lower_shard, ShardID dst_upper_shard,
         RegionNode* region) const
@@ -2084,7 +2090,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     void EqKDNode<DIM, T>::find_rect_equivalence_sets(
-        const Rect<DIM, T>& rect, FieldMaskSet<EquivalenceSet>& eq_sets) const
+        const Rect<DIM, T>& rect,
+        local::FieldMaskMap<EquivalenceSet>& eq_sets) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2095,7 +2102,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         if (current_sets != nullptr)
         {
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    current_sets->begin();
                it != current_sets->end(); it++)
             eq_sets.insert(it->first, it->second);
@@ -2107,7 +2114,7 @@ namespace Legion {
             remaining -= current_sets->get_valid_mask();
           if (!!remaining)
           {
-            for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+            for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                      current_sets->begin();
                  it != current_sets->end(); it++)
             {
@@ -2124,8 +2131,8 @@ namespace Legion {
         FieldMask remaining;
         if (lefts != nullptr)
         {
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                   lefts->begin();
+          for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                   it = lefts->begin();
                it != lefts->end(); it++)
           {
             const Rect<DIM, T> overlap = it->first->bounds.intersection(rect);
@@ -2141,8 +2148,8 @@ namespace Legion {
         }
         if (!!remaining)
         {
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                   rights->begin();
+          for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                   it = rights->begin();
                it != rights->end(); it++)
           {
             const FieldMask overlap = it->second & remaining;
@@ -2193,9 +2200,10 @@ namespace Legion {
       // calls like record_equivalence_set or cancel_subscription can still
       // be coming back asynchronously to touch data structures in these nodes
       FieldMask remaining = mask;
-      FieldMaskSet<EqKDNode<DIM, T> > to_traverse;
-      FieldMaskSet<EqKDNode<DIM, T> > to_invalidate_previous;
-      local::map<AddressSpaceID, FieldMaskSet<EqSetTracker> > to_invalidate;
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_traverse;
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_invalidate_previous;
+      local::map<AddressSpaceID, local::FieldMaskMap<EqSetTracker> >
+          to_invalidate;
       {
         // Take the lock to protect against data structures that might
         // be racing with recording equivalence sets or cancelling subscriptions
@@ -2239,7 +2247,7 @@ namespace Legion {
             !(mask * previous_sets->get_valid_mask()))
         {
           std::vector<EquivalenceSet*> to_delete;
-          for (FieldMaskSet<EquivalenceSet>::iterator it =
+          for (lng::FieldMaskMap<EquivalenceSet>::iterator it =
                    previous_sets->begin();
                it != previous_sets->end(); it++)
           {
@@ -2278,8 +2286,8 @@ namespace Legion {
           // invalidate the subscriptions so do that first
           if (subscriptions != nullptr)
           {
-            for (lng::map<AddressSpaceID, FieldMaskSet<EqSetTracker> >::iterator
-                     sit = subscriptions->begin();
+            for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqSetTracker> >::
+                     iterator sit = subscriptions->begin();
                  sit != subscriptions->end();
                  /*nothing*/)
             {
@@ -2288,13 +2296,13 @@ namespace Legion {
                 sit++;
                 continue;
               }
-              FieldMaskSet<EqSetTracker>& invalidations =
+              local::FieldMaskMap<EqSetTracker>& invalidations =
                   to_invalidate[sit->first];
               if (!!(sit->second.get_valid_mask() - current_mask))
               {
                 // Filter out specific subscriptions
                 std::vector<EqSetTracker*> to_delete;
-                for (FieldMaskSet<EqSetTracker>::iterator it =
+                for (lng::FieldMaskMap<EqSetTracker>::iterator it =
                          sit->second.begin();
                      it != sit->second.end(); it++)
                 {
@@ -2312,11 +2320,17 @@ namespace Legion {
                   sit->second.erase(*it);
               }
               else  // Invalidating the subscriptions for all fields
-                invalidations.swap(sit->second);
+              {
+                for (lng::FieldMaskMap<EqSetTracker>::iterator it =
+                         sit->second.begin();
+                     it != sit->second.end(); it++)
+                  invalidations.insert(it->first, it->second);
+                sit->second.clear();
+              }
               if (sit->second.empty())
               {
-                lng::map<AddressSpaceID, FieldMaskSet<EqSetTracker> >::iterator
-                    to_delete = sit++;
+                lng::map<AddressSpaceID, lng::FieldMaskMap<EqSetTracker> >::
+                    iterator to_delete = sit++;
                 subscriptions->erase(to_delete);
               }
               else
@@ -2344,13 +2358,13 @@ namespace Legion {
             if (move_to_previous)
             {
               if (previous_sets == nullptr)
-                previous_sets = new FieldMaskSet<EquivalenceSet>();
+                previous_sets = new lng::FieldMaskMap<EquivalenceSet>();
               else if (!(current_mask * previous_sets->get_valid_mask()))
               {
                 // Very important that we only filter previous sets
                 // if we actually have current sets to replace them with
                 std::vector<EquivalenceSet*> to_delete;
-                for (FieldMaskSet<EquivalenceSet>::iterator it =
+                for (lng::FieldMaskMap<EquivalenceSet>::iterator it =
                          previous_sets->begin();
                      it != previous_sets->end(); it++)
                 {
@@ -2374,7 +2388,7 @@ namespace Legion {
             // Now we can invalidate the current sets and flush them
             // back to the previous sets if we're moving them
             std::vector<EquivalenceSet*> to_delete;
-            for (FieldMaskSet<EquivalenceSet>::iterator it =
+            for (lng::FieldMaskMap<EquivalenceSet>::iterator it =
                      current_sets->begin();
                  it != current_sets->end(); it++)
             {
@@ -2442,8 +2456,8 @@ namespace Legion {
               !(remaining * lefts->get_valid_mask()))
           {
             FieldMask right_mask;
-            for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                     lefts->begin();
+            for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                     it = lefts->begin();
                  it != lefts->end(); it++)
             {
               const FieldMask overlap = it->second & remaining;
@@ -2466,8 +2480,8 @@ namespace Legion {
             }
             if (!!right_mask)
             {
-              for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                       rights->begin();
+              for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                       it = rights->begin();
                    it != rights->end(); it++)
               {
                 const FieldMask overlap = it->second & right_mask;
@@ -2491,7 +2505,7 @@ namespace Legion {
       if (!to_invalidate.empty())
         EqSetTracker::invalidate_subscriptions(
             this, to_invalidate, invalidated);
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_invalidate_previous.begin();
            it != to_invalidate_previous.end(); it++)
       {
@@ -2501,7 +2515,7 @@ namespace Legion {
       }
       // Now do the traversal for the invalidation below
       bool has_child_previous = false;
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::iterator it =
                to_traverse.begin();
            it != to_traverse.end(); it++)
       {
@@ -2532,7 +2546,7 @@ namespace Legion {
         AutoLock n_lock(node_lock);
         if (has_child_previous)
         {
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::iterator it =
+          for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::iterator it =
                    to_traverse.begin();
                it != to_traverse.end(); it++)
             if (!!it->second)
@@ -2568,7 +2582,7 @@ namespace Legion {
         if (!(mask * child_previous_below->get_valid_mask()))
         {
           std::vector<EqKDNode<DIM, T>*> to_delete;
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::iterator it =
+          for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::iterator it =
                    child_previous_below->begin();
                it != child_previous_below->end(); it++)
           {
@@ -2607,7 +2621,7 @@ namespace Legion {
         }
       }
       else
-        child_previous_below = new FieldMaskSet<EqKDNode<DIM, T> >();
+        child_previous_below = new lng::FieldMaskMap<EqKDNode<DIM, T> >();
       child_previous_below->insert(child, mask);
     }
 
@@ -2632,11 +2646,11 @@ namespace Legion {
       AutoLock n_lock(node_lock);
       if (subscriptions == nullptr)
         return 0;
-      lng::map<AddressSpaceID, FieldMaskSet<EqSetTracker> >::iterator
+      lng::map<AddressSpaceID, lng::FieldMaskMap<EqSetTracker> >::iterator
           subscription_finder = subscriptions->find(space);
       if (subscription_finder == subscriptions->end())
         return 0;
-      FieldMaskSet<EqSetTracker>::iterator finder =
+      lng::FieldMaskMap<EqSetTracker>::iterator finder =
           subscription_finder->second.find(tracker);
       if (finder == subscription_finder->second.end())
         return 0;
@@ -2677,14 +2691,14 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(this->bounds.contains(rect));
 #endif
-      FieldMaskSet<EqKDNode<DIM, T> > to_traverse;
+      local::FieldMaskMap<EqKDNode<DIM, T> > to_traverse;
       {
         FieldMask remaining = mask;
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         if ((current_sets != nullptr) &&
             !(remaining * current_sets->get_valid_mask()))
         {
-          for (typename FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (typename lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    current_sets->begin();
                it != current_sets->end(); it++)
           {
@@ -2699,7 +2713,7 @@ namespace Legion {
         if ((previous_sets != nullptr) &&
             !(remaining * previous_sets->get_valid_mask()))
         {
-          for (typename FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (typename lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    previous_sets->begin();
                it != previous_sets->end(); it++)
           {
@@ -2717,8 +2731,8 @@ namespace Legion {
           assert(rights != nullptr);
           assert(!(rights->get_valid_mask() * remaining));
 #endif
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                   lefts->begin();
+          for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                   it = lefts->begin();
                it != lefts->end(); it++)
           {
             const FieldMask overlap = remaining & it->second;
@@ -2728,8 +2742,8 @@ namespace Legion {
               continue;
             to_traverse.insert(it->first, overlap);
           }
-          for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
-                   rights->begin();
+          for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
+                   it = rights->begin();
                it != rights->end(); it++)
           {
             const FieldMask overlap = remaining & it->second;
@@ -2741,7 +2755,7 @@ namespace Legion {
           }
         }
       }
-      for (typename FieldMaskSet<EqKDNode<DIM, T> >::const_iterator it =
+      for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_traverse.begin();
            it != to_traverse.end(); it++)
       {
@@ -2868,10 +2882,10 @@ namespace Legion {
         const std::vector<EqSetTracker*>& trackers,
         const std::vector<AddressSpaceID>& tracker_spaces,
         std::vector<unsigned>& new_tracker_references,
-        FieldMaskSet<EquivalenceSet>& eq_sets,
+        op::FieldMaskMap<EquivalenceSet>& eq_sets,
         std::vector<RtEvent>& pending_sets,
-        FieldMaskSet<EqKDTree>& subscriptions,
-        FieldMaskSet<EqKDTree>& to_create,
+        op::FieldMaskMap<EqKDTree>& subscriptions,
+        op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
@@ -2908,7 +2922,7 @@ namespace Legion {
     unsigned EqKDSparse<DIM, T>::record_output_equivalence_set(
         EquivalenceSet* set, const Rect<DIM, T>& rect, const FieldMask& mask,
         EqSetTracker* tracker, AddressSpaceID tracker_space,
-        FieldMaskSet<EqKDTree>& subscriptions,
+        local::FieldMaskMap<EqKDTree>& subscriptions,
         op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
@@ -2930,7 +2944,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     void EqKDSparse<DIM, T>::find_local_equivalence_sets(
-        FieldMaskSet<EquivalenceSet>& eq_sets, ShardID local_shard) const
+        local::FieldMaskMap<EquivalenceSet>& eq_sets, ShardID local_shard) const
     //--------------------------------------------------------------------------
     {
       for (typename std::vector<EqKDTreeT<DIM, T>*>::const_iterator it =
@@ -2943,7 +2957,8 @@ namespace Legion {
     template<int DIM, typename T>
     void EqKDSparse<DIM, T>::find_shard_equivalence_sets(
         local::map<
-            ShardID, local::map<RegionNode*, FieldMaskSet<EquivalenceSet> > >&
+            ShardID,
+            local::map<RegionNode*, local::FieldMaskMap<EquivalenceSet> > >&
             eq_sets,
         ShardID source_shard, ShardID dst_lower_shard, ShardID dst_upper_shard,
         RegionNode* region) const
@@ -3112,10 +3127,10 @@ namespace Legion {
         const std::vector<EqSetTracker*>& trackers,
         const std::vector<AddressSpaceID>& tracker_spaces,
         std::vector<unsigned>& new_tracker_references,
-        FieldMaskSet<EquivalenceSet>& eq_sets,
+        op::FieldMaskMap<EquivalenceSet>& eq_sets,
         std::vector<RtEvent>& pending_sets,
-        FieldMaskSet<EqKDTree>& subscriptions,
-        FieldMaskSet<EqKDTree>& to_create,
+        op::FieldMaskMap<EqKDTree>& subscriptions,
+        op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
         op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
         op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
@@ -3275,7 +3290,7 @@ namespace Legion {
     unsigned EqKDSharded<DIM, T>::record_output_equivalence_set(
         EquivalenceSet* set, const Rect<DIM, T>& rect, const FieldMask& mask,
         EqSetTracker* tracker, AddressSpaceID tracker_space,
-        FieldMaskSet<EqKDTree>& subscriptions,
+        local::FieldMaskMap<EqKDTree>& subscriptions,
         op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
         ShardID local_shard)
     //--------------------------------------------------------------------------
@@ -3337,7 +3352,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     void EqKDSharded<DIM, T>::find_local_equivalence_sets(
-        FieldMaskSet<EquivalenceSet>& eq_sets, ShardID local_shard) const
+        local::FieldMaskMap<EquivalenceSet>& eq_sets, ShardID local_shard) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -3378,7 +3393,8 @@ namespace Legion {
     template<int DIM, typename T>
     void EqKDSharded<DIM, T>::find_shard_equivalence_sets(
         local::map<
-            ShardID, local::map<RegionNode*, FieldMaskSet<EquivalenceSet> > >&
+            ShardID,
+            local::map<RegionNode*, local::FieldMaskMap<EquivalenceSet> > >&
             eq_sets,
         ShardID source_shard, ShardID dst_lower_shard, ShardID dst_upper_shard,
         RegionNode* region) const

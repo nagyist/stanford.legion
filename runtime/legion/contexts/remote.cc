@@ -582,11 +582,11 @@ namespace Legion {
         {
           RegionNode* region = created_nodes[idx];
           rez.serialize(region->handle);
-          FieldMaskSet<EquivalenceSet> eq_sets;
+          local::FieldMaskMap<EquivalenceSet> eq_sets;
           created_trees[idx]->find_local_equivalence_sets(
               eq_sets, source_shard);
           rez.serialize<size_t>(eq_sets.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+          for (local::FieldMaskMap<EquivalenceSet>::const_iterator it =
                    eq_sets.begin();
                it != eq_sets.end(); it++)
           {

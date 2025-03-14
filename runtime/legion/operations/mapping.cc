@@ -533,7 +533,7 @@ namespace Legion {
       if (mapper->request_valid_instances)
       {
         InstanceSet valid_instances;
-        FieldMaskSet<ReplicatedView> collectives;
+        local::FieldMaskMap<ReplicatedView> collectives;
         physical_premap_region(
             0 /*idx*/, requirement, version_info, valid_instances, collectives,
             map_applied_conditions);

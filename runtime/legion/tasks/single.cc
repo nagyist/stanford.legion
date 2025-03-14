@@ -497,7 +497,7 @@ namespace Legion {
             (regions[idx].privilege != LEGION_REDUCE))
         {
           InstanceSet current_valid;
-          FieldMaskSet<ReplicatedView> collectives;
+          local::FieldMaskMap<ReplicatedView> collectives;
           physical_premap_region(
               idx, regions[idx], version_infos[idx], current_valid, collectives,
               map_applied_conditions);
@@ -2255,7 +2255,7 @@ namespace Legion {
         if (request_valid_instances)
         {
           InstanceSet postmap_valid;
-          FieldMaskSet<ReplicatedView> collectives;
+          local::FieldMaskMap<ReplicatedView> collectives;
           physical_premap_region(
               idx, regions[idx], get_version_info(idx), postmap_valid,
               collectives, map_applied_conditions);
@@ -2264,7 +2264,7 @@ namespace Legion {
               postmap_valid, collectives, input.valid_instances[idx],
               input.valid_collectives[idx]);
         }
-        FieldMaskSet<ReplicatedView> no_collectives;
+        local::FieldMaskMap<ReplicatedView> no_collectives;
         prepare_for_mapping(
             physical_instances[idx], no_collectives, input.mapped_regions[idx],
             input.valid_collectives[idx]);

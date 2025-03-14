@@ -18,7 +18,7 @@
 
 #include "legion/kernel/garbage_collection.h"
 #include "legion/utilities/dynamic_table.h"
-#include "legion/utilities/fieldmask_set.h"
+#include "legion/utilities/fieldmask_map.h"
 #include "legion/utilities/privileges.h"
 
 namespace Legion {
@@ -104,7 +104,7 @@ namespace Legion {
       void add_child(RegionTreeNode* child, const FieldMask& mask);
       void remove_child(RegionTreeNode* child);
     public:
-      typedef FieldMaskSet<RegionTreeNode, SHORT_LIFETIME, true /*ordered*/>
+      typedef FieldMaskMap<RegionTreeNode, SHORT_LIFETIME, true /*ordered*/>
           OrderedFieldMaskChildren;
       OrderedFieldMaskChildren open_children;
       OpenState open_state;
@@ -170,7 +170,7 @@ namespace Legion {
       // Note that even though these are field mask sets keyed on pointers
       // we mark them as determinsitic so that shards always iterate over
       // these elements in the same order
-      typedef FieldMaskSet<LogicalUser, SHORT_LIFETIME, true /*determinisitic*/>
+      typedef FieldMaskMap<LogicalUser, SHORT_LIFETIME, true /*determinisitic*/>
           OrderedFieldMaskUsers;
       OrderedFieldMaskUsers curr_epoch_users, prev_epoch_users;
     protected:
@@ -197,7 +197,7 @@ namespace Legion {
       // as possible but diverge them whenever unequal field sets try to
       // access them. They are grouped back together whenever we decide
       // to perform a refinement along this node.
-      FieldMaskSet<RefinementTracker> refinement_trackers;
+      lng::FieldMaskMap<RefinementTracker> refinement_trackers;
     public:
       static constexpr size_t PROJECTION_CACHE_SIZE = 32;
       // Note that this list can grow bigger than PROJECTION_CACHE_SIZE
@@ -245,7 +245,7 @@ namespace Legion {
     public:
       LogicalAnalysis& operator=(const LogicalAnalysis& rhs) = delete;
     public:
-      typedef FieldMaskSet<RefinementOp, TASK_LOCAL_LIFETIME, true /*ordered*/>
+      typedef FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true /*ordered*/>
           OrderedRefinements;
       void record_pending_refinement(
           LogicalRegion privilege, unsigned req_index,

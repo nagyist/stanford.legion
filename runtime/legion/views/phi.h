@@ -18,7 +18,7 @@
 
 #include "legion/views/deferred.h"
 #include "legion/kernel/metatask.h"
-#include "legion/utilities/fieldmask_set.h"
+#include "legion/utilities/fieldmask_map.h"
 
 namespace Legion {
   namespace Internal {
@@ -52,8 +52,9 @@ namespace Legion {
     public:
       PhiView(
           DistributedID did, PredEvent true_guard, PredEvent false_guard,
-          FieldMaskSet<DeferredView>&& true_views,
-          FieldMaskSet<DeferredView>&& false_views, bool register_now = true);
+          shrt::FieldMaskMap<DeferredView>&& true_views,
+          shrt::FieldMaskMap<DeferredView>&& false_views,
+          bool register_now = true);
       PhiView(const PhiView& rhs) = delete;
       virtual ~PhiView(void);
     public:
@@ -77,7 +78,7 @@ namespace Legion {
     public:
       const PredEvent true_guard;
       const PredEvent false_guard;
-      const FieldMaskSet<DeferredView> true_views, false_views;
+      const shrt::FieldMaskMap<DeferredView> true_views, false_views;
     };
 
     //--------------------------------------------------------------------------

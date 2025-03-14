@@ -44,7 +44,7 @@ namespace Legion {
         AddressSpaceID src, AddressSpaceID prev, Operation* op, unsigned index,
         RegionNode* node, bool on_heap,
         std::vector<PhysicalManager*>&& target_insts,
-        op::vector<FieldMaskSet<InstanceView> >&& target_vws,
+        op::vector<op::FieldMaskMap<InstanceView> >&& target_vws,
         std::vector<IndividualView*>&& source_vws,
         const PhysicalTraceInfo& t_info, CollectiveMapping* mapping,
         bool first_local, bool exclusive)
@@ -177,7 +177,7 @@ namespace Legion {
       const IndexSpaceID match_space = get_collective_match_space();
       for (unsigned idx = 0; idx < target_views.size(); idx++)
       {
-        for (FieldMaskSet<InstanceView>::const_iterator it =
+        for (op::FieldMaskMap<InstanceView>::const_iterator it =
                  target_views[idx].begin();
              it != target_views[idx].end(); it++)
         {

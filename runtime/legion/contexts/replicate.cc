@@ -1247,7 +1247,8 @@ namespace Legion {
         // Do the volumetric extraction to send all of the equivalence sets
         // from the source shard to the right shards in this context
         local::map<
-            ShardID, local::map<RegionNode*, FieldMaskSet<EquivalenceSet> > >
+            ShardID,
+            local::map<RegionNode*, local::FieldMaskMap<EquivalenceSet> > >
             eq_sets;
         for (unsigned idx = 0; idx < created_nodes.size(); idx++)
           if (created_trees[idx] != nullptr)
@@ -1256,7 +1257,8 @@ namespace Legion {
                 total_shards - 1 /*upper shard id*/, created_nodes[idx]);
         for (local::map<
                  ShardID,
-                 local::map<RegionNode*, FieldMaskSet<EquivalenceSet> > >::
+                 local::map<
+                     RegionNode*, local::FieldMaskMap<EquivalenceSet> > >::
                  const_iterator sit = eq_sets.begin();
              sit != eq_sets.end(); sit++)
         {
@@ -1264,13 +1266,13 @@ namespace Legion {
           rez.serialize(shard_manager->did);
           rez.serialize(sit->first);
           rez.serialize<size_t>(sit->second.size());
-          for (local::map<RegionNode*, FieldMaskSet<EquivalenceSet> >::
+          for (local::map<RegionNode*, local::FieldMaskMap<EquivalenceSet> >::
                    const_iterator rit = sit->second.begin();
                rit != sit->second.end(); rit++)
           {
             rez.serialize(rit->first->handle);
             rez.serialize(rit->second.size());
-            for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+            for (local::FieldMaskMap<EquivalenceSet>::const_iterator it =
                      rit->second.begin();
                  it != rit->second.end(); it++)
             {
@@ -1300,12 +1302,12 @@ namespace Legion {
           {
             RegionNode* region = created_nodes[idx];
             rez.serialize(region->handle);
-            FieldMaskSet<EquivalenceSet> eq_sets;
+            local::FieldMaskMap<EquivalenceSet> eq_sets;
             if (created_trees[idx] != nullptr)
               created_trees[idx]->find_local_equivalence_sets(
                   eq_sets, source_shard);
             rez.serialize<size_t>(eq_sets.size());
-            for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+            for (local::FieldMaskMap<EquivalenceSet>::const_iterator it =
                      eq_sets.begin();
                  it != eq_sets.end(); it++)
             {
@@ -8512,7 +8514,7 @@ namespace Legion {
         size_t num_sets;
         derez.deserialize(num_sets);
         std::vector<RtEvent> ready_events;
-        FieldMaskSet<EquivalenceSet> eq_sets;
+        local::FieldMaskMap<EquivalenceSet> eq_sets;
         for (unsigned idx2 = 0; idx2 < num_sets; idx2++)
         {
           DistributedID did;
@@ -8552,7 +8554,8 @@ namespace Legion {
         const ShardID local_shard = get_shard_id();
         // Put the equivalence sets in the tree but in the previous set
         // of equivalence sets so new accesses will make new sets
-        for (FieldMaskSet<EquivalenceSet>::const_iterator it = eq_sets.begin();
+        for (local::FieldMaskMap<EquivalenceSet>::const_iterator it =
+                 eq_sets.begin();
              it != eq_sets.end(); it++)
         {
           it->first->set_expr->initialize_equivalence_set_kd_tree(
@@ -9582,10 +9585,10 @@ namespace Legion {
       EqKDTree* tree = find_equivalence_set_kd_tree(req_index, tree_lock);
       // Then ask the index space expression to traverse the tree for
       // all of its rectangles and find the equivalence sets that are needed
-      FieldMaskSet<EqKDTree> to_create;
-      FieldMaskSet<EquivalenceSet> eq_sets;
+      op::FieldMaskMap<EqKDTree> to_create;
+      op::FieldMaskMap<EquivalenceSet> eq_sets;
       std::vector<RtEvent> pending_sets;
-      FieldMaskSet<EqKDTree> new_subscriptions;
+      op::FieldMaskMap<EqKDTree> new_subscriptions;
       op::map<EqKDTree*, Domain> creation_rects;
       op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
       op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
@@ -9648,7 +9651,7 @@ namespace Legion {
 #endif
       LocalLock* tree_lock = nullptr;
       EqKDTree* tree = find_or_create_output_set_kd_tree(req_index, tree_lock);
-      FieldMaskSet<EqKDTree> new_subscriptions;
+      local::FieldMaskMap<EqKDTree> new_subscriptions;
       op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
       unsigned references = set->set_expr->record_output_equivalence_set(
           tree, tree_lock, set, mask, source, source_space, new_subscriptions,
@@ -9945,10 +9948,10 @@ namespace Legion {
       size_t num_rects;
       derez.deserialize(num_rects);
 
-      FieldMaskSet<EqKDTree> to_create;
-      FieldMaskSet<EquivalenceSet> eq_sets;
+      op::FieldMaskMap<EqKDTree> to_create;
+      op::FieldMaskMap<EquivalenceSet> eq_sets;
       std::vector<RtEvent> pending_sets;
-      FieldMaskSet<EqKDTree> new_subscriptions;
+      op::FieldMaskMap<EqKDTree> new_subscriptions;
       op::map<EqKDTree*, Domain> creation_rects;
       op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
       LocalLock* tree_lock = nullptr;
@@ -10001,7 +10004,7 @@ namespace Legion {
       size_t num_rects;
       derez.deserialize(num_rects);
 
-      FieldMaskSet<EqKDTree> new_subscriptions;
+      local::FieldMaskMap<EqKDTree> new_subscriptions;
       LocalLock* tree_lock = nullptr;
       EqKDTree* tree = find_or_create_output_set_kd_tree(req_index, tree_lock);
       if (set_ready.exists() && !set_ready.has_triggered())

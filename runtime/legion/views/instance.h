@@ -17,7 +17,7 @@
 #define __LEGION_INSTANCE_VIEW_H__
 
 #include "legion/views/logical.h"
-#include "legion/utilities/fieldmask_set.h"
+#include "legion/utilities/fieldmask_map.h"
 
 namespace Legion {
   namespace Internal {
@@ -58,8 +58,6 @@ namespace Legion {
         IndexSpaceID match;       // index space of regions that should match
         unsigned index;  // uniquely name analysis for op by region req index
       };
-    public:
-      typedef FieldMaskSet<PhysicalUser> EventUsers;
     public:
       InstanceView(
           DistributedID did, bool register_now, CollectiveMapping* mapping);
