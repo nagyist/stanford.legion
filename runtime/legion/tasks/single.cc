@@ -856,22 +856,16 @@ namespace Legion {
         else
           runtime->find_visible_memories(target_proc, visible_memories);
       }
-      bool free_acquired = false;
-      std::map<PhysicalManager*, unsigned>* acquired = nullptr;
       if (this->must_epoch != nullptr)
       {
-        acquired = new std::map<PhysicalManager*, unsigned>(
-            *get_acquired_instances_ref());
-        free_acquired = true;
         // Merge the must epoch owners acquired instances too
         // if we need to check for all our instances being acquired
-        std::map<PhysicalManager*, unsigned>* epoch_acquired =
+        const std::map<PhysicalManager*, unsigned>* epoch_acquired =
             this->must_epoch->get_acquired_instances_ref();
         if (epoch_acquired != nullptr)
-          acquired->insert(epoch_acquired->begin(), epoch_acquired->end());
+          acquired_instances.insert(
+              epoch_acquired->begin(), epoch_acquired->end());
       }
-      else
-        acquired = get_acquired_instances_ref();
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
         // Skip any NO_ACCESS or empty privilege field regions
@@ -886,10 +880,11 @@ namespace Legion {
         if (!output.source_instances[idx].empty())
           physical_convert_sources(
               regions[idx], output.source_instances[idx], source_instances[idx],
-              acquired);
+              &acquired_instances);
         int composite_idx = physical_convert_mapping(
             regions[idx], output.chosen_instances[idx], result, bad_tree,
-            missing_fields, acquired, unacquired, runtime->safe_mapper);
+            missing_fields, &acquired_instances, unacquired,
+            runtime->safe_mapper);
         if (bad_tree > 0)
           Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'map_task' on "
@@ -928,7 +923,7 @@ namespace Legion {
                    unacquired.begin();
                it != unacquired.end(); it++)
           {
-            if (acquired->find(*it) == acquired->end())
+            if (acquired_instances.find(*it) == acquired_instances.end())
               Exception(MAPPER_EXCEPTION, this)
                   << "Invalid mapper output from 'map_task' invocation on "
                      "mapper "
@@ -1056,8 +1051,6 @@ namespace Legion {
           }
         }
       }
-      if (free_acquired)
-        delete acquired;
 
       if (!output_regions.empty())
       {
@@ -1135,9 +1128,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       MemoryManager* memory_manager = runtime->find_memory_manager(target);
-
-      std::map<PhysicalManager*, unsigned>* acquired_instances =
-          get_acquired_instances_ref();
 
       LayoutConstraintSet constraints;
       constraints.add_constraint(MemoryConstraint(target.kind()))
@@ -1246,7 +1236,7 @@ namespace Legion {
 
         // Add the manager to the map of acquired instances so that
         // later we can release it properly
-        acquired_instances->insert(std::make_pair(manager, 1));
+        acquired_instances.insert(std::make_pair(manager, 1));
 
         constraints.alignment_constraints.clear();
         constraints.offset_constraints.clear();
@@ -2314,8 +2304,8 @@ namespace Legion {
         std::vector<PhysicalManager*> unacquired;
         bool had_composite = physical_convert_postmapping(
             req, output.chosen_instances[idx], result, bad_tree,
-            !runtime->safe_mapper ? nullptr : get_acquired_instances_ref(),
-            unacquired, runtime->safe_mapper);
+            !runtime->safe_mapper ? nullptr : &acquired_instances, unacquired,
+            runtime->safe_mapper);
         if (bad_tree > 0)
           Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from 'postmap_task' invocation on "
@@ -2326,13 +2316,11 @@ namespace Legion {
               << regions[idx].region.get_tree_id() << ".";
         if (!unacquired.empty())
         {
-          std::map<PhysicalManager*, unsigned>* acquired_instances =
-              get_acquired_instances_ref();
           for (std::vector<PhysicalManager*>::const_iterator uit =
                    unacquired.begin();
                uit != unacquired.end(); uit++)
           {
-            if (acquired_instances->find(*uit) == acquired_instances->end())
+            if (acquired_instances.find(*uit) == acquired_instances.end())
               Exception(MAPPER_EXCEPTION, this)
                   << "Invalid mapper output from 'postmap_task' "
                   << "invocation on mapper " << *mapper << ". Mapper selected "
@@ -2388,7 +2376,7 @@ namespace Legion {
         if (!output.source_instances[idx].empty())
           physical_convert_sources(
               regions[idx], output.source_instances[idx], sources,
-              runtime->safe_mapper ? get_acquired_instances_ref() : nullptr);
+              runtime->safe_mapper ? &acquired_instances : nullptr);
         physical_perform_updates_and_registration(
             regions[idx], local_version_info, idx,
             single_task_termination /*wait for task to be done*/,
