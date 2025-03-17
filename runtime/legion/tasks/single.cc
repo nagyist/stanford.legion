@@ -863,8 +863,19 @@ namespace Legion {
         const std::map<PhysicalManager*, unsigned>* epoch_acquired =
             this->must_epoch->get_acquired_instances_ref();
         if (epoch_acquired != nullptr)
-          acquired_instances.insert(
-              epoch_acquired->begin(), epoch_acquired->end());
+        {
+          for (std::map<PhysicalManager*, unsigned>::const_iterator it =
+                   epoch_acquired->begin();
+               it != epoch_acquired->end(); it++)
+          {
+            if (acquired_instances.find(it->first) != acquired_instances.end())
+              continue;
+            // Can safely add another reference since we know one is
+            // already being held by the must-epoch operation
+            it->first->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+            acquired_instances.emplace(std::make_pair(it->first, 1));
+          }
+        }
       }
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
