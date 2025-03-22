@@ -564,19 +564,19 @@ namespace Legion {
                 (const Realm::InstanceLayoutGeneric**)&layout);
             if (manager->update_physical_instance(instance, ready, footprint))
               delete manager;
-            delete layout;
           }
           else
           {
             // We don't have an existing instance so we need to make one
             const RtEvent ready(Realm::RegionInstance::create_instance(
-                instance, manager->memory_manager->memory, layout, requests));
+                instance, manager->memory_manager->memory, *layout, requests));
             if (ready.exists() && (implicit_profiler != nullptr))
               implicit_profiler->record_instance_ready(
                   ready, manager->get_unique_event());
             if (manager->update_physical_instance(instance, ready, footprint))
               delete manager;
           }
+          delete layout;
         }
         else if (pit->first.exists())
         {
@@ -657,13 +657,14 @@ namespace Legion {
             }
             PhysicalInstance instance;
             const RtEvent ready(Realm::RegionInstance::create_instance(
-                instance, manager->memory_manager->memory, layout, requests));
+                instance, manager->memory_manager->memory, *layout, requests));
             if (ready.exists() && (implicit_profiler != nullptr))
               implicit_profiler->record_instance_ready(
                   ready, manager->get_unique_event());
             if (manager->update_physical_instance(
                     instance, ready, 0 /*footprint*/))
               delete manager;
+            delete layout;
           }
         }
       }

@@ -3295,8 +3295,9 @@ namespace Legion {
 #endif
         PhysicalInstance result;
         const RtEvent inst_ready(PhysicalInstance::create_external_instance(
-            result, alt_resource->suggested_memory(), ilg, *alt_resource,
+            result, alt_resource->suggested_memory(), *ilg, *alt_resource,
             requests));
+        delete ilg;
         if (inst_ready.exists() && (implicit_profiler != nullptr))
           implicit_profiler->record_instance_ready(inst_ready, unique_event);
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
@@ -3342,7 +3343,8 @@ namespace Legion {
         // If it is not an external allocation then ignore suggested_memory
         // because we know we're making this on top of an existing instance
         use_event = RtEvent(PhysicalInstance::create_external_instance(
-            instance, resource->suggested_memory(), ilg, *resource, requests));
+            instance, resource->suggested_memory(), *ilg, *resource, requests));
+        delete ilg;
         own_instance = true;
         if (use_event.exists() && (implicit_profiler != nullptr))
           implicit_profiler->record_instance_ready(use_event, unique_event);
