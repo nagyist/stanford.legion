@@ -341,14 +341,10 @@ namespace Legion {
         OutputRegion& output_region = output_regions[idx];
         FieldID unbound_field = 0;
         if (!output_region.impl->is_complete(unbound_field))
-        {
-          REPORT_LEGION_ERROR(
-              ERROR_UNBOUND_OUTPUT_REGION,
-              "Task %s (UID %lld) did not return any instance for field %d "
-              "of output requirement %u",
-              owner_task->get_task_name(), owner_task->get_unique_id(),
-              unbound_field, idx);
-        }
+          Exception(PROGRAMMING_MODEL_EXCEPTION, owner_task)
+              << "Task " << *owner_task << " did not return any instance "
+              << "for field " << unbound_field << "of output requirement "
+              << idx << ".";
         output_region.impl->finalize(safe_effects);
       }
       // Clear this to remove references in output region data structures
@@ -609,11 +605,10 @@ namespace Legion {
         finalize_output_regions(safe_effects);
       }
       if (!user_profiling_ranges.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_MISMATCHED_PROFILING_RANGE,
-            "Detected mismatched profiling range calls, missing %zd stop calls "
-            "at the end of the task %s (UID %lld)",
-            user_profiling_ranges.size(), get_task_name(), get_unique_id())
+        Exception(PROGRAMMING_MODEL_EXCEPTION, owner_task)
+            << "Detected mismatched profiling range calls, missing "
+            << user_profiling_ranges.size() << " stop calls at the end of "
+            << *owner_task << ".";
       // See if we need to pull the data in from a callback in the case
       // where we are going to be doing a reduction immediately, if we
       // are then we're going to overwrite 'owned' so save it to callback_owned
@@ -1012,23 +1007,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (prov == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_MISSING_PROFILING_PROVENANCE,
-            "Missing provenance string for application profiling range "
-            "in task %s (UID %lld)",
-            get_task_name(), get_unique_id())
+        Exception(PROGRAMMING_MODEL_EXCEPTION, owner_task)
+            << "Missing provenance string for application profiling range in "
+            << *owner_task << ".";
       if (implicit_profiler != nullptr)
       {
         Provenance* provenance =
             runtime->find_or_create_provenance(prov, strlen(prov));
         if (user_profiling_ranges.empty())
-          REPORT_LEGION_ERROR(
-              ERROR_MISMATCHED_PROFILING_RANGE,
-              "Detected mismatched profiling range calls, received a stop call "
-              "without a corresponding start call in task %s (UID %lld) at "
-              "%.*s",
-              get_task_name(), get_unique_id(), int(provenance->human.length()),
-              provenance->human.data())
+          Exception(PROGRAMMING_MODEL_EXCEPTION, owner_task)
+              << "Detected mismatched profiling range calls, received a stop "
+              << "call without a corresponding start call in task "
+              << *owner_task << ".";
         const long long stop = Realm::Clock::current_time_in_nanoseconds();
         implicit_profiler->record_application_range(
             provenance->pid, user_profiling_ranges.back(), stop);
@@ -1045,11 +1035,9 @@ namespace Legion {
       std::map<LocalVariableID, std::pair<void*, void (*)(void*)> >::
           const_iterator finder = task_local_variables.find(id);
       if (finder == task_local_variables.end())
-        REPORT_LEGION_ERROR(
-            ERROR_UNABLE_FIND_TASK_LOCAL,
-            "Unable to find task local variable %d in task %s "
-            "(UID %lld)",
-            id, get_task_name(), get_unique_id())
+        Exception(INTERFACE_EXCEPTION, owner_task)
+            << "Unable to find task local variable " << id << " in "
+            << *owner_task << ".";
       return finder->second.first;
     }
 
@@ -1277,14 +1265,12 @@ namespace Legion {
       VariantImpl* variant_impl = runtime->find_variant_impl(
           child->task_id, output.chosen_variant, true /*can fail*/);
       if (variant_impl == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output from invoction of "
-            "'select_task_variant' on mapper %s. Mapper selected "
-            "an invalid variant ID %d for inlining of task %s "
-            "(UID %lld).",
-            child_mapper->get_mapper_name(), output.chosen_variant,
-            child->get_task_name(), child->get_unique_id())
+        Exception(MAPPER_EXCEPTION, owner_task)
+            << "Invalid mapper output from invoction of "
+            << "'select_task_variant' by mapper " << *child_mapper
+            << ". Mapper selected an invalid variant ID "
+            << output.chosen_variant << " for inlining of task " << *child
+            << ".";
       if (runtime->safe_mapper)
         child->validate_variant_selection(
             child_mapper, variant_impl, executing_processor.kind(),
