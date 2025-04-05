@@ -23,6 +23,7 @@
 #define DEFINE_NT_TEMPLATES
 #endif
 
+#include <numeric>
 #include "legion/analysis/equivalence_set.h"
 #include "legion/kernel/runtime.h"
 #include "legion/api/functors_impl.h"

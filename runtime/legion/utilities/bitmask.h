@@ -26,8 +26,6 @@
 #include <array>
 #include <type_traits>
 
-#include "legion/kernel/allocation.h"
-
 #ifndef __MACH__
 // SJT: this comes first because some systems require __STDC_FORMAT_MACROS
 //  to be defined before inttypes.h is included anywhere
@@ -106,6 +104,8 @@
    (x == 30) ? 10 :    \
                9)
 #endif
+
+#include "legion/kernel/allocation.h"
 
 namespace Legion {
   namespace Internal {

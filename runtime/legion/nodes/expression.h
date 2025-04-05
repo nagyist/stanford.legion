@@ -16,8 +16,6 @@
 #ifndef __LEGION_EXPRESSION_H__
 #define __LEGION_EXPRESSION_H__
 
-#include <numeric>
-
 #include "legion/kernel/metatask.h"
 #include "legion/kernel/runtime.h"
 #include "legion/operations/operation.h"
