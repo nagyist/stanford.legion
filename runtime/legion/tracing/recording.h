@@ -487,11 +487,9 @@ namespace Legion {
     protected:
       inline void base_sanity_check(void) const
       {
-#ifdef DEBUG_LEGION
-        assert(recording);
-        assert(rec != nullptr);
-        assert(rec->is_recording());
-#endif
+        legion_assert(recording);
+        legion_assert(rec != nullptr);
+        legion_assert(rec->is_recording());
       }
       static PhysicalTraceRecorder* init_recorder(Operation* op);
       static TraceLocalID init_tlid(Operation* op);
@@ -625,11 +623,11 @@ namespace Legion {
     private:
       inline void sanity_check(void) const
       {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         base_sanity_check();
-        assert(index != -1U);
-        assert(dst_index != -1U);
 #endif
+        legion_assert(index != -1U);
+        legion_assert(dst_index != -1U);
       }
     public:
       const unsigned index;

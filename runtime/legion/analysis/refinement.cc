@@ -101,10 +101,8 @@ namespace Legion {
     void RegionRefinementTracker::initialize_no_refine(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(refined_child == nullptr);
-      assert(refinement_state == UNREFINED_STATE);
-#endif
+      legion_assert(refined_child == nullptr);
+      legion_assert(refinement_state == UNREFINED_STATE);
       refinement_state = NO_REFINEMENT_STATE;
     }
 
@@ -113,19 +111,15 @@ namespace Legion {
         RegionTreeNode* node, const RegionUsage& usage, bool& allow_refinement)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!allow_refinement);
-      assert(!node->is_region());
-#endif
+      legion_assert(!allow_refinement);
+      legion_assert(!node->is_region());
       PartitionNode* child = node->as_partition_node();
       switch (refinement_state)
       {
         case UNREFINED_STATE:
           {
-#ifdef DEBUG_LEGION
-            assert(refined_child == nullptr);
-            assert(refined_projection == nullptr);
-#endif
+            legion_assert(refined_child == nullptr);
+            legion_assert(refined_projection == nullptr);
             // If we don't have any refinements, we'll always allow them
             if (child->row_source->is_complete())
               refinement_state = IS_WRITE(usage) ?
@@ -276,9 +270,7 @@ namespace Legion {
         bool& allow_refinement)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!allow_refinement);
-#endif
+      legion_assert(!allow_refinement);
       // If this is a projection with the identity projection on a region
       // then we don't want to consider this like a projection and instead
       // want to treat it like we're using this region directly
@@ -288,10 +280,8 @@ namespace Legion {
       {
         case UNREFINED_STATE:
           {
-#ifdef DEBUG_LEGION
-            assert(refined_child == nullptr);
-            assert(refined_projection == nullptr);
-#endif
+            legion_assert(refined_child == nullptr);
+            legion_assert(refined_projection == nullptr);
             // If we don't have any refinements, we'll always allow them
             allow_refinement = true;
             if (summary->is_complete())
@@ -498,9 +488,8 @@ namespace Legion {
         double score, bool is_current)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((refined_child != nullptr) || (refined_projection != nullptr));
-#endif
+      legion_assert(
+          (refined_child != nullptr) || (refined_projection != nullptr));
       bool is_dominant = true;
       // Has to have the most returns
       for (std::unordered_map<
@@ -561,9 +550,7 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(refined_projection != nullptr);
-#endif
+          legion_assert(refined_projection != nullptr);
           std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t> >::
               const_iterator finder =
                   candidate_projections.find(refined_projection);
@@ -712,19 +699,15 @@ namespace Legion {
         RegionTreeNode* node, const RegionUsage& usage, bool& allow_refinement)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(node->is_region());
-      assert(!allow_refinement);
-#endif
+      legion_assert(node->is_region());
+      legion_assert(!allow_refinement);
       RegionNode* child = node->as_region_node();
       switch (refinement_state)
       {
         case UNREFINED_STATE:
           {
-#ifdef DEBUG_LEGION
-            assert(children.empty());
-            assert(refined_projection == nullptr);
-#endif
+            legion_assert(children.empty());
+            legion_assert(refined_projection == nullptr);
             allow_refinement = true;
             child->add_base_resource_ref(REFINEMENT_REF);
             children.emplace_back(child);
@@ -855,17 +838,13 @@ namespace Legion {
         bool& allow_refinement)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!allow_refinement);
-#endif
+      legion_assert(!allow_refinement);
       switch (refinement_state)
       {
         case UNREFINED_STATE:
           {
-#ifdef DEBUG_LEGION
-            assert(children.empty());
-            assert(refined_projection == nullptr);
-#endif
+            legion_assert(children.empty());
+            legion_assert(refined_projection == nullptr);
             allow_refinement = true;
             refined_projection = summary->get_tree()->as_partition_projection();
             refined_projection->add_reference();

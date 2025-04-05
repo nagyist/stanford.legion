@@ -238,16 +238,10 @@ namespace Legion {
     void ReplFenceOp::initialize_fence_barriers(ReplicateContext* repl_ctx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!mapping_fence_barrier.exists());
-      assert(!execution_fence_barrier.exists());
+      legion_assert(!mapping_fence_barrier.exists());
+      legion_assert(!execution_fence_barrier.exists());
       if (repl_ctx == nullptr)
-        repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      if (repl_ctx == nullptr)
-        repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+        repl_ctx = legion_safe_cast<ReplicateContext*>(parent_ctx);
       // If we get here that means we weren't replayed so make our fences
       mapping_fence_barrier = repl_ctx->get_next_mapping_fence_barrier();
       if (fence_kind == EXECUTION_FENCE)
@@ -298,9 +292,7 @@ namespace Legion {
     void ReplFenceOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapping_fence_barrier.exists());
-#endif
+      legion_assert(mapping_fence_barrier.exists());
       // We don't need the mapping fence barrier
       runtime->phase_barrier_arrive(mapping_fence_barrier, 1 /*count*/);
       FenceOp::trigger_replay();
@@ -312,9 +304,7 @@ namespace Legion {
     {
       if (fence_kind == EXECUTION_FENCE)
       {
-#ifdef DEBUG_LEGION
-        assert(execution_fence_barrier.exists());
-#endif
+        legion_assert(execution_fence_barrier.exists());
         runtime->phase_barrier_arrive(
             execution_fence_barrier, 1 /*count*/, complete);
         FenceOp::trigger_complete(execution_fence_barrier);

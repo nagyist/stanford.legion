@@ -70,9 +70,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       unsigned prev = references.fetch_sub(cnt);
-#ifdef DEBUG_LEGION
-      assert(prev >= cnt);  // check for underflow
-#endif
+      legion_assert(prev >= cnt);  // check for underflow
       // If previous is equal to count, the value is now
       // zero so it is safe to reclaim this object
       return (prev == cnt);
@@ -122,9 +120,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_base_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -147,9 +143,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_nested_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -172,9 +166,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_base_ref<false>(GC_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -182,9 +174,7 @@ namespace Legion {
       return remove_base_gc_ref_internal(source, cnt);
 #else
       int current = gc_references.load();
-#ifdef DEBUG_LEGION
-      assert(current >= cnt);
-#endif
+      legion_assert(current >= cnt);
       while (current > cnt)
       {
         int next = current - cnt;
@@ -200,9 +190,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_nested_ref<false>(GC_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -211,9 +199,7 @@ namespace Legion {
           LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
 #else
       int current = gc_references.load();
-#ifdef DEBUG_LEGION
-      assert(current >= cnt);
-#endif
+      legion_assert(current >= cnt);
       while (current > cnt)
       {
         int next = current - cnt;
@@ -229,9 +215,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_base_ref<true>(RESOURCE_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -254,9 +238,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_nested_ref<true>(RESOURCE_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -280,9 +262,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_base_ref<false>(RESOURCE_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -290,9 +270,7 @@ namespace Legion {
       return remove_base_resource_ref_internal(source, cnt);
 #else
       int current = resource_references.load();
-#ifdef DEBUG_LEGION
-      assert(current >= cnt);
-#endif
+      legion_assert(current >= cnt);
       while (current > cnt)
       {
         int next = current - cnt;
@@ -308,9 +286,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_nested_ref<false>(RESOURCE_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -319,9 +295,7 @@ namespace Legion {
           LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
 #else
       int current = resource_references.load();
-#ifdef DEBUG_LEGION
-      assert(current >= cnt);
-#endif
+      legion_assert(current >= cnt);
       while (current > cnt)
       {
         int next = current - cnt;
@@ -337,9 +311,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt > 0);
-#endif
+      legion_assert(cnt > 0);
 #ifndef DEBUG_LEGION_GC
       int current = gc_references.load();
       while (current > 0)
@@ -369,9 +341,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt > 0);
-#endif
+      legion_assert(cnt > 0);
 #ifndef DEBUG_LEGION_GC
       int current = gc_references.load();
       while (current > 0)
@@ -401,9 +371,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_base_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -426,9 +394,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_nested_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -451,9 +417,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_base_ref<false>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -461,9 +425,7 @@ namespace Legion {
       return remove_base_valid_ref_internal(source, cnt);
 #else
       int current = valid_references.load();
-#ifdef DEBUG_LEGION
-      assert(current >= cnt);
-#endif
+      legion_assert(current >= cnt);
       while (current > cnt)
       {
         int next = current - cnt;
@@ -479,9 +441,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_nested_ref<false>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -490,9 +450,7 @@ namespace Legion {
           LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
 #else
       int current = valid_references.load();
-#ifdef DEBUG_LEGION
-      assert(current >= cnt);
-#endif
+      legion_assert(current >= cnt);
       while (current > cnt)
       {
         int next = current - cnt;
@@ -508,9 +466,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt > 0);
-#endif
+      legion_assert(cnt > 0);
 #ifndef DEBUG_LEGION_GC
       int current = valid_references.load();
       while (current > 0)
@@ -540,9 +496,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt > 0);
-#endif
+      legion_assert(cnt > 0);
 #ifndef DEBUG_LEGION_GC
       int current = valid_references.load();
       while (current > 0)

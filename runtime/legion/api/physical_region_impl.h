@@ -52,6 +52,7 @@ namespace Legion {
       PhysicalRegionImpl& operator=(const PhysicalRegionImpl& rhs) = delete;
     public:
       inline bool created_accessor(void) const { return made_accessor; }
+      inline RtEvent get_mapped_event(void) const { return mapped_event; }
     public:
       void wait_until_valid(
           bool silence_warnings, const char* warning_string, bool warn = false,

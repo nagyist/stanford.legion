@@ -137,9 +137,7 @@ namespace Legion {
     void AllReduceOp::populate_sources(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sources.empty());
-#endif
+      legion_assert(sources.empty());
       future_map.impl->get_all_futures(sources);
     }
 
@@ -161,9 +159,7 @@ namespace Legion {
     void AllReduceOp::all_reduce_serdez(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(serdez_redop_fns != nullptr);
-#endif
+      legion_assert(serdez_redop_fns != nullptr);
       // Initialize here so that we can set the initial value future
       future_result_size = 0;
       serdez_redop_fns->init_fn(redop, serdez_redop_buffer, future_result_size);
@@ -410,10 +406,8 @@ namespace Legion {
     void AllReduceOp::create_future_instances(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(targets.empty());
-      assert(!target_memories.empty());
-#endif
+      legion_assert(targets.empty());
+      legion_assert(!target_memories.empty());
       targets.reserve(target_memories.size());
       // If we don't have serdez functions or the upper bound is not set
       // then we can use the future_result_size since we know it is the
@@ -534,13 +528,11 @@ namespace Legion {
     void ReplAllReduceOp::initialize_replication(ReplicateContext* ctx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(redop != nullptr);
-      assert(serdez_redop_collective == nullptr);
-      assert(all_reduce_collective == nullptr);
-      assert(reduction_collective == nullptr);
-      assert(broadcast_collective == nullptr);
-#endif
+      legion_assert(redop != nullptr);
+      legion_assert(serdez_redop_collective == nullptr);
+      legion_assert(all_reduce_collective == nullptr);
+      legion_assert(reduction_collective == nullptr);
+      legion_assert(broadcast_collective == nullptr);
       if (serdez_redop_fns == nullptr)
       {
         if (deterministic)
@@ -591,13 +583,9 @@ namespace Legion {
     void ReplAllReduceOp::populate_sources(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sources.empty());
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(sources.empty());
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       future_map.impl->get_shard_local_futures(
           repl_ctx->owner_shard->shard_id, sources);
     }
@@ -612,10 +600,8 @@ namespace Legion {
       // the all-reduce future collective
       if (all_reduce_collective != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(!targets.empty());
-        assert(serdez_redop_fns == nullptr);
-#endif
+        legion_assert(!targets.empty());
+        legion_assert(serdez_redop_fns == nullptr);
         FutureInstance* target = targets.front();
         // If the instance is in a memory we cannot see or is "too big"
         // then we need to make the shadow instance for the future
@@ -639,9 +625,7 @@ namespace Legion {
     void ReplAllReduceOp::all_reduce_serdez(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(serdez_redop_fns != nullptr);
-#endif
+      legion_assert(serdez_redop_fns != nullptr);
       future_result_size = 0;
       serdez_redop_fns->init_fn(redop, serdez_redop_buffer, future_result_size);
       // Only include the initial value one time for control replication
@@ -684,9 +668,7 @@ namespace Legion {
                  remote_buffers.begin();
              it != remote_buffers.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->first != serdez_redop_collective->local_shard);
-#endif
+          legion_assert(it->first != serdez_redop_collective->local_shard);
           (*(serdez_redop_fns->fold_fn))(
               redop, serdez_redop_buffer, future_result_size, it->second.first);
         }
@@ -715,9 +697,7 @@ namespace Legion {
         if (runtime->legion_spy_enabled)
           LegionSpy::log_future_use(unique_op_id, impl->did);
       }
-#ifdef DEBUG_LEGION
-      assert(!targets.empty());
-#endif
+      legion_assert(!targets.empty());
       // We're going to need to do an all-reduce between the shards so
       // we'll just do our local reductions into the first target initially
       // and then we'll broadcast the result to the targets afterwards

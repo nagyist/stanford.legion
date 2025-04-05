@@ -51,9 +51,7 @@ namespace Legion {
       {
         int length = ((count + 3) >> 2) + 1;  // includes trailing \0
         char* result = (char*)malloc(length * sizeof(char));
-#ifdef DEBUG_LEGION
-        assert(result != 0);
-#endif
+        legion_assert(result != 0);
         int index = 0;
         int words = (count + 63) >> 6;
         for (int w = 0; w < words; w++)
@@ -71,9 +69,7 @@ namespace Legion {
             word >>= 4;
           }
         }
-#ifdef DEBUG_LEGION
-        assert(index == (length - 1));
-#endif
+        legion_assert(index == (length - 1));
         result[index] = '\0';
         return result;
       }
@@ -115,9 +111,7 @@ namespace Legion {
     inline void BitMask<T, MAX, SHIFT, MASK>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> SHIFT;
       bit_vector[idx] |= (1ULL << (bit & MASK));
     }
@@ -127,9 +121,7 @@ namespace Legion {
     inline void BitMask<T, MAX, SHIFT, MASK>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> SHIFT;
       bit_vector[idx] &= ~((1ULL << (bit & MASK)));
     }
@@ -150,9 +142,7 @@ namespace Legion {
     inline bool BitMask<T, MAX, SHIFT, MASK>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> SHIFT;
       return (bit_vector[idx] & (1ULL << (bit & MASK)));
     }
@@ -818,9 +808,7 @@ namespace Legion {
     inline void TLBitMask<T, MAX, SHIFT, MASK>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> SHIFT;
       const T set_mask = (1ULL << (bit & MASK));
       bit_vector[idx] |= set_mask;
@@ -832,9 +820,7 @@ namespace Legion {
     inline void TLBitMask<T, MAX, SHIFT, MASK>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> SHIFT;
       const T set_mask = (1ULL << (bit & MASK));
       const T unset_mask = ~set_mask;
@@ -860,9 +846,7 @@ namespace Legion {
     inline bool TLBitMask<T, MAX, SHIFT, MASK>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> SHIFT;
       return (bit_vector[idx] & (1ULL << (bit & MASK)));
     }
@@ -1589,9 +1573,7 @@ namespace Legion {
     inline void SSEBitMask<MAX>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       bits.bit_vector[idx] |= (1UL << (bit & 0x3F));
     }
@@ -1601,9 +1583,7 @@ namespace Legion {
     inline void SSEBitMask<MAX>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       bits.bit_vector[idx] &= ~(1UL << (bit & 0x3F));
     }
@@ -1624,9 +1604,7 @@ namespace Legion {
     inline bool SSEBitMask<MAX>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       return (bits.bit_vector[idx] & (1UL << (bit & 0x3F)));
     }
@@ -2278,9 +2256,7 @@ namespace Legion {
     inline void SSETLBitMask<MAX>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       const uint64_t set_mask = (1UL << (bit & 0x3F));
       bits.bit_vector[idx] |= set_mask;
@@ -2292,9 +2268,7 @@ namespace Legion {
     inline void SSETLBitMask<MAX>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       const uint64_t set_mask = (1UL << (bit & 0x3F));
       const uint64_t unset_mask = ~set_mask;
@@ -2320,9 +2294,7 @@ namespace Legion {
     inline bool SSETLBitMask<MAX>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       return (bits.bit_vector[idx] & (1UL << (bit & 0x3F)));
     }
@@ -3050,9 +3022,7 @@ namespace Legion {
     inline void AVXBitMask<MAX>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       bits.bit_vector[idx] |= (1UL << (bit & 0x3F));
     }
@@ -3062,9 +3032,7 @@ namespace Legion {
     inline void AVXBitMask<MAX>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       bits.bit_vector[idx] &= ~(1UL << (bit & 0x3F));
     }
@@ -3085,9 +3053,7 @@ namespace Legion {
     inline bool AVXBitMask<MAX>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       return (bits.bit_vector[idx] & (1UL << (bit & 0x3F)));
     }
@@ -3804,9 +3770,7 @@ namespace Legion {
     inline void AVXTLBitMask<MAX>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       const uint64_t set_mask = (1UL << (bit & 0x3F));
       bits.bit_vector[idx] |= set_mask;
@@ -3818,9 +3782,7 @@ namespace Legion {
     inline void AVXTLBitMask<MAX>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       const uint64_t set_mask = (1UL << (bit & 0x3F));
       const uint64_t unset_mask = ~set_mask;
@@ -3846,9 +3808,7 @@ namespace Legion {
     inline bool AVXTLBitMask<MAX>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       return (bits.bit_vector[idx] & (1UL << (bit & 0x3F)));
     }
@@ -4672,9 +4632,7 @@ namespace Legion {
     inline void PPCBitMask<MAX>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       bits.bit_vector[idx] |= (1UL << (bit & 0x3F));
     }
@@ -4684,9 +4642,7 @@ namespace Legion {
     inline void PPCBitMask<MAX>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       bits.bit_vector[idx] &= ~(1UL << (bit & 0x3F));
     }
@@ -4707,9 +4663,7 @@ namespace Legion {
     inline bool PPCBitMask<MAX>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       return (bits.bit_vector[idx] & (1UL << (bit & 0x3F)));
     }
@@ -5379,9 +5333,7 @@ namespace Legion {
     inline void PPCTLBitMask<MAX>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       const uint64_t set_mask = (1UL << (bit & 0x3F));
       bits.bit_vector[idx] |= set_mask;
@@ -5393,9 +5345,7 @@ namespace Legion {
     inline void PPCTLBitMask<MAX>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       const uint64_t set_mask = (1UL << (bit & 0x3F));
       const uint64_t unset_mask = ~set_mask;
@@ -5421,9 +5371,7 @@ namespace Legion {
     inline bool PPCTLBitMask<MAX>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       return (bits.bit_vector[idx] & (1UL << (bit & 0x3F)));
     }
@@ -6170,9 +6118,7 @@ namespace Legion {
     inline void NeonBitMask<MAX>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       bits.bit_vector[idx] |= (1UL << (bit & 0x3F));
     }
@@ -6182,9 +6128,7 @@ namespace Legion {
     inline void NeonBitMask<MAX>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       bits.bit_vector[idx] &= ~(1UL << (bit & 0x3F));
     }
@@ -6205,9 +6149,7 @@ namespace Legion {
     inline bool NeonBitMask<MAX>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       return (bits.bit_vector[idx] & (1UL << (bit & 0x3F)));
     }
@@ -6881,9 +6823,7 @@ namespace Legion {
     inline void NeonTLBitMask<MAX>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       const uint64_t set_mask = (1UL << (bit & 0x3F));
       bits.bit_vector[idx] |= set_mask;
@@ -6895,9 +6835,7 @@ namespace Legion {
     inline void NeonTLBitMask<MAX>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       const uint64_t set_mask = (1UL << (bit & 0x3F));
       const uint64_t unset_mask = ~set_mask;
@@ -6923,9 +6861,7 @@ namespace Legion {
     inline bool NeonTLBitMask<MAX>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bit < MAX);
-#endif
+      legion_assert(bit < MAX);
       unsigned idx = bit >> 6;
       return (bits.bit_vector[idx] & (1UL << (bit & 0x3F)));
     }
@@ -7785,16 +7721,12 @@ namespace Legion {
     {
       if (is_sparse())
       {
-#ifdef DEBUG_LEGION
-        assert(sparse_size > 0);
-#endif
+        legion_assert(sparse_size > 0);
         return mask.sparse[0];
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!!(*mask.dense));
-#endif
+        legion_assert(!!(*mask.dense));
         return mask.dense->find_first_set();
       }
     }
@@ -7808,9 +7740,7 @@ namespace Legion {
       if (is_sparse())
       {
         int index = find_index(start);
-#ifdef DEBUG_LEGION
-        assert(index >= 0);
-#endif
+        legion_assert(index >= 0);
         // Increment to the next index
         if (++index == sparse_size)
           return -1;

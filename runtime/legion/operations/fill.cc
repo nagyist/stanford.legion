@@ -141,9 +141,7 @@ namespace Legion {
       mapper_data_size = launcher.map_arg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
@@ -293,9 +291,7 @@ namespace Legion {
     RtEvent FillOp::initialize_fill_view(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(fill_view == nullptr);
-#endif
+      legion_assert(fill_view == nullptr);
       // Note that this returns a fill view with a reference added to it
       // We remove the reference in trigger_complete
       if (future.impl != nullptr)
@@ -311,9 +307,7 @@ namespace Legion {
     FillView* FillOp::get_fill_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(fill_view != nullptr);
-#endif
+      legion_assert(fill_view != nullptr);
       return fill_view;
     }
 
@@ -431,9 +425,7 @@ namespace Legion {
       fill_fields(get_fill_view(), init_precondition, trace_info);
       if (set_view)
       {
-#ifdef DEBUG_LEGION
-        assert(future.impl != nullptr);
-#endif
+        legion_assert(future.impl != nullptr);
         // This will make sure we have a mapping locally
         future.impl->request_runtime_instance(this);
       }
@@ -510,10 +502,8 @@ namespace Legion {
     unsigned FillOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_req_index != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_req_index != TRACED_PARENT_INDEX);
       return parent_req_index;
     }
 
@@ -558,9 +548,7 @@ namespace Legion {
         const PhysicalTraceInfo& trace_info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
       RegionNode* region_node = runtime->get_node(requirement.region);
       bool first_local = true;
       CollectiveMapping* collective_mapping = nullptr;
@@ -606,9 +594,7 @@ namespace Legion {
       parent_ctx = ctx;
       parent_task = ctx->get_task();
       initialize_predication(ctx, launcher.predicate, provenance);
-#ifdef DEBUG_LEGION
-      assert(launch_sp.exists());
-#endif
+      legion_assert(launch_sp.exists());
       launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
       if (!launcher.launch_domain.exists())
@@ -618,18 +604,14 @@ namespace Legion {
       sharding_space = launcher.sharding_space;
       if (launcher.region.exists())
       {
-#ifdef DEBUG_LEGION
-        assert(!launcher.partition.exists());
-#endif
+        legion_assert(!launcher.partition.exists());
         requirement = RegionRequirement(
             launcher.region, launcher.projection, LEGION_WRITE_DISCARD,
             LEGION_EXCLUSIVE, launcher.parent);
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(launcher.partition.exists());
-#endif
+        legion_assert(launcher.partition.exists());
         requirement = RegionRequirement(
             launcher.partition, launcher.projection, LEGION_WRITE_DISCARD,
             LEGION_EXCLUSIVE, launcher.parent);
@@ -660,9 +642,7 @@ namespace Legion {
       mapper_data_size = launcher.map_arg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
@@ -770,9 +750,7 @@ namespace Legion {
       enumerate_points();
       if (future.impl != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(future.impl != nullptr);
-#endif
+        legion_assert(future.impl != nullptr);
         // This will make sure we have a mapping locally
         future.impl->request_runtime_instance(this);
       }
@@ -794,9 +772,7 @@ namespace Legion {
       if (effect.exists())
         record_completion_effect(effect);
       const unsigned received = ++points_completed;
-#ifdef DEBUG_LEGION
-      assert(received <= points.size());
-#endif
+      legion_assert(received <= points.size());
       if (received == points.size())
       {
         if (set_view)
@@ -817,9 +793,7 @@ namespace Legion {
       bool commit_now = false;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(!commit_request);
-#endif
+        legion_assert(!commit_request);
         commit_request = true;
         commit_now = (points.size() == points_committed);
       }
@@ -831,9 +805,7 @@ namespace Legion {
     void IndexFillOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_replaying());
-#endif
+      legion_assert(is_replaying());
 #ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
 #endif
@@ -867,9 +839,7 @@ namespace Legion {
       Domain launch_domain = local_points->get_tight_domain();
       // Now enumerate the points
       size_t num_points = local_points->get_volume();
-#ifdef DEBUG_LEGION
-      assert(num_points > 0);
-#endif
+      legion_assert(num_points > 0);
       std::vector<PointFillOp*> temp_points;
       temp_points.reserve(num_points);
       for (Domain::DomainPointIterator itr(launch_domain); itr; itr++)
@@ -897,9 +867,7 @@ namespace Legion {
       }
       // Need the lock to avoid races with the pointwise dependence analysis
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(points.empty());
-#endif
+      legion_assert(points.empty());
       points.swap(temp_points);
       // See if we have any pending pointwise dependences to trigger
       for (std::map<DomainPoint, RtUserEvent>::const_iterator pit =
@@ -915,9 +883,7 @@ namespace Legion {
           point = *it;
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(point != nullptr);
-#endif
+        legion_assert(point != nullptr);
         Runtime::trigger_event(pit->second, point->get_mapped_event());
       }
     }
@@ -929,9 +895,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(needed_gen <= gen);
-#endif
+      legion_assert(needed_gen <= gen);
       if ((needed_gen < gen) || mapped ||
           (predication_state == PREDICATED_FALSE_STATE))
       {
@@ -1051,9 +1015,7 @@ namespace Legion {
       mapper_data_size = owner->mapper_data_size;
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, owner->mapper_data, mapper_data_size);
       }
@@ -1187,9 +1149,7 @@ namespace Legion {
     void PointFillOp::set_projection_result(unsigned idx, LogicalRegion result)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-#endif
+      legion_assert(idx == 0);
       requirement.region = result;
       requirement.handle_type = LEGION_SINGULAR_PROJECTION;
     }
@@ -1233,9 +1193,7 @@ namespace Legion {
       : AllGatherCollective<false>(ctx, id), fill_op(op), fresh_did(fresh)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(fresh_did > 0);
-#endif
+      legion_assert(fresh_did > 0);
       selected_views.insert(did);
     }
 
@@ -1269,18 +1227,14 @@ namespace Legion {
     RtEvent CreateCollectiveFillView::post_complete_exchange(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!selected_views.empty());
-#endif
+      legion_assert(!selected_views.empty());
       if ((selected_views.size() > 1) || ((*selected_views.begin()) == 0))
       {
         bool set_view = false;
         // This call comes back with a MAPPING_ACQUIRE_REF already on the view
         FillView* fill_view = manager->deduplicate_fill_view_creation(
             fresh_did, fill_op, set_view);
-#ifdef DEBUG_LEGION
-        assert(fill_view != nullptr);
-#endif
+        legion_assert(fill_view != nullptr);
         // Pass the MAPPING_ACQUIRE_REF into the registration
         fill_op->register_fill_view_creation(fill_view, set_view);
       }
@@ -1328,10 +1282,8 @@ namespace Legion {
     void ReplFillOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Make sure we didn't leak our barrier
-      assert(!collective_map_barrier.exists());
-#endif
+      legion_assert(!collective_map_barrier.exists());
       ReplCollectiveVersioning<CollectiveVersioning<FillOp> >::deactivate(
           false /*free*/);
       if (collective != nullptr)
@@ -1344,12 +1296,8 @@ namespace Legion {
     void ReplFillOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       collective_map_barrier = repl_ctx->get_next_collective_map_barriers();
       create_collective_rendezvous(0 /*requirement index*/);
       // Then do the base class analysis
@@ -1360,9 +1308,7 @@ namespace Legion {
     void ReplFillOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(collective_map_barrier.exists());
       // Signal that all of our mapping dependences are satisfied
       runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       if (parent_req_index == TRACED_PARENT_INDEX)
@@ -1408,13 +1354,9 @@ namespace Legion {
       else
         fill_view = parent_ctx->find_fill_view(value, value_size);
       // Create the rendezvous collective
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-      assert(collective == nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      legion_assert(collective == nullptr);
       collective = new CreateCollectiveFillView(
           repl_ctx, collective_id, this,
           (fill_view == nullptr) ? 0 : fill_view->did, fresh_did);
@@ -1427,12 +1369,8 @@ namespace Legion {
         CollectiveMapping*& mapping, bool& first_local)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       mapping = &(repl_ctx->shard_manager->get_collective_mapping());
       mapping->add_reference();
       first_local = is_first_local_shard;
@@ -1447,13 +1385,9 @@ namespace Legion {
       {
         // Normal analysis path
         runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/, pre);
-#ifdef DEBUG_LEGION
         const RtEvent result = collective_map_barrier;
         collective_map_barrier = RtBarrier::NO_RT_BARRIER;
         return result;
-#else
-        return collective_map_barrier;
-#endif
       }
       else  // Tracing path
         return pre;
@@ -1463,9 +1397,7 @@ namespace Legion {
     void ReplFillOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(collective_map_barrier.exists());
       // Trigger both generations of the barrier and move on
       runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       // Advance the first generation of the barrier for trigger_ready
@@ -1517,19 +1449,15 @@ namespace Legion {
       collective = nullptr;
       collective_id = 0;
       fresh_did = 0;
-#ifdef DEBUG_LEGION
       sharding_collective = nullptr;
-#endif
     }
 
     //--------------------------------------------------------------------------
     void ReplIndexFillOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       if (sharding_collective != nullptr)
         delete sharding_collective;
-#endif
       IndexFillOp::deactivate(false /*free*/);
       remove_launch_space_reference(shard_points);
       if (collective != nullptr)
@@ -1542,12 +1470,8 @@ namespace Legion {
     void ReplIndexFillOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Do the mapper call to get the sharding function to use
       if (mapper == nullptr)
         mapper =
@@ -1566,18 +1490,19 @@ namespace Legion {
       this->sharding_functor = output.chosen_functor;
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
-#ifdef DEBUG_LEGION
-      assert(sharding_collective != nullptr);
-      sharding_collective->contribute(this->sharding_functor);
-      if (sharding_collective->is_target() &&
-          !sharding_collective->validate(this->sharding_functor))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s chose different sharding functions "
-            "for index fill in task %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
-#endif
+      if (runtime->safe_mapper)
+      {
+        legion_assert(sharding_collective != nullptr);
+        sharding_collective->contribute(this->sharding_functor);
+        if (sharding_collective->is_target() &&
+            !sharding_collective->validate(this->sharding_functor))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Mapper %s chose different sharding functions "
+              "for index fill in task %s (UID %lld)",
+              mapper->get_mapper_name(), parent_ctx->get_task_name(),
+              parent_ctx->get_unique_id())
+      }
       // Now we can do the normal prepipeline stage
       IndexFillOp::trigger_prepipeline_stage();
     }
@@ -1595,13 +1520,9 @@ namespace Legion {
     void ReplIndexFillOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-      assert(launch_space != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      legion_assert(launch_space != nullptr);
       // Compute the local index space of points for this shard
       IndexSpace local_space;
       if (sharding_space.exists())
@@ -1615,9 +1536,7 @@ namespace Legion {
       // If we're recording then record the local_space
       if (is_recording())
       {
-#ifdef DEBUG_LEGION
-        assert((tpl != nullptr) && tpl->is_recording());
-#endif
+        legion_assert((tpl != nullptr) && tpl->is_recording());
         tpl->record_local_space(trace_local_id, local_space);
       }
       // If it's empty we're done, otherwise we go back on the queue
@@ -1676,13 +1595,9 @@ namespace Legion {
       else
         fill_view = parent_ctx->find_fill_view(value, value_size);
       // Create the rendezvous collective
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-      assert(collective == nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      legion_assert(collective == nullptr);
       collective = new CreateCollectiveFillView(
           repl_ctx, collective_id, this,
           (fill_view == nullptr) ? 0 : fill_view->did, fresh_did);
@@ -1694,9 +1609,7 @@ namespace Legion {
     void ReplIndexFillOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(tpl != nullptr);
-#endif
+      legion_assert(tpl != nullptr);
       const IndexSpace local_space = tpl->find_local_space(trace_local_id);
       // If it's empty we're done, otherwise we do the replay
       if (!local_space.exists())
@@ -1722,9 +1635,7 @@ namespace Legion {
     bool ReplIndexFillOp::find_shard_participants(std::vector<ShardID>& shards)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sharding_function != nullptr);
-#endif
+      legion_assert(sharding_function != nullptr);
       if (sharding_space.exists())
         return sharding_function->find_shard_participants(
             launch_space, sharding_space, shards);

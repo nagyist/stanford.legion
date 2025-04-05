@@ -1711,7 +1711,7 @@ namespace Legion {
         // immediately it just returns the precondition as the postcondition
         // which of course breaks Legion Spy's way of logging deppart
         // operations uniquely as their completion event
-        assert(pre != post);
+        legion_assert(pre != post);
         log_spy.print(
             "Deppart Events %llu %lld " IDFMT " " IDFMT " %d", op_unique_id,
             expr_id, pre.id, post.id, op_kind);

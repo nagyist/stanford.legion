@@ -57,10 +57,8 @@ namespace Legion {
           receiving_buffer_size, alignof(std::max_align_t));
       static_assert(sizeof(uint8_t*) == sizeof(VirtualChannel*));
       memcpy(&receiving_buffer, &buffer, sizeof(buffer));
-#ifdef DEBUG_LEGION
-      assert(sending_buffer != nullptr);
-      assert(receiving_buffer != nullptr);
-#endif
+      legion_assert(sending_buffer != nullptr);
+      legion_assert(receiving_buffer != nullptr);
       // Use a dummy implicit provenance at the front for the message
       // to comply with the requirements of the meta-task handler which
       // expects this before the task ID. We'll actually have individual
@@ -117,9 +115,7 @@ namespace Legion {
         Processor target, bool response)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!flush_precondition.exists() || flush);
-#endif
+      legion_assert(!flush_precondition.exists() || flush);
       // First check to see if the message fits in the current buffer
       // including the overhead for the message: kind and size
       size_t buffer_size = rez.get_used_bytes();
@@ -162,9 +158,7 @@ namespace Legion {
             send_message(
                 false /*complete*/, target, k, response, flush_precondition);
           remaining = sending_buffer_size - sending_index;
-#ifdef DEBUG_LEGION
-          assert(remaining > 0);  // should be space after the send
-#endif
+          legion_assert(remaining > 0);  // should be space after the send
           // Figure out how much to copy into the buffer
           unsigned to_copy =
               (remaining < buffer_size) ? remaining : buffer_size;
@@ -316,10 +310,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Lock held from caller
-#ifdef DEBUG_LEGION
-      assert(!ordered_channel);
-      assert(unordered_events.size() >= MAX_UNORDERED_EVENTS);
-#endif
+      legion_assert(!ordered_channel);
+      legion_assert(unordered_events.size() >= MAX_UNORDERED_EVENTS);
       // Prune out any triggered events
       for (std::set<RtEvent>::iterator it = unordered_events.begin();
            it != unordered_events.end();
@@ -529,15 +521,11 @@ namespace Legion {
             if (!ordered_channel)
             {
               AutoLock c_lock(channel_lock);
-#ifdef DEBUG_LEGION
-              assert(partial_assembly != nullptr);
-#endif
+              legion_assert(partial_assembly != nullptr);
               std::map<unsigned, PartialMessage>::iterator finder =
                   partial_assembly->find(incoming_message_id);
-#ifdef DEBUG_LEGION
-              assert(finder != partial_assembly->end());
-              assert(finder->second.buffer != nullptr);
-#endif
+              legion_assert(finder != partial_assembly->end());
+              legion_assert(finder->second.buffer != nullptr);
               buffer_messages(
                   num_messages, buffer, arglen, finder->second.buffer,
                   finder->second.size, finder->second.index,
@@ -586,9 +574,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < num_messages; idx++)
       {
         // Pull off the message kind and the size of the message
-#ifdef DEBUG_LEGION
-        assert(arglen >= (sizeof(MessageKind) + sizeof(size_t)));
-#endif
+        legion_assert(arglen >= (sizeof(MessageKind) + sizeof(size_t)));
         MessageKind kind;
         memcpy(&kind, args, sizeof(kind));
         // Any message that is not a shutdown message needs to be recorded
@@ -610,10 +596,7 @@ namespace Legion {
         memcpy(&message_size, args, sizeof(message_size));
         args += sizeof(message_size);
         arglen -= sizeof(message_size);
-#ifdef DEBUG_LEGION
-        if (idx == (num_messages - 1))
-          assert(message_size == arglen);
-#endif
+        legion_assert((idx != (num_messages - 1)) || (message_size == arglen));
         // Build the deserializer
         Deserializer derez(args, message_size);
         switch (kind)
@@ -2199,9 +2182,7 @@ namespace Legion {
         args += message_size;
         arglen -= message_size;
       }
-#ifdef DEBUG_LEGION
-      assert(arglen == 0);  // make sure we processed everything
-#endif
+      legion_assert(arglen == 0);  // make sure we processed everything
     }
 
     //--------------------------------------------------------------------------
@@ -2222,9 +2203,7 @@ namespace Legion {
         size_t new_buffer_size = receiving_buffer_size;
         while (new_buffer_size < (receiving_index + arglen))
           new_buffer_size *= 2;
-#ifdef DEBUG_LEGION
-        assert(new_buffer_size != 0);  // would cause deallocation
-#endif
+        legion_assert(new_buffer_size != 0);  // would cause deallocation
         // Now realloc the memory
         VirtualChannel* buffer;
         memcpy(&buffer, &receiving_buffer, sizeof(buffer));
@@ -2232,9 +2211,7 @@ namespace Legion {
             buffer, receiving_buffer_size, new_buffer_size);
         memcpy(&receiving_buffer, &buffer, sizeof(buffer));
         receiving_buffer_size = new_buffer_size;
-#ifdef DEBUG_LEGION
-        assert(receiving_buffer != nullptr);
-#endif
+        legion_assert(receiving_buffer != nullptr);
       }
       // Copy the data in
       memcpy(receiving_buffer + receiving_index, args, arglen);
@@ -2254,9 +2231,7 @@ namespace Legion {
         remote_address_space(remote), target(remote_util_group)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(remote != runtime->address_space);
-#endif
+      legion_assert(remote != runtime->address_space);
       const bool has_profiler = (runtime->profiler != nullptr);
       // Initialize our virtual channels
       for (unsigned idx = 0; idx < MAX_NUM_VIRTUAL_CHANNELS; idx++)

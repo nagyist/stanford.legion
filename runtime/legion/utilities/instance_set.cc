@@ -96,9 +96,7 @@ namespace Legion {
     void InstanceRef::add_resource_reference(ReferenceSource source) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       manager->add_base_resource_ref(source);
     }
 
@@ -106,9 +104,7 @@ namespace Legion {
     void InstanceRef::remove_resource_reference(ReferenceSource source) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       if (manager->remove_base_resource_ref(source))
         delete manager;
     }
@@ -117,9 +113,7 @@ namespace Legion {
     bool InstanceRef::acquire_valid_reference(ReferenceSource source) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       return manager->as_physical_manager()->acquire_instance(source);
     }
 
@@ -127,9 +121,7 @@ namespace Legion {
     void InstanceRef::add_valid_reference(ReferenceSource source) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       manager->as_physical_manager()->add_base_valid_ref(source);
     }
 
@@ -137,9 +129,7 @@ namespace Legion {
     void InstanceRef::remove_valid_reference(ReferenceSource source) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       if (manager->as_physical_manager()->remove_base_valid_ref(source))
         delete manager;
     }
@@ -148,9 +138,7 @@ namespace Legion {
     Memory InstanceRef::get_memory(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       if (!manager->is_physical_manager())
         return Memory::NO_MEMORY;
       return manager->as_physical_manager()->get_memory();
@@ -160,10 +148,8 @@ namespace Legion {
     PhysicalManager* InstanceRef::get_physical_manager(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-      assert(manager->is_physical_manager());
-#endif
+      legion_assert(manager != nullptr);
+      legion_assert(manager->is_physical_manager());
       return manager->as_physical_manager();
     }
 
@@ -171,9 +157,7 @@ namespace Legion {
     bool InstanceRef::is_field_set(FieldID fid) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       unsigned index = manager->field_space_node->get_field_index(fid);
       return valid_fields.is_set(index);
     }
@@ -321,9 +305,7 @@ namespace Legion {
     void InstanceSet::make_copy(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shared);
-#endif
+      legion_assert(shared);
       if (single)
       {
         if (refs.single != nullptr)
@@ -389,15 +371,11 @@ namespace Legion {
         make_copy();
       if (single)
       {
-#ifdef DEBUG_LEGION
-        assert(idx == 0);
-        assert(refs.single != nullptr);
-#endif
+        legion_assert(idx == 0);
+        legion_assert(refs.single != nullptr);
         return *(refs.single);
       }
-#ifdef DEBUG_LEGION
-      assert(idx < refs.multi->vector.size());
-#endif
+      legion_assert(idx < refs.multi->vector.size());
       return refs.multi->vector[idx];
     }
 
@@ -408,15 +386,11 @@ namespace Legion {
       // No need to make a copy if shared here since this is read-only
       if (single)
       {
-#ifdef DEBUG_LEGION
-        assert(idx == 0);
-        assert(refs.single != nullptr);
-#endif
+        legion_assert(idx == 0);
+        legion_assert(refs.single != nullptr);
         return *(refs.single);
       }
-#ifdef DEBUG_LEGION
-      assert(idx < refs.multi->vector.size());
-#endif
+      legion_assert(idx < refs.multi->vector.size());
       return refs.multi->vector[idx];
     }
 

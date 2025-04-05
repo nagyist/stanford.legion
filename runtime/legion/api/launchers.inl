@@ -49,9 +49,7 @@ namespace Legion {
   inline void TaskLauncher::add_field(unsigned idx, FieldID fid, bool inst)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(idx < region_requirements.size());
-#endif
     region_requirements[idx].add_field(fid, inst);
   }
 
@@ -142,9 +140,7 @@ namespace Legion {
   inline void IndexTaskLauncher::add_field(unsigned idx, FieldID fid, bool inst)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(idx < region_requirements.size());
-#endif
     region_requirements[idx].add_field(fid, inst);
   }
 
@@ -264,9 +260,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     unsigned result = src_requirements.size();
-#ifdef DEBUG_LEGION
     assert(result == dst_requirements.size());
-#endif
     src_requirements.emplace_back(src);
     dst_requirements.emplace_back(dst);
     return result;
@@ -276,9 +270,7 @@ namespace Legion {
   inline void CopyLauncher::add_src_field(unsigned idx, FieldID fid, bool inst)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(idx < src_requirements.size());
-#endif
     src_requirements[idx].add_field(fid, inst);
   }
 
@@ -286,9 +278,7 @@ namespace Legion {
   inline void CopyLauncher::add_dst_field(unsigned idx, FieldID fid, bool inst)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(idx < dst_requirements.size());
-#endif
     dst_requirements[idx].add_field(fid, inst);
   }
 
@@ -377,9 +367,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     unsigned result = src_requirements.size();
-#ifdef DEBUG_LEGION
     assert(result == dst_requirements.size());
-#endif
     src_requirements.emplace_back(src);
     dst_requirements.emplace_back(dst);
     return result;
@@ -390,9 +378,7 @@ namespace Legion {
       unsigned idx, FieldID fid, bool inst)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(idx < src_requirements.size());
-#endif
     src_requirements[idx].add_field(fid, inst);
   }
 
@@ -401,9 +387,7 @@ namespace Legion {
       unsigned idx, FieldID fid, bool inst)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(idx < dst_requirements.size());
-#endif
     dst_requirements[idx].add_field(fid, inst);
   }
 
@@ -736,9 +720,7 @@ namespace Legion {
       const char* name, const std::vector<FieldID>& fields, LegionFileMode m)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(resource == LEGION_EXTERNAL_POSIX_FILE);
-#endif
     file_name = name;
     mode = m;
     file_fields = fields;
@@ -752,9 +734,7 @@ namespace Legion {
       LegionFileMode m)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(resource == LEGION_EXTERNAL_HDF5_FILE);
-#endif
     file_name = name;
     mode = m;
     field_files = field_map;
@@ -773,10 +753,8 @@ namespace Legion {
       Memory mem, const std::map<FieldID, size_t>* alignments /*= nullptr*/)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(handle.exists());
     assert(resource == LEGION_EXTERNAL_INSTANCE);
-#endif
     constraints.add_constraint(PointerConstraint(mem, uintptr_t(base)));
     if (mem.exists())
       constraints.add_constraint(MemoryConstraint(mem.kind()));
@@ -792,10 +770,8 @@ namespace Legion {
       Memory mem, const std::map<FieldID, size_t>* alignments /*= nullptr*/)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(handle.exists());
     assert(resource == LEGION_EXTERNAL_INSTANCE);
-#endif
     constraints.add_constraint(PointerConstraint(mem, uintptr_t(base)));
     if (mem.exists())
       constraints.add_constraint(MemoryConstraint(mem.kind()));
@@ -852,32 +828,22 @@ namespace Legion {
       const std::vector<FieldID>& fields, LegionFileMode m)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(resource == LEGION_EXTERNAL_POSIX_FILE);
-#endif
     if (handles.empty())
     {
       mode = m;
       initialize_constraints(true /*column major*/, true /*soa*/, fields);
       privilege_fields.insert(fields.begin(), fields.end());
     }
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
     else
       assert(mode == m);
-#endif
-#endif
     handles.emplace_back(handle);
     file_names.emplace_back(file_name);
     if (!file_fields.empty())
     {
-#ifdef DEBUG_LEGION
       assert(fields.size() == file_fields.size());
-#ifndef NDEBUG
       for (unsigned idx = 0; idx < fields.size(); idx++)
         assert(file_fields[idx] == fields[idx]);
-#endif
-#endif
     }
     else
       file_fields = fields;
@@ -889,9 +855,7 @@ namespace Legion {
       const std::map<FieldID, const char*>& field_map, LegionFileMode m)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(resource == LEGION_EXTERNAL_HDF5_FILE);
-#endif
     if (handles.empty())
     {
       mode = m;
@@ -904,25 +868,15 @@ namespace Legion {
       initialize_constraints(true /*column major*/, true /*soa*/, fields);
       privilege_fields.insert(fields.begin(), fields.end());
     }
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
     else
       assert(mode == m);
-#endif
-#endif
     handles.emplace_back(handle);
     file_names.emplace_back(file_name);
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-    const bool first = field_files.empty();
-#endif
-#endif
+    [[maybe_unused]] const bool first = field_files.empty();
     for (std::map<FieldID, const char*>::const_iterator it = field_map.begin();
          it != field_map.end(); it++)
     {
-#ifdef DEBUG_LEGION
       assert(first || (field_files.find(it->first) != field_files.end()));
-#endif
       field_files[it->first].emplace_back(it->second);
     }
   }
@@ -934,16 +888,13 @@ namespace Legion {
       const std::map<FieldID, size_t>* alignments)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(handle.exists());
     assert(resource == LEGION_EXTERNAL_INSTANCE);
-#endif
     if (handles.empty())
     {
       initialize_constraints(column_major, false /*soa*/, fields, alignments);
       privilege_fields.insert(fields.begin(), fields.end());
     }
-#ifdef DEBUG_LEGION
     else
     {
       // Check that the fields are the same
@@ -984,7 +935,6 @@ namespace Legion {
         }
       }
     }
-#endif
     handles.emplace_back(handle);
     pointers.emplace_back(PointerConstraint(mem, uintptr_t(base)));
   }
@@ -996,16 +946,13 @@ namespace Legion {
       const std::map<FieldID, size_t>* alignments)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(handle.exists());
     assert(resource == LEGION_EXTERNAL_INSTANCE);
-#endif
     if (handles.empty())
     {
       initialize_constraints(column_major, true /*soa*/, fields, alignments);
       privilege_fields.insert(fields.begin(), fields.end());
     }
-#ifdef DEBUG_LEGION
     else
     {
       // Check that the fields are the same
@@ -1045,7 +992,6 @@ namespace Legion {
         }
       }
     }
-#endif
     handles.emplace_back(handle);
     pointers.emplace_back(PointerConstraint(mem, uintptr_t(base)));
   }

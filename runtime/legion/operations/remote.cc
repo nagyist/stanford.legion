@@ -53,9 +53,7 @@ namespace Legion {
     {
       if (!profiling_requests.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(profiling_response.exists());
-#endif
+        legion_assert(profiling_response.exists());
         if (profiling_reports.load() > 0)
         {
           Serializer rez;
@@ -85,9 +83,7 @@ namespace Legion {
     void RemoteOp::pack_remote_base(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(parent_ctx != nullptr);
-#endif
+      legion_assert(parent_ctx != nullptr);
       rez.serialize(get_operation_kind());
       rez.serialize(remote_ptr);
       rez.serialize(source);
@@ -145,9 +141,7 @@ namespace Legion {
       derez.deserialize(profiling_priority);
       derez.deserialize(profiling_target);
       derez.deserialize(profiling_response);
-#ifdef DEBUG_LEGION
-      assert(profiling_response.exists());
-#endif
+      legion_assert(profiling_response.exists());
     }
 
     //--------------------------------------------------------------------------
@@ -424,9 +418,7 @@ namespace Legion {
       derez.deserialize(update_count);
       RtUserEvent done_event;
       derez.deserialize(done_event);
-#ifdef DEBUG_LEGION
-      assert(done_event.exists());
-#endif
+      legion_assert(done_event.exists());
       op->handle_profiling_update(update_count);
       Runtime::trigger_event(done_event);
     }

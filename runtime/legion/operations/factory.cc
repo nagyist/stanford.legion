@@ -94,9 +94,7 @@ namespace Legion {
     void OperationFactory<OP, WRAP, CAN_DELETE>::recycle(OP* op)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dynamic_cast<WRAP*>(op) != nullptr);
-#endif
+      legion_assert(dynamic_cast<WRAP*>(op) != nullptr);
       available.emplace_back(op);
     }
 
@@ -139,9 +137,7 @@ namespace Legion {
     void OperationFactory<OP, WRAP, true>::recycle(OP* op)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dynamic_cast<WRAP*>(op) != nullptr);
-#endif
+      legion_assert(dynamic_cast<WRAP*>(op) != nullptr);
       available.emplace_back(op);
       if (available.size() > LEGION_MAX_RECYCLABLE_OBJECTS)
       {

@@ -139,7 +139,7 @@ namespace Legion {
       bool record_pointwise_dependence(
           LogicalAnalysis& analysis, const LogicalUser& prev,
           const LogicalUser& next, bool& dominates);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       void sanity_check(void) const;
 #endif
     public:
@@ -291,7 +291,7 @@ namespace Legion {
       void register_child(unsigned depth, const LegionColor color);
       void clear();
     public:
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       bool has_child(unsigned depth) const;
       LegionColor get_child(unsigned depth) const;
 #else

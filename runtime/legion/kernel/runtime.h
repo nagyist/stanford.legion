@@ -136,7 +136,7 @@ namespace Legion {
             report_leaks(false), record_registration(false),
             stealing_disabled(false), resilient_mode(false),
             unsafe_launch(false), unsafe_mapper(false), safe_mapper(false),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
             safe_model(true),
 #else
             safe_model(false),
@@ -149,11 +149,7 @@ namespace Legion {
             legion_spy_enabled(false),
 #endif
             enable_test_mapper(false), slow_config_ok(false),
-#ifdef DEBUG_LEGION
             verbose_logging(false), check_privileges(true),
-#else
-            check_privileges(false),
-#endif
             dump_free_ranges(false), num_profiling_nodes(0),
             serializer_type("binary"), prof_footprint_threshold(128 << 20),
             prof_target_latency(100), prof_call_threshold(0),
@@ -205,9 +201,7 @@ namespace Legion {
         std::string replay_file;
         std::string ldb_file;
         bool slow_config_ok;
-#ifdef DEBUG_LEGION
         bool verbose_logging;
-#endif
         bool check_privileges;
         bool dump_free_ranges;
       public:
@@ -332,9 +326,7 @@ namespace Legion {
       const bool enable_test_mapper;
       const bool legion_ldb_enabled;
       const std::string replay_file;
-#ifdef DEBUG_LEGION
       const bool verbose_logging;
-#endif
       const bool check_privileges;
       const bool dump_free_ranges;
     public:
@@ -1861,19 +1853,8 @@ namespace Legion {
       void prepare_runtime_shutdown(void);
     public:
       bool has_outstanding_tasks(void);
-#ifdef DEBUG_LEGION
       void increment_total_outstanding_tasks(unsigned tid, bool meta);
       void decrement_total_outstanding_tasks(unsigned tid, bool meta);
-#else
-      inline void increment_total_outstanding_tasks(void)
-      {
-        total_outstanding_tasks.fetch_add(1);
-      }
-      inline void decrement_total_outstanding_tasks(void)
-      {
-        total_outstanding_tasks.fetch_sub(1);
-      }
-#endif
     public:
       template<typename OP>
       inline OP* get_operation(void)
@@ -1882,8 +1863,8 @@ namespace Legion {
         {
           AutoLock op_lock(operation_lock);
           operation_industry.create(result);
-#ifdef DEBUG_LEGION
-          assert(
+#ifdef LEGION_DEBUG
+          legion_assert(
               outstanding_operations.find(result) ==
               outstanding_operations.end());
           outstanding_operations.insert(result);
@@ -1896,9 +1877,9 @@ namespace Legion {
       inline void free_operation(OP* op)
       {
         AutoLock op_lock(operation_lock);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         std::set<Operation*>::iterator finder = outstanding_operations.find(op);
-        assert(finder != outstanding_operations.end());
+        legion_assert(finder != outstanding_operations.end());
         outstanding_operations.erase(finder);
 #endif
         operation_industry.recycle(op);
@@ -1980,7 +1961,7 @@ namespace Legion {
     protected:
       bool prepared_for_shutdown;
     protected:
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       mutable LocalLock outstanding_task_lock;
       std::map<std::pair<unsigned, bool>, unsigned> outstanding_task_counts;
       unsigned total_outstanding_tasks;
@@ -2360,7 +2341,7 @@ namespace Legion {
           OperationFactory<ReplTraceRecurrentOp>,
           OperationFactory<ReplTraceCompleteOp> >
           operation_industry;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       std::set<Operation*> outstanding_operations;
 #endif
     public:

@@ -25,9 +25,7 @@ namespace Legion {
     inline IndividualView* LogicalView::as_individual_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_individual_view());
-#endif
+      legion_assert(is_individual_view());
       return static_cast<IndividualView*>(const_cast<LogicalView*>(this));
     }
 

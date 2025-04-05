@@ -130,7 +130,7 @@ if (CMAKE_BUILD_TYPE AND ( CMAKE_BUILD_TYPE STREQUAL "Debug"))
   # define variable for realm_defines.h
   set(DEBUG_REALM ON)
   # define variable for legion_defines.h
-  set(DEBUG_LEGION ON)
+  set(LEGION_DEBUG ON)
 endif()
 
 set(BUILD_SHARED_LIBS OFF  CACHE BOOL   "Whether or not to build shared libraries instead of static")

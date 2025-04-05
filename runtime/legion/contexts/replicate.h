@@ -969,9 +969,7 @@ namespace Legion {
           result = next;
           next =
               collective_map_barriers[next_collective_map_bar_index].next(this);
-#ifdef DEBUG_LEGION
-          assert(result == Runtime::get_previous_phase(next));
-#endif
+          legion_assert(result == Runtime::get_previous_phase(next));
         }
         if (++next_collective_map_bar_index == collective_map_barriers.size())
           next_collective_map_bar_index = 0;
@@ -994,9 +992,7 @@ namespace Legion {
           runtime->phase_barrier_arrive(result, 1);
           result = next;
           next = indirection_barriers[next_indirection_bar_index].next(this);
-#ifdef DEBUG_LEGION
-          assert(result == Runtime::get_previous_phase(next));
-#endif
+          legion_assert(result == Runtime::get_previous_phase(next));
         }
         if (++next_indirection_bar_index == indirection_barriers.size())
           next_indirection_bar_index = 0;
@@ -1304,9 +1300,7 @@ namespace Legion {
       Future to_complete;
       T* const output;
       std::map<T, size_t> element_counts;
-#ifdef DEBUG_LEGION
       size_t max_elements;
-#endif
     };
 
     /**

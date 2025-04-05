@@ -152,9 +152,7 @@ namespace Legion {
       {
         std::map<MapperID, std::pair<MapperManager*, bool> >::const_iterator
             finder = mappers.find(0);
-#ifdef DEBUG_LEGION
-        assert(finder != mappers.end());
-#endif
+        legion_assert(finder != mappers.end());
         return finder->second.first;
       }
       AutoLock m_lock(mapper_lock, 0 /*mode*/, false /*exclusive*/);
@@ -188,9 +186,7 @@ namespace Legion {
       // Now re-take the lock and re-check the condition to see
       // if the next scheduling task should be launched
       AutoLock q_lock(queue_lock);
-#ifdef DEBUG_LEGION
-      assert(outstanding_task_scheduler);
-#endif
+      legion_assert(outstanding_task_scheduler);
       // If the task scheduler is enabled launch ourselves again
       if (task_scheduler_enabled)
       {
@@ -210,9 +206,7 @@ namespace Legion {
     void ProcessorManager::launch_task_scheduler(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!outstanding_task_scheduler);
-#endif
+      legion_assert(!outstanding_task_scheduler);
       outstanding_task_scheduler = true;
       SchedulerArgs sched_args(local_proc);
       // This is waking the scheduler up so give it higher priority in
@@ -255,9 +249,7 @@ namespace Legion {
       ContextID ctx_id = context->get_logical_tree_context();
       AutoLock q_lock(queue_lock);
       ContextState& state = context_states[ctx_id];
-#ifdef DEBUG_LEGION
-      assert(!state.active);
-#endif
+      legion_assert(!state.active);
       state.active = true;
       if (state.owned_tasks > 0)
         increment_active_contexts();
@@ -272,9 +264,7 @@ namespace Legion {
       // the size of this vector is fixed
       AutoLock q_lock(queue_lock);
       ContextState& state = context_states[ctx_id];
-#ifdef DEBUG_LEGION
-      assert(state.active);
-#endif
+      legion_assert(state.active);
       state.active = false;
       if (state.owned_tasks > 0)
         decrement_active_contexts();
@@ -308,9 +298,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Better be called while holding the queue lock
-#ifdef DEBUG_LEGION
-      assert(total_active_contexts > 0);
-#endif
+      legion_assert(total_active_contexts > 0);
       total_active_contexts--;
       if ((total_active_contexts == 0) && (total_progress_tasks == 0))
         task_scheduler_enabled = false;
@@ -336,9 +324,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Better be called while holding the queue lock
-#ifdef DEBUG_LEGION
-      assert(total_active_mappers > 0);
-#endif
+      legion_assert(total_active_mappers > 0);
       total_active_mappers--;
       if (total_active_mappers == 0)
         task_scheduler_enabled = false;
@@ -363,9 +349,7 @@ namespace Legion {
     void ProcessorManager::decrement_progress_tasks(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(total_progress_tasks > 0);
-#endif
+      legion_assert(total_progress_tasks > 0);
       total_progress_tasks--;
       if ((total_active_contexts == 0) && (total_progress_tasks == 0))
         task_scheduler_enabled = false;
@@ -447,9 +431,7 @@ namespace Legion {
           // back into the queue and remove the queue guard
           AutoLock q_lock(queue_lock);
           MapperState& map_state = mapper_states[*steal_it];
-#ifdef DEBUG_LEGION
-          assert(map_state.queue_guard);
-#endif
+          legion_assert(map_state.queue_guard);
           std::list<SingleTask*>& rqueue = map_state.ready_queue;
           for (std::list<SingleTask*>::iterator it = rqueue.begin();
                it != rqueue.end();
@@ -460,9 +442,7 @@ namespace Legion {
               const ContextID ctx_id =
                   (*it)->get_context()->get_logical_tree_context();
               ContextState& state = context_states[ctx_id];
-#ifdef DEBUG_LEGION
-              assert(state.owned_tasks > 0);
-#endif
+              legion_assert(state.owned_tasks > 0);
               state.owned_tasks--;
               if (state.active && (state.owned_tasks == 0))
                 decrement_active_contexts();
@@ -538,9 +518,7 @@ namespace Legion {
     void ProcessorManager::add_to_ready_queue(SingleTask* task)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(task != nullptr);
-#endif
+      legion_assert(task != nullptr);
       // have to do this when we are not holding the lock
       task->activate_outstanding_task();
       // Check to see if this task is a task that must map in order to
@@ -550,9 +528,7 @@ namespace Legion {
       // vector is of a fixed size
       ContextID ctx_id = task->get_context()->get_logical_tree_context();
       AutoLock q_lock(queue_lock);
-#ifdef DEBUG_LEGION
-      assert(mapper_states.find(task->map_id) != mapper_states.end());
-#endif
+      legion_assert(mapper_states.find(task->map_id) != mapper_states.end());
       // Update the state for the context
       ContextState& state = context_states[ctx_id];
       if (state.active && (state.owned_tasks == 0))
@@ -612,24 +588,14 @@ namespace Legion {
       uint64_t lamport_clock = 0;
       {
         AutoLock c_lock(concurrent_lock);
-#ifdef DEBUG_LEGION
-        assert(concurrent_tasks.find(task) == concurrent_tasks.end());
-#endif
+        legion_assert(concurrent_tasks.find(task) == concurrent_tasks.end());
         lamport_clock = concurrent_lamport_clock++;
         concurrent_tasks.insert(std::make_pair(
             task, ConcurrentState(lamport_clock, precondition, ready)));
       }
       // Check to see if the precondition event was poisoned
       bool poisoned = false;
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-      bool triggered =
-#endif
-#endif
-          precondition.has_triggered_faultaware(poisoned);
-#ifdef DEBUG_LEGION
-      assert(triggered);
-#endif
+      legion_no_skip_assert(precondition.has_triggered_faultaware(poisoned));
       // Tell the task to compute the max all-reduce of lamport clocks
       task->concurrent_allreduce(this, lamport_clock, vid, poisoned);
     }
@@ -642,11 +608,9 @@ namespace Legion {
       AutoLock c_lock(concurrent_lock);
       std::map<SingleTask*, ConcurrentState>::iterator finder =
           concurrent_tasks.find(task);
-#ifdef DEBUG_LEGION
-      assert(finder != concurrent_tasks.end());
-      assert(!finder->second.max);
-      assert(finder->second.lamport_clock <= lamport_clock);
-#endif
+      legion_assert(finder != concurrent_tasks.end());
+      legion_assert(!finder->second.max);
+      legion_assert(finder->second.lamport_clock <= lamport_clock);
       if (concurrent_lamport_clock <= lamport_clock)
         concurrent_lamport_clock = lamport_clock + 1;
       if (poisoned)
@@ -669,9 +633,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock c_lock(concurrent_lock);
-#ifdef DEBUG_LEGION
-      assert(outstanding_concurrent_task);
-#endif
+      legion_assert(outstanding_concurrent_task);
       outstanding_concurrent_task = false;
       if (ready_concurrent_tasks > 0)
         start_next_concurrent_task();
@@ -681,11 +643,9 @@ namespace Legion {
     void ProcessorManager::start_next_concurrent_task(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!concurrent_tasks.empty());
-      assert(!outstanding_concurrent_task);
-      assert(ready_concurrent_tasks > 0);
-#endif
+      legion_assert(!concurrent_tasks.empty());
+      legion_assert(!outstanding_concurrent_task);
+      legion_assert(ready_concurrent_tasks > 0);
       // See if we can prove that there is a task that is safe to start
       uint64_t min_next = std::numeric_limits<uint64_t>::max();
       uint64_t min_pending = std::numeric_limits<uint64_t>::max();
@@ -741,9 +701,7 @@ namespace Legion {
               }
               if (equal)
               {
-#ifdef DEBUG_LEGION
-                assert(next_coords.size() != it_coords.size());
-#endif
+                legion_assert(next_coords.size() != it_coords.size());
                 if (it_coords.size() < next_coords.size())
                 {
                   next = it->first;
@@ -770,9 +728,7 @@ namespace Legion {
       {
         std::map<SingleTask*, ConcurrentState>::iterator finder =
             concurrent_tasks.find(next);
-#ifdef DEBUG_LEGION
-        assert(finder != concurrent_tasks.end());
-#endif
+        legion_assert(finder != concurrent_tasks.end());
         // Trigger the ready event with the precondition to keep
         // tools like Legion Spy happy even though we know that
         // the precondition event has already triggered
@@ -881,10 +837,8 @@ namespace Legion {
             // they were then we need to invoke select_tasks_to_map again
             if (map_state.ready_queue.empty())
             {
-#ifdef DEBUG_LEGION
-              assert(!map_state.deferral_event.exists());
-              assert(map_state.queue_guard);
-#endif
+              legion_assert(!map_state.deferral_event.exists());
+              legion_assert(map_state.queue_guard);
               map_state.deferral_event = wait_on;
               // Decrement the number of active mappers
               decrement_active_mappers();
@@ -945,9 +899,7 @@ namespace Legion {
           // that were selected
           AutoLock q_lock(queue_lock);
           MapperState& map_state = mapper_states[map_id];
-#ifdef DEBUG_LEGION
-          assert(map_state.queue_guard);
-#endif
+          legion_assert(map_state.queue_guard);
           std::list<SingleTask*>& rqueue = map_state.ready_queue;
           // Iterate over the list and find any items to remove
           for (std::list<SingleTask*>::iterator it = rqueue.begin();
@@ -962,9 +914,7 @@ namespace Legion {
               const ContextID ctx_id =
                   (*it)->get_context()->get_logical_tree_context();
               ContextState& state = context_states[ctx_id];
-#ifdef DEBUG_LEGION
-              assert(state.owned_tasks > 0);
-#endif
+              legion_assert(state.owned_tasks > 0);
               state.owned_tasks--;
               if (state.active && (state.owned_tasks == 0))
                 decrement_active_contexts();

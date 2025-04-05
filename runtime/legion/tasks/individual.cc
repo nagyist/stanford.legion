@@ -96,9 +96,7 @@ namespace Legion {
       mapper_data_size = launcher.map_arg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
@@ -203,9 +201,7 @@ namespace Legion {
     void IndividualTask::prepare_map_must_epoch(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(must_epoch != nullptr);
-#endif
+      legion_assert(must_epoch != nullptr);
       set_origin_mapped(true);
       if (!elide_future_return)
       {
@@ -345,9 +341,7 @@ namespace Legion {
         unsigned idx1, unsigned idx2)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx1 < idx2);
-#endif
+      legion_assert(idx1 < idx2);
       // The logical dependence analysis can report this because there are
       // interfering fields and regions, check to make sure there are alos
       // interfering privileges and index spaces
@@ -481,11 +475,9 @@ namespace Legion {
         return false;
       if (concurrent_task)
       {
-#ifdef DEBUG_LEGION
-        assert(must_epoch_task);
-        assert(is_origin_mapped());
-        assert(concurrent_postcondition.exists());
-#endif
+        legion_assert(must_epoch_task);
+        legion_assert(is_origin_mapped());
+        legion_assert(concurrent_postcondition.exists());
         concurrent_precondition = Runtime::create_rt_user_event();
         must_epoch->rendezvous_concurrent_mapped(concurrent_precondition);
       }
@@ -525,9 +517,7 @@ namespace Legion {
         size_t return_type_size, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!elide_future_return);
-#endif
+      legion_assert(!elide_future_return);
       if (is_remote())
       {
         const RtUserEvent done_event = Runtime::create_rt_user_event();
@@ -551,9 +541,7 @@ namespace Legion {
         RtEvent registered, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(registered.exists());
-#endif
+      legion_assert(registered.exists());
       if (is_remote())
       {
         // Send the message on to the origin node to tell it
@@ -751,10 +739,8 @@ namespace Legion {
     {
       if (functor != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(instance == nullptr);
-        assert(metadata == nullptr);
-#endif
+        legion_assert(instance == nullptr);
+        legion_assert(metadata == nullptr);
         if (elide_future_return)
         {
           functor->callback_release_future();
@@ -790,12 +776,8 @@ namespace Legion {
     {
       // First thing: increment the meta-task counts since we decremented
       // them in case we didn't end up running
-#ifdef DEBUG_LEGION
       runtime->increment_total_outstanding_tasks(
           MispredicationTaskArgs::TASK_ID, true /*meta*/);
-#else
-      runtime->increment_total_outstanding_tasks();
-#endif
 #ifdef DEBUG_SHUTDOWN_HANG
       runtime->outstanding_counts[MispredicationTaskArgs::TASK_ID].fetch_add(1);
 #endif
@@ -823,10 +805,8 @@ namespace Legion {
     void IndividualTask::set_concurrent_postcondition(RtEvent postcondition)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(must_epoch_task);
-      assert(!concurrent_postcondition.exists());
-#endif
+      legion_assert(must_epoch_task);
+      legion_assert(!concurrent_postcondition.exists());
       concurrent_postcondition = postcondition;
     }
 
@@ -835,10 +815,8 @@ namespace Legion {
         uint64_t lamport_clock, bool need_result)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(must_epoch_task);
-      assert(is_origin_mapped());
-#endif
+      legion_assert(must_epoch_task);
+      legion_assert(is_origin_mapped());
       return must_epoch->collective_lamport_allreduce(
           lamport_clock, need_result);
     }
@@ -848,11 +826,9 @@ namespace Legion {
         ApEvent start, VariantImpl* impl)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(must_epoch_task);
-      assert(target_processors.size() == 1);
-      assert(concurrent_postcondition.exists());
-#endif
+      legion_assert(must_epoch_task);
+      legion_assert(target_processors.size() == 1);
+      legion_assert(concurrent_postcondition.exists());
       // See the comment in PointTask::order_concurrent_launch that
       // describes what we are doing here
       const OrderConcurrentLaunchArgs args(
@@ -873,10 +849,8 @@ namespace Legion {
         bool poisoned)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(must_epoch_task);
-      assert(manager->local_proc == target_proc);
-#endif
+      legion_assert(must_epoch_task);
+      legion_assert(manager->local_proc == target_proc);
       if (is_remote())
       {
         Serializer rez;
@@ -996,7 +970,7 @@ namespace Legion {
       // Quick check to see if we've been sent back to our original node
       if (!is_remote())
       {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         // Need to make the deserializer happy in debug mode
         // 2 *sizeof(size_t) since we're two DerezChecks deep
         derez.advance_pointer(derez.get_remaining_bytes() - 2 * sizeof(size_t));
@@ -1131,9 +1105,7 @@ namespace Legion {
     void IndividualTask::complete_replay(ApEvent instance_ready_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!target_processors.empty());
-#endif
+      legion_assert(!target_processors.empty());
       const AddressSpaceID target_space =
           runtime->find_address_space(target_processors.front());
       // Check to see if we're replaying this locally or remotely
@@ -1155,10 +1127,8 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(is_leaf());
-        assert(region_preconditions.empty());
-#endif
+        legion_assert(is_leaf());
+        legion_assert(region_preconditions.empty());
         region_preconditions.resize(regions.size(), instance_ready_event);
         execution_fence_event = instance_ready_event;
         update_no_access_regions();
@@ -1246,9 +1216,7 @@ namespace Legion {
       sharding_functor = UINT_MAX;
       sharding_function = nullptr;
       output_bar = RtBarrier::NO_RT_BARRIER;
-#ifdef DEBUG_LEGION
       sharding_collective = nullptr;
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1256,10 +1224,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndividualTask::deactivate(false /*free*/);
-#ifdef DEBUG_LEGION
       if (sharding_collective != nullptr)
         delete sharding_collective;
-#endif
       if (freeop)
         runtime->free_operation(this);
     }
@@ -1268,12 +1234,8 @@ namespace Legion {
     void ReplIndividualTask::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // We might be able to skip this if the sharding function was already
       // picked for us which occurs when we're part of a must-epoch launch
       if (sharding_function == nullptr)
@@ -1295,23 +1257,23 @@ namespace Legion {
         sharding_function =
             repl_ctx->shard_manager->find_sharding_function(sharding_functor);
       }
-#ifdef DEBUG_LEGION
-      assert(sharding_function != nullptr);
+      legion_assert(sharding_function != nullptr);
       // In debug mode we check to make sure that all the mappers
       // picked the same sharding function
-      assert(sharding_collective != nullptr);
       // Contribute the result
-      sharding_collective->contribute(this->sharding_functor);
-      if (sharding_collective->is_target() &&
-          !sharding_collective->validate(this->sharding_functor))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s chose different sharding functions "
-            "for individual task %s (UID %lld) in %s "
-            "(UID %lld)",
-            mapper->get_mapper_name(), get_task_name(), get_unique_id(),
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
-#endif
+      if (runtime->safe_mapper)
+      {
+        legion_assert(sharding_collective != nullptr);
+        sharding_collective->contribute(this->sharding_functor);
+        if (sharding_collective->is_target() &&
+            !sharding_collective->validate(this->sharding_functor))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Mapper %s chose different sharding functions "
+              "for individual task %s (UID %lld) in %s (UID %lld)",
+              mapper->get_mapper_name(), get_task_name(), get_unique_id(),
+              parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+      }
       // Now we can do the normal prepipeline stage
       IndividualTask::trigger_prepipeline_stage();
     }
@@ -1330,13 +1292,8 @@ namespace Legion {
         // tasks to the special shard UINT_MAX so that they appear to be
         // on a different shard than any other tasks, but on the same shard
         // for all the tasks in the must epoch launch.
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         analysis_sharding_function =
             repl_ctx->get_universal_sharding_function();
       }
@@ -1349,13 +1306,9 @@ namespace Legion {
     void ReplIndividualTask::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sharding_function != nullptr);
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(sharding_function != nullptr);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Figure out whether this shard owns this point
       if (sharding_space.exists())
       {
@@ -1368,10 +1321,8 @@ namespace Legion {
       // If we're recording then record the owner shard
       if (is_recording())
       {
-#ifdef DEBUG_LEGION
-        assert(!is_remote());
-        assert((tpl != nullptr) && tpl->is_recording());
-#endif
+        legion_assert(!is_remote());
+        legion_assert((tpl != nullptr) && tpl->is_recording());
         tpl->record_owner_shard(trace_local_id, owner_shard);
       }
       if (runtime->legion_spy_enabled)
@@ -1403,14 +1354,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Figure out if we're the one to do the replay
-#ifdef DEBUG_LEGION
-      assert(!is_remote());
-      assert(tpl != nullptr);
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(!is_remote());
+      legion_assert(tpl != nullptr);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       owner_shard = tpl->find_owner_shard(trace_local_id);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
@@ -1429,12 +1376,8 @@ namespace Legion {
     void ReplIndividualTask::predicate_false(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Only set the future on shard 0 (note we know that all the shards
       // have resolved false so we don't need to ask the sharding functor
       // which one we want to do the work)
@@ -1465,14 +1408,10 @@ namespace Legion {
     void ReplIndividualTask::prepare_map_must_epoch(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-      assert(must_epoch != nullptr);
-      assert(sharding_function != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(must_epoch != nullptr);
+      legion_assert(sharding_function != nullptr);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       set_origin_mapped(true);
       // See if we're going to be a local point or not
       Domain shard_domain = index_domain;
@@ -1513,10 +1452,8 @@ namespace Legion {
         ShardingID functor, ShardingFunction* function)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(must_epoch != nullptr);
-      assert(sharding_function == nullptr);
-#endif
+      legion_assert(must_epoch != nullptr);
+      legion_assert(sharding_function == nullptr);
       sharding_functor = functor;
       sharding_function = function;
     }
@@ -1525,12 +1462,8 @@ namespace Legion {
     Future ReplIndividualTask::create_future(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       DistributedID future_did = repl_ctx->get_next_distributed_id();
       return repl_ctx->shard_manager->deduplicate_future_creation(
           repl_ctx, future_did, this, index_point);
@@ -1541,11 +1474,9 @@ namespace Legion {
         RtEvent registered, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_remote());
-      assert(output_bar.exists());
-      assert(!output_regions.empty());
-#endif
+      legion_assert(!is_remote());
+      legion_assert(output_bar.exists());
+      legion_assert(!output_regions.empty());
       // Launch the meta-task to perform the registration
       // Make sure we don't complete the task until the barrier is done
       // on the shard that actually owns the task

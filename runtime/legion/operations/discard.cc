@@ -81,10 +81,8 @@ namespace Legion {
     unsigned DiscardOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_req_index != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_req_index != TRACED_PARENT_INDEX);
       return parent_req_index;
     }
 
@@ -187,9 +185,7 @@ namespace Legion {
     void DiscardOp::discard_fields(const PhysicalTraceInfo& trace_info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
       RegionNode* region = runtime->get_node(requirement.region);
       FilterAnalysis* analysis =
           new FilterAnalysis(this, 0 /*index*/, region, trace_info);
@@ -245,10 +241,8 @@ namespace Legion {
     void ReplDiscardOp::deactivate(bool free)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Make sure we didn't leak our barrier
-      assert(!collective_map_barrier.exists());
-#endif
+      legion_assert(!collective_map_barrier.exists());
       ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> >::deactivate(
           false /*free*/);
       if (free)
@@ -259,12 +253,8 @@ namespace Legion {
     void ReplDiscardOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       collective_map_barrier = repl_ctx->get_next_collective_map_barriers();
       create_collective_rendezvous(0 /*requirement index*/);
       // Then do the base class analysis
@@ -275,9 +265,7 @@ namespace Legion {
     void ReplDiscardOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(collective_map_barrier.exists());
       // Signal that all of our mapping dependences are satisfied
       runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       std::set<RtEvent> preconditions;
@@ -297,17 +285,11 @@ namespace Legion {
     RtEvent ReplDiscardOp::finalize_complete_mapping(RtEvent pre)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(collective_map_barrier.exists());
       runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/, pre);
-#ifdef DEBUG_LEGION
       const RtEvent result = collective_map_barrier;
       collective_map_barrier = RtBarrier::NO_RT_BARRIER;
       return result;
-#else
-      return collective_map_barrier;
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -315,12 +297,8 @@ namespace Legion {
         CollectiveMapping*& mapping, bool& first_local)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       mapping = &(repl_ctx->shard_manager->get_collective_mapping());
       mapping->add_reference();
       first_local = is_first_local_shard;

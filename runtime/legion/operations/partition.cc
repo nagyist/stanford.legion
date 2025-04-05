@@ -43,9 +43,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new EqualPartitionThunk(pid, granularity);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -58,9 +56,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new WeightPartitionThunk(pid, granularity);
       // Also save this locally for analysis
       populate_sources(weights, pid, true /*needs all futures*/);
@@ -75,9 +71,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new UnionPartitionThunk(pid, h1, h2);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -90,9 +84,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, prov);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new IntersectionPartitionThunk(pid, h1, h2);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -105,9 +97,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, prov);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new IntersectionWithRegionThunk(pid, part, dominates);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -120,9 +110,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, prov);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new DifferencePartitionThunk(pid, h1, h2);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -136,9 +124,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, prov);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new RestrictedPartitionThunk(
           pid, transform, transform_size, extent, extent_size);
       if (runtime->legion_spy_enabled)
@@ -152,9 +138,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new FutureMapThunk(pid, fm, perform_intersections);
       // Also save this locally for analysis
       populate_sources(fm, pid, false /*needs all futures*/);
@@ -171,9 +155,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new CrossProductThunk(base, source, part_color, shard, mapping);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -186,9 +168,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ComputePendingSpace(target, true /*union*/, handles);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -201,9 +181,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ComputePendingSpace(target, true /*union*/, handle);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -216,9 +194,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ComputePendingSpace(target, false /*union*/, handles);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -231,9 +207,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ComputePendingSpace(target, false /*union*/, handle);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -246,9 +220,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ComputePendingDifference(target, initial, handles);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -289,9 +261,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       future_map = fm;
-#ifdef DEBUG_LEGION
-      assert(sources.empty());
-#endif
+      legion_assert(sources.empty());
       if (future_map.impl != nullptr)
         future_map.impl->get_all_futures(sources);
     }
@@ -707,10 +677,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       future_map = fm;
-#ifdef DEBUG_LEGION
-      assert(sources.empty());
-      assert(future_map.impl != nullptr);
-#endif
+      legion_assert(sources.empty());
+      legion_assert(future_map.impl != nullptr);
       if (future_map.impl != nullptr)
       {
         if (!needs_all_futures)
@@ -738,12 +706,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We know we are in a replicate context
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Perform the partitioning operation
       ApEvent ready_event;
       // One the first shard will perform the pending partition computations

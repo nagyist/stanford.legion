@@ -61,10 +61,8 @@ namespace Legion {
     void LogicalTrace::fix_trace(Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!fixed);
-      assert(end_provenance == nullptr);
-#endif
+      legion_assert(!fixed);
+      legion_assert(end_provenance == nullptr);
       fixed = true;
       end_provenance = provenance;
       if (end_provenance != nullptr)
@@ -104,12 +102,7 @@ namespace Legion {
           TaskID task_id = 0;
           if (kind == TASK_OP_KIND)
           {
-#ifdef DEBUG_LEGION
-            TaskOp* task = dynamic_cast<TaskOp*>(op);
-            assert(task != nullptr);
-#else
-            TaskOp* task = dynamic_cast<TaskOp*>(op);
-#endif
+            TaskOp* task = legion_safe_cast<TaskOp*>(op);
             task_id = task->task_id;
             hasher.hash(task_id);
           }
@@ -243,9 +236,7 @@ namespace Legion {
     void LogicalTrace::check_operation_count(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(verification_index <= verification_infos.size());
-#endif
+      legion_assert(verification_index <= verification_infos.size());
       if (verification_index < verification_infos.size())
         REPORT_LEGION_ERROR(
             ERROR_TRACE_VIOLATION_OPERATION,
@@ -263,9 +254,7 @@ namespace Legion {
     bool LogicalTrace::skip_analysis(RegionTreeID tid) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(recording);
-#endif
+      legion_assert(recording);
       if (static_translator == nullptr)
         return false;
       return static_translator->skip_analysis(tid);
@@ -305,9 +294,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!op->is_internal_op());
-#endif
+        legion_assert(!op->is_internal_op());
         // Replaying
         const size_t index = replay_index++;
         if (index >= replay_info.size())
@@ -366,9 +353,7 @@ namespace Legion {
     void LogicalTrace::register_internal(InternalOp* op)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(recording);
-#endif
+      legion_assert(recording);
       const std::pair<Operation*, GenerationID> key(op, op->get_generation());
       // Note that we don't record the index of the operation here since
       // it has no index, instead we record the index of the replay_info
@@ -385,10 +370,8 @@ namespace Legion {
         const RegionRequirement& req)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(recording);
-      assert(!replay_info.empty());
-#endif
+      legion_assert(recording);
+      legion_assert(!replay_info.empty());
       std::pair<Operation*, GenerationID> key(op, op->get_generation());
       const size_t index = operations.size();
       operations.emplace_back(OpInfo(op));
@@ -411,11 +394,9 @@ namespace Legion {
                dependences.begin();
            it != dependences.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(it->operation_idx >= 0);
-        assert(((size_t)it->operation_idx) < operations.size());
-        assert(it->dtype != LEGION_NO_DEPENDENCE);
-#endif
+        legion_assert(it->operation_idx >= 0);
+        legion_assert(((size_t)it->operation_idx) < operations.size());
+        legion_assert(it->dtype != LEGION_NO_DEPENDENCE);
         std::pair<Operation*, GenerationID> target = std::make_pair(
             operations[it->operation_idx].op,
             operations[it->operation_idx].gen);
@@ -489,11 +470,9 @@ namespace Legion {
         GenerationID source_gen)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(recording);
-      assert(!target->is_internal_op());
-      assert(!source->is_internal_op());
-#endif
+      legion_assert(recording);
+      legion_assert(!target->is_internal_op());
+      legion_assert(!source->is_internal_op());
       const std::pair<Operation*, GenerationID> target_key(target, target_gen);
       std::map<
           std::pair<Operation*, GenerationID>,
@@ -502,9 +481,7 @@ namespace Legion {
       // The target is not part of the trace so there's no need to record it
       if (target_finder == op_map.end())
         return false;
-#ifdef DEBUG_LEGION
-      assert(!replay_info.empty());
-#endif
+      legion_assert(!replay_info.empty());
       OperationInfo& info = replay_info.back();
       DependenceRecord record(target_finder->second.first);
       for (ctx::vector<DependenceRecord>::iterator it =
@@ -523,9 +500,7 @@ namespace Legion {
         DependenceType dtype, const FieldMask& dep_mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(recording);
-#endif
+      legion_assert(recording);
       const std::pair<Operation*, GenerationID> target_key(target, target_gen);
       std::map<
           std::pair<Operation*, GenerationID>,
@@ -537,60 +512,44 @@ namespace Legion {
         // If this is a close operation then we still need to update the mask
         if (source->get_operation_kind() == MERGE_CLOSE_OP_KIND)
         {
-#ifdef DEBUG_LEGION
-          assert(!replay_info.empty());
-          assert(
+          legion_assert(!replay_info.empty());
+          legion_assert(
               op_map.find(std::make_pair(source, source_gen)) != op_map.end());
-#endif
           OperationInfo& info = replay_info.back();
-#ifdef DEBUG_LEGION
-          bool found = false;
-          assert(!info.closes.empty());
-#endif
+          [[maybe_unused]] bool found = false;
+          legion_assert(!info.closes.empty());
           // Find the right close info and record the dependence
           for (unsigned idx = 0; idx < info.closes.size(); idx++)
           {
             CloseInfo& close = info.closes[idx];
             if (close.close_op != source)
               continue;
-#ifdef DEBUG_LEGION
             found = true;
-#endif
             close.close_mask |= dep_mask;
             break;
           }
-#ifdef DEBUG_LEGION
-          assert(found);
-#endif
+          legion_assert(found);
         }
         return false;
       }
-#ifdef DEBUG_LEGION
-      assert(!replay_info.empty());
-#endif
+      legion_assert(!replay_info.empty());
       OperationInfo& info = replay_info.back();
       if (source->get_operation_kind() == MERGE_CLOSE_OP_KIND)
       {
-#ifdef DEBUG_LEGION
-        bool found = false;
-        assert(!info.closes.empty());
-#endif
+        [[maybe_unused]] bool found = false;
+        legion_assert(!info.closes.empty());
         // Find the right close info and record the dependence
         for (unsigned idx = 0; idx < info.closes.size(); idx++)
         {
           CloseInfo& close = info.closes[idx];
           if (close.close_op != source)
             continue;
-#ifdef DEBUG_LEGION
           found = true;
-#endif
           close.close_mask |= dep_mask;
           if (target->is_internal_op() &&
               (target->get_operation_kind() != MERGE_CLOSE_OP_KIND))
           {
-#ifdef DEBUG_LEGION
-            assert(target_finder->second.second < replay_info.size());
-#endif
+            legion_assert(target_finder->second.second < replay_info.size());
             const OperationInfo& target_info =
                 replay_info[target_finder->second.second];
             std::map<unsigned, ctx::vector<DependenceRecord>>::const_iterator
@@ -636,9 +595,7 @@ namespace Legion {
           }
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(found);
-#endif
+        legion_assert(found);
       }
       else if (source->is_internal_op())
       {
@@ -649,9 +606,7 @@ namespace Legion {
         if (target->is_internal_op() &&
             (target->get_operation_kind() != MERGE_CLOSE_OP_KIND))
         {
-#ifdef DEBUG_LEGION
-          assert(target_finder->second.second < replay_info.size());
-#endif
+          legion_assert(target_finder->second.second < replay_info.size());
           const OperationInfo& target_info =
               replay_info[target_finder->second.second];
           std::map<unsigned, ctx::vector<DependenceRecord>>::const_iterator
@@ -700,9 +655,7 @@ namespace Legion {
           target->is_internal_op() &&
           (target->get_operation_kind() != MERGE_CLOSE_OP_KIND))
       {
-#ifdef DEBUG_LEGION
-        assert(target_finder->second.second < replay_info.size());
-#endif
+        legion_assert(target_finder->second.second < replay_info.size());
         // Figure out which region requirement it was for and look for
         // overlapping dependences on that region requirement and record
         // any of those instead
@@ -758,10 +711,8 @@ namespace Legion {
         const PointwiseDependence& dependence)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!target->is_internal_op());
-      assert(!source->is_internal_op());
-#endif
+      legion_assert(!target->is_internal_op());
+      legion_assert(!source->is_internal_op());
       const std::pair<Operation*, GenerationID> target_key(target, target_gen);
       std::map<
           std::pair<Operation*, GenerationID>,
@@ -770,9 +721,7 @@ namespace Legion {
       // If the target is not part of the trace then there's nothing to do
       if (target_finder == op_map.end())
         return;
-#ifdef DEBUG_LEGION
-      assert(!replay_info.empty());
-#endif
+      legion_assert(!replay_info.empty());
       OperationInfo& info = replay_info.back();
       // Append the pointwise record to the
       PointwiseDependence& last =
@@ -785,9 +734,7 @@ namespace Legion {
     void LogicalTrace::begin_logical_trace(FenceOp* fence_op)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(trace_fence == nullptr);
-#endif
+      legion_assert(trace_fence == nullptr);
       if (!recording)
       {
         trace_fence = fence_op;
@@ -803,9 +750,7 @@ namespace Legion {
     {
       if (!recording)
       {
-#ifdef DEBUG_LEGION
-        assert(trace_fence != nullptr);
-#endif
+        legion_assert(trace_fence != nullptr);
         if (replay_index != replay_info.size())
           REPORT_LEGION_ERROR(
               ERROR_TRACE_VIOLATION_RECORDED,
@@ -824,9 +769,7 @@ namespace Legion {
              it != frontiers.end(); ++it)
         {
           const std::pair<Operation*, GenerationID>& target = *it;
-#ifdef DEBUG_LEGION
-          assert(!target.first->is_internal_op());
-#endif
+          legion_assert(!target.first->is_internal_op());
           op->register_dependence(target.first, target.second);
 #ifdef LEGION_SPY
           for (unsigned req_idx = 0; req_idx < num_regions[target]; req_idx++)
@@ -848,9 +791,7 @@ namespace Legion {
           replay_info[idx].internal_dependences.clear();
         if (static_translator != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(static_translator->dependences.empty());
-#endif
+          legion_assert(static_translator->dependences.empty());
           delete static_translator;
           static_translator = nullptr;
           // Also remove the mapping references from all the operations
@@ -897,9 +838,7 @@ namespace Legion {
     {
       const TraceLocalID tlid = task->get_trace_local_id();
       std::vector<Color>& colors = concurrent_colors[tlid];
-#ifdef DEBUG_LEGION
-      assert(colors.empty());
-#endif
+      legion_assert(colors.empty());
       colors.reserve(concurrent_exchange_colors.size());
       for (std::map<Color, CollectiveID>::const_iterator it =
                concurrent_exchange_colors.begin();
@@ -912,12 +851,12 @@ namespace Legion {
     UniqueID LogicalTrace::get_current_uid_by_index(unsigned op_idx) const
     //--------------------------------------------------------------------------
     {
-      assert(op_idx < operations.size());
+      legion_assert(op_idx < operations.size());
       const std::pair<Operation*, GenerationID> key =
           std::make_pair(operations[op_idx].op, operations[op_idx].gen);
       std::map<std::pair<Operation*, GenerationID>, UniqueID>::const_iterator
           finder = current_uids.find(key);
-      assert(finder != current_uids.end());
+      legion_assert(finder != current_uids.end());
       return finder->second;
     }
 #endif
@@ -935,9 +874,7 @@ namespace Legion {
       {
         if (it->dependence_type == LEGION_NO_DEPENDENCE)
           continue;
-#ifdef DEBUG_LEGION
-        assert(it->previous_offset <= index);
-#endif
+        legion_assert(it->previous_offset <= index);
         // const std::pair<Operation*,GenerationID> &prev =
         std::pair<Operation*, GenerationID> prev = std::make_pair(
             operations[index - it->previous_offset].op,

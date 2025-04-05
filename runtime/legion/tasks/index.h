@@ -440,7 +440,6 @@ namespace Legion {
       ConcurrentMappingRendezvous* concurrent_mapping_rendezvous;
       CollectiveID collective_exchange_id;
       AllReduceCollective<MaxReduction<uint64_t>, false>* collective_exchange;
-#ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective* collective)
       {
@@ -448,7 +447,6 @@ namespace Legion {
       }
     protected:
       ShardingGatherCollective* sharding_collective;
-#endif
     protected:
       bool slice_sharding_output;
     };

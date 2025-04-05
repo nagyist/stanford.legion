@@ -48,9 +48,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(actual != nullptr);
-#endif
+        legion_assert(actual != nullptr);
         if (result->remove_base_expression_reference(RUNTIME_REF))
           delete result;
         return actual;
@@ -341,10 +339,8 @@ namespace Legion {
         const DomainT<DIM, T>& realm_index_space) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should never get this call for anything empty
-      assert(!realm_index_space.empty());
-#endif
+      legion_assert(!realm_index_space.empty());
       // The promise of the canonical hash is that things that have the same
       // set of points should have the same hash value. We therefore hash first
       // on the type tag since things from different type tags don't need to
@@ -386,7 +382,7 @@ namespace Legion {
         bool replay)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       // We should only have empty spaces for fills that are indirections
       if (space.empty())
       {
@@ -398,7 +394,7 @@ namespace Legion {
           is_indirect = true;
           break;
         }
-        assert(is_indirect);
+        legion_assert(is_indirect);
       }
 #endif
       // Now that we know we're going to do this fill add any profiling requests
@@ -489,13 +485,13 @@ namespace Legion {
         int priority, bool replay)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!space.empty());
+      legion_assert(!space.empty());
+#ifdef LEGION_DEBUG
       // If we're doing any reductions with this copy then make sure they
       // are marked exclusive or we have some reservations
       for (std::vector<CopySrcDstField>::const_iterator it = dst_fields.begin();
            it != dst_fields.end(); it++)
-        assert((it->redop_id == 0) || !reservations.empty());
+        legion_assert((it->redop_id == 0) || !reservations.empty());
 #endif
       // Now that we know we're going to do this copy add any profling requests
       Realm::ProfilingRequestSet requests;
@@ -599,11 +595,10 @@ namespace Legion {
         size_t base_alignment) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(base_alignment > 0);  // should be at least 1
-      assert(field_ids.size() == field_sizes.size());
-      assert(int(constraints.ordering_constraint.ordering.size()) == (DIM + 1));
-#endif
+      legion_assert(base_alignment > 0);  // should be at least 1
+      legion_assert(field_ids.size() == field_sizes.size());
+      legion_assert(
+          int(constraints.ordering_constraint.ordering.size()) == (DIM + 1));
       Realm::InstanceLayout<DIM, T>* layout =
           new Realm::InstanceLayout<DIM, T>();
       layout->bytes_used = 0;
@@ -618,14 +613,12 @@ namespace Legion {
           // Check to see if we have any tiling constraints
           if (!constraints.tiling_constraints.empty())
           {
-#ifdef DEBUG_LEGION
-            assert(piece_list != nullptr);
-            assert((*piece_list) == nullptr);
-            assert(piece_list_size != nullptr);
-            assert((*piece_list_size) == 0);
-            assert(num_pieces != nullptr);
-            assert((*num_pieces) == 0);
-#endif
+            legion_assert(piece_list != nullptr);
+            legion_assert((*piece_list) == nullptr);
+            legion_assert(piece_list_size != nullptr);
+            legion_assert((*piece_list_size) == 0);
+            legion_assert(num_pieces != nullptr);
+            legion_assert((*num_pieces) == 0);
             // First get the tile bounds
             Point<DIM, T> tile_size;
             for (int i = 0; i < DIM; i++)
@@ -634,9 +627,7 @@ namespace Legion {
                      constraints.tiling_constraints.begin();
                  it != constraints.tiling_constraints.end(); it++)
             {
-#ifdef DEBUG_LEGION
-              assert(it->dim < DIM);
-#endif
+              legion_assert(it->dim < DIM);
               if (it->tiles)
                 tile_size[it->dim] =
                     (tile_size[it->dim] + it->value - 1) / it->value;
@@ -655,9 +646,7 @@ namespace Legion {
                   offset, offset + tile_size - Point<DIM, T>::ONES());
               // Intersect with the original bounds to not overflow
               piece = space.bounds.intersection(piece);
-#ifdef DEBUG_LEGION
-              assert(!piece.empty());
-#endif
+              legion_assert(!piece.empty());
               piece_bounds.emplace_back(piece);
               // Step the offset to the next location
               done = true;
@@ -683,14 +672,12 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(piece_list != nullptr);
-        assert((*piece_list) == nullptr);
-        assert(piece_list_size != nullptr);
-        assert((*piece_list_size) == 0);
-        assert(num_pieces != nullptr);
-        assert((*num_pieces) == 0);
-#endif
+        legion_assert(piece_list != nullptr);
+        legion_assert((*piece_list) == nullptr);
+        legion_assert(piece_list_size != nullptr);
+        legion_assert((*piece_list_size) == 0);
+        legion_assert(num_pieces != nullptr);
+        legion_assert((*num_pieces) == 0);
         if (spec.max_overhead > 0)
         {
           std::vector<Realm::Rect<DIM, T> > covering;
@@ -745,10 +732,8 @@ namespace Legion {
           for (int dim = 0;
                dim < constraints.padding_constraint.delta.get_dim(); dim++)
           {
-#ifdef DEBUG_LEGION
-            assert(constraints.padding_constraint.delta.lo()[dim] >= 0);
-            assert(constraints.padding_constraint.delta.hi()[dim] >= 0);
-#endif
+            legion_assert(constraints.padding_constraint.delta.lo()[dim] >= 0);
+            legion_assert(constraints.padding_constraint.delta.hi()[dim] >= 0);
             if ((constraints.padding_constraint.delta.lo()[dim] > 0) ||
                 (constraints.padding_constraint.delta.hi()[dim] > 0))
               REPORT_LEGION_FATAL(
@@ -771,12 +756,12 @@ namespace Legion {
         const Domain& delta = constraints.padding_constraint.delta;
         const Point<DIM> lo = delta.lo();
         const Point<DIM> hi = delta.hi();
-#ifdef DEBUG_LEGION
-        assert(!piece_bounds.empty());
+        legion_assert(!piece_bounds.empty());
+#ifdef LEGION_DEBUG
         for (int i = 0; i < DIM; i++)
         {
-          assert(lo[i] >= 0);
-          assert(hi[i] >= 0);
+          legion_assert(lo[i] >= 0);
+          legion_assert(hi[i] >= 0);
         }
 #endif
         for (typename std::vector<Rect<DIM, T> >::iterator it =
@@ -788,9 +773,7 @@ namespace Legion {
         }
       }
       const OrderingConstraint& order = constraints.ordering_constraint;
-#ifdef DEBUG_LEGION
-      assert(order.ordering.size() == (DIM + 1));
-#endif
+      legion_assert(order.ordering.size() == (DIM + 1));
       // Check if it is safe to re-use piece lists
       // It's only safe if fsize describes the size of a piece, which
       // is true if we only have a single piece or we're doing AOS
@@ -803,9 +786,7 @@ namespace Legion {
                constraints.alignment_constraints.begin();
            it != constraints.alignment_constraints.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(it->eqk == LEGION_EQ_EK);
-#endif
+        legion_assert(it->eqk == LEGION_EQ_EK);
         alignments[it->fid] = it->alignment;
       }
       std::map<FieldID, off_t> offsets;
@@ -853,9 +834,7 @@ namespace Legion {
           field_index = idx;
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(int(dim) < DIM);
-#endif
+        legion_assert(int(dim) < DIM);
         for (unsigned pidx = 0; pidx < piece_bounds.size(); pidx++)
         {
           const Rect<DIM, T>& bounds = piece_bounds[pidx];
@@ -863,9 +842,7 @@ namespace Legion {
               (bounds.hi[dim] - bounds.lo[dim] + 1);
         }
       }
-#ifdef DEBUG_LEGION
-      assert(field_index >= 0);
-#endif
+      legion_assert(field_index >= 0);
       size_t elements_between_fields = elements_between_per_piece.front();
       for (unsigned idx = 1; idx < elements_between_per_piece.size(); idx++)
         elements_between_fields += elements_between_per_piece[idx];
@@ -934,9 +911,7 @@ namespace Legion {
                idx++)
           {
             const DimensionKind dim = order.ordering[idx];
-#ifdef DEBUG_LEGION
-            assert(int(dim) < DIM);
-#endif
+            legion_assert(int(dim) < DIM);
             piece_size *= (bounds.hi[dim] - bounds.lo[dim] + 1);
           }
           layout->bytes_used = piece_offsets[pidx] + piece_size;
@@ -958,9 +933,8 @@ namespace Legion {
         if (finder == pl_indexes.end())
         {
           li = layout->piece_lists.size();
-#ifdef DEBUG_LEGION
-          assert(li < (safe_reuse ? unique_sizes.size() : zip_fields.size()));
-#endif
+          legion_assert(
+              li < (safe_reuse ? unique_sizes.size() : zip_fields.size()));
           layout->piece_lists.resize(li + 1);
           pl_indexes[it->first] = li;
 
@@ -989,9 +963,7 @@ namespace Legion {
             {
               if ((*dit) != LEGION_DIM_F)
               {
-#ifdef DEBUG_LEGION
-                assert(int(*dit) < DIM);
-#endif
+                legion_assert(int(*dit) < DIM);
                 piece->strides[*dit] = stride;
                 piece->offset -= bounds.lo[*dit] * stride;
                 stride *= (bounds.hi[*dit] - bounds.lo[*dit] + 1);
@@ -1014,9 +986,7 @@ namespace Legion {
         }
         else
           li = finder->second;
-#ifdef DEBUG_LEGION
-        assert(layout->fields.count(it->second) == 0);
-#endif
+        legion_assert(layout->fields.count(it->second) == 0);
         Realm::InstanceLayoutGeneric::FieldLayout& fl =
             layout->fields[it->second];
         fl.list_idx = li;
@@ -1044,9 +1014,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(num_rects > 0);
-#endif
+        legion_assert(num_rects > 0);
         // Make a realm expression from the rectangles
         return new InternalExpression<DIM, T>(rects, num_rects);
       }
@@ -1060,9 +1028,7 @@ namespace Legion {
         const Domain* padding_delta)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(type_tag == space_expr->type_tag);
-#endif
+      legion_assert(type_tag == space_expr->type_tag);
       // See if this an convex hull or a piece list case
       if (piece_list == nullptr)
       {
@@ -1075,9 +1041,7 @@ namespace Legion {
           return false;
         if ((padding_delta != nullptr) && (padding_delta->get_dim() > 0))
         {
-#ifdef DEBUG_LEGION
-          assert(padding_delta->get_dim() == DIM);
-#endif
+          legion_assert(padding_delta->get_dim() == DIM);
           // We need to check that the dimensions are exactly matching for
           // any which have a non-trival padding
           for (int dim = 0; dim < DIM; dim++)
@@ -1100,9 +1064,7 @@ namespace Legion {
         // Padding is not supported for sparse layouts
         if ((padding_delta != nullptr) && (padding_delta->get_dim() > 0))
           return false;
-#ifdef DEBUG_LEGION
-        assert(piece_list_size > 0);
-#endif
+        legion_assert(piece_list_size > 0);
         // Iterate the rectangles in the space expr over the piece list
         // and compute the intersection volume summary
         // Note that this assumes that the rectangles in the piece list
@@ -1127,9 +1089,7 @@ namespace Legion {
               break;
           }
         }
-#ifdef DEBUG_LEGION
-        assert(overlap_volume <= space_volume);
-#endif
+        legion_assert(overlap_volume <= space_volume);
         // If we didn't cover all the points in the space then we can't meet
         if (overlap_volume < space_volume)
           return false;
@@ -1139,9 +1099,7 @@ namespace Legion {
           size_t piece_volume = 0;
           for (unsigned idx = 0; idx < piece_list_size; idx++)
             piece_volume += piece_list[idx].volume();
-#ifdef DEBUG_LEGION
-          assert(space_volume <= piece_volume);
-#endif
+          legion_assert(space_volume <= piece_volume);
           // Only meets if they have exactly the same points
           return (space_volume == piece_volume);
         }
@@ -1156,9 +1114,7 @@ namespace Legion {
             const local::set<Domain>& rects)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!rects.empty());
-#endif
+      legion_assert(!rects.empty());
       size_t total_volume = 0;
       std::vector<Rect<DIM, T> > rectangles;
       rectangles.reserve(rects.size());
@@ -1170,9 +1126,7 @@ namespace Legion {
         total_volume += rect.volume();
         rectangles.emplace_back(rect);
       }
-#ifdef DEBUG_LEGION
-      assert(total_volume <= get_volume());
-#endif
+      legion_assert(total_volume <= get_volume());
       // If all the points add up to the same as our volume then the
       // expressions match and we can reuse this as the expression
       if (total_volume == get_volume())
@@ -1231,12 +1185,10 @@ namespace Legion {
           // Realm guarantees that tightening will remove a sparsity map if it
           // can so if one index space has a sparsity map and the other doesn't
           // then by definition they cannot be congruent (see issue #1020)
-#ifdef DEBUG_LEGION
           // Should never hit this assertion as they should have equal sparsity
           // map IDs if the sparsity map does not exist for both of them
-          assert(
+          legion_assert(
               local_space.sparsity.exists() || other_space.sparsity.exists());
-#endif
           continue;
         }
         else
@@ -1254,9 +1206,7 @@ namespace Legion {
             for (Realm::IndexSpaceIterator<DIM, T> itr(local_space); itr.valid;
                  itr.step())
               local_rect_count++;
-#ifdef DEBUG_LEGION
-            assert(local_rect_count > 0);
-#endif
+            legion_assert(local_rect_count > 0);
           }
           if (other_rect_count < local_rect_count)
           {
@@ -1317,10 +1267,8 @@ namespace Legion {
       // If we have a KD tree we can save it for later congruence tests
       if (local_tree != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             sparsity_map_kd_tree == nullptr);  // should not have a kd tree yet
-#endif
         sparsity_map_kd_tree = local_tree;
       }
       return this;
@@ -1334,9 +1282,7 @@ namespace Legion {
       if (sparsity_map_kd_tree != nullptr)
         return sparsity_map_kd_tree;
       DomainT<DIM, T> local_space = get_tight_domain();
-#ifdef DEBUG_LEGION
-      assert(!local_space.dense());
-#endif
+      legion_assert(!local_space.dense());
       std::vector<Rect<DIM, T> > local_rects;
       for (Realm::IndexSpaceIterator<DIM, T> itr(local_space); itr.valid;
            itr.step())
@@ -1533,13 +1479,9 @@ namespace Legion {
     void IndexSpaceOperationT<DIM, T>::tighten_index_space(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(realm_index_space.is_valid());
-#endif
+      legion_assert(realm_index_space.is_valid());
       tight_index_space = realm_index_space.tighten();
-#ifdef DEBUG_LEGION
-      assert(tight_index_space.is_valid());
-#endif
+      legion_assert(tight_index_space.is_valid());
       is_index_space_tight.store(true);
       if (!realm_index_space.dense() && tight_index_space.dense())
       {
@@ -1594,9 +1536,7 @@ namespace Legion {
         Serializer& rez, AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->is_valid());
-#endif
+      legion_assert(this->is_valid());
       if (target == this->local_space)
       {
         rez.serialize<bool>(true /*local*/);
@@ -1641,16 +1581,16 @@ namespace Legion {
         Deserializer& derez) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       TypeTag tag;
       derez.deserialize(tag);
-      assert(tag == this->type_tag);
+      legion_assert(tag == this->type_tag);
       IndexSpaceOperation* origin;
       derez.deserialize(origin);
-      assert(origin == this->origin_expr);
+      legion_assert(origin == this->origin_expr);
       DistributedID id;
       derez.deserialize(id);
-      assert(id == did);
+      legion_assert(id == did);
 #else
       derez.advance_pointer(
           sizeof(type_tag) + sizeof(origin_expr) + sizeof(did));
@@ -1823,9 +1763,7 @@ namespace Legion {
             const void* piece_list, size_t piece_list_size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
-#endif
+      legion_assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
       DomainT<DIM, T> local_is = get_tight_index_space();
       // No need to wait for the index space to be ready since we
       // are never actually going to look at the sparsity map
@@ -1842,9 +1780,7 @@ namespace Legion {
         const Domain* padding_delta)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
-#endif
+      legion_assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
       return meets_layout_expression_internal<DIM, T>(
           space_expr, tight_bounds,
           static_cast<const Rect<DIM, T>*>(piece_list),
@@ -1956,9 +1892,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < sub_expressions.size(); idx++)
       {
         IndexSpaceExpression* sub = sub_expressions[idx];
-#ifdef DEBUG_LEGION
-        assert(sub->get_canonical_expression() == sub);
-#endif
+        legion_assert(sub->get_canonical_expression() == sub);
         // Add the parent and the reference
         sub->add_derived_operation(this);
         sub->add_tree_expression_reference(this->did);
@@ -2024,12 +1958,10 @@ namespace Legion {
       : IndexSpaceOperationT<DIM, T>(IndexSpaceOperation::UNION_OP_KIND)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Shouldn't be here if Legion Spy is enabled since we don't have
       // logging for this and we don't want to make too many index space
       // expressions for Legion Spy to deal with
-      assert(!runtime->legion_spy_enabled);
-#endif
+      legion_assert(!runtime->legion_spy_enabled);
       this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
@@ -2086,9 +2018,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < sub_expressions.size(); idx++)
       {
         IndexSpaceExpression* sub = sub_expressions[idx];
-#ifdef DEBUG_LEGION
-        assert(sub->get_canonical_expression() == sub);
-#endif
+        legion_assert(sub->get_canonical_expression() == sub);
         // Add the parent and the reference
         sub->add_derived_operation(this);
         sub->add_tree_expression_reference(this->did);
@@ -2154,12 +2084,10 @@ namespace Legion {
       : IndexSpaceOperationT<DIM, T>(IndexSpaceOperation::INTERSECT_OP_KIND)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Shouldn't be here if Legion Spy is enabled since we don't have
       // logging for this and we don't want to make too many index space
       // expressions for Legion Spy to deal with
-      assert(!runtime->legion_spy_enabled);
-#endif
+      legion_assert(!runtime->legion_spy_enabled);
       this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
@@ -2210,10 +2138,8 @@ namespace Legion {
     {
       // Add an resource ref that will be removed by the OperationCreator
       this->add_base_resource_ref(REGION_TREE_REF);
-#ifdef DEBUG_LEGION
-      assert(lhs->get_canonical_expression() == lhs);
-      assert(rhs->get_canonical_expression() == rhs);
-#endif
+      legion_assert(lhs->get_canonical_expression() == lhs);
+      legion_assert(rhs->get_canonical_expression() == rhs);
       if (lhs == rhs)
       {
         // Special case for when the expressions are the same
@@ -2291,12 +2217,10 @@ namespace Legion {
         lhs(nullptr), rhs(nullptr)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Shouldn't be here if Legion Spy is enabled since we don't have
       // logging for this and we don't want to make too many index space
       // expressions for Legion Spy to deal with
-      assert(!runtime->legion_spy_enabled);
-#endif
+      legion_assert(!runtime->legion_spy_enabled);
       this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
@@ -2355,9 +2279,7 @@ namespace Legion {
       // This is another kind of live expression made by the region tree
       this->add_base_expression_reference(LIVE_EXPR_REF);
       ImplicitReferenceTracker::record_live_expression(this);
-#ifdef DEBUG_LEGION
-      assert(num_rects > 0);
-#endif
+      legion_assert(num_rects > 0);
       if (num_rects > 1)
       {
         std::vector<Realm::Rect<DIM, T> > realm_rects(num_rects);
@@ -2438,9 +2360,7 @@ namespace Legion {
         const std::vector<Domain>& rects) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!rects.empty());
-#endif
+      legion_assert(!rects.empty());
       std::vector<Rect<DIM, T> > rectangles(rects.size());
       for (unsigned idx = 0; idx < rects.size(); idx++)
         rectangles[idx] = rects[idx];

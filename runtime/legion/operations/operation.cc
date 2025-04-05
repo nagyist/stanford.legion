@@ -53,7 +53,7 @@ namespace Legion {
         provenance(nullptr)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       activated = false;
 #endif
     }
@@ -74,8 +74,8 @@ namespace Legion {
     void Operation::activate(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!activated);
+#ifdef LEGION_DEBUG
+      legion_assert(!activated);
       activated = true;
 #endif
       // Get a new unique ID for this operation
@@ -109,11 +109,11 @@ namespace Legion {
     void Operation::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!freeop);
-      assert(activated);
-      assert(mapped_event.has_triggered());
-      assert(commit_event.has_triggered());
+      legion_assert(!freeop);
+      legion_assert(activated);
+      legion_assert(mapped_event.has_triggered());
+      legion_assert(commit_event.has_triggered());
+#ifdef LEGION_DEBUG
       activated = false;
 #endif
       // Generation is bumped when we committed
@@ -175,9 +175,7 @@ namespace Legion {
     unsigned Operation::get_operation_depth(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(parent_ctx != nullptr);
-#endif
+      legion_assert(parent_ctx != nullptr);
       return (parent_ctx->get_depth() + 1);
     }
 
@@ -186,10 +184,8 @@ namespace Legion {
         LogicalTrace* t, const std::vector<StaticDependence>* dependences)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(trace == nullptr);
-      assert(t != nullptr);
-#endif
+      legion_assert(trace == nullptr);
+      legion_assert(t != nullptr);
       trace = t;
       tracing = trace->initialize_op_tracing(this, dependences);
     }
@@ -206,9 +202,7 @@ namespace Legion {
     void Operation::set_context_index(uint64_t index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(must_epoch == nullptr);
-#endif
+      legion_assert(must_epoch == nullptr);
       track_parent = true;
       context_index = index;
       if (runtime->legion_spy_enabled)
@@ -220,10 +214,8 @@ namespace Legion {
     void Operation::set_must_epoch(MustEpochOp* epoch, bool do_registration)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(must_epoch == nullptr);
-      assert(epoch != nullptr);
-#endif
+      legion_assert(must_epoch == nullptr);
+      legion_assert(epoch != nullptr);
       must_epoch = epoch;
       if (do_registration)
         must_epoch->register_subop(this);
@@ -233,9 +225,7 @@ namespace Legion {
     /*static*/ void Operation::localize_region_requirement(RegionRequirement& r)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(r.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(r.handle_type == LEGION_SINGULAR_PROJECTION);
       r.parent = r.region;
       r.prop = LEGION_EXCLUSIVE;
       // If we're doing a write discard, then we can add read privileges
@@ -389,9 +379,7 @@ namespace Legion {
         InnerContext* ctx, Provenance* prov /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ctx != nullptr);
-#endif
+      legion_assert(ctx != nullptr);
       parent_ctx = ctx;
       provenance = prov;
       if (provenance != nullptr)
@@ -408,9 +396,7 @@ namespace Legion {
     void Operation::set_provenance(Provenance* prov)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(provenance == nullptr);
-#endif
+      legion_assert(provenance == nullptr);
       provenance = prov;
       if (provenance != nullptr)
         provenance->add_reference();
@@ -423,9 +409,7 @@ namespace Legion {
     {
       {
         AutoLock op(op_lock);
-#ifdef DEBUG_LEGION
-        assert(generation <= gen);
-#endif
+        legion_assert(generation <= gen);
         if (generation < gen)
           return RtEvent::NO_RT_EVENT;
         // Check to see if we've already started the analysis
@@ -435,10 +419,8 @@ namespace Legion {
           if (prepipelined == 1)
           {
             // Only partially through so make an event to trigger when done
-#ifdef DEBUG_LEGION
-            assert(from_logical_analysis);
-            assert(!prepipelined_event.exists());
-#endif
+            legion_assert(from_logical_analysis);
+            legion_assert(!prepipelined_event.exists());
             prepipelined_event = Runtime::create_rt_user_event();
             return prepipelined_event;
           }
@@ -456,9 +438,7 @@ namespace Legion {
       if (!from_logical_analysis)
       {
         AutoLock op(op_lock);
-#ifdef DEBUG_LEGION
-        assert(prepipelined == 1);
-#endif
+        legion_assert(prepipelined == 1);
         prepipelined = 2;
         if (prepipelined_event.exists())
           Runtime::trigger_event(prepipelined_event);
@@ -910,10 +890,8 @@ namespace Legion {
         const unsigned index, const char* field_string, RtUserEvent reported)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(reported.exists());
-      assert(!reported.has_triggered());
-#endif
+      legion_assert(reported.exists());
+      legion_assert(!reported.has_triggered());
       const RegionRequirement& req = get_requirement(index);
       // Read-only or reduction usage of uninitialized data is always an error
       if (IS_READ_ONLY(req))
@@ -1076,9 +1054,7 @@ namespace Legion {
       bool trigger_now = false;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(!mapped);
-#endif
+        legion_assert(!mapped);
         mapped = true;
         if (mapped_event.exists())
           Runtime::trigger_event(mapped_event);
@@ -1114,9 +1090,7 @@ namespace Legion {
       bool trigger_now = false;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(!executed);
-#endif
+        legion_assert(!executed);
         executed = true;
         if (mapped)
         {
@@ -1144,9 +1118,7 @@ namespace Legion {
           (op_kind != DEPENDENT_PARTITION_OP_KIND) &&
           (op_kind != ATTACH_OP_KIND) && (op_kind != DETACH_OP_KIND))
       {
-#ifdef DEBUG_LEGION
-        assert(!completion_set);
-#endif
+        legion_assert(!completion_set);
         if (!completion_event.pending.exists())
           completion_event.pending = Runtime::create_ap_user_event(nullptr);
         LegionSpy::log_operation_events(
@@ -1164,9 +1136,7 @@ namespace Legion {
       {
         {
           AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-          assert(!completion_set);
-#endif
+          legion_assert(!completion_set);
           if (completion_event.pending.exists())
           {
             ApUserEvent to_trigger = completion_event.pending;
@@ -1185,11 +1155,9 @@ namespace Legion {
       std::vector<Operation*> to_notify;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(mapped);
-        assert(executed);
-        assert(!completed);
-#endif
+        legion_assert(mapped);
+        legion_assert(executed);
+        legion_assert(!completed);
         completed = true;
         if (!completion_set)
         {
@@ -1280,9 +1248,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(!committed);
-#endif
+      legion_assert(!committed);
       if (!commit_event.exists())
         commit_event = Runtime::create_rt_user_event();
       return commit_event;
@@ -1293,9 +1259,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(g <= gen);
-#endif
+      legion_assert(g <= gen);
       if ((g < gen) || committed)
         return RtEvent::NO_RT_EVENT;
       if (!commit_event.exists())
@@ -1310,9 +1274,7 @@ namespace Legion {
       if (!effect.exists())
         return;
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(!mapped || !executed);
-#endif
+      legion_assert(!mapped || !executed);
       completion_effects.insert(effect);
     }
 
@@ -1324,9 +1286,7 @@ namespace Legion {
       if (!effect.exists())
         return;
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(!mapped || !executed);
-#endif
+      legion_assert(!mapped || !executed);
       completion_effects.insert(effect);
     }
 
@@ -1337,9 +1297,7 @@ namespace Legion {
       if (effects.empty())
         return;
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(!mapped || !executed);
-#endif
+      legion_assert(!mapped || !executed);
       for (std::set<ApEvent>::const_iterator it = effects.begin();
            it != effects.end(); it++)
         if (it->exists())
@@ -1354,9 +1312,7 @@ namespace Legion {
       if (effects.empty())
         return;
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(!mapped || !executed);
-#endif
+      legion_assert(!mapped || !executed);
       for (std::vector<ApEvent>::const_iterator it = effects.begin();
            it != effects.end(); it++)
         if (it->exists())
@@ -1387,12 +1343,10 @@ namespace Legion {
       // Mark that we are committed
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(mapped);
-        assert(executed);
-        assert(completed);
-        assert(!committed);
-#endif
+        legion_assert(mapped);
+        legion_assert(executed);
+        legion_assert(completed);
+        legion_assert(!committed);
         committed = true;
         // At this point we bumb the generation as we can never roll back
         // after we have committed the operation
@@ -1420,9 +1374,7 @@ namespace Legion {
     void Operation::begin_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(remaining_mapping_dependences.load() == 0);
-#endif
+      legion_assert(remaining_mapping_dependences.load() == 0);
       // Set the guard for the remaining mapping dependences
       remaining_mapping_dependences.store(1);
       // Register ourselves with our trace if there is one
@@ -1457,9 +1409,7 @@ namespace Legion {
         must_epoch->verify_dependence(this, gen, target, target_gen);
       if (tracing)
       {
-#ifdef DEBUG_LEGION
-        assert(trace != nullptr);
-#endif
+        legion_assert(trace != nullptr);
         // If we're tracing check to see if the target is even in the
         // trace, if it's not then there's no need to record the dependence
         // because it will be handled by the mapping fence at the that
@@ -1470,9 +1420,7 @@ namespace Legion {
       // The rest of this method is the same as the one below
       if (target == this)
       {
-#ifdef DEBUG_LEGION
-        assert(target_gen < gen);
-#endif
+        legion_assert(target_gen < gen);
         // Can prune it if we're not tracing
         return !tracing;
       }
@@ -1500,9 +1448,7 @@ namespace Legion {
             this, gen, target, target_gen, idx, target_idx, dtype);
       if (tracing)
       {
-#ifdef DEBUG_LEGION
-        assert(trace != nullptr);
-#endif
+        legion_assert(trace != nullptr);
         // If we're tracing check to see if the target is even in the
         // trace, if it's not then there's no need to record the dependence
         // because it will be handled by the mapping fence at the that
@@ -1544,9 +1490,7 @@ namespace Legion {
         std::set<Operation*>& notifications)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(our_gen <= gen);  // better not be ahead of where we are now
-#endif
+      legion_assert(our_gen <= gen);  // better not be ahead of where we are now
       // If the generations match and we haven't committed yet,
       // register an outgoing dependence
       if (our_gen == gen)
@@ -1555,14 +1499,12 @@ namespace Legion {
         // Retest generation to see if we lost the race
         if (our_gen == gen)
         {
-#ifdef DEBUG_LEGION
           // should still have some mapping references
           // if other operations are trying to register dependences
           // This assertion no longer holds because of how we record
           // fence dependences from context operation lists which
           // don't track mapping dependences
-          // assert(outstanding_mapping_references > 0);
-#endif
+          // legion_assert(outstanding_mapping_references > 0);
           // Check to see if we've already recorded this dependence
           std::map<Operation*, GenerationID>::const_iterator finder =
               outgoing.find(op);
@@ -1598,9 +1540,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const unsigned remaining = remaining_mapping_dependences.fetch_sub(1);
-#ifdef DEBUG_LEGION
-      assert(remaining > 0);
-#endif
+      legion_assert(remaining > 0);
       if (remaining == 1)
       {
         if (must_epoch == nullptr)
@@ -1623,9 +1563,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(our_gen <= gen);  // better not be ahead of where we are now
-#endif
+      legion_assert(our_gen <= gen);  // better not be ahead of where we are now
       if (our_gen < gen)
         return false;
       outstanding_mapping_references++;
@@ -1640,14 +1578,11 @@ namespace Legion {
       std::vector<Operation*> to_notify;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(our_gen <= gen);  // better not be ahead of where we are now
-#endif
+        legion_assert(
+            our_gen <= gen);  // better not be ahead of where we are now
         if ((our_gen == gen) && !committed)
         {
-#ifdef DEBUG_LEGION
-          assert(outstanding_mapping_references > 0);
-#endif
+          legion_assert(outstanding_mapping_references > 0);
           outstanding_mapping_references--;
           if (runtime->resilient_mode &&
               (outstanding_mapping_references == 0) &&
@@ -1687,17 +1622,13 @@ namespace Legion {
     void Operation::notify_hardened(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(runtime->resilient_mode);
-#endif
+      legion_assert(runtime->resilient_mode);
       bool do_commit = false;
       std::vector<Operation*> to_notify;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(!committed);
-        assert(hardened_notifications < outgoing.size());
-#endif
+        legion_assert(!committed);
+        legion_assert(hardened_notifications < outgoing.size());
         hardened_notifications++;
         if ((outstanding_mapping_references == 0) &&
             (hardened_notifications == outgoing.size()))
@@ -1779,9 +1710,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < valid.size(); idx++)
         {
           const InstanceRef& ref = valid[idx];
-#ifdef DEBUG_LEGION
-          assert(!ref.is_virtual_ref());
-#endif
+          legion_assert(!ref.is_virtual_ref());
           MappingInstance& inst = input_valid[offset + idx];
           inst = ref.get_mapping_instance();
         }
@@ -1908,9 +1837,7 @@ namespace Legion {
     void Operation::pack_local_remote_operation(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(parent_ctx != nullptr);
-#endif
+      legion_assert(parent_ctx != nullptr);
       rez.serialize(get_operation_kind());
       rez.serialize(this);
       rez.serialize(runtime->address_space);
@@ -1994,9 +1921,7 @@ namespace Legion {
       bool is_ispace_htype =
           (htype == LEGION_SINGULAR_PROJECTION ||
            htype == LEGION_REGION_PROJECTION);
-#ifdef DEBUG_LEGION
-      assert(is_ispace_htype || htype == LEGION_PARTITION_PROJECTION);
-#endif
+      legion_assert(is_ispace_htype || htype == LEGION_PARTITION_PROJECTION);
       IndexTreeNode* child_node =
           is_ispace_htype ? runtime->get_node(req.region.get_index_space()) :
                             (IndexTreeNode*)runtime->get_node(
@@ -2005,15 +1930,11 @@ namespace Legion {
       RegionNode* parent_node = runtime->get_node(req.parent);
 
       RegionTreePath path;
-#ifdef DEBUG_LEGION
-      assert(child_node->depth >= parent_node->row_source->depth);
-#endif
+      legion_assert(child_node->depth >= parent_node->row_source->depth);
       path.initialize(parent_node->row_source->depth, child_node->depth);
       while (child_node != parent_node->row_source)
       {
-#ifdef DEBUG_LEGION
-        assert(child_node->depth > 0);
-#endif
+        legion_assert(child_node->depth > 0);
         path.register_child(child_node->depth - 1, child_node->color);
         child_node = child_node->get_parent();
       }
@@ -2098,12 +2019,10 @@ namespace Legion {
         return;
       InnerContext* context = find_physical_context(index);
       ContextID ctx = context->get_physical_tree_context();
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (req.handle_type == LEGION_SINGULAR_PROJECTION) ||
           ((req.handle_type == LEGION_REGION_PROJECTION) &&
            (req.projection == 0)));
-#endif
       RegionNode* region_node = runtime->get_node(req.region);
       FieldMask user_mask =
           region_node->column_source->get_field_mask(req.privilege_fields);
@@ -2120,11 +2039,9 @@ namespace Legion {
         std::set<RtEvent>& map_applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (req.handle_type == LEGION_SINGULAR_PROJECTION) ||
           (req.handle_type == LEGION_REGION_PROJECTION));
-#endif
       // If we are a NO_ACCESS or there are no fields then we are already done
       if (IS_NO_ACCESS(req) || req.privilege_fields.empty())
         return;
@@ -2149,9 +2066,7 @@ namespace Legion {
       for (op::FieldMaskMap<LogicalView>::const_iterator it = instances.begin();
            it != instances.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(it->first->is_instance_view());
-#endif
+        legion_assert(it->first->is_instance_view());
         if (it->first->is_individual_view())
         {
           IndividualView* view = it->first->as_individual_view();
@@ -2161,9 +2076,7 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(it->first->is_replicated_view());
-#endif
+          legion_assert(it->first->is_replicated_view());
           ReplicatedView* view = it->first->as_replicated_view();
           if (view->meets_regions(to_meet))
             collectives.insert(view, it->second);
@@ -2186,22 +2099,18 @@ namespace Legion {
       // If we are a NO_ACCESS or there are no fields then we are already done
       if (IS_NO_ACCESS(req) || req.privilege_fields.empty())
         return RtEvent::NO_RT_EVENT;
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (req.handle_type == LEGION_SINGULAR_PROJECTION) ||
           (req.handle_type == LEGION_REGION_PROJECTION));
-      assert(!targets.empty());
-      assert(!targets.is_virtual_mapping());
-#endif
+      legion_assert(!targets.empty());
+      legion_assert(!targets.is_virtual_mapping());
       RegionNode* region_node = runtime->get_node(req.region);
       const FieldMask user_mask =
           region_node->column_source->get_field_mask(req.privilege_fields);
       // Perform the registration
-#ifdef DEBUG_LEGION
-      assert(analysis == nullptr);
+      legion_assert(analysis == nullptr);
       // Should be recording or must be read-only
-      assert(record_valid || IS_READ_ONLY(req));
-#endif
+      legion_assert(record_valid || IS_READ_ONLY(req));
       analysis = new UpdateAnalysis(
           this, index, req, region_node, trace_info, precondition, term_event,
           check_initialized, record_valid);
@@ -2264,7 +2173,7 @@ namespace Legion {
         const bool record_valid, const bool check_initialized)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       // These are some basic sanity checks that each field is represented
       // by exactly one instance and that the total number of fields
       // represented matches the number of privilege fields.
@@ -2275,10 +2184,10 @@ namespace Legion {
       for (unsigned idx = 0; idx < targets.size(); idx++)
       {
         const FieldMask& mask = targets[idx].get_valid_fields();
-        assert(check_mask * mask);
+        legion_assert(check_mask * mask);
         check_mask |= mask;
       }
-      assert(check_mask.pop_count() == req.privilege_fields.size());
+      legion_assert(check_mask.pop_count() == req.privilege_fields.size());
 #endif
       UpdateAnalysis* analysis = nullptr;
       const RtEvent registration_precondition = physical_perform_updates(
@@ -2426,9 +2335,7 @@ namespace Legion {
       // We'll only run this code when we're checking for errors
       if (!unacquired.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(acquired != nullptr);
-#endif
+        legion_assert(acquired != nullptr);
         perform_missing_acquires(*acquired, unacquired);
       }
       return -1;  // no composite index
@@ -2442,9 +2349,7 @@ namespace Legion {
         std::vector<PhysicalManager*>& unacquired, const bool do_acquire_checks)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
       RegionNode* reg_node = runtime->get_node(req.region);
       // Get the field mask for the fields we need
       FieldMask optional_fields =
@@ -2484,9 +2389,7 @@ namespace Legion {
       }
       if (!unacquired.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(acquired != nullptr);
-#endif
+        legion_assert(acquired != nullptr);
         perform_missing_acquires(*acquired, unacquired);
       }
       return has_composite;

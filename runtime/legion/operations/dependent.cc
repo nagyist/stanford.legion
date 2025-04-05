@@ -120,15 +120,11 @@ namespace Legion {
       mapper_data_size = marg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ByFieldThunk(pid);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -177,15 +173,11 @@ namespace Legion {
       mapper_data_size = marg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ByImageThunk(pid, projection.get_index_partition());
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -235,15 +227,11 @@ namespace Legion {
       mapper_data_size = marg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ByImageRangeThunk(pid, projection.get_index_partition());
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -294,15 +282,11 @@ namespace Legion {
       mapper_data_size = marg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ByPreimageThunk(pid, proj);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -355,15 +339,11 @@ namespace Legion {
       mapper_data_size = marg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new ByPreimageRangeThunk(pid, proj);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -411,15 +391,11 @@ namespace Legion {
       mapper_data_size = marg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
+      legion_assert(thunk == nullptr);
       thunk = new AssociationThunk(domain.get_index_space(), range);
       if (runtime->legion_spy_enabled)
         perform_logging();
@@ -511,17 +487,13 @@ namespace Legion {
       IndexPartNode* partition_node = nullptr;
       if (thunk->is_image())
       {
-#ifdef DEBUG_LEGION
-        assert(requirement.handle_type == LEGION_PARTITION_PROJECTION);
-#endif
+        legion_assert(requirement.handle_type == LEGION_PARTITION_PROJECTION);
         partition_node =
             runtime->get_node(requirement.partition.get_index_partition());
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+        legion_assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
         // Not an image so ask the mapper if it wants to make this into
         // and index space operation or not
         Mapper::SelectPartitionProjectionInput input;
@@ -568,18 +540,14 @@ namespace Legion {
       // See if this is an index space operation
       if (is_index_space)
       {
-#ifdef DEBUG_LEGION
-        assert(requirement.handle_type == LEGION_PARTITION_PROJECTION);
-#endif
+        legion_assert(requirement.handle_type == LEGION_PARTITION_PROJECTION);
         // Need to get the launch domain in case it is different than
         // the original index domain due to control replication
         IndexSpaceNode* local_points = get_shard_points();
         Domain launch_domain = local_points->get_tight_domain();
         // Now enumerate the points and kick them off
         size_t num_points = local_points->get_volume();
-#ifdef DEBUG_LEGION
-        assert(num_points > 0);
-#endif
+        legion_assert(num_points > 0);
         points.reserve(num_points);
         for (Domain::DomainPointIterator itr(launch_domain); itr; itr++)
         {
@@ -639,9 +607,7 @@ namespace Legion {
     void DependentPartitionOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
       const PhysicalTraceInfo trace_info(this, 0 /*index*/);
       // Perform the mapping call to get the physical isntances
       InstanceSet mapped_instances;
@@ -649,9 +615,7 @@ namespace Legion {
       const bool record_valid =
           invoke_mapper(mapped_instances, source_instances);
       log_mapping_decision(0 /*idx*/, requirement, mapped_instances);
-#ifdef DEBUG_LEGION
-      assert(!mapped_instances.empty());
-#endif
+      legion_assert(!mapped_instances.empty());
       // Then we can register our mapped_instances
       ApUserEvent part_done = Runtime::create_ap_user_event(&trace_info);
       ApEvent instances_ready = physical_perform_updates_and_registration(
@@ -693,10 +657,8 @@ namespace Legion {
         const DomainPoint& color)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(requirement.privilege_fields.size() == 1);
-      assert(mapped_insts.size() == 1);
-#endif
+      legion_assert(requirement.privilege_fields.size() == 1);
+      legion_assert(mapped_insts.size() == 1);
       IndexSpaceNode* node = runtime->get_node(handle);
       Domain domain;
       ApUserEvent to_trigger;
@@ -719,9 +681,7 @@ namespace Legion {
             index_preconditions.emplace_back(instances_ready);
           if (domain_ready.exists())
             index_preconditions.emplace_back(domain_ready);
-#ifdef DEBUG_LEGION
-          assert(!points.empty());
-#endif
+          legion_assert(!points.empty());
           ready = (instances.size() == points.size());
           if (!intermediate_index_event.exists())
             intermediate_index_event = Runtime::create_ap_user_event(&info);
@@ -742,9 +702,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(instances.empty());
-#endif
+        legion_assert(instances.empty());
         instances.resize(1);
         FieldDataDescriptor& desc = instances[0];
         const InstanceRef& ref = mapped_insts[0];
@@ -772,16 +730,12 @@ namespace Legion {
     void DependentPartitionOp::handle_point_complete(ApEvent effect)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_index_space);
-      assert(-1 <= points_completed.load());
-#endif
+      legion_assert(is_index_space);
+      legion_assert(-1 <= points_completed.load());
       if (effect.exists())
         record_completion_effect(effect);
       const unsigned received = ++points_completed;
-#ifdef DEBUG_LEGION
-      assert(received <= points.size());
-#endif
+      legion_assert(received <= points.size());
       if (received == points.size())
         complete_execution();
     }
@@ -826,9 +780,7 @@ namespace Legion {
             mapper, output.profiling_requests.requested_measurements,
             profiling_requests, true /*warn*/);
         profiling_priority = output.profiling_priority;
-#ifdef DEBUG_LEGION
-        assert(!profiling_reported.exists());
-#endif
+        legion_assert(!profiling_reported.exists());
         profiling_reported = Runtime::create_rt_user_event();
       }
       // Now we have to validate the output
@@ -959,9 +911,7 @@ namespace Legion {
       if (is_index_space)
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(!commit_request);
-#endif
+        legion_assert(!commit_request);
         commit_request = true;
         commit_now = (points.size() == points_committed);
       }
@@ -975,9 +925,7 @@ namespace Legion {
     void DependentPartitionOp::finalize_partition_profiling(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(profiling_reported.exists());
-#endif
+      legion_assert(profiling_reported.exists());
       if (outstanding_profiling_requests == 0)
       {
         // We're not expecting any profiling callbacks so we need to
@@ -994,9 +942,7 @@ namespace Legion {
     void DependentPartitionOp::handle_point_commit(RtEvent point_committed)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_index_space);
-#endif
+      legion_assert(is_index_space);
       bool commit_now = false;
       {
         AutoLock o_lock(op_lock);
@@ -1018,9 +964,7 @@ namespace Legion {
         std::vector<DeppartResult>* results)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((remote_targets == nullptr) || remote_targets->empty());
-#endif
+      legion_assert((remote_targets == nullptr) || remote_targets->empty());
       return op->create_partition_by_field(
           fid, pid, instances, results, instances_ready);
     }
@@ -1033,11 +977,9 @@ namespace Legion {
         std::vector<DeppartResult>* results)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should never see these here
-      assert(remote_targets == nullptr);
-      assert(results == nullptr);
-#endif
+      legion_assert(remote_targets == nullptr);
+      legion_assert(results == nullptr);
       return op->create_partition_by_image(
           fid, pid, projection, instances, instances_ready);
     }
@@ -1050,11 +992,9 @@ namespace Legion {
         std::vector<DeppartResult>* results)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should never see these here
-      assert(remote_targets == nullptr);
-      assert(results == nullptr);
-#endif
+      legion_assert(remote_targets == nullptr);
+      legion_assert(results == nullptr);
       return op->create_partition_by_image_range(
           fid, pid, projection, instances, instances_ready);
     }
@@ -1093,11 +1033,9 @@ namespace Legion {
         std::vector<DeppartResult>* results)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should never see these here
-      assert(remote_targets == nullptr);
-      assert(results == nullptr);
-#endif
+      legion_assert(remote_targets == nullptr);
+      legion_assert(results == nullptr);
       return op->create_association(
           fid, domain, range, instances, instances_ready);
     }
@@ -1106,10 +1044,8 @@ namespace Legion {
     unsigned DependentPartitionOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_req_index != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_req_index != TRACED_PARENT_INDEX);
       return parent_req_index;
     }
 
@@ -1118,9 +1054,7 @@ namespace Legion {
         void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(thunk != nullptr);
-#endif
+      legion_assert(thunk != nullptr);
       return thunk->get_kind();
     }
 
@@ -1267,9 +1201,7 @@ namespace Legion {
         std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       Mapper::SelectPartitionSrcInput input;
       Mapper::SelectPartitionSrcOutput output;
       prepare_for_mapping(
@@ -1330,9 +1262,7 @@ namespace Legion {
         size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapper != nullptr);
-#endif
+      legion_assert(mapper != nullptr);
       const OpProfilingResponse* op_info =
           static_cast<const OpProfilingResponse*>(response.user_data());
       Realm::ProfilingMeasurements::OperationFinishEvent finish_event;
@@ -1350,9 +1280,7 @@ namespace Legion {
       info.fill_response = op_info->fill;
       mapper->invoke_partition_report_profiling(this, info);
       const int count = outstanding_profiling_reported.fetch_add(1) + 1;
-#ifdef DEBUG_LEGION
-      assert(count <= outstanding_profiling_requests);
-#endif
+      legion_assert(count <= outstanding_profiling_requests);
       if (count == outstanding_profiling_requests)
         Runtime::trigger_event(profiling_reported);
       // Always record these as part of profiling
@@ -1363,10 +1291,8 @@ namespace Legion {
     void DependentPartitionOp::handle_profiling_update(int count)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(count > 0);
-      assert(!mapped_event.has_triggered());
-#endif
+      legion_assert(count > 0);
+      legion_assert(!mapped_event.has_triggered());
       outstanding_profiling_requests.fetch_add(count);
     }
 
@@ -1489,9 +1415,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ContextID ctx = parent_ctx->get_logical_tree_context();
-#ifdef DEBUG_LEGION
-      assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
       RegionNode* region_node = runtime->get_node(requirement.region);
       FieldMask user_mask = region_node->column_source->get_field_mask(
           requirement.privilege_fields);
@@ -1530,9 +1454,7 @@ namespace Legion {
       mapper_data_size = owner->mapper_data_size;
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, owner->mapper_data, mapper_data_size);
       }
@@ -1642,9 +1564,7 @@ namespace Legion {
     Partition::PartitionKind PointDepPartOp::get_partition_kind(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(owner != nullptr);
-#endif
+      legion_assert(owner != nullptr);
       return owner->get_partition_kind();
     }
 
@@ -1660,10 +1580,8 @@ namespace Legion {
         unsigned idx, LogicalRegion result)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(requirement.handle_type == LEGION_PARTITION_PROJECTION);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(requirement.handle_type == LEGION_PARTITION_PROJECTION);
       requirement.region = result;
       requirement.handle_type = LEGION_SINGULAR_PROJECTION;
     }
@@ -1927,9 +1845,7 @@ namespace Legion {
       exchange = nullptr;
       collective_ready = ApBarrier::NO_AP_BARRIER;
       collective_done = ApBarrier::NO_AP_BARRIER;
-#ifdef DEBUG_LEGION
       sharding_collective = nullptr;
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1946,10 +1862,8 @@ namespace Legion {
         delete exchange;
       remote_targets.clear();
       deppart_results.clear();
-#ifdef DEBUG_LEGION
       if (sharding_collective != nullptr)
         delete sharding_collective;
-#endif
       remove_launch_space_reference(shard_points);
       if (freeop)
         runtime->free_operation(this);
@@ -1959,13 +1873,10 @@ namespace Legion {
     void ReplDependentPartitionOp::select_sharding_function(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-      assert(sharding_function == nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      legion_assert(repl_ctx != nullptr);
+      legion_assert(sharding_function == nullptr);
       // Do the mapper call to get the sharding function to use
       if (mapper == nullptr)
         mapper =
@@ -1983,18 +1894,19 @@ namespace Legion {
             parent_ctx->get_unique_id())
       sharding_function = repl_ctx->shard_manager->find_sharding_function(
           output.chosen_functor);
-#ifdef DEBUG_LEGION
-      assert(sharding_collective != nullptr);
-      sharding_collective->contribute(output.chosen_functor);
-      if (sharding_collective->is_target() &&
-          !sharding_collective->validate(output.chosen_functor))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s chose different sharding functions "
-            "for dependent partition op in task %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
-#endif
+      if (runtime->safe_mapper)
+      {
+        legion_assert(sharding_collective != nullptr);
+        sharding_collective->contribute(output.chosen_functor);
+        if (sharding_collective->is_target() &&
+            !sharding_collective->validate(output.chosen_functor))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Mapper %s chose different sharding functions "
+              "for dependent partition op in task %s (UID %lld)",
+              mapper->get_mapper_name(), parent_ctx->get_task_name(),
+              parent_ctx->get_unique_id())
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -2005,14 +1917,9 @@ namespace Legion {
         DependentPartitionOp::select_partition_projection();
       else
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-        assert(sharding_function == nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
+        legion_assert(sharding_function == nullptr);
         // Check here that all the shards pick the same partition
         requirement.partition = LogicalPartition::NO_PART;
         DependentPartitionOp::select_partition_projection();
@@ -2054,13 +1961,8 @@ namespace Legion {
         log_requirement();
       if (is_index_space)
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         // Now that we know that we have the right region requirement we
         // can ask the mapper to also pick the sharding function
         select_sharding_function();
@@ -2094,9 +1996,8 @@ namespace Legion {
       else
       {
         create_collective_rendezvous(requirement.parent.get_tree_id(), 0);
-#ifdef DEBUG_LEGION
-        sharding_collective->elide_collective();
-#endif
+        if (sharding_collective != nullptr)
+          sharding_collective->elide_collective();
       }
       analyze_region_requirements(
           is_index_space ? launch_space : nullptr,
@@ -2111,19 +2012,13 @@ namespace Legion {
     void ReplDependentPartitionOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Do different things if this is an index space point or a single point
       if (is_index_space)
       {
-#ifdef DEBUG_LEGION
-        assert(sharding_function != nullptr);
-        assert(points_completed.load() == 0);
-#endif
+        legion_assert(sharding_function != nullptr);
+        legion_assert(points_completed.load() == 0);
         // This is a bit tricky, but set the points_completed to be -1 as
         // a guard so that we don't call complete_execution until we've see
         // all our completed points and had a chance to run trigger_execution
@@ -2146,9 +2041,7 @@ namespace Legion {
           RtEvent ready;
           if (thunk->is_image())
           {
-#ifdef DEBUG_LEGION
-            assert(exchange != nullptr);
-#endif
+            legion_assert(exchange != nullptr);
             // We won't have any preconditions on the collective ready event
             runtime->phase_barrier_arrive(collective_ready, 1 /*count*/);
             // Perform the exchange of the instance data and then
@@ -2158,10 +2051,8 @@ namespace Legion {
           }
           else
           {
-#ifdef DEBUG_LEGION
-            assert(gather != nullptr);
-            assert(scatter != nullptr);
-#endif
+            legion_assert(gather != nullptr);
+            legion_assert(scatter != nullptr);
             std::vector<ApEvent> preconditions;
             if (thunk->is_preimage())
             {
@@ -2181,9 +2072,7 @@ namespace Legion {
             else
               ready = scatter->perform_collective_wait(false /*block*/);
           }
-#ifdef DEBUG_LEGION
-          assert(ready.exists());
-#endif
+          legion_assert(ready.exists());
           parent_ctx->add_to_trigger_execution_queue(this, ready);
         }
         else  // If we have valid points then we do the base call
@@ -2237,13 +2126,9 @@ namespace Legion {
         const DomainPoint& color)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapped_insts.size() == 1);
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(mapped_insts.size() == 1);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       if (is_index_space)
       {
         IndexSpaceNode* node = runtime->get_node(handle);
@@ -2264,9 +2149,7 @@ namespace Legion {
             index_preconditions.emplace_back(instances_ready);
           if (domain_ready.exists())
             index_preconditions.emplace_back(domain_ready);
-#ifdef DEBUG_LEGION
-          assert(!points.empty());
-#endif
+          legion_assert(!points.empty());
           ready = (instances.size() == points.size());
         }
         if (ready)
@@ -2356,15 +2239,11 @@ namespace Legion {
     void ReplDependentPartitionOp::trigger_execution(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_index_space);
-      assert(requirement.privilege_fields.size() == 1);
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-      assert(-1 <= points_completed.load());
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(is_index_space);
+      legion_assert(requirement.privilege_fields.size() == 1);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      legion_assert(-1 <= points_completed.load());
       // Check to see if we're the first shard in this address space
       const bool first_local_shard =
           repl_ctx->shard_manager->is_first_local_shard(repl_ctx->owner_shard);
@@ -2382,10 +2261,8 @@ namespace Legion {
       {
         if (gather->target == repl_ctx->owner_shard->shard_id)
         {
-#ifdef DEBUG_LEGION
-          assert(first_local_shard);
-          assert(scatter->origin == gather->target);
-#endif
+          legion_assert(first_local_shard);
+          legion_assert(scatter->origin == gather->target);
           const FieldID fid = *(requirement.privilege_fields.begin());
           ApEvent done_event = thunk->perform(
               this, fid, gather->get_ready_event(), instances, &remote_targets,
@@ -2402,9 +2279,7 @@ namespace Legion {
       }
       // Remove our guard that we added in trigger_ready and see if we're done
       const unsigned received = ++points_completed;
-#ifdef DEBUG_LEGION
-      assert(received <= points.size());
-#endif
+      legion_assert(received <= points.size());
       if (received == points.size())
         complete_execution();
     }
@@ -2414,10 +2289,8 @@ namespace Legion {
         std::vector<ShardID>& shards)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_index_space);
-      assert(sharding_function != nullptr);
-#endif
+      legion_assert(is_index_space);
+      legion_assert(sharding_function != nullptr);
       return sharding_function->find_shard_participants(
           launch_space, launch_space->handle, shards);
     }
@@ -2566,9 +2439,7 @@ namespace Legion {
         remote_ptr->select_sources(index, target, sources, ranking, points);
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       Mapper::SelectPartitionSrcInput input;
       Mapper::SelectPartitionSrcOutput output;
       prepare_for_mapping(

@@ -63,9 +63,7 @@ namespace Legion {
         std::set<RtEvent>& applied)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lhs.exists());
-#endif
+      legion_assert(lhs.exists());
       const AddressSpaceID event_space = find_event_space(lhs);
       if ((event_space == runtime->address_space) &&
           record_shard_event_trigger(lhs, rhs, tlid))
@@ -81,19 +79,13 @@ namespace Legion {
         ApUserEvent lhs, ApEvent rhs, const TraceLocalID& tlid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lhs.exists());
-#endif
+      legion_assert(lhs.exists());
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       std::map<ApEvent, unsigned>::const_iterator finder = event_map.find(lhs);
       if (finder == event_map.end())
         return false;
-#ifdef DEBUG_LEGION
-      assert(finder->second != NO_INDEX);
-#endif
+      legion_assert(finder->second != NO_INDEX);
       const unsigned rhs_ =
           rhs.exists() ? find_event(rhs, tpl_lock) : fence_completion_id;
       events.emplace_back(ApEvent());
@@ -107,9 +99,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       std::set<unsigned> rhs_;
       std::set<RtEvent> wait_for;
       std::vector<ApEvent> pending_events;
@@ -164,9 +154,7 @@ namespace Legion {
         {
           std::map<ApEvent, unsigned>::const_iterator finder =
               event_map.find(*it);
-#ifdef DEBUG_LEGION
-          assert(finder != event_map.end());
-#endif
+          legion_assert(finder != event_map.end());
           if (finder->second != NO_INDEX)
             rhs_.insert(finder->second);
         }
@@ -201,9 +189,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       std::set<unsigned> rhs_;
       std::set<RtEvent> wait_for;
       std::vector<ApEvent> pending_events;
@@ -258,9 +244,7 @@ namespace Legion {
         {
           std::map<ApEvent, unsigned>::const_iterator finder =
               event_map.find(*it);
-#ifdef DEBUG_LEGION
-          assert(finder != event_map.end());
-#endif
+          legion_assert(finder != event_map.end());
           if (finder->second != NO_INDEX)
             rhs_.insert(finder->second);
         }
@@ -301,14 +285,15 @@ namespace Legion {
       insert_instruction(new MergeEvent(*this, convert_event(lhs), rhs_, tlid));
     }
 
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     //--------------------------------------------------------------------------
     unsigned ShardedPhysicalTemplate::convert_event(
         const ApEvent& event, bool check)
     //--------------------------------------------------------------------------
     {
       // We should only be recording events made on our node
-      assert(!check || (find_event_space(event) == runtime->address_space));
+      legion_assert(
+          !check || (find_event_space(event) == runtime->address_space));
       return PhysicalTemplate::convert_event(event, check);
     }
 #endif
@@ -323,9 +308,7 @@ namespace Legion {
       // If we've already got it then we're done
       if (finder != event_map.end())
       {
-#ifdef DEBUG_LEGION
-        assert(finder->second != NO_INDEX);
-#endif
+        legion_assert(finder->second != NO_INDEX);
         return finder->second;
       }
       // If we don't have it then we need to request it
@@ -353,10 +336,8 @@ namespace Legion {
       tpl_lock.reacquire();
       // Once we get here then there better be an answer
       finder = event_map.find(event);
-#ifdef DEBUG_LEGION
-      assert(finder != event_map.end());
-      assert(finder->second != NO_INDEX);
-#endif
+      legion_assert(finder != event_map.end());
+      legion_assert(finder->second != NO_INDEX);
       return finder->second;
     }
 
@@ -366,15 +347,11 @@ namespace Legion {
         size_t arrivals)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bar.exists());
-#endif
+      legion_assert(bar.exists());
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       const unsigned pre_ = pre.exists() ? find_event(pre, tpl_lock) : 0;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       const unsigned bar_ = convert_event(bar, false /*check*/);
 #else
       const unsigned bar_ = convert_event(bar);
@@ -382,9 +359,7 @@ namespace Legion {
       BarrierArrival* arrival = new BarrierArrival(
           *this, bar, bar_, pre_, arrivals, false /*managed*/);
       insert_instruction(arrival);
-#ifdef DEBUG_LEGION
-      assert(collective_barriers.find(key) == collective_barriers.end());
-#endif
+      legion_assert(collective_barriers.find(key) == collective_barriers.end());
       // Save this collective barrier
       collective_barriers[key] = arrival;
     }
@@ -405,10 +380,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(bar.exists());
-      assert(is_recording());
-#endif
+      legion_assert(bar.exists());
+      legion_assert(is_recording());
       // Find the pre event first
       unsigned rhs = find_event(pre, tpl_lock);
       events.emplace_back(ApEvent());
@@ -562,7 +535,7 @@ namespace Legion {
         // it is recorded in a barrier arrival instruction
         runtime->phase_barrier_arrive(barrier, 1 /*count*/);
         // Record this in the instruction stream
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         const unsigned lhs = convert_event(barrier, false /*check*/);
 #else
         const unsigned lhs = convert_event(barrier);
@@ -593,14 +566,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(event.exists());
-      assert(event_map.find(event) == event_map.end());
-#endif
+      legion_assert(event.exists());
+      legion_assert(event_map.find(event) == event_map.end());
       if (barrier.exists())
       {
-#ifdef DEBUG_LEGION
-        assert(local_advances.find(event) == local_advances.end());
+        legion_assert(local_advances.find(event) == local_advances.end());
+#ifdef LEGION_DEBUG
         const unsigned index = convert_event(event, false /*check*/);
 #else
         const unsigned index = convert_event(event);
@@ -614,23 +585,17 @@ namespace Legion {
         // See get_completion_for_deletion for where we use this
         std::map<ApEvent, RtEvent>::iterator finder =
             pending_event_requests.find(event);
-#ifdef DEBUG_LEGION
-        assert(finder != pending_event_requests.end());
-#endif
+        legion_assert(finder != pending_event_requests.end());
         finder->second = RtEvent::NO_RT_EVENT;
       }
       else  // no barrier means it's not part of the trace
       {
         event_map[event] = NO_INDEX;
         // In this case we can remove it since we're not tracing it
-#ifdef DEBUG_LEGION
         std::map<ApEvent, RtEvent>::iterator finder =
             pending_event_requests.find(event);
-        assert(finder != pending_event_requests.end());
+        legion_assert(finder != pending_event_requests.end());
         pending_event_requests.erase(finder);
-#else
-        pending_event_requests.erase(event);
-#endif
       }
     }
 
@@ -698,9 +663,7 @@ namespace Legion {
           {
             ShardID source_shard;
             derez.deserialize(source_shard);
-#ifdef DEBUG_LEGION
-            assert(source_shard != repl_ctx->owner_shard->shard_id);
-#endif
+            legion_assert(source_shard != repl_ctx->owner_shard->shard_id);
             size_t num_users;
             derez.deserialize(num_users);
             InstUsers inst_users(num_users);
@@ -761,9 +724,7 @@ namespace Legion {
                 {
                   std::map<ApEvent, std::vector<BarrierArrival*> >::
                       const_iterator finder2 = managed_arrivals.find(key);
-#ifdef DEBUG_LEGION
-                  assert(finder2 != managed_arrivals.end());
-#endif
+                  legion_assert(finder2 != managed_arrivals.end());
                   for (std::vector<BarrierArrival*>::const_iterator it =
                            finder2->second.begin();
                        it != finder2->second.end(); it++)
@@ -780,9 +741,7 @@ namespace Legion {
                 tlid.deserialize(derez);
                 std::map<TraceLocalID, std::vector<ConcurrentGroup> >::iterator
                     finder = concurrent_groups.find(tlid);
-#ifdef DEBUG_LEGION
-                assert(finder != concurrent_groups.end());
-#endif
+                legion_assert(finder != concurrent_groups.end());
                 size_t num_colors;
                 derez.deserialize(num_colors);
                 for (unsigned idx2 = 0; idx2 < num_colors; idx2++)
@@ -807,9 +766,7 @@ namespace Legion {
                        const_iterator it = concurrent_groups.begin();
                    it != concurrent_groups.end(); it++)
                 expected += it->second.size();
-#ifdef DEBUG_LEGION
-              assert(refreshed_barriers <= expected);
-#endif
+              legion_assert(refreshed_barriers <= expected);
               // See if the wait has already been done by the local shard
               // If so, trigger it, otherwise do nothing so it can come
               // along and see that everything is done
@@ -828,11 +785,9 @@ namespace Legion {
               {
                 ApEvent key;
                 derez.deserialize(key);
-#ifdef DEBUG_LEGION
-                assert(
+                legion_assert(
                     pending_refresh_barriers.find(key) ==
                     pending_refresh_barriers.end());
-#endif
                 derez.deserialize(pending_refresh_barriers[key]);
               }
               size_t num_concurrent;
@@ -870,9 +825,7 @@ namespace Legion {
                 ApBarrier oldbar, newbar;
                 derez.deserialize(oldbar);
                 derez.deserialize(newbar);
-#ifdef DEBUG_LEGION
-                bool found = false;
-#endif
+                [[maybe_unused]] bool found = false;
                 for (std::vector<std::pair<ApBarrier, unsigned> >::iterator it =
                          remote_frontiers.begin();
                      it != remote_frontiers.end(); it++)
@@ -880,19 +833,13 @@ namespace Legion {
                   if (it->first != oldbar)
                     continue;
                   it->first = newbar;
-#ifdef DEBUG_LEGION
                   found = true;
-#endif
                   break;
                 }
-#ifdef DEBUG_LEGION
-                assert(found);
-#endif
+                legion_assert(found);
               }
               updated_frontiers += num_barriers;
-#ifdef DEBUG_LEGION
-              assert(updated_frontiers <= remote_frontiers.size());
-#endif
+              legion_assert(updated_frontiers <= remote_frontiers.size());
               if (updated_frontiers == remote_frontiers.size())
               {
                 done = update_frontiers_ready;
@@ -908,11 +855,9 @@ namespace Legion {
               {
                 ApBarrier oldbar;
                 derez.deserialize(oldbar);
-#ifdef DEBUG_LEGION
-                assert(
+                legion_assert(
                     pending_refresh_frontiers.find(oldbar) ==
                     pending_refresh_frontiers.end());
-#endif
                 derez.deserialize(pending_refresh_frontiers[oldbar]);
               }
             }
@@ -929,9 +874,7 @@ namespace Legion {
             AutoLock tpl_lock(template_lock);
             std::map<ApEvent, BarrierAdvance*>::const_iterator finder =
                 managed_barriers.find(bar);
-#ifdef DEBUG_LEGION
-            assert(finder != managed_barriers.end());
-#endif
+            legion_assert(finder != managed_barriers.end());
             finder->second->record_subscribed_shard(remote_shard);
             break;
           }
@@ -996,9 +939,7 @@ namespace Legion {
         default:
           std::abort();  // should never get here
       }
-#ifdef DEBUG_LEGION
-      assert(dargs->done.exists());
-#endif
+      legion_assert(dargs->done.exists());
       if (!applied.empty())
         Runtime::trigger_event(dargs->done, Runtime::merge_events(applied));
       else
@@ -1044,7 +985,7 @@ namespace Legion {
           DeferTraceUpdateArgs args(*dargs, deferral, user_expr);
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_MESSAGE_PRIORITY, pre);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
           // Keep the deserializer happy since we didn't use it
           derez.advance_pointer(derez.get_remaining_bytes());
 #endif
@@ -1063,9 +1004,7 @@ namespace Legion {
         ApEvent event, RtUserEvent done_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(event.exists());
-#endif
+      legion_assert(event.exists());
       const AddressSpaceID event_space = find_event_space(event);
       repl_ctx->shard_manager->send_trace_event_request(
           this, repl_ctx->owner_shard->shard_id, runtime->address_space,
@@ -1083,9 +1022,7 @@ namespace Legion {
       const Realm::ID id(event.id);
       if (id.is_barrier())
         return id.barrier_creator_node();
-#ifdef DEBUG_LEGION
-      assert(id.is_event());
-#endif
+      legion_assert(id.is_event());
       return id.event_creator_node();
     }
 
@@ -1104,9 +1041,7 @@ namespace Legion {
         ApEvent completion, bool recurrent)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(pending_collectives.empty());
-#endif
+      legion_assert(pending_collectives.empty());
       PhysicalTemplate::initialize_replay(completion, recurrent);
       // Now update all of our barrier information
       if (recurrent)
@@ -1124,11 +1059,9 @@ namespace Legion {
           {
             const ApBarrier new_barrier =
                 runtime->create_ap_barrier(1 /*arrival count*/);
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 local_subscriptions.find(it->first) !=
                 local_subscriptions.end());
-#endif
             const std::set<ShardID>& shards = local_subscriptions[it->first];
             for (std::set<ShardID>::const_iterator sit = shards.begin();
                  sit != shards.end(); sit++)
@@ -1162,9 +1095,7 @@ namespace Legion {
           RtEvent remote_frontiers_ready;
           {
             AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-            assert(!update_frontiers_ready.exists());
-#endif
+            legion_assert(!update_frontiers_ready.exists());
             // Apply any pending refresh frontiers
             if (!pending_refresh_frontiers.empty())
             {
@@ -1172,9 +1103,7 @@ namespace Legion {
                        pending_refresh_frontiers.begin();
                    pit != pending_refresh_frontiers.end(); pit++)
               {
-#ifdef DEBUG_LEGION
-                bool found = false;
-#endif
+                [[maybe_unused]] bool found = false;
                 for (std::vector<std::pair<ApBarrier, unsigned> >::iterator it =
                          remote_frontiers.begin();
                      it != remote_frontiers.end(); it++)
@@ -1182,19 +1111,13 @@ namespace Legion {
                   if (it->first != pit->first)
                     continue;
                   it->first = pit->second;
-#ifdef DEBUG_LEGION
                   found = true;
-#endif
                   break;
                 }
-#ifdef DEBUG_LEGION
-                assert(found);
-#endif
+                legion_assert(found);
               }
               updated_frontiers += pending_refresh_frontiers.size();
-#ifdef DEBUG_LEGION
-              assert(updated_frontiers <= remote_frontiers.size());
-#endif
+              legion_assert(updated_frontiers <= remote_frontiers.size());
               pending_refresh_frontiers.clear();
             }
             if (updated_frontiers < remote_frontiers.size())
@@ -1257,9 +1180,7 @@ namespace Legion {
           // so we shouldn't need the lock to access it
           std::map<std::pair<size_t, size_t>, BarrierArrival*>::const_iterator
               finder = collective_barriers.find(it->first);
-#ifdef DEBUG_LEGION
-          assert(finder != collective_barriers.end());
-#endif
+          legion_assert(finder != collective_barriers.end());
           finder->second->set_managed_barrier(it->second);
         }
         pending_collectives.clear();
@@ -1291,11 +1212,9 @@ namespace Legion {
         for (std::vector<ConcurrentGroup>::iterator it = cit->second.begin();
              it != cit->second.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(!it->shards.empty());
-          assert(std::binary_search(
+          legion_assert(!it->shards.empty());
+          legion_assert(std::binary_search(
               it->shards.begin(), it->shards.end(), local_shard));
-#endif
           if (local_shard == it->shards.front())
           {
             it->barrier.destroy_barrier();
@@ -1370,9 +1289,7 @@ namespace Legion {
           {
             std::map<ApEvent, std::vector<BarrierArrival*> >::iterator finder =
                 managed_arrivals.find(it->first);
-#ifdef DEBUG_LEGION
-            assert(finder != managed_arrivals.end());
-#endif
+            legion_assert(finder != managed_arrivals.end());
             for (unsigned idx = 0; idx < finder->second.size(); idx++)
               finder->second[idx]->set_managed_barrier(it->second);
           }
@@ -1382,9 +1299,7 @@ namespace Legion {
       RtEvent replay_precondition;
       {
         AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-        assert(!update_advances_ready.exists());
-#endif
+        legion_assert(!update_advances_ready.exists());
         if (local_refreshed > 0)
           refreshed_barriers += local_refreshed;
         if (!pending_refresh_barriers.empty())
@@ -1399,9 +1314,7 @@ namespace Legion {
             {
               std::map<ApEvent, std::vector<BarrierArrival*> >::const_iterator
                   finder2 = managed_arrivals.find(it->first);
-#ifdef DEBUG_LEGION
-              assert(finder2 != managed_arrivals.end());
-#endif
+              legion_assert(finder2 != managed_arrivals.end());
               for (unsigned idx = 0; idx < finder2->second.size(); idx++)
                 finder2->second[idx]->set_managed_barrier(it->second);
             }
@@ -1421,9 +1334,7 @@ namespace Legion {
           {
             std::map<TraceLocalID, std::vector<ConcurrentGroup> >::iterator
                 finder = concurrent_groups.find(bit->first);
-#ifdef DEBUG_LEGION
-            assert(finder != concurrent_groups.end());
-#endif
+            legion_assert(finder != concurrent_groups.end());
             for (std::vector<std::pair<Color, RtBarrier> >::const_iterator cit =
                      bit->second.begin();
                  cit != bit->second.end(); cit++)
@@ -1447,9 +1358,7 @@ namespace Legion {
                  const_iterator it = concurrent_groups.begin();
              it != concurrent_groups.end(); it++)
           expected += it->second.size();
-#ifdef DEBUG_LEGION
-        assert(refreshed_barriers <= expected);
-#endif
+        legion_assert(refreshed_barriers <= expected);
         if (refreshed_barriers < expected)
         {
           update_advances_ready = Runtime::create_rt_user_event();
@@ -1543,9 +1452,7 @@ namespace Legion {
       const AddressSpaceID inst_owner = inst.get_analysis_space();
       std::vector<ShardID> owner_shards;
       find_owner_shards(inst_owner, owner_shards);
-#ifdef DEBUG_LEGION
-      assert(!owner_shards.empty());
-#endif
+      legion_assert(!owner_shards.empty());
       // Round-robin based on the distributed IDs for the views in the
       // case where there are multiple shards, this should relatively
       // balance things out
@@ -1588,9 +1495,7 @@ namespace Legion {
           if (shard_spaces[idx] == *target_space)
             shards.emplace_back(idx);
       }
-#ifdef DEBUG_LEGION
-      assert(!shards.empty());
-#endif
+      legion_assert(!shards.empty());
       // Save the result so we don't have to do this again for this space
       did_shard_owners[owner] = shards;
     }
@@ -1601,9 +1506,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(owner_shards.find(tid) == owner_shards.end());
-#endif
+      legion_assert(owner_shards.find(tid) == owner_shards.end());
       owner_shards[tid] = owner;
     }
 
@@ -1613,9 +1516,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(local_spaces.find(tid) == local_spaces.end());
-#endif
+      legion_assert(local_spaces.find(tid) == local_spaces.end());
       local_spaces[tid] = sp;
     }
 
@@ -1625,9 +1526,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(sharding_functions.find(tid) == sharding_functions.end());
-#endif
+      legion_assert(sharding_functions.find(tid) == sharding_functions.end());
       sharding_functions[tid] = function;
     }
 
@@ -1654,14 +1553,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
       std::map<unsigned, ShardID>::const_iterator finder =
           owner_shards.find(tid);
-      assert(finder != owner_shards.end());
+      legion_assert(finder != owner_shards.end());
       return finder->second;
-#else
-      return owner_shards[tid];
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1669,14 +1564,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
       std::map<unsigned, IndexSpace>::const_iterator finder =
           local_spaces.find(tid);
-      assert(finder != local_spaces.end());
+      legion_assert(finder != local_spaces.end());
       return finder->second;
-#else
-      return local_spaces[tid];
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1685,14 +1576,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
       std::map<unsigned, ShardingFunction*>::const_iterator finder =
           sharding_functions.find(tid);
-      assert(finder != sharding_functions.end());
+      legion_assert(finder != sharding_functions.end());
       return finder->second;
-#else
-      return sharding_functions[tid];
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1919,9 +1806,7 @@ namespace Legion {
           // Also need to update the local subscriptions data structure
           std::map<unsigned, std::set<ShardID> >::iterator subscription_finder =
               local_subscriptions.find(it->first);
-#ifdef DEBUG_LEGION
-          assert(subscription_finder != local_subscriptions.end());
-#endif
+          legion_assert(subscription_finder != local_subscriptions.end());
           std::map<unsigned, std::set<ShardID> >::iterator local_finder =
               local_subscriptions.find(finder->second);
           if (local_finder != local_subscriptions.end())

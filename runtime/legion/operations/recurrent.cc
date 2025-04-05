@@ -325,9 +325,7 @@ namespace Legion {
       }
       if (fence_before)
       {
-#ifdef DEBUG_LEGION
-        assert(mapping_fence_barrier.exists());
-#endif
+        legion_assert(mapping_fence_barrier.exists());
         if (!fence_events.empty())
           runtime->phase_barrier_arrive(
               mapping_fence_barrier, 1 /*count*/,
@@ -406,9 +404,7 @@ namespace Legion {
         delete previous;
       if (fence_before)
       {
-#ifdef DEBUG_LEGION
-        assert(fence_kind == EXECUTION_FENCE);
-#endif
+        legion_assert(fence_kind == EXECUTION_FENCE);
         // Perform the normal dexecution fence analysis
         parent_ctx->perform_execution_fence_analysis(
             this, execution_preconditions);

@@ -75,9 +75,7 @@ namespace Legion {
     protected:
       inline void set_redop(std::vector<CopySrcDstField>& fields) const
       {
-#ifdef DEBUG_LEGION
-        assert(redop > 0);
-#endif
+        legion_assert(redop > 0);
         for (std::vector<CopySrcDstField>::iterator it = fields.begin();
              it != fields.end(); it++)
           it->set_redop(redop, true /*fold*/, true /*exclusive*/);
@@ -265,9 +263,7 @@ namespace Legion {
     inline AllreduceView* LogicalView::as_allreduce_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_allreduce_view());
-#endif
+      legion_assert(is_allreduce_view());
       return static_cast<AllreduceView*>(const_cast<LogicalView*>(this));
     }
 

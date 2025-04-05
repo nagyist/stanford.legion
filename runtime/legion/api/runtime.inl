@@ -75,27 +75,15 @@ namespace Legion {
     }
     static void free_func(const Realm::ExternalInstanceResource& res)
     {
-#ifdef DEBUG_LEGION
       const Realm::ExternalMemoryResource* resource =
-          dynamic_cast<const Realm::ExternalMemoryResource*>(&res);
-      assert(resource != nullptr);
-#else
-      const Realm::ExternalMemoryResource* resource =
-          static_cast<const Realm::ExternalMemoryResource*>(&res);
-#endif
+          legion_safe_cast<const Realm::ExternalMemoryResource*>(&res);
       free((void*)resource->base);
     }
     template<void (*FINALIZE)(const void* buffer)>
     static void free_func_wrapper(const Realm::ExternalInstanceResource& res)
     {
-#ifdef DEBUG_LEGION
       const Realm::ExternalMemoryResource* resource =
-          dynamic_cast<const Realm::ExternalMemoryResource*>(&res);
-      assert(resource != nullptr);
-#else
-      const Realm::ExternalMemoryResource* resource =
-          static_cast<const Realm::ExternalMemoryResource*>(&res);
-#endif
+          legion_safe_cast<const Realm::ExternalMemoryResource*>(&res);
       void* buffer = (void*)resource->base;
       (*FINALIZE)(buffer);
       free(buffer);
@@ -785,9 +773,7 @@ namespace Legion {
     {
       std::map<IndexSpace, IndexPartition>::const_iterator finder =
           untyped_handles.find(it->first);
-#ifdef DEBUG_LEGION
-      assert(finder != untyped_handles.end());
-#endif
+      legion_assert(finder != untyped_handles.end());
       it->second = IndexPartitionT<DIM, T>(finder->second);
     }
     return result;

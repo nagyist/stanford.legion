@@ -557,7 +557,7 @@ namespace Legion {
       // as soon as we are complete that we're not going to raise any
       // region exceptions on them
       std::set<Operation*> verification_notifications;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       // Whether this operation is active or not
       bool activated;
 #endif

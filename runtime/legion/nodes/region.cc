@@ -257,7 +257,7 @@ namespace Legion {
       const ContextID ctx =
           logical_analysis.context->get_logical_tree_context();
       LogicalState& state = get_logical_state(ctx);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
       const unsigned depth = get_depth();
@@ -347,12 +347,10 @@ namespace Legion {
             // Open all the unopened fields
             unopened_field_mask.clear();
         }
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
         else  // if they weren't open here, they shouldn't be open below
-          assert(!open_below);
-#endif
-#endif
+        {
+          legion_assert(!open_below);
+        }
         if (!!refinement_mask)
           state.update_refinement_child(
               ctx, next_child, user.usage, refinement_mask);
@@ -393,7 +391,7 @@ namespace Legion {
       }
       // Perform any filtering that we need to do for timeout users
       state.filter_timeout_users(logical_analysis);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
     }
@@ -407,7 +405,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       LogicalState& state = get_logical_state(ctx);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
       state.record_refinement_dependences(
@@ -431,12 +429,12 @@ namespace Legion {
         const FieldMask& open_mask, RegionTreeNode* next_child)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
       FieldState new_state(user.usage, open_mask, next_child);
       merge_new_field_state(state, new_state);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
     }
@@ -449,7 +447,7 @@ namespace Legion {
         FieldMask& open_below)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
       // These are fields for which the next_child is already open but it was
@@ -567,7 +565,7 @@ namespace Legion {
           merge_new_field_state(state, new_state);
         }
       }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
     }
@@ -641,9 +639,7 @@ namespace Legion {
           {
             if (filter_next_child)
             {
-#ifdef DEBUG_LEGION
-              assert(next_child_fields != nullptr);
-#endif
+              legion_assert(next_child_fields != nullptr);
               FieldMask child_fields;
               next_child->close_logical_node(
                   user, overlap, privilege_root, path_node, analysis,
@@ -754,7 +750,7 @@ namespace Legion {
             it++;
         }
       }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
     }
@@ -764,9 +760,7 @@ namespace Legion {
         LogicalState& state, FieldState& new_state)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!new_state.valid_fields());
-#endif
+      legion_assert(!!new_state.valid_fields());
       for (std::list<FieldState>::iterator it = state.field_states.begin();
            it != state.field_states.end(); it++)
       {
@@ -786,10 +780,8 @@ namespace Legion {
         RtUserEvent reported)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_region());
-      assert(reported.exists());
-#endif
+      legion_assert(is_region());
+      legion_assert(reported.exists());
       char* field_string = column_source->to_string(uninit, op->get_context());
       op->report_uninitialized_usage(idx, field_string, reported);
       free(field_string);
@@ -950,12 +942,10 @@ namespace Legion {
                         // these two projection trees for intereference with
                         // each other and see if we can prove that they are
                         // disjoint in which case we don't need a close
-#ifdef DEBUG_LEGION
-                        assert(
+                        legion_assert(
                             runtime->enable_pointwise_analysis ||
                             proj_info.is_sharding());
-                        assert(user.shard_proj != nullptr);
-#endif
+                        legion_assert(user.shard_proj != nullptr);
                         dominates = true;
                         if (!state.has_interfering_shards(
                                 logical_analysis, prev.shard_proj,
@@ -1155,9 +1145,7 @@ namespace Legion {
       }
       if (!partition_trackers.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(parent == nullptr);  // should only happen on the root
-#endif
+        legion_assert(parent == nullptr);  // should only happen on the root
         for (std::list<PartitionTracker*>::const_iterator it =
                  partition_trackers.begin();
              it != partition_trackers.end(); it++)
@@ -1174,9 +1162,7 @@ namespace Legion {
     void RegionNode::record_registered(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!registered);
-#endif
+      legion_assert(!registered);
       if (parent == nullptr)
       {
         if (row_source->parent == nullptr)
@@ -1217,9 +1203,7 @@ namespace Legion {
       // If we get here we didn't immediately have it so try
       // to make it through the proper channels
       IndexPartNode* index_part = row_source->get_child(c);
-#ifdef DEBUG_LEGION
-      assert(index_part != nullptr);
-#endif
+      legion_assert(index_part != nullptr);
       LogicalPartition part_handle(
           handle.tree_did, index_part->handle, handle.field_space);
       return runtime->create_node(part_handle, this);
@@ -1230,9 +1214,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-      assert(color_map.find(child->row_source->color) == color_map.end());
-#endif
+      legion_assert(
+          color_map.find(child->row_source->color) == color_map.end());
       color_map[child->row_source->color] = child;
     }
 
@@ -1241,23 +1224,17 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
       std::map<LegionColor, PartitionNode*>::iterator finder =
           color_map.find(c);
-      assert(finder != color_map.end());
+      legion_assert(finder != color_map.end());
       color_map.erase(finder);
-#else
-      color_map.erase(c);
-#endif
     }
 
     //--------------------------------------------------------------------------
     void RegionNode::add_tracker(PartitionTracker* tracker)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(parent == nullptr);  // should only happen on the root
-#endif
+      legion_assert(parent == nullptr);  // should only happen on the root
       std::vector<PartitionTracker*> to_prune;
       {
         AutoLock n_lock(node_lock);
@@ -1289,7 +1266,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       LogicalState& state = get_logical_state(ctx);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       state.sanity_check();
 #endif
       state.initialize_no_refine_fields(mask);
@@ -1359,7 +1336,7 @@ namespace Legion {
       return true;
     }
 
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     //--------------------------------------------------------------------------
     RegionNode* RegionNode::as_region_node(void) const
     //--------------------------------------------------------------------------
@@ -1564,9 +1541,7 @@ namespace Legion {
 
       RegionNode* node = runtime->create_node(
           handle, nullptr /*parent*/, initialized, did, prov, mapping);
-#ifdef DEBUG_LEGION
-      assert(node != nullptr);
-#endif
+      legion_assert(node != nullptr);
       size_t num_semantic;
       derez.deserialize(num_semantic);
       if (num_semantic > 0)
@@ -1690,9 +1665,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(find_semantic_owner() == runtime->address_space);
-#endif
+      legion_assert(find_semantic_owner() == runtime->address_space);
       RtEvent precondition;
       void* result = nullptr;
       size_t size = 0;
@@ -1798,10 +1771,8 @@ namespace Legion {
         // right node and if not forward it on to the right node
         if (node->collective_mapping != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(!node->collective_mapping->contains(source));
-          assert(node->collective_mapping->contains(node->local_space));
-#endif
+          legion_assert(!node->collective_mapping->contains(source));
+          legion_assert(node->collective_mapping->contains(node->local_space));
           if (node->is_owner())
           {
             const AddressSpaceID nearest =
@@ -1818,14 +1789,12 @@ namespace Legion {
               return;
             }
           }
-#ifdef DEBUG_LEGION
           else
           {
-            assert(
+            legion_assert(
                 node->local_space ==
                 node->collective_mapping->find_nearest(source));
           }
-#endif
         }
         Serializer rez;
         {
@@ -1866,9 +1835,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const unsigned remainder = references.load();
-#ifdef DEBUG_LEGION
-      assert((remainder == 1) || (remainder == 2));
-#endif
+      legion_assert((remainder == 1) || (remainder == 2));
       return (remainder == 1);
     }
 
@@ -1947,9 +1914,7 @@ namespace Legion {
     void PartitionNode::record_registered(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!registered);
-#endif
+      legion_assert(!registered);
       row_source->add_nested_resource_ref(did);
       row_source->add_nested_gc_ref(did);
       parent->add_nested_resource_ref(did);
@@ -1988,9 +1953,7 @@ namespace Legion {
       // If we get here we didn't immediately have it so try
       // to make it through the proper channels
       IndexSpaceNode* index_node = row_source->get_child(c, nullptr);
-#ifdef DEBUG_LEGION
-      assert(index_node != nullptr);
-#endif
+      legion_assert(index_node != nullptr);
       LogicalRegion reg_handle(
           handle.tree_did, index_node->handle, handle.field_space);
       return runtime->create_node(
@@ -2004,10 +1967,9 @@ namespace Legion {
       child->add_nested_resource_ref(did);
       child->add_nested_gc_ref(did);
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-      assert(is_global());
-      assert(color_map.find(child->row_source->color) == color_map.end());
-#endif
+      legion_assert(is_global());
+      legion_assert(
+          color_map.find(child->row_source->color) == color_map.end());
       color_map[child->row_source->color] = child;
     }
 
@@ -2075,7 +2037,7 @@ namespace Legion {
       return false;
     }
 
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     //--------------------------------------------------------------------------
     RegionNode* PartitionNode::as_region_node(void) const
     //--------------------------------------------------------------------------
@@ -2143,9 +2105,7 @@ namespace Legion {
     bool PartitionNode::is_complete(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(parent != nullptr);
-#endif
+      legion_assert(parent != nullptr);
       return row_source->is_complete();
     }
 
@@ -2187,9 +2147,7 @@ namespace Legion {
       }
       if (continue_up)
       {
-#ifdef DEBUG_LEGION
-        assert(parent != nullptr);
-#endif
+        legion_assert(parent != nullptr);
         // Send the parent node first
         parent->send_node(rez, target);
         AutoLock n_lock(node_lock);
@@ -2264,9 +2222,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(find_semantic_owner() == runtime->address_space);
-#endif
+      legion_assert(find_semantic_owner() == runtime->address_space);
       RtEvent precondition;
       void* result = nullptr;
       size_t size = 0;

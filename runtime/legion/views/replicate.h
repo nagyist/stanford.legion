@@ -47,9 +47,7 @@ namespace Legion {
     inline ReplicatedView* LogicalView::as_replicated_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_replicated_view());
-#endif
+      legion_assert(is_replicated_view());
       return static_cast<ReplicatedView*>(const_cast<LogicalView*>(this));
     }
 

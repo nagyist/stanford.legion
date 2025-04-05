@@ -37,16 +37,12 @@ namespace Legion {
     void InternalOp::initialize_internal(Operation* creator, int intern_idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(creator != nullptr);
-#endif
+      legion_assert(creator != nullptr);
       // We never track internal operations
       initialize_operation(creator->get_context(), creator->get_provenance());
       context_index = creator->get_context_index();
-#ifdef DEBUG_LEGION
-      assert(creator_req_idx == -1);
-      assert(create_op == nullptr);
-#endif
+      legion_assert(creator_req_idx == -1);
+      legion_assert(create_op == nullptr);
       create_op = creator;
       create_gen = creator->get_generation();
       creator_req_idx = intern_idx;
@@ -78,9 +74,7 @@ namespace Legion {
         int source_idx, DependenceType dtype, const FieldMask& dependent_mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(creator_req_idx >= 0);
-#endif
+      legion_assert(creator_req_idx >= 0);
       // Check to see if the target is also our creator
       // in which case we can skip it
       if ((target == create_op) && (target_gen == create_gen))
@@ -101,9 +95,7 @@ namespace Legion {
     unsigned InternalOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-#endif
+      legion_assert(idx == 0);
       return create_op->find_parent_index(creator_req_idx);
     }
 

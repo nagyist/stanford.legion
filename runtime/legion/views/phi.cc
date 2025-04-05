@@ -33,11 +33,10 @@ namespace Legion {
         false_guard(fguard), true_views(true_vws), false_views(false_vws)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(true_guard.exists());
-      assert(false_guard.exists());
-      assert(true_views.get_valid_mask() == false_views.get_valid_mask());
-#endif
+      legion_assert(true_guard.exists());
+      legion_assert(false_guard.exists());
+      legion_assert(
+          true_views.get_valid_mask() == false_views.get_valid_mask());
       if (register_now)
         add_initial_references(false /*unpack references*/);
 #ifdef LEGION_GC
@@ -135,10 +134,8 @@ namespace Legion {
     void PhiView::send_view(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-      assert(collective_mapping == nullptr);
-#endif
+      legion_assert(is_owner());
+      legion_assert(collective_mapping == nullptr);
       Serializer rez;
       {
         RezCheck z(rez);
@@ -176,10 +173,8 @@ namespace Legion {
         EquivalenceSet* tracing_eq, CopyAcrossHelper* helper)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!(src_mask - true_views.get_valid_mask()));
-      assert(!(src_mask - false_views.get_valid_mask()));
-#endif
+      legion_assert(!(src_mask - true_views.get_valid_mask()));
+      legion_assert(!(src_mask - false_views.get_valid_mask()));
       const PredEvent next_true =
           !pred_guard.exists() ?
               true_guard :

@@ -48,9 +48,7 @@ namespace Legion {
     inline VirtualManager* InstanceManager::as_virtual_manager(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_virtual_manager());
-#endif
+      legion_assert(is_virtual_manager());
       return static_cast<VirtualManager*>(const_cast<InstanceManager*>(this));
     }
 

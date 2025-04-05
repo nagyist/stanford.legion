@@ -104,9 +104,7 @@ namespace Legion {
   Future FutureMap::get_future(const DomainPoint& point) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     return impl->get_future(point, false /*internal*/);
   }
 
@@ -160,9 +158,7 @@ namespace Legion {
         context_index(o->get_context_index())
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(future_map_domain != nullptr);
-#endif
+      legion_assert(future_map_domain != nullptr);
       future_map_domain->add_nested_valid_ref(did);
       if (provenance != nullptr)
         provenance->add_reference();
@@ -186,9 +182,7 @@ namespace Legion {
         context_index(index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(future_map_domain != nullptr);
-#endif
+      legion_assert(future_map_domain != nullptr);
       future_map_domain->add_nested_valid_ref(did);
       if (provenance != nullptr)
         provenance->add_reference();
@@ -211,9 +205,7 @@ namespace Legion {
         context_index(ctx_index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(future_map_domain != nullptr);
-#endif
+      legion_assert(future_map_domain != nullptr);
       future_map_domain->add_nested_valid_ref(did);
       if (provenance != nullptr)
         provenance->add_reference();
@@ -262,9 +254,7 @@ namespace Legion {
         const DomainPoint& point, bool internal, RtEvent* wait_on)
     //--------------------------------------------------------------------------
     {
-#ifndef DEBUG_LEGION
-      if (!internal)
-#endif
+      if (runtime->safe_model)
       {
         if (!future_map_domain->contains_point(point))
           REPORT_LEGION_ERROR(
@@ -305,9 +295,7 @@ namespace Legion {
         AutoLock fm_lock(future_map_lock, 1, false /*exlusive*/);
         std::map<DomainPoint, FutureImpl*>::const_iterator finder =
             futures.find(point);
-#ifdef DEBUG_LEGION
-        assert(finder != futures.end());
-#endif
+        legion_assert(finder != futures.end());
         return Future(finder->second);
       }
       else
@@ -341,9 +329,7 @@ namespace Legion {
       impl->add_nested_gc_ref(did);
       impl->add_nested_resource_ref(did);
       AutoLock fm_lock(future_map_lock);
-#ifdef DEBUG_LEGION
-      assert(futures.find(point) == futures.end());
-#endif
+      legion_assert(futures.find(point) == futures.end());
       futures[point] = impl;
     }
 
@@ -362,10 +348,8 @@ namespace Legion {
         bool silence_warnings, const char* warning_string)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(implicit_context != nullptr);
-      assert(implicit_context == context);
-#endif
+      legion_assert(implicit_context != nullptr);
+      legion_assert(implicit_context == context);
       if (runtime->runtime_warnings && !silence_warnings &&
           (context != nullptr) && !context->is_leaf_context())
         REPORT_LEGION_WARNING(
@@ -385,9 +369,7 @@ namespace Legion {
     bool FutureMapImpl::reset_all_futures(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       // TODO: send messages to all the remote copies of this
       std::abort();
       bool result = false;
@@ -460,15 +442,11 @@ namespace Legion {
         std::map<DomainPoint, FutureImpl*>& others)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       Domain domain = future_map_domain->get_tight_domain();
       const size_t needed = domain.get_volume();
       AutoLock fm_lock(future_map_lock);
-#ifdef DEBUG_LEGION
-      assert(futures.size() <= needed);
-#endif
+      legion_assert(futures.size() <= needed);
       if (futures.size() < needed)
       {
         fm_lock.release();
@@ -520,9 +498,7 @@ namespace Legion {
     FutureImpl* FutureMapImpl::find_local_future(const DomainPoint& point)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(future_map_domain->contains_point(point));
-#endif
+      legion_assert(future_map_domain->contains_point(point));
       Future result = get_future(point, true /*internal only*/);
       return result.impl;
     }
@@ -549,9 +525,7 @@ namespace Legion {
       // the same parent context
       InnerContext* context = consumer_op->get_context();
       const int consumer_depth = context->get_depth();
-#ifdef DEBUG_LEGION
-      assert(consumer_depth >= op_depth);
-#endif
+      legion_assert(consumer_depth >= op_depth);
       if (consumer_depth == op_depth)
       {
         consumer_op->register_dependence(op, op_gen);
@@ -567,9 +541,7 @@ namespace Legion {
         const DomainPoint& point, int context_depth, RtUserEvent to_trigger)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(context_depth >= op_depth);
-#endif
+      legion_assert(context_depth >= op_depth);
       if (!context_index || (context_depth != op_depth))
       {
         if (to_trigger.exists())
@@ -604,9 +576,7 @@ namespace Legion {
       // Similar to DistributedCollectable::register_with_runtime but
       // we don't actually need to do the registration since we know
       // it has already been done
-#ifdef DEBUG_LEGION
-      assert(!registered_with_runtime);
-#endif
+      legion_assert(!registered_with_runtime);
       registered_with_runtime = true;
       // We always have a global unpack reference from
       // FutureMapImpl::unpack_future_map and that ensures that we can
@@ -636,12 +606,7 @@ namespace Legion {
       // replicated case in which case a shard on this node might not have
       // actually made it yet, so wait in that case
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      FutureMapImpl* impl = dynamic_cast<FutureMapImpl*>(dc);
-      assert(impl != nullptr);
-#else
-      FutureMapImpl* impl = static_cast<FutureMapImpl*>(dc);
-#endif
+      FutureMapImpl* impl = legion_safe_cast<FutureMapImpl*>(dc);
       Future f = impl->get_future(point, internal);
       Serializer rez;
       {
@@ -685,12 +650,7 @@ namespace Legion {
       derez.deserialize(did);
       // Should always find it since this is the source node
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      FutureMapImpl* impl = dynamic_cast<FutureMapImpl*>(dc);
-      assert(impl != nullptr);
-#else
-      FutureMapImpl* impl = static_cast<FutureMapImpl*>(dc);
-#endif
+      FutureMapImpl* impl = legion_safe_cast<FutureMapImpl*>(dc);
       // Add it to the map
       impl->process_future_response(derez);
       // Trigger the done event
@@ -709,12 +669,7 @@ namespace Legion {
       derez.deserialize(did);
       // Should always find it since this is the source node
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      FutureMapImpl* impl = dynamic_cast<FutureMapImpl*>(dc);
-      assert(impl != nullptr);
-#else
-      FutureMapImpl* impl = static_cast<FutureMapImpl*>(dc);
-#endif
+      FutureMapImpl* impl = legion_safe_cast<FutureMapImpl*>(dc);
       DomainPoint point;
       derez.deserialize(point);
       int context_depth;
@@ -780,27 +735,21 @@ namespace Legion {
         const DomainPoint& point, bool internal_only, RtEvent* wait_on)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(future_map_domain->contains_point(point));
-#endif
+      legion_assert(future_map_domain->contains_point(point));
       Domain domain = future_map_domain->get_tight_domain();
       Domain range = previous->future_map_domain->get_tight_domain();
       if (is_functor)
       {
         const DomainPoint transformed =
             transform.functor->transform_point(point, domain, range);
-#ifdef DEBUG_LEGION
-        assert(previous->future_map_domain->contains_point(transformed));
-#endif
+        legion_assert(previous->future_map_domain->contains_point(transformed));
         return previous->get_future(transformed, internal_only, wait_on);
       }
       else
       {
         const DomainPoint transformed =
             (*transform.fnptr)(point, domain, range);
-#ifdef DEBUG_LEGION
-        assert(previous->future_map_domain->contains_point(transformed));
-#endif
+        legion_assert(previous->future_map_domain->contains_point(transformed));
         return previous->get_future(transformed, internal_only, wait_on);
       }
     }
@@ -820,14 +769,11 @@ namespace Legion {
         {
           const DomainPoint transformed =
               transform.functor->transform_point(itr.p, domain, range);
-#ifdef DEBUG_LEGION
-          assert(previous->future_map_domain->contains_point(transformed));
-#endif
+          legion_assert(
+              previous->future_map_domain->contains_point(transformed));
           std::map<DomainPoint, FutureImpl*>::const_iterator finder =
               previous_futures.find(transformed);
-#ifdef DEBUG_LEGION
-          assert(finder != previous_futures.end());
-#endif
+          legion_assert(finder != previous_futures.end());
           futures[itr.p] = finder->second;
         }
       }
@@ -837,14 +783,11 @@ namespace Legion {
         {
           const DomainPoint transformed =
               (*transform.fnptr)(itr.p, domain, range);
-#ifdef DEBUG_LEGION
-          assert(previous->future_map_domain->contains_point(transformed));
-#endif
+          legion_assert(
+              previous->future_map_domain->contains_point(transformed));
           std::map<DomainPoint, FutureImpl*>::const_iterator finder =
               previous_futures.find(transformed);
-#ifdef DEBUG_LEGION
-          assert(finder != previous_futures.end());
-#endif
+          legion_assert(finder != previous_futures.end());
           futures[itr.p] = finder->second;
         }
       }
@@ -863,27 +806,21 @@ namespace Legion {
         const DomainPoint& point)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(future_map_domain->contains_point(point));
-#endif
+      legion_assert(future_map_domain->contains_point(point));
       Domain domain = future_map_domain->get_tight_domain();
       Domain range = previous->future_map_domain->get_tight_domain();
       if (is_functor)
       {
         const DomainPoint transformed =
             transform.functor->transform_point(point, domain, range);
-#ifdef DEBUG_LEGION
-        assert(previous->future_map_domain->contains_point(transformed));
-#endif
+        legion_assert(previous->future_map_domain->contains_point(transformed));
         return previous->find_local_future(transformed);
       }
       else
       {
         const DomainPoint transformed =
             (*transform.fnptr)(point, domain, range);
-#ifdef DEBUG_LEGION
-        assert(previous->future_map_domain->contains_point(transformed));
-#endif
+        legion_assert(previous->future_map_domain->contains_point(transformed));
         return previous->find_local_future(transformed);
       }
     }
@@ -907,9 +844,7 @@ namespace Legion {
           {
             const DomainPoint inverted =
                 transform.functor->invert_point(it->first, domain, range);
-#ifdef DEBUG_LEGION
-            assert(future_map_domain->contains_point(inverted));
-#endif
+            legion_assert(future_map_domain->contains_point(inverted));
             futures[inverted] = it->second;
           }
         }
@@ -921,9 +856,8 @@ namespace Legion {
           {
             const DomainPoint transformed =
                 transform.functor->transform_point(itr.p, domain, range);
-#ifdef DEBUG_LEGION
-            assert(previous->future_map_domain->contains_point(transformed));
-#endif
+            legion_assert(
+                previous->future_map_domain->contains_point(transformed));
             std::map<DomainPoint, FutureImpl*>::const_iterator finder =
                 previous_futures.find(transformed);
             if (finder != previous_futures.end())
@@ -939,9 +873,8 @@ namespace Legion {
         {
           const DomainPoint transformed =
               (*transform.fnptr)(itr.p, domain, range);
-#ifdef DEBUG_LEGION
-          assert(previous->future_map_domain->contains_point(transformed));
-#endif
+          legion_assert(
+              previous->future_map_domain->contains_point(transformed));
           std::map<DomainPoint, FutureImpl*>::const_iterator finder =
               previous_futures.find(transformed);
           if (finder != previous_futures.end())
@@ -955,18 +888,14 @@ namespace Legion {
         const DomainPoint& point, int context_depth, RtUserEvent to_trigger)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(future_map_domain->contains_point(point));
-#endif
+      legion_assert(future_map_domain->contains_point(point));
       const Domain domain = future_map_domain->get_tight_domain();
       const Domain range = previous->future_map_domain->get_tight_domain();
       if (is_functor)
       {
         const DomainPoint transformed =
             transform.functor->transform_point(point, domain, range);
-#ifdef DEBUG_LEGION
-        assert(previous->future_map_domain->contains_point(transformed));
-#endif
+        legion_assert(previous->future_map_domain->contains_point(transformed));
         return previous->find_pointwise_dependence(
             transformed, context_depth, to_trigger);
       }
@@ -974,9 +903,7 @@ namespace Legion {
       {
         const DomainPoint transformed =
             (*transform.fnptr)(point, domain, range);
-#ifdef DEBUG_LEGION
-        assert(previous->future_map_domain->contains_point(transformed));
-#endif
+        legion_assert(previous->future_map_domain->contains_point(transformed));
         return previous->find_pointwise_dependence(
             transformed, context_depth, to_trigger);
       }
@@ -998,9 +925,7 @@ namespace Legion {
         collective_performed(false)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shard_domain != nullptr);
-#endif
+      legion_assert(shard_domain != nullptr);
       shard_domain->add_nested_valid_ref(did);
       shard_manager->add_nested_gc_ref(did);
     }
@@ -1019,9 +944,7 @@ namespace Legion {
         collective_performed(false)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shard_domain != nullptr);
-#endif
+      legion_assert(shard_domain != nullptr);
       shard_domain->add_nested_valid_ref(did);
       shard_manager->add_nested_gc_ref(did);
     }
@@ -1103,9 +1026,7 @@ namespace Legion {
         AutoLock f_lock(future_map_lock, 1, false /*exclusive*/);
         std::map<DomainPoint, FutureImpl*>::const_iterator finder =
             futures.find(point);
-#ifdef DEBUG_LEGION
-        assert(finder != futures.end());
-#endif
+        legion_assert(finder != futures.end());
         return Future(finder->second);
       }
       else  // If we're the owner shard we can just do the normal thing
@@ -1140,14 +1061,8 @@ namespace Legion {
       // need to worry about thread safety
       if (!collective_performed)
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(implicit_context);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx =
-            static_cast<ReplicateContext*>(implicit_context);
-#endif
+            legion_safe_cast<ReplicateContext*>(implicit_context);
         for (int i = 0; runtime->safe_control_replication && (i < 2); i++)
         {
           ReplicateContext::HashVerifier hasher(
@@ -1262,9 +1177,7 @@ namespace Legion {
         const DomainPoint& point, int context_depth, RtUserEvent to_trigger)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(context_depth >= op_depth);
-#endif
+      legion_assert(context_depth >= op_depth);
       if (!context_index || (context_depth != op_depth))
       {
         if (to_trigger.exists())

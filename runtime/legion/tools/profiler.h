@@ -865,16 +865,11 @@ namespace Legion {
     public:
       void increment_outstanding_message_request(void);
       LgEvent find_message_fevent(LgEvent original_fevent);
-    public:
-#ifdef DEBUG_LEGION
+    protected:
       void increment_total_outstanding_requests(
           ProfilingKind kind, unsigned cnt = 1);
       void decrement_total_outstanding_requests(
           ProfilingKind kind, unsigned cnt = 1);
-#else
-      void increment_total_outstanding_requests(unsigned cnt = 1);
-      void decrement_total_outstanding_requests(unsigned cnt = 1);
-#endif
     public:
       void update_footprint(size_t diff, LegionProfInstance* inst);
     public:
@@ -910,7 +905,7 @@ namespace Legion {
       std::vector<Processor> recorded_processors;
       std::map<LgEvent, LgEvent> message_fevents;
       std::map<std::pair<unsigned, unsigned>, unsigned> recorded_barriers;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       unsigned total_outstanding_requests[LEGION_PROF_LAST];
 #else
       std::atomic<unsigned> total_outstanding_requests;

@@ -26,9 +26,7 @@ namespace Legion {
         RuntimeCallKind kind, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == nullptr);
-#endif
+      legion_assert(implicit_reference_tracker == nullptr);
       if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
@@ -103,14 +101,10 @@ namespace Legion {
       if (implicit_task_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
-#ifdef DEBUG_LEGION
-        assert(!implicit_task_profiler->waits.empty());
-#endif
+        legion_assert(!implicit_task_profiler->waits.empty());
         LegionProfInstance::WaitInfo& info =
             implicit_task_profiler->waits.back();
-#ifdef DEBUG_LEGION
-        assert(info.wait_event == event);
-#endif
+        legion_assert(info.wait_event == event);
         // Assume that implicit tasks resume as soon as the event is triggered
         info.wait_ready = current;
         info.wait_end = current;

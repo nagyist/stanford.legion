@@ -91,12 +91,10 @@ namespace Legion {
       if (!n || (n->level < level_needed))
         return false;
 
-#ifdef DEBUG_LEGION
       // when we get here, root is high enough
-      assert(
+      legion_assert(
           (level_needed <= n->level) && (index >= n->first_index) &&
           (index <= n->last_index));
-#endif
       // now walk tree, populating the path we need
       while (n->level > 0)
       {
@@ -107,17 +105,13 @@ namespace Legion {
             ((index >>
               (ALLOCATOR::LEAF_BITS + (n->level - 1) * ALLOCATOR::INNER_BITS)) &
              ((((IT)1) << ALLOCATOR::INNER_BITS) - 1));
-#ifdef DEBUG_LEGION
-        assert((i >= 0) && (((size_t)i) < ALLOCATOR::INNER_TYPE::SIZE));
-#endif
+        legion_assert((i >= 0) && (((size_t)i) < ALLOCATOR::INNER_TYPE::SIZE));
         NodeBase* child = inner->elems[i].load();
         if (child == 0)
           return false;
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (child != 0) && (child->level == (n->level - 1)) &&
             (index >= child->first_index) && (index <= child->last_index));
-#endif
         n = child;
       }
       return true;
@@ -146,9 +140,7 @@ namespace Legion {
           leaf->elems[offset].store(result);
         }
       }
-#ifdef DEBUG_LEGION
-      assert(result != 0);
-#endif
+      legion_assert(result != 0);
       return result;
     }
 
@@ -176,9 +168,7 @@ namespace Legion {
           leaf->elems[offset].store(result);
         }
       }
-#ifdef DEBUG_LEGION
-      assert(result != 0);
-#endif
+      legion_assert(result != 0);
       return result;
     }
 
@@ -206,9 +196,7 @@ namespace Legion {
           leaf->elems[offset].store(result);
         }
       }
-#ifdef DEBUG_LEGION
-      assert(result != 0);
-#endif
+      legion_assert(result != 0);
       return result;
     }
 
@@ -256,11 +244,9 @@ namespace Legion {
         root.store(n);
       }
       // root should be high-enough now
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (level_needed <= n->level) && (index >= n->first_index) &&
           (index <= n->last_index));
-#endif
       // now walk the path, instantiating the path we need
       while (n->level > 0)
       {
@@ -271,9 +257,7 @@ namespace Legion {
             ((index >>
               (ALLOCATOR::LEAF_BITS + (n->level - 1) * ALLOCATOR::INNER_BITS)) &
              ((((IT)1) << ALLOCATOR::INNER_BITS) - 1));
-#ifdef DEBUG_LEGION
-        assert((i >= 0) && (((size_t)i) < ALLOCATOR::INNER_TYPE::SIZE));
-#endif
+        legion_assert((i >= 0) && (((size_t)i) < ALLOCATOR::INNER_TYPE::SIZE));
         NodeBase* child = inner->elems[i].load();
         if (child == nullptr)
         {
@@ -292,16 +276,12 @@ namespace Legion {
             inner->elems[i].store(child);
           }
         }
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (child != 0) && (child->level == (n->level - 1)) &&
             (index >= child->first_index) && (index <= child->last_index));
-#endif
         n = child;
       }
-#ifdef DEBUG_LEGION
-      assert(n->level == 0);
-#endif
+      legion_assert(n->level == 0);
       return n;
     }
 

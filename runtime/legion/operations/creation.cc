@@ -44,10 +44,8 @@ namespace Legion {
         Provenance* provenance, bool own, const CollectiveMapping* map)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index_space_node == nullptr);
-      assert(futures.empty());
-#endif
+      legion_assert(index_space_node == nullptr);
+      legion_assert(futures.empty());
       initialize_operation(ctx, provenance);
       kind = INDEX_SPACE_CREATION;
       index_space_node = n;
@@ -65,11 +63,9 @@ namespace Legion {
         const Future& field_size, Provenance* provenance, bool own)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(field_space_node == nullptr);
-      assert(fields.empty());
-      assert(futures.empty());
-#endif
+      legion_assert(field_space_node == nullptr);
+      legion_assert(fields.empty());
+      legion_assert(futures.empty());
       initialize_operation(ctx, provenance);
       kind = FIELD_ALLOCATION;
       field_space_node = node;
@@ -89,12 +85,10 @@ namespace Legion {
         bool own)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(field_space_node == nullptr);
-      assert(fields.empty());
-      assert(futures.empty());
-      assert(fids.size() == field_sizes.size());
-#endif
+      legion_assert(field_space_node == nullptr);
+      legion_assert(fields.empty());
+      legion_assert(futures.empty());
+      legion_assert(fids.size() == field_sizes.size());
       initialize_operation(ctx, provenance);
       kind = FIELD_ALLOCATION;
       field_space_node = node;
@@ -112,9 +106,7 @@ namespace Legion {
         const std::map<DomainPoint, Future>& future_points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(futures.empty());
-#endif
+      legion_assert(futures.empty());
       initialize_operation(ctx, provenance);
       kind = FUTURE_MAP_CREATION;
       futures.resize(future_points.size());
@@ -171,9 +163,7 @@ namespace Legion {
       for (std::vector<Future>::const_iterator it = futures.begin();
            it != futures.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(it->impl != nullptr);
-#endif
+        legion_assert(it->impl != nullptr);
         // Register this operation as dependent on task that
         // generated the future
         it->impl->register_dependence(this);
@@ -195,9 +185,7 @@ namespace Legion {
       {
         case INDEX_SPACE_CREATION:
           {
-#ifdef DEBUG_LEGION
-            assert(futures.size() == 1);
-#endif
+            legion_assert(futures.size() == 1);
             if (owner)
             {
               // Have to request internal buffers before completing mapping

@@ -867,7 +867,7 @@ ifeq ($(strip $(DEBUG)),1)
     FC_FLAGS	+= -O0 -ggdb
   endif
   REALM_CC_FLAGS	+= -DDEBUG_REALM
-  LEGION_CC_FLAGS	+= -DDEBUG_LEGION
+  LEGION_CC_FLAGS	+= -DLEGION_DEBUG
 else
   CFLAGS	+= -O2
   CC_FLAGS	+= -O2 #-ggdb

@@ -52,9 +52,7 @@ namespace Legion {
     void Provenance::initialize(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!full.empty());
-#endif
+      legion_assert(!full.empty());
       if (!parse_provenance_parts())
       {
         // If we have a bracket assume this whole this is a JSON string
@@ -162,9 +160,7 @@ namespace Legion {
     void Provenance::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!full.empty());
-#endif
+      legion_assert(!full.empty());
       rez.serialize<size_t>(full.size());
       rez.serialize(full.c_str(), full.size() + 1 /*null terminator*/);
     }

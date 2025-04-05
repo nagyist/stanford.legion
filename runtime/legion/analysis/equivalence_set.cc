@@ -210,9 +210,7 @@ namespace Legion {
     {
       if (collective != nullptr)
         return collective;
-#ifdef DEBUG_LEGION
-      assert(!inst_dids.empty());
-#endif
+      legion_assert(!inst_dids.empty());
       if (inst_dids.size() > 1)
       {
         RtEvent ready;
@@ -527,9 +525,7 @@ namespace Legion {
     {
       if (!valid_exprs.empty() && !(mask * valid_exprs.get_valid_mask()))
       {
-#ifdef DEBUG_LEGION
-        assert(collective != view);
-#endif
+        legion_assert(collective != view);
         // We need to remove the entry for these fields since we'll be recording
         // new subfield entries along them
         dominated_mask |= mask;
@@ -584,9 +580,8 @@ namespace Legion {
     {
       if (valid_exprs.empty())
         return;
-#ifdef DEBUG_LEGION
-      assert(valid_exprs.size() == 1);  // should just have one null entry
-#endif
+      legion_assert(
+          valid_exprs.size() == 1);  // should just have one null entry
       const FieldMask& local_mask = valid_exprs.get_valid_mask();
       allvalid_mask -= local_mask;
       InstanceView* view = view_set.find_instance_view(inst_dids);
@@ -871,11 +866,9 @@ namespace Legion {
         // If we've been told to replicate the logical owner space knowledge
         // than we do that now, note that this will preclude migration of
         // this equivalence set for its entire lifetime
-#ifdef DEBUG_LEGION
-        assert(mapping != nullptr);
-        assert(mapping->contains(logical_owner_space));
-        assert(mapping->contains(local_space));
-#endif
+        legion_assert(mapping != nullptr);
+        legion_assert(mapping->contains(logical_owner_space));
+        legion_assert(mapping->contains(local_space));
         replicated_owner_state = new ReplicatedOwnerState(true /*valid*/);
         mapping->get_children(
             logical_owner_space, local_space, replicated_owner_state->children);
@@ -896,23 +889,21 @@ namespace Legion {
     EquivalenceSet::~EquivalenceSet(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(total_valid_instances.empty());
-      assert(partial_valid_instances.empty());
-      assert(!partial_valid_fields);
-      assert(initialized_data.empty());
-      assert(partial_invalidations.empty());
-      assert(reduction_instances.empty());
-      assert(!reduction_fields);
-      assert(restricted_instances.empty());
-      assert(!restricted_fields);
-      assert(released_instances.empty());
-      assert(collective_instances.empty());
-      assert(tracing_preconditions == nullptr);
-      assert(tracing_anticonditions == nullptr);
-      assert(tracing_postconditions == nullptr);
-      assert(tracing_dirty_fields == nullptr);
-#endif
+      legion_assert(total_valid_instances.empty());
+      legion_assert(partial_valid_instances.empty());
+      legion_assert(!partial_valid_fields);
+      legion_assert(initialized_data.empty());
+      legion_assert(partial_invalidations.empty());
+      legion_assert(reduction_instances.empty());
+      legion_assert(!reduction_fields);
+      legion_assert(restricted_instances.empty());
+      legion_assert(!restricted_fields);
+      legion_assert(released_instances.empty());
+      legion_assert(collective_instances.empty());
+      legion_assert(tracing_preconditions == nullptr);
+      legion_assert(tracing_anticonditions == nullptr);
+      legion_assert(tracing_postconditions == nullptr);
+      legion_assert(tracing_dirty_fields == nullptr);
       if (replicated_owner_state != nullptr)
         delete replicated_owner_state;
       if (context->remove_nested_resource_ref(did))
@@ -1067,9 +1058,7 @@ namespace Legion {
     void EquivalenceSet::initialize_collective_references(unsigned local_valid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(collective_mapping != nullptr);
       if (is_owner())
       {
         if (local_valid > 0)
@@ -1077,9 +1066,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(local_valid > 0);
-#endif
+        legion_assert(local_valid > 0);
         add_base_gc_ref(CONTEXT_REF, local_valid);
       }
     }
@@ -1091,19 +1078,15 @@ namespace Legion {
         const std::vector<IndividualView*>& corresponding)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_logical_owner() || set_expr->is_empty());
-      assert(sources.size() == corresponding.size());
-#endif
+      legion_assert(is_logical_owner() || set_expr->is_empty());
+      legion_assert(sources.size() == corresponding.size());
       AutoLock eq(eq_lock);
       if (IS_REDUCE(usage))
       {
-#ifdef DEBUG_LEGION
         // Reduction-only should always be restricted for now
         // Could change if we started issuing reduction close
         // operations at the end of a context
-        assert(restricted);
-#endif
+        legion_assert(restricted);
         // Since these are restricted, we'll make these the actual
         // target logical instances and record them as restricted
         // instead of recording them as reduction instances
@@ -1131,9 +1114,7 @@ namespace Legion {
         {
           const FieldMask& view_mask = sources[idx].get_valid_fields();
           IndividualView* view = corresponding[idx];
-#ifdef DEBUG_LEGION
-          assert(!view->is_reduction_kind());
-#endif
+          legion_assert(!view->is_reduction_kind());
           shrt::FieldMaskMap<LogicalView>::iterator finder =
               total_valid_instances.find(view);
           if (finder == total_valid_instances.end())
@@ -1158,9 +1139,7 @@ namespace Legion {
       // Update any restricted fields
       if (restricted)
       {
-#ifdef DEBUG_LEGION
-        assert(!restricted_instances.empty());
-#endif
+        legion_assert(!restricted_instances.empty());
         restricted_fields |= user_mask;
       }
     }
@@ -1187,10 +1166,8 @@ namespace Legion {
               analysis, traversal_mask, deferral_events, applied_events,
               expr_covers))
         return;
-#ifdef DEBUG_LEGION
       // Should only be here if we're the owner
-      assert(is_logical_owner());
-#endif
+      legion_assert(is_logical_owner());
       bool check_migration = false;
       if (!partial_invalidations.empty())
       {
@@ -1208,11 +1185,9 @@ namespace Legion {
             const FieldMask overlap = invalid_mask & it->second;
             if (!overlap)
               continue;
-#ifdef DEBUG_LEGION
             // Should never be trying to do a traversal on an equivalence
             // set that has been completely invalidated
-            assert(it->first != set_expr);
-#endif
+            legion_assert(it->first != set_expr);
             IndexSpaceExpression* remainder =
                 runtime->subtract_index_spaces(expr, it->first);
             if (!remainder->is_empty() &&
@@ -1385,9 +1360,7 @@ namespace Legion {
         {
           // Should only have fill deferred views here
           // No need to worry about collective aliasing in this case
-#ifdef DEBUG_LEGION
-          assert(vit->first->is_fill_view());
-#endif
+          legion_assert(vit->first->is_fill_view());
           FillView* fill = vit->first->as_fill_view();
           // Check the total valid instances first
           if (!total_valid_instances.empty())
@@ -1878,9 +1851,7 @@ namespace Legion {
         }
         // If we get here it's because we're not valid for some expression
         // for these fields so record it
-#ifdef DEBUG_LEGION
-        assert(!!invalid_mask);
-#endif
+        legion_assert(!!invalid_mask);
         // Lock the analysis when recording this update
         AutoLock a_lock(analysis);
         analysis.record_instance(vit->first, invalid_mask);
@@ -1899,9 +1870,7 @@ namespace Legion {
                analysis.antivalid_instances.begin();
            ait != analysis.antivalid_instances.end(); ait++)
       {
-#ifdef DEBUG_LEGION
-        assert(!ait->first->is_deferred_view());
-#endif
+        legion_assert(!ait->first->is_deferred_view());
         const FieldMask antivalid_mask = ait->second & user_mask;
         if (!antivalid_mask)
           continue;
@@ -2354,12 +2323,8 @@ namespace Legion {
                 input_aggregator->get_update_fields();
             // Record this as a guard for later operations
             to_add.insert(input_aggregator, update_mask);
-#ifdef DEBUG_LEGION
             if (!input_aggregator->record_guard_set(this, true /*read only*/))
               std::abort();
-#else
-            input_aggregator->record_guard_set(this, true /*read only*/);
-#endif
             // Remove the current guard since it doesn't matter anymore
             it.filter(update_mask);
           }
@@ -2399,12 +2364,8 @@ namespace Legion {
             // Record this as a guard for later operations
             read_only_guards.insert(
                 input_aggregator, input_aggregator->get_update_fields());
-#ifdef DEBUG_LEGION
             if (!input_aggregator->record_guard_set(this, true /*read only*/))
               std::abort();
-#else
-            input_aggregator->record_guard_set(this, true /*read only*/);
-#endif
           }
         }
         // Record tracing views
@@ -2467,12 +2428,8 @@ namespace Legion {
           {
             read_only_guards.insert(
                 input_aggregator, input_aggregator->get_update_fields());
-#ifdef DEBUG_LEGION
             if (!input_aggregator->record_guard_set(this, true /*read only*/))
               std::abort();
-#else
-            input_aggregator->record_guard_set(this, true /*read only*/);
-#endif
           }
         }
         if (analysis.trace_info.recording)
@@ -2505,9 +2462,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifndef LEGION_DISABLE_EQUIVALENCE_SET_MIGRATION
-#ifdef DEBUG_LEGION
-      assert(is_logical_owner());
-#endif
+      legion_assert(is_logical_owner());
       // If we've replicated the logical owner state then it is not safe to
       // migrate this equivalence set because we can't currently establish
       // when all the collective analyses that might be relying on that
@@ -2621,9 +2576,7 @@ namespace Legion {
             next_samples.begin(), summary.begin(), summary.end());
       }
       AddressSpaceID new_logical_owner = logical_owner_space;
-#ifdef DEBUG_LEGION
-      assert(!next_samples.empty());
-#endif
+      legion_assert(!next_samples.empty());
       if (next_samples.size() > 1)
       {
         int logical_owner_count = -1;
@@ -2734,9 +2687,7 @@ namespace Legion {
         const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!eq.has_lock());
-#endif
+      legion_assert(!eq.has_lock());
       // See if we've already deferred this or not
       if (!already_deferred)
       {
@@ -2762,17 +2713,13 @@ namespace Legion {
       if (analysis.is_replicated())
       {
         const CollectiveMapping* mapping = analysis.get_replicated_mapping();
-#ifdef DEBUG_LEGION
-        assert(mapping != nullptr);
-        assert(!analysis.immutable);
-#endif
+        legion_assert(mapping != nullptr);
+        legion_assert(!analysis.immutable);
         // Check to see if we have a replicated owner node
         if (!replicate_logical_owner_space(
                 local_space, mapping, false /*lock*/))
         {
-#ifdef DEBUG_LEGION
-          assert(replicated_owner_state->ready.exists());
-#endif
+          legion_assert(replicated_owner_state->ready.exists());
           analysis.defer_analysis(
               replicated_owner_state->ready, this, mask, deferral_events,
               applied_events);
@@ -2791,11 +2738,9 @@ namespace Legion {
           // that already got migrated to the logical owner
           if (is_logical_owner())
           {
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 analysis.original_source == mapping->find_nearest(local_space));
-            assert(analysis.is_collective_first_local());
-#endif
+            legion_assert(analysis.is_collective_first_local());
             return false;
           }
           // There aren't any analyses that will be local to the
@@ -2848,9 +2793,7 @@ namespace Legion {
       }
       if (mapping == nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(source != local_space);
-#endif
+        legion_assert(source != local_space);
         // We're just chasing the logical owner at this point
         if (is_logical_owner())
         {
@@ -2885,9 +2828,7 @@ namespace Legion {
         replicated_owner_state = new ReplicatedOwnerState(is_logical_owner());
         if (!is_logical_owner())
         {
-#ifdef DEBUG_LEGION
-          assert(mapping->contains(local_space));
-#endif
+          legion_assert(mapping->contains(local_space));
           const AddressSpaceID origin = mapping->get_origin();
           if (local_space != origin)
           {
@@ -2949,11 +2890,9 @@ namespace Legion {
       RtUserEvent to_trigger;
       {
         AutoLock eq(eq_lock);
-#ifdef DEBUG_LEGION
-        assert(replicated_owner_state != nullptr);
-        assert(!replicated_owner_state->is_valid());
-        assert(!is_logical_owner());
-#endif
+        legion_assert(replicated_owner_state != nullptr);
+        legion_assert(!replicated_owner_state->is_valid());
+        legion_assert(!is_logical_owner());
         logical_owner_space = owner;
         // Send out messages to all the other nodes that requested them
         for (std::vector<AddressSpaceID>::iterator it =
@@ -3070,9 +3009,7 @@ namespace Legion {
           IndexSpaceExpression* union_expr =
               runtime->union_index_spaces(it->first, expr);
           const size_t union_size = union_expr->get_volume();
-#ifdef DEBUG_LEGION
-          assert(union_size <= set_expr->get_volume());
-#endif
+          legion_assert(union_size <= set_expr->get_volume());
           if (union_size == it->first->get_volume())
           {
             // Existing expression already covers expr
@@ -3448,9 +3385,7 @@ namespace Legion {
         FieldMask record_mask, const FieldMapView<T>& target_insts)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!(record_mask - restricted_fields));
-#endif
+      legion_assert(!(record_mask - restricted_fields));
       // Check to see if there are any restrictions which cover the whole
       // set and therefore we know that there are no partial coverings
       ExprViewMaskSets::const_iterator finder =
@@ -3528,13 +3463,11 @@ namespace Legion {
               need_partial_rebuild = true;
           }
         }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         record_mask -= rit->set_mask;
 #endif
       }
-#ifdef DEBUG_LEGION
-      assert(!record_mask);
-#endif
+      legion_assert(!record_mask);
       if (need_partial_rebuild)
       {
         partial_valid_fields.clear();
@@ -3583,9 +3516,7 @@ namespace Legion {
             IndexSpaceExpression* union_expr =
                 runtime->union_index_spaces(it->first, expr);
             const size_t union_size = union_expr->get_volume();
-#ifdef DEBUG_LEGION
-            assert(union_size <= set_expr->get_volume());
-#endif
+            legion_assert(union_size <= set_expr->get_volume());
             if (union_size == set_expr->get_volume())
             {
               // Hurray, we now cover the full expr so we can get
@@ -3679,9 +3610,7 @@ namespace Legion {
         std::map<LogicalView*, unsigned>* view_refs_to_remove)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!filter_mask);
-#endif
+      legion_assert(!!filter_mask);
       // Clear out any collective instances
       if (!(filter_mask * collective_instances.get_valid_mask()))
       {
@@ -3912,9 +3841,7 @@ namespace Legion {
                 continue;
               shrt::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                   pit->second.find(*it);
-#ifdef DEBUG_LEGION
-              assert(finder != pit->second.end());
-#endif
+              legion_assert(finder != pit->second.end());
               if (!!finder->second)
                 continue;
               pit->second.erase(finder);
@@ -3979,9 +3906,7 @@ namespace Legion {
             if (diff_expr == nullptr)
             {
               diff_expr = runtime->subtract_index_spaces(set_expr, expr);
-#ifdef DEBUG_LEGION
-              assert(!diff_expr->is_empty());
-#endif
+              legion_assert(!diff_expr->is_empty());
             }
             if (record_partial_valid_instance(
                     it->first, diff_expr, overlap, false /*check total valid*/))
@@ -4073,9 +3998,7 @@ namespace Legion {
         }
         restricted_sets.insert(expr_overlap, overlap);
       }
-#ifdef DEBUG_LEGION
-      assert(!!filter_mask);
-#endif
+      legion_assert(!!filter_mask);
       // compute the field sets and take the field differences
       local::list<FieldSet<IndexSpaceExpression*> > field_sets;
       restricted_sets.compute_field_sets(filter_mask, field_sets);
@@ -4159,9 +4082,7 @@ namespace Legion {
                 if (full_diff == nullptr)
                 {
                   full_diff = runtime->subtract_index_spaces(set_expr, expr);
-#ifdef DEBUG_LEGION
-                  assert(!full_diff->is_empty());
-#endif
+                  legion_assert(!full_diff->is_empty());
                 }
                 full_diff->add_nested_expression_reference(did);
                 if (expr_refs_to_remove != nullptr)
@@ -4278,9 +4199,7 @@ namespace Legion {
         // reductions that have been applied
         if (!applied_reductions.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(!is_write);
-#endif
+          legion_assert(!is_write);
           // See if covered the full expressions for invalidation
           local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
               applied_reductions.find(expr);
@@ -4315,9 +4234,7 @@ namespace Legion {
                   runtime->union_index_spaces(it->elements);
               const size_t union_size = union_expr->get_volume();
               const size_t set_size = set_expr->get_volume();
-#ifdef DEBUG_LEGION
-              assert(union_size <= set_size);
-#endif
+              legion_assert(union_size <= set_size);
               const bool union_covers = (union_size == set_size);
               if (!!restricted_mask)
               {
@@ -4345,10 +4262,8 @@ namespace Legion {
       {
         if (record_release)
         {
-#ifdef DEBUG_LEGION
-          assert(record_valid);
-          assert(restricted_mask == user_mask);
-#endif
+          legion_assert(record_valid);
+          legion_assert(restricted_mask == user_mask);
           // Releases are a bit strange, we actually want to invalidate
           // all the current valid instances since we're making them all
           // restricted so there are no partial unrestricted cases
@@ -4792,9 +4707,7 @@ namespace Legion {
               continue;
             local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                 remainders.find(it->first.first);
-#ifdef DEBUG_LEGION
-            assert(finder != remainders.end());
-#endif
+            legion_assert(finder != remainders.end());
             finder.filter(it->second);
             if (!finder->second)
               remainders.erase(finder);
@@ -4831,9 +4744,7 @@ namespace Legion {
           if (need_tighten)
             remainders.tighten_valid_mask();
         }
-#ifdef DEBUG_LEGION
-        assert(!remainders.empty());
-#endif
+        legion_assert(!remainders.empty());
         // It's too hard to track all the pairs of partial sets for
         // both the source and destination instances at the same
         // time, so we recurse on this method for any expressions that
@@ -5007,13 +4918,11 @@ namespace Legion {
           InstanceView* red_view = rit->first;
           const ReductionOpID view_redop = red_view->get_redop();
           FillView* fill_view = red_view->get_redop_fill_view();
-#ifdef DEBUG_LEGION
-          assert(view_redop > 0);
-          assert(view_redop == analysis.usage.redop);
-          assert(
+          legion_assert(view_redop > 0);
+          legion_assert(view_redop == analysis.usage.redop);
+          legion_assert(
               partial_valid_instances.find(red_view) ==
               partial_valid_instances.end());
-#endif
           if (red_view->is_collective_view())
           {
             // Collective reduction view path
@@ -5196,9 +5105,7 @@ namespace Legion {
                       // Need to keep iterating to check for the ABA problem
                       fill_expr =
                           runtime->subtract_index_spaces(fill_expr, overlap);
-#ifdef DEBUG_LEGION
-                      assert(fill_expr != expr);
-#endif
+                      legion_assert(fill_expr != expr);
                     }
                   }
                   else if (it->first->get_redop() != view_redop)
@@ -5261,9 +5168,7 @@ namespace Legion {
                 expr->add_nested_expression_reference(did);
                 field_views.emplace_back(std::make_pair(red_view, expr));
               }
-#ifdef DEBUG_LEGION
-              assert(!field_views.empty());
-#endif
+              legion_assert(!field_views.empty());
               fidx = reduction_mask.find_next_set(fidx + 1);
             }
             if (!fill_exprs.empty())
@@ -5289,12 +5194,8 @@ namespace Legion {
               // Record this as a guard for later operations
               reduction_fill_guards.insert(
                   fill_aggregator, fill_exprs.get_valid_mask());
-#ifdef DEBUG_LEGION
               if (!fill_aggregator->record_guard_set(this, false /*read only*/))
                 std::abort();
-#else
-              fill_aggregator->record_guard_set(this, false /*read only*/);
-#endif
             }
           }
         }
@@ -5357,10 +5258,8 @@ namespace Legion {
         CopyAcrossHelper* across_helper /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!set_expr->is_empty());
-      assert(target_instances.size() == target_views.size());
-#endif
+      legion_assert(!set_expr->is_empty());
+      legion_assert(target_instances.size() == target_views.size());
       for (unsigned idx = 0; idx < target_views.size(); idx++)
       {
         for (op::FieldMaskMap<InstanceView>::const_iterator it =
@@ -5388,10 +5287,8 @@ namespace Legion {
         local::FieldMaskMap<IndexSpaceExpression>* applied_exprs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!reduction_targets.get_valid_mask());
-      assert(!set_expr->is_empty());
-#endif
+      legion_assert(!!reduction_targets.get_valid_mask());
+      legion_assert(!set_expr->is_empty());
       for (FieldMapView<InstanceView>::const_iterator it =
                reduction_targets.begin();
            it != reduction_targets.end(); it++)
@@ -5426,10 +5323,8 @@ namespace Legion {
             unsigned,
             std::list<std::pair<InstanceView*, IndexSpaceExpression*> > >::
             iterator finder = reduction_instances.find(fidx);
-#ifdef DEBUG_LEGION
-        assert(finder != reduction_instances.end());
-        assert(!finder->second.empty());
-#endif
+        legion_assert(finder != reduction_instances.end());
+        legion_assert(!finder->second.empty());
         if (expr_covers)
         {
           // If the target is a reduction instance, check to see
@@ -5650,9 +5545,7 @@ namespace Legion {
         CopyFillAggregator*& aggregator)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_insts.size() == src_views.size());
-#endif
+      legion_assert(src_insts.size() == src_views.size());
       for (unsigned idx = 0; idx < src_views.size(); idx++)
       {
         const op::FieldMaskMap<InstanceView>& sources = src_views[idx];
@@ -6119,9 +6012,7 @@ namespace Legion {
                    it->second.begin();
                vit != it->second.end(); vit++, index++)
           {
-#ifdef DEBUG_LEGION
-            assert(vit->first->is_individual_view());
-#endif
+            legion_assert(vit->first->is_individual_view());
             IndividualView* view = vit->first->as_individual_view();
             targets[index] = view->get_manager();
             views[index].insert(vit->first, vit->second);
@@ -6315,9 +6206,7 @@ namespace Legion {
             delete (*it);
         }
       }
-#ifdef DEBUG_LEGION
-      assert(!restricted_instances.empty());
-#endif
+      legion_assert(!restricted_instances.empty());
       // Always update the restricted fields
       restricted_fields |= restrict_mask;
     }
@@ -7176,13 +7065,12 @@ namespace Legion {
       {
         // The general case where fields don't align regardless of
         // whether we are doing a reduction across or not
-#ifdef DEBUG_LEGION
-        assert(!analysis.src_indexes.empty());
-        assert(!analysis.dst_indexes.empty());
-        assert(analysis.src_indexes.size() == analysis.dst_indexes.size());
-        assert(
+        legion_assert(!analysis.src_indexes.empty());
+        legion_assert(!analysis.dst_indexes.empty());
+        legion_assert(
+            analysis.src_indexes.size() == analysis.dst_indexes.size());
+        legion_assert(
             analysis.across_helpers.size() == analysis.target_instances.size());
-#endif
         // First construct a map from dst indexes to src indexes
         std::map<unsigned, unsigned> dst_to_src;
         for (unsigned idx = 0; idx < analysis.src_indexes.size(); idx++)
@@ -7204,9 +7092,7 @@ namespace Legion {
           {
             std::map<unsigned, unsigned>::const_iterator finder =
                 dst_to_src.find(fidx);
-#ifdef DEBUG_LEGION
-            assert(finder != dst_to_src.end());
-#endif
+            legion_assert(finder != dst_to_src.end());
             source_mask.set_bit(finder->second);
             fidx = dst_mask.find_next_set(fidx + 1);
           }
@@ -7225,9 +7111,7 @@ namespace Legion {
             converted_target_views[idx].insert(it->first, converted);
           }
         }
-#ifdef DEBUG_LEGION
-        assert(!target_across.empty());
-#endif
+        legion_assert(!target_across.empty());
         for (local::FieldMaskMap<CopyAcrossHelper>::const_iterator it =
                  target_across.begin();
              it != target_across.end(); it++)
@@ -7309,19 +7193,15 @@ namespace Legion {
         // all the total and partially valid instances in the equivalence
         // set that overlap without needing to change the state of the
         // equivalence set.
-#ifdef DEBUG_LEGION
         // There should be no restrictions added for predicated fills
-        assert(!analysis.add_restriction);
-        assert(!analysis.views.empty());
-        assert(analysis.reduction_views.empty());
-#endif
+        legion_assert(!analysis.add_restriction);
+        legion_assert(!analysis.views.empty());
+        legion_assert(analysis.reduction_views.empty());
         for (op::FieldMaskMap<LogicalView>::const_iterator it =
                  analysis.views.begin();
              it != analysis.views.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->first->is_fill_view());
-#endif
+          legion_assert(it->first->is_fill_view());
           const FieldMask overlap = it->second & overwrite_mask;
           if (!overlap)
             continue;
@@ -7392,16 +7272,12 @@ namespace Legion {
         }
         if (analysis.add_restriction)
         {
-#ifdef DEBUG_LEGION
-          assert(analysis.views.size() == 1);
+          legion_assert(analysis.views.size() == 1);
           op::FieldMaskMap<LogicalView>::const_iterator it =
               analysis.views.begin();
           LogicalView* log_view = it->first;
-          assert(log_view->is_instance_view());
-          assert(!(overwrite_mask - it->second));
-#else
-          LogicalView* log_view = analysis.views.begin()->first;
-#endif
+          legion_assert(log_view->is_instance_view());
+          legion_assert(!(overwrite_mask - it->second));
           InstanceView* inst_view = log_view->as_instance_view();
           record_restriction(expr, expr_covers, overwrite_mask, inst_view);
         }
@@ -7410,9 +7286,7 @@ namespace Legion {
       update_initialized_data(expr, expr_covers, overwrite_mask);
       if (analysis.trace_info.recording)
       {
-#ifdef DEBUG_LEGION
-        assert(analysis.reduction_views.empty());
-#endif
+        legion_assert(analysis.reduction_views.empty());
         for (op::FieldMaskMap<LogicalView>::const_iterator it =
                  analysis.views.begin();
              it != analysis.views.end(); it++)
@@ -7771,9 +7645,7 @@ namespace Legion {
       }
       if (analysis.remove_restriction)
       {
-#ifdef DEBUG_LEGION
-        assert(!analysis.filter_views.empty());
-#endif
+        legion_assert(!analysis.filter_views.empty());
         // Note there is no need to check for aliasing of instance views
         // here (e.g. between collective and non-collective) since we
         // should always be releasing the same views that we acquired
@@ -7809,9 +7681,7 @@ namespace Legion {
                 // Did not cover all of it so we have to compute the diff
                 IndexSpaceExpression* diff_expr =
                     runtime->subtract_index_spaces(rit->first, expr);
-#ifdef DEBUG_LEGION
-                assert(diff_expr != nullptr);
-#endif
+                legion_assert(diff_expr != nullptr);
                 to_add.insert(diff_expr, overlap);
               }
             }
@@ -7851,9 +7721,7 @@ namespace Legion {
                it != to_delete.end(); it++)
           {
             ExprViewMaskSets::iterator finder = restricted_instances.find(*it);
-#ifdef DEBUG_LEGION
-            assert(finder != restricted_instances.end());
-#endif
+            legion_assert(finder != restricted_instances.end());
             // Check to see if it is still empty since we added things back
             if (!finder->second.empty())
               continue;
@@ -7915,9 +7783,7 @@ namespace Legion {
                     continue;
                   local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                       to_filter.find(it->first.first);
-#ifdef DEBUG_LEGION
-                  assert(finder != to_filter.end());
-#endif
+                  legion_assert(finder != to_filter.end());
                   finder.filter(it->second);
                   if (!finder->second)
                     to_filter.erase(finder);
@@ -7982,9 +7848,7 @@ namespace Legion {
               {
                 IndexSpaceExpression* diff_expr =
                     runtime->subtract_index_spaces(it->first, expr_overlap);
-#ifdef DEBUG_LEGION
-                assert(!diff_expr->is_empty());
-#endif
+                legion_assert(!diff_expr->is_empty());
                 to_add.insert(diff_expr, overlap);
               }
             }
@@ -8011,9 +7875,7 @@ namespace Legion {
             {
               shrt::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                   part_finder->second.find(*it);
-#ifdef DEBUG_LEGION
-              assert(finder != part_finder->second.end());
-#endif
+              legion_assert(finder != part_finder->second.end());
               if (!!finder->second)
                 continue;
               part_finder->second.erase(*it);
@@ -8052,9 +7914,7 @@ namespace Legion {
             // Compute the difference and store it in the partial valid fields
             IndexSpaceExpression* diff_expr =
                 runtime->subtract_index_spaces(set_expr, expr);
-#ifdef DEBUG_LEGION
-            assert(!diff_expr->is_empty());
-#endif
+            legion_assert(!diff_expr->is_empty());
             if (record_partial_valid_instance(
                     to_filter, diff_expr, total_overlap,
                     false /*check total valid*/))
@@ -8085,9 +7945,7 @@ namespace Legion {
         const FieldMask& view_mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!view->is_reduction_kind());
-#endif
+      legion_assert(!view->is_reduction_kind());
       // Check to see if this instance has already been made by the trace
       local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           not_dominated;
@@ -8139,9 +7997,7 @@ namespace Legion {
         const FieldMask& view_mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(view->is_reduction_kind());
-#endif
+      legion_assert(view->is_reduction_kind());
       // Check to see if we initialized the view in this trace
       local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           not_dominated;
@@ -8176,9 +8032,7 @@ namespace Legion {
     {
       if (dst_view->is_reduction_kind())
       {
-#ifdef DEBUG_LEGION
-        assert(!across);
-#endif
+        legion_assert(!across);
         // Initializing a reduction view
         // Here, we have to do the converse of the anticondition
         // check in update_tracing_valid_views. In particular, if the
@@ -8211,9 +8065,7 @@ namespace Legion {
         IndexSpaceExpression* expr, const FieldMask& view_mask, bool across)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!dst_view->is_reduction_kind());
-#endif
+      legion_assert(!dst_view->is_reduction_kind());
       // record src view in the preconditions if not dominated by post
       local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           not_dominated;
@@ -8244,9 +8096,7 @@ namespace Legion {
         IndexSpaceExpression* expr, const FieldMask& view_mask, bool across)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_view->is_reduction_kind());
-#endif
+      legion_assert(src_view->is_reduction_kind());
       // Check to see if we made the reduction instance in the trace
       local::map<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >
           not_dominated;
@@ -8318,9 +8168,7 @@ namespace Legion {
         IndexSpaceExpression* expr, FieldMask& restricted_mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(tracing_postconditions != nullptr);
-#endif
+      legion_assert(tracing_postconditions != nullptr);
       for (FieldMapView<InstanceView>::const_iterator it =
                restricted_views.begin();
            it != restricted_views.end(); it++)
@@ -8382,9 +8230,7 @@ namespace Legion {
           }
           else
           {
-#ifdef DEBUG_LEGION
-            assert(!it->elements.empty());
-#endif
+            legion_assert(!it->elements.empty());
             unique_dirty_exprs.insert(*it->elements.begin(), it->set_mask);
           }
         }
@@ -8393,9 +8239,7 @@ namespace Legion {
       // the analysis here to create the trace condition sets
       if (target_space != local_space)
       {
-#ifdef DEBUG_LEGION
-        assert(ready_event.exists());
-#endif
+        legion_assert(ready_event.exists());
         Serializer rez;
         {
           RezCheck z(rez);
@@ -8469,16 +8313,12 @@ namespace Legion {
     AddressSpaceID EquivalenceSet::select_collective_trace_capture_space(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(collective_mapping != nullptr);
       AutoLock eq(eq_lock);
       if (!replicate_logical_owner_space(
               local_space, collective_mapping, false))
       {
-#ifdef DEBUG_LEGION
-        assert(replicated_owner_state->ready.exists());
-#endif
+        legion_assert(replicated_owner_state->ready.exists());
         const RtEvent wait_on = replicated_owner_state->ready;
         eq.release();
         wait_on.wait();
@@ -8591,11 +8431,9 @@ namespace Legion {
     void EquivalenceSet::send_equivalence_set(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
+      legion_assert(is_owner());
       // We should have had a request for this already
-      assert(!has_remote_instance(target));
-#endif
+      legion_assert(!has_remote_instance(target));
       // If the target is in the collective mapping then we don't need to
       // bother sending the result since that just means that something
       // requested the equivalence set on a remote node before the equivalence
@@ -8656,12 +8494,7 @@ namespace Legion {
       AddressSpaceID source;
       derez.deserialize(source);
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      EquivalenceSet* set = dynamic_cast<EquivalenceSet*>(dc);
-      assert(set != nullptr);
-#else
-      EquivalenceSet* set = static_cast<EquivalenceSet*>(dc);
-#endif
+      EquivalenceSet* set = legion_safe_cast<EquivalenceSet*>(dc);
       set->send_equivalence_set(source);
     }
 
@@ -8696,10 +8529,8 @@ namespace Legion {
         std::vector<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this != src);
-      assert(src->tree_id == tree_id);
-#endif
+      legion_assert(this != src);
+      legion_assert(src->tree_id == tree_id);
       AutoLock eq(eq_lock);
       if (is_logical_owner())
       {
@@ -8725,10 +8556,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock eq(eq_lock);
-#ifdef DEBUG_LEGION
       // We should never be told that we're the new owner this way
-      assert(new_logical_owner != local_space);
-#endif
+      legion_assert(new_logical_owner != local_space);
       // If we are the owner then we know this update is stale so ignore it
       if (!is_logical_owner())
         logical_owner_space = new_logical_owner;
@@ -8752,9 +8581,7 @@ namespace Legion {
         logical_owner_space = local_space;
         if (replicated_owner_state != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(!replicated_owner_state->is_valid());
-#endif
+          legion_assert(!replicated_owner_state->is_valid());
           // Send notifications to the children now that we know the owner
           for (std::vector<AddressSpaceID>::const_iterator it =
                    replicated_owner_state->children.begin();
@@ -9408,9 +9235,7 @@ namespace Legion {
         const FieldMask& mask, bool record_invalidations)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_logical_owner());
-#endif
+      legion_assert(is_logical_owner());
       filter_valid_instances(expr, expr_covers, mask);
       filter_reduction_instances(expr, expr_covers, mask);
       filter_initialized_data(expr, expr_covers, mask);
@@ -9489,10 +9314,8 @@ namespace Legion {
       {
         if (!(mask * partial_invalidations.get_valid_mask()))
         {
-#ifdef DEBUG_LEGION
           // Should never invalidate things twice
-          assert(!expr_covers);
-#endif
+          legion_assert(!expr_covers);
           FieldMask remaining = mask;
           local::FieldMaskMap<IndexSpaceExpression> to_add;
           std::vector<IndexSpaceExpression*> to_delete;
@@ -9506,11 +9329,9 @@ namespace Legion {
             IndexSpaceExpression* union_expr =
                 runtime->union_index_spaces(it->first, expr);
             const size_t union_volume = union_expr->get_volume();
-#ifdef DEBUG_LEGION
             // There shouldn't have been any overlap here
-            assert(
+            legion_assert(
                 union_volume == (it->first->get_volume() + expr->get_volume()));
-#endif
             if (union_volume == set_expr->get_volume())
               to_add.insert(set_expr, overlap);
             else
@@ -9550,9 +9371,7 @@ namespace Legion {
         const bool need_dst_lock)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dst->tree_id == tree_id);
-#endif
+      legion_assert(dst->tree_id == tree_id);
       shrt::map<IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >
           valid_updates;
       shrt::FieldMaskMap<IndexSpaceExpression> initialized_updates,
@@ -9596,9 +9415,7 @@ namespace Legion {
         if (!set_expr->is_empty())
         {
           const size_t overlap_volume = overlap->get_volume();
-#ifdef DEBUG_LEGION
-          assert(overlap_volume > 0);
-#endif
+          legion_assert(overlap_volume > 0);
           overlap_covers = (overlap_volume == set_expr->get_volume());
           find_overlap_updates(
               overlap_covers ? set_expr : overlap, overlap_covers, mask,
@@ -9766,9 +9583,7 @@ namespace Legion {
         const bool record_invalidate)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!overlap->is_empty());
-#endif
+      legion_assert(!overlap->is_empty());
       const size_t overlap_volume = overlap->get_volume();
       const size_t set_volume = set_expr->get_volume();
       const bool overlap_covers = (overlap_volume == set_volume);
@@ -9982,12 +9797,10 @@ namespace Legion {
       }
       if (find_invalidates && !partial_invalidations.empty())
       {
-#ifdef DEBUG_LEGION
         // The only time we should be packing partial invalidations
         // should be if we're moving the entire equivalence set
-        assert(overlap_covers);
-        assert(!(partial_invalidations.get_valid_mask() - mask));
-#endif
+        legion_assert(overlap_covers);
+        legion_assert(!(partial_invalidations.get_valid_mask() - mask));
         for (lng::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  partial_invalidations.begin();
              it != partial_invalidations.end(); it++)
@@ -10341,12 +10154,10 @@ namespace Legion {
       }
       if (!invalidated_updates.empty())
       {
-#ifdef DEBUG_LEGION
         // The only reaon we are moving partial invalidations is if we're
         // moving the entire equivalence sets so this should be empty and
         // we should just be able to swap it in
-        assert(partial_invalidations.empty());
-#endif
+        legion_assert(partial_invalidations.empty());
         for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
                  invalidated_updates.begin();
              it != invalidated_updates.end(); it++)
@@ -10401,11 +10212,9 @@ namespace Legion {
       }
       if (precondition_updates != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(precondition_updates->owner_did == did);
-        assert(precondition_updates->expression == set_expr);
-        assert(precondition_updates->tree_id == tree_id);
-#endif
+        legion_assert(precondition_updates->owner_did == did);
+        legion_assert(precondition_updates->expression == set_expr);
+        legion_assert(precondition_updates->tree_id == tree_id);
         if (tracing_preconditions == nullptr)
         {
           tracing_preconditions = precondition_updates;
@@ -10422,11 +10231,9 @@ namespace Legion {
       }
       if (anticondition_updates != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(anticondition_updates->owner_did == did);
-        assert(anticondition_updates->expression == set_expr);
-        assert(anticondition_updates->tree_id == tree_id);
-#endif
+        legion_assert(anticondition_updates->owner_did == did);
+        legion_assert(anticondition_updates->expression == set_expr);
+        legion_assert(anticondition_updates->tree_id == tree_id);
         if (tracing_anticonditions == nullptr)
         {
           tracing_anticonditions = anticondition_updates;
@@ -10443,11 +10250,9 @@ namespace Legion {
       }
       if (postcondition_updates != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(postcondition_updates->owner_did == did);
-        assert(postcondition_updates->expression == set_expr);
-        assert(postcondition_updates->tree_id == tree_id);
-#endif
+        legion_assert(postcondition_updates->owner_did == did);
+        legion_assert(postcondition_updates->expression == set_expr);
+        legion_assert(postcondition_updates->tree_id == tree_id);
         if (tracing_postconditions == nullptr)
         {
           tracing_postconditions = postcondition_updates;
@@ -10651,9 +10456,7 @@ namespace Legion {
       }
       RtUserEvent done_event;
       derez.deserialize(done_event);
-#ifdef DEBUG_LEGION
-      assert(done_event.exists());
-#endif
+      legion_assert(done_event.exists());
       // Wait for the views to be ready before recording them
       if (!ready_events.empty())
       {
@@ -10697,19 +10500,17 @@ namespace Legion {
     EqSetTracker::~EqSetTracker(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(equivalence_sets.empty());
-      assert(pending_equivalence_sets == nullptr);
-      assert(created_equivalence_sets == nullptr);
-      assert(equivalence_sets_ready == nullptr);
-      assert(waiting_infos == nullptr);
-      assert(current_subscriptions.empty());
-      assert(!pending_invalidations);
-      assert(creation_requests == nullptr);
-      assert(creation_rectangles == nullptr);
-      assert(creation_sources == nullptr);
-      assert(remaining_responses == nullptr);
-#endif
+      legion_assert(equivalence_sets.empty());
+      legion_assert(pending_equivalence_sets == nullptr);
+      legion_assert(created_equivalence_sets == nullptr);
+      legion_assert(equivalence_sets_ready == nullptr);
+      legion_assert(waiting_infos == nullptr);
+      legion_assert(current_subscriptions.empty());
+      legion_assert(!pending_invalidations);
+      legion_assert(creation_requests == nullptr);
+      legion_assert(creation_rectangles == nullptr);
+      legion_assert(creation_sources == nullptr);
+      legion_assert(remaining_responses == nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -10727,18 +10528,16 @@ namespace Legion {
         const AddressSpaceID creation_target_space)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!targets.empty());
-      assert(total_responses > 0);
-      assert(target_mapping.size() == targets.size());
-      assert(target_mapping.contains(creation_target_space));
-      assert(target_mapping.contains(runtime->address_space));
-      assert(
+      legion_assert(!targets.empty());
+      legion_assert(total_responses > 0);
+      legion_assert(target_mapping.size() == targets.size());
+      legion_assert(target_mapping.contains(creation_target_space));
+      legion_assert(target_mapping.contains(runtime->address_space));
+      legion_assert(
           this == targets[target_mapping.find_index(runtime->address_space)]);
-      assert(
+      legion_assert(
           (creation_target_space == runtime->address_space) ||
           (target_mapping.size() > 1));
-#endif
       // If there are multiple targets then we only want to perform any
       // creations on the first target and then we'll broadcast the results
       // out to any other targets when we create the equivalence sets
@@ -10759,9 +10558,7 @@ namespace Legion {
                  creation_rects.begin();
              it != creation_rects.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(to_create.find(it->first) != to_create.end());
-#endif
+          legion_assert(to_create.find(it->first) != to_create.end());
           op::map<Domain, FieldMask>::iterator finder =
               create_now_rectangles.find(it->second);
           if (finder != create_now_rectangles.end())
@@ -10774,7 +10571,7 @@ namespace Legion {
       }
       {
         AutoLock t_lock(tracker_lock);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         // A little sanity check, we should never be receiving racy
         // creations for fields that were also being invalidated because
         // mapping dependences should guarantee non-overlapping of these
@@ -10786,10 +10583,10 @@ namespace Legion {
             for (op::map<Domain, FieldMask>::const_iterator it =
                      create_now_rectangles.begin();
                  it != create_now_rectangles.end(); it++)
-              assert(pending_invalidations * it->second);
+              legion_assert(pending_invalidations * it->second);
           }
           else
-            assert(pending_invalidations * to_create.get_valid_mask());
+            legion_assert(pending_invalidations * to_create.get_valid_mask());
         }
 #endif
         // Record pending equivalence sets
@@ -10883,9 +10680,7 @@ namespace Legion {
         AddressSpaceID source, local::FieldMaskMap<EqKDTree>& new_subscriptions)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!new_subscriptions.empty());
-#endif
+      legion_assert(!new_subscriptions.empty());
       AutoLock t_lock(tracker_lock);
       lng::FieldMaskMap<EqKDTree>& subscriptions =
           current_subscriptions[source];
@@ -10893,11 +10688,9 @@ namespace Legion {
                new_subscriptions.begin();
            it != new_subscriptions.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (subscriptions.find(it->first) == subscriptions.end()) ||
             (subscriptions.find(it->first)->second * it->second));
-#endif
         subscriptions.insert(it->first, it->second);
       }
     }
@@ -10907,20 +10700,16 @@ namespace Legion {
         AddressSpaceID source, const FieldMapView<EqKDTree>& new_subscriptions)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!new_subscriptions.empty());
-#endif
+      legion_assert(!new_subscriptions.empty());
       lng::FieldMaskMap<EqKDTree>& subscriptions =
           current_subscriptions[source];
       for (FieldMapView<EqKDTree>::const_iterator it =
                new_subscriptions.begin();
            it != new_subscriptions.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (subscriptions.find(it->first) == subscriptions.end()) ||
             (subscriptions.find(it->first)->second * it->second));
-#endif
         subscriptions.insert(it->first, it->second);
       }
     }
@@ -10938,9 +10727,7 @@ namespace Legion {
                creation_rects.begin();
            it != creation_rects.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(to_create.find(it->first) != to_create.end());
-#endif
+        legion_assert(to_create.find(it->first) != to_create.end());
         if (creation_rectangles != nullptr)
         {
           op::map<Domain, FieldMask>::iterator finder =
@@ -11006,13 +10793,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Lock held by caller
-#ifdef DEBUG_LEGION
-      assert(equivalence_sets_ready != nullptr);
-#endif
+      legion_assert(equivalence_sets_ready != nullptr);
       const size_t outstanding_requests = equivalence_sets_ready->size();
-#ifdef DEBUG_LEGION
-      assert(outstanding_requests > 0);
-#endif
+      legion_assert(outstanding_requests > 0);
       if (outstanding_requests > 1)
       {
         // Pull out the entries just for our fields
@@ -11187,9 +10970,7 @@ namespace Legion {
     void EqSetTracker::SourceState::set_expression(IndexSpaceExpression* expr)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(source_expr == nullptr);
-#endif
+      legion_assert(source_expr == nullptr);
       source_expr = expr;
       source_expr->add_base_expression_reference(DISJOINT_COMPLETE_REF);
     }
@@ -11272,7 +11053,7 @@ namespace Legion {
       // In debug mode, we populate the universe mask to make sure it aligns
       // with all the kd-nodes that we're supposed to target
       FieldMask universe_mask;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       for (op::map<AddressSpaceID, op::FieldMaskMap<EqKDTree> >::const_iterator
                it = create_now.begin();
            it != create_now.end(); it++)
@@ -11287,9 +11068,7 @@ namespace Legion {
                rectangle_sets.begin();
            rit != rectangle_sets.end(); rit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!rit->elements.empty());
-#endif
+        legion_assert(!rit->elements.empty());
         // Check for the case where we have an existing equivalence set
         // that already has all the data that we need in which case there
         // is no point in making a new one and copying the data if we can
@@ -11380,9 +11159,7 @@ namespace Legion {
           const AddressSpaceID local_space = runtime->address_space;
           std::vector<AddressSpaceID> children;
           mapping->get_children(local_space, local_space, children);
-#ifdef DEBUG_LEGION
-          assert(!children.empty());
-#endif
+          legion_assert(!children.empty());
           if (set_created)
           {
             // See if this is an index space node for easy packing
@@ -11511,9 +11288,7 @@ namespace Legion {
         if ((mapping != nullptr) && mapping->remove_reference())
           delete mapping;
       }
-#ifdef DEBUG_LEGION
-      assert(!created_sets.empty());
-#endif
+      legion_assert(!created_sets.empty());
       // Retake the lock and record these pending equivalence sets
       AutoLock t_lock(tracker_lock);
       if (created_equivalence_sets == nullptr)
@@ -11564,9 +11339,7 @@ namespace Legion {
           continue;
         std::map<EquivalenceSet*, local::list<SourceState> >::iterator
             source_finder = set_sources.find(eit->first);
-#ifdef DEBUG_LEGION
-        assert(source_finder != set_sources.end());
-#endif
+        legion_assert(source_finder != set_sources.end());
         for (local::list<SourceState>::iterator sit =
                  source_finder->second.begin();
              sit != source_finder->second.end();
@@ -11580,17 +11353,14 @@ namespace Legion {
           }
           if (sit->source_volume == 0)
           {
-#ifdef DEBUG_LEGION
-            assert(!sit->elements.empty());
-#endif
+            legion_assert(!sit->elements.empty());
             for (std::set<Domain>::const_iterator it = sit->elements.begin();
                  it != sit->elements.end(); it++)
               sit->source_volume += it->get_volume();
           }
-#ifdef DEBUG_LEGION
-          assert(sit->source_volume <= destination_volume);
-          assert(sit->source_volume <= eit->first->set_expr->get_volume());
-#endif
+          legion_assert(sit->source_volume <= destination_volume);
+          legion_assert(
+              sit->source_volume <= eit->first->set_expr->get_volume());
           if ((sit->source_volume == destination_volume) &&
               (sit->source_volume == eit->first->set_expr->get_volume()))
           {
@@ -11649,9 +11419,7 @@ namespace Legion {
                              nit->second.begin();
                          it != nit->second.end(); it++)
                     {
-#ifdef DEBUG_LEGION
-                      assert(!(it->second - overlap));
-#endif
+                      legion_assert(!(it->second - overlap));
                       rez.serialize(it->first);
                       rez.serialize(it->second);
                     }
@@ -11931,14 +11699,10 @@ namespace Legion {
       const ReferenceSource ref_kind = get_reference_source_kind();
       {
         AutoLock t_lock(tracker_lock);
-#ifdef DEBUG_LEGION
-        assert(equivalence_sets_ready != nullptr);
-#endif
+        legion_assert(equivalence_sets_ready != nullptr);
         shrt::map<RtUserEvent, FieldMask>::iterator finder =
             equivalence_sets_ready->find(done_event);
-#ifdef DEBUG_LEGION
-        assert(finder != equivalence_sets_ready->end());
-#endif
+        legion_assert(finder != equivalence_sets_ready->end());
         // Check for the pending invalidations case. This occurs due to
         // false aliasing in the Equivalence Set KD tree, were we might
         // have found some equivalence sets for a subset of points for
@@ -11989,9 +11753,7 @@ namespace Legion {
                      it != to_delete.end(); it++)
                   pending_equivalence_sets->erase(*it);
               }
-#ifdef DEBUG_LEGION
-              assert(!pending_equivalence_sets->empty());
-#endif
+              legion_assert(!pending_equivalence_sets->empty());
               pending_equivalence_sets->tighten_valid_mask();
             }
           }
@@ -12032,9 +11794,7 @@ namespace Legion {
                     delete (*it);
                 }
               }
-#ifdef DEBUG_LEGION
-              assert(!created_equivalence_sets->empty());
-#endif
+              legion_assert(!created_equivalence_sets->empty());
               created_equivalence_sets->tighten_valid_mask();
             }
           }
@@ -12123,9 +11883,7 @@ namespace Legion {
                    it != to_delete.end(); it++)
                 pending_equivalence_sets->erase(*it);
             }
-#ifdef DEBUG_LEGION
-            assert(!pending_equivalence_sets->empty());
-#endif
+            legion_assert(!pending_equivalence_sets->empty());
             pending_equivalence_sets->tighten_valid_mask();
           }
         }
@@ -12183,9 +11941,7 @@ namespace Legion {
                    it != to_delete.end(); it++)
                 created_equivalence_sets->erase(*it);
             }
-#ifdef DEBUG_LEGION
-            assert(!created_equivalence_sets->empty());
-#endif
+            legion_assert(!created_equivalence_sets->empty());
             created_equivalence_sets->tighten_valid_mask();
           }
         }
@@ -12407,9 +12163,8 @@ namespace Legion {
         if (!handle.exists() && (local_finder == to_notify.end()))
           rectangles_set.insert(rectangles.begin(), rectangles.end());
       }
-#ifdef DEBUG_LEGION
-      assert((local_finder != to_notify.end()) || (local_target != nullptr));
-#endif
+      legion_assert(
+          (local_finder != to_notify.end()) || (local_target != nullptr));
       // Make the equivalence set
       IndexSpaceExpression* expr =
           handle.exists() ?
@@ -12601,7 +12356,7 @@ namespace Legion {
           }
           if (!!to_filter)
           {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
             // A little sanity check, we should never be receiving racy
             // invalidations for fields that we are also trying to create
             // equivalence sets for because mapping dependence analysis
@@ -12611,7 +12366,7 @@ namespace Legion {
               for (op::map<Domain, FieldMask>::const_iterator it =
                        creation_rectangles->begin();
                    it != creation_rectangles->end(); it++)
-                assert(to_filter * it->second);
+                legion_assert(to_filter * it->second);
             }
 #endif
             pending_invalidations |= to_filter;
@@ -12754,9 +12509,7 @@ namespace Legion {
         Serializer rez;
         {
           RezCheck z(rez);
-#ifdef DEBUG_LEGION
-          assert(!to_cancel.empty());
-#endif
+          legion_assert(!to_cancel.empty());
           rez.serialize<size_t>(to_cancel.size());
           rez.serialize(this);
           for (FieldMapView<EqKDTree>::const_iterator it = to_cancel.begin();
@@ -12863,9 +12616,7 @@ namespace Legion {
           Serializer rez;
           {
             RezCheck z(rez);
-#ifdef DEBUG_LEGION
-            assert(!sit->second.empty());
-#endif
+            legion_assert(!sit->second.empty());
             rez.serialize<size_t>(sit->second.size());
             rez.serialize(owner);
             for (local::FieldMaskMap<EqSetTracker>::const_iterator it =

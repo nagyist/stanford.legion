@@ -159,7 +159,7 @@ namespace Legion {
           std::set<RtEvent>& applied, RtUserEvent done,
           const DeferTraceUpdateArgs* dargs = nullptr);
     protected:
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual unsigned convert_event(const ApEvent& event, bool check = true);
 #endif
       virtual unsigned find_event(const ApEvent& event, AutoLock& tpl_lock);

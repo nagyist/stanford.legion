@@ -35,7 +35,7 @@ namespace Legion {
     size_t size = 0;
     const void* ptr = get_buffer(
         memory, &size, false /*check size*/, silence_warnings, warning_string);
-    assert((size % sizeof(T)) == 0);
+    legion_assert((size % sizeof(T)) == 0);
     return Span<T, PM>(ptr, size / sizeof(T));
   }
 
@@ -49,7 +49,7 @@ namespace Legion {
     const void* ptr = get_buffer(
         Memory::SYSTEM_MEM, &size, true /*check size*/, silence_warnings,
         warning_string);
-    assert(size == sizeof(T));
+    legion_assert(size == sizeof(T));
     return *static_cast<const T*>(ptr);
   }
 

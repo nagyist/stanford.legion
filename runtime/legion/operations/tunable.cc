@@ -262,14 +262,9 @@ namespace Legion {
     {
       if (runtime->safe_mapper)
       {
-#ifdef DEBUG_LEGION
-        assert(value_broadcast == nullptr);
+        legion_assert(value_broadcast == nullptr);
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         // We'll always make node zero the owner shard here
         if (repl_ctx->owner_shard->shard_id > 0)
           value_broadcast = new BufferBroadcast(
@@ -286,14 +281,9 @@ namespace Legion {
     {
       if (runtime->safe_mapper)
       {
-#ifdef DEBUG_LEGION
-        assert(value_broadcast != nullptr);
+        legion_assert(value_broadcast != nullptr);
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         if (repl_ctx->owner_shard->shard_id != value_broadcast->origin)
         {
           size_t expected_size = 0;

@@ -122,9 +122,7 @@ namespace Legion {
         unsigned analysis_index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(targets.size() == 1);
-#endif
+      legion_assert(targets.size() == 1);
       target_instances.resize(targets.size());
       for (unsigned idx = 0; idx < targets.size(); idx++)
         target_instances[idx] = targets[idx].get_physical_manager();
@@ -205,9 +203,7 @@ namespace Legion {
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!rit->second.empty());
-#endif
+        legion_assert(!rit->second.empty());
         const AddressSpace target = rit->first;
         const RtUserEvent applied = Runtime::create_rt_user_event();
         Serializer rez;
@@ -279,10 +275,8 @@ namespace Legion {
         ApEvent termination, ApEvent& instances_ready, bool symbolic)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(termination.exists());
-      assert(!trace_info.recording);
-#endif
+      legion_assert(termination.exists());
+      legion_assert(!trace_info.recording);
       if (precondition.exists() && !precondition.has_triggered())
         return defer_registration(
             precondition, usage, applied_events, trace_info, init_precondition,
@@ -290,13 +284,9 @@ namespace Legion {
       const UniqueID op_id = op->get_unique_op_id();
       const size_t op_ctx_index = op->get_context_index();
       const AddressSpaceID local_space = runtime->address_space;
-#ifdef DEBUG_LEGION
       // In this case we know the expression should be a region
-      IndexSpaceNode* expr_node = dynamic_cast<IndexSpaceNode*>(analysis_expr);
-      assert(expr_node != nullptr);
-#else
-      IndexSpaceNode* expr_node = static_cast<IndexSpaceNode*>(analysis_expr);
-#endif
+      IndexSpaceNode* expr_node =
+          legion_safe_cast<IndexSpaceNode*>(analysis_expr);
       const IndexSpaceID match_space = expr_node->handle.get_id();
       std::vector<RtEvent> registered_events;
       std::vector<ApEvent> inst_ready_events;
@@ -311,9 +301,7 @@ namespace Legion {
           {
             std::map<InstanceView*, size_t>::const_iterator finder =
                 collective_arrivals.find(it->first);
-#ifdef DEBUG_LEGION
-            assert(finder != collective_arrivals.end());
-#endif
+            legion_assert(finder != collective_arrivals.end());
             view_collective_arrivals = finder->second;
           }
           const ApEvent ready = it->first->register_user(

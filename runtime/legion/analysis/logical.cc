@@ -100,9 +100,7 @@ namespace Legion {
       : open_state(rhs.open_state), redop(rhs.redop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(rhs.open_children.empty());
-#endif
+      legion_assert(rhs.open_children.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -128,10 +126,8 @@ namespace Legion {
     FieldState& FieldState::operator=(const FieldState& rhs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(open_children.empty());
-      assert(rhs.open_children.empty());
-#endif
+      legion_assert(open_children.empty());
+      legion_assert(rhs.open_children.empty());
       open_state = rhs.open_state;
       redop = rhs.redop;
       return *this;
@@ -158,10 +154,8 @@ namespace Legion {
         return (open_state == rhs.open_state);
       else
       {
-#ifdef DEBUG_LEGION
-        assert(open_state == OPEN_REDUCE);
-        assert(rhs.open_state == OPEN_REDUCE);
-#endif
+        legion_assert(open_state == OPEN_REDUCE);
+        legion_assert(rhs.open_state == OPEN_REDUCE);
         // Only support merging reduction fields with exactly the
         // same mask which should be single fields for reductions
         return (valid_fields() == rhs.valid_fields());
@@ -184,14 +178,10 @@ namespace Legion {
       }
       else
         open_children.relax_valid_mask(rhs.open_children.get_valid_mask());
-#ifdef DEBUG_LEGION
-      assert(redop == rhs.redop);
-#endif
+      legion_assert(redop == rhs.redop);
       if (redop > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(!open_children.empty());
-#endif
+        legion_assert(!open_children.empty());
         // For the reductions, handle the case where we need to merge
         // reduction modes, if they are all disjoint, we don't need
         // to distinguish between single and multi reduce
@@ -254,10 +244,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       OrderedFieldMaskChildren::iterator finder = open_children.find(child);
-#ifdef DEBUG_LEGION
-      assert(finder != open_children.end());
-      assert(!finder->second);
-#endif
+      legion_assert(finder != open_children.end());
+      legion_assert(!finder->second);
       open_children.erase(finder);
       if (child->remove_base_gc_ref(FIELD_STATE_REF))
         delete child;
@@ -284,19 +272,17 @@ namespace Legion {
     void LogicalState::check_init(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(field_states.empty());
-      assert(curr_epoch_users.empty());
-      assert(prev_epoch_users.empty());
-      assert(timeout_exchange == nullptr);
-      assert(refinement_trackers.empty());
-      assert(projection_summary_cache.empty());
-      assert(interfering_shards.empty());
-      assert(pointwise_dependences.empty());
-#endif
+      legion_assert(field_states.empty());
+      legion_assert(curr_epoch_users.empty());
+      legion_assert(prev_epoch_users.empty());
+      legion_assert(timeout_exchange == nullptr);
+      legion_assert(refinement_trackers.empty());
+      legion_assert(projection_summary_cache.empty());
+      legion_assert(interfering_shards.empty());
+      legion_assert(pointwise_dependences.empty());
     }
 
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     //--------------------------------------------------------------------------
     void LogicalState::sanity_check(void) const
     //--------------------------------------------------------------------------
@@ -316,14 +302,14 @@ namespace Legion {
               previous_children.find(it->first);
           if (finder != previous_children.end())
           {
-            assert(!(finder->second & it->second));
+            legion_assert(!(finder->second & it->second));
             finder.merge(it->second);
           }
           else
             previous_children.insert(it->first, it->second);
         }
         // Actually valid should be greater than or equal
-        assert(!(actually_valid - fit->valid_fields()));
+        legion_assert(!(actually_valid - fit->valid_fields()));
       }
       // Make sure that each refinement has a disjoint set of fields
       if (!refinement_trackers.empty())
@@ -333,7 +319,7 @@ namespace Legion {
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
         {
-          assert(disjoint_refinements * it->second);
+          legion_assert(disjoint_refinements * it->second);
           disjoint_refinements |= it->second;
         }
       }
@@ -501,9 +487,7 @@ namespace Legion {
               {
                 // Add a reference to the result
                 result->add_reference();
-#ifdef DEBUG_LEGION
-                assert(invalidated != nullptr);
-#endif
+                legion_assert(invalidated != nullptr);
                 if (invalidated->remove_reference())
                   delete invalidated;
               }
@@ -542,9 +526,7 @@ namespace Legion {
     void LogicalState::remove_projection_summary(ProjectionSummary* summary)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(summary->owner == this);
-#endif
+      legion_assert(summary->owner == this);
       if (summary->projection->is_functional &&
           (PROJECTION_CACHE_SIZE <= projection_summary_cache.size()))
       {
@@ -602,11 +584,9 @@ namespace Legion {
         ProjectionSummary* two, bool& dominates)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dominates);
-      assert(one->owner == this);
-      assert(two->owner == this);
-#endif
+      legion_assert(dominates);
+      legion_assert(one->owner == this);
+      legion_assert(two->owner == this);
       if (one == two)
         // We can elide the close operation here if we can prove that
         // all the regions used a disjoint from each other and they all
@@ -648,12 +628,10 @@ namespace Legion {
         return false;
       ProjectionSummary* one = prev.shard_proj;
       ProjectionSummary* two = next.shard_proj;
-#ifdef DEBUG_LEGION
-      assert(one != nullptr);
-      assert(two != nullptr);
-      assert(one->owner == this);
-      assert(two->owner == this);
-#endif
+      legion_assert(one != nullptr);
+      legion_assert(two != nullptr);
+      legion_assert(one->owner == this);
+      legion_assert(two->owner == this);
       // In order to do pointwise analysis then each of them have to support
       // name based self-analysis meaning all the points are accessing
       // disjoint data and all the accesses are at the leaves
@@ -742,10 +720,8 @@ namespace Legion {
     void LogicalState::initialize_no_refine_fields(const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(owner->is_region());
-      assert(mask * refinement_trackers.get_valid_mask());
-#endif
+      legion_assert(owner->is_region());
+      legion_assert(mask * refinement_trackers.get_valid_mask());
       RefinementTracker* new_tracker = owner->create_refinement_tracker();
       new_tracker->initialize_no_refine();
       refinement_trackers.insert(new_tracker, mask);
@@ -757,9 +733,7 @@ namespace Legion {
         FieldMask& refinement_mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!refinement_mask);
-#endif
+      legion_assert(!!refinement_mask);
       // This function filters through the refinement trackers and updates
       // them as necessary. Since the refinement trackers are not field aware,
       // this function will clone them and delete them as necessary to make
@@ -977,9 +951,7 @@ namespace Legion {
         if (!invalidation_mask)
           break;
       }
-#ifdef DEBUG_LEGION
-      assert(!invalidation_mask);  // should have seen all the fields
-#endif
+      legion_assert(!invalidation_mask);  // should have seen all the fields
       for (std::vector<RefinementTracker*>::const_iterator it =
                to_delete.begin();
            it != to_delete.end(); it++)
@@ -1214,9 +1186,7 @@ namespace Legion {
           it->open_children.tighten_valid_mask();
         }
       }
-#ifdef DEBUG_LEGION
-      assert(!!mask);
-#endif
+      legion_assert(!!mask);
       // If we get here we still have fields so we need to introduce a new
       // field state here for this child in read-write mode
       field_states.emplace_back(FieldState(OPEN_READ_WRITE, mask, child));
@@ -1446,9 +1416,7 @@ namespace Legion {
       // until we have traversed the entire path.
       while (true)
       {
-#ifdef DEBUG_LEGION
-        assert(node != nullptr);
-#endif
+        legion_assert(node != nullptr);
         depth = node->get_depth();
         has_child = path.has_child(depth);
         if (has_child)
@@ -1588,9 +1556,7 @@ namespace Legion {
     void RegionTreePath::initialize(unsigned min, unsigned max)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(min <= max);
-#endif
+      legion_assert(min <= max);
       min_depth = min;
       max_depth = max;
       path.resize(max_depth + 1, INVALID_COLOR);
@@ -1600,10 +1566,8 @@ namespace Legion {
     void RegionTreePath::register_child(unsigned depth, const LegionColor color)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(min_depth <= depth);
-      assert(depth <= max_depth);
-#endif
+      legion_assert(min_depth <= depth);
+      legion_assert(depth <= max_depth);
       path[depth] = color;
     }
 
@@ -1616,13 +1580,13 @@ namespace Legion {
       max_depth = 0;
     }
 
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     //--------------------------------------------------------------------------
     bool RegionTreePath::has_child(unsigned depth) const
     //--------------------------------------------------------------------------
     {
-      assert(min_depth <= depth);
-      assert(depth <= max_depth);
+      legion_assert(min_depth <= depth);
+      legion_assert(depth <= max_depth);
       return (path[depth] != INVALID_COLOR);
     }
 
@@ -1630,9 +1594,9 @@ namespace Legion {
     LegionColor RegionTreePath::get_child(unsigned depth) const
     //--------------------------------------------------------------------------
     {
-      assert(min_depth <= depth);
-      assert(depth <= max_depth);
-      assert(has_child(depth));
+      legion_assert(min_depth <= depth);
+      legion_assert(depth <= max_depth);
+      legion_assert(has_child(depth));
       return path[depth];
     }
 #endif

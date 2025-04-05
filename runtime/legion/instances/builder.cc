@@ -104,9 +104,7 @@ namespace Legion {
         realm_layout = instance_domain->create_layout(
             constraints, field_set, field_sizes, compact, &piece_list,
             &piece_list_size, &num_pieces);
-#ifdef DEBUG_LEGION
-        assert(realm_layout != nullptr);
-#endif
+        legion_assert(realm_layout != nullptr);
         // If we were doing a compact layout then Check that we met
         // the constraints for efficiency and number of pieces
         if (compact && (spec.max_pieces < num_pieces))
@@ -120,9 +118,7 @@ namespace Legion {
           return nullptr;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(realm_layout != nullptr);
-#endif
+      legion_assert(realm_layout != nullptr);
       // Have to grab this now since realm is going to take ownership of
       // the instance layout generic object once we do the creation call
       const size_t instance_footprint = realm_layout->bytes_used;
@@ -141,10 +137,8 @@ namespace Legion {
       // Create a user event to wait on for the result of the profiling response
       profiling_ready = Runtime::create_rt_user_event();
 #endif
-#ifdef DEBUG_LEGION
-      assert(!allocated);
-      assert(!instance.exists());  // shouldn't exist before this
-#endif
+      legion_assert(!allocated);
+      legion_assert(!instance.exists());  // shouldn't exist before this
       LgEvent unique_event;
       if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
       {
@@ -192,9 +186,7 @@ namespace Legion {
           *unsat_index = 0;
         return nullptr;
       }
-#ifdef LEGION_DEBUG
-      assert(!constraints.pointer_constraint.is_valid);
-#endif
+      legion_assert(!constraints.pointer_constraint.is_valid);
       // If we successfully made the instance then Realm
       // took over ownership of the layout
       PhysicalManager* result = nullptr;
@@ -257,9 +249,7 @@ namespace Legion {
       // Remove the reference we got back from finding or creating the layout
       if (layout->remove_reference())
         delete layout;
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
 #ifdef LEGION_MALLOC_INSTANCES
       memory_manager->record_legion_instance(result, instance);
 #else
@@ -286,22 +276,13 @@ namespace Legion {
         size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::InstanceAllocResult>());
-#endif
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::InstanceAllocResult>());
       Realm::ProfilingMeasurements::InstanceAllocResult result;
       result.success = false;  // Need this to avoid compiler warnings
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-      const bool measured =
-#endif
-#endif
+      legion_no_skip_assert(
           response.get_measurement<
-              Realm::ProfilingMeasurements::InstanceAllocResult>(result);
-#ifdef DEBUG_LEGION
-      assert(measured);
-#endif
+              Realm::ProfilingMeasurements::InstanceAllocResult>(result));
       allocated = result.success;
       failed_alloc = !allocated;
       // Set the fevent in case we are profiling
@@ -329,12 +310,10 @@ namespace Legion {
     void InstanceBuilder::compute_space_and_domain(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!regions.empty());
-      assert(field_space_node == nullptr);
-      assert(instance_domain == nullptr);
-      assert(tree_id == 0);
-#endif
+      legion_assert(!regions.empty());
+      legion_assert(field_space_node == nullptr);
+      legion_assert(instance_domain == nullptr);
+      legion_assert(tree_id == 0);
       std::set<IndexSpaceExpression*> region_exprs;
       for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
            it != regions.end(); it++)
@@ -345,11 +324,9 @@ namespace Legion {
           field_space_node = runtime->get_node(it->get_field_space());
         if (tree_id == 0)
           tree_id = it->get_tree_id();
-#ifdef DEBUG_LEGION
         // Check to make sure that all the field spaces have the same handle
-        assert(field_space_node->handle == it->get_field_space());
-        assert(tree_id == it->get_tree_id());
-#endif
+        legion_assert(field_space_node->handle == it->get_field_space());
+        legion_assert(tree_id == it->get_tree_id());
         region_exprs.insert(runtime->get_node(it->get_index_space()));
       }
       instance_domain = (region_exprs.size() == 1) ?
@@ -416,9 +393,7 @@ namespace Legion {
               it++;
           }
         }
-#ifdef DEBUG_LEGION
-        assert(spatial_dims.size() <= num_dims);
-#endif
+        legion_assert(spatial_dims.size() <= num_dims);
         // Fill in any spatial dimensions that we didn't see if necessary
         if (spatial_dims.size() < num_dims)
         {
@@ -477,10 +452,8 @@ namespace Legion {
         ord.ordering.emplace_back(LEGION_DIM_F);
         ord.contiguous = true;
       }
-#ifdef DEBUG_LEGION
-      assert(ord.contiguous);
-      assert(ord.ordering.size() == (num_dims + 1));
-#endif
+      legion_assert(ord.contiguous);
+      legion_assert(ord.ordering.size() == (num_dims + 1));
       // Check the tiling constraints
       if (!constraints.tiling_constraints.empty())
       {
@@ -563,11 +536,9 @@ namespace Legion {
               "Illegal request to create instance of type %d",
               constraints.specialized_constraint.get_kind())
       }
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (constraints.padding_constraint.delta.get_dim() == 0) ||
           (constraints.padding_constraint.delta.get_dim() == (int)num_dims));
-#endif
       // If we don't have a padding constraint then record that we
       // don't have any padding on this instance
       if (constraints.padding_constraint.delta.get_dim() == 0)

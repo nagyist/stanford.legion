@@ -163,15 +163,11 @@ namespace Legion {
       // Logical dependence analysis should guarantee that we are valid
       // by the time we get here because the inline mapping/attach op
       // that made the physical region should have mapped before us
-#ifdef DEBGU_LEGION
-      assert(region.impl->get_mapped_event().has_triggered());
-#endif
+      legion_assert(region.impl->get_mapped_event().has_triggered());
       // Now we can get the reference we need for the detach operation
       InstanceSet references;
       region.impl->get_references(references);
-#ifdef DEBUG_LEGION
-      assert(references.size() == 1);
-#endif
+      legion_assert(references.size() == 1);
       const InstanceRef& reference = references[0];
       // Add a valid reference to the instances to act as an acquire to keep
       // them valid through the end of mapping them, we'll release the valid
@@ -181,9 +177,7 @@ namespace Legion {
         Exception(INTERFACE_EXCEPTION, this)
             << "Illegal " << *this << ". Detach was performed on an region "
             << "that had not previously been attached.";
-#ifdef DEBUG_LEGION
-      assert(!manager->is_reduction_manager());
-#endif
+      legion_assert(!manager->is_reduction_manager());
       manager->add_base_valid_ref(MAPPING_ACQUIRE_REF);
       const PhysicalTraceInfo trace_info(this, 0 /*idx*/);
       // If we need to flush then register this operation to bring the
@@ -231,10 +225,8 @@ namespace Legion {
     unsigned DetachOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_req_index != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_req_index != TRACED_PARENT_INDEX);
       return parent_req_index;
     }
 
@@ -257,9 +249,7 @@ namespace Legion {
         result.impl->set_result(effects);
       InstanceSet references;
       region.impl->get_references(references);
-#ifdef DEBUG_LEGION
-      assert(references.size() == 1);
-#endif
+      legion_assert(references.size() == 1);
       const InstanceRef& reference = references[0];
       PhysicalManager* manager = reference.get_physical_manager();
       detach_external_instance(manager);
@@ -284,9 +274,7 @@ namespace Legion {
         std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       // TODO: invoke the mapper
     }
 
@@ -318,10 +306,8 @@ namespace Legion {
         const bool second_analysis)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(instances.size() == 1);
-#endif
+      legion_assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(instances.size() == 1);
       RegionNode* region = runtime->get_node(requirement.region);
       FilterAnalysis* analysis = new FilterAnalysis(
           this, 0 /*index*/, region, trace_info, true /*remove restriction*/);
@@ -500,10 +486,8 @@ namespace Legion {
         std::vector<LogicalRegion> regions(points.size());
         for (unsigned idx = 0; idx < points.size(); idx++)
           regions[idx] = points[idx]->requirement.region;
-#ifdef DEBUG_LEGION
-        assert(pointwise_dependences.size() == 1);
-        assert(pointwise_dependences.begin()->first == 0);
-#endif
+        legion_assert(pointwise_dependences.size() == 1);
+        legion_assert(pointwise_dependences.begin()->first == 0);
         std::vector<std::vector<RtEvent> > preconditions(points.size());
         for (std::vector<PointwiseDependence>::const_iterator pit =
                  pointwise_dependences.begin()->second.begin();
@@ -519,9 +503,7 @@ namespace Legion {
             {
               std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                   finder = dependences.find(regions[idx]);
-#ifdef DEBUG_LEGION
-              assert(finder != dependences.end());
-#endif
+              legion_assert(finder != dependences.end());
               for (std::vector<DomainPoint>::const_iterator it =
                        finder->second.begin();
                    it != finder->second.end(); it++)
@@ -541,9 +523,7 @@ namespace Legion {
             {
               std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                   finder = dependences.find(regions[idx]);
-#ifdef DEBUG_LEGION
-              assert(finder != dependences.end());
-#endif
+              legion_assert(finder != dependences.end());
               for (std::vector<DomainPoint>::const_iterator it =
                        finder->second.begin();
                    it != finder->second.end(); it++)
@@ -583,9 +563,7 @@ namespace Legion {
       if (effect.exists())
         record_completion_effect(effect);
       const unsigned received = ++points_completed;
-#ifdef DEBUG_LEGION
-      assert(received <= points.size());
-#endif
+      legion_assert(received <= points.size());
       if (received == points.size())
         complete_execution();
     }
@@ -610,9 +588,7 @@ namespace Legion {
       bool commit_now = false;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(!commit_request);
-#endif
+        legion_assert(!commit_request);
         commit_request = true;
         commit_now = (points.size() == points_committed);
       }
@@ -638,10 +614,8 @@ namespace Legion {
     unsigned IndexDetachOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_req_index != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_req_index != TRACED_PARENT_INDEX);
       return parent_req_index;
     }
 
@@ -685,18 +659,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock, 1, false /*exclusive*/);
-#ifdef DEBUG_LEGION
-      assert(needed_gen <= gen);
-#endif
+      legion_assert(needed_gen <= gen);
       if ((needed_gen < gen) || mapped)
       {
         if (to_trigger.exists())
           Runtime::trigger_event(to_trigger);
         return RtEvent::NO_RT_EVENT;
       }
-#ifdef DEBUG_LEGION
-      assert(!points.empty());
-#endif
+      legion_assert(!points.empty());
       for (std::vector<PointDetachOp*>::const_iterator it = points.begin();
            it != points.end(); it++)
       {
@@ -891,13 +861,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       analyze_region_requirements();
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-      assert(!collective_map_barrier.exists());
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      legion_assert(!collective_map_barrier.exists());
       collective_map_barrier = repl_ctx->get_next_collective_map_barriers();
       effects_barrier = repl_ctx->get_next_detach_effects_barrier();
       if (collective_instances)
@@ -919,9 +885,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<RtEvent> preconditions;
-#ifdef DEBUG_LEGION
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(collective_map_barrier.exists());
       // Signal that all our mapping dependences are met
       runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       perform_versioning_analysis(
@@ -940,10 +904,8 @@ namespace Legion {
     RtEvent ReplDetachOp::finalize_complete_mapping(RtEvent pre)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(effects_barrier.exists());
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(effects_barrier.exists());
+      legion_assert(collective_map_barrier.exists());
       // Always arrive on the effects barrier with the detach event
       runtime->phase_barrier_arrive(effects_barrier, 1 /*count*/, detach_event);
       // Then update the detach event with the effects barrier
@@ -959,13 +921,8 @@ namespace Legion {
     {
       if (!collective_instances)
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         mapping = &repl_ctx->shard_manager->get_collective_mapping();
         mapping->add_reference();
         first_local = is_first_local_shard;
@@ -986,14 +943,10 @@ namespace Legion {
         std::map<std::pair<LogicalRegion, FieldID>, Operation*>& detachments)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!requirement.privilege_fields.empty());
-#endif
+      legion_assert(!requirement.privilege_fields.empty());
       const std::pair<LogicalRegion, FieldID> key(
           requirement.region, *(requirement.privilege_fields.begin()));
-#ifdef DEBUG_LEGION
-      assert(detachments.find(key) == detachments.end());
-#endif
+      legion_assert(detachments.find(key) == detachments.end());
       detachments[key] = this;
     }
 
@@ -1003,13 +956,8 @@ namespace Legion {
     {
       if (collective_instances)
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         ShardManager* shard_manager = repl_ctx->shard_manager;
         // See if all local shards have the same manager or not
         if (is_first_local_shard)
@@ -1095,25 +1043,19 @@ namespace Legion {
             part_detachments)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!requirement.privilege_fields.empty());
-#endif
+      legion_assert(!requirement.privilege_fields.empty());
       if (requirement.handle_type == LEGION_PARTITION_PROJECTION)
       {
         const std::pair<LogicalPartition, FieldID> key(
             requirement.partition, *(requirement.privilege_fields.begin()));
-#ifdef DEBUG_LEGION
-        assert(part_detachments.find(key) == part_detachments.end());
-#endif
+        legion_assert(part_detachments.find(key) == part_detachments.end());
         part_detachments[key] = this;
       }
       else
       {
         const std::pair<LogicalRegion, FieldID> key(
             requirement.region, *(requirement.privilege_fields.begin()));
-#ifdef DEBUG_LEGION
-        assert(region_detachments.find(key) == region_detachments.end());
-#endif
+        legion_assert(region_detachments.find(key) == region_detachments.end());
         region_detachments[key] = this;
       }
     }
@@ -1122,13 +1064,9 @@ namespace Legion {
     void ReplIndexDetachOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sharding_function == nullptr);
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(sharding_function == nullptr);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       sharding_function = repl_ctx->get_attach_detach_sharding_function();
       IndexDetachOp::trigger_prepipeline_stage();
     }
@@ -1137,13 +1075,9 @@ namespace Legion {
     void ReplIndexDetachOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sharding_function != nullptr);
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(sharding_function != nullptr);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Get the projection ID which we know is valid on the external resources
       requirement.projection = resources.impl->get_projection();
       if (runtime->legion_spy_enabled)
@@ -1189,9 +1123,7 @@ namespace Legion {
         std::vector<ShardID>& shards)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(participants != nullptr);
-#endif
+      legion_assert(participants != nullptr);
       return participants->find_shard_participants(shards);
     }
 

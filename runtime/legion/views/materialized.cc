@@ -117,9 +117,7 @@ namespace Legion {
         AddressSpaceID logical_owner)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager->is_physical_manager());
-#endif
+      legion_assert(manager->is_physical_manager());
       PhysicalManager* inst_manager = manager->as_physical_manager();
       void* location =
           runtime

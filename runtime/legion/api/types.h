@@ -70,6 +70,30 @@
 #endif
 #endif
 
+#ifdef LEGION_DEBUG
+#define legion_assert(expr) assert(expr)
+#ifndef NDEBUG
+#define legion_no_skip_assert(expr) assert(expr)
+#else
+#error "NDEBUG is not allowed to be defined at the same time as LEGION_DEBUG"
+#endif
+template<typename T1, typename T2>
+inline T1 legion_safe_cast(T2* ptr)
+{
+  T1 result = dynamic_cast<T1>(ptr);
+  legion_assert(result != nullptr);
+  return result;
+}
+#else  // !LEGION_DEBUG
+#define legion_assert(expr) ((void)0)
+#define legion_no_skip_assert(expr) ((void)(expr))
+template<typename T1, typename T2>
+inline T1 legion_safe_cast(T2* ptr)
+{
+  return static_cast<T1>(ptr);
+}
+#endif
+
 namespace Legion {
 
   // Pull C types into the C++ namespace
@@ -711,12 +735,7 @@ namespace Legion {
       template<int N, typename T>
       static inline void check_type(const TypeTag t)
       {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-        const TypeTag t1 = encode_tag<N, T>();
-#endif
-        assert(t1 == t);
-#endif
+        legion_assert((encode_tag<N, T>() == t));
       }
       struct DimHelper {
       public:
@@ -1106,14 +1125,12 @@ namespace Legion {
       {
         if (held)
         {
-#ifdef DEBUG_LEGION
-          assert(local_lock_list == this);
-#endif
+          legion_assert(local_lock_list == this);
           local_lock.unlock();
           local_lock_list = previous;
         }
         else
-          assert(local_lock_list == previous);
+          legion_assert(local_lock_list == previous);
       }
     public:
       AutoLock& operator=(AutoLock&& rhs) = delete;
@@ -1121,20 +1138,16 @@ namespace Legion {
     public:
       inline void release(void)
       {
-#ifdef DEBUG_LEGION
-        assert(held);
-        assert(local_lock_list == this);
-#endif
+        legion_assert(held);
+        legion_assert(local_lock_list == this);
         local_lock.unlock();
         local_lock_list = previous;
         held = false;
       }
       inline void reacquire(void)
       {
-#ifdef DEBUG_LEGION
-        assert(!held);
-        assert(local_lock_list == previous);
-#endif
+        legion_assert(!held);
+        legion_assert(local_lock_list == previous);
 #ifdef DEBUG_REENTRANT_LOCKS
         if (previous != nullptr)
           previous->check_for_reentrant_locks(&local_lock);
@@ -1178,7 +1191,7 @@ namespace Legion {
 #ifdef DEBUG_REENTRANT_LOCKS
       inline void check_for_reentrant_locks(LocalLock* to_acquire) const
       {
-        assert(to_acquire != &local_lock);
+        legion_assert(to_acquire != &local_lock);
         if (previous != nullptr)
           previous->check_for_reentrant_locks(to_acquire);
       }
@@ -1323,9 +1336,7 @@ namespace Legion {
 #endif
       // Write the registration callback information back
       inside_registration_callback = local_callback;
-#ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == nullptr);
-#endif
+      legion_assert(implicit_reference_tracker == nullptr);
       // Write the local reference tracker back
       implicit_reference_tracker = local_tracker;
     }
@@ -1440,9 +1451,7 @@ namespace Legion {
 #endif
       // Write the registration callback information back
       inside_registration_callback = local_callback;
-#ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == nullptr);
-#endif
+      legion_assert(implicit_reference_tracker == nullptr);
       // Write the local reference tracker back
       implicit_reference_tracker = local_tracker;
     }

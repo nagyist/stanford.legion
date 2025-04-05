@@ -73,9 +73,7 @@ namespace Legion {
       // trigger the use event with the ready event of the instance metadata
       if (kind != UNBOUND_INSTANCE_KIND)
       {
-#ifdef DEBUG_LEGION
-        assert(instance.exists());
-#endif
+        legion_assert(instance.exists());
         Runtime::trigger_event_untraced(
             use_event, fetch_metadata(instance, u_event));
       }
@@ -84,9 +82,7 @@ namespace Legion {
       // If we're in a pending collectable state, then add a reference
       if (gc_state == PENDING_COLLECTED_GC_STATE)
       {
-#ifdef DEBUG_LEGION
-        assert(!is_owner());
-#endif
+        legion_assert(!is_owner());
         add_base_resource_ref(PENDING_COLLECTIVE_REF);
       }
       if (!is_owner() && !is_external_instance())
@@ -99,9 +95,7 @@ namespace Legion {
 #endif
       if (runtime->legion_spy_enabled && (kind != UNBOUND_INSTANCE_KIND))
       {
-#ifdef DEBUG_LEGION
-        assert(unique_event.exists());
-#endif
+        legion_assert(unique_event.exists());
         LegionSpy::log_physical_instance(
             unique_event, inst.id, memory->memory.id, instance_domain->expr_id,
             field_space_node->handle, tree_id, redop);
@@ -113,10 +107,8 @@ namespace Legion {
     PhysicalManager::~PhysicalManager(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(subscribers.empty());
-      assert(valid_references == 0);
-#endif
+      legion_assert(subscribers.empty());
+      legion_assert(valid_references == 0);
       // Remote references removed by DistributedCollectable destructor
       if (!is_owner() && !is_external_instance())
         memory_manager->unregister_remote_instance(this);
@@ -171,9 +163,7 @@ namespace Legion {
       LegionSpy::log_instance_specialized_constraint(
           inst_event, constraints->specialized_constraint.kind,
           constraints->specialized_constraint.redop);
-#ifdef DEBUG_HIGH_LEVEL
-      assert(constraints->memory_constraint.has_kind);
-#endif
+      legion_assert(constraints->memory_constraint.has_kind);
       if (constraints->memory_constraint.is_valid())
         LegionSpy::log_instance_memory_constraint(
             inst_event, constraints->memory_constraint.kind);
@@ -231,10 +221,8 @@ namespace Legion {
       // Make sure the instance is ready before we compute the offsets
       if (instance_ready.exists() && !instance_ready.has_triggered())
         instance_ready.wait();
-#ifdef DEBUG_LEGION
-      assert(layout != nullptr);
-      assert(instance.exists());
-#endif
+      legion_assert(layout != nullptr);
+      legion_assert(instance.exists());
       // Pass in our physical instance so the layout knows how to specialize
       layout->compute_copy_offsets(copy_mask, instance, fields);
     }
@@ -296,20 +284,16 @@ namespace Legion {
       RtEvent wait_for;
       {
         AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
         // All contexts should always be new since they should be deduplicating
         // on their side before calling this method
-        assert(subscribers.find(own_ctx) == subscribers.end());
-#endif
+        legion_assert(subscribers.find(own_ctx) == subscribers.end());
         std::map<DistributedID, ViewEntry>::iterator finder =
             context_views.find(key);
         if (finder != context_views.end())
         {
-#ifdef DEBUG_LEGION
           // This should only happen with control replication because normal
           // contexts should be deduplicating on their side
-          assert(replicated);
-#endif
+          legion_assert(replicated);
           // This better be a new context so bump the reference count
           if (subscribers.insert(own_ctx).second)
             own_ctx->add_subscriber_reference(this);
@@ -340,10 +324,8 @@ namespace Legion {
         AutoLock i_lock(inst_lock);
         std::map<DistributedID, ViewEntry>::iterator finder =
             context_views.find(key);
-#ifdef DEBUG_LEGION
-        assert(replicated);
-        assert(finder != context_views.end());
-#endif
+        legion_assert(replicated);
+        legion_assert(finder != context_views.end());
         // This better be a new context so bump the reference count
         if (subscribers.insert(own_ctx).second)
           own_ctx->add_subscriber_reference(this);
@@ -414,9 +396,7 @@ namespace Legion {
       }
       // Retake the lock, save the view, and signal any other waiters
       AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
-      assert(context_views.find(key) == context_views.end());
-#endif
+      legion_assert(context_views.find(key) == context_views.end());
       ViewEntry& entry = context_views[key];
       entry.first = result;
       entry.second = 1 /*only a single initial reference*/;
@@ -426,9 +406,7 @@ namespace Legion {
       {
         std::map<DistributedID, RtUserEvent>::iterator finder =
             pending_views.find(key);
-#ifdef DEBUG_LEGION
-        assert(finder != pending_views.end());
-#endif
+        legion_assert(finder != pending_views.end());
         if (finder->second.exists())
           Runtime::trigger_event(finder->second);
         pending_views.erase(finder);
@@ -449,9 +427,7 @@ namespace Legion {
         {
           if (subscribers.insert(subscriber).second)
             return true;
-#ifdef DEBUG_LEGION
-          assert(allow_duplicates);
-#endif
+          legion_assert(allow_duplicates);
           result = true;
           // Fall through to remove the duplicate reference on the subscriber
         }
@@ -500,10 +476,8 @@ namespace Legion {
         // manager if it no longer has anymore active contexts
         std::map<DistributedID, ViewEntry>::iterator view_finder =
             context_views.find(key);
-#ifdef DEBUG_LEGION
-        assert(view_finder != context_views.end());
-        assert(view_finder->second.second > 0);
-#endif
+        legion_assert(view_finder != context_views.end());
+        legion_assert(view_finder->second.second > 0);
         if (--view_finder->second.second == 0)
           context_views.erase(view_finder);
       }
@@ -526,10 +500,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock inst(inst_lock);
-#ifdef DEBUG_LEGION
-      assert(gc_state != COLLECTED_GC_STATE);
-      assert(added_gc_events < runtime->gc_epoch_size);
-#endif
+      legion_assert(gc_state != COLLECTED_GC_STATE);
+      legion_assert(added_gc_events < runtime->gc_epoch_size);
       if (is_owner() || (gc_state != PENDING_COLLECTED_GC_STATE))
       {
         if (gc_events.insert(user_event).second &&
@@ -619,10 +591,8 @@ namespace Legion {
         const Domain* padding_delta) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(tree_id > 0);  // only happens with VirtualManager
-      assert(!regions.empty());
-#endif
+      legion_assert(tree_id > 0);  // only happens with VirtualManager
+      legion_assert(!regions.empty());
       std::set<IndexSpaceExpression*> region_exprs;
       for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
            it != regions.end(); it++)
@@ -662,11 +632,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
       // We should always be holding a valid reference when we
       // pack a valid reference so the state should always be valid
-      assert(gc_state == VALID_GC_STATE);
-#endif
+      legion_assert(gc_state == VALID_GC_STATE);
       sent_valid_references++;
     }
 
@@ -719,14 +687,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_references >= cnt);
-#endif
+      legion_assert(valid_references >= cnt);
       valid_references -= cnt;
       std::map<ReferenceSource, int>::iterator finder =
           detailed_base_valid_references.find(source);
-      assert(finder != detailed_base_valid_references.end());
-      assert(finder->second >= cnt);
+      legion_assert(finder != detailed_base_valid_references.end());
+      legion_assert(finder->second >= cnt);
       finder->second -= cnt;
       if (finder->second == 0)
         detailed_base_valid_references.erase(finder);
@@ -742,14 +708,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_references >= cnt);
-#endif
+      legion_assert(valid_references >= cnt);
       valid_references -= cnt;
       std::map<DistributedID, int>::iterator finder =
           detailed_nested_valid_references.find(source);
-      assert(finder != detailed_nested_valid_references.end());
-      assert(finder->second >= cnt);
+      legion_assert(finder != detailed_nested_valid_references.end());
+      legion_assert(finder->second >= cnt);
       finder->second -= cnt;
       if (finder->second == 0)
         detailed_nested_valid_references.erase(finder);
@@ -768,7 +732,7 @@ namespace Legion {
         notify_valid(need_check);
       valid_references += cnt;
     }
-#else  // DEBUG_LEGION_GC
+#else   // DEBUG_LEGION_GC
     //--------------------------------------------------------------------------
     void PhysicalManager::add_valid_reference(int cnt, bool need_check)
     //--------------------------------------------------------------------------
@@ -783,9 +747,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_references.load() >= cnt);
-#endif
+      legion_assert(valid_references.load() >= cnt);
       if (valid_references.fetch_sub(cnt) == cnt)
         return notify_invalid(i_lock);
       else
@@ -798,9 +760,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No need for the lock, it is held by the caller
-#ifdef DEBUG_LEGION
-      assert(gc_state != VALID_GC_STATE);
-      assert(gc_state != COLLECTED_GC_STATE);
+      legion_assert(gc_state != VALID_GC_STATE);
+      legion_assert(gc_state != COLLECTED_GC_STATE);
+#ifdef LEGION_DEBUG
       // In debug mode we eagerly add valid references such that the owner
       // is valid as long as a copy of the manager on one node is valid
       // This way we can easily check that acquires are being done safely
@@ -810,7 +772,7 @@ namespace Legion {
       {
         // Should never be here if we're the owner as it indicates that
         // we tried to add a valid reference without first doing an acquire
-        assert(!is_owner());
+        legion_assert(!is_owner());
         // Send a message to check that we can safely do the acquire
         const RtUserEvent done = Runtime::create_rt_user_event();
         std::atomic<bool> result(true);
@@ -849,7 +811,7 @@ namespace Legion {
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
@@ -889,7 +851,7 @@ namespace Legion {
         Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       DerezCheck z(derez);
       std::atomic<bool>* target;
       derez.deserialize(target);
@@ -908,10 +870,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No need for the lock it is held by the caller
-#ifdef DEBUG_LEGION
-      assert(kind != UNBOUND_INSTANCE_KIND);
-      assert((gc_state == VALID_GC_STATE) || is_external_instance());
-#endif
+      legion_assert(kind != UNBOUND_INSTANCE_KIND);
+      legion_assert((gc_state == VALID_GC_STATE) || is_external_instance());
       // If we're an external instance that has already been detached and
       // therfore deleted then we don't ever want to go back to collectable
       if (!is_external_instance() || (gc_state != COLLECTED_GC_STATE))
@@ -946,9 +906,7 @@ namespace Legion {
         {
           case VALID_GC_STATE:
             {
-#ifdef DEBUG_LEGION
-              assert(valid_references > 0);
-#endif
+              legion_assert(valid_references > 0);
               success = true;
               break;
             }
@@ -992,9 +950,7 @@ namespace Legion {
           return true;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-#endif
+      legion_assert(!is_owner());
       std::atomic<bool> result(false);
       const RtUserEvent ready = Runtime::create_rt_user_event();
       Serializer rez;
@@ -1025,11 +981,9 @@ namespace Legion {
         std::set<InstanceDeletionSubscriber*> to_notify;
         {
           AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
-          assert(
+          legion_assert(
               (gc_state == PENDING_COLLECTED_GC_STATE) ||
               (gc_state == COLLECTED_GC_STATE));
-#endif
           gc_state = COLLECTED_GC_STATE;
           to_notify.swap(subscribers);
         }
@@ -1117,9 +1071,7 @@ namespace Legion {
     bool PhysicalManager::can_collect(bool& already_collected) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       // This is a lightweight test that shouldn't involve any communication
       // or commitment to performing a collection. It's just for finding
       // instances that we know are locally collectable
@@ -1143,16 +1095,12 @@ namespace Legion {
         uint64_t& received_valid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-#endif
+      legion_assert(!is_owner());
       AutoLock i_lock(inst_lock);
       // Do a quick to check to see if we can do a collection on the local node
       if (gc_state == VALID_GC_STATE)
         return false;
-#ifdef DEBUG_LEGION
-      assert(gc_state != COLLECTED_GC_STATE);
-#endif
+      legion_assert(gc_state != COLLECTED_GC_STATE);
       gc_state = PENDING_COLLECTED_GC_STATE;
       remote_events.swap(gc_events);
       sent_valid = sent_valid_references;
@@ -1337,10 +1285,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-      assert(gc_state != COLLECTED_GC_STATE);
-#endif
+      legion_assert(is_owner());
+      legion_assert(gc_state != COLLECTED_GC_STATE);
       sent_valid_references += sent;
       received_valid_references += received;
     }
@@ -1385,9 +1331,7 @@ namespace Legion {
     void PhysicalManager::notify_remote_deletion(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-#endif
+      legion_assert(!is_owner());
       // Forward on the deletion notification to any children
       if ((collective_mapping != nullptr) &&
           collective_mapping->contains(local_space))
@@ -1413,11 +1357,9 @@ namespace Legion {
       std::set<InstanceDeletionSubscriber*> to_notify;
       {
         AutoLock i_lock(inst_lock);
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (gc_state == COLLECTED_GC_STATE) ||
             (gc_state == PENDING_COLLECTED_GC_STATE));
-#endif
         gc_state = COLLECTED_GC_STATE;
         to_notify.swap(subscribers);
       }
@@ -1483,9 +1425,7 @@ namespace Legion {
         RtEvent& ready, PhysicalInstance* hole, AutoLock* i_lock)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((hole == nullptr) || !hole->exists());
-#endif
+      legion_assert((hole == nullptr) || !hole->exists());
       if (i_lock == nullptr)
       {
         AutoLock i2_lock(inst_lock);
@@ -1515,10 +1455,8 @@ namespace Legion {
           std::vector<RtEvent> ready_events;
           if (collective_mapping != nullptr)
           {
-#ifdef DEBUG_LEGION
             // We're the owner so it should contain ourselves
-            assert(collective_mapping->contains(local_space));
-#endif
+            legion_assert(collective_mapping->contains(local_space));
             std::vector<AddressSpaceID> children;
             collective_mapping->get_children(
                 owner_space, local_space, children);
@@ -1574,11 +1512,9 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(gc_state == PENDING_COLLECTED_GC_STATE);
+          legion_assert(gc_state == PENDING_COLLECTED_GC_STATE);
           // Should alaready have outstanding changes for this deletion
-          assert(pending_changes > 0);
-#endif
+          legion_assert(pending_changes > 0);
         }
         pending_changes++;
         const RtEvent wait_on = collection_ready;
@@ -1588,9 +1524,7 @@ namespace Legion {
           wait_on.wait();
           i_lock->reacquire();
         }
-#ifdef DEBUG_LEGION
-        assert(pending_changes > 0);
-#endif
+        legion_assert(pending_changes > 0);
         switch (gc_state.load())
         {
           // Anything in these states means the collection attempt failed
@@ -1609,10 +1543,8 @@ namespace Legion {
             }
           case PENDING_COLLECTED_GC_STATE:
             {
-#ifdef DEBUG_LEGION
               // Precondition should have triggered if we're here
-              assert(collection_ready.has_triggered());
-#endif
+              legion_assert(collection_ready.has_triggered());
               // Check to see if there were any collection guards we
               // were unable to acquire on remote nodes or whether there
               // are still packed valid reference outstanding
@@ -1650,10 +1582,8 @@ namespace Legion {
                 // so that we can invalidate any subscribers on those nodes
                 if (collective_mapping != nullptr)
                 {
-#ifdef DEBUG_LEGION
                   // We're the owner so it should contain ourselves
-                  assert(collective_mapping->contains(local_space));
-#endif
+                  legion_assert(collective_mapping->contains(local_space));
                   std::vector<AddressSpaceID> children;
                   collective_mapping->get_children(
                       owner_space, local_space, children);
@@ -1754,9 +1684,7 @@ namespace Legion {
         MapperID mapper_id, Processor p, GCPriority priority)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_external_instance());
-#endif
+      legion_assert(!is_external_instance());
       RtUserEvent done_event;
       RtEvent wait_on, updated;
       bool remove_never_reference = false;
@@ -1799,9 +1727,7 @@ namespace Legion {
             else
             {
               // We were one of the minimum priorities before
-#ifdef DEBUG_LEGION
-              assert(finder->second == min_gc_priority);
-#endif
+              legion_assert(finder->second == min_gc_priority);
               // If things don't change then there is nothing to do
               if (finder->second == priority)
                 return RtEvent::NO_RT_EVENT;
@@ -1820,18 +1746,14 @@ namespace Legion {
                   if (it->second < priority)
                     priority = it->second;
                 }
-#ifdef DEBUG_LEGION
                 // If we get here then we're increasing the minimum priority
-                assert(min_gc_priority < priority);
-#endif
+                legion_assert(min_gc_priority < priority);
               }
               // Else lowering the minimum priority
             }
           }
-#ifdef DEBUG_LEGION
           // If we get here then we're changing the minimum priority
-          assert(priority != min_gc_priority);
-#endif
+          legion_assert(priority != min_gc_priority);
         }
         // Only deal with never collection refs on the owner node where
         // the ultimate garbage collection decisions are to be made
@@ -1840,9 +1762,7 @@ namespace Legion {
           if (priority < min_gc_priority)
           {
             // Transitioning to a smaller priority
-#ifdef DEBUG_LEGION
-            assert(LEGION_GC_NEVER_PRIORITY < min_gc_priority);
-#endif
+            legion_assert(LEGION_GC_NEVER_PRIORITY < min_gc_priority);
             if (priority == LEGION_GC_NEVER_PRIORITY)
             {
               // Check the garbage collection state because this is going
@@ -1969,9 +1889,7 @@ namespace Legion {
         // produce a non-zero processor ID. Note that this formulation also
         // avoid conflicts from different remote sources.
         const Processor fake_proc = {source + manager->owner_space};
-#ifdef DEBUG_LEGION
-        assert(fake_proc.id != 0);
-#endif
+        legion_assert(fake_proc.id != 0);
         Runtime::trigger_event(
             done, manager->set_garbage_collection_priority(
                       0 /*default mapper ID*/, fake_proc, priority));
@@ -1993,12 +1911,7 @@ namespace Legion {
       AddressSpaceID source;
       derez.deserialize(source);
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      PhysicalManager* manager = dynamic_cast<PhysicalManager*>(dc);
-      assert(manager != nullptr);
-#else
-      PhysicalManager* manager = dynamic_cast<PhysicalManager*>(dc);
-#endif
+      PhysicalManager* manager = legion_safe_cast<PhysicalManager*>(dc);
       manager->send_manager(source);
     }
 
@@ -2122,14 +2035,10 @@ namespace Legion {
       // Make sure the instance is ready before we compute the offsets
       if (instance_ready.exists() && !instance_ready.has_triggered())
         instance_ready.wait();
-#ifdef DEBUG_LEGION
-      assert(src_indexes.size() == dst_indexes.size());
-#endif
+      legion_assert(src_indexes.size() == dst_indexes.size());
       std::vector<CopySrcDstField> dst_fields;
       layout->compute_copy_offsets(dst_mask, instance, dst_fields);
-#ifdef DEBUG_LEGION
-      assert(dst_fields.size() == dst_indexes.size());
-#endif
+      legion_assert(dst_fields.size() == dst_indexes.size());
       helper->offsets.resize(dst_fields.size());
       // We've got the offsets compressed based on their destination mask
       // order, now we need to translate them to their source mask order
@@ -2163,12 +2072,10 @@ namespace Legion {
     void PhysicalManager::send_manager(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-      assert(
+      legion_assert(is_owner());
+      legion_assert(
           (collective_mapping == nullptr) ||
           !collective_mapping->contains(target));
-#endif
       Serializer rez;
       {
         AutoLock lock(inst_lock, 1, false /*exlcusive*/);
@@ -2363,19 +2270,15 @@ namespace Legion {
         AutoLock* i_lock /* = nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-      assert(source == local_space);
-#endif
+      legion_assert(is_owner());
+      legion_assert(source == local_space);
       if (i_lock == nullptr)
       {
         AutoLock instance_lock(inst_lock);
         return perform_deletion(source, hole, &instance_lock);
       }
-#ifdef DEBUG_LEGION
-      assert(pending_views.empty());
-      assert(gc_state != COLLECTED_GC_STATE);
-#endif
+      legion_assert(pending_views.empty());
+      legion_assert(gc_state != COLLECTED_GC_STATE);
       gc_state = COLLECTED_GC_STATE;
       log_garbage.spew(
           "Deleting physical instance " IDFMT " in memory " IDFMT "",
@@ -2439,13 +2342,11 @@ namespace Legion {
     void PhysicalManager::force_deletion(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
+      legion_assert(is_owner());
       // If we already deleted this then it's deferred deletion task should
       // have run and pruned it out of the memory manager to prevent calling
       // force_deletion on this physical manager
-      assert(gc_state != COLLECTED_GC_STATE);
-#endif
+      legion_assert(gc_state != COLLECTED_GC_STATE);
       // There are no races by the time we get here so we don't need the lock
       log_garbage.spew(
           "Force deleting physical instance " IDFMT " in memory " IDFMT "",
@@ -2561,9 +2462,7 @@ namespace Legion {
     RtEvent PhysicalManager::attach_external_instance(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_external_instance());
-#endif
+      legion_assert(is_external_instance());
       return memory_manager->attach_external_instance(this);
     }
 
@@ -2571,9 +2470,7 @@ namespace Legion {
     void PhysicalManager::detach_external_instance(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_external_instance());
-#endif
+      legion_assert(is_external_instance());
       memory_manager->detach_external_instance(this);
     }
 
@@ -2581,9 +2478,7 @@ namespace Legion {
     uintptr_t PhysicalManager::get_instance_pointer(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       if (use_event.exists() && !use_event.has_triggered_faultignorant())
         use_event.wait_faultignorant();
       void* inst_ptr = instance.pointer_untyped(0 /*offset*/, 0 /*elem size*/);
@@ -2604,10 +2499,8 @@ namespace Legion {
     {
       {
         AutoLock lock(inst_lock);
-#ifdef DEBUG_LEGION
-        assert(kind == UNBOUND_INSTANCE_KIND);
-        assert(instance_footprint == -1U);
-#endif
+        legion_assert(kind == UNBOUND_INSTANCE_KIND);
+        legion_assert(instance_footprint == -1U);
         instance = new_instance;
         kind = INTERNAL_INSTANCE_KIND;
         instance_footprint = new_footprint;
@@ -2697,9 +2590,7 @@ namespace Legion {
         const FieldMask& mask, std::vector<Reservation>& reservations)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mask.pop_count() == reservations.size());
-#endif
+      legion_assert(mask.pop_count() == reservations.size());
       unsigned offset = 0;
       if (is_owner())
       {
@@ -2762,24 +2653,18 @@ namespace Legion {
           wait_on.wait();
           // Now retake the lock and get the remaining reservations
           AutoLock i_lock(inst_lock, 1, false);
-#ifdef DEBUG_LEGION
-          assert(padded_reservations != nullptr);
-#endif
+          legion_assert(padded_reservations != nullptr);
           for (int idx = needed_fields.find_first_set(); idx >= 0;
                idx = needed_fields.find_next_set(idx + 1))
           {
             std::map<unsigned, Reservation>::const_iterator finder =
                 padded_reservations->find(idx);
-#ifdef DEBUG_LEGION
-            assert(finder != padded_reservations->end());
-#endif
+            legion_assert(finder != padded_reservations->end());
             reservations[offset++] = finder->second;
           }
         }
       }
-#ifdef DEBUG_LEGION
-      assert(offset == reservations.size());
-#endif
+      legion_assert(offset == reservations.size());
       // Sort them before returning
       if (reservations.size() > 1)
         std::sort(reservations.begin(), reservations.end());
@@ -2798,12 +2683,7 @@ namespace Legion {
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      PhysicalManager* target = dynamic_cast<PhysicalManager*>(dc);
-      assert(target != nullptr);
-#else
-      PhysicalManager* target = static_cast<PhysicalManager*>(dc);
-#endif
+      PhysicalManager* target = legion_safe_cast<PhysicalManager*>(dc);
       std::vector<Reservation> reservations(needed_fields.pop_count());
       target->find_field_reservations(needed_fields, reservations);
       Serializer rez;
@@ -2823,10 +2703,8 @@ namespace Legion {
         const FieldMask& mask, const std::vector<Reservation>& reservations)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-      assert(mask.pop_count() == reservations.size());
-#endif
+      legion_assert(!is_owner());
+      legion_assert(mask.pop_count() == reservations.size());
       unsigned offset = 0;
       AutoLock i_lock(inst_lock);
       if (padded_reservations == nullptr)
@@ -2853,12 +2731,7 @@ namespace Legion {
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      PhysicalManager* target = dynamic_cast<PhysicalManager*>(dc);
-      assert(target != nullptr);
-#else
-      PhysicalManager* target = static_cast<PhysicalManager*>(dc);
-#endif
+      PhysicalManager* target = legion_safe_cast<PhysicalManager*>(dc);
       target->update_field_reservations(mask, reservations);
       Runtime::trigger_event(to_trigger);
     }

@@ -53,9 +53,7 @@ namespace Legion {
         runtime_call(false), priority(prioritize)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(implicit_mapper_call == nullptr);
-#endif
+      legion_assert(implicit_mapper_call == nullptr);
       manager->begin_mapper_call(this, prioritize);
       implicit_mapper_call = this;
     }
@@ -64,9 +62,7 @@ namespace Legion {
     MappingCallInfo::~MappingCallInfo(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(implicit_mapper_call == this);
-#endif
+      legion_assert(implicit_mapper_call == this);
       implicit_mapper_call = nullptr;
       manager->finish_mapper_call(this);
       if (profiling_ranges != nullptr)
@@ -91,9 +87,7 @@ namespace Legion {
       if (man->is_virtual_manager())
         return;
       PhysicalManager* manager = man->as_physical_manager();
-#ifdef DEBUG_LEGION
-      assert(acquired_instances != nullptr);
-#endif
+      legion_assert(acquired_instances != nullptr);
       std::map<PhysicalManager*, unsigned>& acquired = *(acquired_instances);
       std::map<PhysicalManager*, unsigned>::iterator finder =
           acquired.find(manager);
@@ -110,9 +104,7 @@ namespace Legion {
       if (man->is_virtual_manager())
         return;
       PhysicalManager* manager = man->as_physical_manager();
-#ifdef DEBUG_LEGION
-      assert(acquired_instances != nullptr);
-#endif
+      legion_assert(acquired_instances != nullptr);
       std::map<PhysicalManager*, unsigned>& acquired = *(acquired_instances);
       std::map<PhysicalManager*, unsigned>::iterator finder =
           acquired.find(manager);
@@ -231,9 +223,7 @@ namespace Legion {
             Mapper::SERIALIZED_NON_REENTRANT_MAPPER_MODEL)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(processor.exists());
-#endif
+      legion_assert(processor.exists());
       if (profile_mapper)
         runtime->profiler->record_mapper_name(
             mapper_id, processor, get_mapper_name());
@@ -752,9 +742,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
         implicit_mapper_call = nullptr;
-#endif
         MappingCallInfo ctx(this, HANDLE_MESSAGE_CALL, nullptr);
         mapper->handle_message(&ctx, *message);
       }
@@ -787,9 +775,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
         implicit_mapper_call = nullptr;
-#endif
         const MappingInstance instance(manager);
         MappingCallInfo ctx(this, HANDLE_INSTANCE_COLLECTION_CALL, nullptr);
         mapper->handle_instance_collection(&ctx, instance);
@@ -818,9 +804,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       static MAPPER_CALL_NAMES(call_names);
-#ifdef DEBUG_LEGION
-      assert(kind < LAST_MAPPER_CALL);
-#endif
+      legion_assert(kind < LAST_MAPPER_CALL);
       return call_names[kind];
     }
 
@@ -856,9 +840,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock m_lock(mapper_lock);
-#ifdef DEBUG_LEGION
-      assert(steal_blacklist.find(advertiser) != steal_blacklist.end());
-#endif
+      legion_assert(steal_blacklist.find(advertiser) != steal_blacklist.end());
       steal_blacklist.erase(advertiser);
     }
 
@@ -896,9 +878,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock m_lock(mapper_lock);
-#ifdef DEBUG_LEGION
-      assert(failed_thiefs.find(thief) == failed_thiefs.end());
-#endif
+      legion_assert(failed_thiefs.find(thief) == failed_thiefs.end());
       failed_thiefs.insert(thief);
     }
 
@@ -970,9 +950,7 @@ namespace Legion {
     bool SerializingManager::is_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(executing_call == info);
-#endif
+      legion_assert(executing_call == info);
       // No need to hold the lock here since we are exclusive
       return permit_reentrant;
     }
@@ -981,9 +959,7 @@ namespace Legion {
     void SerializingManager::enable_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(executing_call == info);
-#endif
+      legion_assert(executing_call == info);
       if (!allow_reentrant)
         REPORT_LEGION_ERROR(
             ERROR_MAPPER_SYNCHRONIZATION,
@@ -1007,9 +983,7 @@ namespace Legion {
     void SerializingManager::disable_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(executing_call == info);
-#endif
+      legion_assert(executing_call == info);
       if (!allow_reentrant)
         REPORT_LEGION_ERROR(
             ERROR_MAPPER_SYNCHRONIZATION,
@@ -1071,18 +1045,14 @@ namespace Legion {
       }
       if (precondition.exists() && !precondition.has_triggered())
         precondition.wait();
-#ifdef DEBUG_LEGION
-      assert(executing_call == info);
-#endif
+      legion_assert(executing_call == info);
     }
 
     //--------------------------------------------------------------------------
     void SerializingManager::pause_mapper_call(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!pending_pause_call.load());
-#endif
+      legion_assert(!pending_pause_call.load());
       // Set the flag indicating there is a paused mapper call that
       // needs to be handled, do this asynchronoulsy and check to
       // see if we lost the race later
@@ -1113,9 +1083,7 @@ namespace Legion {
       RtEvent wait_on;
       {
         AutoLock m_lock(mapper_lock);
-#ifdef DEBUG_LEGION
-        assert(paused_calls > 0);
-#endif
+        legion_assert(paused_calls > 0);
         paused_calls--;
         // If the executing call is ourself then we are the only ones
         // that are allowed to resume because reentrant is disabled
@@ -1136,18 +1104,14 @@ namespace Legion {
       }
       if (wait_on.exists())
         wait_on.wait();
-#ifdef DEBUG_LEGION
-      assert(executing_call == info);
-#endif
+      legion_assert(executing_call == info);
     }
 
     //--------------------------------------------------------------------------
     void SerializingManager::finish_mapper_call(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(executing_call == info);
-#endif
+      legion_assert(executing_call == info);
       // Record our finish time when we're done
       if (profile_mapper)
         implicit_profiler->record_mapper_call(
@@ -1160,9 +1124,7 @@ namespace Legion {
       // do the rest of the finish mapper call routine, we do this
       // to avoid the priority inversion that can occur where this
       // lock acquire gets stuck behind a bunch of pending ones
-#ifdef DEBUG_LEGION
-      assert(!pending_finish_call.load());
-#endif
+      legion_assert(!pending_finish_call.load());
       pending_finish_call.store(true);
       RtUserEvent to_trigger;
       {
@@ -1184,10 +1146,8 @@ namespace Legion {
     RtUserEvent SerializingManager::complete_pending_pause_mapper_call(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(pending_pause_call.load());
-      assert(!pending_finish_call.load());
-#endif
+      legion_assert(pending_pause_call.load());
+      legion_assert(!pending_finish_call.load());
       pending_pause_call.store(false);
       // Increment the count of the paused mapper calls
       paused_calls++;
@@ -1233,19 +1193,15 @@ namespace Legion {
     RtUserEvent SerializingManager::complete_pending_finish_mapper_call(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!pending_pause_call.load());
-      assert(pending_finish_call.load());
-      assert(executing_call != nullptr);
-#endif
+      legion_assert(!pending_pause_call.load());
+      legion_assert(pending_finish_call.load());
+      legion_assert(executing_call != nullptr);
       pending_finish_call.store(false);
       // If we allow reentrant calls then reset whether we are permitting
       // reentrant calls in case the user forgot to do it at the end of call
       if (allow_reentrant && !executing_call->reentrant)
       {
-#ifdef DEBUG_LEGION
-        assert(!permit_reentrant);
-#endif
+        legion_assert(!permit_reentrant);
         permit_reentrant = true;
       }
       // If there are high priority calls already running do those first

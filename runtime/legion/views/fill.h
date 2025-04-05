@@ -128,9 +128,7 @@ namespace Legion {
     inline FillView* LogicalView::as_fill_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_fill_view());
-#endif
+      legion_assert(is_fill_view());
       return static_cast<FillView*>(const_cast<LogicalView*>(this));
     }
 

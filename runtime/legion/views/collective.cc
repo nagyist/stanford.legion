@@ -48,27 +48,18 @@ namespace Legion {
                local_views.begin();
            it != local_views.end(); it++)
       {
-#ifdef DEBUG_LEGION
         // For collective instances we always want the logical analysis
         // node for the view to be on the same node as the owner for actual
         // physical instance to aid in our ability to do the analysis
         // See the get_analysis_space function for why we check this
-        assert((*it)->logical_owner == (*it)->get_manager()->owner_space);
-#endif
+        legion_assert(
+            (*it)->logical_owner == (*it)->get_manager()->owner_space);
         //(*it)->add_nested_resource_ref(did);
         (*it)->add_nested_gc_ref(did);
         // Record ourselves with each of our local views so they can
         // notify us when they are deleted
         PhysicalManager* manager = (*it)->get_manager();
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-        const bool subscribed =
-#endif
-#endif
-            manager->register_deletion_subscriber(this);
-#ifdef DEBUG_LEGION
-        assert(subscribed);
-#endif
+        legion_no_skip_assert(manager->register_deletion_subscriber(this));
       }
     }
 
@@ -124,9 +115,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_state == FULL_VALID_STATE);
-#endif
+      legion_assert(valid_state == FULL_VALID_STATE);
       sent_valid_references++;
     }
 
@@ -135,9 +124,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_state == FULL_VALID_STATE);
-#endif
+      legion_assert(valid_state == FULL_VALID_STATE);
       received_valid_references++;
     }
 
@@ -147,11 +134,9 @@ namespace Legion {
     {
       if (is_owner())
       {
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (valid_state == NOT_VALID_STATE) ||
             (valid_state == PENDING_INVALID_STATE));
-#endif
         // If we're not in a pending invalid state then send out the
         // notifications to all the nodes in the collective that we are
         // now valid they should hold valid references on all their local views
@@ -248,12 +233,10 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (valid_state == FULL_VALID_STATE) ||
             (valid_state == PENDING_INVALID_STATE));
-        assert(is_owner() || collective_mapping->contains(local_space));
-#endif
+        legion_assert(is_owner() || collective_mapping->contains(local_space));
         if (valid_state == FULL_VALID_STATE)
         {
           // This is a potential race with adding a valid reference for
@@ -311,9 +294,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert((invalidation_generation < generation) || is_owner());
-#endif
+        legion_assert((invalidation_generation < generation) || is_owner());
         // See if we're going to fail right away
         if (valid_state == FULL_VALID_STATE)
         {
@@ -425,9 +406,7 @@ namespace Legion {
         }
         else
           invalidation_failed = true;
-#ifdef DEBUG_LEGION
-        assert(remaining_invalidation_responses > 0);
-#endif
+        legion_assert(remaining_invalidation_responses > 0);
         if (--remaining_invalidation_responses == 0)
         {
           // Check that we are still not valid
@@ -660,10 +639,8 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(collective_mapping != nullptr);
-        assert(collective_mapping->contains(local_space));
-#endif
+        legion_assert(collective_mapping != nullptr);
+        legion_assert(collective_mapping->contains(local_space));
         // Send the notification down to the parent
         Serializer rez;
         rez.serialize(did);
@@ -715,12 +692,10 @@ namespace Legion {
         const bool fill_restricted, const bool need_valid_return)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should never have a copy-across with a collective manager as the target
-      assert(manage_dst_events);
-      assert(across_helper == nullptr);
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(manage_dst_events);
+      legion_assert(across_helper == nullptr);
+      legion_assert(collective_mapping != nullptr);
       // This one is easy, just tree broadcast out to all the nodes and
       // perform the fill operation on each one of them
       ApEvent result;
@@ -809,13 +784,11 @@ namespace Legion {
         const bool copy_restricted, const bool need_valid_return)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should never have a copy-across with a collective manager as the target
-      assert(manage_dst_events);
-      assert(across_helper == nullptr);
-      assert(collective_mapping != nullptr);
-      assert(reduction_op_id == src_view->get_redop());
-#endif
+      legion_assert(manage_dst_events);
+      legion_assert(across_helper == nullptr);
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(reduction_op_id == src_view->get_redop());
       // Several cases here:
       // 1. The source is a normal individual manager - in this case we'll issue
       //    the copy/reduction from the source to an instance on the closest
@@ -881,9 +854,7 @@ namespace Legion {
           {
             Runtime::trigger_event(
                 copy_done, all_bar, trace_info, applied_events);
-#ifdef DEBUG_LEGION
             copy_done = ApUserEvent::NO_AP_USER_EVENT;
-#endif
           }
         }
         const UniqueInst src_inst(source_view);
@@ -1085,9 +1056,7 @@ namespace Legion {
         const bool copy_restricted, const bool need_valid_return)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!sources.empty());
-#endif
+      legion_assert(!sources.empty());
       const AddressSpaceID origin = select_origin_space();
       if (origin != local_space)
       {
@@ -1130,12 +1099,10 @@ namespace Legion {
       {
         // We're on a node with a local instance, perform copies to
         // one of the local instances and then either broadcast or reduce
-#ifdef DEBUG_LEGION
-        assert(!local_views.empty());
-        assert(collective_mapping != nullptr);
-        assert(collective_mapping->contains(local_space));
-        assert((op != nullptr) || !copy_restricted);
-#endif
+        legion_assert(!local_views.empty());
+        legion_assert(collective_mapping != nullptr);
+        legion_assert(collective_mapping->contains(local_space));
+        legion_assert((op != nullptr) || !copy_restricted);
         const size_t op_ctx_index = op->get_context_index();
         CollectiveAnalysis* first_local_analysis = nullptr;
         if (!copy_restricted && ((op == nullptr) || trace_info.recording))
@@ -1145,9 +1112,7 @@ namespace Legion {
           // performing operations
           first_local_analysis = local_views.front()->find_collective_analysis(
               op_ctx_index, index, collective_match_space);
-#ifdef DEBUG_LEGION
-          assert(first_local_analysis != nullptr);
-#endif
+          legion_assert(first_local_analysis != nullptr);
           if (op == nullptr)
           {
             op = first_local_analysis->get_operation();
@@ -1156,9 +1121,7 @@ namespace Legion {
               first_local_analysis = nullptr;
           }
         }
-#ifdef DEBUG_LEGION
-        assert(op != nullptr);
-#endif
+        legion_assert(op != nullptr);
         const PhysicalTraceInfo& local_info =
             (first_local_analysis == nullptr) ?
                 trace_info :
@@ -1377,10 +1340,8 @@ namespace Legion {
               match_space, term_event, target, local_collective_arrivals,
               registered, applied_events, trace_info, symbolic);
       }
-#ifdef DEBUG_LEGION
-      assert(target->is_owner());
-      assert(analysis_mapping == nullptr);
-#endif
+      legion_assert(target->is_owner());
+      legion_assert(analysis_mapping == nullptr);
       // Iterate through our local views and find the view for the target
       for (unsigned idx = 0; idx < local_views.size(); idx++)
         if (local_views[idx]->get_manager() == target)
@@ -1446,11 +1407,9 @@ namespace Legion {
       if (!local_views.empty())
         return local_views.front()->get_manager()->meets_regions(
             regions, tight_bounds);
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (collective_mapping == nullptr) ||
           !collective_mapping->contains(local_space));
-#endif
       PhysicalManager* manager = nullptr;
       {
         AutoLock v_lock(view_lock, 1, false /*exclusive*/);
@@ -1474,9 +1433,7 @@ namespace Legion {
         if (!ready_event.has_triggered())
           ready_event.wait();
         AutoLock v_lock(view_lock, 1, false /*exclusive*/);
-#ifdef DEBUG_LEGION
-        assert(!remote_instances.empty());
-#endif
+        legion_assert(!remote_instances.empty());
         manager = remote_instances.begin()->first;
       }
       return manager->meets_regions(regions, tight_bounds);
@@ -1551,9 +1508,7 @@ namespace Legion {
 
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
-#ifdef DEBUG_LEGION
-      assert(!view->local_views.empty());
-#endif
+      legion_assert(!view->local_views.empty());
       Serializer rez;
       {
         RezCheck z2(rez);
@@ -1700,11 +1655,9 @@ namespace Legion {
               Realm::Machine::AffinityDetails affinity;
               if (runtime->machine.has_affinity(memory, local, &affinity))
               {
-#ifdef DEBUG_LEGION
-                assert(0 < affinity.bandwidth);
+                legion_assert(0 < affinity.bandwidth);
 #ifndef __clang__  // clang's idea of size_max is off by one
-                assert(affinity.bandwidth < size_max);
-#endif
+                legion_assert(affinity.bandwidth < size_max);
 #endif
                 if (bandwidth)
                 {
@@ -1721,11 +1674,9 @@ namespace Legion {
                 }
                 else
                 {
-#ifdef DEBUG_LEGION
-                  assert(0 < affinity.latency);
+                  legion_assert(0 < affinity.latency);
 #ifndef __clang__  // clang's idea of size_max is off by one
-                  assert(affinity.latency < size_max);
-#endif
+                  legion_assert(affinity.latency < size_max);
 #endif
                   searches[local] = affinity.latency;
                   if (affinity.latency <= best)
@@ -1758,17 +1709,13 @@ namespace Legion {
         AddressSpaceID origin, size_t best, bool bandwidth)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(collective_mapping != nullptr);
       const AddressSpaceID space = memory.address_space();
       if ((space != local_space) || !collective_mapping->contains(local_space))
       {
         if (collective_mapping->contains(space))
         {
-#ifdef DEBUG_LEGION
-          assert(source == local_space);
-#endif
+          legion_assert(source == local_space);
           // Assume that all memmories in the same space are always inherently
           // closer to the target memory than any others, so we can send the
           // request straight to that node and do the lookup
@@ -1860,9 +1807,7 @@ namespace Legion {
           }
           else
           {
-#ifdef DEBUG_LEGION
-            assert(source == local_space);
-#endif
+            legion_assert(source == local_space);
             // Send to the origin to start
             const RtUserEvent done = Runtime::create_rt_user_event();
             Serializer rez;
@@ -1956,11 +1901,9 @@ namespace Legion {
             Realm::Machine::AffinityDetails affinity;
             if (runtime->machine.has_affinity(memory, local, &affinity))
             {
-#ifdef DEBUG_LEGION
-              assert(0 < affinity.bandwidth);
+              legion_assert(0 < affinity.bandwidth);
 #ifndef __clang__  // clang's idea of size_max is off by one
-              assert(affinity.bandwidth < size_max);
-#endif
+              legion_assert(affinity.bandwidth < size_max);
 #endif
               if (bandwidth)
               {
@@ -1977,11 +1920,9 @@ namespace Legion {
               }
               else
               {
-#ifdef DEBUG_LEGION
-                assert(0 < affinity.latency);
+                legion_assert(0 < affinity.latency);
 #ifndef __clang__  // clang's idea of size_max is off by one
-                assert(affinity.latency < size_max);
-#endif
+                legion_assert(affinity.latency < size_max);
 #endif
                 searches[local] = affinity.latency;
                 if (affinity.latency <= best)
@@ -2113,9 +2054,7 @@ namespace Legion {
         AddressSpaceID destination) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(collective_mapping != nullptr);
       // 1. If the collective manager has instances on the same node
       //    as the destination then we'll use one of them
       if (collective_mapping->contains(destination))
@@ -2170,14 +2109,10 @@ namespace Legion {
               found = true;
               break;
             }
-#ifdef DEBUG_LEGION
-            assert(found);
-#endif
+            legion_assert(found);
           }
         }
-#ifdef DEBUG_LEGION
-        assert(!to_send.empty());
-#endif
+        legion_assert(!to_send.empty());
         rez.serialize<size_t>(to_send.size());
         for (std::set<DistributedID>::const_iterator it = to_send.begin();
              it != to_send.end(); it++)
@@ -2192,9 +2127,7 @@ namespace Legion {
         RtEvent view_ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!fields.empty());
-#endif
+      legion_assert(!fields.empty());
       const Processor local_proc = Processor::get_executing_processor();
       for (unsigned idx = 0; idx < fields.size(); idx++)
       {
@@ -2345,13 +2278,11 @@ namespace Legion {
         const bool symbolic)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_views.empty());
-      assert(
+      legion_assert(!local_views.empty());
+      legion_assert(
           ((collective_mapping != nullptr) &&
            collective_mapping->contains(local_space)) ||
           is_owner());
-#endif
       const unsigned target_index = find_local_index(target);
       // We performing a collective analysis, this function performs a
       // parallel rendezvous to ensure several important invariants.
@@ -2438,11 +2369,9 @@ namespace Legion {
         {
           // First local arrival, but rendezvous was made by a remote
           // arrival so we need to make the ready event
-#ifdef DEBUG_LEGION
-          assert(finder->second.ready_events.empty());
-          assert(finder->second.local_term_events.empty());
-          assert(finder->second.trace_info == nullptr);
-#endif
+          legion_assert(finder->second.ready_events.empty());
+          legion_assert(finder->second.local_term_events.empty());
+          legion_assert(finder->second.trace_info == nullptr);
           finder->second.local_term_events.resize(local_views.size());
           finder->second.ready_events.resize(local_views.size());
           for (unsigned idx = 0; idx < local_views.size(); idx++)
@@ -2472,10 +2401,8 @@ namespace Legion {
         ApEvent result = finder->second.ready_events[target_index];
         result_info = finder->second.trace_info;
         expr = finder->second.expr;
-#ifdef DEBUG_LEGION
-        assert(finder->second.local_initialized);
-        assert(finder->second.remaining_local_arrivals > 0);
-#endif
+        legion_assert(finder->second.local_initialized);
+        legion_assert(finder->second.remaining_local_arrivals > 0);
         // See if we've seen all the arrivals
         if (--finder->second.remaining_local_arrivals == 0)
         {
@@ -2546,9 +2473,7 @@ namespace Legion {
         else  // Not the last local arrival so we can just return the result
           return result;
       }
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       finalize_collective_user(
           usage, user_mask, expr, op_id, op_ctx_index, index, match_space,
           local_registered, global_registered, local_applied, global_applied,
@@ -2576,9 +2501,7 @@ namespace Legion {
         const IndexSpaceID match_space, RtEvent registered, RtEvent applied)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_views.empty());
-#endif
+      legion_assert(!local_views.empty());
       UserRendezvous to_perform;
       const RendezvousKey key(op_ctx_index, index, match_space);
       {
@@ -2604,9 +2527,7 @@ namespace Legion {
         }
         finder->second.remote_registered.emplace_back(registered);
         finder->second.remote_applied.emplace_back(applied);
-#ifdef DEBUG_LEGION
-        assert(finder->second.remaining_remote_arrivals > 0);
-#endif
+        legion_assert(finder->second.remaining_remote_arrivals > 0);
         // If we're not the last arrival then we're done
         if ((--finder->second.remaining_remote_arrivals > 0) ||
             !finder->second.local_initialized ||
@@ -2643,18 +2564,14 @@ namespace Legion {
           runtime->send_collective_register_user_request(parent, rez);
           return;
         }
-#ifdef DEBUG_LEGION
-        assert(finder->second.remaining_analyses == 0);
-#endif
+        legion_assert(finder->second.remaining_analyses == 0);
         // We're the owner so we can start doing the user registration
         // Grab everything we need to call finalize_collective_user
         to_perform = std::move(finder->second);
         // Then we can erase the entry
         rendezvous_users.erase(finder);
       }
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       finalize_collective_user(
           to_perform.usage, *(to_perform.mask), to_perform.expr,
           to_perform.op_id, op_ctx_index, index, match_space,
@@ -2713,10 +2630,8 @@ namespace Legion {
         const RtEvent applied)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-      assert(!local_views.empty());
-#endif
+      legion_assert(!is_owner());
+      legion_assert(!local_views.empty());
       UserRendezvous to_perform;
       const RendezvousKey key(op_ctx_index, index, match_space);
       {
@@ -2724,10 +2639,8 @@ namespace Legion {
         // Check to see if we're the first one to arrive on this node
         std::map<RendezvousKey, UserRendezvous>::iterator finder =
             rendezvous_users.find(key);
-#ifdef DEBUG_LEGION
-        assert(finder != rendezvous_users.end());
-        assert(finder->second.remaining_analyses == 0);
-#endif
+        legion_assert(finder != rendezvous_users.end());
+        legion_assert(finder->second.remaining_analyses == 0);
         to_perform = std::move(finder->second);
         // Can now remove this from the data structure
         rendezvous_users.erase(finder);
@@ -2804,10 +2717,8 @@ namespace Legion {
              it != children.end(); it++)
           runtime->send_collective_register_user_response(*it, rez);
       }
-#ifdef DEBUG_LEGION
-      assert(local_views.size() == term_events.size());
-      assert(local_views.size() == ready_events.size());
-#endif
+      legion_assert(local_views.size() == term_events.size());
+      legion_assert(local_views.size() == ready_events.size());
       // Perform the registration on the local views
       std::vector<RtEvent> registered_events;
       std::set<RtEvent> applied_events;
@@ -2842,9 +2753,7 @@ namespace Legion {
       delete trace_info;
       // Remove the valid reference that we added for registration
       AutoLock v_lock(view_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_references > 0);
-#endif
+      legion_assert(valid_references > 0);
 #ifdef DEBUG_LEGION_GC
       if ((--valid_references) == 0)
 #else
@@ -2864,11 +2773,9 @@ namespace Legion {
         AddressSpaceID origin, const bool fill_restricted)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-      assert(collective_mapping->contains(local_space));
-      assert((op != nullptr) || !fill_restricted);
-#endif
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(collective_mapping->contains(local_space));
+      legion_assert((op != nullptr) || !fill_restricted);
       CollectiveAnalysis* first_local_analysis = nullptr;
       if (!fill_restricted && ((op == nullptr) || trace_info.recording))
       {
@@ -2877,9 +2784,7 @@ namespace Legion {
         // performing operations
         first_local_analysis = local_views.front()->find_collective_analysis(
             op_context_index, index, match_space);
-#ifdef DEBUG_LEGION
-        assert(first_local_analysis != nullptr);
-#endif
+        legion_assert(first_local_analysis != nullptr);
         if (op == nullptr)
         {
           op = first_local_analysis->get_operation();
@@ -2888,16 +2793,12 @@ namespace Legion {
             first_local_analysis = nullptr;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(op != nullptr);
-#endif
+      legion_assert(op != nullptr);
       const PhysicalTraceInfo& local_info =
           (first_local_analysis == nullptr) ?
               trace_info :
               first_local_analysis->get_trace_info();
-#ifdef DEBUG_LEGION
-      assert(local_info.recording == trace_info.recording);
-#endif
+      legion_assert(local_info.recording == trace_info.recording);
       // Send it on to any children in the broadcast tree first
       std::vector<AddressSpaceID> children;
       collective_mapping->get_children(origin, local_space, children);
@@ -2998,9 +2899,7 @@ namespace Legion {
       // Use the trace info for doing the trigger if necessary
       if (!ready_events.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(ready_event.exists());
-#endif
+        legion_assert(ready_event.exists());
         Runtime::trigger_event(
             ready_event, Runtime::merge_events(&local_info, ready_events),
             trace_info, applied_events);
@@ -3115,18 +3014,14 @@ namespace Legion {
         CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_views.empty());
-      assert(collective_mapping != nullptr);
-      assert(collective_mapping->contains(local_space));
-#endif
+      legion_assert(!local_views.empty());
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(collective_mapping->contains(local_space));
       // Figure out which instance we're going to use for the copy
       unsigned instance_index = 0;
       if (src_inst_did > 0)
       {
-#ifdef DEBUG_LEGION
         instance_index = UINT_MAX;
-#endif
         for (unsigned idx = 0; idx < local_views.size(); idx++)
         {
           PhysicalManager* manager = local_views[idx]->get_manager();
@@ -3135,9 +3030,7 @@ namespace Legion {
           instance_index = idx;
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(instance_index != UINT_MAX);
-#endif
+        legion_assert(instance_index != UINT_MAX);
       }
       else if (instances.size() > 1)
       {
@@ -3298,13 +3191,11 @@ namespace Legion {
         const CollectiveKind collective_kind)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(copy_done.exists());
-      assert(!local_views.empty());
-      assert(collective_mapping != nullptr);
-      assert(collective_mapping->contains(local_space));
-      assert((op != nullptr) || !copy_restricted);
-#endif
+      legion_assert(copy_done.exists());
+      legion_assert(!local_views.empty());
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(collective_mapping->contains(local_space));
+      legion_assert((op != nullptr) || !copy_restricted);
       CollectiveAnalysis* first_local_analysis = nullptr;
       if (!copy_restricted && ((op == nullptr) || trace_info.recording))
       {
@@ -3313,9 +3204,7 @@ namespace Legion {
         // performing operations
         first_local_analysis = local_views.front()->find_collective_analysis(
             op_ctx_index, index, match_space);
-#ifdef DEBUG_LEGION
-        assert(first_local_analysis != nullptr);
-#endif
+        legion_assert(first_local_analysis != nullptr);
         if (op == nullptr)
         {
           op = first_local_analysis->get_operation();
@@ -3324,9 +3213,7 @@ namespace Legion {
             first_local_analysis = nullptr;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(op != nullptr);
-#endif
+      legion_assert(op != nullptr);
       const PhysicalTraceInfo& local_info =
           (first_local_analysis == nullptr) ?
               trace_info :
@@ -3527,12 +3414,10 @@ namespace Legion {
         const size_t op_ctx_index, const IndexSpaceID match_space)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_views.empty());
-      assert(
+      legion_assert(!local_views.empty());
+      legion_assert(
           !has_instance_events ||
           (destination_events.size() == local_views.size()));
-#endif
       if (local_views.size() == 1)
         return;
       const UniqueID op_id = op->get_unique_op_id();
@@ -3562,12 +3447,11 @@ namespace Legion {
                  spanning_copies.begin();
              it != spanning_copies.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->first != it->second);
-          assert(it->second != src_index);
-          assert(has_instance_events || !local_events[it->second].exists());
-          assert(!local_fields[it->first].empty());
-#endif
+          legion_assert(it->first != it->second);
+          legion_assert(it->second != src_index);
+          legion_assert(
+              has_instance_events || !local_events[it->second].exists());
+          legion_assert(!local_fields[it->first].empty());
           IndividualView* local_view = local_views[it->first];
           PhysicalManager* local_manager = local_view->get_manager();
           IndividualView* dst_view = local_views[it->second];
@@ -3738,17 +3622,13 @@ namespace Legion {
             first_in_memory[memory] = UINT_MAX;  // not set yet
         }
       }
-#ifdef DEBUG_LEGION
-      assert(first_in_memory.size() > 1);  // should be multiple memories
-#endif
+      legion_assert(first_in_memory.size() > 1);  // should be multiple memories
       const size_t total_memories = first_in_memory.size();
       // Figure out what the index is of the root memory
       std::map<Memory, unsigned>::iterator root_finder = first_in_memory.find(
           local_views[root_index]->get_manager()->memory_manager->memory);
-#ifdef DEBUG_LEGION
       // Better be able to find it
-      assert(root_finder != first_in_memory.end());
-#endif
+      legion_assert(root_finder != first_in_memory.end());
       const unsigned root_memory_index =
           std::distance(first_in_memory.begin(), root_finder);
       // Next construct an adjacency matrix between the memories with edges
@@ -3806,9 +3686,7 @@ namespace Legion {
           {
             if (previous[child] != next.first)
               continue;
-#ifdef DEBUG_LEGION
-            assert(max_subtree_depth[child] != UINT_MAX);
-#endif
+            legion_assert(max_subtree_depth[child] != UINT_MAX);
             unsigned depth = max_subtree_depth[child] + 1;
             if (max_depth < depth)
               max_depth = depth;
@@ -3837,9 +3715,7 @@ namespace Legion {
         {
           if (previous[child] != next.first)
             continue;
-#ifdef DEBUG_LEGION
-          assert(it->second != UINT_MAX);
-#endif
+          legion_assert(it->second != UINT_MAX);
           child_depths.emplace_back(
               std::make_pair(max_subtree_depth[child], it->second));
           // Add the child to the queue to traverse next
@@ -3857,10 +3733,8 @@ namespace Legion {
         }
         bfs_queue.pop_front();
       }
-#ifdef DEBUG_LEGION
       // Should have a copy into every memory except the root one
-      assert(spanning.size() == (total_memories - 1));
-#endif
+      legion_assert(spanning.size() == (total_memories - 1));
       if (total_memories < local_views.size())
       {
         // Record copies to all instances that share memories
@@ -3873,10 +3747,8 @@ namespace Legion {
               local_views[idx]->get_manager()->memory_manager->memory;
           std::map<Memory, unsigned>::const_iterator finder =
               first_in_memory.find(memory);
-#ifdef DEBUG_LEGION
-          assert(finder != first_in_memory.end());
-          assert(finder->second < local_views.size());
-#endif
+          legion_assert(finder != first_in_memory.end());
+          legion_assert(finder->second < local_views.size());
           // If this view is not the first one to be copied to in
           // this memory then we need to issue a copy from the
           // first one to be assigned in this memory
@@ -3885,10 +3757,8 @@ namespace Legion {
                 std::pair<unsigned, unsigned>(finder->second, idx));
         }
       }
-#ifdef DEBUG_LEGION
       // Should have a copy into every view except the root one
-      assert(spanning.size() == (local_views.size() - 1));
-#endif
+      legion_assert(spanning.size() == (local_views.size() - 1));
       // Save the result if it doesn't exist yet
       AutoLock v_lock(view_lock);
       std::vector<std::pair<unsigned, unsigned> >& result =
@@ -3920,11 +3790,9 @@ namespace Legion {
               affinity, it1->first, it2->first);
           if (count == 0)
             continue;
-#ifdef DEBUG_LEGION
-          assert(count == 1);
-          assert(affinity.front().bandwidth > 0);
-          assert(affinity.front().bandwidth < UINT_MAX);
-#endif
+          legion_assert(count == 1);
+          legion_assert(affinity.front().bandwidth > 0);
+          legion_assert(affinity.front().bandwidth < UINT_MAX);
           unsigned bandwidth = affinity.front().bandwidth;
           float cost = 1.f / bandwidth;
           // Assume symmetric bandwidth here
@@ -3967,9 +3835,7 @@ namespace Legion {
           dfs_stack.emplace_back(idx);
         }
       }
-#ifdef DEBUG_LEGION
-      assert(total_reachable <= total_memories);
-#endif
+      legion_assert(total_reachable <= total_memories);
       // Handle the case where not all the memories are reachable with
       // direct copies from the source memory
       if (total_reachable < total_memories)
@@ -3999,9 +3865,7 @@ namespace Legion {
           }
         }
       }
-#ifdef DEBUG_LEGION
-      assert(same_bandwidth != 0);
-#endif
+      legion_assert(same_bandwidth != 0);
       return (same_bandwidth != UINT_MAX);
     }
 
@@ -4037,9 +3901,7 @@ namespace Legion {
           // Find the first local view in this memory
           std::map<Memory, unsigned>::iterator finder = first_in_memory.begin();
           std::advance(finder, child);
-#ifdef DEBUG_LEGION
-          assert(finder->second == UINT_MAX);
-#endif
+          legion_assert(finder->second == UINT_MAX);
           for (unsigned idx = 0; idx < local_views.size(); idx++)
           {
             if (local_views[idx]->get_manager()->memory_manager->memory !=
@@ -4048,9 +3910,7 @@ namespace Legion {
             finder->second = idx;
             break;
           }
-#ifdef DEBUG_LEGION
-          assert(finder->second != UINT_MAX);
-#endif
+          legion_assert(finder->second != UINT_MAX);
           // Record it in the spanning
           previous[child] = next.first;
           // Add it the child to list to search
@@ -4116,9 +3976,7 @@ namespace Legion {
           // Find the first local view in this memory
           std::map<Memory, unsigned>::iterator finder = first_in_memory.begin();
           std::advance(finder, lowest_child);
-#ifdef DEBUG_LEGION
-          assert(finder->second == UINT_MAX);
-#endif
+          legion_assert(finder->second == UINT_MAX);
           for (unsigned idx = 0; idx < local_views.size(); idx++)
           {
             if (local_views[idx]->get_manager()->memory_manager->memory !=
@@ -4127,10 +3985,8 @@ namespace Legion {
             finder->second = idx;
             break;
           }
-#ifdef DEBUG_LEGION
-          assert(finder->second != UINT_MAX);
-          assert(previous[lowest_child] == UINT_MAX);
-#endif
+          legion_assert(finder->second != UINT_MAX);
+          legion_assert(previous[lowest_child] == UINT_MAX);
           // Record it in the spanning
           previous[lowest_child] = next;
           // Add the child to list to search
@@ -4259,15 +4115,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ReductionOpID src_redop = source->get_redop();
-#ifdef DEBUG_LEGION
-      assert(src_redop > 0);
-      assert(!local_views.empty());
-      assert(collective_mapping != nullptr);
-      assert(collective_mapping->contains(local_space));
-      assert((op != nullptr) || !copy_restricted);
+      legion_assert(src_redop > 0);
+      legion_assert(!local_views.empty());
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(collective_mapping->contains(local_space));
+      legion_assert((op != nullptr) || !copy_restricted);
       // Only one of these should be valid
-      assert(reduce_done.exists() != all_bar.exists());
-#endif
+      legion_assert(reduce_done.exists() != all_bar.exists());
       // If we have any children, broadcast this out to the first in parallel
       std::vector<AddressSpaceID> children;
       collective_mapping->get_children(origin, local_space, children);
@@ -4335,9 +4189,7 @@ namespace Legion {
         // performing operations
         first_local_analysis = local_views.front()->find_collective_analysis(
             op_ctx_index, index, match_space);
-#ifdef DEBUG_LEGION
-        assert(first_local_analysis != nullptr);
-#endif
+        legion_assert(first_local_analysis != nullptr);
         if (op == nullptr)
         {
           op = first_local_analysis->get_operation();
@@ -4346,9 +4198,7 @@ namespace Legion {
             first_local_analysis = nullptr;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(op != nullptr);
-#endif
+      legion_assert(op != nullptr);
       const PhysicalTraceInfo& local_info =
           (first_local_analysis == nullptr) ?
               trace_info :
@@ -4534,11 +4384,9 @@ namespace Legion {
         AddressSpaceID target, const bool copy_restricted)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(op != nullptr);
-      assert(collective_mapping != nullptr);
-      assert(collective_mapping->contains(target));
-#endif
+      legion_assert(op != nullptr);
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(collective_mapping->contains(target));
       if (target != local_space)
       {
         // Send this to where the target address space is
@@ -4568,9 +4416,7 @@ namespace Legion {
         applied_events.insert(applied);
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(!instances.empty());
-#endif
+      legion_assert(!instances.empty());
       const UniqueID op_id = op->get_unique_op_id();
       IndividualView* local_view = local_views.front();
       // Perform the collective reduction first on the source
@@ -4887,11 +4733,9 @@ namespace Legion {
         const uint64_t allreduce_tag, const bool copy_restricted)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_views.empty());
-      assert(collective_mapping->contains(local_space));
-      assert((op != nullptr) || !copy_restricted);
-#endif
+      legion_assert(!local_views.empty());
+      legion_assert(collective_mapping->contains(local_space));
+      legion_assert((op != nullptr) || !copy_restricted);
       CollectiveAnalysis* first_local_analysis = nullptr;
       if (!copy_restricted && ((op == nullptr) || trace_info.recording))
       {
@@ -4900,9 +4744,7 @@ namespace Legion {
         // performing operations
         first_local_analysis = local_views.front()->find_collective_analysis(
             op_ctx_index, index, match_space);
-#ifdef DEBUG_LEGION
-        assert(first_local_analysis != nullptr);
-#endif
+        legion_assert(first_local_analysis != nullptr);
         if (op == nullptr)
         {
           op = first_local_analysis->get_operation();
@@ -4911,9 +4753,7 @@ namespace Legion {
             first_local_analysis = nullptr;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(op != nullptr);
-#endif
+      legion_assert(op != nullptr);
       const PhysicalTraceInfo& local_info =
           (first_local_analysis == nullptr) ?
               trace_info :
@@ -4976,13 +4816,11 @@ namespace Legion {
       // to perform the all-reduce before issuing the pointwise copies
       if (source->is_allreduce_view())
       {
-#ifdef DEBUG_LEGION
         // Better have the same collective mappings if we're doing all-reduce
-        assert(
+        legion_assert(
             (collective_mapping == source->collective_mapping) ||
             ((*collective_mapping) == (*(source->collective_mapping))));
-        assert(source->is_reduction_kind());
-#endif
+        legion_assert(source->is_reduction_kind());
         AllreduceView* allreduce = source->as_allreduce_view();
         allreduce->perform_collective_allreduce(
             precondition, predicate_guard, copy_expression, op, index,

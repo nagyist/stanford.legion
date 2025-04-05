@@ -34,9 +34,7 @@ namespace Legion {
         root_uid(runtime->get_unique_operation_id())
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(p.exists());
-#endif
+      legion_assert(p.exists());
       set_executing_processor(p);
       // This coordinate represents the name of the unique top-level task
       // launched by this instance of the Legion runtime
@@ -128,9 +126,7 @@ namespace Legion {
     InnerContext* TopLevelContext::find_top_context(InnerContext* previous)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(previous != nullptr);
-#endif
+      legion_assert(previous != nullptr);
       return previous;
     }
 

@@ -343,7 +343,7 @@ legion_domain_point_t legion_domain_point_iterator_next(
       legion_rect_in_domain_iterator_create_##N##d(legion_domain_t handle_)  \
   {                                                                          \
     Domain domain = CObjectWrapper::unwrap(handle_);                         \
-    assert(domain.dim == N);                                                 \
+    legion_assert(domain.dim == N);                                          \
     RectInDomainIterator<N, coord_t>* itr =                                  \
         new RectInDomainIterator<N, coord_t>(domain);                        \
     return CObjectWrapper::wrap(itr);                                        \
@@ -460,7 +460,7 @@ void legion_domain_coloring_color_domain(
   DomainColoring* dc = CObjectWrapper::unwrap(dc_);
   Domain domain = CObjectWrapper::unwrap(domain_);
   // Must be dense or tracking of ownership for sparsity maps is broken
-  assert(domain.dense());
+  legion_assert(domain.dense());
   (*dc)[color] = domain;
 }
 
@@ -536,7 +536,7 @@ void legion_domain_point_coloring_color_domain(
   DomainPointColoring* handle = CObjectWrapper::unwrap(handle_);
   DomainPoint color = CObjectWrapper::unwrap(color_);
   Domain domain = CObjectWrapper::unwrap(domain_);
-  assert(handle->count(color) == 0);
+  legion_assert(handle->count(color) == 0);
   (*handle)[color] = domain;
 }
 
@@ -820,9 +820,7 @@ legion_index_partition_t legion_index_partition_create_coloring(
       domains[color] = DomainT<1, coord_t>(space);
     }
   }
-#ifdef DEBUG_LEGION
-  assert(lower_bound <= upper_bound);
-#endif
+  legion_assert(lower_bound <= upper_bound);
   // Make the color space
   Rect<1, coord_t> color_space(
       (Point<1, coord_t>(lower_bound)), (Point<1, coord_t>(upper_bound)));
@@ -851,7 +849,7 @@ legion_index_partition_t legion_index_partition_create_domain_coloring(
   // Ensure all colors exist in coloring.
   for (Domain::DomainPointIterator c(color_space); c; c++)
   {
-    assert(c.p.get_dim() <= 1);
+    legion_assert(c.p.get_dim() <= 1);
     (*coloring)[c.p[0]];
   }
 
@@ -861,7 +859,7 @@ legion_index_partition_t legion_index_partition_create_domain_coloring(
   {
     Point<1, coord_t> color(it->first);
     // Must be dense or tracking ownership of sparsity maps is broken
-    assert(it->second.dense());
+    legion_assert(it->second.dense());
     domains[color] = it->second;
   }
   // Make an index space for the color space
@@ -1359,7 +1357,7 @@ legion_index_partition_t legion_index_partition_create_by_domain(
   {
     Domain domain = CObjectWrapper::unwrap(domains_[idx]);
     // Must be dense or tracking of sparsity map references is broken
-    assert(domain.dense());
+    legion_assert(domain.dense());
     domains[CObjectWrapper::unwrap(colors_[idx])] = domain;
   }
 
@@ -2438,7 +2436,7 @@ legion_field_id_t legion_region_requirement_get_privilege_field(
     legion_region_requirement_t req_, unsigned idx)
 {
   RegionRequirement* req = CObjectWrapper::unwrap(req_);
-  assert(idx < req->instance_fields.size());
+  legion_assert(idx < req->instance_fields.size());
 
   std::set<FieldID>::iterator itr = req->privilege_fields.begin();
   for (unsigned i = 0; i < idx; ++i, ++itr);
@@ -2469,7 +2467,7 @@ legion_field_id_t legion_region_requirement_get_instance_field(
 {
   RegionRequirement* req = CObjectWrapper::unwrap(req_);
 
-  assert(idx < req->instance_fields.size());
+  legion_assert(idx < req->instance_fields.size());
   return req->instance_fields[idx];
 }
 
@@ -4766,7 +4764,7 @@ legion_region_requirement_t legion_copy_get_requirement(
     return CObjectWrapper::wrap(&copy->src_indirect_requirements[idx]);
   else
     idx -= copy->src_indirect_requirements.size();
-  assert(idx < copy->dst_indirect_requirements.size());
+  legion_assert(idx < copy->dst_indirect_requirements.size());
   return CObjectWrapper::wrap(&copy->dst_indirect_requirements[idx]);
 }
 
@@ -5755,7 +5753,7 @@ legion_context_t legion_runtime_get_context()
 void legion_context_destroy(legion_context_t cctx_)
 {
   CContext* cctx = CObjectWrapper::unwrap(cctx_);
-  assert(
+  legion_assert(
       cctx->num_regions() == 0 &&
       "do not manually destroy automatically created contexts");
   delete cctx;
@@ -5827,12 +5825,10 @@ void legion_sharding_functor_invert(
   Domain shard_domain = CObjectWrapper::unwrap(shard_domain_);
   Domain full_domain = CObjectWrapper::unwrap(full_domain_);
   ShardingFunctor* functor = Runtime::get_sharding_functor(sid);
-#ifdef DEBUG_LEGION
-  assert(functor->is_invertible());
-#endif
+  legion_assert(functor->is_invertible());
   std::vector<DomainPoint> points;
   functor->invert(shard, shard_domain, full_domain, total_shards, points);
-  assert(*points_size >= points.size());
+  legion_assert(*points_size >= points.size());
   *points_size = points.size();
   for (size_t i = 0; i < points.size(); ++i)
   {
@@ -5932,7 +5928,7 @@ legion_field_id_t legion_physical_region_get_field_id(
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   std::vector<FieldID> fields;
   handle->get_fields(fields);
-  assert((index < fields.size()));
+  legion_assert((index < fields.size()));
   return fields[index];
 }
 
@@ -5953,7 +5949,7 @@ legion_memory_t legion_physical_region_get_memory(
   std::set<Memory>::iterator it = memories.begin();
   for (size_t i = 0; i < index; i++, it++)
   {
-    assert(it != memories.end());
+    legion_assert(it != memories.end());
   }
   return CObjectWrapper::wrap(*it);
 }
@@ -6018,7 +6014,7 @@ legion_accessor_array_1d_t
   UnsafeFieldAccessor<
       char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 1);
+  legion_assert(domtrans.transform.n == 1);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6051,7 +6047,7 @@ legion_accessor_array_2d_t
   UnsafeFieldAccessor<
       char, 2, coord_t, Realm::AffineAccessor<char, 2, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 2);
+  legion_assert(domtrans.transform.n == 2);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6084,7 +6080,7 @@ legion_accessor_array_3d_t
   UnsafeFieldAccessor<
       char, 3, coord_t, Realm::AffineAccessor<char, 3, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 3);
+  legion_assert(domtrans.transform.n == 3);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6117,7 +6113,7 @@ legion_accessor_array_4d_t
   UnsafeFieldAccessor<
       char, 4, coord_t, Realm::AffineAccessor<char, 4, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 4);
+  legion_assert(domtrans.transform.n == 4);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6150,7 +6146,7 @@ legion_accessor_array_5d_t
   UnsafeFieldAccessor<
       char, 5, coord_t, Realm::AffineAccessor<char, 5, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 5);
+  legion_assert(domtrans.transform.n == 5);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6183,7 +6179,7 @@ legion_accessor_array_6d_t
   UnsafeFieldAccessor<
       char, 6, coord_t, Realm::AffineAccessor<char, 6, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 6);
+  legion_assert(domtrans.transform.n == 6);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6216,7 +6212,7 @@ legion_accessor_array_7d_t
   UnsafeFieldAccessor<
       char, 7, coord_t, Realm::AffineAccessor<char, 7, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 7);
+  legion_assert(domtrans.transform.n == 7);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6249,7 +6245,7 @@ legion_accessor_array_8d_t
   UnsafeFieldAccessor<
       char, 8, coord_t, Realm::AffineAccessor<char, 8, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 8);
+  legion_assert(domtrans.transform.n == 8);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6282,7 +6278,7 @@ legion_accessor_array_9d_t
   UnsafeFieldAccessor<
       char, 9, coord_t, Realm::AffineAccessor<char, 9, coord_t> >* accessor =
       nullptr;
-  assert(domtrans.transform.n == 9);
+  legion_assert(domtrans.transform.n == 9);
   switch (domtrans.transform.m)
   {
 #define AFFINE(DIM)                                                    \
@@ -6424,7 +6420,7 @@ legion_task_t legion_mappable_as_task(legion_mappable_t mappable_)
 {
   Mappable* mappable = CObjectWrapper::unwrap(mappable_);
   Task* task = const_cast<Task*>(mappable->as_task());
-  assert(task != nullptr);
+  legion_assert(task != nullptr);
 
   return CObjectWrapper::wrap(task);
 }
@@ -6433,7 +6429,7 @@ legion_copy_t legion_mappable_as_copy(legion_mappable_t mappable_)
 {
   Mappable* mappable = CObjectWrapper::unwrap(mappable_);
   Copy* copy = const_cast<Copy*>(mappable->as_copy());
-  assert(copy != nullptr);
+  legion_assert(copy != nullptr);
 
   return CObjectWrapper::wrap(copy);
 }
@@ -6442,7 +6438,7 @@ legion_fill_t legion_mappable_as_fill(legion_mappable_t mappable_)
 {
   Mappable* mappable = CObjectWrapper::unwrap(mappable_);
   Fill* fill = const_cast<Fill*>(mappable->as_fill());
-  assert(fill != nullptr);
+  legion_assert(fill != nullptr);
 
   return CObjectWrapper::wrap(fill);
 }
@@ -6451,7 +6447,7 @@ legion_inline_t legion_mappable_as_inline_mapping(legion_mappable_t mappable_)
 {
   Mappable* mappable = CObjectWrapper::unwrap(mappable_);
   InlineMapping* mapping = const_cast<InlineMapping*>(mappable->as_inline());
-  assert(mapping != nullptr);
+  legion_assert(mapping != nullptr);
 
   return CObjectWrapper::wrap(mapping);
 }
@@ -6617,7 +6613,7 @@ legion_region_requirement_t legion_task_get_requirement(
     legion_task_t task_, unsigned idx)
 {
   Task* task = CObjectWrapper::unwrap(task_);
-  assert(idx < task->regions.size());
+  legion_assert(idx < task->regions.size());
 
   return CObjectWrapper::wrap(&task->regions[idx]);
 }
@@ -7041,15 +7037,15 @@ public:
   {
     if (functional)
     {
-      assert(!region_functor_mappable);
-      assert(!partition_functor_mappable);
+      legion_assert(!region_functor_mappable);
+      legion_assert(!partition_functor_mappable);
     }
     else
     {
-      assert(!region_functor);
-      assert(!partition_functor);
-      assert(!region_functor_args);
-      assert(!partition_functor_args);
+      legion_assert(!region_functor);
+      legion_assert(!partition_functor);
+      legion_assert(!region_functor_args);
+      legion_assert(!partition_functor_args);
     }
   }
 
@@ -7071,15 +7067,15 @@ public:
   {
     if (functional)
     {
-      assert(!region_functor_mappable);
-      assert(!partition_functor_mappable);
+      legion_assert(!region_functor_mappable);
+      legion_assert(!partition_functor_mappable);
     }
     else
     {
-      assert(!region_functor);
-      assert(!partition_functor);
-      assert(!region_functor_args);
-      assert(!partition_functor_args);
+      legion_assert(!region_functor);
+      legion_assert(!partition_functor);
+      legion_assert(!region_functor_args);
+      legion_assert(!partition_functor_args);
     }
   }
 
@@ -7136,7 +7132,7 @@ public:
     legion_domain_point_t point_ = CObjectWrapper::wrap(point);
     legion_domain_t launch_domain_ = CObjectWrapper::wrap(launch_domain);
 
-    assert(region_functor);
+    legion_assert(region_functor);
     legion_logical_region_t result =
         region_functor(runtime_, upper_bound_, point_, launch_domain_);
     return CObjectWrapper::unwrap(result);
@@ -7151,7 +7147,7 @@ public:
     legion_domain_point_t point_ = CObjectWrapper::wrap(point);
     legion_domain_t launch_domain_ = CObjectWrapper::wrap(launch_domain);
 
-    assert(partition_functor);
+    legion_assert(partition_functor);
     legion_logical_region_t result =
         partition_functor(runtime_, upper_bound_, point_, launch_domain_);
     return CObjectWrapper::unwrap(result);
@@ -7166,7 +7162,7 @@ public:
     legion_domain_point_t point_ = CObjectWrapper::wrap(point);
     legion_domain_t launch_domain_ = CObjectWrapper::wrap(launch_domain);
 
-    assert(region_functor_args);
+    legion_assert(region_functor_args);
     legion_logical_region_t result = region_functor_args(
         runtime_, upper_bound_, point_, launch_domain_, args, size);
     return CObjectWrapper::unwrap(result);
@@ -7181,7 +7177,7 @@ public:
     legion_domain_point_t point_ = CObjectWrapper::wrap(point);
     legion_domain_t launch_domain_ = CObjectWrapper::wrap(launch_domain);
 
-    assert(partition_functor_args);
+    legion_assert(partition_functor_args);
     legion_logical_region_t result = partition_functor_args(
         runtime_, upper_bound_, point_, launch_domain_, args, size);
     return CObjectWrapper::unwrap(result);
@@ -8485,7 +8481,7 @@ legion_future_t legion_context_consensus_match(
 legion_physical_region_t legion_get_physical_region_by_id(
     legion_physical_region_t* regionptr, int id, int num_regions)
 {
-  assert(id < num_regions);
+  legion_assert(id < num_regions);
   return regionptr[id];
 }
 

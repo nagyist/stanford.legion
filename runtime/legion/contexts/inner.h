@@ -1070,12 +1070,10 @@ namespace Legion {
       void clone_local_fields(
           std::map<FieldSpace, std::vector<LocalFieldInfo> >& child_local)
           const;
-#ifdef DEBUG_LEGION
       // This is a helpful debug method that can be useful when called from
       // a debugger to find the earliest operation that hasn't mapped yet
       // which is especially useful when debugging scheduler hangs
       Operation* get_earliest(void) const;
-#endif
 #ifdef LEGION_SPY
       void register_implicit_replay_dependence(Operation* op);
 #endif

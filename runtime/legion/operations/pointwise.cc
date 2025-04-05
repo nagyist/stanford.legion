@@ -162,9 +162,7 @@ namespace Legion {
     bool PointwiseDependence::matches(const LogicalUser& user) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(user.shard_proj != nullptr);
-#endif
+      legion_assert(user.shard_proj != nullptr);
       if (context_index != user.ctx_index)
         return false;
       if (region_index != user.idx)
@@ -271,9 +269,7 @@ namespace Legion {
         unsigned idx, const LogicalUser& previous)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(previous.shard_proj != nullptr);
-#endif
+      legion_assert(previous.shard_proj != nullptr);
       std::vector<PointwiseDependence>& dependences =
           pointwise_dependences[idx];
       for (std::vector<PointwiseDependence>::iterator it = dependences.begin();
@@ -283,9 +279,7 @@ namespace Legion {
       dependences.emplace_back(PointwiseDependence(previous));
       if (this->tracing)
       {
-#ifdef DEBUG_LEGION
-        assert(this->trace != nullptr);
-#endif
+        legion_assert(this->trace != nullptr);
         this->trace->record_pointwise_dependence(
             previous.op, previous.gen, this, this->gen, idx,
             dependences.back());
@@ -298,9 +292,7 @@ namespace Legion {
         std::map<unsigned, std::vector<PointwiseDependence> >& dependences)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(pointwise_dependences.empty());
-#endif
+      legion_assert(pointwise_dependences.empty());
       pointwise_dependences.swap(dependences);
     }
 

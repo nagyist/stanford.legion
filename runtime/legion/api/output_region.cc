@@ -100,7 +100,7 @@ namespace Legion {
   void OutputRegion::check_type_tag(TypeTag type_tag) const
   //--------------------------------------------------------------------------
   {
-    assert(impl != nullptr);
+    legion_assert(impl != nullptr);
     impl->check_type_tag(type_tag);
   }
 
@@ -108,7 +108,7 @@ namespace Legion {
   void OutputRegion::check_field_size(FieldID field_id, size_t field_size) const
   //--------------------------------------------------------------------------
   {
-    assert(impl != nullptr);
+    legion_assert(impl != nullptr);
     impl->check_field_size(field_id, field_size);
   }
 
@@ -118,9 +118,7 @@ namespace Legion {
       size_t& alignment) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->get_layout(field_id, ordering, alignment);
   }
 
@@ -140,9 +138,7 @@ namespace Legion {
       bool check_constraints)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->return_data(
         extents, field_id, instance, constraints, check_constraints);
   }
@@ -181,15 +177,11 @@ namespace Legion {
         {
           std::vector<FieldID>::const_iterator finder = std::find(
               req.instance_fields.begin(), req.instance_fields.end(), *it);
-#ifdef DEBUG_LEGION
-          assert(finder != req.instance_fields.end());
-#endif
+          legion_assert(finder != req.instance_fields.end());
           const unsigned offset =
               std::distance(req.instance_fields.begin(), finder);
-#ifdef DEBUG_LEGION
-          assert(offset < managers.size());
-          assert(managers[offset] == nullptr);
-#endif
+          legion_assert(offset < managers.size());
+          legion_assert(managers[offset] == nullptr);
           managers[offset] = manager;
           manager->add_base_gc_ref(OUTPUT_REGION_REF);
         }
@@ -214,9 +206,7 @@ namespace Legion {
     Memory OutputRegionImpl::target_memory(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!managers.empty());
-#endif
+      legion_assert(!managers.empty());
       return managers.front()->get_memory();
     }
 
@@ -289,10 +279,8 @@ namespace Legion {
       PhysicalManager* manager = get_manager(field_id);
       LayoutConstraints* cons = manager->layout->constraints;
 
-#ifdef DEBUG_LEGION
-      assert(cons->ordering_constraint.ordering.size() > 1);
-      assert(cons->ordering_constraint.ordering.back() == LEGION_DIM_F);
-#endif
+      legion_assert(cons->ordering_constraint.ordering.size() > 1);
+      legion_assert(cons->ordering_constraint.ordering.back() == LEGION_DIM_F);
       int32_t ndim = NT_TemplateHelper::get_dim(req.type_tag);
       DimensionKind max_dim =
           static_cast<DimensionKind>(static_cast<int32_t>(LEGION_DIM_X) + ndim);
@@ -439,9 +427,7 @@ namespace Legion {
             {
               Domain domain;
               domain.dim = color.dim + extents.dim;
-#ifdef DEBUG_LEGION
-              assert(domain.dim <= LEGION_MAX_DIM);
-#endif
+              legion_assert(domain.dim <= LEGION_MAX_DIM);
               for (int idx = 0; idx < color.dim; ++idx)
               {
                 domain.rect_data[idx] = color[idx];
@@ -535,22 +521,18 @@ namespace Legion {
                   *constraints, pit->second, sizes, false /*compact*/, nullptr,
                   nullptr, nullptr,
                   (current != nullptr) ? current->alignment_reqd : 1);
-#ifdef DEBUG_LEGION
-          assert(
+          legion_assert(
               (current == nullptr) ||
               (layout->bytes_used <= current->bytes_used));
-          assert(
+          legion_assert(
               (current == nullptr) ||
               (layout->alignment_reqd == current->alignment_reqd));
-#endif
           // Create an external Realm instance
           Realm::ProfilingRequestSet requests;
           if (runtime->profiler != nullptr)
           {
             const LgEvent unique_event = manager->get_unique_event();
-#ifdef DEBUG_LEGION
-            assert(unique_event.exists());
-#endif
+            legion_assert(unique_event.exists());
             runtime->profiler->add_inst_request(
                 requests, context->get_unique_id(), unique_event);
           }
@@ -600,16 +582,12 @@ namespace Legion {
             size_t alignment = 1;
             if (!constraints->alignment_constraints.empty())
             {
-#ifdef DEBUG_LEGION
               // Should only be one alignment constraint at most since there
               // should just be one field for this manager
-              assert(constraints->alignment_constraints.size() == 1);
-#endif
+              legion_assert(constraints->alignment_constraints.size() == 1);
               const AlignmentConstraint& constraint =
                   constraints->alignment_constraints.front();
-#ifdef DEBUG_LEGION
-              assert(constraint.fid == field_id);
-#endif
+              legion_assert(constraint.fid == field_id);
               alignment = constraint.alignment;
             }
             layouts[idx] = region->row_source->create_layout(
@@ -649,9 +627,7 @@ namespace Legion {
             if (runtime->profiler != nullptr)
             {
               const LgEvent unique_event = manager->get_unique_event();
-#ifdef DEBUG_LEGION
-              assert(unique_event.exists());
-#endif
+              legion_assert(unique_event.exists());
               runtime->profiler->add_inst_request(
                   requests, context->owner_task->get_unique_id(), unique_event);
             }

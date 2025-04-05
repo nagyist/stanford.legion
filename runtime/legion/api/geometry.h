@@ -419,9 +419,7 @@ namespace Legion {
       static inline void demux(IteratorStepFunctor* functor)
       {
         // We already know the rect iterator is not valid here
-#ifdef DEBUG_LEGION
-        assert(!functor->iterator.rect_valid);
-#endif
+        legion_assert(!functor->iterator.rect_valid);
         Realm::IndexSpaceIterator<N::N, T> is_itr;
         memcpy(&is_itr, functor->iterator.is_iterator, sizeof(is_itr));
         is_itr.step();
@@ -431,9 +429,7 @@ namespace Legion {
           // Convert to rect with coord_t
           Realm::Rect<N::N, coord_t> rect = is_itr.rect;
           Realm::PointInRectIterator<N::N, coord_t> new_rectitr(rect);
-#ifdef DEBUG_LEGION
-          assert(new_rectitr.valid);
-#endif
+          legion_assert(new_rectitr.valid);
           functor->iterator.rect_valid = true;
           functor->iterator.p = new_rectitr.p;
           memcpy(

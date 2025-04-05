@@ -155,9 +155,7 @@ namespace Legion {
     void TraceRecognizer::update_watcher(uint64_t opidx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!repeat_results.empty());
-#endif
+      legion_assert(!repeat_results.empty());
       // See if we've exceeded the wait interval since the start operation
       // and if not then we just keep going
       if (opidx < (repeat_results.front().opidx + wait_interval))
@@ -222,9 +220,7 @@ namespace Legion {
         watcher.insert(hashes, size, opidx);
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(query.superstring);
-#endif
+      legion_assert(query.superstring);
       // If the trace we're inserting is a superstring of another
       // string in the recorded set of traces, then splice out the
       // contained prefix and try to insert the rest of the trace.

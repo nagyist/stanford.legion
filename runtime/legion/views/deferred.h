@@ -60,9 +60,7 @@ namespace Legion {
     inline DeferredView* LogicalView::as_deferred_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_deferred_view());
-#endif
+      legion_assert(is_deferred_view());
       return static_cast<DeferredView*>(const_cast<LogicalView*>(this));
     }
 

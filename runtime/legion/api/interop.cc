@@ -76,9 +76,7 @@ namespace Legion {
   void LegionHandshake::ext_handoff_to_legion(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->ext_handoff_to_legion();
   }
 
@@ -86,9 +84,7 @@ namespace Legion {
   void LegionHandshake::ext_wait_on_legion(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->ext_wait_on_legion();
   }
 
@@ -96,9 +92,7 @@ namespace Legion {
   void LegionHandshake::legion_handoff_to_ext(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->legion_handoff_to_ext();
   }
 
@@ -106,9 +100,7 @@ namespace Legion {
   void LegionHandshake::legion_wait_on_ext(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->legion_wait_on_ext();
   }
 
@@ -116,9 +108,7 @@ namespace Legion {
   PhaseBarrier LegionHandshake::get_legion_wait_phase_barrier(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     return impl->get_legion_wait_phase_barrier();
   }
 
@@ -126,9 +116,7 @@ namespace Legion {
   PhaseBarrier LegionHandshake::get_legion_arrive_phase_barrier(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     return impl->get_legion_arrive_phase_barrier();
   }
 
@@ -136,9 +124,7 @@ namespace Legion {
   void LegionHandshake::advance_legion_handshake(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->advance_legion_handshake();
   }
 
@@ -253,11 +239,9 @@ namespace Legion {
       Runtime::advance_barrier(ext_arrive_barrier);
       if (!ext_arrive_barrier.exists())
       {
-#ifdef DEBUG_LEGION
-        assert(!ext_wait_barrier.exists());
-        assert(!legion_next_barrier.exists());
-        assert(!legion_arrive_barrier.exists());
-#endif
+        legion_assert(!ext_wait_barrier.exists());
+        legion_assert(!legion_next_barrier.exists());
+        legion_assert(!legion_arrive_barrier.exists());
         ext_wait_barrier = runtime->create_ap_barrier(1);
         legion_next_barrier = runtime->create_ap_barrier(1);
         ext_arrive_barrier = legion_next_barrier;
@@ -393,9 +377,7 @@ namespace Legion {
         if (participating)
         {
           sent_stages.resize(collective_stages, false);
-#ifdef DEBUG_LEGION
-          assert(collective_stages > 0);
-#endif
+          legion_assert(collective_stages > 0);
           stage_notifications.resize(collective_stages, 1);
           // Stage 0 always starts with 0 notifications since we'll
           // explictcly arrive on it
@@ -404,9 +386,7 @@ namespace Legion {
         done_event = Runtime::create_rt_user_event();
       }
       // Add ourselves to the set before any exchanges start
-#ifdef DEBUG_LEGION
-      assert(Runtime::mpi_rank >= 0);
-#endif
+      legion_assert(Runtime::mpi_rank >= 0);
       forward_mapping[Runtime::mpi_rank] = address_space;
     }
 
@@ -447,9 +427,7 @@ namespace Legion {
         // Wait for our done event to be ready
         done_event.wait();
       }
-#ifdef DEBUG_LEGION
-      assert(forward_mapping.size() == runtime->total_address_spaces);
-#endif
+      legion_assert(forward_mapping.size() == runtime->total_address_spaces);
       // Reverse the mapping
       for (std::map<int, AddressSpace>::const_iterator it =
                forward_mapping.begin();
@@ -461,20 +439,17 @@ namespace Legion {
     bool MPIRankTable::initiate_exchange(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(participating);  // should only get this for participating shards
-#endif
+      legion_assert(
+          participating);  // should only get this for participating shards
       {
         AutoLock r_lock(reservation);
-#ifdef DEBUG_LEGION
-        assert(!sent_stages.empty());
-        assert(!sent_stages[0]);  // stage 0 shouldn't be sent yet
-        assert(!stage_notifications.empty());
+        legion_assert(!sent_stages.empty());
+        legion_assert(!sent_stages[0]);  // stage 0 shouldn't be sent yet
+        legion_assert(!stage_notifications.empty());
         if (collective_stages == 1)
-          assert(stage_notifications[0] < collective_last_radix);
+          legion_assert(stage_notifications[0] < collective_last_radix);
         else
-          assert(stage_notifications[0] < collective_radix);
-#endif
+          legion_assert(stage_notifications[0] < collective_radix);
         stage_notifications[0]++;
       }
       return send_ready_stages(0 /*start stage*/);
@@ -503,9 +478,7 @@ namespace Legion {
         // Send back to the nodes that are not participating
         AddressSpaceID target =
             runtime->address_space + collective_participating_spaces;
-#ifdef DEBUG_LEGION
-        assert(target < runtime->total_address_spaces);
-#endif
+        legion_assert(target < runtime->total_address_spaces);
         runtime->send_mpi_rank_exchange(target, rez);
       }
       else
@@ -521,9 +494,7 @@ namespace Legion {
     bool MPIRankTable::send_ready_stages(const int start_stage)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(participating);
-#endif
+      legion_assert(participating);
       // Iterate through the stages and send any that are ready
       // Remember that stages have to be done in order
       for (int stage = start_stage; stage < collective_stages; stage++)
@@ -544,12 +515,12 @@ namespace Legion {
             return false;
           // If we get here then we can send the stage
           sent_stages[stage] = true;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
           {
             size_t expected_size = 1;
             for (int idx = 0; idx < stage; idx++)
               expected_size *= collective_radix;
-            assert(expected_size <= forward_mapping.size());
+            legion_assert(expected_size <= forward_mapping.size());
           }
 #endif
           rez.serialize<size_t>(forward_mapping.size());
@@ -568,9 +539,7 @@ namespace Legion {
           {
             AddressSpaceID target =
                 runtime->address_space ^ (r << (stage * collective_log_radix));
-#ifdef DEBUG_LEGION
-            assert(int(target) < collective_participating_spaces);
-#endif
+            legion_assert(int(target) < collective_participating_spaces);
             runtime->send_mpi_rank_exchange(target, rez);
           }
         }
@@ -580,9 +549,7 @@ namespace Legion {
           {
             AddressSpaceID target =
                 runtime->address_space ^ (r << (stage * collective_log_radix));
-#ifdef DEBUG_LEGION
-            assert(int(target) < collective_participating_spaces);
-#endif
+            legion_assert(int(target) < collective_participating_spaces);
             runtime->send_mpi_rank_exchange(target, rez);
           }
         }
@@ -607,9 +574,7 @@ namespace Legion {
       DerezCheck z(derez);
       int stage;
       derez.deserialize(stage);
-#ifdef DEBUG_LEGION
-      assert(participating || (stage == -1));
-#endif
+      legion_assert(participating || (stage == -1));
       unpack_exchange(stage, derez);
       bool all_stages_done = false;
       if (stage == -1)
@@ -638,24 +603,20 @@ namespace Legion {
         derez.deserialize(rank);
         unsigned space;
         derez.deserialize(space);
-#ifdef DEBUG_LEGION
         // Duplicates are possible because later messages aren't "held", but
         // they should be exact matches
-        assert(
+        legion_assert(
             (forward_mapping.count(rank) == 0) ||
             (forward_mapping[rank] == space));
-#endif
         forward_mapping[rank] = space;
       }
       if (stage >= 0)
       {
-#ifdef DEBUG_LEGION
-        assert(stage < int(stage_notifications.size()));
+        legion_assert(stage < int(stage_notifications.size()));
         if (stage < (collective_stages - 1))
-          assert(stage_notifications[stage] < collective_radix);
+          legion_assert(stage_notifications[stage] < collective_radix);
         else
-          assert(stage_notifications[stage] < collective_last_radix);
-#endif
+          legion_assert(stage_notifications[stage] < collective_last_radix);
         stage_notifications[stage]++;
       }
     }
@@ -664,9 +625,7 @@ namespace Legion {
     void MPIRankTable::complete_exchange(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(forward_mapping.size() == runtime->total_address_spaces);
-#endif
+      legion_assert(forward_mapping.size() == runtime->total_address_spaces);
       // See if we have to send a message back to a
       // non-participating node
       if ((int(runtime->total_address_spaces) >

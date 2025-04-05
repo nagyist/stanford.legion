@@ -46,19 +46,15 @@ namespace Legion {
       for (lng::FieldMaskMap<LogicalView>::const_iterator it = views.begin();
            it != views.end(); it++)
         it->first->add_base_gc_ref(TRACE_REF);
-#ifdef DEBUG_LEGION
       analysis.invalid = nullptr;
-#endif
     }
 
     //--------------------------------------------------------------------------
     TraceConditionSet::~TraceConditionSet(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(equivalence_sets.empty());
-      assert(analysis.invalid == nullptr);
-#endif
+      legion_assert(equivalence_sets.empty());
+      legion_assert(analysis.invalid == nullptr);
       if (condition_expr->remove_base_expression_reference(TRACE_REF))
         delete condition_expr;
       for (lng::FieldMaskMap<LogicalView>::const_iterator it = views.begin();
@@ -100,9 +96,7 @@ namespace Legion {
         AutoLock s_lock(set_lock);
         if (current_subscriptions.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(equivalence_sets.empty());
-#endif
+          legion_assert(equivalence_sets.empty());
           return;
         }
         // Copy and not remove since we need to see the acknowledgement
@@ -143,12 +137,11 @@ namespace Legion {
       // We should not need the lock here because the fence op should be
       // blocking all other operations from running and changing the
       // equivalence sets while we are here
-#ifdef DEBUG_LEGION
       // We should already have refreshed the equivalence sets before we
       // get here so that they should all be up to date
-      assert(!(views.get_valid_mask() - equivalence_sets.get_valid_mask()));
-      assert(analysis.invalid == nullptr);
-#endif
+      legion_assert(
+          !(views.get_valid_mask() - equivalence_sets.get_valid_mask()));
+      legion_assert(analysis.invalid == nullptr);
       analysis.invalid =
           new InvalidInstAnalysis(op, index, condition_expr, views);
       analysis.invalid->add_reference();
@@ -179,15 +172,11 @@ namespace Legion {
     bool TraceConditionSet::check_preconditions(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(analysis.invalid != nullptr);
-#endif
+      legion_assert(analysis.invalid != nullptr);
       const bool result = !analysis.invalid->has_invalid();
       if (analysis.invalid->remove_reference())
         delete analysis.invalid;
-#ifdef DEBUG_LEGION
       analysis.invalid = nullptr;
-#endif
       return result;
     }
 
@@ -200,12 +189,11 @@ namespace Legion {
       // We should not need the lock here because the fence op should be
       // blocking all other operations from running and changing the
       // equivalence sets while we are here
-#ifdef DEBUG_LEGION
       // We should already have refreshed the equivalence sets before we
       // get here so that they should all be up to date
-      assert(!(views.get_valid_mask() - equivalence_sets.get_valid_mask()));
-      assert(analysis.invalid == nullptr);
-#endif
+      legion_assert(
+          !(views.get_valid_mask() - equivalence_sets.get_valid_mask()));
+      legion_assert(analysis.invalid == nullptr);
       analysis.antivalid =
           new AntivalidInstAnalysis(op, index, condition_expr, views);
       analysis.antivalid->add_reference();
@@ -236,15 +224,11 @@ namespace Legion {
     bool TraceConditionSet::check_anticonditions(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(analysis.antivalid != nullptr);
-#endif
+      legion_assert(analysis.antivalid != nullptr);
       const bool result = !analysis.antivalid->has_antivalid();
       if (analysis.antivalid->remove_reference())
         delete analysis.antivalid;
-#ifdef DEBUG_LEGION
       analysis.invalid = nullptr;
-#endif
       return result;
     }
 
@@ -256,11 +240,10 @@ namespace Legion {
       // We should not need the lock here because the fence should be
       // blocking all other operations from running and changing the
       // equivalence sets while we are here
-#ifdef DEBUG_LEGION
       // We should already have refreshed the equivalence sets before we
       // get here so that they should all be up to date
-      assert(!(views.get_valid_mask() - equivalence_sets.get_valid_mask()));
-#endif
+      legion_assert(
+          !(views.get_valid_mask() - equivalence_sets.get_valid_mask()));
       // Perform an overwrite analysis for each of the postconditions
       const TraceInfo trace_info(op);
       const RegionUsage usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
@@ -304,9 +287,7 @@ namespace Legion {
         const RtUserEvent compute_event = Runtime::create_rt_user_event();
         {
           AutoLock s_lock(set_lock);
-#ifdef DEBUG_LEGION
-          assert(equivalence_sets_ready == nullptr);
-#endif
+          legion_assert(equivalence_sets_ready == nullptr);
           equivalence_sets_ready = new shrt::map<RtUserEvent, FieldMask>();
           equivalence_sets_ready->insert(
               std::make_pair(compute_event, invalid_mask));
@@ -360,10 +341,8 @@ namespace Legion {
     PhysicalTemplate::~PhysicalTemplate(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(failure.view == nullptr);
-      assert(failure.expr == nullptr);
-#endif
+      legion_assert(failure.view == nullptr);
+      legion_assert(failure.expr == nullptr);
       {
         AutoLock tpl_lock(template_lock);
         for (std::vector<TraceConditionSet*>::const_iterator it =
@@ -438,11 +417,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-      assert(!events.empty());
-      assert(events.size() == instructions.size());
-#endif
+      legion_assert(is_recording());
+      legion_assert(!events.empty());
+      legion_assert(events.size() == instructions.size());
       // This is dumb, in the future we should find the frontiers
       // Scan backwards until we find the previous execution fence (if any)
       // Skip the most recent one as that is going to be our term event
@@ -459,9 +436,7 @@ namespace Legion {
       }
       if (last_fence == nullptr)
         preconditions.insert(0);
-#ifdef DEBUG_LEGION
-      assert(!preconditions.empty());
-#endif
+      legion_assert(!preconditions.empty());
       unsigned complete = 0;
       if (preconditions.size() > 1)
       {
@@ -554,9 +529,7 @@ namespace Legion {
       // replaying a single operation in the physical analysis
       const size_t op_count = trace->logical_trace->get_operation_count();
       const unsigned total = total_logical.fetch_add(1) + 1;
-#ifdef DEBUG_LEGION
-      assert(total <= op_count);
-#endif
+      legion_assert(total <= op_count);
       return (total == op_count);
     }
 
@@ -564,15 +537,11 @@ namespace Legion {
     void PhysicalTemplate::register_operation(MemoizableOp* memoizable)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(memoizable != nullptr);
-#endif
+      legion_assert(memoizable != nullptr);
       const TraceLocalID tid = memoizable->get_trace_local_id();
 
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(operations.find(tid) == operations.end());
-#endif
+      legion_assert(operations.find(tid) == operations.end());
       operations[tid] = memoizable;
     }
 
@@ -581,17 +550,13 @@ namespace Legion {
         unsigned slice_idx, bool recurrent_replay)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(slice_idx < slices.size());
-#endif
+      legion_assert(slice_idx < slices.size());
       std::vector<Instruction*>& instructions = slices[slice_idx];
       for (std::vector<Instruction*>::const_iterator it = instructions.begin();
            it != instructions.end(); ++it)
         (*it)->execute(events, user_events, operations, recurrent_replay);
       unsigned remaining = remaining_replays.fetch_sub(1);
-#ifdef DEBUG_LEGION
-      assert(remaining > 0);
-#endif
+      legion_assert(remaining > 0);
       if (remaining == 1)
       {
         AutoLock tpl_lock(template_lock);
@@ -623,7 +588,7 @@ namespace Legion {
       {
         // The user can't ask for both no transitive reduction and inlining
         // of the transitive reduction.
-        assert(
+        legion_assert(
             !(runtime->no_transitive_reduction &&
               runtime->inline_transitive_reduction));
         // Optimize will sync the idempotency computation
@@ -909,9 +874,7 @@ namespace Legion {
         CompleteOp* op, bool do_transitive_reduction)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instructions.size() == events.size());
-#endif
+      legion_assert(instructions.size() == events.size());
       std::vector<RtEvent> frontier_events;
       find_all_last_instance_user_events(frontier_events);
       compute_frontiers(frontier_events);
@@ -1044,13 +1007,9 @@ namespace Legion {
           LastUserResult& result = results.back();
           std::map<DistributedID, IndividualView*>::const_iterator finder =
               recorded_views.find(uit->instance.view_did);
-#ifdef DEBUG_LEGION
-          assert(finder != recorded_views.end());
-#endif
+          legion_assert(finder != recorded_views.end());
           PhysicalManager* manager = finder->second->get_manager();
-#ifdef DEBUG_LEGION
-          assert(manager->did == uit->instance.inst_did);
-#endif
+          legion_assert(manager->did == uit->instance.inst_did);
           const RegionUsage usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
           finder->second->find_last_users(
               manager, result.events, usage, uit->mask, uit->expr,
@@ -1111,9 +1070,7 @@ namespace Legion {
       // If it's not an event we recognize we can just return the start event
       if (finder == event_map.end())
         return 0;
-#ifdef DEBUG_LEGION
-      assert(frontiers.find(finder->second) == frontiers.end());
-#endif
+      legion_assert(frontiers.find(finder->second) == frontiers.end());
       // Make a new frontier event
       const unsigned next_event_id = events.size();
       frontiers[finder->second] = next_event_id;
@@ -1228,9 +1185,7 @@ namespace Legion {
               IssueCopy* copy = inst->as_issue_copy();
               std::map<unsigned, InstUsers>::iterator finder =
                   copy_insts.find(copy->lhs);
-#ifdef DEBUG_LEGION
-              assert(finder != copy_insts.end());
-#endif
+              legion_assert(finder != copy_insts.end());
               std::set<unsigned> users;
               find_all_last_users(finder->second, users);
               rewrite_preconditions(
@@ -1243,9 +1198,7 @@ namespace Legion {
               IssueFill* fill = inst->as_issue_fill();
               std::map<unsigned, InstUsers>::iterator finder =
                   copy_insts.find(fill->lhs);
-#ifdef DEBUG_LEGION
-              assert(finder != copy_insts.end());
-#endif
+              legion_assert(finder != copy_insts.end());
               std::set<unsigned> users;
               find_all_last_users(finder->second, users);
               rewrite_preconditions(
@@ -1258,9 +1211,7 @@ namespace Legion {
               IssueAcross* across = inst->as_issue_across();
               std::map<unsigned, InstUsers>::iterator finder =
                   copy_insts.find(across->lhs);
-#ifdef DEBUG_LEGION
-              assert(finder != copy_insts.end());
-#endif
+              legion_assert(finder != copy_insts.end());
               std::set<unsigned> users;
               find_all_last_users(finder->second, users);
               // This is super subtle: for indirections that are
@@ -1286,9 +1237,7 @@ namespace Legion {
               {
                 users.clear();
                 finder = src_indirect_insts.find(across->lhs);
-#ifdef DEBUG_LEGION
-                assert(finder != src_indirect_insts.end());
-#endif
+                legion_assert(finder != src_indirect_insts.end());
                 find_all_last_users(finder->second, users);
                 rewrite_preconditions(
                     across->src_indirect_precondition, users, instructions,
@@ -1298,9 +1247,7 @@ namespace Legion {
               {
                 users.clear();
                 finder = dst_indirect_insts.find(across->lhs);
-#ifdef DEBUG_LEGION
-                assert(finder != dst_indirect_insts.end());
-#endif
+                legion_assert(finder != dst_indirect_insts.end());
                 find_all_last_users(finder->second, users);
                 rewrite_preconditions(
                     across->dst_indirect_precondition, users, instructions,
@@ -1446,9 +1393,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < gen.size(); ++idx)
       {
         unsigned g = gen[idx];
-#ifdef DEBUG_LEGION
-        assert(inv_gen[g] == -1U || g == fence_completion_id);
-#endif
+        legion_assert(inv_gen[g] == -1U || g == fence_completion_id);
         if (g != -1U && g < instructions.size() && inv_gen[g] == -1U)
           inv_gen[g] = idx;
       }
@@ -1472,9 +1417,7 @@ namespace Legion {
             }
           }
           unsigned e = inv_gen[idx];
-#ifdef DEBUG_LEGION
-          assert(e == -1U || (e < new_gen.size() && new_gen[e] == -1U));
-#endif
+          legion_assert(e == -1U || (e < new_gen.size() && new_gen[e] == -1U));
           if (e != -1U)
             new_gen[e] = new_instructions.size();
           new_instructions.emplace_back(inst);
@@ -1502,9 +1445,7 @@ namespace Legion {
         CompleteOp* op, const std::vector<RtEvent>& frontier_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(frontier_events.empty());
-#endif
+      legion_assert(frontier_events.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -1544,10 +1485,8 @@ namespace Legion {
       std::vector<unsigned> slice_indices_by_inst;
       slice_indices_by_inst.resize(instructions.size());
 
-#ifdef DEBUG_LEGION
       for (unsigned idx = 1; idx < instructions.size(); ++idx)
         slice_indices_by_inst[idx] = -1U;
-#endif
       bool round_robin_for_tasks = false;
 
       std::set<Processor> distinct_targets;
@@ -1566,26 +1505,20 @@ namespace Legion {
             (it->first.index_point.get_dim() > 0))
         {
           CachedMappings::iterator finder = cached_mappings.find(it->first);
-#ifdef DEBUG_LEGION
-          assert(finder != cached_mappings.end());
-          assert(finder->second.target_procs.size() > 0);
-#endif
+          legion_assert(finder != cached_mappings.end());
+          legion_assert(finder->second.target_procs.size() > 0);
           slice_index = finder->second.target_procs[0].id % replay_parallelism;
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(
+          legion_assert(
               slice_indices_by_owner.find(it->first) ==
               slice_indices_by_owner.end());
-#endif
           slice_index = next_slice_id;
           next_slice_id = (next_slice_id + 1) % replay_parallelism;
         }
 
-#ifdef DEBUG_LEGION
-        assert(slice_index != -1U);
-#endif
+        legion_assert(slice_index != -1U);
         slice_indices_by_owner[it->first] = slice_index;
       }
       // Make sure that event creations and triggers are in the same slice
@@ -1610,9 +1543,7 @@ namespace Legion {
           TriggerEvent* trigger = inst->as_trigger_event();
           std::map<unsigned, unsigned>::iterator finder =
               user_event_slices.find(trigger->lhs);
-#ifdef DEBUG_LEGION
-          assert(finder != user_event_slices.end());
-#endif
+          legion_assert(finder != user_event_slices.end());
           slice_index = finder->second;
           user_event_slices.erase(finder);
         }
@@ -1625,10 +1556,8 @@ namespace Legion {
             // Save which slice this is on so the later trigger will
             // get recorded on the same slice
             CreateApUserEvent* create = inst->as_create_ap_user_event();
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 user_event_slices.find(create->lhs) == user_event_slices.end());
-#endif
             user_event_slices[create->lhs] = slice_index;
           }
         }
@@ -1651,13 +1580,9 @@ namespace Legion {
               new_rhs.insert(rh);
             else
             {
-#ifdef DEBUG_LEGION
-              assert(gen[rh] != -1U);
-#endif
+              legion_assert(gen[rh] != -1U);
               unsigned generator_slice = slice_indices_by_inst[gen[rh]];
-#ifdef DEBUG_LEGION
-              assert(generator_slice != -1U);
-#endif
+              legion_assert(generator_slice != -1U);
               if (generator_slice != slice_index)
               {
                 crossing_found = true;
@@ -1765,9 +1690,7 @@ namespace Legion {
           }
         }
       }
-#ifdef DEBUG_LEGION
-      assert(user_event_slices.empty());
-#endif
+      legion_assert(user_event_slices.empty());
       // Update the crossing events and their counts
       if (!crossing_counts.empty())
       {
@@ -1798,13 +1721,9 @@ namespace Legion {
       if (event_to_check == 0)
         return;
       unsigned g = gen[event_to_check];
-#ifdef DEBUG_LEGION
-      assert(g != -1U && g < instructions.size());
-#endif
+      legion_assert(g != -1U && g < instructions.size());
       unsigned generator_slice = slice_indices_by_inst[g];
-#ifdef DEBUG_LEGION
-      assert(generator_slice != -1U);
-#endif
+      legion_assert(generator_slice != -1U);
       if (generator_slice != slice_index)
       {
         std::map<unsigned, std::pair<unsigned, unsigned> >::iterator finder =
@@ -2021,11 +1940,9 @@ namespace Legion {
               std::abort();
           }
         }
-#ifdef DEBUG_LEGION
         // should have seen a complete replay instruction for every replay
         // mapping
-        assert(replay_insts.empty());
-#endif
+        legion_assert(replay_insts.empty());
         state->stage++;
         state->iteration = 0;
         replay_insts.clear();
@@ -2063,9 +1980,7 @@ namespace Legion {
               previous_time = current_time;
           }
           unsigned node = topo_order[idx];
-#ifdef DEBUG_LEGION
-          assert(remaining_edges[node] == 0);
-#endif
+          legion_assert(remaining_edges[node] == 0);
           const std::vector<unsigned>& out = outgoing[node];
           for (unsigned oidx = 0; oidx < out.size(); ++oidx)
           {
@@ -2078,10 +1993,10 @@ namespace Legion {
           }
           ++idx;
         }
-#ifdef DEBUG_LEGION
         for (unsigned idx = 0; idx < incoming.size(); idx++)
-          assert(remaining_edges[idx] == 0);
-#endif
+        {
+          legion_assert(remaining_edges[idx] == 0);
+        }
         state->stage++;
         state->iteration = 0;
         remaining_edges.clear();
@@ -2187,9 +2102,7 @@ namespace Legion {
           for (unsigned iidx = 0; iidx < in.size(); ++iidx)
           {
             int rank = inv_topo_order[in[iidx]];
-#ifdef DEBUG_LEGION
-            assert((unsigned)rank < idx);
-#endif
+            legion_assert((unsigned)rank < idx);
             const std::vector<int>& pred_chain_frontiers =
                 all_chain_frontiers[rank];
             for (unsigned k = 0; k < num_chains; ++k)
@@ -2206,9 +2119,7 @@ namespace Legion {
               chain_frontiers[chain_idx] = rank;
             }
           }
-#ifdef DEBUG_LEGION
-          assert(in.size() == 0 || in_reduced.size() > 0);
-#endif
+          legion_assert(in.size() == 0 || in_reduced.size() > 0);
           all_chain_frontiers[idx].swap(chain_frontiers);
         }
         state->stage++;
@@ -2239,28 +2150,24 @@ namespace Legion {
         {
           MergeEvent* merge = instructions[idx]->as_merge_event();
           unsigned order = inv_topo_order[merge->lhs];
-#ifdef DEBUG_LEGION
-          assert(order != -1U);
-#endif
+          legion_assert(order != -1U);
           const std::vector<unsigned>& in_reduced = incoming_reduced[order];
           if (in_reduced.size() == merge->rhs.size())
           {
-#ifdef DEBUG_LEGION
             for (unsigned iidx = 0; iidx < in_reduced.size(); ++iidx)
-              assert(merge->rhs.find(in_reduced[iidx]) != merge->rhs.end());
-#endif
+            {
+              legion_assert(
+                  merge->rhs.find(in_reduced[iidx]) != merge->rhs.end());
+            }
             continue;
           }
-#ifdef DEBUG_LEGION
           std::set<unsigned> new_rhs;
           for (unsigned iidx = 0; iidx < in_reduced.size(); ++iidx)
           {
-            assert(merge->rhs.find(in_reduced[iidx]) != merge->rhs.end());
+            legion_assert(
+                merge->rhs.find(in_reduced[iidx]) != merge->rhs.end());
             new_rhs.insert(in_reduced[iidx]);
           }
-#else
-          std::set<unsigned> new_rhs(in_reduced.begin(), in_reduced.end());
-#endif
           // Remove any references to crossing events which are no longer needed
           if (!crossing_events.empty())
           {
@@ -2272,9 +2179,7 @@ namespace Legion {
               if ((finder != crossing_events.end()) &&
                   (new_rhs.find(*it) == new_rhs.end()))
               {
-#ifdef DEBUG_LEGION
-                assert(finder->second > 0);
-#endif
+                legion_assert(finder->second > 0);
                 finder->second--;
               }
             }
@@ -2353,15 +2258,11 @@ namespace Legion {
         if (instructions[idx]->get_kind() == MERGE_EVENT)
         {
           MergeEvent* merge = instructions[idx]->as_merge_event();
-#ifdef DEBUG_LEGION
-          assert(merge->rhs.size() > 0);
-#endif
+          legion_assert(merge->rhs.size() > 0);
           if (merge->rhs.size() == 1)
           {
             substitutions[merge->lhs] = *merge->rhs.begin();
-#ifdef DEBUG_LEGION
-            assert(merge->lhs != substitutions[merge->lhs]);
-#endif
+            legion_assert(merge->lhs != substitutions[merge->lhs]);
             if (gen == nullptr)
               to_prune.insert(inst);
             else
@@ -2528,9 +2429,7 @@ namespace Legion {
         gen->swap(new_gen);
       if (!to_prune.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(!slices.empty());
-#endif
+        legion_assert(!slices.empty());
         // Remove these instructions from any slices and then delete them
         for (unsigned idx = 0; idx < slices.size(); idx++)
         {
@@ -2554,9 +2453,7 @@ namespace Legion {
           if (to_prune.empty())
             break;
         }
-#ifdef DEBUG_LEGION
-        assert(to_prune.empty());
-#endif
+        legion_assert(to_prune.empty());
       }
     }
 
@@ -2592,9 +2489,7 @@ namespace Legion {
           // Handle the case where we recorded two different frontiers
           // but they are now being merged together from the same source
           // and we can therefore substitute the first one for the second
-#ifdef DEBUG_LEGION
-          assert(substitutions.find(it->second) == substitutions.end());
-#endif
+          legion_assert(substitutions.find(it->second) == substitutions.end());
           substitutions[it->second] = finder->second;
         }
         else
@@ -2622,9 +2517,7 @@ namespace Legion {
               for (std::set<unsigned>::iterator it = merge->rhs.begin();
                    it != merge->rhs.end(); ++it)
               {
-#ifdef DEBUG_LEGION
-                assert(gen[*it] != -1U);
-#endif
+                legion_assert(gen[*it] != -1U);
                 used[gen[*it]] = true;
               }
               break;
@@ -2632,56 +2525,42 @@ namespace Legion {
           case TRIGGER_EVENT:
             {
               TriggerEvent* trigger = inst->as_trigger_event();
-#ifdef DEBUG_LEGION
-              assert(gen[trigger->rhs] != -1U);
-#endif
+              legion_assert(gen[trigger->rhs] != -1U);
               used[gen[trigger->rhs]] = true;
               break;
             }
           case ISSUE_COPY:
             {
               IssueCopy* copy = inst->as_issue_copy();
-#ifdef DEBUG_LEGION
-              assert(gen[copy->precondition_idx] != -1U);
-#endif
+              legion_assert(gen[copy->precondition_idx] != -1U);
               used[gen[copy->precondition_idx]] = true;
               break;
             }
           case ISSUE_FILL:
             {
               IssueFill* fill = inst->as_issue_fill();
-#ifdef DEBUG_LEGION
-              assert(gen[fill->precondition_idx] != -1U);
-#endif
+              legion_assert(gen[fill->precondition_idx] != -1U);
               used[gen[fill->precondition_idx]] = true;
               break;
             }
           case ISSUE_ACROSS:
             {
               IssueAcross* across = inst->as_issue_across();
-#ifdef DEBUG_LEGION
-              assert(gen[across->copy_precondition] != -1U);
-#endif
+              legion_assert(gen[across->copy_precondition] != -1U);
               used[gen[across->copy_precondition]] = true;
               if (across->collective_precondition != 0)
               {
-#ifdef DEBUG_LEGION
-                assert(gen[across->collective_precondition] != -1U);
-#endif
+                legion_assert(gen[across->collective_precondition] != -1U);
                 used[gen[across->collective_precondition]] = true;
               }
               if (across->src_indirect_precondition != 0)
               {
-#ifdef DEBUG_LEGION
-                assert(gen[across->src_indirect_precondition] != -1U);
-#endif
+                legion_assert(gen[across->src_indirect_precondition] != -1U);
                 used[gen[across->src_indirect_precondition]] = true;
               }
               if (across->dst_indirect_precondition != 0)
               {
-#ifdef DEBUG_LEGION
-                assert(gen[across->dst_indirect_precondition] != -1U);
-#endif
+                legion_assert(gen[across->dst_indirect_precondition] != -1U);
                 used[gen[across->dst_indirect_precondition]] = true;
               }
               break;
@@ -2689,18 +2568,14 @@ namespace Legion {
           case COMPLETE_REPLAY:
             {
               CompleteReplay* complete = inst->as_complete_replay();
-#ifdef DEBUG_LEGION
-              assert(gen[complete->complete] != -1U);
-#endif
+              legion_assert(gen[complete->complete] != -1U);
               used[gen[complete->complete]] = true;
               break;
             }
           case BARRIER_ARRIVAL:
             {
               BarrierArrival* arrival = inst->as_barrier_arrival();
-#ifdef DEBUG_LEGION
-              assert(gen[arrival->rhs] != -1U);
-#endif
+              legion_assert(gen[arrival->rhs] != -1U);
               used[gen[arrival->rhs]] = true;
               break;
             }
@@ -2736,9 +2611,7 @@ namespace Legion {
         if (used[idx])
         {
           unsigned e = inv_gen[idx];
-#ifdef DEBUG_LEGION
-          assert(e == -1U || (e < new_gen.size() && new_gen[e] == -1U));
-#endif
+          legion_assert(e == -1U || (e < new_gen.size() && new_gen[e] == -1U));
           if (e != -1U)
             new_gen[e] = new_instructions.size();
           new_instructions.emplace_back(instructions[idx]);
@@ -2872,11 +2745,10 @@ namespace Legion {
     {
       const TraceLocalID op_key = memo->get_trace_local_id();
       AutoLock t_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-      assert(!output.reduction_futures.empty());
-      assert(cached_premappings.find(op_key) == cached_premappings.end());
-#endif
+      legion_assert(is_recording());
+      legion_assert(!output.reduction_futures.empty());
+      legion_assert(
+          cached_premappings.find(op_key) == cached_premappings.end());
       CachedPremapping& premapping = cached_premappings[op_key];
       premapping.future_locations = output.reduction_futures;
     }
@@ -2888,14 +2760,10 @@ namespace Legion {
     {
       TraceLocalID op_key = task->get_trace_local_id();
       AutoLock t_lock(template_lock, 1, false /*exclusive*/);
-#ifdef DEBUG_LEGION
-      assert(is_replaying());
-#endif
+      legion_assert(is_replaying());
       CachedPremappings::const_iterator finder =
           cached_premappings.find(op_key);
-#ifdef DEBUG_LEGION
-      assert(finder != cached_premappings.end());
-#endif
+      legion_assert(finder != cached_premappings.end());
       future_locations = finder->second.future_locations;
     }
 
@@ -2907,10 +2775,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock t_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-      assert(cached_mappings.find(tlid) == cached_mappings.end());
-#endif
+      legion_assert(is_recording());
+      legion_assert(cached_mappings.find(tlid) == cached_mappings.end());
       CachedMapping& mapping = cached_mappings[tlid];
       // If you change the things recorded from output here then
       // you also need to change RemoteTraceRecorder::record_mapper_output
@@ -2961,13 +2827,9 @@ namespace Legion {
     {
       TraceLocalID op_key = task->get_trace_local_id();
       AutoLock t_lock(template_lock, 1, false /*exclusive*/);
-#ifdef DEBUG_LEGION
-      assert(is_replaying());
-#endif
+      legion_assert(is_replaying());
       CachedMappings::const_iterator finder = cached_mappings.find(op_key);
-#ifdef DEBUG_LEGION
-      assert(finder != cached_mappings.end());
-#endif
+      legion_assert(finder != cached_mappings.end());
       chosen_variant = finder->second.chosen_variant;
       task_priority = finder->second.task_priority;
       postmap_task = finder->second.postmap_task;
@@ -2985,14 +2847,10 @@ namespace Legion {
     {
       TraceLocalID op_key = allreduce->get_trace_local_id();
       AutoLock t_lock(template_lock, 1, false /*exclusive*/);
-#ifdef DEBUG_LEGION
-      assert(is_replaying());
-#endif
+      legion_assert(is_replaying());
       std::map<TraceLocalID, CachedAllreduce>::const_iterator finder =
           cached_allreduces.find(op_key);
-#ifdef DEBUG_LEGION
-      assert(finder != cached_allreduces.end());
-#endif
+      legion_assert(finder != cached_allreduces.end());
       target_memories = finder->second.target_memories;
       future_size = finder->second.future_size;
     }
@@ -3004,9 +2862,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       unsigned lhs_ = convert_event(lhs);
       record_memo_entry(tlid, lhs_, op_kind);
       insert_instruction(new ReplayMapping(*this, lhs_, tlid));
@@ -3016,9 +2872,8 @@ namespace Legion {
     void PhysicalTemplate::request_term_event(ApUserEvent& term_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!term_event.exists() || term_event.has_triggered_faultignorant());
-#endif
+      legion_assert(
+          !term_event.exists() || term_event.has_triggered_faultignorant());
       term_event = Runtime::create_ap_user_event(nullptr);
     }
 
@@ -3032,9 +2887,7 @@ namespace Legion {
       // convert_event method will check this property
       lhs = Runtime::create_ap_user_event(nullptr);
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
 
       unsigned lhs_ = convert_event(lhs);
       user_events[lhs_] = lhs;
@@ -3047,17 +2900,13 @@ namespace Legion {
         std::set<RtEvent>& applied)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lhs.exists());
-#endif
+      legion_assert(lhs.exists());
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       // Do this first in case it gets pre-empted
       const unsigned rhs_ =
           rhs.exists() ? find_event(rhs, tpl_lock) : fence_completion_id;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       // Make sure we're always recording user events on the same shard
       // where the create user event is recorded
       unsigned lhs_ = UINT_MAX;
@@ -3070,7 +2919,7 @@ namespace Legion {
         lhs_ = it->first;
         break;
       }
-      assert(lhs_ != UINT_MAX);
+      legion_assert(lhs_ != UINT_MAX);
 #else
       unsigned lhs_ = find_event(lhs, tpl_lock);
 #endif
@@ -3117,9 +2966,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
 
       std::set<unsigned> rhs_;
       for (std::set<ApEvent>::const_iterator it = rhs.begin(); it != rhs.end();
@@ -3151,9 +2998,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
 
       std::set<unsigned> rhs_;
       for (std::vector<ApEvent>::const_iterator it = rhs.begin();
@@ -3216,14 +3061,10 @@ namespace Legion {
         ApBarrier& bar, size_t total_arrivals)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!bar.exists());
-#endif
+      legion_assert(!bar.exists());
       bar = runtime->create_ap_barrier(total_arrivals);
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       const unsigned lhs = convert_event(bar);
       BarrierAdvance* advance =
           new BarrierAdvance(*this, bar, lhs, total_arrivals, true /*owner*/);
@@ -3239,15 +3080,11 @@ namespace Legion {
         std::set<RtEvent>& applied_events, ShardID owner_shard)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should only be seeing things from ourself here
-      assert(owner_shard == 0);
-#endif
+      legion_assert(owner_shard == 0);
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(bar.exists());
-      assert(is_recording());
-#endif
+      legion_assert(bar.exists());
+      legion_assert(is_recording());
       const unsigned rhs =
           pre.exists() ? find_event(pre, tpl_lock) : fence_completion_id;
       const unsigned lhs = events.size();
@@ -3280,9 +3117,7 @@ namespace Legion {
       }
 
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       // Do this first in case it gets preempted
       const unsigned rhs_ = find_event(precondition, tpl_lock);
       unsigned lhs_ = convert_event(lhs);
@@ -3314,9 +3149,7 @@ namespace Legion {
       }
 
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       // Do this first in case it gets preempted
       const unsigned rhs_ = find_event(precondition, tpl_lock);
       unsigned lhs_ = convert_event(lhs);
@@ -3343,9 +3176,7 @@ namespace Legion {
       }
 
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       unsigned copy_pre = find_event(copy_precondition, tpl_lock);
       unsigned collective_pre = 0, src_indirect_pre = 0, dst_indirect_pre = 0;
       if (collective_precondition.exists())
@@ -3437,9 +3268,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       const unsigned lhs_ = find_event(lhs, tpl_lock);
       const RegionUsage usage(LEGION_WRITE_ONLY, LEGION_EXCLUSIVE, 0);
       record_instance_user(
@@ -3457,9 +3286,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       const unsigned lhs_ = find_event(lhs, tpl_lock);
       const RegionUsage src_usage(src_mode, LEGION_EXCLUSIVE, 0);
       const RegionUsage dst_usage(dst_mode, LEGION_EXCLUSIVE, redop);
@@ -3481,9 +3308,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       const unsigned lhs_ = find_event(lhs, tpl_lock);
       const RegionUsage src_usage(src_mode, LEGION_EXCLUSIVE, 0);
       for (AcrossInsts::const_iterator it = src_insts.begin();
@@ -3507,9 +3332,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       const unsigned indirect = find_event(indirect_done, tpl_lock);
       const RegionUsage usage(privilege, LEGION_EXCLUSIVE, 0);
       for (AcrossInsts::const_iterator it = insts.begin(); it != insts.end();
@@ -3528,9 +3351,7 @@ namespace Legion {
       Runtime::trigger_event_untraced(rename, lhs);
       lhs = rename;
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
 
       insert_instruction(new SetOpSyncEvent(*this, convert_event(lhs), tlid));
     }
@@ -3542,9 +3363,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-#endif
+      legion_assert(is_recording());
       // Do this first in case it gets preempted
       const unsigned complete_ =
           complete.exists() ? find_event(complete, tpl_lock) : 0;
@@ -3560,10 +3379,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-      assert(cached_reservations.find(tlid) == cached_reservations.end());
-#endif
+      legion_assert(is_recording());
+      legion_assert(
+          cached_reservations.find(tlid) == cached_reservations.end());
       cached_reservations[tlid] = reservations;
     }
 
@@ -3574,10 +3392,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
-#ifdef DEBUG_LEGION
-      assert(is_recording());
-      assert(cached_allreduces.find(tlid) == cached_allreduces.end());
-#endif
+      legion_assert(is_recording());
+      legion_assert(cached_allreduces.find(tlid) == cached_allreduces.end());
       CachedAllreduce& allreduce = cached_allreduces[tlid];
       allreduce.target_memories = target_memories;
       allreduce.future_size = future_size;
@@ -3589,10 +3405,8 @@ namespace Legion {
         RtBarrier barrier, const std::vector<ShardID>& shards)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!shards.empty());
-      assert(std::is_sorted(shards.begin(), shards.end()));
-#endif
+      legion_assert(!shards.empty());
+      legion_assert(std::is_sorted(shards.begin(), shards.end()));
       const TraceLocalID tlid = task->get_trace_local_id();
       AutoLock tpl_lock(template_lock);
       concurrent_groups[tlid].emplace_back(
@@ -3609,9 +3423,7 @@ namespace Legion {
       // which don't race with each other
       std::map<TraceLocalID, std::vector<ConcurrentGroup> >::iterator finder =
           concurrent_groups.find(tlid);
-#ifdef DEBUG_LEGION
-      assert(finder != concurrent_groups.end());
-#endif
+      legion_assert(finder != concurrent_groups.end());
       for (std::vector<ConcurrentGroup>::iterator it = finder->second.begin();
            it != finder->second.end(); it++)
       {
@@ -3628,14 +3440,10 @@ namespace Legion {
     {
       const TraceLocalID key = task->get_trace_local_id();
       AutoLock t_lock(template_lock, 1, false /*exclusive*/);
-#ifdef DEBUG_LEGION
-      assert(is_replaying());
-#endif
+      legion_assert(is_replaying());
       std::map<TraceLocalID, std::map<Reservation, bool> >::const_iterator
           finder = cached_reservations.find(key);
-#ifdef DEBUG_LEGION
-      assert(finder != cached_reservations.end());
-#endif
+      legion_assert(finder != cached_reservations.end());
       reservations = finder->second;
     }
 
@@ -3692,11 +3500,9 @@ namespace Legion {
     void PhysicalTemplate::initialize_replay(ApEvent completion, bool recurrent)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(operations.empty());
-      assert(remaining_replays.load() == 0);
-      assert(!replay_postcondition.exists());
-#endif
+      legion_assert(operations.empty());
+      legion_assert(remaining_replays.load() == 0);
+      legion_assert(!replay_postcondition.exists());
       if (total_replays++ == Realm::Barrier::MAX_PHASES)
       {
         replay_precondition = refresh_managed_barriers();
@@ -3741,9 +3547,7 @@ namespace Legion {
     {
       const std::vector<Processor>& replay_targets =
           trace->get_replay_targets();
-#ifdef DEBUG_LEGION
-      assert(remaining_replays.load() == slices.size());
-#endif
+      legion_assert(remaining_replays.load() == slices.size());
       for (unsigned idx = 0; idx < slices.size(); ++idx)
       {
         ReplaySliceArgs args(this, idx, trace->is_recurrent());
@@ -3769,24 +3573,18 @@ namespace Legion {
         it->second->refresh_barrier(it->first, notifications);
       if (!notifications.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(notifications.size() == 1);
-#endif
+        legion_assert(notifications.size() == 1);
         std::map<ShardID, std::map<ApEvent, ApBarrier> >::const_iterator local =
             notifications.begin();
-#ifdef DEBUG_LEGION
-        assert(local->first == 0);
-        assert(local->second.size() == managed_arrivals.size());
-#endif
+        legion_assert(local->first == 0);
+        legion_assert(local->second.size() == managed_arrivals.size());
         for (std::map<ApEvent, ApBarrier>::const_iterator it =
                  local->second.begin();
              it != local->second.end(); it++)
         {
           std::map<ApEvent, std::vector<BarrierArrival*> >::iterator finder =
               managed_arrivals.find(it->first);
-#ifdef DEBUG_LEGION
-          assert(finder != managed_arrivals.end());
-#endif
+          legion_assert(finder != managed_arrivals.end());
           for (unsigned idx = 0; idx < finder->second.size(); idx++)
             finder->second[idx]->set_managed_barrier(it->second);
         }
@@ -3798,10 +3596,8 @@ namespace Legion {
         for (std::vector<ConcurrentGroup>::iterator it = cit->second.begin();
              it != cit->second.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->shards.size() == 1);
-          assert(it->shards.back() == 0);
-#endif
+          legion_assert(it->shards.size() == 1);
+          legion_assert(it->shards.back() == 0);
           it->barrier.destroy_barrier();
           it->barrier = runtime->create_rt_barrier(it->global);
         }
@@ -3821,9 +3617,7 @@ namespace Legion {
           AutoLock tpl_lock(template_lock);
           if (remaining_replays.load() > 0)
           {
-#ifdef DEBUG_LEGION
-            assert(!replay_postcondition.exists());
-#endif
+            legion_assert(!replay_postcondition.exists());
             replay_postcondition = Runtime::create_rt_user_event();
             wait_on = replay_postcondition;
           }
@@ -3911,14 +3705,12 @@ namespace Legion {
         const TraceLocalID& tlid, unsigned entry, unsigned op_kind)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(memo_entries.find(tlid) == memo_entries.end());
-#endif
+      legion_assert(memo_entries.find(tlid) == memo_entries.end());
       memo_entries[tlid] = std::pair<unsigned, unsigned>(entry, op_kind);
     }
 
     //--------------------------------------------------------------------------
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     unsigned PhysicalTemplate::convert_event(const ApEvent& event, bool check)
 #else
     unsigned PhysicalTemplate::convert_event(const ApEvent& event)
@@ -3927,9 +3719,7 @@ namespace Legion {
     {
       unsigned event_ = events.size();
       events.emplace_back(event);
-#ifdef DEBUG_LEGION
-      assert(event_map.find(event) == event_map.end());
-#endif
+      legion_assert(event_map.find(event) == event_map.end());
       event_map[event] = event_;
       return event_;
     }
@@ -3941,10 +3731,8 @@ namespace Legion {
     {
       std::map<ApEvent, unsigned>::const_iterator finder =
           event_map.find(event);
-#ifdef DEBUG_LEGION
-      assert(finder != event_map.end());
-      assert(finder->second != NO_INDEX);
-#endif
+      legion_assert(finder != event_map.end());
+      legion_assert(finder->second != NO_INDEX);
       return finder->second;
     }
 
@@ -3952,9 +3740,7 @@ namespace Legion {
     void PhysicalTemplate::insert_instruction(Instruction* inst)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instructions.size() + 1 == events.size());
-#endif
+      legion_assert(instructions.size() + 1 == events.size());
       instructions.emplace_back(inst);
     }
 
@@ -3968,18 +3754,14 @@ namespace Legion {
       {
         std::map<UniqueInst, std::deque<LastUserResult> >::const_iterator
             finder = instance_last_users.find(uit->instance);
-#ifdef DEBUG_LEGION
-        assert(finder != instance_last_users.end());
-#endif
+        legion_assert(finder != instance_last_users.end());
         for (std::deque<LastUserResult>::const_iterator it =
                  finder->second.begin();
              it != finder->second.end(); it++)
         {
           if (!it->user.matches(*uit))
             continue;
-#ifdef DEBUG_LEGION
-          assert(it->events.size() == it->frontiers.size());
-#endif
+          legion_assert(it->events.size() == it->frontiers.size());
           users.insert(it->frontiers.begin(), it->frontiers.end());
           break;
         }

@@ -86,9 +86,7 @@ namespace Legion {
     inline MaterializedView* LogicalView::as_materialized_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_materialized_view());
-#endif
+      legion_assert(is_materialized_view());
       return static_cast<MaterializedView*>(const_cast<LogicalView*>(this));
     }
 

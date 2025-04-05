@@ -227,9 +227,7 @@ namespace Legion {
     int TaskOp::get_depth(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(parent_ctx != nullptr);
-#endif
+      legion_assert(parent_ctx != nullptr);
       return parent_ctx->get_depth() + 1;
     }
 
@@ -316,10 +314,8 @@ namespace Legion {
     void TaskOp::set_current_proc(Processor current)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(current.exists());
-      assert(runtime->is_local(current));
-#endif
+      legion_assert(current.exists());
+      legion_assert(runtime->is_local(current));
       // Always clear target_proc and the mapper when setting a new current proc
       mapper = nullptr;
       current_proc = current;
@@ -654,9 +650,7 @@ namespace Legion {
     bool TaskOp::select_task_options(bool prioritize)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!options_selected);
-#endif
+      legion_assert(!options_selected);
       if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       Mapper::TaskOptions options;
@@ -870,9 +864,7 @@ namespace Legion {
       bool task_commit = false;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(!commit_received);
-#endif
+        legion_assert(!commit_received);
         commit_received = true;
         // If we already received the child commit then we
         // are ready to commit this task
@@ -890,9 +882,7 @@ namespace Legion {
         std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index < regions.size());
-#endif
+      legion_assert(index < regions.size());
       Mapper::SelectTaskSrcInput input;
       Mapper::SelectTaskSrcOutput output;
       prepare_for_mapping(target, input.target);
@@ -925,10 +915,8 @@ namespace Legion {
     unsigned TaskOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < parent_req_indexes.size());
-      assert(parent_req_indexes[idx] != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx < parent_req_indexes.size());
+      legion_assert(parent_req_indexes[idx] != TRACED_PARENT_INDEX);
       return parent_req_indexes[idx];
     }
 
@@ -936,9 +924,7 @@ namespace Legion {
     VersionInfo& TaskOp::get_version_info(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < version_infos.size());
-#endif
+      legion_assert(idx < version_infos.size());
       return version_infos[idx];
     }
 
@@ -946,9 +932,7 @@ namespace Legion {
     const VersionInfo& TaskOp::get_version_info(unsigned idx) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < version_infos.size());
-#endif
+      legion_assert(idx < version_infos.size());
       return version_infos[idx];
     }
 
@@ -1002,9 +986,7 @@ namespace Legion {
         TaskOp* rhs, Processor p, bool can_steal, bool duplicate_args)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(p.exists());
-#endif
+      legion_assert(p.exists());
       // From Operation
       this->parent_ctx = rhs->parent_ctx;
       this->context_index = rhs->get_context_index();
@@ -1041,9 +1023,7 @@ namespace Legion {
       this->tag = rhs->tag;
       if (rhs->mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(rhs->mapper_data != nullptr);
-#endif
+        legion_assert(rhs->mapper_data != nullptr);
         this->mapper_data_size = rhs->mapper_data_size;
         this->mapper_data = malloc(this->mapper_data_size);
         memcpy(this->mapper_data, rhs->mapper_data, this->mapper_data_size);
@@ -1111,9 +1091,7 @@ namespace Legion {
     void TaskOp::finalize_output_region_trees(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!output_regions.empty());
-#endif
+      legion_assert(!output_regions.empty());
       const size_t offset = regions.size();
       for (unsigned idx = 0; idx < output_regions.size(); idx++)
         if (!is_output_valid(idx))
@@ -1341,9 +1319,8 @@ namespace Legion {
         for (std::set<unsigned>::const_iterator iit = con_it->indexes.begin();
              iit != con_it->indexes.end(); iit++, idx++)
         {
-#ifdef DEBUG_LEGION
-          assert(regions[*iit].handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+          legion_assert(
+              regions[*iit].handle_type == LEGION_SINGULAR_PROJECTION);
           const RegionRequirement& req = regions[*iit];
           if (first)
           {
@@ -1404,11 +1381,9 @@ namespace Legion {
               {
                 std::map<unsigned, std::pair<PhysicalManager*, unsigned> >::
                     iterator finder = colocation_instances.find(index);
-#ifdef DEBUG_LEGION
-                assert(finder != colocation_instances.end());
-                assert(finder->second.first == nullptr);
-                assert(finder->second.second == *iit);
-#endif
+                legion_assert(finder != colocation_instances.end());
+                legion_assert(finder->second.first == nullptr);
+                legion_assert(finder->second.second == *iit);
                 finder->second.first = manager;
                 index = overlap.find_next_set(index + 1);
               }
@@ -1526,11 +1501,9 @@ namespace Legion {
       bool task_commit = false;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
         // There is a small race condition here which is alright
         // as long as we haven't committed yet
-        assert(!children_commit);
-#endif
+        legion_assert(!children_commit);
         children_commit = true;
         task_commit = commit_received;
       }
@@ -1640,9 +1613,7 @@ namespace Legion {
     void TaskImpl::add_variant(VariantImpl* impl)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(impl->owner == this);
-#endif
+      legion_assert(impl->owner == this);
       AutoLock t_lock(task_lock);
       if (!variants.empty())
       {
@@ -1983,9 +1954,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(get_owner_space() == runtime->address_space);
-#endif
+      legion_assert(get_owner_space() == runtime->address_space);
       RtEvent precondition;
       void* result = nullptr;
       size_t size = 0;
@@ -2222,23 +2191,17 @@ namespace Legion {
         Realm::ProfilingRequestSet& requests)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Either it is local or it is a group that we made
-      assert(
+      legion_assert(
           runtime->is_local(target) ||
           (target.kind() == Processor::PROC_GROUP));
-#endif
       // Add any profiling requests
       if (runtime->profiler != nullptr)
         runtime->profiler->add_task_request(
             requests, owner->task_id, vid, task->get_unique_op_id(), target,
             precondition);
       // Increment the number of outstanding tasks
-#ifdef DEBUG_LEGION
       runtime->increment_total_outstanding_tasks(task->task_id, false /*meta*/);
-#else
-      runtime->increment_total_outstanding_tasks();
-#endif
       if (ready_event.exists())
         return ApEvent(target.spawn(
             descriptor_id, &ctx, sizeof(ctx), requests,
@@ -2350,9 +2313,7 @@ namespace Legion {
         const std::deque<InstanceSet>& physical_instances) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(needs_padding);
-#endif
+      legion_assert(needs_padding);
       for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
                layout_constraints.layouts.begin();
            it != layout_constraints.layouts.end(); it++)
@@ -2361,10 +2322,8 @@ namespace Legion {
             runtime->find_layout_constraints(it->second);
         if (layout->padding_constraint.delta.get_dim() == 0)
           continue;
-#ifdef DEBUG_LEGION
-        assert(it->first < regions.size());
-        assert(it->first < physical_instances.size());
-#endif
+        legion_assert(it->first < regions.size());
+        legion_assert(it->first < physical_instances.size());
         const RegionRequirement& req = regions[it->first];
         const InstanceSet& instances = physical_instances[it->first];
         // Check to see if we have any explicit fields
@@ -2375,10 +2334,8 @@ namespace Legion {
                    layout->field_constraint.field_set.begin();
                fit != layout->field_constraint.field_set.end(); fit++)
           {
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 req.privilege_fields.find(*fit) != req.privilege_fields.end());
-#endif
             padded_fields.insert(*fit);
           }
         }
@@ -2399,9 +2356,7 @@ namespace Legion {
           if (!padded_mask)
             break;
         }
-#ifdef DEBUG_LEGION
-        assert(!padded_mask);
-#endif
+        legion_assert(!padded_mask);
       }
     }
 
@@ -2411,9 +2366,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& physical_regions) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(needs_padding);
-#endif
+      legion_assert(needs_padding);
       for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
                layout_constraints.layouts.begin();
            it != layout_constraints.layouts.end(); it++)
@@ -2422,10 +2375,8 @@ namespace Legion {
             runtime->find_layout_constraints(it->second);
         if (layout->padding_constraint.delta.get_dim() == 0)
           continue;
-#ifdef DEBUG_LEGION
-        assert(it->first < regions.size());
-        assert(it->first < physical_regions.size());
-#endif
+        legion_assert(it->first < regions.size());
+        legion_assert(it->first < physical_regions.size());
         const RegionRequirement& req = regions[it->first];
         const PhysicalRegion& region = physical_regions[it->first];
         // Check to see if we have any explicit fields
@@ -2444,10 +2395,8 @@ namespace Legion {
                    layout->field_constraint.field_set.begin();
                fit != layout->field_constraint.field_set.end(); fit++)
           {
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 req.privilege_fields.find(*fit) != req.privilege_fields.end());
-#endif
             region.impl->add_padded_field(*fit);
           }
         }
@@ -2484,22 +2433,12 @@ namespace Legion {
         // malloc a temporary buffer here and copy the data to ensure
         // alignment.
         void* impl_buffer = malloc(impl_size);
-#ifdef DEBUG_LEGION
-        assert(impl_buffer);
-#endif
+        legion_assert(impl_buffer);
         memcpy(impl_buffer, derez.get_current_pointer(), impl_size);
         derez.advance_pointer(impl_size);
         Realm::Serialization::FixedBufferDeserializer deserializer(
             impl_buffer, impl_size);
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-        bool ok =
-#endif
-            realm_desc.deserialize(deserializer);
-        assert(ok);
-#else
-        realm_desc.deserialize(deserializer);
-#endif
+        legion_no_skip_assert(realm_desc.deserialize(deserializer));
         free(impl_buffer);
       }
       TaskID task_id;

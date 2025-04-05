@@ -455,18 +455,14 @@ namespace Legion {
     {
       if (single)
       {
-#ifdef DEBUG_LEGION
-        assert(entry == entries.single_entry);
-#endif
+        legion_assert(entry == entries.single_entry);
         return valid_fields;
       }
       else
       {
         typename FMMap::const_iterator finder =
             entries.multi_entries->find(entry);
-#ifdef DEBUG_LEGION
-        assert(finder != entries.multi_entries->end());
-#endif
+        legion_assert(finder != entries.multi_entries->end());
         return finder->second;
       }
     }
@@ -502,9 +498,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(entries.multi_entries != nullptr);
-#endif
+        legion_assert(entries.multi_entries != nullptr);
         typename FMMap::iterator finder = entries.multi_entries->find(entry);
         if (finder == entries.multi_entries->end())
           (*entries.multi_entries)[entry] = mask;
@@ -599,18 +593,14 @@ namespace Legion {
     {
       if (single)
       {
-#ifdef DEBUG_LEGION
-        assert(entries.single_entry == to_erase);
-#endif
+        legion_assert(entries.single_entry == to_erase);
         entries.single_entry = nullptr;
         valid_fields.clear();
       }
       else
       {
         typename FMMap::iterator finder = entries.multi_entries->find(to_erase);
-#ifdef DEBUG_LEGION
-        assert(finder != entries.multi_entries->end());
-#endif
+        legion_assert(finder != entries.multi_entries->end());
         entries.multi_entries->erase(finder);
         if (entries.multi_entries->size() == 1)
         {
@@ -634,9 +624,7 @@ namespace Legion {
         entries.single_entry = nullptr;
       else
       {
-#ifdef DEBUG_LEGION
-        assert(entries.multi_entries != nullptr);
-#endif
+        legion_assert(entries.multi_entries != nullptr);
         delete entries.multi_entries;
         entries.multi_entries = nullptr;
         single = true;
@@ -731,14 +719,10 @@ namespace Legion {
     inline void FieldMaskMap<T, L, D>::erase(iterator& it)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(it != end());
-#endif
+      legion_assert(it != end());
       if (single)
       {
-#ifdef DEBUG_LEGION
-        assert(entries.single_entry == it->first);
-#endif
+        legion_assert(entries.single_entry == it->first);
         entries.single_entry = nullptr;
         valid_fields.clear();
       }
@@ -1003,19 +987,15 @@ namespace Legion {
         return;
       if (left.get_valid_mask() * right.get_valid_mask())
         return;
-#ifdef DEBUG_LEGION
       FieldMask unique_test;
-#endif
       if (left.size() == 1)
       {
         typename FieldMapView<T1>::const_iterator first = left.begin();
         for (typename FieldMapView<T2>::const_iterator it = right.begin();
              it != right.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->second * unique_test);
+          legion_assert(it->second * unique_test);
           unique_test |= it->second;
-#endif
           const FieldMask overlap = first->second & it->second;
           if (!overlap)
             continue;
@@ -1031,10 +1011,8 @@ namespace Legion {
              it != left.end(); it++)
         {
           const FieldMask overlap = first->second & it->second;
-#ifdef DEBUG_LEGION
-          assert(it->second * unique_test);
+          legion_assert(it->second * unique_test);
           unique_test |= it->second;
-#endif
           if (!overlap)
             continue;
           const std::pair<T1*, T2*> key(it->first, first->first);
@@ -1052,10 +1030,8 @@ namespace Legion {
         for (typename FieldMapView<T1>::const_iterator it = left.begin();
              it != left.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->second * unique_test);
+          legion_assert(it->second * unique_test);
           unique_test |= it->second;
-#endif
           int fidx = it->second.find_first_set();
           while (fidx >= 0)
           {
@@ -1063,16 +1039,12 @@ namespace Legion {
             fidx = it->second.find_next_set(fidx + 1);
           }
         }
-#ifdef DEBUG_LEGION
         unique_test.clear();
-#endif
         for (typename FieldMapView<T2>::const_iterator it = right.begin();
              it != right.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->second * unique_test);
+          legion_assert(it->second * unique_test);
           unique_test |= it->second;
-#endif
           int fidx = it->second.find_first_set();
           while (fidx >= 0)
           {
@@ -1094,10 +1066,8 @@ namespace Legion {
         for (typename FieldMapView<T2>::const_iterator it = right.begin();
              it != right.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->second * unique_test);
+          legion_assert(it->second * unique_test);
           unique_test |= it->second;
-#endif
           int fidx = it->second.find_first_set();
           while (fidx >= 0)
           {
@@ -1105,16 +1075,12 @@ namespace Legion {
             fidx = it->second.find_next_set(fidx + 1);
           }
         }
-#ifdef DEBUG_LEGION
         unique_test.clear();
-#endif
         for (typename FieldMapView<T1>::const_iterator it = left.begin();
              it != left.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->second * unique_test);
+          legion_assert(it->second * unique_test);
           unique_test |= it->second;
-#endif
           int fidx = it->second.find_first_set();
           while (fidx >= 0)
           {

@@ -72,10 +72,8 @@ namespace Legion {
         InnerContext* ctx, const Future& f, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ctx != nullptr);
-      assert(f.impl != nullptr);
-#endif
+      legion_assert(ctx != nullptr);
+      legion_assert(f.impl != nullptr);
       initialize_operation(ctx, provenance);
       future = f;
       predicate = Predicate(ctx->create_predicate_impl(this));
@@ -94,10 +92,8 @@ namespace Legion {
         InnerContext* ctx, const Predicate& p, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ctx != nullptr);
-      assert(p.impl != nullptr);
-#endif
+      legion_assert(ctx != nullptr);
+      legion_assert(p.impl != nullptr);
       initialize_operation(ctx, provenance);
       predicate = p;
       future = Future(new FutureImpl(
@@ -118,18 +114,14 @@ namespace Legion {
     {
       if (to_predicate)
       {
-#ifdef DEBUG_LEGION
-        assert(future.impl != nullptr);
-#endif
+        legion_assert(future.impl != nullptr);
         // Register this operation as dependent on task that
         // generated the future
         future.impl->register_dependence(this);
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(predicate.impl != nullptr);
-#endif
+        legion_assert(predicate.impl != nullptr);
         register_dependence(
             predicate.impl->creator, predicate.impl->creator_gen);
       }
@@ -170,9 +162,7 @@ namespace Legion {
       {
         RtEvent ready;
         bool value = predicate.impl->get_predicate(ready);
-#ifdef DEBUG_LEGION
-        assert(!ready.exists());
-#endif
+        legion_assert(!ready.exists());
         FutureInstance* result =
             FutureInstance::create_local(&value, sizeof(value), false /*own*/);
         future.impl->set_result(ApEvent::NO_AP_EVENT, result);
@@ -202,9 +192,7 @@ namespace Legion {
         InnerContext* ctx, const Predicate& p, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ctx != nullptr);
-#endif
+      legion_assert(ctx != nullptr);
       initialize_operation(ctx, provenance);
       to_set = Predicate(ctx->create_predicate_impl(this));
       previous = p;
@@ -277,9 +265,7 @@ namespace Legion {
     {
       RtEvent ready;
       bool value = previous.impl->get_predicate(ready);
-#ifdef DEBUG_LEGION
-      assert(!ready.exists());
-#endif
+      legion_assert(!ready.exists());
       to_set.impl->set_predicate(!value);
       complete_execution();
     }
@@ -304,9 +290,7 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ctx != nullptr);
-#endif
+      legion_assert(ctx != nullptr);
       initialize_operation(ctx, provenance);
       to_set = Predicate(ctx->create_predicate_impl(this));
       previous.swap(predicates);
@@ -397,9 +381,7 @@ namespace Legion {
       {
         RtEvent ready;
         bool value = it->impl->get_predicate(ready);
-#ifdef DEBUG_LEGION
-        assert(!ready.exists());
-#endif
+        legion_assert(!ready.exists());
         if (value)
           continue;
         result = false;
@@ -429,9 +411,7 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ctx != nullptr);
-#endif
+      legion_assert(ctx != nullptr);
       initialize_operation(ctx, provenance);
       previous.swap(predicates);
       to_set = Predicate(ctx->create_predicate_impl(this));
@@ -522,9 +502,7 @@ namespace Legion {
       {
         RtEvent ready;
         bool value = it->impl->get_predicate(ready);
-#ifdef DEBUG_LEGION
-        assert(!ready.exists());
-#endif
+        legion_assert(!ready.exists());
         if (!value)
           continue;
         result = true;

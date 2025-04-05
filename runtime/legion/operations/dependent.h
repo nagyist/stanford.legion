@@ -558,7 +558,6 @@ namespace Legion {
       ApBarrier collective_done;
       std::map<DomainPoint, Domain> remote_targets;
       std::vector<DeppartResult> deppart_results;
-#ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective* collective)
       {
@@ -566,7 +565,6 @@ namespace Legion {
       }
     protected:
       ShardingGatherCollective* sharding_collective;
-#endif
     };
 
     /**

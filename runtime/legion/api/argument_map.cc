@@ -30,9 +30,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     impl = new Internal::ArgumentMapImpl();
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->add_reference();
   }
 
@@ -41,9 +39,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     impl = new Internal::ArgumentMapImpl(rhs);
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->add_reference();
   }
 
@@ -141,9 +137,7 @@ namespace Legion {
   bool ArgumentMap::has_point(const DomainPoint& point)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     return impl->has_point(point);
   }
 
@@ -153,9 +147,7 @@ namespace Legion {
       bool replace /*=true*/)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->set_point(point, arg, replace);
   }
 
@@ -164,9 +156,7 @@ namespace Legion {
       const DomainPoint& point, const Future& f, bool replace /*= true*/)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->set_point(point, f, replace);
   }
 
@@ -174,9 +164,7 @@ namespace Legion {
   bool ArgumentMap::remove_point(const DomainPoint& point)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     return impl->remove_point(point);
   }
 
@@ -184,9 +172,7 @@ namespace Legion {
   UntypedBuffer ArgumentMap::get_point(const DomainPoint& point) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     return impl->get_point(point);
   }
 
@@ -274,9 +260,7 @@ namespace Legion {
       else
       {
         dimensionality = point.get_dim();
-#ifdef DEBUG_LEGION
-        assert(dimensionality > 0);
-#endif
+        legion_assert(dimensionality > 0);
       }
       if (!replace and (point_set != nullptr) && !update_point_set &&
           point_set->contains_point(point))
@@ -291,9 +275,7 @@ namespace Legion {
           return;
         if (finder->second.impl->producer_op != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(dependent_futures > 0);
-#endif
+          legion_assert(dependent_futures > 0);
           dependent_futures--;
         }
         if (arg.get_size() > 0)
@@ -339,9 +321,7 @@ namespace Legion {
       else
       {
         dimensionality = point.get_dim();
-#ifdef DEBUG_LEGION
-        assert(dimensionality > 0);
-#endif
+        legion_assert(dimensionality > 0);
       }
       if (!replace and (point_set != nullptr) && !update_point_set &&
           point_set->contains_point(point))
@@ -356,9 +336,7 @@ namespace Legion {
           return;
         if (finder->second.impl->producer_op != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(dependent_futures > 0);
-#endif
+          legion_assert(dependent_futures > 0);
           dependent_futures--;
         }
         finder->second = f;
@@ -397,9 +375,7 @@ namespace Legion {
       else
       {
         dimensionality = point.get_dim();
-#ifdef DEBUG_LEGION
-        assert(dimensionality > 0);
-#endif
+        legion_assert(dimensionality > 0);
       }
       if ((point_set != nullptr) && !update_point_set &&
           !point_set->contains_point(point))
@@ -411,9 +387,7 @@ namespace Legion {
       {
         if (finder->second.impl->producer_op != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(dependent_futures > 0);
-#endif
+          legion_assert(dependent_futures > 0);
           dependent_futures--;
         }
         arguments.erase(finder);
@@ -543,9 +517,7 @@ namespace Legion {
     void ArgumentMapImpl::unfreeze(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(future_map.impl != nullptr);
-#endif
+      legion_assert(future_map.impl != nullptr);
       // If they are already equivalent then we're done
       if (equivalent)
         return;
@@ -564,9 +536,7 @@ namespace Legion {
       point_set->add_base_expression_reference(RUNTIME_REF);
       update_point_set = false;
       // Count how many dependent futures we have
-#ifdef DEBUG_LEGION
-      assert(dependent_futures == 0);
-#endif
+      legion_assert(dependent_futures == 0);
       for (std::map<DomainPoint, Future>::const_iterator it = arguments.begin();
            it != arguments.end(); it++)
         if (it->second.impl->producer_op != nullptr)

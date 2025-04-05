@@ -16,6 +16,7 @@
 #ifndef __LEGION_TRIE_H__
 #define __LEGION_TRIE_H__
 
+#include "legion/api/types.h"
 #include "legion/kernel/allocation.h"
 
 namespace Legion {
@@ -108,9 +109,7 @@ namespace Legion {
         }
 
         // We aren't supporting insertions of a string multiple times.
-#ifdef DEBUG_LEGION
-        assert(!node->end);
-#endif
+        legion_assert(!node->end);
         node->end = true;
         node->value = value;
       }
@@ -136,9 +135,7 @@ namespace Legion {
         }
 
         // We aren't supporting insertions of a string multiple times.
-#ifdef DEBUG_LEGION
-        assert(!node->end);
-#endif
+        legion_assert(!node->end);
         node->end = true;
         node->value = value;
       }

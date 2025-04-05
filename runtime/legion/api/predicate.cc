@@ -116,9 +116,7 @@ namespace Legion {
     PredicateImpl::~PredicateImpl(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(0 <= value);
-#endif
+      legion_assert(0 <= value);
       if (context->remove_base_resource_ref(APPLICATION_REF))
         delete context;
     }
@@ -160,9 +158,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock p_lock(predicate_lock);
-#ifdef DEBUG_LEGION
-      assert(value < 0);
-#endif
+      legion_assert(value < 0);
       if (result)
         value = 1;
       else
@@ -265,9 +261,7 @@ namespace Legion {
           // We're doing the fall-through case where we know its false
           // but we have to make sure that all the shards do the same
           // thing so we're pretending like we don't know the result yet
-#ifdef DEBUG_LEGION
-          assert(value == 0);
-#endif
+          legion_assert(value == 0);
           Runtime::poison_event(true_guard);
           Runtime::trigger_event(false_guard);
         }
@@ -284,20 +278,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock p_lock(predicate_lock);
-#ifdef DEBUG_LEGION
-      assert(value < 0);
-#endif
+      legion_assert(value < 0);
       if (!result)  // False
       {
         value = 0;
         if (collective_id > 0)
         {
-#ifdef DEBUG_LEGION
-          ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(context);
-          assert(repl_ctx != nullptr);
-#else
-          ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(context);
-#endif
+          ReplicateContext* repl_ctx =
+              legion_safe_cast<ReplicateContext*>(context);
           collective = new PredicateCollective(this, repl_ctx, collective_id);
           collective->async_all_reduce(max_observed_index);
         }

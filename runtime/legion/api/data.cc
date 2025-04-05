@@ -68,12 +68,10 @@ namespace Legion {
     : did(_id), tid(_tid), type_tag(_tag)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(
+    legion_assert(
         (LEGION_DISTRIBUTED_HELP_DECODE(did) ==
          Internal::INDEX_SPACE_NODE_DC) ||
         (did == 0));
-#endif
   }
 
   //--------------------------------------------------------------------------
@@ -106,11 +104,9 @@ namespace Legion {
     : did(_id), tid(_tid), type_tag(_tag)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(
+    legion_assert(
         (LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::INDEX_PART_NODE_DC) ||
         (did == 0));
-#endif
   }
 
   //--------------------------------------------------------------------------
@@ -141,9 +137,8 @@ namespace Legion {
   FieldSpace::FieldSpace(DistributedID _id) : did(_id)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::FIELD_SPACE_DC);
-#endif
+    legion_assert(
+        LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::FIELD_SPACE_DC);
   }
 
   //--------------------------------------------------------------------------
@@ -173,12 +168,10 @@ namespace Legion {
     : tree_did(tid), index_space(index), field_space(field)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(
+    legion_assert(
         (LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
          Internal::REGION_TREE_NODE_DC) ||
         (tid == 0));
-#endif
   }
 
   //--------------------------------------------------------------------------
@@ -226,12 +219,10 @@ namespace Legion {
     : tree_did(tid), index_partition(pid), field_space(field)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(
+    legion_assert(
         (LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
          Internal::REGION_TREE_NODE_DC) ||
         (tid == 0));
-#endif
   }
 
   //--------------------------------------------------------------------------
@@ -342,9 +333,7 @@ namespace Legion {
       bool local, const char* prov)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     Internal::AutoProvenance provenance(prov);
     return impl->allocate_field(
         field_size, desired_fieldid, serdez_id, local, provenance);
@@ -356,9 +345,7 @@ namespace Legion {
       CustomSerdezID serdez_id, bool local, const char* prov)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     Internal::AutoProvenance provenance(prov);
     return impl->allocate_field(
         field_size, desired_fieldid, serdez_id, local, provenance);
@@ -369,9 +356,7 @@ namespace Legion {
       FieldID fid, const bool unordered, const char* prov)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     Internal::AutoProvenance provenance(prov);
     impl->free_field(fid, unordered, provenance);
   }
@@ -382,9 +367,7 @@ namespace Legion {
       const char* prov)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     Internal::AutoProvenance provenance(prov);
     return impl->allocate_field(
         field_size, desired_fieldid, serdez_id, true /*local*/, provenance);
@@ -397,9 +380,7 @@ namespace Legion {
       bool local, const char* prov)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     Internal::AutoProvenance provenance(prov);
     impl->allocate_fields(
         field_sizes, resulting_fields, serdez_id, local, provenance);
@@ -412,9 +393,7 @@ namespace Legion {
       bool local, const char* prov)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     Internal::AutoProvenance provenance(prov);
     impl->allocate_fields(
         field_sizes, resulting_fields, serdez_id, local, provenance);
@@ -425,9 +404,7 @@ namespace Legion {
       const std::set<FieldID>& to_free, const bool unordered, const char* prov)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     Internal::AutoProvenance provenance(prov);
     impl->free_fields(to_free, unordered, provenance);
   }
@@ -439,9 +416,7 @@ namespace Legion {
       const char* prov)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     Internal::AutoProvenance provenance(prov);
     impl->allocate_fields(
         field_sizes, resulting_fields, serdez_id, true /*local*/, provenance);
@@ -469,10 +444,8 @@ namespace Legion {
       : field_space(n->handle), node(n), context(ctx), ready_event(ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(node != nullptr);
-      assert(context != nullptr);
-#endif
+      legion_assert(node != nullptr);
+      legion_assert(context != nullptr);
       context->add_base_resource_ref(FIELD_ALLOCATOR_REF);
       node->add_base_resource_ref(FIELD_ALLOCATOR_REF);
     }

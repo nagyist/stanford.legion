@@ -60,9 +60,7 @@ namespace Legion {
       // in the indirect record
       for (unsigned fidx = 0; fidx < field_indexes.size(); fidx++)
       {
-#ifdef DEBUG_LEGION
-        bool found = false;
-#endif
+        [[maybe_unused]] bool found = false;
         for (unsigned idx = 0; idx < insts.size(); idx++)
         {
           const InstanceRef& ref = insts[idx];
@@ -73,14 +71,10 @@ namespace Legion {
           instances[fidx] = manager->get_instance();
           if (!instance_events.empty())
             instance_events[fidx] = manager->get_unique_event();
-#ifdef DEBUG_LEGION
           found = true;
-#endif
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(found);
-#endif
+        legion_assert(found);
       }
       // Wait for the sparsity map references to be added if necessary
       if (added.exists() && !added.has_triggered())
@@ -159,9 +153,7 @@ namespace Legion {
             std::pair<FieldMask, FieldMask>(src_mask, compressed));
       }
       const unsigned pop_count = FieldMask::pop_count(compressed);
-#ifdef DEBUG_LEGION
-      assert(pop_count == FieldMask::pop_count(src_mask));
-#endif
+      legion_assert(pop_count == FieldMask::pop_count(src_mask));
       unsigned offset = dst_fields.size();
       dst_fields.resize(offset + pop_count);
       int next_start = 0;
@@ -184,23 +176,18 @@ namespace Legion {
         return dst_mask;
       if (forward_map.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(src_indexes.size() == dst_indexes.size());
-#endif
+        legion_assert(src_indexes.size() == dst_indexes.size());
         for (unsigned idx = 0; idx < src_indexes.size(); idx++)
         {
-#ifdef DEBUG_LEGION
-          assert(forward_map.find(src_indexes[idx]) == forward_map.end());
-#endif
+          legion_assert(
+              forward_map.find(src_indexes[idx]) == forward_map.end());
           forward_map[src_indexes[idx]] = dst_indexes[idx];
         }
       }
       int index = src_mask.find_first_set();
       while (index >= 0)
       {
-#ifdef DEBUG_LEGION
-        assert(forward_map.find(index) != forward_map.end());
-#endif
+        legion_assert(forward_map.find(index) != forward_map.end());
         dst_mask.set_bit(forward_map[index]);
         index = src_mask.find_next_set(index + 1);
       }
@@ -216,23 +203,18 @@ namespace Legion {
         return src_mask;
       if (backward_map.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(src_indexes.size() == dst_indexes.size());
-#endif
+        legion_assert(src_indexes.size() == dst_indexes.size());
         for (unsigned idx = 0; idx < dst_indexes.size(); idx++)
         {
-#ifdef DEBUG_LEGION
-          assert(backward_map.find(dst_indexes[idx]) == backward_map.end());
-#endif
+          legion_assert(
+              backward_map.find(dst_indexes[idx]) == backward_map.end());
           backward_map[dst_indexes[idx]] = src_indexes[idx];
         }
       }
       int index = dst_mask.find_first_set();
       while (index >= 0)
       {
-#ifdef DEBUG_LEGION
-        assert(backward_map.find(index) != backward_map.end());
-#endif
+        legion_assert(backward_map.find(index) != backward_map.end());
         src_mask.set_bit(backward_map[index]);
         index = dst_mask.find_next_set(index + 1);
       }
@@ -245,20 +227,15 @@ namespace Legion {
     {
       if (forward_map.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(src_indexes.size() == dst_indexes.size());
-#endif
+        legion_assert(src_indexes.size() == dst_indexes.size());
         for (unsigned idx = 0; idx < src_indexes.size(); idx++)
         {
-#ifdef DEBUG_LEGION
-          assert(forward_map.find(src_indexes[idx]) == forward_map.end());
-#endif
+          legion_assert(
+              forward_map.find(src_indexes[idx]) == forward_map.end());
           forward_map[src_indexes[idx]] = dst_indexes[idx];
         }
       }
-#ifdef DEBUG_LEGION
-      assert(forward_map.find(index) != forward_map.end());
-#endif
+      legion_assert(forward_map.find(index) != forward_map.end());
       return forward_map[index];
     }
 
@@ -268,20 +245,15 @@ namespace Legion {
     {
       if (backward_map.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(src_indexes.size() == dst_indexes.size());
-#endif
+        legion_assert(src_indexes.size() == dst_indexes.size());
         for (unsigned idx = 0; idx < dst_indexes.size(); idx++)
         {
-#ifdef DEBUG_LEGION
-          assert(backward_map.find(dst_indexes[idx]) == backward_map.end());
-#endif
+          legion_assert(
+              backward_map.find(dst_indexes[idx]) == backward_map.end());
           backward_map[dst_indexes[idx]] = src_indexes[idx];
         }
       }
-#ifdef DEBUG_LEGION
-      assert(backward_map.find(index) != backward_map.end());
-#endif
+      legion_assert(backward_map.find(index) != backward_map.end());
       return backward_map[index];
     }
 
@@ -344,9 +316,7 @@ namespace Legion {
         const PhysicalTraceInfo& trace_info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_fields.empty());
-#endif
+      legion_assert(src_fields.empty());
       FieldSpaceNode* fs = runtime->get_node(req.region.get_field_space());
       std::vector<unsigned> indexes(req.instance_fields.size());
       fs->get_field_indexes(req.instance_fields, indexes);
@@ -355,9 +325,7 @@ namespace Legion {
       for (std::vector<unsigned>::const_iterator it = indexes.begin();
            it != indexes.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        bool found = false;
-#endif
+        [[maybe_unused]] bool found = false;
         for (unsigned idx = 0; idx < insts.size(); idx++)
         {
           const InstanceRef& ref = insts[idx];
@@ -369,14 +337,10 @@ namespace Legion {
           PhysicalManager* manager = ref.get_physical_manager();
           manager->compute_copy_offsets(copy_mask, src_fields);
           src_unique_events.emplace_back(manager->get_unique_event());
-#ifdef DEBUG_LEGION
           found = true;
-#endif
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(found);
-#endif
+        legion_assert(found);
       }
     }
 
@@ -386,9 +350,7 @@ namespace Legion {
         const PhysicalTraceInfo& trace_info, const bool exclusive_redop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dst_fields.empty());
-#endif
+      legion_assert(dst_fields.empty());
       FieldSpaceNode* fs = runtime->get_node(req.region.get_field_space());
       std::vector<unsigned> indexes(req.instance_fields.size());
       fs->get_field_indexes(req.instance_fields, indexes);
@@ -397,9 +359,7 @@ namespace Legion {
       for (std::vector<unsigned>::const_iterator it = indexes.begin();
            it != indexes.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        bool found = false;
-#endif
+        [[maybe_unused]] bool found = false;
         for (unsigned idx = 0; idx < insts.size(); idx++)
         {
           const InstanceRef& ref = insts[idx];
@@ -411,14 +371,10 @@ namespace Legion {
           PhysicalManager* manager = ref.get_physical_manager();
           manager->compute_copy_offsets(copy_mask, dst_fields);
           dst_unique_events.emplace_back(manager->get_unique_event());
-#ifdef DEBUG_LEGION
           found = true;
-#endif
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(found);
-#endif
+        legion_assert(found);
       }
       if (req.redop != 0)
       {
@@ -434,10 +390,8 @@ namespace Legion {
         const bool are_range, const bool possible_out_of_range)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_fields.empty());
-      assert(idx_req.privilege_fields.size() == 1);
-#endif
+      legion_assert(src_fields.empty());
+      legion_assert(idx_req.privilege_fields.size() == 1);
       src_indirections.swap(records);
       src_indirect_field = *(idx_req.privilege_fields.begin());
       PhysicalManager* manager = indirect_instance.get_physical_manager();
@@ -464,10 +418,8 @@ namespace Legion {
         const bool possible_aliasing, const bool exclusive_redop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dst_fields.empty());
-      assert(idx_req.privilege_fields.size() == 1);
-#endif
+      legion_assert(dst_fields.empty());
+      legion_assert(idx_req.privilege_fields.size() == 1);
       dst_indirections.swap(records);
       dst_indirect_field = *(idx_req.privilege_fields.begin());
       PhysicalManager* manager = indirect_instance.get_physical_manager();

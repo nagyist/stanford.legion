@@ -21,7 +21,7 @@
 namespace Legion {
   namespace Internal {
 
-#ifndef DEBUG_LEGION
+#ifndef LEGION_DEBUG
     //--------------------------------------------------------------------------
     inline IndexSpaceNode* IndexTreeNode::as_index_space_node(void)
     //--------------------------------------------------------------------------
@@ -50,9 +50,7 @@ namespace Legion {
       : PieceIteratorImpl()
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
-#endif
+      legion_assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
       const size_t num_pieces = piece_list_size / sizeof(Rect<DIM, T>);
       const Rect<DIM, T>* rects = static_cast<const Rect<DIM, T>*>(piece_list);
       if (privilege_node != nullptr)
@@ -84,9 +82,7 @@ namespace Legion {
     int PieceIteratorImplT<DIM, T>::get_next(int index, Domain& next_piece)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index >= -1);
-#endif
+      legion_assert(index >= -1);
       const unsigned next = index + 1;
       if (next < pieces.size())
       {
@@ -106,22 +102,14 @@ namespace Legion {
         IndexSpaceNode* priv_node)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       IndexSpaceNodeT<DIM, T>* privilege_node =
-          dynamic_cast<IndexSpaceNodeT<DIM, T>*>(priv_node);
-      assert((privilege_node != nullptr) || (priv_node == nullptr));
-#else
-      IndexSpaceNodeT<DIM, T>* privilege_node =
-          static_cast<IndexSpaceNodeT<DIM, T>*>(priv_node);
-#endif
+          legion_safe_cast<IndexSpaceNodeT<DIM, T>*>(priv_node);
       if (piece_list == nullptr)
       {
         DomainT<DIM, T> realm_space = get_tight_index_space();
-#ifdef DEBUG_LEGION
         // If there was no piece list it has to be because there
         // was just one piece which was a single dense rectangle
-        assert(realm_space.dense());
-#endif
+        legion_assert(realm_space.dense());
         return new PieceIteratorImplT<DIM, T>(
             &realm_space.bounds, sizeof(realm_space.bounds), privilege_node);
       }
@@ -295,10 +283,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DomainT<DIM, T> index_space = domain;
-#ifdef DEBUG_LEGION
-      assert(references > 0);
-      assert(!index_space.dense());
-#endif
+      legion_assert(references > 0);
+      legion_assert(!index_space.dense());
       return RtEvent(index_space.sparsity.add_reference(references));
     }
 
@@ -350,9 +336,7 @@ namespace Legion {
       // remote nodes for copies about the remote instance
       {
         AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-        assert(!index_space_set.load());
-#endif
+        legion_assert(!index_space_set.load());
         realm_index_space = value;
         index_space_valid = valid;
         index_space_set.store(true);
@@ -493,9 +477,7 @@ namespace Legion {
         bool broadcast, bool initializing)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(domain.exists());
-#endif
+      legion_assert(domain.exists());
       DomainT<DIM, T> realm_space = domain;
       if (!take_ownership && !realm_space.dense())
       {
@@ -524,9 +506,7 @@ namespace Legion {
                output_sizes.begin();
            it != output_sizes.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert((it->first.get_dim() + it->second.dim) == DIM);
-#endif
+        legion_assert((it->first.get_dim() + it->second.dim) == DIM);
         int launch_ndim = DIM - it->second.dim;
         Point<DIM, T> lo, hi;
         for (int idx = 0; idx < launch_ndim; idx++)
@@ -552,10 +532,8 @@ namespace Legion {
     void IndexSpaceNodeT<DIM, T>::tighten_index_space(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index_space_set.load());
-      assert(!index_space_tight.load());
-#endif
+      legion_assert(index_space_set.load());
+      legion_assert(!index_space_tight.load());
       const RtEvent valid_event(realm_index_space.make_valid());
       if (!valid_event.has_triggered() || index_space_valid.exists())
       {
@@ -585,13 +563,9 @@ namespace Legion {
           }
         }
       }
-#ifdef DEBUG_LEGION
-      assert(realm_index_space.is_valid());
-#endif
+      legion_assert(realm_index_space.is_valid());
       const Realm::IndexSpace<DIM, T> tight_space = realm_index_space.tighten();
-#ifdef DEBUG_LEGION
-      assert(tight_space.is_valid());
-#endif
+      legion_assert(tight_space.is_valid());
       Realm::IndexSpace<DIM, T> old_space;
       // Now take the lock and set everything
       {
@@ -663,9 +637,7 @@ namespace Legion {
     {
       if (new_expr_id == 0)
         new_expr_id = expr_id;
-#ifdef DEBUG_LEGION
-      assert(handle.get_type_tag() == new_handle.get_type_tag());
-#endif
+      legion_assert(handle.get_type_tag() == new_handle.get_type_tag());
       ApUserEvent to_trigger;
       DomainT<DIM, T> local_space;
       const ApEvent ready = get_loose_index_space(local_space, to_trigger);
@@ -694,22 +666,14 @@ namespace Legion {
         IndexSpaceNode* priv_node)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       IndexSpaceNodeT<DIM, T>* privilege_node =
-          dynamic_cast<IndexSpaceNodeT<DIM, T>*>(priv_node);
-      assert((privilege_node != nullptr) || (priv_node == nullptr));
-#else
-      IndexSpaceNodeT<DIM, T>* privilege_node =
-          static_cast<IndexSpaceNodeT<DIM, T>*>(priv_node);
-#endif
+          legion_safe_cast<IndexSpaceNodeT<DIM, T>*>(priv_node);
       if (piece_list == nullptr)
       {
         DomainT<DIM, T> realm_space = get_tight_index_space();
-#ifdef DEBUG_LEGION
         // If there was no piece list it has to be because there
         // was just one piece which was a single dense rectangle
-        assert(realm_space.dense());
-#endif
+        legion_assert(realm_space.dense());
         return new PieceIteratorImplT<DIM, T>(
             &realm_space.bounds, sizeof(realm_space.bounds), privilege_node);
       }
@@ -1195,9 +1159,7 @@ namespace Legion {
       if (!linearization.compare_exchange_strong(expected, result))
       {
         delete result;
-#ifdef DEBUG_LEGION
-        assert(expected != nullptr);
-#endif
+        legion_assert(expected != nullptr);
         result = expected;
       }
       return result;
@@ -1357,9 +1319,7 @@ namespace Legion {
         Serializer& rez, bool pack_reference) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index_space_set.load());
-#endif
+      legion_assert(index_space_set.load());
       // No need for the lock, held by the caller
       rez.serialize(realm_index_space);
       rez.serialize(index_space_valid);
@@ -1407,9 +1367,7 @@ namespace Legion {
         Operation* op, IndexPartNode* partition, size_t granularity)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       const size_t count = partition->total_children;
       if (partition->is_owner() && (partition->collective_mapping == nullptr))
       {
@@ -1447,9 +1405,7 @@ namespace Legion {
         {
           IndexSpaceNodeT<DIM, T>* child =
               static_cast<IndexSpaceNodeT<DIM, T>*>(partition->get_child(*itr));
-#ifdef DEBUG_LEGION
-          assert(subspace_index < subspaces.size());
-#endif
+          legion_assert(subspace_index < subspaces.size());
           if (child->set_realm_index_space(subspaces[subspace_index++], result))
             delete child;
         }
@@ -1502,9 +1458,7 @@ namespace Legion {
         IndexPartNode* right)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       ApUserEvent to_trigger;
       std::vector<DomainT<DIM, T> > lhs_spaces, rhs_spaces;
       std::vector<ApEvent> preconditions;
@@ -1560,9 +1514,7 @@ namespace Legion {
       {
         IndexSpaceNodeT<DIM, T>* child =
             static_cast<IndexSpaceNodeT<DIM, T>*>(partition->get_child(*itr));
-#ifdef DEBUG_LEGION
-        assert(subspace_index < subspaces.size());
-#endif
+        legion_assert(subspace_index < subspaces.size());
         if (child->set_realm_index_space(subspaces[subspace_index++], result))
           delete child;
       }
@@ -1576,9 +1528,7 @@ namespace Legion {
         IndexPartNode* right)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       ApUserEvent to_trigger;
       std::vector<DomainT<DIM, T> > lhs_spaces, rhs_spaces;
       std::vector<ApEvent> preconditions;
@@ -1633,9 +1583,7 @@ namespace Legion {
       {
         IndexSpaceNodeT<DIM, T>* child =
             static_cast<IndexSpaceNodeT<DIM, T>*>(partition->get_child(*itr));
-#ifdef DEBUG_LEGION
-        assert(subspace_index < subspaces.size());
-#endif
+        legion_assert(subspace_index < subspaces.size());
         if (child->set_realm_index_space(subspaces[subspace_index++], result))
           delete child;
       }
@@ -1650,9 +1598,7 @@ namespace Legion {
         IndexPartNode* right, const bool dominates)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       ApUserEvent to_trigger;
       std::vector<DomainT<DIM, T> > rhs_spaces;
       std::vector<ApEvent> preconditions;
@@ -1715,9 +1661,7 @@ namespace Legion {
       {
         IndexSpaceNodeT<DIM, T>* child =
             static_cast<IndexSpaceNodeT<DIM, T>*>(partition->get_child(*itr));
-#ifdef DEBUG_LEGION
-        assert(subspace_index < subspaces.size());
-#endif
+        legion_assert(subspace_index < subspaces.size());
         if (child->set_realm_index_space(subspaces[subspace_index++], result))
           delete child;
       }
@@ -1731,9 +1675,7 @@ namespace Legion {
         IndexPartNode* right)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       ApUserEvent to_trigger;
       std::vector<DomainT<DIM, T> > lhs_spaces, rhs_spaces;
       std::vector<ApEvent> preconditions;
@@ -1789,9 +1731,7 @@ namespace Legion {
       {
         IndexSpaceNodeT<DIM, T>* child =
             static_cast<IndexSpaceNodeT<DIM, T>*>(partition->get_child(*itr));
-#ifdef DEBUG_LEGION
-        assert(subspace_index < subspaces.size());
-#endif
+        legion_assert(subspace_index < subspaces.size());
         if (child->set_realm_index_space(subspaces[subspace_index++], result))
           delete child;
       }
@@ -1805,10 +1745,8 @@ namespace Legion {
         int partition_dim)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // should be called on the color space
-      assert(this == partition->color_space);
-#endif
+      legion_assert(this == partition->color_space);
       switch (partition_dim)
       {
 #define DIMFUNC(D1)                                                            \
@@ -1890,9 +1828,7 @@ namespace Legion {
         const Domain& future_map_domain, bool perform_intersections)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       // Demux the color space type to do the actual operations
       CreateByDomainHelper creator(
           this, partition, op, futures, future_map_domain,
@@ -1909,9 +1845,7 @@ namespace Legion {
         const std::map<DomainPoint, FutureImpl*>& weights, size_t granularity)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       // Demux the color space type to do the actual operations
       CreateByWeightHelper creator(this, partition, op, weights, granularity);
       NT_TemplateHelper::demux<CreateByWeightHelper>(
@@ -1927,9 +1861,7 @@ namespace Legion {
         std::vector<DeppartResult>* results, ApEvent instances_ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       // Demux the color space type to do the actual operations
       CreateByFieldHelper creator(
           this, op, fid, partition, instances, results, instances_ready);
@@ -1975,9 +1907,7 @@ namespace Legion {
         {
           std::map<DomainPoint, FutureImpl*>::const_iterator finder =
               futures.find(color);
-#ifdef DEBUG_LEGION
-          assert(finder != futures.end());
-#endif
+          legion_assert(finder != futures.end());
           FutureImpl* future = finder->second;
           size_t future_size = 0;
           const Domain* domain = static_cast<const Domain*>(
@@ -2146,14 +2076,10 @@ namespace Legion {
         // Find the color
         std::vector<LegionColor>::iterator finder =
             std::lower_bound(child_colors.begin(), child_colors.end(), *itr);
-#ifdef DEBUG_LEGION
-        assert(finder != child_colors.end());
-        assert(*finder == *itr);
-#endif
+        legion_assert(finder != child_colors.end());
+        legion_assert(*finder == *itr);
         const unsigned offset = std::distance(child_colors.begin(), finder);
-#ifdef DEBUG_LEGION
-        assert(next <= offset);
-#endif
+        legion_assert(next <= offset);
         while (next < offset) subspaces[next++].destroy();
         IndexSpaceNodeT<DIM, T>* child =
             static_cast<IndexSpaceNodeT<DIM, T>*>(partition->get_child(*itr));
@@ -2185,10 +2111,8 @@ namespace Legion {
           key.color = *itr;
           std::vector<DeppartResult>::const_iterator finder =
               std::lower_bound(results->begin(), results->end(), key);
-#ifdef DEBUG_LEGION
-          assert(finder != results->end());
-          assert(finder->color == (*itr));
-#endif
+          legion_assert(finder != results->end());
+          legion_assert(finder->color == (*itr));
           Realm::IndexSpace<DIM, T> result = finder->domain;
           if (child->set_realm_index_space(
                   result, instances_ready, false /*initialization*/,
@@ -2217,9 +2141,7 @@ namespace Legion {
         unsigned index = 0;
         for (ColorSpaceIterator itr(partition); itr; itr++)
         {
-#ifdef DEBUG_LEGION
-          assert(index < colors.size());
-#endif
+          legion_assert(index < colors.size());
           results->at(index).color = *itr;
           color_space->delinearize_color(*itr, colors[index++]);
         }
@@ -2257,9 +2179,7 @@ namespace Legion {
       std::vector<Realm::IndexSpace<DIM, T> > subspaces;
       ApEvent result(local_space.create_subspaces_by_field(
           descriptors, colors, subspaces, requests, precondition));
-#ifdef DEBUG_LEGION
-      assert(colors.size() == subspaces.size());
-#endif
+      legion_assert(colors.size() == subspaces.size());
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
@@ -2282,9 +2202,7 @@ namespace Legion {
         if (index == colors.size())
           // Compute the index offset the first time through
           index = color_space->compute_color_offset(*itr);
-#ifdef DEBUG_LEGION
-        assert(index < colors.size());
-#endif
+        legion_assert(index < colors.size());
         IndexSpaceNodeT<DIM, T>* child =
             static_cast<IndexSpaceNodeT<DIM, T>*>(partition->get_child(*itr));
         if (child->set_realm_index_space(
@@ -2311,9 +2229,7 @@ namespace Legion {
         ApEvent instances_ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       // Demux the projection type to do the actual operations
       CreateByImageHelper creator(
           this, op, fid, partition, projection, instances, instances_ready);
@@ -2384,10 +2300,8 @@ namespace Legion {
           dst.inst = it->inst;
           dst.field_offset = fid;
         }
-#ifdef DEBUG_LEGION
         // We should have exactly one of these here for each image
-        assert(descriptors.size() == 1);
-#endif
+        legion_assert(descriptors.size() == 1);
         // Get the profiling requests
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
@@ -2435,9 +2349,7 @@ namespace Legion {
         ApEvent instances_ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       // Demux the projection type to do the actual operations
       CreateByImageRangeHelper creator(
           this, op, fid, partition, projection, instances, instances_ready);
@@ -2508,10 +2420,8 @@ namespace Legion {
           dst.inst = it->inst;
           dst.field_offset = fid;
         }
-#ifdef DEBUG_LEGION
         // We should have exactly one of these here for each image
-        assert(descriptors.size() == 1);
-#endif
+        legion_assert(descriptors.size() == 1);
         // Get the profiling requests
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
@@ -2561,9 +2471,7 @@ namespace Legion {
         std::vector<DeppartResult>* results, ApEvent instances_ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       // Demux the projection type to do the actual operations
       CreateByPreimageHelper creator(
           this, op, fid, partition, projection, instances, remote_targets,
@@ -2600,10 +2508,8 @@ namespace Legion {
           key.color = *itr;
           std::vector<DeppartResult>::const_iterator finder =
               std::lower_bound(results->begin(), results->end(), key);
-#ifdef DEBUG_LEGION
-          assert(finder != results->end());
-          assert(finder->color == (*itr));
-#endif
+          legion_assert(finder != results->end());
+          legion_assert(finder->color == (*itr));
           Realm::IndexSpace<DIM1, T1> result = finder->domain;
           if (child->set_realm_index_space(
                   result, instances_ready, false /*initialization*/,
@@ -2618,9 +2524,7 @@ namespace Legion {
       std::vector<Realm::IndexSpace<DIM2, T2> > targets;
       if (results == nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(remote_targets == nullptr);
-#endif
+        legion_assert(remote_targets == nullptr);
         for (ColorSpaceIterator itr(partition, true /*local only*/); itr; itr++)
         {
           const DomainPoint color =
@@ -2640,17 +2544,13 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(remote_targets != nullptr);
-#endif
+        legion_assert(remote_targets != nullptr);
         unsigned index = 0;
         targets.resize(partition->total_children);
         results->resize(partition->total_children);
         for (ColorSpaceIterator itr(partition); itr; itr++)
         {
-#ifdef DEBUG_LEGION
-          assert(index < targets.size());
-#endif
+          legion_assert(index < targets.size());
           results->at(index).color = *itr;
           const DomainPoint color =
               partition->color_space->delinearize_color_to_point(*itr);
@@ -2672,9 +2572,7 @@ namespace Legion {
           if (ready.exists())
             preconditions.emplace_back(ready);
         }
-#ifdef DEBUG_LEGION
-        assert(index == targets.size());
-#endif
+        legion_assert(index == targets.size());
       }
       // Translate the descriptors into realm descriptors
       typedef Realm::FieldDataDescriptor<
@@ -2730,9 +2628,7 @@ namespace Legion {
         if (index == subspaces.size())
           // Compute the index offset the first time through
           index = partition->color_space->compute_color_offset(*itr);
-#ifdef DEBUG_LEGION
-        assert(index < subspaces.size());
-#endif
+        legion_assert(index < subspaces.size());
         IndexSpaceNodeT<DIM1, T1>* child =
             static_cast<IndexSpaceNodeT<DIM1, T1>*>(partition->get_child(*itr));
         if (child->set_realm_index_space(
@@ -2761,9 +2657,7 @@ namespace Legion {
         std::vector<DeppartResult>* results, ApEvent instances_ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(partition->parent == this);
-#endif
+      legion_assert(partition->parent == this);
       // Demux the projection type to do the actual operations
       CreateByPreimageRangeHelper creator(
           this, op, fid, partition, projection, instances, remote_targets,
@@ -2800,10 +2694,8 @@ namespace Legion {
           key.color = *itr;
           std::vector<DeppartResult>::const_iterator finder =
               std::lower_bound(results->begin(), results->end(), key);
-#ifdef DEBUG_LEGION
-          assert(finder != results->end());
-          assert(finder->color == (*itr));
-#endif
+          legion_assert(finder != results->end());
+          legion_assert(finder->color == (*itr));
           Realm::IndexSpace<DIM1, T1> result = finder->domain;
           if (child->set_realm_index_space(
                   result, instances_ready, false /*initialization*/,
@@ -2819,9 +2711,7 @@ namespace Legion {
       std::vector<DomainT<DIM2, T2> > targets;
       if (results == nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(remote_targets == nullptr);
-#endif
+        legion_assert(remote_targets == nullptr);
         for (ColorSpaceIterator itr(partition, true /*local only*/); itr; itr++)
         {
           const DomainPoint color =
@@ -2841,17 +2731,13 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(remote_targets != nullptr);
-#endif
+        legion_assert(remote_targets != nullptr);
         unsigned index = 0;
         targets.resize(partition->total_children);
         results->resize(partition->total_children);
         for (ColorSpaceIterator itr(partition); itr; itr++)
         {
-#ifdef DEBUG_LEGION
-          assert(index < targets.size());
-#endif
+          legion_assert(index < targets.size());
           results->at(index).color = *itr;
           const DomainPoint color =
               partition->color_space->delinearize_color_to_point(*itr);
@@ -2873,9 +2759,7 @@ namespace Legion {
           if (ready.exists())
             preconditions.emplace_back(ready);
         }
-#ifdef DEBUG_LEGION
-        assert(index == targets.size());
-#endif
+        legion_assert(index == targets.size());
       }
       // Translate the descriptors into realm descriptors
       typedef Realm::FieldDataDescriptor<
@@ -2931,9 +2815,7 @@ namespace Legion {
         if (index == subspaces.size())
           // Compute the index offset the first time through
           index = partition->color_space->compute_color_offset(*itr);
-#ifdef DEBUG_LEGION
-        assert(index < subspaces.size());
-#endif
+        legion_assert(index < subspaces.size());
         IndexSpaceNodeT<DIM1, T1>* child =
             static_cast<IndexSpaceNodeT<DIM1, T1>*>(partition->get_child(*itr));
         if (child->set_realm_index_space(
@@ -3059,10 +2941,8 @@ namespace Legion {
         const OrderingConstraint& dimension_order)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(int(dimension_order.ordering.size()) == (DIM + 1));
-      assert(dimension_order.ordering.back() == LEGION_DIM_F);
-#endif
+      legion_assert(int(dimension_order.ordering.size()) == (DIM + 1));
+      legion_assert(dimension_order.ordering.back() == LEGION_DIM_F);
 #ifdef LEGION_USE_HDF5
       DomainT<DIM, T> local_space = get_tight_index_space();
       Realm::InstanceLayout<DIM, T>* layout = new Realm::InstanceLayout<DIM, T>;
@@ -3225,9 +3105,7 @@ namespace Legion {
         const void* piece_list, size_t piece_list_size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
-#endif
+      legion_assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
       DomainT<DIM, T> local_is = get_tight_index_space();
       return create_layout_expression_internal(
           local_is, static_cast<const Rect<DIM, T>*>(piece_list),
@@ -3242,9 +3120,7 @@ namespace Legion {
         const Domain* padding_delta)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
-#endif
+      legion_assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
       return meets_layout_expression_internal<DIM, T>(
           space_expr, tight_bounds,
           static_cast<const Rect<DIM, T>*>(piece_list),
@@ -3274,9 +3150,7 @@ namespace Legion {
         size_t total_shards)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(total_shards > 0);
-#endif
+      legion_assert(total_shards > 0);
       DomainT<DIM, T> realm_index_space = get_tight_index_space();
       if (total_shards == 1)
       {
@@ -3329,10 +3203,8 @@ namespace Legion {
         // For backwards compatibility we handle the empty case which will
         // still store an equivalence set with names in it even though it
         // doesn't have to be updated ever
-#ifdef DEBUG_LEGION
-        assert(realm_index_space.bounds.empty());
-        assert(typed_tree->bounds == realm_index_space.bounds);
-#endif
+        legion_assert(realm_index_space.bounds.empty());
+        legion_assert(typed_tree->bounds == realm_index_space.bounds);
         typed_tree->initialize_set(
             set, realm_index_space.bounds, mask, local_shard, current);
       }
@@ -3486,9 +3358,8 @@ namespace Legion {
       std::vector<IndexSpaceNodeT<DIM, T>*> slice_nodes(slice_spaces.size());
       for (unsigned idx = 0; idx < slice_spaces.size(); idx++)
       {
-#ifdef DEBUG_LEGION
-        assert(slice_spaces[idx].get_type_tag() == handle.get_type_tag());
-#endif
+        legion_assert(
+            slice_spaces[idx].get_type_tag() == handle.get_type_tag());
         slice_nodes[idx] = static_cast<IndexSpaceNodeT<DIM, T>*>(
             runtime->get_node(slice_spaces[idx]));
       }
@@ -3711,10 +3582,8 @@ namespace Legion {
         for (int i = 0; i < DIM; i++)
         {
           size_t extent = (domain.bounds.hi[i] - domain.bounds.lo[i]) + 1;
-#ifdef DEBUG_LEGION
-          assert(extent > 0);
-          assert(extent < SIZE_MAX);
-#endif
+          legion_assert(extent > 0);
+          legion_assert(extent < SIZE_MAX);
           if (extent == 1)
             continue;
           interesting_dims[interesting_count++] = i;
@@ -3762,10 +3631,8 @@ namespace Legion {
         for (int i = 0; i < DIM; i++)
         {
           size_t extent = (itr->hi[i] - itr->lo[i]) + 1;
-#ifdef DEBUG_LEGION
-          assert(extent > 0);
-          assert(extent < SIZE_MAX);
-#endif
+          legion_assert(extent > 0);
+          legion_assert(extent < SIZE_MAX);
           if (extent == 1)
             continue;
           interesting_dims[interesting_count++] = i;
@@ -3799,9 +3666,7 @@ namespace Legion {
           // This is the least power of 2 >= extent, check if it is the
           // same as the extent, if not subtract by one to get the
           // largest power of 2 <= the extent
-#ifdef DEBUG_LEGION
-          assert(smallest_extent <= (1ULL << order));
-#endif
+          legion_assert(smallest_extent <= (1ULL << order));
           if (smallest_extent != (1ULL << order))
             order--;
         }
@@ -3832,9 +3697,7 @@ namespace Legion {
           else
             next.hi -= Point<DIM, T>::ONES();
           next = itr->intersection(next);
-#ifdef DEBUG_LEGION
-          assert(next.volume() > 0);
-#endif
+          legion_assert(next.volume() > 0);
           tiles.emplace_back(std::make_pair(
               next, new MortonTile(
                         next, interesting_count, interesting_dims, order)));
@@ -3906,9 +3769,7 @@ namespace Legion {
         void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!morton_tiles.empty());
-#endif
+      legion_assert(!morton_tiles.empty());
       MortonTile* last = morton_tiles.back();
       LegionColor max_color = last->get_max_linearized_color();
       if (!color_offsets.empty())
@@ -3926,16 +3787,12 @@ namespace Legion {
       {
         // Find the Morton Tile that contains the point
         MortonTile* tile = kdtree->find(point);
-#ifdef DEBUG_LEGION
-        assert(tile != nullptr);
-#endif
+        legion_assert(tile != nullptr);
         return color_offsets[tile->index] + tile->linearize(point);
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!morton_tiles.empty());
-#endif
+        legion_assert(!morton_tiles.empty());
         MortonTile* tile = morton_tiles.front();
         return tile->linearize(point);
       }
@@ -3951,23 +3808,17 @@ namespace Legion {
       {
         std::vector<LegionColor>::const_iterator finder =
             std::upper_bound(color_offsets.begin(), color_offsets.end(), color);
-#ifdef DEBUG_LEGION
-        assert(finder != color_offsets.begin());
-#endif
+        legion_assert(finder != color_offsets.begin());
         finder = std::prev(finder);
         unsigned index = std::distance(color_offsets.begin(), finder);
-#ifdef DEBUG_LEGION
-        assert(index < morton_tiles.size());
-        assert(index < color_offsets.size());
-#endif
+        legion_assert(index < morton_tiles.size());
+        legion_assert(index < color_offsets.size());
         color -= color_offsets[index];
         morton_tiles[index]->delinearize(color, point);
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!morton_tiles.empty());
-#endif
+        legion_assert(!morton_tiles.empty());
         MortonTile* tile = morton_tiles.front();
         tile->delinearize(color, point);
       }
@@ -3983,23 +3834,17 @@ namespace Legion {
       {
         std::vector<LegionColor>::const_iterator finder =
             std::upper_bound(color_offsets.begin(), color_offsets.end(), color);
-#ifdef DEBUG_LEGION
-        assert(finder != color_offsets.begin());
-#endif
+        legion_assert(finder != color_offsets.begin());
         finder = std::prev(finder);
         unsigned index = std::distance(color_offsets.begin(), finder);
-#ifdef DEBUG_LEGION
-        assert(index < morton_tiles.size());
-        assert(index < color_offsets.size());
-#endif
+        legion_assert(index < morton_tiles.size());
+        legion_assert(index < color_offsets.size());
         color -= color_offsets[index];
         return morton_tiles[index]->contains_color(color);
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!morton_tiles.empty());
-#endif
+        legion_assert(!morton_tiles.empty());
         MortonTile* tile = morton_tiles.front();
         return tile->contains_color(color);
       }
@@ -4011,22 +3856,16 @@ namespace Legion {
         LegionColor color) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(contains_color(color));
-#endif
+      legion_assert(contains_color(color));
       if ((morton_tiles.size() > 1) && (color > 0))
       {
         std::vector<LegionColor>::const_iterator finder =
             std::upper_bound(color_offsets.begin(), color_offsets.end(), color);
-#ifdef DEBUG_LEGION
-        assert(finder != color_offsets.begin());
-#endif
+        legion_assert(finder != color_offsets.begin());
         finder = std::prev(finder);
         unsigned index = std::distance(color_offsets.begin(), finder);
-#ifdef DEBUG_LEGION
-        assert(index < morton_tiles.size());
-        assert(index < color_offsets.size());
-#endif
+        legion_assert(index < morton_tiles.size());
+        legion_assert(index < color_offsets.size());
         color -= color_offsets[index];
         size_t offset = morton_tiles[index]->compute_color_offset(color);
         // count all the points in the prior morton tiles
@@ -4036,9 +3875,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!morton_tiles.empty());
-#endif
+        legion_assert(!morton_tiles.empty());
         MortonTile* tile = morton_tiles.front();
         return tile->compute_color_offset(color);
       }
@@ -4063,14 +3900,10 @@ namespace Legion {
         const Point<DIM, T>& point) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bounds.contains(point));
-#endif
+      legion_assert(bounds.contains(point));
       if (morton_order == 0)
       {
-#ifdef DEBUG_LEGION
-        assert((interesting_count == 0) || (interesting_count == 1));
-#endif
+        legion_assert((interesting_count == 0) || (interesting_count == 1));
         // No need for a Morton curve in these case of 0 or 1 interesting dims
         if (interesting_count == 0)
           return 0;
@@ -4138,9 +3971,7 @@ namespace Legion {
       point = Point<DIM, T>::ZEROES();
       if (morton_order == 0)
       {
-#ifdef DEBUG_LEGION
-        assert((interesting_count == 0) || (interesting_count == 1));
-#endif
+        legion_assert((interesting_count == 0) || (interesting_count == 1));
         if (interesting_count == 1)
           point[interesting_dims[0]] = color;
       }
@@ -4268,9 +4099,7 @@ namespace Legion {
           return color_offsets[index] + (point[0] - tiles[index]);
         }
       }
-#ifdef DEBUG_LEGION
-      assert(!tiles.empty());
-#endif
+      legion_assert(!tiles.empty());
       return (point[0] - tiles.front());
     }
 
@@ -4284,9 +4113,7 @@ namespace Legion {
       {
         std::vector<LegionColor>::const_iterator finder =
             std::upper_bound(color_offsets.begin(), color_offsets.end(), color);
-#ifdef DEBUG_LEGION
-        assert(finder != color_offsets.begin());
-#endif
+        legion_assert(finder != color_offsets.begin());
         finder = std::prev(finder);
         unsigned index = std::distance(color_offsets.begin(), finder);
         point[0] = tiles[index] + (color - *finder);
@@ -4501,10 +4328,8 @@ namespace Legion {
     void IndexPartNodeT<DIM, T>::initialize_shard_rects(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dense_shard_rects == nullptr);
-      assert(sparse_shard_rects == nullptr);
-#endif
+      legion_assert(dense_shard_rects == nullptr);
+      legion_assert(sparse_shard_rects == nullptr);
       dense_shard_rects =
           new std::vector<std::pair<Rect<DIM, T>, LegionColor> >();
       sparse_shard_rects =
@@ -4546,10 +4371,8 @@ namespace Legion {
       }
       // All the children are ready so we can get their spaces safely
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-      assert(dense_shard_rects != nullptr);
-      assert(sparse_shard_rects != nullptr);
-#endif
+      legion_assert(dense_shard_rects != nullptr);
+      legion_assert(sparse_shard_rects != nullptr);
       unsigned logn_children = 0;
       for (typename std::vector<IndexSpaceNodeT<DIM, T>*>::const_iterator it =
                children.begin();
@@ -4609,10 +4432,8 @@ namespace Legion {
     void IndexPartNodeT<DIM, T>::pack_shard_rects(Serializer& rez, bool clear)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dense_shard_rects != nullptr);
-      assert(sparse_shard_rects != nullptr);
-#endif
+      legion_assert(dense_shard_rects != nullptr);
+      legion_assert(sparse_shard_rects != nullptr);
       rez.serialize<size_t>(dense_shard_rects->size());
       for (typename std::vector<
                std::pair<Rect<DIM, T>, LegionColor> >::const_iterator it =
@@ -4643,10 +4464,8 @@ namespace Legion {
     void IndexPartNodeT<DIM, T>::unpack_shard_rects(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dense_shard_rects != nullptr);
-      assert(sparse_shard_rects != nullptr);
-#endif
+      legion_assert(dense_shard_rects != nullptr);
+      legion_assert(sparse_shard_rects != nullptr);
       size_t num_dense;
       derez.deserialize(num_dense);
       if (num_dense > 0)

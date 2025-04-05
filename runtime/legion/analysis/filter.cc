@@ -75,9 +75,7 @@ namespace Legion {
         return defer_traversal(precondition, info, applied_events);
       if (!target_views.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(target_views.size() == 1);
-#endif
+        legion_assert(target_views.size() == 1);
         filter_views = target_views.back();
       }
       return RegistrationAnalysis::perform_traversal(
@@ -112,9 +110,7 @@ namespace Legion {
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!rit->second.empty());
-#endif
+        legion_assert(!rit->second.empty());
         const AddressSpaceID target = rit->first;
         const RtUserEvent applied = Runtime::create_rt_user_event();
         Serializer rez;

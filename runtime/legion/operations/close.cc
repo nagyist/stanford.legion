@@ -303,10 +303,8 @@ namespace Legion {
     unsigned MergeCloseOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_req_index != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_req_index != TRACED_PARENT_INDEX);
       return parent_req_index;
     }
 
@@ -477,10 +475,8 @@ namespace Legion {
     unsigned PostCloseOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_idx != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_idx != TRACED_PARENT_INDEX);
       return parent_idx;
     }
 
@@ -492,9 +488,7 @@ namespace Legion {
         std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       Mapper::SelectCloseSrcInput input;
       Mapper::SelectCloseSrcOutput output;
       prepare_for_mapping(target, input.target);
@@ -555,9 +549,7 @@ namespace Legion {
         size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapper != nullptr);
-#endif
+      legion_assert(mapper != nullptr);
       const OpProfilingResponse* op_info =
           static_cast<const OpProfilingResponse*>(response.user_data());
       Realm::ProfilingMeasurements::OperationFinishEvent finish_event;
@@ -575,9 +567,7 @@ namespace Legion {
       info.fill_response = op_info->fill;
       mapper->invoke_close_report_profiling(this, info);
       const int count = outstanding_profiling_reported.fetch_add(1) + 1;
-#ifdef DEBUG_LEGION
-      assert(count <= outstanding_profiling_requests);
-#endif
+      legion_assert(count <= outstanding_profiling_requests);
       if (count == outstanding_profiling_requests)
         Runtime::trigger_event(profiling_reported);
       // Always record these as part of profiling
@@ -588,10 +578,8 @@ namespace Legion {
     void PostCloseOp::handle_profiling_update(int count)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(count > 0);
-      assert(!mapped_event.has_triggered());
-#endif
+      legion_assert(count > 0);
+      legion_assert(!mapped_event.has_triggered());
       outstanding_profiling_requests.fetch_add(count);
     }
 
@@ -653,9 +641,7 @@ namespace Legion {
     void ReplMergeCloseOp::set_repl_close_info(RtBarrier mapped)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!mapped_barrier.exists());
-#endif
+      legion_assert(!mapped_barrier.exists());
       mapped_barrier = mapped;
     }
 
@@ -663,9 +649,7 @@ namespace Legion {
     void ReplMergeCloseOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapped_barrier.exists());
-#endif
+      legion_assert(mapped_barrier.exists());
       runtime->phase_barrier_arrive(mapped_barrier, 1 /*count*/);
       // Then complete the mapping once the barrier has triggered
       // A small performance optimization here: if we have a physical trace
@@ -777,9 +761,7 @@ namespace Legion {
         remote_ptr->select_sources(index, target, sources, ranking, points);
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       Mapper::SelectCloseSrcInput input;
       Mapper::SelectCloseSrcOutput output;
       prepare_for_mapping(

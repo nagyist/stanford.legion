@@ -415,9 +415,7 @@ namespace Legion {
       mapper_data_size = launcher.map_arg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
@@ -792,9 +790,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < src_indirect_requirements.size(); idx++)
         {
           const RegionRequirement& req = src_indirect_requirements[idx];
-#ifdef DEBUG_LEGION
-          assert(req.privilege_fields.size() == 1);
-#endif
+          legion_assert(req.privilege_fields.size() == 1);
           LegionSpy::log_logical_requirement(
               unique_op_id, offset + idx, true /*region*/,
               req.region.index_space.get_id(), req.region.field_space.get_id(),
@@ -812,9 +808,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < dst_indirect_requirements.size(); idx++)
         {
           const RegionRequirement& req = dst_indirect_requirements[idx];
-#ifdef DEBUG_LEGION
-          assert(req.privilege_fields.size() == 1);
-#endif
+          legion_assert(req.privilege_fields.size() == 1);
           LegionSpy::log_logical_requirement(
               unique_op_id, offset + idx, true /*region*/,
               req.region.index_space.get_id(), req.region.field_space.get_id(),
@@ -1068,9 +1062,7 @@ namespace Legion {
             mapper, output.profiling_requests.requested_measurements,
             profiling_requests, true /*warn*/);
         profiling_priority = output.profiling_priority;
-#ifdef DEBUG_LEGION
-        assert(!profiling_reported.exists());
-#endif
+        legion_assert(!profiling_reported.exists());
         profiling_reported = Runtime::create_rt_user_event();
       }
       // Now we can carry out the mapping requested by the mapper
@@ -1161,10 +1153,8 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(src_targets.size() == 1);
-          assert(src_targets[0].is_virtual_ref());
-#endif
+          legion_assert(src_targets.size() == 1);
+          legion_assert(src_targets[0].is_virtual_ref());
           src_targets.clear();
           if (!output.src_source_instances[idx].empty())
             physical_convert_sources(
@@ -1414,9 +1404,7 @@ namespace Legion {
       {
         if (gather_targets == nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(!local_precondition.exists());
-#endif
+          legion_assert(!local_precondition.exists());
           // Normal copy across
           copy_post = copy_across(
               src_requirements[index], dst_requirements[index],
@@ -1428,9 +1416,7 @@ namespace Legion {
         else
         {
           // Gather copy
-#ifdef DEBUG_LEGION
-          assert(!src_indirect_records[index].empty());
-#endif
+          legion_assert(!src_indirect_records[index].empty());
           copy_post = gather_across(
               src_requirements[index], src_indirect_requirements[index],
               dst_requirements[index], src_indirect_records[index], src_targets,
@@ -1450,9 +1436,7 @@ namespace Legion {
         if (gather_targets == nullptr)
         {
           // Scatter copy
-#ifdef DEBUG_LEGION
-          assert(!dst_indirect_records[index].empty());
-#endif
+          legion_assert(!dst_indirect_records[index].empty());
           copy_post = scatter_across(
               src_requirements[index], dst_indirect_requirements[index],
               dst_requirements[index], src_targets, (*scatter_targets),
@@ -1469,11 +1453,9 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(gather_is_range[index] == scatter_is_range[index]);
-          assert(!src_indirect_records[index].empty());
-          assert(!dst_indirect_records[index].empty());
-#endif
+          legion_assert(gather_is_range[index] == scatter_is_range[index]);
+          legion_assert(!src_indirect_records[index].empty());
+          legion_assert(!dst_indirect_records[index].empty());
           // Full indirection copy
           copy_post = indirect_across(
               src_requirements[index], src_indirect_requirements[index],
@@ -1496,9 +1478,7 @@ namespace Legion {
       }
       if (is_recording())
       {
-#ifdef DEBUG_LEGION
-        assert((tpl != nullptr) && tpl->is_recording());
-#endif
+        legion_assert((tpl != nullptr) && tpl->is_recording());
         // This can happen in cases when the copy index space is empty
         if (!copy_post.exists())
           copy_post = execution_fence_event;
@@ -1599,9 +1579,7 @@ namespace Legion {
     void CopyOp::finalize_copy_profiling(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(profiling_reported.exists());
-#endif
+      legion_assert(profiling_reported.exists());
       if (outstanding_profiling_requests.load() == 0)
       {
         // We're not expecting any profiling callbacks so we need to
@@ -1620,9 +1598,7 @@ namespace Legion {
     void CopyOp::report_interfering_requirements(unsigned idx1, unsigned idx2)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx1 < idx2);
-#endif
+      legion_assert(idx1 < idx2);
       // The logical dependence analysis can report this because there are
       // interfering fields and regions, check to make sure there are alos
       // interfering privileges and index spaces
@@ -1664,32 +1640,24 @@ namespace Legion {
     {
       if (idx < src_parent_indexes.size())
       {
-#ifdef DEBUG_LEGION
-        assert(src_parent_indexes[idx] != TRACED_PARENT_INDEX);
-#endif
+        legion_assert(src_parent_indexes[idx] != TRACED_PARENT_INDEX);
         return src_parent_indexes[idx];
       }
       idx -= src_parent_indexes.size();
       if (idx < dst_parent_indexes.size())
       {
-#ifdef DEBUG_LEGION
-        assert(dst_parent_indexes[idx] != TRACED_PARENT_INDEX);
-#endif
+        legion_assert(dst_parent_indexes[idx] != TRACED_PARENT_INDEX);
         return dst_parent_indexes[idx];
       }
       idx -= dst_parent_indexes.size();
       if (idx < gather_parent_indexes.size())
       {
-#ifdef DEBUG_LEGION
-        assert(gather_parent_indexes[idx] != TRACED_PARENT_INDEX);
-#endif
+        legion_assert(gather_parent_indexes[idx] != TRACED_PARENT_INDEX);
         return gather_parent_indexes[idx];
       }
       idx -= gather_parent_indexes.size();
-#ifdef DEBUG_LEGION
-      assert(idx < scatter_parent_indexes.size());
-      assert(scatter_parent_indexes[idx] != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx < scatter_parent_indexes.size());
+      legion_assert(scatter_parent_indexes[idx] != TRACED_PARENT_INDEX);
       return scatter_parent_indexes[idx];
     }
 
@@ -1735,9 +1703,7 @@ namespace Legion {
           else
           {
             mod_index -= src_indirect_requirements.size();
-#ifdef DEBUG_LEGION
-            assert(mod_index < dst_indirect_requirements.size());
-#endif
+            legion_assert(mod_index < dst_indirect_requirements.size());
             input.is_dst_indirect = true;
           }
         }
@@ -1766,9 +1732,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(index < atomic_locks.size());
-#endif
+      legion_assert(index < atomic_locks.size());
       std::map<Reservation, bool>& local_locks = atomic_locks[index];
       std::map<Reservation, bool>::iterator finder = local_locks.find(lock);
       if (finder != local_locks.end())
@@ -1860,9 +1824,7 @@ namespace Legion {
       if (idx < gather_versions.size())
         return gather_versions[idx];
       idx -= gather_versions.size();
-#ifdef DEBUG_ELGION
-      assert(idx < scatter_versions.size());
-#endif
+      legion_assert(idx < scatter_versions.size());
       return scatter_versions[idx];
     }
 
@@ -1879,9 +1841,7 @@ namespace Legion {
       if (idx < src_indirect_requirements.size())
         return src_indirect_requirements[idx];
       idx -= src_indirect_requirements.size();
-#ifdef DEBUG_LEGION
-      assert(idx < dst_indirect_requirements.size());
-#endif
+      legion_assert(idx < dst_indirect_requirements.size());
       return dst_indirect_requirements[idx];
     }
 
@@ -1898,9 +1858,7 @@ namespace Legion {
       if (idx < src_indirect_requirements.size())
         return idx;
       idx -= src_indirect_requirements.size();
-#ifdef DEBUG_LEGION
-      assert(idx < dst_indirect_requirements.size());
-#endif
+      legion_assert(idx < dst_indirect_requirements.size());
       return idx;
     }
 
@@ -1916,10 +1874,8 @@ namespace Legion {
       idx -= dst_requirements.size();
       if (idx < src_indirect_requirements.size())
         return "source indirect";
-#ifdef DEBUG_LEGION
       idx -= src_indirect_requirements.size();
-      assert(idx < dst_indirect_requirements.size());
-#endif
+      legion_assert(idx < dst_indirect_requirements.size());
       return "destination indirect";
     }
 
@@ -2137,9 +2093,7 @@ namespace Legion {
         size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapper != nullptr);
-#endif
+      legion_assert(mapper != nullptr);
       const OpProfilingResponse* op_info =
           static_cast<const OpProfilingResponse*>(response.user_data());
       Realm::ProfilingMeasurements::OperationFinishEvent finish_event;
@@ -2159,9 +2113,7 @@ namespace Legion {
       info.fill_response = op_info->fill;
       mapper->invoke_copy_report_profiling(this, info);
       const int count = outstanding_profiling_reported.fetch_add(1) + 1;
-#ifdef DEBUG_LEGION
-      assert(count <= outstanding_profiling_requests);
-#endif
+      legion_assert(count <= outstanding_profiling_requests);
       if (count == outstanding_profiling_requests)
         Runtime::trigger_event(profiling_reported);
       // Always record these as part of profiling
@@ -2172,10 +2124,8 @@ namespace Legion {
     void CopyOp::handle_profiling_update(int count)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(count > 0);
-      assert(!mapped_event.has_triggered());
-#endif
+      legion_assert(count > 0);
+      legion_assert(!mapped_event.has_triggered());
       outstanding_profiling_requests.fetch_add(count);
     }
 
@@ -2216,11 +2166,10 @@ namespace Legion {
         std::set<RtEvent>& map_applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(src_req.instance_fields.size() == dst_req.instance_fields.size());
-#endif
+      legion_assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(
+          src_req.instance_fields.size() == dst_req.instance_fields.size());
       RegionNode* src_node = runtime->get_node(src_req.region);
       RegionNode* dst_node = runtime->get_node(dst_req.region);
       IndexSpaceExpression* copy_expr = runtime->intersect_index_spaces(
@@ -2282,14 +2231,10 @@ namespace Legion {
           }
           for (unsigned idx = 0; idx < target_views.size(); idx++)
           {
-#ifdef DEBUG_LEGION
-            assert(target_views[idx].size() == 1);
-#endif
+            legion_assert(target_views[idx].size() == 1);
             op::FieldMaskMap<InstanceView>::const_iterator it =
                 target_views[idx].begin();
-#ifdef DEBUG_LEGION
-            assert(it->first->is_individual_view());
-#endif
+            legion_assert(it->first->is_individual_view());
             IndividualView* view = it->first->as_individual_view();
             const UniqueInst unique_inst(view);
             tracing_dsts[unique_inst] = it->second;
@@ -2303,10 +2248,8 @@ namespace Legion {
           delete across;
         return result;
       }
-#ifdef DEBUG_LEGION
       // Should never need to do any reservations here
-      assert(reservations.empty());
-#endif
+      legion_assert(reservations.empty());
       // Get the field indexes for all the fields
       std::vector<unsigned> src_indexes(src_req.instance_fields.size());
       std::vector<unsigned> dst_indexes(dst_req.instance_fields.size());
@@ -2379,13 +2322,12 @@ namespace Legion {
         const bool shadow_indirections)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(idx_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(src_req.instance_fields.size() == dst_req.instance_fields.size());
-      assert(idx_req.privilege_fields.size() == 1);
-#endif
+      legion_assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(idx_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(
+          src_req.instance_fields.size() == dst_req.instance_fields.size());
+      legion_assert(idx_req.privilege_fields.size() == 1);
       // Get the field indexes for src/dst fields
       IndexSpaceNode* idx_node =
           runtime->get_node(idx_req.region.get_index_space());
@@ -2516,14 +2458,13 @@ namespace Legion {
         const bool compute_preimages, const bool shadow_indirections)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(idx_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(src_req.instance_fields.size() == dst_req.instance_fields.size());
-      assert(idx_req.privilege_fields.size() == 1);
-      assert(idx_targets.size() == 1);
-#endif
+      legion_assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(idx_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(
+          src_req.instance_fields.size() == dst_req.instance_fields.size());
+      legion_assert(idx_req.privilege_fields.size() == 1);
+      legion_assert(idx_targets.size() == 1);
       // Get the field indexes for src/dst fields
       IndexSpaceNode* src_node =
           runtime->get_node(src_req.region.get_index_space());
@@ -2662,17 +2603,16 @@ namespace Legion {
         const bool compute_preimages, const bool shadow_indirections)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(src_idx_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(dst_idx_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(src_req.instance_fields.size() == dst_req.instance_fields.size());
-      assert(src_idx_req.privilege_fields.size() == 1);
-      assert(dst_idx_req.privilege_fields.size() == 1);
-      assert(src_idx_targets.size() == 1);
-      assert(dst_idx_targets.size() == 1);
-#endif
+      legion_assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(src_idx_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(dst_idx_req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(
+          src_req.instance_fields.size() == dst_req.instance_fields.size());
+      legion_assert(src_idx_req.privilege_fields.size() == 1);
+      legion_assert(dst_idx_req.privilege_fields.size() == 1);
+      legion_assert(src_idx_targets.size() == 1);
+      legion_assert(dst_idx_targets.size() == 1);
       // Get the field indexes for src/dst fields
       IndexSpaceNode* src_idx_node =
           runtime->get_node(src_idx_req.region.get_index_space());
@@ -2841,9 +2781,7 @@ namespace Legion {
       parent_task = ctx->get_task();
       initialize_predication(ctx, launcher.predicate, provenance);
       initialize_copy_from_launcher(launcher);
-#ifdef DEBUG_LEGION
-      assert(launch_sp.exists());
-#endif
+      legion_assert(launch_sp.exists());
       launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
       if (!launcher.launch_domain.exists())
@@ -3014,9 +2952,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < src_indirect_requirements.size(); idx++)
         {
           const RegionRequirement& req = src_indirect_requirements[idx];
-#ifdef DEBUG_LEGION
-          assert(req.privilege_fields.size() == 1);
-#endif
+          legion_assert(req.privilege_fields.size() == 1);
           const bool reg = (req.handle_type == LEGION_SINGULAR_PROJECTION) ||
                            (req.handle_type == LEGION_REGION_PROJECTION);
           const bool proj = (req.handle_type == LEGION_REGION_PROJECTION) ||
@@ -3046,9 +2982,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < dst_indirect_requirements.size(); idx++)
         {
           const RegionRequirement& req = dst_indirect_requirements[idx];
-#ifdef DEBUG_LEGION
-          assert(req.privilege_fields.size() == 1);
-#endif
+          legion_assert(req.privilege_fields.size() == 1);
           const bool reg = (req.handle_type == LEGION_SINGULAR_PROJECTION) ||
                            (req.handle_type == LEGION_REGION_PROJECTION);
           const bool proj = (req.handle_type == LEGION_REGION_PROJECTION) ||
@@ -3144,9 +3078,7 @@ namespace Legion {
       if (effect.exists())
         record_completion_effect(effect);
       const unsigned received = ++points_completed;
-#ifdef DEBUG_LEGION
-      assert(received <= points.size());
-#endif
+      legion_assert(received <= points.size());
       if (received == points.size())
         complete_execution();
     }
@@ -3158,9 +3090,7 @@ namespace Legion {
       bool commit_now = false;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(!commit_request);
-#endif
+        legion_assert(!commit_request);
         commit_request = true;
         commit_now = (points.size() == points_committed);
       }
@@ -3173,9 +3103,7 @@ namespace Legion {
     void IndexCopyOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_replaying());
-#endif
+      legion_assert(is_replaying());
 #ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
 #endif
@@ -3208,9 +3136,7 @@ namespace Legion {
       Domain launch_domain = local_points->get_tight_domain();
       // Now enumerate the points
       size_t num_points = local_points->get_volume();
-#ifdef DEBUG_LEGION
-      assert(num_points > 0);
-#endif
+      legion_assert(num_points > 0);
       std::vector<PointCopyOp*> temp_points;
       temp_points.reserve(num_points);
       for (Domain::DomainPointIterator itr(launch_domain); itr; itr++)
@@ -3298,9 +3224,7 @@ namespace Legion {
       }
       // Need the lock to avoid racing with the pointwise dependence analysis
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(points.empty());
-#endif
+      legion_assert(points.empty());
       points.swap(temp_points);
       for (std::map<DomainPoint, RtUserEvent>::const_iterator pit =
                pending_pointwise_dependences.begin();
@@ -3315,9 +3239,7 @@ namespace Legion {
           point = *it;
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(point != nullptr);
-#endif
+        legion_assert(point != nullptr);
         Runtime::trigger_event(pit->second, point->get_mapped_event());
       }
     }
@@ -3359,9 +3281,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(needed_gen <= gen);
-#endif
+      legion_assert(needed_gen <= gen);
       if ((needed_gen < gen) || mapped ||
           (predication_state == PREDICATED_FALSE_STATE))
       {
@@ -3428,9 +3348,7 @@ namespace Legion {
         unsigned idx1, unsigned idx2)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx1 < idx2);
-#endif
+      legion_assert(idx1 < idx2);
       // The logical dependence analysis can report this because there are
       // interfering fields and regions, check to make sure there are alos
       // interfering privileges and index spaces
@@ -3462,15 +3380,11 @@ namespace Legion {
         return CopyOp::exchange_indirect_records(
             index, local_pre, local_post, collective_pre, collective_post,
             trace_info, insts, req, records, sources);
-#ifdef DEBUG_LEGION
-      assert(local_pre.exists());
-      assert(local_post.exists());
-#endif
+      legion_assert(local_pre.exists());
+      legion_assert(local_post.exists());
       // Take the lock and record our sets and instances
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(index < collective_exchanges.size());
-#endif
+      legion_assert(index < collective_exchanges.size());
       IndirectionExchange& exchange = collective_exchanges[index];
       if (sources)
       {
@@ -3503,9 +3417,7 @@ namespace Legion {
                     &trace_info, exchange.local_postconditions),
                 trace_info, map_applied_conditions);
         }
-#ifdef DEBUG_LEGION
-        assert(src_indirect_records[index].size() < points.size());
-#endif
+        legion_assert(src_indirect_records[index].size() < points.size());
         src_indirect_records[index].emplace_back(
             IndirectRecord(req, insts, launch_space->get_volume()));
         exchange.src_records.emplace_back(&records);
@@ -3544,9 +3456,7 @@ namespace Legion {
                     &trace_info, exchange.local_postconditions),
                 trace_info, map_applied_conditions);
         }
-#ifdef DEBUG_LEGION
-        assert(dst_indirect_records[index].size() < points.size());
-#endif
+        legion_assert(dst_indirect_records[index].size() < points.size());
         dst_indirect_records[index].emplace_back(
             IndirectRecord(req, insts, launch_space->get_volume()));
         exchange.dst_records.emplace_back(&records);
@@ -3588,9 +3498,7 @@ namespace Legion {
             point_domains)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!interfering_requirements.empty());
-#endif
+      legion_assert(!interfering_requirements.empty());
       // Iterate our local points and check their first region requirements
       // against all the points in the second region requirements
       for (std::set<std::pair<unsigned, unsigned> >::const_iterator rit =
@@ -3599,9 +3507,7 @@ namespace Legion {
       {
         std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >::
             const_iterator finder = point_domains.find(rit->first);
-#ifdef DEBUG_LEGION
-        assert(finder != point_domains.end());
-#endif
+        legion_assert(finder != point_domains.end());
         for (std::vector<PointCopyOp*>::const_iterator pit = points.begin();
              pit != points.end(); pit++)
         {
@@ -3753,9 +3659,7 @@ namespace Legion {
       mapper_data_size = owner->mapper_data_size;
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, owner->mapper_data, mapper_data_size);
       }
@@ -3966,18 +3870,16 @@ namespace Legion {
     {
       if (idx < src_requirements.size())
       {
-#ifdef DEBUG_LEGION
-        assert(src_requirements[idx].handle_type != LEGION_SINGULAR_PROJECTION);
-#endif
+        legion_assert(
+            src_requirements[idx].handle_type != LEGION_SINGULAR_PROJECTION);
         src_requirements[idx].region = result;
         src_requirements[idx].handle_type = LEGION_SINGULAR_PROJECTION;
       }
       else if (idx < (src_requirements.size() + dst_requirements.size()))
       {
         idx -= src_requirements.size();
-#ifdef DEBUG_LEGION
-        assert(dst_requirements[idx].handle_type != LEGION_SINGULAR_PROJECTION);
-#endif
+        legion_assert(
+            dst_requirements[idx].handle_type != LEGION_SINGULAR_PROJECTION);
         dst_requirements[idx].region = result;
         dst_requirements[idx].handle_type = LEGION_SINGULAR_PROJECTION;
       }
@@ -3986,11 +3888,9 @@ namespace Legion {
                  src_indirect_requirements.size()))
       {
         idx -= (src_requirements.size() + dst_requirements.size());
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             src_indirect_requirements[idx].handle_type !=
             LEGION_SINGULAR_PROJECTION);
-#endif
         src_indirect_requirements[idx].region = result;
         src_indirect_requirements[idx].handle_type = LEGION_SINGULAR_PROJECTION;
       }
@@ -3999,12 +3899,10 @@ namespace Legion {
         idx -=
             (src_requirements.size() + dst_requirements.size() +
              src_indirect_requirements.size());
-#ifdef DEBUG_LEGION
-        assert(idx < dst_indirect_requirements.size());
-        assert(
+        legion_assert(idx < dst_indirect_requirements.size());
+        legion_assert(
             dst_indirect_requirements[idx].handle_type !=
             LEGION_SINGULAR_PROJECTION);
-#endif
         dst_indirect_requirements[idx].region = result;
         dst_indirect_requirements[idx].handle_type = LEGION_SINGULAR_PROJECTION;
       }
@@ -4015,13 +3913,9 @@ namespace Legion {
         unsigned index, const std::vector<DomainPoint>& dependences)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(src_requirements.size() <= index);
-#endif
+      legion_assert(src_requirements.size() <= index);
       index -= src_requirements.size();
-#ifdef DEBUG_LEGION
-      assert(index < dst_requirements.size());
-#endif
+      legion_assert(index < dst_requirements.size());
       for (unsigned idx = 0; idx < dependences.size(); idx++)
       {
         if (dependences[idx] == index_point)
@@ -4116,9 +4010,7 @@ namespace Legion {
       // data into the output so we clear ourself to avoid double counting
       if (!participating)
       {
-#ifdef DEBUG_LEGION
-        assert(stage == -1);
-#endif
+        legion_assert(stage == -1);
         all_records.clear();
       }
       const size_t offset = all_records.size();
@@ -4178,19 +4070,15 @@ namespace Legion {
       launch_space = nullptr;
       sharding_functor = UINT_MAX;
       sharding_function = nullptr;
-#ifdef DEBUG_LEGION
       sharding_collective = nullptr;
-#endif
     }
 
     //--------------------------------------------------------------------------
     void ReplCopyOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       if (sharding_collective != nullptr)
         delete sharding_collective;
-#endif
       CopyOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
@@ -4200,12 +4088,8 @@ namespace Legion {
     void ReplCopyOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Do the mapper call to get the sharding function to use
       if (mapper == nullptr)
         mapper =
@@ -4224,18 +4108,19 @@ namespace Legion {
       this->sharding_functor = output.chosen_functor;
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
-#ifdef DEBUG_LEGION
-      assert(sharding_collective != nullptr);
-      sharding_collective->contribute(this->sharding_functor);
-      if (sharding_collective->is_target() &&
-          !sharding_collective->validate(this->sharding_functor))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s chose different sharding functions "
-            "for copy in task %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
-#endif
+      if (runtime->safe_mapper)
+      {
+        legion_assert(sharding_collective != nullptr);
+        sharding_collective->contribute(this->sharding_functor);
+        if (sharding_collective->is_target() &&
+            !sharding_collective->validate(this->sharding_functor))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Mapper %s chose different sharding functions "
+              "for copy in task %s (UID %lld)",
+              mapper->get_mapper_name(), parent_ctx->get_task_name(),
+              parent_ctx->get_unique_id())
+      }
       // Now we can do the normal prepipeline stage
       CopyOp::trigger_prepipeline_stage();
     }
@@ -4264,12 +4149,8 @@ namespace Legion {
     void ReplCopyOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Figure out whether this shard owns this point
       ShardID owner_shard;
       if (sharding_space.exists())
@@ -4283,9 +4164,7 @@ namespace Legion {
       // If we're recording then record the owner shard
       if (is_recording())
       {
-#ifdef DEBUG_LEGION
-        assert((tpl != nullptr) && tpl->is_recording());
-#endif
+        legion_assert((tpl != nullptr) && tpl->is_recording());
         tpl->record_owner_shard(trace_local_id, owner_shard);
       }
       if (runtime->legion_spy_enabled)
@@ -4311,13 +4190,9 @@ namespace Legion {
     void ReplCopyOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(tpl != nullptr);
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(tpl != nullptr);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       const ShardID owner_shard = tpl->find_owner_shard(trace_local_id);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
@@ -4359,19 +4234,15 @@ namespace Legion {
       shard_points = nullptr;
       interfering_check_id = 0;
       interfering_exchange = nullptr;
-#ifdef DEBUG_LEGION
       sharding_collective = nullptr;
-#endif
     }
 
     //--------------------------------------------------------------------------
     void ReplIndexCopyOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       if (sharding_collective != nullptr)
         delete sharding_collective;
-#endif
       IndexCopyOp::deactivate(false /*free*/);
       pre_indirection_barriers.clear();
       post_indirection_barriers.clear();
@@ -4403,12 +4274,8 @@ namespace Legion {
     void ReplIndexCopyOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Do the mapper call to get the sharding function to use
       if (mapper == nullptr)
         mapper =
@@ -4427,18 +4294,19 @@ namespace Legion {
       this->sharding_functor = output.chosen_functor;
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
-#ifdef DEBUG_LEGION
-      assert(sharding_collective != nullptr);
-      sharding_collective->contribute(this->sharding_functor);
-      if (sharding_collective->is_target() &&
-          !sharding_collective->validate(this->sharding_functor))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s chose different sharding functions "
-            "for index copy in task %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
-#endif
+      if (runtime->safe_mapper)
+      {
+        legion_assert(sharding_collective != nullptr);
+        sharding_collective->contribute(this->sharding_functor);
+        if (sharding_collective->is_target() &&
+            !sharding_collective->validate(this->sharding_functor))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Mapper %s chose different sharding functions "
+              "for index copy in task %s (UID %lld)",
+              mapper->get_mapper_name(), parent_ctx->get_task_name(),
+              parent_ctx->get_unique_id())
+      }
       // Now we can do the normal prepipeline stage
       IndexCopyOp::trigger_prepipeline_stage();
     }
@@ -4470,14 +4338,9 @@ namespace Legion {
       if (interfering_exchange == nullptr)
       {
         // First time through, make the exchange and kick it off
-#ifdef DEBUG_LEGION
-        assert(interfering_check_id > 0);
+        legion_assert(interfering_check_id > 0);
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         interfering_exchange = new InterferingPointExchange<ReplIndexCopyOp>(
             repl_ctx, interfering_check_id, this);
         // Record a dependence on this to make sure it is done before we
@@ -4494,14 +4357,10 @@ namespace Legion {
     void ReplIndexCopyOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-      assert(
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      legion_assert(
           pre_indirection_barriers.size() == post_indirection_barriers.size());
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
       // Compute the local index space of points for this shard
       IndexSpace local_space;
       if (sharding_space.exists())
@@ -4515,9 +4374,7 @@ namespace Legion {
       // If we're recording then record the local_space
       if (is_recording())
       {
-#ifdef DEBUG_LEGION
-        assert((tpl != nullptr) && tpl->is_recording());
-#endif
+        legion_assert((tpl != nullptr) && tpl->is_recording());
         tpl->record_local_space(trace_local_id, local_space);
       }
       // If it's empty we're done, otherwise we go back on the queue
@@ -4598,23 +4455,15 @@ namespace Legion {
     void ReplIndexCopyOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(tpl != nullptr);
-      assert(
+      legion_assert(tpl != nullptr);
+      legion_assert(
           pre_indirection_barriers.size() == post_indirection_barriers.size());
-#endif
       // No matter what we need to tell the shard template about any
       // collective barriers that it is going to need for its replay
       if (!pre_indirection_barriers.empty())
       {
-#ifdef DEBUG_LEGION
         ShardedPhysicalTemplate* shard_template =
-            dynamic_cast<ShardedPhysicalTemplate*>(tpl);
-        assert(shard_template != nullptr);
-#else
-        ShardedPhysicalTemplate* shard_template =
-            static_cast<ShardedPhysicalTemplate*>(tpl);
-#endif
+            legion_safe_cast<ShardedPhysicalTemplate*>(tpl);
         std::pair<size_t, size_t> key(trace_local_id, 0);
         for (unsigned idx = 0; idx < pre_indirection_barriers.size(); idx++)
         {
@@ -4677,17 +4526,13 @@ namespace Legion {
         return CopyOp::exchange_indirect_records(
             index, local_pre, local_post, collective_pre, collective_post,
             trace_info, insts, req, records, sources);
-#ifdef DEBUG_LEGION
-      assert(local_pre.exists());
-      assert(local_post.exists());
-      assert(index < pre_indirection_barriers.size());
-      assert(index < post_indirection_barriers.size());
-#endif
+      legion_assert(local_pre.exists());
+      legion_assert(local_post.exists());
+      legion_assert(index < pre_indirection_barriers.size());
+      legion_assert(index < post_indirection_barriers.size());
       // Take the lock and record our sets and instances
       AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-      assert(index < collective_exchanges.size());
-#endif
+      legion_assert(index < collective_exchanges.size());
       IndirectionExchange& exchange = collective_exchanges[index];
       if (sources)
       {
@@ -4733,10 +4578,8 @@ namespace Legion {
             }
           }
         }
-#ifdef DEBUG_LEGION
-        assert(index < src_indirect_records.size());
-        assert(src_indirect_records[index].size() < points.size());
-#endif
+        legion_assert(index < src_indirect_records.size());
+        legion_assert(src_indirect_records[index].size() < points.size());
         src_indirect_records[index].emplace_back(
             IndirectRecord(req, insts, launch_space->get_volume()));
         exchange.src_records.emplace_back(&records);
@@ -4787,10 +4630,8 @@ namespace Legion {
             }
           }
         }
-#ifdef DEBUG_LEGION
-        assert(index < dst_indirect_records.size());
-        assert(dst_indirect_records[index].size() < points.size());
-#endif
+        legion_assert(index < dst_indirect_records.size());
+        legion_assert(dst_indirect_records[index].size() < points.size());
         dst_indirect_records[index].emplace_back(
             IndirectRecord(req, insts, launch_space->get_volume()));
         exchange.dst_records.emplace_back(&records);
@@ -4808,9 +4649,7 @@ namespace Legion {
       IndirectionExchange& exchange = collective_exchanges[index];
       if (source)
       {
-#ifdef DEBUG_LEGION
-        assert(index < src_collectives.size());
-#endif
+        legion_assert(index < src_collectives.size());
         const RtEvent ready = src_collectives[index]->exchange_records(
             exchange.src_records, src_indirect_records[index]);
         if (exchange.src_ready.exists())
@@ -4823,9 +4662,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(index < dst_collectives.size());
-#endif
+        legion_assert(index < dst_collectives.size());
         const RtEvent ready = dst_collectives[index]->exchange_records(
             exchange.dst_records, dst_indirect_records[index]);
         if (exchange.dst_ready.exists())
@@ -4859,13 +4696,11 @@ namespace Legion {
       if (!src_indirect_requirements.empty() ||
           !dst_indirect_requirements.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             src_indirect_requirements.empty() ||
             dst_indirect_requirements.empty() ||
             (src_indirect_requirements.size() ==
              dst_indirect_requirements.size()));
-#endif
         pre_indirection_barriers.resize(
             (src_indirect_requirements.size() >
              dst_indirect_requirements.size()) ?
@@ -4890,13 +4725,9 @@ namespace Legion {
         const DomainPoint& point)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sharding_function != nullptr);
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(sharding_function != nullptr);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       Domain launch_domain;
       if (sharding_space.exists())
         runtime->find_domain(sharding_space, launch_domain);
@@ -4915,9 +4746,7 @@ namespace Legion {
     bool ReplIndexCopyOp::find_shard_participants(std::vector<ShardID>& shards)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sharding_function != nullptr);
-#endif
+      legion_assert(sharding_function != nullptr);
       if (sharding_space.exists())
         return sharding_function->find_shard_participants(
             launch_space, sharding_space, shards);
@@ -5052,9 +4881,7 @@ namespace Legion {
           else
           {
             mod_index -= src_indirect_requirements.size();
-#ifdef DEBUG_LEGION
-            assert(mod_index < dst_indirect_requirements.size());
-#endif
+            legion_assert(mod_index < dst_indirect_requirements.size());
             input.is_dst_indirect = true;
           }
         }

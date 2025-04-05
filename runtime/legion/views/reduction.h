@@ -71,9 +71,7 @@ namespace Legion {
     inline ReductionView* LogicalView::as_reduction_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_reduction_view());
-#endif
+      legion_assert(is_reduction_view());
       return static_cast<ReductionView*>(const_cast<LogicalView*>(this));
     }
 

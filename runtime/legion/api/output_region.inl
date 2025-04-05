@@ -27,9 +27,7 @@ namespace Legion {
       const T* initial_value /*= nullptr*/, bool return_buffer /*= false*/)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     check_type_tag(Internal::NT_TemplateHelper::encode_tag<DIM, COORD_T>());
-#endif
 
     Rect<DIM> bounds(Point<DIM>::ZEROES(), extents - Point<DIM>::ONES());
 
@@ -37,9 +35,7 @@ namespace Legion {
     size_t alignment;
     get_layout(field_id, ordering, alignment);
     std::array<DimensionKind, DIM> ord;
-#ifdef DEBUG_LEGION
-    assert(ordering.size() == DIM);
-#endif
+    legion_assert(ordering.size() == DIM);
     std::copy(ordering.begin(), ordering.end(), ord.begin());
 
     DeferredBuffer<T, DIM, COORD_T, CHECK_BOUNDS> buffer(
@@ -56,10 +52,8 @@ namespace Legion {
       DeferredBuffer<T, DIM, COORD_T, CHECK_BOUNDS>& buffer)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     check_type_tag(Internal::NT_TemplateHelper::encode_tag<DIM, COORD_T>());
     check_field_size(field_id, sizeof(T));
-#endif
     // Populate the layout constraints for the returned buffer
     // for the constraint checks.
     LayoutConstraintSet constraints;

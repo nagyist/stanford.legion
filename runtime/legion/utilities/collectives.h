@@ -32,10 +32,8 @@ namespace Legion {
         int& participating_spaces, int& collective_last_radix)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(participants > 0);
-      assert(collective_radix > 1);
-#endif
+      legion_assert(participants > 0);
+      legion_assert(collective_radix > 1);
       const int MultiplyDeBruijnBitPosition[32] = {
           0, 9,  1,  10, 13, 21, 2,  29, 11, 14, 16, 18, 22, 25, 3, 30,
           8, 12, 20, 28, 15, 17, 24, 7,  19, 27, 23, 6,  26, 5,  4, 31};
@@ -89,9 +87,7 @@ namespace Legion {
         collective_last_radix = collective_radix;
         participating_spaces = 1 << (collective_stages * collective_log_radix);
       }
-#ifdef DEBUG_LEGION
-      assert((participating_spaces % collective_radix) == 0);
-#endif
+      legion_assert((participating_spaces % collective_radix) == 0);
       const bool participant = (local_space < participating_spaces);
       return participant;
     }
@@ -453,9 +449,7 @@ namespace Legion {
       // trigger the done event, only the last one of these
       // will get to do the trigger to avoid any races
       unsigned pending_send_ready_stages;
-#ifdef DEBUG_LEGION
       bool done_triggered;
-#endif
     };
 
     /**
@@ -876,32 +870,20 @@ namespace Legion {
       CollectiveMapping(const CollectiveMapping& rhs);
     public:
       inline AddressSpaceID operator[](unsigned idx) const
-#ifdef DEBUG_LEGION
       {
-        assert(idx < size());
+        legion_assert(idx < size());
         return unique_sorted_spaces.get_index(idx);
       }
-#else
-      {
-        return unique_sorted_spaces.get_index(idx);
-      }
-#endif
       inline unsigned find_index(const AddressSpaceID space) const
       {
         return unique_sorted_spaces.find_index(space);
       }
       inline size_t size(void) const { return total_spaces; }
       inline AddressSpaceID get_origin(void) const
-#ifdef DEBUG_LEGION
       {
-        assert(size() > 0);
+        legion_assert(size() > 0);
         return unique_sorted_spaces.find_first_set();
       }
-#else
-      {
-        return unique_sorted_spaces.find_first_set();
-      }
-#endif
       bool operator==(const CollectiveMapping& rhs) const;
       bool operator!=(const CollectiveMapping& rhs) const;
     public:

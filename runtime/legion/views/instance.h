@@ -107,9 +107,7 @@ namespace Legion {
     inline InstanceView* LogicalView::as_instance_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_instance_view());
-#endif
+      legion_assert(is_instance_view());
       return static_cast<InstanceView*>(const_cast<LogicalView*>(this));
     }
 

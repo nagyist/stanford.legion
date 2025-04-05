@@ -350,9 +350,7 @@ namespace Legion {
     : launch_kind(kind), dims(d)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(dims < 3);
-#endif
+    legion_assert(dims < 3);
     for (int i = 0; i < dims; i++) values[i] = vs[i];
   }
 

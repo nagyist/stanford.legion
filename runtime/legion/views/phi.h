@@ -85,9 +85,7 @@ namespace Legion {
     inline PhiView* LogicalView::as_phi_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_phi_view());
-#endif
+      legion_assert(is_phi_view());
       return static_cast<PhiView*>(const_cast<LogicalView*>(this));
     }
 

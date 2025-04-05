@@ -202,7 +202,6 @@ namespace Legion {
       ShardingID sharding_functor;
       ShardingFunction* sharding_function;
       RtBarrier output_bar;
-#ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective* collective)
       {
@@ -210,7 +209,6 @@ namespace Legion {
       }
     protected:
       ShardingGatherCollective* sharding_collective;
-#endif
     };
 
   }  // namespace Internal

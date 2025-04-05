@@ -391,7 +391,7 @@ namespace Legion {
       // These are the memory pools for doing immediate allocations since
       // this leaf task has already considered itself as mapped and therefore
       // cannot use the normal allocation pathway
-#ifndef DEBUG_LEGION
+#ifndef LEGION_DEBUG
       const
 #endif
           std::map<Memory, MemoryPool*>

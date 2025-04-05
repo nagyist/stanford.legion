@@ -384,9 +384,7 @@ namespace Legion {
     inline CollectiveView* LogicalView::as_collective_view(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_collective_view());
-#endif
+      legion_assert(is_collective_view());
       return static_cast<CollectiveView*>(const_cast<LogicalView*>(this));
     }
 

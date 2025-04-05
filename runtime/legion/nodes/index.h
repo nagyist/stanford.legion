@@ -125,7 +125,7 @@ namespace Legion {
       virtual LegionColor get_colors(std::vector<LegionColor>& colors) = 0;
     public:
       virtual bool is_index_space_node(void) const = 0;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual IndexSpaceNode* as_index_space_node(void) = 0;
       virtual IndexPartNode* as_index_part_node(void) = 0;
 #else
@@ -226,7 +226,7 @@ namespace Legion {
     public:
       virtual bool is_set(void) const { return index_space_set.load(); }
       virtual bool is_index_space_node(void) const;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual IndexSpaceNode* as_index_space_node(void);
       virtual IndexPartNode* as_index_part_node(void);
 #endif
@@ -306,7 +306,7 @@ namespace Legion {
       virtual void pack_expression(Serializer& rez, AddressSpaceID target);
       virtual void skip_unpack_expression(Deserializer& derez) const;
     public:
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual bool is_valid(void)
       {
         return ValidDistributedCollectable::is_global();
@@ -1331,7 +1331,7 @@ namespace Legion {
       virtual void notify_local(void);
     public:
       virtual bool is_index_space_node(void) const;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual IndexSpaceNode* as_index_space_node(void);
       virtual IndexPartNode* as_index_part_node(void);
 #endif

@@ -44,10 +44,10 @@ namespace Legion {
         multi_instance(false), evaluated_multi_instance(false)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       for (unsigned idx = 0; idx < local_views.size(); idx++)
-        assert(local_views[idx]->get_redop() == redop);
-#endif
+      {
+        legion_assert(local_views[idx]->get_redop() == redop);
+      }
       fill_view->add_nested_resource_ref(did);
       // We reserve the 0 all-reduce tag to mean no-tag
       if (unique_allreduce_tag.load() == 0)
@@ -139,20 +139,16 @@ namespace Legion {
         ApUserEvent result, AddressSpaceID origin)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(redop > 0);
-      assert(op != nullptr);
-      assert(result.exists());
-      assert(!local_views.empty());
-      assert(collective_mapping != nullptr);
-      assert(collective_mapping->contains(local_space));
-#endif
+      legion_assert(redop > 0);
+      legion_assert(op != nullptr);
+      legion_assert(result.exists());
+      legion_assert(!local_views.empty());
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(collective_mapping->contains(local_space));
       unsigned target_index = 0;
       if (src_inst_did > 0)
       {
-#ifdef DEBUG_LEGION
         target_index = UINT_MAX;
-#endif
         for (unsigned idx = 0; idx < local_views.size(); idx++)
         {
           if (local_views[idx]->get_manager()->did != src_inst_did)
@@ -160,9 +156,7 @@ namespace Legion {
           target_index = idx;
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(target_index != UINT_MAX);
-#endif
+        legion_assert(target_index != UINT_MAX);
       }
       IndividualView* local_view = local_views[target_index];
       PhysicalManager* local_manager = local_view->get_manager();
@@ -314,15 +308,13 @@ namespace Legion {
         std::vector<std::vector<CopySrcDstField> >* source_fields)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_views.empty());
-      assert(
+      legion_assert(!local_views.empty());
+      legion_assert(
           !prepare_allreduce || (reduced_events.size() == local_views.size()));
-      assert(prepare_allreduce == (source_fields != nullptr));
-      assert(
+      legion_assert(prepare_allreduce == (source_fields != nullptr));
+      legion_assert(
           !prepare_allreduce || (source_fields->size() == local_views.size()));
-      assert(prepare_allreduce == (recorded_events == nullptr));
-#endif
+      legion_assert(prepare_allreduce == (recorded_events == nullptr));
       if (local_views.size() == 1)
         return;
       const UniqueID op_id = op->get_unique_op_id();
@@ -358,9 +350,7 @@ namespace Legion {
                  it = spanning_copies.rbegin();
              it != spanning_copies.rend(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->first != it->second);
-#endif
+          legion_assert(it->first != it->second);
           IndividualView* src_view = local_views[it->second];
           PhysicalManager* src_manager = src_view->get_manager();
           IndividualView* local_view = local_views[it->first];
@@ -370,10 +360,8 @@ namespace Legion {
             // Save any reduction events into the view
             std::map<unsigned, std::vector<ApEvent> >::iterator finder =
                 reduction_preconditions.find(it->second);
-#ifdef DEBUG_LEGION
-            assert(it->second != dst_index);
-            assert(finder != reduction_preconditions.end());
-#endif
+            legion_assert(it->second != dst_index);
+            legion_assert(finder != reduction_preconditions.end());
             const ApEvent reduce_pre =
                 Runtime::merge_events(&trace_info, finder->second);
             if (reduce_pre.exists())
@@ -445,9 +433,7 @@ namespace Legion {
           }
         }
         // Aggregate all the remaining reductions into the target
-#ifdef DEBUG_LEGION
-        assert(reduction_preconditions.size() < 2);
-#endif
+        legion_assert(reduction_preconditions.size() < 2);
         if (reduction_preconditions.empty())
         {
           // All the copies have already run so there are no
@@ -459,9 +445,7 @@ namespace Legion {
         {
           std::map<unsigned, std::vector<ApEvent> >::iterator finder =
               reduction_preconditions.find(dst_index);
-#ifdef DEBUG_LEGION
-          assert(finder != reduction_preconditions.end());
-#endif
+          legion_assert(finder != reduction_preconditions.end());
           local_events[dst_index] =
               Runtime::merge_events(&trace_info, finder->second);
           reduction_preconditions.erase(finder);
@@ -534,9 +518,7 @@ namespace Legion {
     {
       // We should always be calling this one of the original collective
       // nodes for the allreduce view at the moment
-#ifdef DEBUG_LEGION
-      assert(collective_mapping->contains(local_space));
-#endif
+      legion_assert(collective_mapping->contains(local_space));
       return unique_allreduce_tag.fetch_add(collective_mapping->size());
     }
 
@@ -644,13 +626,11 @@ namespace Legion {
         AddressSpaceID origin)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(redop > 0);
-      assert(op != nullptr);
-      assert(!local_views.empty());
-      assert(collective_mapping != nullptr);
-      assert(collective_mapping->contains(local_space));
-#endif
+      legion_assert(redop > 0);
+      legion_assert(op != nullptr);
+      legion_assert(!local_views.empty());
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(collective_mapping->contains(local_space));
       // Distribute out to the other nodes first
       std::vector<ApEvent> done_events;
       std::vector<AddressSpaceID> children;
@@ -849,12 +829,10 @@ namespace Legion {
         std::set<RtEvent>& applied_events, const uint64_t allreduce_tag)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(redop > 0);
-      assert(op != nullptr);
-      assert(collective_mapping != nullptr);
-      assert(collective_mapping->contains(local_space));
-#endif
+      legion_assert(redop > 0);
+      legion_assert(op != nullptr);
+      legion_assert(collective_mapping != nullptr);
+      legion_assert(collective_mapping->contains(local_space));
       // We're guaranteed to get one call to this function for each space
       // in the collective mapping from perform_collective_pointwise, so
       // we've already distributed control
@@ -941,9 +919,7 @@ namespace Legion {
              it != instances.end(); it++)
         {
           const AddressSpaceID owner = runtime->determine_owner(*it);
-#ifdef DEBUG_LEGION
-          assert(collective_mapping->contains(owner));
-#endif
+          legion_assert(collective_mapping->contains(owner));
           const unsigned index = collective_mapping->find_index(owner);
           counts[index]++;
         }
@@ -970,9 +946,7 @@ namespace Legion {
         std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!multi_instance);
-#endif
+      legion_assert(!multi_instance);
       // Case 2: there are some nodes that only have one instance
       // Pair up nodes to have them cooperate to have two buffers
       // that we can ping-pong between to do the all-reduce "inplace"
@@ -1039,9 +1013,7 @@ namespace Legion {
               0 /*src index*/, &target, 1 /*target count*/, read_events);
           if (!read_events.empty())
           {
-#ifdef DEBUG_LEGION
-            assert(read_events.size() == 1);
-#endif
+            legion_assert(read_events.size() == 1);
             instance_events[0] = read_events[0];
           }
         }
@@ -1070,9 +1042,7 @@ namespace Legion {
               stage_ranks.emplace_back(target);
             }
           }
-#ifdef DEBUG_LEGION
-          assert(!stage_ranks.empty());
-#endif
+          legion_assert(!stage_ranks.empty());
           // Always include ourselves in the ranks as well
           stage_ranks.emplace_back(local_rank);
           // Check to see if we're sending or receiving this stage
@@ -1086,9 +1056,7 @@ namespace Legion {
               // If we're odd, send to the even
               const unsigned index =
                   2 * stage_ranks[idx] + ((local_offset == 0) ? 1 : 0);
-#ifdef DEBUG_LEGION
-              assert(index < collective_mapping->size());
-#endif
+              legion_assert(index < collective_mapping->size());
               targets[idx] = (*collective_mapping)[index];
             }
             std::vector<ApEvent> read_events;
@@ -1182,9 +1150,7 @@ namespace Legion {
               1 /*total ranks*/, reduce_events);
           if (!reduce_events.empty())
           {
-#ifdef DEBUG_LEGION
-            assert(reduce_events.size() == 1);
-#endif
+            legion_assert(reduce_events.size() == 1);
             instance_events[0] = reduce_events[0];
           }
           finalize_allreduce_without_broadcasts(
@@ -1203,14 +1169,10 @@ namespace Legion {
             instance_events, local_fields, reservations);
         // Truncate down
         const int target_rank = (local_index - 2 * participating_ranks) / 2;
-#ifdef DEBUG_LEGION
-        assert(target_rank >= 0);
-#endif
+        legion_assert(target_rank >= 0);
         // Then convert back to the appropriate index
         const int target_index = 2 * target_rank;
-#ifdef DEBUG_LEGION
-        assert(target_index < int(collective_mapping->size()));
-#endif
+        legion_assert(target_index < int(collective_mapping->size()));
         const AddressSpaceID target = (*collective_mapping)[target_index];
         std::vector<ApEvent> read_events;
         // Intentionally use the local_index here to avoid key collisions
@@ -1220,9 +1182,7 @@ namespace Legion {
             0 /*src index*/, &target, 1 /*total targets*/, read_events);
         if (!read_events.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(read_events.size() == 1);
-#endif
+          legion_assert(read_events.size() == 1);
           instance_events[0] = read_events[0];
         }
         // Check to see if we received the copy back yet
@@ -1237,9 +1197,7 @@ namespace Legion {
             1 /*total ranks*/, reduce_events);
         if (!reduce_events.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(reduce_events.size() == 1);
-#endif
+          legion_assert(reduce_events.size() == 1);
           instance_events[0] = reduce_events[0];
         }
         finalize_allreduce_without_broadcasts(
@@ -1257,12 +1215,10 @@ namespace Legion {
         std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Case 1: each node has multiple instances
-      assert(redop > 0);
-      assert(multi_instance);
-      assert(instances.size() > 1);
-#endif
+      legion_assert(redop > 0);
+      legion_assert(multi_instance);
+      legion_assert(instances.size() > 1);
       const int participants = collective_mapping->size();
       const int local_rank = collective_mapping->find_index(local_space);
       int collective_radix = runtime->legion_collective_radix;
@@ -1331,9 +1287,7 @@ namespace Legion {
               stage_ranks.emplace_back(target);
             }
           }
-#ifdef DEBUG_LEGION
-          assert(!stage_ranks.empty());
-#endif
+          legion_assert(!stage_ranks.empty());
           // Send out the messages to the dst ranks to perform copies
           std::vector<AddressSpaceID> targets(stage_ranks.size());
           for (unsigned idx = 0; idx < stage_ranks.size(); idx++)
@@ -1446,9 +1400,7 @@ namespace Legion {
       {
         // Not a participant in the stages so just need to
         // do the stage -1 send and receive
-#ifdef DEBUG_LEGION
-        assert(local_rank >= participating_ranks);
-#endif
+        legion_assert(local_rank >= participating_ranks);
         initialize_allreduce_without_reductions(
             precondition, predicate_guard, op, index, copy_expression,
             copy_mask, trace_info, recorded_events, applied_events,
@@ -1462,9 +1414,7 @@ namespace Legion {
             0 /*src index*/, &target, 1 /*total targets*/, read_events);
         if (!read_events.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(read_events.size() == 1);
-#endif
+          legion_assert(read_events.size() == 1);
           instance_events[0] = read_events[0];
         }
         // We can put this back in the first buffer without any
@@ -1482,9 +1432,7 @@ namespace Legion {
             1 /*total ranks*/, reduce_events);
         if (!reduce_events.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(reduce_events.size() == 1);
-#endif
+          legion_assert(reduce_events.size() == 1);
           instance_events[0] = reduce_events[0];
         }
         finalize_allreduce_without_broadcasts(
@@ -1768,9 +1716,7 @@ namespace Legion {
         size_t total_ranks, std::vector<ApEvent>& dst_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((stage != -2) || (total_ranks == 1));
-#endif
+      legion_assert((stage != -2) || (total_ranks == 1));
       std::vector<AllReduceCopy> to_perform;
       {
         unsigned remaining = 0;
@@ -1793,9 +1739,7 @@ namespace Legion {
           // If we still have outstanding copies, save a data
           // structure for them for when they arrive
           const std::pair<uint64_t, int> key(allreduce_tag, stage);
-#ifdef DEBUG_LEGION
-          assert(remaining_stages.find(key) == remaining_stages.end());
-#endif
+          legion_assert(remaining_stages.find(key) == remaining_stages.end());
           AllReduceStage& pending = remaining_stages[key];
           pending.dst_index = dst_index;
           pending.op = op;
@@ -1854,9 +1798,7 @@ namespace Legion {
           }
           else
           {
-#ifdef DEBUG_LEGION
-            assert(it->src_postcondition.exists());
-#endif
+            legion_assert(it->src_postcondition.exists());
             Runtime::trigger_event(
                 it->src_postcondition, post, trace_info, applied_events);
           }
@@ -1883,9 +1825,7 @@ namespace Legion {
         if (finder == remaining_stages.end())
         {
           const CopyKey key(allreduce_tag, src_rank, stage);
-#ifdef DEBUG_LEGION
-          assert(all_reduce_copies.find(key) == all_reduce_copies.end());
-#endif
+          legion_assert(all_reduce_copies.find(key) == all_reduce_copies.end());
           AllReduceCopy& copy = all_reduce_copies[key];
           copy.src_fields.swap(src_fields);
           copy.src_precondition = src_precondition;
@@ -1896,9 +1836,7 @@ namespace Legion {
           copy.src_unique_event = src_unique_event;
           return;
         }
-#ifdef DEBUG_LEGION
-        assert(!finder->second.remaining_postconditions.empty());
-#endif
+        legion_assert(!finder->second.remaining_postconditions.empty());
         // We can release the lock because we know map iterators are
         // not invalidated by insertion/deletion and any other copies
         // for this same stage are also just going to be reading except
@@ -1932,9 +1870,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(src_postcondition.exists());
-#endif
+        legion_assert(src_postcondition.exists());
         Runtime::trigger_event(
             src_postcondition, copy_post, *finder->second.trace_info,
             finder->second.applied_events);
@@ -1951,13 +1887,9 @@ namespace Legion {
         {
           finder->second.applied_events.insert(
               applied_events.begin(), applied_events.end());
-#ifdef DEBUG_LEGION
           applied_events.clear();
-#endif
         }
-#ifdef DEBUG_LEGION
-        assert(!finder->second.remaining_postconditions.empty());
-#endif
+        legion_assert(!finder->second.remaining_postconditions.empty());
         to_trigger = finder->second.remaining_postconditions.back();
         finder->second.remaining_postconditions.pop_back();
         if (finder->second.remaining_postconditions.empty())
@@ -1981,13 +1913,9 @@ namespace Legion {
               applied, Runtime::merge_events(applied_events));
         else
           Runtime::trigger_event(applied);
-#ifdef DEBUG_LEGION
         applied_events.clear();
-#endif
       }
-#ifdef DEBUG_LEGION
-      assert(applied_events.empty());
-#endif
+      legion_assert(applied_events.empty());
       delete trace_info;
       if ((copy_expression != nullptr) &&
           copy_expression->remove_nested_expression_reference(this->did))

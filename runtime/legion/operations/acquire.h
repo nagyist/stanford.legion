@@ -118,12 +118,7 @@ namespace Legion {
           unsigned index, ApEvent precondition, ApEvent term_event,
           InstanceSet& restricted_instances,
           const PhysicalTraceInfo& trace_info,
-          std::set<RtEvent>& map_applied_events
-#ifdef DEBUG_LEGION
-          ,
-          const char* log_name, UniqueID uid
-#endif
-      );
+          std::set<RtEvent>& map_applied_events);
     protected:
       RegionRequirement requirement;
       PhysicalRegion restricted_region;

@@ -79,9 +79,7 @@ namespace Legion {
         outstanding_invalidations(0)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-#endif
+      legion_assert(!is_owner());
       size_t num_fields;
       derez.deserialize(num_fields);
       if (num_fields > 0)
@@ -688,9 +686,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(get_owner_space() == runtime->address_space);
-#endif
+      legion_assert(get_owner_space() == runtime->address_space);
       RtEvent precondition;
       void* result = nullptr;
       size_t size = 0;
@@ -741,9 +737,7 @@ namespace Legion {
         bool wait_until, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(get_owner_space() == runtime->address_space);
-#endif
+      legion_assert(get_owner_space() == runtime->address_space);
       RtEvent precondition;
       void* result = nullptr;
       size_t size = 0;
@@ -904,9 +898,7 @@ namespace Legion {
         // then we are trivially done
         if (allocation_state == FIELD_ALLOC_COLLECTIVE)
         {
-#ifdef DEBUG_LEGION
-          assert(outstanding_allocators == 0);
-#endif
+          legion_assert(outstanding_allocators == 0);
           outstanding_allocators = 1;
           return RtEvent::NO_RT_EVENT;
         }
@@ -921,17 +913,13 @@ namespace Legion {
         {
           case FIELD_ALLOC_INVALID:
             {
-#ifdef DEBUG_LEGION
-              assert(outstanding_allocators == 0);
-              assert(remote_field_infos.size() == 1);
-#endif
+              legion_assert(outstanding_allocators == 0);
+              legion_assert(remote_field_infos.size() == 1);
               const AddressSpaceID remote_owner = *(remote_field_infos.begin());
               remote_field_infos.clear();
-#ifdef DEBUG_LEGION
-              assert(remote_owner != local_space);
+              legion_assert(remote_owner != local_space);
               // Should never get the ships in the night case either
-              assert(remote_owner != source);
-#endif
+              legion_assert(remote_owner != source);
               if (!ready_event.exists())
                 ready_event = Runtime::create_rt_user_event();
               outstanding_invalidations++;
@@ -961,10 +949,8 @@ namespace Legion {
               // because someone else asked for an allocator
               if (outstanding_allocators > 0)
               {
-#ifdef DEBUG_LEGION
-                assert(!remote_field_infos.empty());
-                assert(outstanding_invalidations == 0);
-#endif
+                legion_assert(!remote_field_infos.empty());
+                legion_assert(outstanding_invalidations == 0);
                 std::set<RtEvent> preconditions;
                 for (std::set<AddressSpaceID>::const_iterator it =
                          remote_field_infos.begin();
@@ -992,17 +978,13 @@ namespace Legion {
             }
           case FIELD_ALLOC_READ_ONLY:
             {
-#ifdef DEBUG_LEGION
-              assert(outstanding_allocators == 0);
-#endif
+              legion_assert(outstanding_allocators == 0);
               // Send any invalidations to anyone not the source
               bool full_update = true;
               RtEvent invalidations_done;
               if (!remote_field_infos.empty())
               {
-#ifdef DEBUG_LEGION
-                assert(outstanding_invalidations == 0);
-#endif
+                legion_assert(outstanding_invalidations == 0);
                 std::set<RtEvent> preconditions;
                 for (std::set<AddressSpaceID>::const_iterator it =
                          remote_field_infos.begin();
@@ -1034,9 +1016,7 @@ namespace Legion {
               }
               if (source != local_space)
               {
-#ifdef DEBUG_LEGION
-                assert(ready_event.exists());
-#endif
+                legion_assert(ready_event.exists());
                 // Send the response back to the source and mark that
                 // we are now invalid
                 Serializer rez;
@@ -1124,10 +1104,8 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!ready_event.exists());
-        assert(source == local_space);
-#endif
+        legion_assert(!ready_event.exists());
+        legion_assert(source == local_space);
         // Order remote allocation requests to prevent ships-in-the-night
         while (pending_field_allocation.exists())
         {
@@ -1166,12 +1144,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
           (allocation_state == FIELD_ALLOC_COLLECTIVE) ||
           (allocation_state == FIELD_ALLOC_INVALID));
-#endif
       if (sharded_owner_context)
       {
         // If we were the sharded collective context that made this
@@ -1179,9 +1155,7 @@ namespace Legion {
         // then we are trivially done
         if (allocation_state == FIELD_ALLOC_COLLECTIVE)
         {
-#ifdef DEBUG_LEGION
-          assert(outstanding_allocators == 1);
-#endif
+          legion_assert(outstanding_allocators == 1);
           outstanding_allocators = 0;
           return RtEvent::NO_RT_EVENT;
         }
@@ -1192,16 +1166,12 @@ namespace Legion {
       }
       if (allocation_state == FIELD_ALLOC_INVALID)
       {
-#ifdef DEBUG_LEGION
-        assert(!is_owner());
-#endif
+        legion_assert(!is_owner());
         return RtEvent::NO_RT_EVENT;
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(outstanding_allocators > 0);
-#endif
+        legion_assert(outstanding_allocators > 0);
         if (--outstanding_allocators == 0)
         {
           // Now we go back to read-only mode
@@ -1249,9 +1219,7 @@ namespace Legion {
         CustomSerdezID serdez_id, Provenance* prov, bool collective)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!fids.empty());
-#endif
+      legion_assert(!fids.empty());
       for (unsigned idx = 0; idx < fids.size(); idx++)
       {
         FieldID fid = fids[idx];
@@ -1272,9 +1240,7 @@ namespace Legion {
               "and related macros at the top of legion_config.h "
               "and recompile.",
               handle.get_id(), LEGION_MAX_FIELDS)
-#ifdef DEBUG_LEGION
-        assert(!dummy_event.exists());
-#endif
+        legion_assert(!dummy_event.exists());
         const unsigned index = result;
         field_infos[fid] = FieldInfo(
             sizes[idx], index, serdez_id, prov, false /*local*/, collective);
@@ -1307,9 +1273,7 @@ namespace Legion {
               "and related macros at the top of legion_config.h "
               "and recompile.",
               handle.get_id(), LEGION_MAX_FIELDS)
-#ifdef DEBUG_LEGION
-        assert(!dummy_event.exists());
-#endif
+        legion_assert(!dummy_event.exists());
         const unsigned index = result;
         field_infos[fid] = FieldInfo(
             sizes_ready, index, serdez_id, prov, false /*local*/, collective);
@@ -1329,9 +1293,7 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       while (allocation_state == FIELD_ALLOC_PENDING)
       {
-#ifdef DEBUG_LEGION
-        assert(is_owner());
-#endif
+        legion_assert(is_owner());
         const RtEvent wait_on = pending_field_allocation;
         n_lock.release();
         if (!wait_on.has_triggered())
@@ -1342,9 +1304,7 @@ namespace Legion {
       if ((allocation_state != FIELD_ALLOC_EXCLUSIVE) &&
           (allocation_state != FIELD_ALLOC_COLLECTIVE))
       {
-#ifdef DEBUG_LEGION
-        assert(!is_owner());
-#endif
+        legion_assert(!is_owner());
         const RtUserEvent allocated_event = Runtime::create_rt_user_event();
         Serializer rez;
         {
@@ -1409,9 +1369,7 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       while (allocation_state == FIELD_ALLOC_PENDING)
       {
-#ifdef DEBUG_LEGION
-        assert(is_owner());
-#endif
+        legion_assert(is_owner());
         const RtEvent wait_on = pending_field_allocation;
         n_lock.release();
         if (!wait_on.has_triggered())
@@ -1422,9 +1380,7 @@ namespace Legion {
       if ((allocation_state != FIELD_ALLOC_EXCLUSIVE) &&
           (allocation_state != FIELD_ALLOC_COLLECTIVE))
       {
-#ifdef DEBUG_LEGION
-        assert(!is_owner());
-#endif
+        legion_assert(!is_owner());
         const RtUserEvent allocated_event = Runtime::create_rt_user_event();
         Serializer rez;
         {
@@ -1481,10 +1437,8 @@ namespace Legion {
         CustomSerdezID serdez_id, Provenance* prov, bool sharded_non_owner)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!fids.empty());
-      assert(sizes.size() == fids.size());
-#endif
+      legion_assert(!fids.empty());
+      legion_assert(sizes.size() == fids.size());
       AutoLock n_lock(node_lock);
       // For control replication see if we've been invalidated and do not need
       // to do anything because we are not the owner any longer
@@ -1492,9 +1446,7 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       while (allocation_state == FIELD_ALLOC_PENDING)
       {
-#ifdef DEBUG_LEGION
-        assert(is_owner());
-#endif
+        legion_assert(is_owner());
         const RtEvent wait_on = pending_field_allocation;
         n_lock.release();
         if (!wait_on.has_triggered())
@@ -1582,9 +1534,7 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       while (allocation_state == FIELD_ALLOC_PENDING)
       {
-#ifdef DEBUG_LEGION
-        assert(is_owner());
-#endif
+        legion_assert(is_owner());
         const RtEvent wait_on = pending_field_allocation;
         n_lock.release();
         if (!wait_on.has_triggered())
@@ -1665,9 +1615,7 @@ namespace Legion {
       AutoLock n_lock(node_lock);
       while (allocation_state == FIELD_ALLOC_PENDING)
       {
-#ifdef DEBUG_LEGION
-        assert(is_owner());
-#endif
+        legion_assert(is_owner());
         const RtEvent wait_on = pending_field_allocation;
         n_lock.release();
         if (!wait_on.has_triggered())
@@ -1677,10 +1625,8 @@ namespace Legion {
       std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
       if (finder != field_infos.end())
       {
-#ifdef DEBUG_LEGION
-        assert(finder->second.field_size == 0);
-        assert(finder->second.size_ready.exists());
-#endif
+        legion_assert(finder->second.field_size == 0);
+        legion_assert(finder->second.size_ready.exists());
         finder->second.field_size = field_size;
         finder->second.size_ready = ApEvent::NO_AP_EVENT;
       }
@@ -1751,9 +1697,7 @@ namespace Legion {
         return;
       while (allocation_state == FIELD_ALLOC_PENDING)
       {
-#ifdef DEBUG_LEGION
-        assert(is_owner());
-#endif
+        legion_assert(is_owner());
         const RtEvent wait_on = pending_field_allocation;
         n_lock.release();
         if (!wait_on.has_triggered())
@@ -1763,9 +1707,7 @@ namespace Legion {
       if ((allocation_state != FIELD_ALLOC_EXCLUSIVE) &&
           (allocation_state != FIELD_ALLOC_COLLECTIVE))
       {
-#ifdef DEBUG_LEGION
-        assert(!is_owner());
-#endif
+        legion_assert(!is_owner());
         const RtUserEvent done_event = Runtime::create_rt_user_event();
         Serializer rez;
         {
@@ -1780,9 +1722,7 @@ namespace Legion {
         return;
       }
       std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
-#ifdef DEBUG_LEGION
-      assert(finder != field_infos.end());
-#endif
+      legion_assert(finder != field_infos.end());
       // Remove it from the field map
       field_infos.erase(finder);
     }
@@ -1800,9 +1740,7 @@ namespace Legion {
         return;
       while (allocation_state == FIELD_ALLOC_PENDING)
       {
-#ifdef DEBUG_LEGION
-        assert(is_owner());
-#endif
+        legion_assert(is_owner());
         const RtEvent wait_on = pending_field_allocation;
         n_lock.release();
         if (!wait_on.has_triggered())
@@ -1812,9 +1750,7 @@ namespace Legion {
       if ((allocation_state != FIELD_ALLOC_EXCLUSIVE) &&
           (allocation_state != FIELD_ALLOC_COLLECTIVE))
       {
-#ifdef DEBUG_LEGION
-        assert(!is_owner());
-#endif
+        legion_assert(!is_owner());
         const RtUserEvent done_event = Runtime::create_rt_user_event();
         Serializer rez;
         {
@@ -1833,9 +1769,7 @@ namespace Legion {
            it != to_free.end(); it++)
       {
         std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(*it);
-#ifdef DEBUG_LEGION
-        assert(finder != field_infos.end());
-#endif
+        legion_assert(finder != field_infos.end());
         // Remove it from the fields map
         field_infos.erase(finder);
       }
@@ -1854,9 +1788,7 @@ namespace Legion {
         return;
       while (allocation_state == FIELD_ALLOC_PENDING)
       {
-#ifdef DEBUG_LEGION
-        assert(is_owner());
-#endif
+        legion_assert(is_owner());
         const RtEvent wait_on = pending_field_allocation;
         n_lock.release();
         if (!wait_on.has_triggered())
@@ -1866,9 +1798,7 @@ namespace Legion {
       if ((allocation_state != FIELD_ALLOC_EXCLUSIVE) &&
           (allocation_state != FIELD_ALLOC_COLLECTIVE))
       {
-#ifdef DEBUG_LEGION
-        assert(!is_owner());
-#endif
+        legion_assert(!is_owner());
         Serializer rez;
         {
           RezCheck z(rez);
@@ -1885,9 +1815,7 @@ namespace Legion {
            it != to_free.end(); it++)
       {
         std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(*it);
-#ifdef DEBUG_LEGION
-        assert(finder != field_infos.end());
-#endif
+        legion_assert(finder != field_infos.end());
         // Skip freeing any local field indexes here
         if (!finder->second.local)
           free_index(finder->second.idx, freed_event);
@@ -1901,10 +1829,8 @@ namespace Legion {
         std::vector<unsigned>& new_indexes, Provenance* prov)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(fids.size() == sizes.size());
-      assert(new_indexes.empty());
-#endif
+      legion_assert(fids.size() == sizes.size());
+      legion_assert(new_indexes.empty());
       if (!is_owner())
       {
         // If we're not the owner, send a message to the owner
@@ -1939,10 +1865,8 @@ namespace Legion {
           return false;
         // When we wake up then fill in the field information
         AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-        assert(!fids.empty());
-        assert(new_indexes.size() == fids.size());
-#endif
+        legion_assert(!fids.empty());
+        legion_assert(new_indexes.size() == fids.size());
         for (unsigned idx = 0; idx < fids.size(); idx++)
         {
           FieldID fid = fids[idx];
@@ -1956,9 +1880,7 @@ namespace Legion {
         AutoLock n_lock(node_lock);
         if (!allocate_local_indexes(serdez_id, sizes, indexes, new_indexes))
           return false;
-#ifdef DEBUG_LEGION
-        assert(!fids.empty());
-#endif
+        legion_assert(!fids.empty());
         for (unsigned idx = 0; idx < fids.size(); idx++)
         {
           FieldID fid = fids[idx];
@@ -1981,9 +1903,7 @@ namespace Legion {
         const std::vector<unsigned>& indexes, const CollectiveMapping* mapping)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(to_free.size() == indexes.size());
-#endif
+      legion_assert(to_free.size() == indexes.size());
       if (mapping != nullptr)
       {
         if (mapping->contains(owner_space))
@@ -2032,18 +1952,14 @@ namespace Legion {
           return;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       // Do the local free
       AutoLock n_lock(node_lock);
       for (unsigned idx = 0; idx < to_free.size(); idx++)
       {
         std::map<FieldID, FieldInfo>::iterator finder =
             field_infos.find(to_free[idx]);
-#ifdef DEBUG_LEGION
-        assert(finder != field_infos.end());
-#endif
+        legion_assert(finder != field_infos.end());
         field_infos.erase(finder);
       }
     }
@@ -2055,11 +1971,9 @@ namespace Legion {
         const std::vector<unsigned>& indexes, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(fids.size() == sizes.size());
-      assert(fids.size() == serdez_ids.size());
-      assert(fids.size() == indexes.size());
-#endif
+      legion_assert(fids.size() == sizes.size());
+      legion_assert(fids.size() == serdez_ids.size());
+      legion_assert(fids.size() == indexes.size());
       AutoLock n_lock(node_lock);
       for (unsigned idx = 0; idx < fids.size(); idx++)
         field_infos[fids[idx]] = FieldInfo(
@@ -2090,9 +2004,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2131,9 +2043,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2144,9 +2054,7 @@ namespace Legion {
         {
           std::map<FieldID, FieldInfo>::const_iterator finder =
               field_infos.find(fid);
-#ifdef DEBUG_LEGION
-          assert(finder != field_infos.end());
-#endif
+          legion_assert(finder != field_infos.end());
           // See if this field has been allocated or not yet
           if (!finder->second.size_ready.exists())
             return finder->second.field_size;
@@ -2162,9 +2070,7 @@ namespace Legion {
           ready.wait();
         std::map<FieldID, FieldInfo>::const_iterator finder =
             local_infos.find(fid);
-#ifdef DEBUG_LEGION
-        assert(finder != local_infos.end());
-#endif
+        legion_assert(finder != local_infos.end());
         // See if this field has been allocated or not yet
         if (!finder->second.size_ready.exists())
           return finder->second.field_size;
@@ -2184,9 +2090,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2197,9 +2101,7 @@ namespace Legion {
         {
           std::map<FieldID, FieldInfo>::const_iterator finder =
               field_infos.find(fid);
-#ifdef DEBUG_LEGION
-          assert(finder != field_infos.end());
-#endif
+          legion_assert(finder != field_infos.end());
           // See if this field has been allocated or not yet
           if (!finder->second.size_ready.exists())
             return finder->second.serdez_id;
@@ -2215,9 +2117,7 @@ namespace Legion {
           ready.wait();
         std::map<FieldID, FieldInfo>::const_iterator finder =
             local_infos.find(fid);
-#ifdef DEBUG_LEGION
-        assert(finder != local_infos.end());
-#endif
+        legion_assert(finder != local_infos.end());
         // See if this field has been allocated or not yet
         if (!finder->second.size_ready.exists())
           return finder->second.serdez_id;
@@ -2237,9 +2137,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2278,9 +2176,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2340,9 +2236,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2401,9 +2295,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2418,9 +2310,7 @@ namespace Legion {
           {
             std::map<FieldID, FieldInfo>::const_iterator finder =
                 field_infos.find(*it);
-#ifdef DEBUG_LEGION
-            assert(finder != field_infos.end());
-#endif
+            legion_assert(finder != field_infos.end());
             if (mask.is_set(finder->second.idx))
               to_set.insert(finder->first);
           }
@@ -2437,9 +2327,7 @@ namespace Legion {
       {
         std::map<FieldID, FieldInfo>::const_iterator finder =
             local_infos.find(*it);
-#ifdef DEBUG_LEGION
-        assert(finder != local_infos.end());
-#endif
+        legion_assert(finder != local_infos.end());
         if (mask.is_set(finder->second.idx))
           to_set.insert(finder->first);
       }
@@ -2455,9 +2343,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2471,9 +2357,7 @@ namespace Legion {
           {
             std::map<FieldID, FieldInfo>::const_iterator finder =
                 field_infos.find(*it);
-#ifdef DEBUG_LEGION
-            assert(finder != field_infos.end());
-#endif
+            legion_assert(finder != field_infos.end());
             result.set_bit(finder->second.idx);
           }
           return result;
@@ -2488,9 +2372,7 @@ namespace Legion {
       {
         std::map<FieldID, FieldInfo>::const_iterator finder =
             local_infos.find(*it);
-#ifdef DEBUG_LEGION
-        assert(finder != local_infos.end());
-#endif
+        legion_assert(finder != local_infos.end());
         result.set_bit(finder->second.idx);
       }
       return result;
@@ -2504,9 +2386,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2517,9 +2397,7 @@ namespace Legion {
         {
           std::map<FieldID, FieldInfo>::const_iterator finder =
               field_infos.find(fid);
-#ifdef DEBUG_LEGION
-          assert(finder != field_infos.end());
-#endif
+          legion_assert(finder != field_infos.end());
           return finder->second.idx;
         }
       }
@@ -2529,9 +2407,7 @@ namespace Legion {
         ready.wait();
       std::map<FieldID, FieldInfo>::const_iterator finder =
           local_infos.find(fid);
-#ifdef DEBUG_LEGION
-      assert(finder != local_infos.end());
-#endif
+      legion_assert(finder != local_infos.end());
       return finder->second.idx;
     }
 
@@ -2541,16 +2417,12 @@ namespace Legion {
         std::vector<unsigned>& indexes) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(needed.size() == indexes.size());
-#endif
+      legion_assert(needed.size() == indexes.size());
       {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2563,9 +2435,7 @@ namespace Legion {
           {
             std::map<FieldID, FieldInfo>::const_iterator finder =
                 field_infos.find(needed[idx]);
-#ifdef DEBUG_LEGION
-            assert(finder != field_infos.end());
-#endif
+            legion_assert(finder != field_infos.end());
             indexes[idx] = finder->second.idx;
           }
           return;
@@ -2579,9 +2449,7 @@ namespace Legion {
       {
         std::map<FieldID, FieldInfo>::const_iterator finder =
             local_infos.find(needed[idx]);
-#ifdef DEBUG_LEGION
-        assert(finder != local_infos.end());
-#endif
+        legion_assert(finder != local_infos.end());
         indexes[idx] = finder->second.idx;
       }
     }
@@ -2593,11 +2461,9 @@ namespace Legion {
         std::vector<CustomSerdezID>& serdez, FieldMask& mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(field_sizes.size() == create_fields.size());
-      assert(mask_index_map.size() == create_fields.size());
-      assert(serdez.size() == create_fields.size());
-#endif
+      legion_assert(field_sizes.size() == create_fields.size());
+      legion_assert(mask_index_map.size() == create_fields.size());
+      legion_assert(serdez.size() == create_fields.size());
       bool invalid = false;
       std::set<ApEvent> defer_events;
       std::map<unsigned /*mask index*/, unsigned /*layout index*/> index_map;
@@ -2606,9 +2472,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -2928,9 +2792,7 @@ namespace Legion {
         AttachOp* attach_op)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(node->column_source == this);
-#endif
+      legion_assert(node->column_source == this);
       std::vector<size_t> field_sizes(field_set.size());
       std::vector<unsigned> mask_index_map(field_set.size());
       std::vector<CustomSerdezID> serdez(field_set.size());
@@ -3057,9 +2919,7 @@ namespace Legion {
             external_mask, total_dims, layout_constraints, mask_index_map,
             field_set, field_sizes, serdez);
       }
-#ifdef DEBUG_LEGION
-      assert(layout != nullptr);
-#endif
+      legion_assert(layout != nullptr);
       MemoryManager* memory = runtime->find_memory_manager(inst.get_location());
       PhysicalManager* result = new PhysicalManager(
           did, memory, inst, node->row_source, nullptr /*piece list*/,
@@ -3072,9 +2932,7 @@ namespace Legion {
       // or creating the layout
       if (layout->remove_reference())
         delete layout;
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       return result;
     }
 
@@ -3130,9 +2988,7 @@ namespace Legion {
       AutoLock n_lock(node_lock, 1, false /*exclusive*/);
       std::map<LEGION_FIELD_MASK_FIELD_TYPE, lng::list<LayoutDescription*>>::
           const_iterator finder = layouts.find(hash_key);
-#ifdef DEBUG_LEGION
-      assert(finder != layouts.end());
-#endif
+      legion_assert(finder != layouts.end());
       for (std::list<LayoutDescription*>::const_iterator it =
                finder->second.begin();
            it != finder->second.end(); it++)
@@ -3200,17 +3056,15 @@ namespace Legion {
     void FieldSpaceNode::send_node(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Only send it if we're the owner without a collective mapping
       // or the target is not in the collective mapping and we're the
       // closest node in the collective mapping to the target
-      assert(
+      legion_assert(
           (is_owner() && (collective_mapping == nullptr)) ||
           ((collective_mapping != nullptr) &&
            !collective_mapping->contains(target) &&
            collective_mapping->contains(local_space) &&
            (local_space == collective_mapping->find_nearest(target))));
-#endif
       // See if this is in our creation set, if not, send it and all the fields
       AutoLock n_lock(node_lock);
       if (!has_remote_instance(target))
@@ -3293,9 +3147,7 @@ namespace Legion {
         mapping = new CollectiveMapping(derez, num_spaces);
       FieldSpaceNode* node =
           runtime->create_node(handle, initialized, provenance, mapping, derez);
-#ifdef DEBUG_LEGION
-      assert(node != nullptr);
-#endif
+      legion_assert(node != nullptr);
       size_t num_semantic;
       derez.deserialize(num_semantic);
       for (unsigned idx = 0; idx < num_semantic; idx++)
@@ -3346,10 +3198,9 @@ namespace Legion {
       // right node and if not forward it on to the right node
       if (target->collective_mapping != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(!target->collective_mapping->contains(source));
-        assert(target->collective_mapping->contains(target->local_space));
-#endif
+        legion_assert(!target->collective_mapping->contains(source));
+        legion_assert(
+            target->collective_mapping->contains(target->local_space));
         if (target->is_owner())
         {
           const AddressSpaceID nearest =
@@ -3366,14 +3217,12 @@ namespace Legion {
             return;
           }
         }
-#ifdef DEBUG_LEGION
         else
         {
-          assert(
+          legion_assert(
               target->local_space ==
               target->collective_mapping->find_nearest(source));
         }
-#endif
       }
       target->send_node(source);
       Serializer rez;
@@ -3403,9 +3252,7 @@ namespace Legion {
 
       FieldSpaceNode* node = runtime->get_node(handle);
 
-#ifdef DEBUG_LEGION
-      assert(node->is_owner());
-#endif
+      legion_assert(node->is_owner());
       node->create_allocator(source, ready_event);
     }
 
@@ -3499,9 +3346,7 @@ namespace Legion {
       derez.deserialize(source);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
-#ifdef DEBUG_LEGION
-      assert(to_trigger.exists());
-#endif
+      legion_assert(to_trigger.exists());
       FieldSpaceNode* node = runtime->get_node(handle);
       node->request_field_infos_copy(target, source, to_trigger);
     }
@@ -3530,9 +3375,7 @@ namespace Legion {
       }
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
-#ifdef DEBUG_LEGION
-      assert(to_trigger.exists());
-#endif
+      legion_assert(to_trigger.exists());
       Runtime::trigger_event(to_trigger);
     }
 
@@ -3541,9 +3384,7 @@ namespace Legion {
         const FieldMask& mask, TaskContext* ctx) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!mask);
-#endif
+      legion_assert(!!mask);
       std::string result;
       std::set<unsigned> local_indexes;
       bool invalid = false;
@@ -3552,9 +3393,7 @@ namespace Legion {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
-#ifdef DEBUG_LEGION
-          assert(is_owner());
-#endif
+          legion_assert(is_owner());
           const RtEvent wait_on = pending_field_allocation;
           n_lock.release();
           if (!wait_on.has_triggered())
@@ -3632,11 +3471,9 @@ namespace Legion {
     int FieldSpaceNode::allocate_index(RtEvent& ready_event, bool initializing)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
           (allocation_state == FIELD_ALLOC_COLLECTIVE) || initializing);
-#endif
       // Check to see if we still have spots
       int result = unallocated_indexes.find_first_set();
       if ((result >= 0) &&
@@ -3684,11 +3521,9 @@ namespace Legion {
     void FieldSpaceNode::free_index(unsigned index, RtEvent ready_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
           (allocation_state == FIELD_ALLOC_COLLECTIVE));
-#endif
       // Perform the invalidations across all nodes too
       std::set<RtEvent> invalidation_events;
       invalidate_layouts(
@@ -3786,9 +3621,7 @@ namespace Legion {
         RtUserEvent to_trigger) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(copy != nullptr);
-#endif
+      legion_assert(copy != nullptr);
       if (is_owner())
       {
         RtEvent wait_on;
@@ -3800,9 +3633,7 @@ namespace Legion {
             if (source != local_space)
             {
               // Need to defer this to avoid blocking the virtual channel
-#ifdef DEBUG_LEGION
-              assert(to_trigger.exists());
-#endif
+              legion_assert(to_trigger.exists());
               DeferRequestFieldInfoArgs args(this, copy, source, to_trigger);
               runtime->issue_runtime_meta_task(
                   args, LG_LATENCY_DEFERRED_PRIORITY, wait_on);
@@ -3814,11 +3645,9 @@ namespace Legion {
           AutoLock n_lock(node_lock);
           if (allocation_state == FIELD_ALLOC_INVALID)
           {
-#ifdef DEBUG_LEGION
             // If we're invalid, that means there should be exactly
             // one remote copy which is where the allocation privileges are
-            assert(remote_field_infos.size() == 1);
-#endif
+            legion_assert(remote_field_infos.size() == 1);
             // forward this message onto the node with the privileges
             const AddressSpaceID target = *(remote_field_infos.begin());
             if (!to_trigger.exists())
@@ -3839,9 +3668,7 @@ namespace Legion {
             // are not one already
             if (source != local_space)
             {
-#ifdef DEBUG_LEGION
-              assert(to_trigger.exists());
-#endif
+              legion_assert(to_trigger.exists());
               Serializer rez;
               {
                 RezCheck z(rez);
@@ -3885,9 +3712,7 @@ namespace Legion {
             // but we can't make them a read-only copy
             if (source != local_space)
             {
-#ifdef DEBUG_LEGION
-              assert(to_trigger.exists());
-#endif
+              legion_assert(to_trigger.exists());
               Serializer rez;
               {
                 RezCheck z(rez);
@@ -3925,9 +3750,7 @@ namespace Legion {
         {
           if (source != local_space)
           {
-#ifdef DEBUG_LEGION
-            assert(to_trigger.exists());
-#endif
+            legion_assert(to_trigger.exists());
             // Send the response back to the source
             Serializer rez;
             {
@@ -3978,13 +3801,9 @@ namespace Legion {
         const std::map<FieldID, FieldInfo>& infos)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-#endif
+      legion_assert(!is_owner());
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-      assert(allocation_state == FIELD_ALLOC_INVALID);
-#endif
+      legion_assert(allocation_state == FIELD_ALLOC_INVALID);
       field_infos.insert(infos.begin(), infos.end());
       allocation_state = FIELD_ALLOC_READ_ONLY;
     }
@@ -3994,14 +3813,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-      assert(
+      legion_assert(!is_owner());
+      legion_assert(
           (allocation_state == FIELD_ALLOC_INVALID) ||
           (allocation_state == FIELD_ALLOC_READ_ONLY) ||
           (allocation_state == FIELD_ALLOC_COLLECTIVE));
-      assert(outstanding_allocators == 0);
-#endif
+      legion_assert(outstanding_allocators == 0);
       if (allocation_state == FIELD_ALLOC_INVALID)
       {
         size_t num_infos;
@@ -4015,10 +3832,8 @@ namespace Legion {
       }
       if (allocation_state != FIELD_ALLOC_COLLECTIVE)
       {
-#ifdef DEBUG_LEGION
-        assert(!unallocated_indexes);
-        assert(available_indexes.empty());
-#endif
+        legion_assert(!unallocated_indexes);
+        legion_assert(available_indexes.empty());
         derez.deserialize(unallocated_indexes);
         size_t num_indexes;
         derez.deserialize(num_indexes);
@@ -4041,13 +3856,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-      assert(
+      legion_assert(!is_owner());
+      legion_assert(
           (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
           (allocation_state == FIELD_ALLOC_COLLECTIVE) ||
           (allocation_state == FIELD_ALLOC_READ_ONLY));
-#endif
       Serializer rez;
       // It's possible to be in the read-only state even with a flush because
       // of ships passing in the night. We get sent an invalidation, but we
@@ -4090,11 +3903,9 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (allocation_state == FIELD_ALLOC_READ_ONLY) ||
             (allocation_state == FIELD_ALLOC_COLLECTIVE));
-#endif
         RezCheck z(rez);
         rez.serialize(handle);
         rez.serialize<bool>(false);  // allocation meta data
@@ -4122,9 +3933,7 @@ namespace Legion {
     bool FieldSpaceNode::process_allocator_flush(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       bool allocator_meta_data;
       derez.deserialize(allocator_meta_data);
       AutoLock n_lock(node_lock);
@@ -4177,10 +3986,8 @@ namespace Legion {
             derez.deserialize(fid);
             field_infos[fid].deserialize(derez);
           }
-#ifdef DEBUG_LEGION
-          assert(!unallocated_indexes);
-          assert(available_indexes.empty());
-#endif
+          legion_assert(!unallocated_indexes);
+          legion_assert(available_indexes.empty());
           derez.deserialize(unallocated_indexes);
           size_t num_available;
           derez.deserialize(num_available);
@@ -4196,12 +4003,10 @@ namespace Legion {
           outstanding_allocators += remote_allocators;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(outstanding_invalidations > 0);
-      assert(
+      legion_assert(outstanding_invalidations > 0);
+      legion_assert(
           (allocation_state == FIELD_ALLOC_PENDING) ||
           (allocation_state == FIELD_ALLOC_INVALID));
-#endif
       if ((--outstanding_invalidations == 0) &&
           (allocation_state == FIELD_ALLOC_PENDING))
         allocation_state = FIELD_ALLOC_EXCLUSIVE;
@@ -4213,27 +4018,24 @@ namespace Legion {
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       bool return_allocation;
       derez.deserialize(return_allocation);
       if (return_allocation)
       {
         AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (allocation_state == FIELD_ALLOC_INVALID) ||
             (allocation_state == FIELD_ALLOC_PENDING));
         if (allocation_state == FIELD_ALLOC_INVALID)
         {
-          assert(remote_field_infos.size() == 1);
-          assert(remote_field_infos.find(source) != remote_field_infos.end());
-          assert(outstanding_allocators == 0);
+          legion_assert(remote_field_infos.size() == 1);
+          legion_assert(
+              remote_field_infos.find(source) != remote_field_infos.end());
+          legion_assert(outstanding_allocators == 0);
         }
-        assert(!unallocated_indexes);
-        assert(available_indexes.empty());
-#endif
+        legion_assert(!unallocated_indexes);
+        legion_assert(available_indexes.empty());
         size_t num_infos;
         derez.deserialize(num_infos);
         for (unsigned idx = 0; idx < num_infos; idx++)
@@ -4266,9 +4068,7 @@ namespace Legion {
         std::vector<unsigned>& new_indexes)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       new_indexes.resize(sizes.size());
       // Iterate over the different fields to allocate and try to find
       // an index for them in our list of local fields

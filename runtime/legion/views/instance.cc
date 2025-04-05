@@ -85,9 +85,7 @@ namespace Legion {
         ready.wait();
       if (target_ready.exists() && !target_ready.has_triggered())
         target_ready.wait();
-#ifdef DEBUG_LEGION
-      assert(view->is_instance_view());
-#endif
+      legion_assert(view->is_instance_view());
       InstanceView* inst_view = view->as_instance_view();
       std::vector<RtEvent> registered_events;
       ApEvent pre = inst_view->register_user(

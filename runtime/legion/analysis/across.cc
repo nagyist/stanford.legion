@@ -98,9 +98,8 @@ namespace Legion {
     CopyAcrossAnalysis::~CopyAcrossAnalysis(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!aggregator_guard.exists() || aggregator_guard.has_triggered());
-#endif
+      legion_assert(
+          !aggregator_guard.exists() || aggregator_guard.has_triggered());
       for (std::vector<CopyAcrossHelper*>::const_iterator it =
                across_helpers.begin();
            it != across_helpers.end(); it++)
@@ -114,9 +113,7 @@ namespace Legion {
     {
       if (!uninitialized)
       {
-#ifdef DEBUG_LEGION
-        assert(!uninitialized_reported.exists());
-#endif
+        legion_assert(!uninitialized_reported.exists());
         uninitialized_reported = Runtime::create_rt_user_event();
         applied_events.insert(uninitialized_reported);
       }
@@ -129,9 +126,7 @@ namespace Legion {
     {
       if (across_aggregator == nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(!aggregator_guard.exists());
-#endif
+        legion_assert(!aggregator_guard.exists());
         aggregator_guard = Runtime::create_rt_user_event();
         across_aggregator = new CopyFillAggregator(
             this, src_index, dst_index, nullptr /*no previous guard*/,
@@ -164,17 +159,13 @@ namespace Legion {
         return defer_remote(perform_precondition, applied_events);
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
-#ifdef DEBUG_LEGION
-      assert(target_instances.size() == target_views.size());
-      assert(src_indexes.size() == dst_indexes.size());
-#endif
+      legion_assert(target_instances.size() == target_views.size());
+      legion_assert(src_indexes.size() == dst_indexes.size());
       for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!rit->second.empty());
-#endif
+        legion_assert(!rit->second.empty());
         const AddressSpaceID target = rit->first;
         const ApUserEvent copy = Runtime::create_ap_user_event(&trace_info);
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -252,19 +243,15 @@ namespace Legion {
       // Report any uninitialized data now that we know the traversal is done
       if (!!uninitialized)
       {
-#ifdef DEBUG_LEGION
-        assert(uninitialized_reported.exists());
-#endif
+        legion_assert(uninitialized_reported.exists());
         RegionNode* src_node = runtime->get_node(src_region);
         src_node->report_uninitialized_usage(
             op, src_index, uninitialized, uninitialized_reported);
       }
       if (across_aggregator != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(aggregator_guard.exists());
-        assert(across_aggregator->track_events);
-#endif
+        legion_assert(aggregator_guard.exists());
+        legion_assert(across_aggregator->track_events);
         // Trigger the guard event for the aggregator once all the
         // actual guard events are done. Note that this is safe for
         // copy across aggregators because unlike other aggregators
@@ -485,9 +472,7 @@ namespace Legion {
             const std::vector<unsigned>& dst_indexes)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!dst_instances.empty());
-#endif
+      legion_assert(!dst_instances.empty());
       std::vector<CopyAcrossHelper*> result(dst_instances.size());
       for (unsigned idx = 0; idx < dst_instances.size(); idx++)
       {

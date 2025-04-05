@@ -105,9 +105,7 @@ namespace Legion {
       if (!launch_domain.exists())
       {
         runtime->find_domain(launcher.launch_space, launch_domain);
-#ifdef DEBUG_LEGION
-        assert(launch_domain.exists());
-#endif
+        legion_assert(launch_domain.exists());
       }
       // Make a new future map for storing our results
       // We'll fill it in later
@@ -143,9 +141,7 @@ namespace Legion {
         InnerContext* ctx, const MustEpochLauncher& launcher)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!concurrent_mapped.exists());
-#endif
+      legion_assert(!concurrent_mapped.exists());
       concurrent_mapped = Runtime::create_rt_user_event();
       // Initialize operations for everything in the launcher
       // Note that we do not track these operations as we want them all to
@@ -367,9 +363,7 @@ namespace Legion {
       // map and run them but instead enqueue them with our must epoch op
       // here so that we can call trigger mapping on ourselves once they
       // have all been enumerated
-#ifdef DEBUG_LEGION
-      assert(!single_tasks_ready.exists());
-#endif
+      legion_assert(!single_tasks_ready.exists());
       task_sets.resize(indiv_tasks.size() + index_tasks.size());
       // Add a guard on the single tasks being ready
       remaining_single_tasks.store(1);
@@ -409,9 +403,7 @@ namespace Legion {
     void MustEpochOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!single_tasks.empty());
-#endif
+      legion_assert(!single_tasks.empty());
       // Sort the points so that they are in order for determinism
       // across runs and for control replication
       std::sort(single_tasks.begin(), single_tasks.end(), single_task_sorter);
@@ -432,9 +424,7 @@ namespace Legion {
            it != dependences.end(); it++, constraint_idx++)
       {
         Mapper::MappingConstraint& constraint = constraints[constraint_idx];
-#ifdef DEBUG_LEGION
-        assert((*it)->op_indexes.size() == (*it)->req_indexes.size());
-#endif
+        legion_assert((*it)->op_indexes.size() == (*it)->req_indexes.size());
         // Add constraints for all the different elements
         std::set<unsigned> single_indexes;
         for (unsigned idx = 0; idx < (*it)->op_indexes.size(); idx++)
@@ -447,9 +437,7 @@ namespace Legion {
           {
             constraint.constrained_tasks.emplace_back(*sit);
             constraint.requirement_indexes.emplace_back(req_index);
-#ifdef DEBUG_LEGION
-            assert(single_task_map.find(*sit) != single_task_map.end());
-#endif
+            legion_assert(single_task_map.find(*sit) != single_task_map.end());
             // Update the dependence map
             std::pair<unsigned, unsigned> key(single_task_map[*sit], req_index);
             dependence_map[key] = constraint_idx;
@@ -559,9 +547,7 @@ namespace Legion {
                  mapping_dependences[idx].begin();
              it != mapping_dependences[idx].end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert((*it) < idx);
-#endif
+          legion_assert((*it) < idx);
           preconditions.emplace_back(
               mapped_events[single_tasks[*it]->index_point]);
         }
@@ -583,15 +569,11 @@ namespace Legion {
         const DomainPoint& point, RtEvent mapped)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapped_events.find(point) != mapped_events.end());
-#endif
+      legion_assert(mapped_events.find(point) != mapped_events.end());
       // No need for a lock since this data structure is read-only here
       Runtime::trigger_event(mapped_events[point], mapped);
       const unsigned remaining = remaining_mapped_events.fetch_sub(1);
-#ifdef DEBUG_LEGION
-      assert(remaining > 0);
-#endif
+      legion_assert(remaining > 0);
       if (remaining == 1)
       {
         std::vector<RtEvent> preconditions;
@@ -640,9 +622,7 @@ namespace Legion {
             created_regs, deleted_regs, created_fids, deleted_fids, created_fs,
             latent_fs, deleted_fs, created_is, deleted_is, created_partitions,
             deleted_partitions);
-#ifdef DEBUG_LEGION
-        assert(remaining_resource_returns > 0);
-#endif
+        legion_assert(remaining_resource_returns > 0);
         if (--remaining_resource_returns > 0)
           return;
       }
@@ -659,9 +639,7 @@ namespace Legion {
       AutoLock o_lock(op_lock);
       if (collective_lamport_clock < lamport_clock)
         collective_lamport_clock = lamport_clock;
-#ifdef DEBUG_LEGION
-      assert(remaining_collective_unbound_points > 0);
-#endif
+      legion_assert(remaining_collective_unbound_points > 0);
       if (--remaining_collective_unbound_points > 0)
       {
         if (need_result)
@@ -686,9 +664,7 @@ namespace Legion {
         AutoLock o_lock(op_lock);
         if (precondition.exists())
           concurrent_preconditions.emplace_back(precondition);
-#ifdef DEBUG_LEGION
-        assert(remaining_concurrent_mapped > 0);
-#endif
+        legion_assert(remaining_concurrent_mapped > 0);
         done = (--remaining_concurrent_mapped == 0);
       }
       if (done)
@@ -699,9 +675,7 @@ namespace Legion {
     void MustEpochOp::finalize_concurrent_mapped(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(concurrent_mapped.exists());
-#endif
+      legion_assert(concurrent_mapped.exists());
       Runtime::trigger_event(
           concurrent_mapped, Runtime::merge_events(concurrent_preconditions));
     }
@@ -720,9 +694,7 @@ namespace Legion {
         if (concurrent_lamport_clock < lamport_clock)
           concurrent_lamport_clock = lamport_clock;
         concurrent_tasks.emplace_back(std::make_pair(task, space));
-#ifdef DEBUG_LEGION
-        assert(remaining_concurrent_points > 0);
-#endif
+        legion_assert(remaining_concurrent_points > 0);
         done = (--remaining_concurrent_points == 0);
       }
       if (done)
@@ -743,9 +715,7 @@ namespace Legion {
         if (concurrent_lamport_clock < lamport_clock)
           concurrent_lamport_clock = lamport_clock;
         concurrent_slices.emplace_back(std::make_pair(slice, source));
-#ifdef DEBUG_LEGION
-        assert(total_points <= remaining_concurrent_points);
-#endif
+        legion_assert(total_points <= remaining_concurrent_points);
         remaining_concurrent_points -= total_points;
         done = (remaining_concurrent_points == 0);
       }
@@ -818,10 +788,8 @@ namespace Legion {
     {
       const size_t single_tasks = launcher.single_tasks.size();
       const size_t multi_tasks = launcher.index_tasks.size();
-#ifdef DEBUG_LEGION
-      assert(!launch_domain.exists());
-      assert((single_tasks > 0) || (multi_tasks > 0));
-#endif
+      legion_assert(!launch_domain.exists());
+      legion_assert((single_tasks > 0) || (multi_tasks > 0));
       if (multi_tasks > 0)
       {
         if ((single_tasks > 0) || (multi_tasks > 1))
@@ -929,9 +897,7 @@ namespace Legion {
       bool need_commit;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(remaining_subop_commits > 0);
-#endif
+        legion_assert(remaining_subop_commits > 0);
         remaining_subop_commits--;
         need_commit = (remaining_subop_commits == 0);
       }
@@ -996,14 +962,10 @@ namespace Legion {
               finder = internal_dependences.find(internal_key);
           if (finder != internal_dependences.end())
           {
-#ifdef DEBUG_LEGION
             // should never have back-to-back internal ops
-            assert(!src_op->is_internal_op());
-#endif
+            legion_assert(!src_op->is_internal_op());
             src_index = find_operation_index(src_op, src_gen);
-#ifdef DEBUG_LEGION
-            assert(src_index >= 0);
-#endif
+            legion_assert(src_index >= 0);
             TaskOp* src_task = find_task_by_index(src_index);
             const RegionRequirement& src_req = src_task->regions[src_idx];
             IndexSpaceNode* src_node =
@@ -1038,13 +1000,8 @@ namespace Legion {
       {
         // Refinement operations should not record dependences on previous
         // operations in the same must epoch operation
-#ifdef DEBUG_LEGION
-        assert(src_op->get_operation_kind() == REFINEMENT_OP_KIND);
-        InternalOp* internal_op = dynamic_cast<InternalOp*>(src_op);
-        assert(internal_op != nullptr);
-#else
-        InternalOp* internal_op = static_cast<InternalOp*>(src_op);
-#endif
+        legion_assert(src_op->get_operation_kind() == REFINEMENT_OP_KIND);
+        InternalOp* internal_op = legion_safe_cast<InternalOp*>(src_op);
         // Record the destination as a potential target for anything
         // that comes later and depends on the internal operation
         std::pair<Operation*, GenerationID> internal_key(src_op, src_gen);
@@ -1054,18 +1011,14 @@ namespace Legion {
         // need to record constraints properly between these operations
         src_index = find_operation_index(
             internal_op->get_creator_op(), internal_op->get_creator_gen());
-#ifdef DEBUG_LEGION
-        assert(src_index >= 0);  // better be able to find it
-#endif
+        legion_assert(src_index >= 0);  // better be able to find it
         src_idx = internal_op->get_internal_index();
         TaskOp* src_task = find_task_by_index(src_index);
         TaskOp* dst_task = find_task_by_index(dst_index);
         const RegionRequirement& src_req = src_task->regions[src_idx];
         const RegionRequirement& dst_req = dst_task->regions[dst_idx];
-#ifdef DEBUG_LEGION
-        assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
-        assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+        legion_assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
+        legion_assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
         // Check to see if the regions actually do interfere
         IndexSpaceNode* src_node =
             runtime->get_node(src_req.region.get_index_space());
@@ -1080,9 +1033,7 @@ namespace Legion {
       }
       else
         src_index = find_operation_index(src_op, src_gen);
-#ifdef DEBUG_LEGION
-      assert(src_index >= 0);
-#endif
+      legion_assert(src_index >= 0);
       return record_intra_must_epoch_dependence(
           src_index, src_idx, dst_index, dst_idx, dtype);
     }
@@ -1130,10 +1081,9 @@ namespace Legion {
             dependences[src_record_finder->second]->add_entry(
                 dst_index, dst_idx);
           }
-#ifdef DEBUG_LEGION
           else  // both already there so just assert they are the same
-            assert(src_record_finder->second == dst_record_finder->second);
-#endif
+            legion_assert(
+                src_record_finder->second == dst_record_finder->second);
         }
         else
         {
@@ -1180,9 +1130,7 @@ namespace Legion {
       //    the results for as a result of our must epoch mapping
       // 3. Record that we premapped those regions
       // First find the index for this task
-#ifdef DEBUG_LEGION
-      assert(single_task_map.find(task) != single_task_map.end());
-#endif
+      legion_assert(single_task_map.find(task) != single_task_map.end());
       unsigned index = single_task_map[task];
       // Set the target processor by the index
       task->target_proc = output.task_processors[index];
@@ -1219,16 +1167,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Can do the first part without the lock
-#ifdef DEBUG_LEGION
-      assert(index < task_sets.size());
-#endif
+      legion_assert(index < task_sets.size());
       task_sets[index].insert(single);
       AutoLock o_lock(op_lock);
       single_tasks.emplace_back(single);
       const unsigned remaining = remaining_single_tasks.fetch_sub(1);
-#ifdef DEBUG_LEGION
-      assert(remaining > 0);
-#endif
+      legion_assert(remaining > 0);
       if ((remaining == 1) && single_tasks_ready.exists())
         Runtime::trigger_event(single_tasks_ready);
     }
@@ -1259,9 +1203,7 @@ namespace Legion {
       bool need_complete;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(remaining_subop_completes > 0);
-#endif
+        legion_assert(remaining_subop_completes > 0);
         remaining_subop_completes--;
         need_complete = (remaining_subop_completes == 0);
       }
@@ -1276,9 +1218,7 @@ namespace Legion {
       bool need_commit;
       {
         AutoLock o_lock(op_lock);
-#ifdef DEBUG_LEGION
-        assert(remaining_subop_commits > 0);
-#endif
+        legion_assert(remaining_subop_commits > 0);
         if (precondition.exists())
           commit_preconditions.insert(precondition);
         remaining_subop_commits--;
@@ -1340,7 +1280,7 @@ namespace Legion {
     TaskOp* MustEpochOp::find_task_by_index(int index)
     //--------------------------------------------------------------------------
     {
-      assert(index >= 0);
+      legion_assert(index >= 0);
       if ((size_t)index < indiv_tasks.size())
         return indiv_tasks[index];
       index -= indiv_tasks.size();
@@ -1364,9 +1304,7 @@ namespace Legion {
     MustEpochMappingBroadcast::~MustEpochMappingBroadcast(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_done_event.exists());
-#endif
+      legion_assert(local_done_event.exists());
       if (!done_events.empty())
         Runtime::trigger_event(
             local_done_event, Runtime::merge_events(done_events));
@@ -1437,9 +1375,7 @@ namespace Legion {
         const std::vector<std::vector<Mapping::PhysicalInstance> >& mappings)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_done_event.exists());
-#endif
+      legion_assert(!local_done_event.exists());
       local_done_event = Runtime::create_rt_user_event();
       processors = processor_mapping;
       instances.resize(mappings.size());
@@ -1481,10 +1417,8 @@ namespace Legion {
                constraint_indexes.begin();
            it != constraint_indexes.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert((*it) < instances.size());
-        assert((*it) < mappings.size());
-#endif
+        legion_assert((*it) < instances.size());
+        legion_assert((*it) < mappings.size());
         const std::vector<DistributedID>& dids = instances[*it];
         std::vector<Mapping::PhysicalInstance>& mapping = mappings[*it];
         mapping.resize(dids.size());
@@ -1522,15 +1456,7 @@ namespace Legion {
           if (acquired.find(manager) != acquired.end())
             continue;
           manager->add_base_gc_ref(MAPPER_REF);
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-          bool result =
-#endif
-#endif
-              manager->acquire_instance(MAPPING_ACQUIRE_REF);
-#ifdef DEBUG_LEGION
-          assert(result);
-#endif
+          legion_no_skip_assert(manager->acquire_instance(MAPPING_ACQUIRE_REF));
           acquired[manager] = 1 /*count*/;
         }
       }
@@ -1551,9 +1477,7 @@ namespace Legion {
     MustEpochMappingExchange::~MustEpochMappingExchange(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_done_event.exists());  // better have one of these
-#endif
+      legion_assert(local_done_event.exists());  // better have one of these
       Runtime::trigger_event(local_done_event);
       // See if we need to wait for others to be done before we can
       // remove our valid references
@@ -1676,10 +1600,8 @@ namespace Legion {
         std::map<PhysicalManager*, unsigned>& acquired)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_tasks.size() == processor_mapping.size());
-      assert(constraint_indexes.size() == mappings.size());
-#endif
+      legion_assert(local_tasks.size() == processor_mapping.size());
+      legion_assert(constraint_indexes.size() == mappings.size());
       // Add valid references to all the physical instances that we will
       // hold until all the must epoch operations are done with the exchange
       for (unsigned idx = 0; idx < mappings.size(); idx++)
@@ -1695,9 +1617,7 @@ namespace Legion {
           held_references.insert(manager);
         }
       }
-#ifdef DEBUG_LEGION
-      assert(!local_done_event.exists());
-#endif
+      legion_assert(!local_done_event.exists());
       local_done_event = Runtime::create_rt_user_event();
       // Then we can add our instances to the set and do the exchange
       {
@@ -1705,17 +1625,13 @@ namespace Legion {
         for (unsigned idx = 0; idx < local_tasks.size(); idx++)
         {
           const Task* task = local_tasks[idx];
-#ifdef DEBUG_LEGION
-          assert(processors.find(task->index_point) == processors.end());
-#endif
+          legion_assert(processors.find(task->index_point) == processors.end());
           processors[task->index_point] = processor_mapping[idx];
         }
         for (unsigned idx1 = 0; idx1 < mappings.size(); idx1++)
         {
           const unsigned constraint_index = constraint_indexes[idx1];
-#ifdef DEBUG_LEGION
-          assert(constraint_index < total_constraints);
-#endif
+          legion_assert(constraint_index < total_constraints);
           std::map<unsigned, ConstraintInfo>::iterator finder =
               constraints.find(constraint_index);
           // Only add it if it doesn't exist or it has a lower weight
@@ -1767,9 +1683,7 @@ namespace Legion {
         const Task* task = all_tasks[idx];
         std::map<DomainPoint, Processor>::const_iterator finder =
             processors.find(task->index_point);
-#ifdef DEBUG_LEGION
-        assert(finder != processors.end());
-#endif
+        legion_assert(finder != processors.end());
         processor_mapping[idx] = finder->second;
       }
       // Wait for all the instances to be ready
@@ -1955,9 +1869,7 @@ namespace Legion {
       completion_exchange_id = 0;
       concurrent_mapped_barrier = RtBarrier::NO_RT_BARRIER;
       resource_return_barrier = RtBarrier::NO_RT_BARRIER;
-#ifdef DEBUG_LEGION
       sharding_collective = nullptr;
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1974,10 +1886,8 @@ namespace Legion {
         delete collective_exchange;
       if (concurrent_exchange != nullptr)
         delete concurrent_exchange;
-#ifdef DEBUG_LEGION
       if (sharding_collective != nullptr)
         delete sharding_collective;
-#endif
       if (freeop)
         runtime->free_operation(this);
     }
@@ -1987,14 +1897,9 @@ namespace Legion {
         InnerContext* ctx, const MustEpochLauncher& launcher)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(ctx);
-      assert(repl_ctx != nullptr);
-      assert(!concurrent_mapped.exists());
-      assert(!concurrent_mapped_barrier.exists());
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(ctx);
-#endif
+      ReplicateContext* repl_ctx = legion_safe_cast<ReplicateContext*>(ctx);
+      legion_assert(!concurrent_mapped.exists());
+      legion_assert(!concurrent_mapped_barrier.exists());
       // This is a bit dumb, but we do it to make the types work out
       concurrent_mapped = Runtime::create_rt_user_event();
       concurrent_mapped_barrier =
@@ -2020,10 +1925,9 @@ namespace Legion {
         task->initialize_replication(repl_ctx);
         task->index_domain = this->launch_domain;
         task->sharding_space = launcher.sharding_space;
-#ifdef DEBUG_LEGION
-        task->set_sharding_collective(new ShardingGatherCollective(
-            repl_ctx, 0 /*owner shard*/, COLLECTIVE_LOC_59));
-#endif
+        if (runtime->safe_mapper)
+          task->set_sharding_collective(new ShardingGatherCollective(
+              repl_ctx, 0 /*owner shard*/, COLLECTIVE_LOC_59));
         indiv_tasks[idx] = task;
         indiv_tasks[idx]->set_concurrent_postcondition(concurrent_mapped);
       }
@@ -2044,10 +1948,9 @@ namespace Legion {
         task->must_epoch_task = true;
         task->initialize_replication(repl_ctx);
         task->sharding_space = launcher.sharding_space;
-#ifdef DEBUG_LEGION
-        task->set_sharding_collective(new ShardingGatherCollective(
-            repl_ctx, 0 /*owner shard*/, COLLECTIVE_LOC_59));
-#endif
+        if (runtime->safe_mapper)
+          task->set_sharding_collective(new ShardingGatherCollective(
+              repl_ctx, 0 /*owner shard*/, COLLECTIVE_LOC_59));
         index_tasks[idx] = task;
         index_tasks[idx]->initialize_must_epoch_concurrent_group(
             0 /*color*/, concurrent_mapped);
@@ -2059,12 +1962,7 @@ namespace Legion {
         TaskContext* ctx, IndexSpace launch_space, IndexSpace shard_space)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(ctx);
-#endif
+      ReplicateContext* repl_ctx = legion_safe_cast<ReplicateContext*>(ctx);
       IndexSpaceNode* launch_node = runtime->get_node(launch_space);
       IndexSpaceNode* shard_node =
           ((launch_space == shard_space) || !shard_space.exists()) ?
@@ -2082,12 +1980,8 @@ namespace Legion {
     {
       Processor mapper_proc = parent_ctx->get_executing_processor();
       MapperManager* mapper = runtime->find_mapper(mapper_proc, map_id);
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // We want to do the map must epoch call
       // First find all the tasks that we own on this shard
       Domain shard_domain = launch_domain;
@@ -2148,10 +2042,8 @@ namespace Legion {
         // Now we can do the mapper call
         mapper->invoke_map_must_epoch(this, input, output);
         // Now we need to exchange our mapping decisions between all the shards
-#ifdef DEBUG_LEGION
-        assert(mapping_exchange == nullptr);
-        assert(mapping_collective_id > 0);
-#endif
+        legion_assert(mapping_exchange == nullptr);
+        legion_assert(mapping_collective_id > 0);
         mapping_exchange =
             new MustEpochMappingExchange(repl_ctx, mapping_collective_id);
         mapping_exchange->exchange_must_epoch_mappings(
@@ -2163,10 +2055,8 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(mapping_broadcast == nullptr);
-        assert(mapping_collective_id > 0);
-#endif
+        legion_assert(mapping_broadcast == nullptr);
+        legion_assert(mapping_collective_id > 0);
         mapping_broadcast = new MustEpochMappingBroadcast(
             repl_ctx, 0 /*owner shard*/, mapping_collective_id);
         // Do the mapper call on shard 0 and then broadcast the results
@@ -2189,13 +2079,9 @@ namespace Legion {
     RtEvent ReplMustEpochOp::map_and_distribute(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(single_tasks.size() == mapping_dependences.size());
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(single_tasks.size() == mapping_dependences.size());
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       for (std::set<SingleTask*>::const_iterator it =
                shard_single_tasks.begin();
            it != shard_single_tasks.end(); it++)
@@ -2323,9 +2209,7 @@ namespace Legion {
                  mapping_dependences[idx].begin();
              it != mapping_dependences[idx].end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert((*it) < idx);
-#endif
+          legion_assert((*it) < idx);
           preconditions.insert(mapped_events[single_tasks[*it]->index_point]);
         }
         RtEvent precondition;
@@ -2347,12 +2231,8 @@ namespace Legion {
     {
       Processor mapper_proc = parent_ctx->get_executing_processor();
       MapperManager* mapper = runtime->find_mapper(mapper_proc, map_id);
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Select our sharding functor and then do the base call
       this->individual_tasks.resize(indiv_tasks.size());
       for (unsigned idx = 0; idx < indiv_tasks.size(); idx++)
@@ -2383,24 +2263,21 @@ namespace Legion {
       this->sharding_functor = sharding_output.chosen_functor;
       this->collective_map_must_epoch_call =
           sharding_output.collective_map_must_epoch_call;
-#ifdef DEBUG_LEGION
-      assert(sharding_function == nullptr);
+      legion_assert(sharding_function == nullptr);
       // Check that the sharding IDs are all the same
-      assert(sharding_collective != nullptr);
-      // Contribute the result
-      sharding_collective->contribute(this->sharding_functor);
-      if (sharding_collective->is_target() &&
-          !sharding_collective->validate(this->sharding_functor))
-        Exception(MAPPER_EXCEPTION, this)
-            << "Mapper " << *mapper << " chose different sharding "
-            << "functions for must epoch launch in " << *parent_ctx;
+      if (runtime->safe_mapper)
+      {
+        legion_assert(sharding_collective != nullptr);
+        // Contribute the result
+        sharding_collective->contribute(this->sharding_functor);
+        if (sharding_collective->is_target() &&
+            !sharding_collective->validate(this->sharding_functor))
+          Exception(MAPPER_EXCEPTION, this)
+              << "Mapper " << *mapper << " chose different sharding "
+              << "functions for must epoch launch in " << *parent_ctx;
+      }
       ReplFutureMapImpl* impl =
-          dynamic_cast<ReplFutureMapImpl*>(result_map.impl);
-      assert(impl != nullptr);
-#else
-      ReplFutureMapImpl* impl =
-          static_cast<ReplFutureMapImpl*>(result_map.impl);
-#endif
+          legion_safe_cast<ReplFutureMapImpl*>(result_map.impl);
       // Set the future map sharding functor
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
@@ -2425,19 +2302,13 @@ namespace Legion {
         uint64_t lamport_clock, bool need_result)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       {
         AutoLock o_lock(op_lock);
         if (collective_lamport_clock < lamport_clock)
           collective_lamport_clock = lamport_clock;
-#ifdef DEBUG_LEGION
-        assert(remaining_collective_unbound_points > 0);
-#endif
+        legion_assert(remaining_collective_unbound_points > 0);
         if (--remaining_collective_unbound_points > 0)
         {
           if (need_result)
@@ -2475,9 +2346,7 @@ namespace Legion {
     void ReplMustEpochOp::finalize_concurrent_mapped(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(concurrent_mapped_barrier.exists());
-#endif
+      legion_assert(concurrent_mapped_barrier.exists());
       runtime->phase_barrier_arrive(
           concurrent_mapped_barrier, 1 /*count*/,
           Runtime::merge_events(concurrent_preconditions));
@@ -2530,9 +2399,7 @@ namespace Legion {
             created_regs, deleted_regs, created_fids, deleted_fids, created_fs,
             latent_fs, deleted_fs, created_is, deleted_is, created_partitions,
             deleted_partitions);
-#ifdef DEBUG_LEGION
-        assert(remaining_resource_returns > 0);
-#endif
+        legion_assert(remaining_resource_returns > 0);
         if (--remaining_resource_returns > 0)
           return;
       }
@@ -2575,12 +2442,10 @@ namespace Legion {
     void ReplMustEpochOp::initialize_replication(ReplicateContext* ctx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapping_collective_id == 0);
-      assert(collective_exchange_id == 0);
-      assert(mapping_broadcast == nullptr);
-      assert(mapping_exchange == nullptr);
-#endif
+      legion_assert(mapping_collective_id == 0);
+      legion_assert(collective_exchange_id == 0);
+      legion_assert(mapping_broadcast == nullptr);
+      legion_assert(mapping_exchange == nullptr);
       // We can't actually make a collective for the mapping yet because we
       // don't know if we are going to broadcast or exchange so we just get
       // a collective ID that we will use later

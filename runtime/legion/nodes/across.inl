@@ -81,10 +81,8 @@ namespace Legion {
       expr->record_index_space_user(last_copy);
       if (expr->remove_base_expression_reference(COPY_ACROSS_REF))
         delete expr;
-#ifdef DEBUG_LEGION
-      assert(src_preimages.empty());
-      assert(dst_preimages.empty());
-#endif
+      legion_assert(src_preimages.empty());
+      legion_assert(dst_preimages.empty());
       // Clean up any preimages that we computed
       for (typename std::vector<DomainT<DIM, T> >::iterator it =
                current_src_preimages.begin();
@@ -213,13 +211,11 @@ namespace Legion {
           {
             // Get the next batch of src preimages to use
             AutoLock p_lock(preimage_lock);
-#ifdef DEBUG_LEGION
-            assert(!src_preimages.empty());
-#endif
+            legion_assert(!src_preimages.empty());
             current_src_preimages.swap(src_preimages.front());
             src_preimages.pop_front();
 #ifdef LEGION_SPY
-            assert(!src_preimage_preconditions.empty());
+            legion_assert(!src_preimage_preconditions.empty());
             src_indirect_precondition = src_preimage_preconditions.front();
             src_preimage_preconditions.pop_front();
 #endif
@@ -245,13 +241,11 @@ namespace Legion {
           {
             // Get the next batch of dst preimages to use
             AutoLock p_lock(preimage_lock);
-#ifdef DEBUG_LEGION
-            assert(!dst_preimages.empty());
-#endif
+            legion_assert(!dst_preimages.empty());
             current_dst_preimages.swap(dst_preimages.front());
             dst_preimages.pop_front();
 #ifdef LEGION_SPY
-            assert(!dst_preimage_preconditions.empty());
+            legion_assert(!dst_preimage_preconditions.empty());
             dst_indirect_precondition = dst_preimage_preconditions.front();
             dst_preimage_preconditions.pop_front();
 #endif
@@ -296,9 +290,7 @@ namespace Legion {
         return ApEvent::NO_AP_EVENT;
 #endif
       }
-#ifdef DEBUG_LEGION
-      assert(src_fields.size() == dst_fields.size());
-#endif
+      legion_assert(src_fields.size() == dst_fields.size());
       // Now that we know we're going to do this copy add any profling requests
       Realm::ProfilingRequestSet requests;
       const unsigned total_copies = individual_field_indexes.empty() ?
@@ -333,9 +325,7 @@ namespace Legion {
       {
         if (!indirections.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(reservations.empty());
-#endif
+          legion_assert(reservations.empty());
           // Merge in the indirection preconditions into the copy precondition
           // since that isn't included by default. Only need to do this for
           // non-pointwise
@@ -385,7 +375,7 @@ namespace Legion {
       }
 #endif
 #ifdef LEGION_SPY
-      assert(op != nullptr);
+      legion_assert(op != nullptr);
       if (src_indirections.empty() && dst_indirections.empty())
       {
         LegionSpy::log_copy_events(
@@ -447,32 +437,24 @@ namespace Legion {
         const Realm::ProfilingRequestSet& requests)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(compute_preimages);
+      legion_assert(compute_preimages);
       // TODO: fix reservation handling here
-      assert(reservations.empty());
-#endif
+      legion_assert(reservations.empty());
       // This is the case of separate gather/scatter copies for each
       // of the individual preimages
       const bool gather = current_dst_preimages.empty();
-#ifdef DEBUG_LEGION
       // Should be either a gather or a scatter, but not both
-      assert(current_src_preimages.empty() != gather);
-#endif
+      legion_assert(current_src_preimages.empty() != gather);
       // Issue separate copies for each preimage
       std::vector<DomainT<DIM, T> >& preimages =
           gather ? current_src_preimages : current_dst_preimages;
       std::vector<CopySrcDstField>& fields = gather ? src_fields : dst_fields;
-#ifdef DEBUG_LEGION
-      assert(preimages.size() == individual_field_indexes.size());
-      assert(preimages.size() == indirection_preconditions.size());
-#endif
+      legion_assert(preimages.size() == individual_field_indexes.size());
+      legion_assert(preimages.size() == indirection_preconditions.size());
       std::vector<ApEvent> postconditions;
       for (unsigned idx = 0; idx < preimages.size(); idx++)
       {
-#ifdef DEBUG_LEGION
-        assert(fields.size() == individual_field_indexes[idx].size());
-#endif
+        legion_assert(fields.size() == individual_field_indexes[idx].size());
         // Setup the indirect field indexes
         for (unsigned fidx = 0; fidx < fields.size(); fidx++)
           fields[fidx].indirect_index = individual_field_indexes[idx][fidx];
@@ -521,9 +503,7 @@ namespace Legion {
       // Get the size of the field that we need
       std::map<Realm::FieldID, Realm::InstanceLayoutGeneric::FieldLayout>::
           const_iterator finder = layout->fields.find(fid);
-#ifdef DEBUG_LEGION
-      assert(finder != layout->fields.end());
-#endif
+      legion_assert(finder != layout->fields.end());
       const size_t field_size = finder->second.size_in_bytes;
       // Don't use the base index space from the indirect instance because
       // it might be bigger than we need it to be. We could consider using
@@ -549,28 +529,17 @@ namespace Legion {
       int dim_order[DIM];
       if (DIM > 1)
       {
-#ifdef DEBUG_LEGION
         const Realm::InstanceLayout<DIM, T>* typed_layout =
-            dynamic_cast<const Realm::InstanceLayout<DIM, T>*>(layout);
-        assert(typed_layout != nullptr);
-        assert(
+            legion_safe_cast<const Realm::InstanceLayout<DIM, T>*>(layout);
+        legion_assert(
             ((size_t)finder->second.list_idx) <
             typed_layout->piece_lists.size());
-        assert(
+        legion_assert(
             !typed_layout->piece_lists[finder->second.list_idx].pieces.empty());
         const Realm::AffineLayoutPiece<DIM, T>* piece =
-            dynamic_cast<const Realm::AffineLayoutPiece<DIM, T>*>(
+            legion_safe_cast<const Realm::AffineLayoutPiece<DIM, T>*>(
                 typed_layout->piece_lists[finder->second.list_idx]
                     .pieces.front());
-        assert(piece != nullptr);
-#else
-        const Realm::InstanceLayout<DIM, T>* typed_layout =
-            static_cast<const Realm::InstanceLayout<DIM, T>*>(layout);
-        const Realm::AffineLayoutPiece<DIM, T>* piece =
-            static_cast<const Realm::AffineLayoutPiece<DIM, T>*>(
-                typed_layout->piece_lists[finder->second.list_idx]
-                    .pieces.front());
-#endif
         // Sort dimensions based on the size of the strides
         std::map<size_t, int> strides;
         for (int d = 0; d < DIM; d++)
@@ -951,16 +920,14 @@ namespace Legion {
               const UnstructuredIndirection* unstructured =
                   static_cast<const UnstructuredIndirection*>(
                       indirections[index]);
-#ifdef DEBUG_LEGION
-              assert(
+              legion_assert(
                   shadow_indirections ||
                   (unstructured->inst ==
                    (source ? src_indirect_instance : dst_indirect_instance)));
-              assert(
+              legion_assert(
                   unsigned(unstructured->field_id) ==
                   (source ? src_indirect_field : dst_indirect_field));
-              assert(unstructured->insts.size() == 1);
-#endif
+              legion_assert(unstructured->insts.size() == 1);
               if (unstructured->insts.back() != instance)
                 continue;
               indirect_index = index;
@@ -982,11 +949,9 @@ namespace Legion {
               if (shadow_indirections &&
                   (unstructured->inst.get_location() != memory))
               {
-#ifdef DEBUG_LEGION
                 // Should only be gather/scatter and not full indirection so
                 // that we know the indirection field is the size of a point
-                assert(!both_are_range);
-#endif
+                legion_assert(!both_are_range);
                 // First check to see if we already have a new shadow
                 // indirection instance to use
                 std::map<Memory, ShadowInstance>::iterator finder =
@@ -1009,9 +974,7 @@ namespace Legion {
                       // domain or just the preimage subset of it
                       std::map<Memory, unsigned>::const_iterator memory_finder =
                           indirect_memories.find(memory);
-#ifdef DEBUG_LEGION
-                      assert(memory_finder != indirect_memories.end());
-#endif
+                      legion_assert(memory_finder != indirect_memories.end());
                       ApEvent ready = update_shadow_indirection(
                           shadow, unique_event, indirection_event,
                           (memory_finder->second == nonempty_index) ?
@@ -1036,9 +999,7 @@ namespace Legion {
                     // domain or just the preimage subset of it
                     std::map<Memory, unsigned>::const_iterator memory_finder =
                         indirect_memories.find(memory);
-#ifdef DEBUG_LEGION
-                    assert(memory_finder != indirect_memories.end());
-#endif
+                    legion_assert(memory_finder != indirect_memories.end());
                     ApEvent ready = update_shadow_indirection(
                         finder->second.instance, finder->second.unique_event,
                         indirection_event,
@@ -1120,15 +1081,13 @@ namespace Legion {
             const UnstructuredIndirection* unstructured =
                 static_cast<const UnstructuredIndirection*>(
                     indirections[index]);
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 unstructured->inst ==
                 (source ? src_indirect_instance : dst_indirect_instance));
-            assert(
+            legion_assert(
                 unsigned(unstructured->field_id) ==
                 (source ? src_indirect_field : dst_indirect_field));
-            assert(unstructured->insts.size() == instances.size());
-#endif
+            legion_assert(unstructured->insts.size() == instances.size());
             bool instances_match = true;
             for (unsigned idx = 0; idx < instances.size(); idx++)
             {

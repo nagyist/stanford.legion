@@ -114,9 +114,7 @@ namespace Legion {
       if (ptr == 0)
       {
         ptr = reinterpret_cast<uintptr_t>(value);
-#ifdef DEBUG_LEGION
-        assert(!(ptr & 0x1));
-#endif
+        legion_assert(!(ptr & 0x1));
       }
       else if (ptr & 0x1)
       {
@@ -157,9 +155,7 @@ namespace Legion {
             if (vector.size() == 1)
             {
               ptr = reinterpret_cast<uintptr_t>(vector.back());
-#ifdef DEBUG_LEGION
-              assert(!(ptr & 0x1));
-#endif
+              legion_assert(!(ptr & 0x1));
               delete &vector;
             }
             return true;
@@ -178,9 +174,7 @@ namespace Legion {
             if (vector.size() == 1)
             {
               ptr = reinterpret_cast<uintptr_t>(vector.back());
-#ifdef DEBUG_LEGION
-              assert(!(ptr & 0x1));
-#endif
+              legion_assert(!(ptr & 0x1));
               delete &vector;
             }
             return true;
@@ -218,9 +212,7 @@ namespace Legion {
     inline std::vector<T*>& SmallPointerVector<T, SORTED>::get_vector(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ptr & 0x1);
-#endif
+      legion_assert(ptr & 0x1);
       return *reinterpret_cast<std::vector<T*>*>(ptr ^ 0x1);
     }
 
@@ -230,9 +222,7 @@ namespace Legion {
         void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ptr & 0x1);
-#endif
+      legion_assert(ptr & 0x1);
       return *reinterpret_cast<const std::vector<T*>*>(ptr ^ 0x1);
     }
 

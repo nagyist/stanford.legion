@@ -43,9 +43,7 @@ namespace Legion {
     void Predicated<OP>::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!this->true_guard.exists() && !this->false_guard.exists());
-#endif
+      legion_assert(!this->true_guard.exists() && !this->false_guard.exists());
       this->set_memoizable_state();
       if (this->predication_state == OP::PENDING_PREDICATE_STATE)
       {
@@ -53,9 +51,7 @@ namespace Legion {
           REPORT_LEGION_FATAL(
               LEGION_FATAL_UNIMPLEMENTED_FEATURE,
               "Recording of predicated operations is not yet supported")
-#ifdef DEBUG_LEGION
-        assert(this->predicate != nullptr);
-#endif
+        legion_assert(this->predicate != nullptr);
         bool value = this->predicate->get_predicate(
             this->context_index, this->true_guard, this->false_guard);
         bool ready = !this->false_guard.exists();

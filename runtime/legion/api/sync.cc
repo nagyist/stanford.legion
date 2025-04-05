@@ -49,9 +49,7 @@ namespace Legion {
   void Lock::acquire(unsigned mode /*=0*/, bool exclusive /*=true*/)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(reservation_lock.exists());
-#endif
+    legion_assert(reservation_lock.exists());
     Internal::ApEvent lock_event(reservation_lock.acquire(mode, exclusive));
     bool poisoned = false;
     lock_event.wait_faultaware(poisoned);
@@ -63,9 +61,7 @@ namespace Legion {
   void Lock::release(void)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(reservation_lock.exists());
-#endif
+    legion_assert(reservation_lock.exists());
     reservation_lock.release();
   }
 
@@ -171,9 +167,7 @@ namespace Legion {
   void PhaseBarrier::arrive(unsigned count /*=1*/)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(phase_barrier.exists());
-#endif
+    legion_assert(phase_barrier.exists());
     Internal::runtime->phase_barrier_arrive(*this, count);
   }
 
@@ -181,9 +175,7 @@ namespace Legion {
   void PhaseBarrier::wait(void)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(phase_barrier.exists());
-#endif
+    legion_assert(phase_barrier.exists());
     Internal::ApEvent e = Internal::Runtime::get_previous_phase(*this);
     bool poisoned = false;
     e.wait_faultaware(poisoned);
@@ -309,9 +301,7 @@ namespace Legion {
       ApEvent unpack_event;
       derez.deserialize(unpack_event);
       AutoLock g_lock(grant_lock);
-#ifdef DEBUG_LEGION
-      assert(!acquired);
-#endif
+      legion_assert(!acquired);
       grant_event = unpack_event;
       acquired = true;
     }

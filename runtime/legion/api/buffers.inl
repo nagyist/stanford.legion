@@ -304,9 +304,7 @@ namespace Legion {
       Memory memory, DomainT<N, T> space, const FT* initial_value)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
     assert(space.dense());
-#endif
     const std::vector<size_t> field_sizes(1, sizeof(FT));
     Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
     int dim_order[N];
@@ -329,13 +327,11 @@ namespace Legion {
       if (wait_on.exists())
         wait_on.wait();
     }
-#ifdef DEBUG_LEGION
 #ifndef NDEBUG
     const bool is_compatible = Realm::AffineAccessor<FT, N, T>::is_compatible(
         instance, 0 /*fid*/, bounds);
 #endif
     assert(is_compatible);
-#endif
     // We can make the accessor
     accessor =
         Realm::AffineAccessor<FT, N, T>(instance, 0 /*field id*/, bounds);
@@ -750,13 +746,11 @@ namespace Legion {
     assert(dims == DIM);
     DeferredBuffer<FT, DIM, T> result;
     result.instance = instance;
-#ifdef DEBUG_LEGION
 #ifndef NDEBUG
     const bool is_compatible = Realm::AffineAccessor<FT, DIM, T>::is_compatible(
         instance, 0 /*field id*/);
 #endif
     assert(is_compatible);
-#endif
     // We can make the accessor
     result.accessor =
         Realm::AffineAccessor<FT, DIM, T>(instance, 0 /*field id*/);

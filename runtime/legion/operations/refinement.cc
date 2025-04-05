@@ -82,9 +82,7 @@ namespace Legion {
         RegionTreeNode* refine, unsigned parent_index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(refinement_node == nullptr);
-#endif
+      legion_assert(refinement_node == nullptr);
       initialize_internal(creator, index);
       refinement_node = refine;
       parent_req_index = parent_index;
@@ -124,10 +122,8 @@ namespace Legion {
         unsigned number, const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!refinement_mask);
-      assert(refinement_node != nullptr);
-#endif
+      legion_assert(!refinement_mask);
+      legion_assert(refinement_node != nullptr);
       refinement_mask = mask;
       refinement_number = number;
       if (runtime->legion_spy_enabled && !!mask)
@@ -142,9 +138,7 @@ namespace Legion {
     RegionTreeNode* RefinementOp::get_refinement_node(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(refinement_node != nullptr);
-#endif
+      legion_assert(refinement_node != nullptr);
       return refinement_node;
     }
 
@@ -162,10 +156,8 @@ namespace Legion {
     void RefinementOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!refinement_mask);
-      assert(refinement_node != nullptr);
-#endif
+      legion_assert(!!refinement_mask);
+      legion_assert(refinement_node != nullptr);
       std::vector<RtEvent> map_applied_conditions;
       // Check to see if this is a region or a parttiion
       if (refinement_node->is_region())
@@ -246,10 +238,8 @@ namespace Legion {
         RtBarrier mapped_bar, RtBarrier refinement_bar)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!mapped_barrier.exists());
-      assert(!refinement_barrier.exists());
-#endif
+      legion_assert(!mapped_barrier.exists());
+      legion_assert(!refinement_barrier.exists());
       mapped_barrier = mapped_bar;
       refinement_barrier = refinement_bar;
     }
@@ -258,9 +248,7 @@ namespace Legion {
     void ReplRefinementOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(refinement_barrier.exists());
-#endif
+      legion_assert(refinement_barrier.exists());
       runtime->phase_barrier_arrive(refinement_barrier, 1 /*count*/);
       enqueue_ready_operation(refinement_barrier);
     }
@@ -269,13 +257,9 @@ namespace Legion {
     void ReplRefinementOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapped_barrier.exists());
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(mapped_barrier.exists());
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       std::vector<RtEvent> map_applied_conditions;
       // Check to see if this is a region or a parttiion
       if (refinement_node->is_region())

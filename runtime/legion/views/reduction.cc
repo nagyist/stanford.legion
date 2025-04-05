@@ -113,9 +113,7 @@ namespace Legion {
         AddressSpaceID logical_owner)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager->is_reduction_manager());
-#endif
+      legion_assert(manager->is_reduction_manager());
       void* location =
           runtime->find_or_create_pending_collectable_location<ReductionView>(
               did);

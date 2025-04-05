@@ -200,17 +200,11 @@ namespace Legion {
     void ReplTimingOp::trigger_complete(ApEvent complete)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(execution_fence_barrier.exists());
-#endif
+      legion_assert(execution_fence_barrier.exists());
       runtime->phase_barrier_arrive(
           execution_fence_barrier, 1 /*count*/, complete);
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       DeferTimingMeasurementArgs args(this);
       // Shard 0 will handle the timing operation
       if (repl_ctx->owner_shard->shard_id > 0)
@@ -230,12 +224,8 @@ namespace Legion {
     void ReplTimingOp::perform_measurement(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Shard 0 will handle the timing operation
       if (repl_ctx->owner_shard->shard_id > 0)
       {

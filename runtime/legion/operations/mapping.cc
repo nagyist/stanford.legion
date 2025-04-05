@@ -137,9 +137,7 @@ namespace Legion {
       mapper_data_size = launcher.map_arg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
@@ -332,12 +330,9 @@ namespace Legion {
           termination_event, mapped_instances, source_instances, trace_info,
           map_applied_conditions, false /*no dynamic rendezvous*/,
           record_valid);
-#ifdef DEBUG_LEGION
-      if (!IS_NO_ACCESS(requirement) && !requirement.privilege_fields.empty())
-      {
-        assert(!mapped_instances.empty());
-      }
-#endif
+      legion_assert(
+          IS_NO_ACCESS(requirement) || requirement.privilege_fields.empty() ||
+          !mapped_instances.empty());
       log_mapping_decision(0 /*idx*/, requirement, mapped_instances);
 
       if (!atomic_locks.empty() || !arrive_barriers.empty())
@@ -406,10 +401,8 @@ namespace Legion {
     unsigned MapOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_req_index != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_req_index != TRACED_PARENT_INDEX);
       return parent_req_index;
     }
 
@@ -421,9 +414,7 @@ namespace Legion {
         std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       Mapper::SelectInlineSrcInput input;
       Mapper::SelectInlineSrcOutput output;
       prepare_for_mapping(
@@ -451,9 +442,7 @@ namespace Legion {
         const unsigned index, Reservation lock, bool exclusive)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       AutoLock o_lock(op_lock);
       std::map<Reservation, bool>::iterator finder = atomic_locks.find(lock);
       if (finder != atomic_locks.end())
@@ -563,9 +552,7 @@ namespace Legion {
             mapper, output.profiling_requests.requested_measurements,
             profiling_requests, true /*warn*/);
         profiling_priority = output.profiling_priority;
-#ifdef DEBUG_LEGION
-        assert(!profiling_reported.exists());
-#endif
+        legion_assert(!profiling_reported.exists());
         profiling_reported = Runtime::create_rt_user_event();
       }
       // Now we have to validate the output
@@ -766,9 +753,7 @@ namespace Legion {
             if (!padding_mask)
               break;
           }
-#ifdef DEBUG_LEGION
-          assert(!padding_mask);
-#endif
+          legion_assert(!padding_mask);
         }
       }
       return output.track_valid_region;
@@ -812,9 +797,7 @@ namespace Legion {
         size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapper != nullptr);
-#endif
+      legion_assert(mapper != nullptr);
       const OpProfilingResponse* op_info =
           static_cast<const OpProfilingResponse*>(response.user_data());
       Realm::ProfilingMeasurements::OperationFinishEvent finish_event;
@@ -832,9 +815,7 @@ namespace Legion {
       info.fill_response = op_info->fill;
       mapper->invoke_inline_report_profiling(this, info);
       const int count = outstanding_profiling_reported.fetch_add(1) + 1;
-#ifdef DEBUG_LEGION
-      assert(count <= outstanding_profiling_requests);
-#endif
+      legion_assert(count <= outstanding_profiling_requests);
       if (count == outstanding_profiling_requests)
         Runtime::trigger_event(profiling_reported);
       // Always record these as part of profiling
@@ -845,9 +826,7 @@ namespace Legion {
     void MapOp::handle_profiling_update(int count)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(count > 0);
-#endif
+      legion_assert(count > 0);
       outstanding_profiling_requests.fetch_add(count);
     }
 
@@ -930,23 +909,16 @@ namespace Legion {
     void ReplMapOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
       analyze_region_requirements();
       // If this a write requirement then we need to perform syncs on the
       // way in and the way out of the physical analysis across the shards
       // to ensure we don't do any exclusive updates out of order
       if (IS_WRITE(requirement))
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-        assert(!collective_map_barrier.exists());
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
+        legion_assert(!collective_map_barrier.exists());
         collective_map_barrier = repl_ctx->get_next_collective_map_barriers();
       }
       // We're always going to do collective rendezvous for this requirement
@@ -987,13 +959,8 @@ namespace Legion {
           MapOp::invoke_mapper(mapped_instances, source_instances);
       if (runtime->safe_mapper)
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         // For read-write or write-discard cases make sure that all the
         // shards mapped to independent physical instances
         if (IS_WRITE(requirement))
@@ -1031,9 +998,7 @@ namespace Legion {
         runtime->phase_barrier_arrive(
             collective_map_barrier, 1 /*count*/, precondition);
         const RtEvent result = collective_map_barrier;
-#ifdef DEBUG_LEGION
         collective_map_barrier = RtBarrier::NO_RT_BARRIER;
-#endif
         return result;
       }
       else
@@ -1072,10 +1037,8 @@ namespace Legion {
     void ReplMapOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Make sure that we consumed this if we had one
-      assert(!collective_map_barrier.exists());
-#endif
+      legion_assert(!collective_map_barrier.exists());
       ReplCollectiveViewCreator<CollectiveViewCreator<MapOp> >::deactivate(
           false);
       if (freeop)
@@ -1174,9 +1137,7 @@ namespace Legion {
         PhysicalManager* manager = ref.get_physical_manager();
         PhysicalInstance inst = manager->get_instance();
         ShardFields& shard_fields = mapped_instances[inst];
-#ifdef DEBUG_LEGION
-        assert(!shard_fields.empty());
-#endif
+        legion_assert(!shard_fields.empty());
         for (ShardFields::const_iterator it = shard_fields.begin();
              it != shard_fields.end(); it++)
         {
@@ -1352,9 +1313,7 @@ namespace Legion {
         remote_ptr->select_sources(index, target, sources, ranking, points);
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       Mapper::SelectInlineSrcInput input;
       Mapper::SelectInlineSrcOutput output;
       prepare_for_mapping(

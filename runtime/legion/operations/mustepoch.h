@@ -451,7 +451,6 @@ namespace Legion {
       std::set<SingleTask*> shard_single_tasks;
       RtBarrier concurrent_mapped_barrier;
       RtBarrier resource_return_barrier;
-#ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective* collective)
       {
@@ -459,7 +458,6 @@ namespace Legion {
       }
     protected:
       ShardingGatherCollective* sharding_collective;
-#endif
     };
 
   }  // namespace Internal

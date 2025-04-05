@@ -158,9 +158,7 @@ namespace Legion {
           {
             // No collective instance matches here so we can just
             // get the normal view for the instance
-#ifdef DEBUG_LEGION
-            assert(vit->first->individual_dids.size() == 1);
-#endif
+            legion_assert(vit->first->individual_dids.size() == 1);
             // Manager should still be here
             DistributedID inst_did = vit->first->individual_dids.back();
             PhysicalManager* manager = static_cast<PhysicalManager*>(
@@ -176,10 +174,8 @@ namespace Legion {
             collective_arrivals[view] = local_analyses;
           }
         }
-#ifdef DEBUG_LEGION
         // Should have seen all the fields at this point
-        assert(result_views[idx].get_valid_mask() == mask);
-#endif
+        legion_assert(result_views[idx].get_valid_mask() == mask);
       }
       for (int idx = target_views.size() - 1; idx >= 0; idx--)
       {
@@ -295,9 +291,7 @@ namespace Legion {
       AutoLock c_lock(collective_lock);
       std::map<PendingRendezvousKey, std::vector<RendezvousResult*> >::iterator
           finder = pending_rendezvous.find(result->key);
-#ifdef DEBUG_LEGION
-      assert(finder != pending_rendezvous.end());
-#endif
+      legion_assert(finder != pending_rendezvous.end());
       for (std::vector<RendezvousResult*>::iterator it = finder->second.begin();
            it != finder->second.end(); it++)
       {
@@ -439,9 +433,7 @@ namespace Legion {
             result_it = results.begin();
         // Skip the non-local results
         while (result_it->first != runtime->address_space) result_it++;
-#ifdef DEBUG_LEGION
-        assert(result_it != results.end());
-#endif
+        legion_assert(result_it != results.end());
         // Count how many local analyses we have here in case we need it
         size_t local_analyses = 0;
         std::vector<std::pair<AddressSpaceID, RendezvousResult*> >::iterator
@@ -452,9 +444,7 @@ namespace Legion {
           if (++local_it == results.end())
             break;
         }
-#ifdef DEBUG_LEGION
-        assert(local_analyses > 0);
-#endif
+        legion_assert(local_analyses > 0);
         while (result_it->first == runtime->address_space)
         {
           bool first = true;
@@ -679,9 +669,7 @@ namespace Legion {
                pending_versions.begin();
            pit != pending_versions.end(); pit++)
       {
-#ifdef DEBUG_LEGION
-        assert(pit->second.ready_event.exists());
-#endif
+        legion_assert(pit->second.ready_event.exists());
         rez.serialize(pit->first);
         rez.serialize(pit->second.ready_event);
         rez.serialize<size_t>(pit->second.trackers.size());
@@ -728,11 +716,9 @@ namespace Legion {
           std::pair<AddressSpaceID, EqSetTracker*> key;
           derez.deserialize(key.first);
           derez.deserialize(key.second);
-#ifdef DEBUG_LEGION
-          assert(
+          legion_assert(
               finder->second.trackers.find(key) ==
               finder->second.trackers.end());
-#endif
           derez.deserialize(finder->second.trackers[key]);
         }
       }
@@ -757,9 +743,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       OP::deactivate(freeop);
-#ifdef DEBUG_LEGION
-      assert(pending_versioning.empty());
-#endif
+      legion_assert(pending_versioning.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -797,18 +781,14 @@ namespace Legion {
             region_finder->second.ready_event = Runtime::create_rt_user_event();
           }
           const std::pair<AddressSpaceID, EqSetTracker*> key(space, tracker);
-#ifdef DEBUG_LEGION
-          assert(
+          legion_assert(
               (region_finder->second.trackers.find(key) ==
                region_finder->second.trackers.end()) ||
               (region_finder->second.trackers[key] == mask));
-#endif
           region_finder->second.trackers.emplace(std::make_pair(key, mask));
           result = region_finder->second.ready_event;
         }
-#ifdef DEBUG_LEGION
-        assert(finder->second.remaining_arrivals > 0);
-#endif
+        legion_assert(finder->second.remaining_arrivals > 0);
         if ((--finder->second.remaining_arrivals) == 0)
         {
           done = true;
@@ -885,10 +865,8 @@ namespace Legion {
         }
         else
           finder->second.region_versioning.swap(to_perform);
-#ifdef DEBUG_LEGION
-        assert(to_perform.empty());
-        assert(finder->second.remaining_arrivals > 0);
-#endif
+        legion_assert(to_perform.empty());
+        legion_assert(finder->second.remaining_arrivals > 0);
         if ((--finder->second.remaining_arrivals) == 0)
         {
           done = true;
@@ -967,9 +945,7 @@ namespace Legion {
           if (precondition.exists())
             preconditions.emplace_back(precondition);
         }
-#ifdef DEBUG_LEGION
-        assert(pit->second.ready_event.exists());
-#endif
+        legion_assert(pit->second.ready_event.exists());
         if (!preconditions.empty())
           Runtime::trigger_event(
               pit->second.ready_event, Runtime::merge_events(preconditions));
@@ -1010,10 +986,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       OP::deactivate(freeop);
-#ifdef DEBUG_LEGION
-      assert(pending_rendezvous.empty());
-      assert(pending_collectives.empty());
-#endif
+      legion_assert(pending_rendezvous.empty());
+      legion_assert(pending_collectives.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -1075,9 +1049,7 @@ namespace Legion {
                  it = insts.begin();
              it != insts.end(); it++)
           update_groups_and_counts(collective, it->first, it->second);
-#ifdef DEBUG_LEGION
-        assert(finder->second.remaining_arrivals > 0);
-#endif
+        legion_assert(finder->second.remaining_arrivals > 0);
         if (--finder->second.remaining_arrivals == 0)
         {
           to_construct.swap(finder->second.rendezvous);
@@ -1156,10 +1128,8 @@ namespace Legion {
               rit++;
           rendezvous.erase(delete_it);
         }
-#ifdef DEBUG_LEGION
-        assert(rendezvous.empty());
-        assert(finder->second.remaining_arrivals > 0);
-#endif
+        legion_assert(rendezvous.empty());
+        legion_assert(finder->second.remaining_arrivals > 0);
         if (--finder->second.remaining_arrivals == 0)
         {
           rendezvous.swap(finder->second.rendezvous);
@@ -1184,10 +1154,8 @@ namespace Legion {
                rendezvous.begin();
            rit != rendezvous.end(); rit++)
       {
-#ifdef DEBUG_LEGION
         // All the regions should be from the same region tree
-        assert(tid == rit->first.get_tree_id());
-#endif
+        legion_assert(tid == rit->first.get_tree_id());
         local::list<FieldSet<DistributedID> > field_sets;
         compute_field_sets(
             FieldMask(), MapView(rit->second.groups), field_sets);
@@ -1197,9 +1165,7 @@ namespace Legion {
                  field_sets.begin();
              it != field_sets.end(); it++)
         {
-#ifdef DEBUG_LEGION
-          assert(!it->elements.empty());
-#endif
+          legion_assert(!it->elements.empty());
           if (it->elements.size() > 1)
           {
             const std::vector<DistributedID> instances(
@@ -1290,10 +1256,8 @@ namespace Legion {
         key(k), op(o), finalizer(f)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(op != nullptr);
-      assert(finalizer != nullptr);
-#endif
+      legion_assert(op != nullptr);
+      legion_assert(finalizer != nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -1345,10 +1309,8 @@ namespace Legion {
       : GatherCollective(ctx, id, owner), op(o), finalizer(f), index(idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(op != nullptr);
-      assert(finalizer != nullptr);
-#endif
+      legion_assert(op != nullptr);
+      legion_assert(finalizer != nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -1429,9 +1391,7 @@ namespace Legion {
     {
       std::map<unsigned, CollectiveVersioningRendezvous*>::const_iterator
           finder = collective_versioning_rendezvous.find(index);
-#ifdef DEBUG_LEGION
-      assert(finder != collective_versioning_rendezvous.end());
-#endif
+      legion_assert(finder != collective_versioning_rendezvous.end());
       finder->second->perform_rendezvous(parent_req_index, to_perform);
     }
 
@@ -1453,17 +1413,11 @@ namespace Legion {
         unsigned requirement_index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           collective_versioning_rendezvous.find(requirement_index) ==
           collective_versioning_rendezvous.end());
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->get_context());
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->get_context());
-#endif
+          legion_safe_cast<ReplicateContext*>(this->get_context());
       const CollectiveID id = repl_ctx->get_next_collective_index(
           COLLECTIVE_LOC_20, true /*logical*/);
       // Round-robin the collective analysis creation around the shards
@@ -1543,9 +1497,7 @@ namespace Legion {
       typename std::map<
           RendezvousKey, CollectiveViewRendezvous*>::const_iterator finder =
           collective_view_rendezvous.find(key);
-#ifdef DEBUG_LEGION
-      assert(finder != collective_view_rendezvous.end());
-#endif
+      legion_assert(finder != collective_view_rendezvous.end());
       finder->second->perform_rendezvous(rendezvous);
     }
 
@@ -1567,14 +1519,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const RendezvousKey key(requirement_index, analysis_index);
-#ifdef DEBUG_LEGION
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->get_context());
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->get_context());
-#endif
+          legion_safe_cast<ReplicateContext*>(this->get_context());
       // This should always be in the dependence analysis stage of the pipeline
       // so we need to make sure we make the right kind of collective ID
       const CollectiveID id = repl_ctx->get_next_collective_index(

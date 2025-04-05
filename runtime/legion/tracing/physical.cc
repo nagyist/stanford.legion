@@ -122,9 +122,7 @@ namespace Legion {
         std::set<ApEvent>& execution_preconditions)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(current_template == nullptr);
-#endif
+      legion_assert(current_template == nullptr);
       if (templates.empty())
         return false;
       // Start the first batch of precondition tests
@@ -171,9 +169,7 @@ namespace Legion {
         else if (valid)
         {
           // Valid for everyone
-#ifdef DEBUG_LEGION
-          assert(acquired);
-#endif
+          legion_assert(acquired);
           if ((idx > 0) && (idx < (int(templates.size()) - 1)))
           {
             // Wait for the prefetched analyses to finish and clean them up
@@ -223,9 +219,7 @@ namespace Legion {
         std::set<ApEvent>& execution_preconditions)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(current_template == nullptr);
-#endif
+      legion_assert(current_template == nullptr);
       const bool replaying = find_replay_template(
           op, map_applied_conditions, execution_preconditions);
       if (replaying)
@@ -247,9 +241,7 @@ namespace Legion {
         std::set<ApEvent>& execution_preconditions, bool has_blocking_call)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(current_template != nullptr);
-#endif
+      legion_assert(current_template != nullptr);
       if (recording)
       {
         // Complete the recording and see if we have a new pending
@@ -284,9 +276,7 @@ namespace Legion {
       PhysicalTemplate* non_idempotent_template = nullptr;
       if (recording)
       {
-#ifdef DEBUG_LEGION
-        assert(current_template != nullptr);
-#endif
+        legion_assert(current_template != nullptr);
         // Complete the recording. If we recorded a replayable template
         // and it is idempotent then we can replay it right away
         if (complete_recording(
@@ -315,9 +305,7 @@ namespace Legion {
             }
             else
             {
-#ifdef DEBUG_LEGION
-              assert(valid);
-#endif
+              legion_assert(valid);
               // Replaying this right away
               templates.emplace_back(current_template);
               // Treat the end of the recording as an intermediate fence
@@ -341,12 +329,10 @@ namespace Legion {
       }
       else if (current_template != nullptr)
       {
-#ifdef DEBUG_LEGION
         // We should only be here if we're going to do a recurrent replay
         // If the current template was non-idempotent then it would have been
         // cleared by the TraceRecurrentOp in trigger_ready
-        assert(current_template->is_idempotent());
-#endif
+        legion_assert(current_template->is_idempotent());
         // If this isn't a recurrent replay then we need to apply the
         // postconditions to the equivalence sets, if it is recurrent
         // then we know that the postconditions have already been applied
@@ -369,16 +355,12 @@ namespace Legion {
         // and we know its preconditions aren't going to be satisfied so
         // we pop it off the list of templates and add it back once we've
         // decided what we're going to do.
-#ifdef DEBUG_LEGION
-        assert(!templates.empty());
-        assert(!templates.back()->is_idempotent());
-#endif
+        legion_assert(!templates.empty());
+        legion_assert(!templates.back()->is_idempotent());
         non_idempotent_template = templates.back();
         templates.pop_back();
       }
-#ifdef DEBUG_LEGION
-      assert(current_template == nullptr);
-#endif
+      legion_assert(current_template == nullptr);
       if (non_idempotent_template != nullptr)
       {
         // If we have a non-idempotent template we figure out what kind of
@@ -387,9 +369,7 @@ namespace Legion {
         if (begin_physical_trace(
                 op, map_applied_conditions, execution_preconditions))
         {
-#ifdef DEBUG_LEGION
-          assert(!templates.empty());
-#endif
+          legion_assert(!templates.empty());
           // We found another template to replay so it will be the last
           // one on the list, therefore put the non-idempotent one right
           // before it on the list as the one most recently captured/replayed
@@ -414,10 +394,8 @@ namespace Legion {
         std::set<ApEvent>& execution_postconditions, bool has_blocking_call)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(recording);
-      assert(current_template != nullptr);
-#endif
+      legion_assert(recording);
+      legion_assert(current_template != nullptr);
       // Reset the tracing state for the next time
       recording = false;
       ReplayableStatus status =
@@ -428,9 +406,7 @@ namespace Legion {
         if (templates.size() ==
             logical_trace->context->get_max_trace_templates())
         {
-#ifdef DEBUG_LEGION
-          assert(!templates.empty());
-#endif
+          legion_assert(!templates.empty());
           PhysicalTemplate* to_delete = templates.front();
           ApEvent pending_deletion;
           if (!to_delete->defer_template_deletion(
@@ -509,9 +485,7 @@ namespace Legion {
         BeginOp* op, bool recur, bool has_intermediate_fence)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(current_template != nullptr);
-#endif
+      legion_assert(current_template != nullptr);
       recording = false;
       recurrent = recur;
       new_template_count = 0;

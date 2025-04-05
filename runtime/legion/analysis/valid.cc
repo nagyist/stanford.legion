@@ -79,9 +79,7 @@ namespace Legion {
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!rit->second.empty());
-#endif
+        legion_assert(!rit->second.empty());
         const AddressSpaceID target = rit->first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -286,9 +284,7 @@ namespace Legion {
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!rit->second.empty());
-#endif
+        legion_assert(!rit->second.empty());
         const AddressSpaceID target = rit->first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -512,9 +508,7 @@ namespace Legion {
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!rit->second.empty());
-#endif
+        legion_assert(!rit->second.empty());
         const AddressSpaceID target = rit->first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();

@@ -96,9 +96,7 @@ namespace Legion {
       public:
         inline bool operator==(const iterator& rhs) const
         {
-#ifdef DEBUG_LEGION
-          assert(map == rhs.map);
-#endif
+          legion_assert(map == rhs.map);
           if (single)
             return (result == rhs.result);
           else
@@ -106,9 +104,7 @@ namespace Legion {
         }
         inline bool operator!=(const iterator& rhs) const
         {
-#ifdef DEBUG_LEGION
-          assert(map == rhs.map);
-#endif
+          legion_assert(map == rhs.map);
           if (single)
             return (result != rhs.result);
           else
@@ -170,9 +166,7 @@ namespace Legion {
       public:
         inline void erase(FMMap& target)
         {
-#ifdef DEBUG_LEGION
-          assert(!single);
-#endif
+          legion_assert(!single);
           // Erase it from the target
           target.erase(it);
           // Invalidate the iterator

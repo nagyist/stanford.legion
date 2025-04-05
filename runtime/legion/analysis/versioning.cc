@@ -36,10 +36,8 @@ namespace Legion {
     VersionInfo::VersionInfo(const VersionInfo& rhs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(equivalence_sets.empty());
-      assert(rhs.equivalence_sets.empty());
-#endif
+      legion_assert(equivalence_sets.empty());
+      legion_assert(rhs.equivalence_sets.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -51,10 +49,8 @@ namespace Legion {
     VersionInfo& VersionInfo::operator=(const VersionInfo& rhs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(equivalence_sets.empty());
-      assert(rhs.equivalence_sets.empty());
-#endif
+      legion_assert(equivalence_sets.empty());
+      legion_assert(rhs.equivalence_sets.empty());
       return *this;
     }
 
@@ -133,14 +129,10 @@ namespace Legion {
         bool collective_rendezvous)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(node == region_node);
-#endif
+      legion_assert(node == region_node);
       if (output_region_ready != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(!collective_rendezvous);
-#endif
+        legion_assert(!collective_rendezvous);
         // This is a special case for output regions
         // Make a new equivalence set and record it in the current set
         // and then we are done, we'll register this equivalence set
@@ -166,9 +158,7 @@ namespace Legion {
             region_node->row_source->get_ready_event());
         *output_region_ready = done_event;
         AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-        assert(version_mask * equivalence_sets.get_valid_mask());
-#endif
+        legion_assert(version_mask * equivalence_sets.get_valid_mask());
         if (equivalence_sets.insert(set, version_mask))
           set->add_base_gc_ref(get_reference_source_kind());
         return;
@@ -255,9 +245,7 @@ namespace Legion {
           ready_events.insert(compute_event);
           waiting_mask |= remaining_mask;
         }
-#ifdef DEBUG_LEGION
-        assert(!!waiting_mask);
-#endif
+        legion_assert(!!waiting_mask);
         // Record that our version info is waiting for these fields
         if (version_info != nullptr)
         {
@@ -300,9 +288,7 @@ namespace Legion {
       }
       else if (collective_rendezvous)
       {
-#ifdef DEBUG_LEGION
-        assert(!remaining_mask);
-#endif
+        legion_assert(!remaining_mask);
         // Just need to rendezvous, no need to wait for any computation
         op->perform_collective_versioning_analysis(
             index, region_node->handle, this, remaining_mask, parent_req_index);
@@ -319,9 +305,7 @@ namespace Legion {
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
         lng::FieldMaskMap<EquivalenceSet>::const_iterator finder =
             equivalence_sets.find(set);
-#ifdef DEBUG_LEGION
-        assert(finder != equivalence_sets.end());
-#endif
+        legion_assert(finder != equivalence_sets.end());
         set_mask = finder->second;
       }
       return enclosing->record_output_equivalence_set(
@@ -339,9 +323,7 @@ namespace Legion {
     IndexSpaceExpression* VersionManager::get_tracker_expression(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(node->is_region());
-#endif
+      legion_assert(node->is_region());
       return node->as_region_node()->row_source;
     }
 
@@ -372,23 +354,19 @@ namespace Legion {
       lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> > to_cancel;
       {
         AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
         // All these other resource should already be empty by the time
         // we are being finalized
-        assert(pending_equivalence_sets == nullptr);
-        assert(created_equivalence_sets == nullptr);
-        assert(waiting_infos == nullptr);
-        assert(equivalence_sets_ready == nullptr);
-#endif
+        legion_assert(pending_equivalence_sets == nullptr);
+        legion_assert(created_equivalence_sets == nullptr);
+        legion_assert(waiting_infos == nullptr);
+        legion_assert(equivalence_sets_ready == nullptr);
         if (!equivalence_sets.empty())
           to_remove.swap(equivalence_sets);
         else if (current_subscriptions.empty())
           return;
         to_cancel.swap(current_subscriptions);
       }
-#ifdef DEBUG_LEGION
-      assert(node->is_region());
-#endif
+      legion_assert(node->is_region());
       if (!to_cancel.empty())
       {
         for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> >::
@@ -400,13 +378,11 @@ namespace Legion {
                to_remove.begin();
            it != to_remove.end(); it++)
       {
-#ifdef DEBUG_LEGION
         // This would be a valid assertion except for cases with control
         // replication where there is another node that owns the equivalence
         // set and we just happen to have a copy of it here
-        // assert((it->first->region_node != node) ||
+        // legion_assert((it->first->region_node != node) ||
         //        it->first->region_node->row_source->is_empty());
-#endif
         if (it->first->remove_base_gc_ref(VERSION_MANAGER_REF))
           delete it->first;
       }

@@ -47,9 +47,7 @@ namespace Legion {
   {
     DomainT<DIM, T> result;
     get_bounds(&result, Internal::NT_TemplateHelper::encode_tag<DIM, T>());
-#ifdef DEBUG_LEGION
-    assert(result.dense());
-#endif
+    legion_assert(result.dense());
     return result.bounds;
   }
 
@@ -417,12 +415,10 @@ namespace Legion {
       {
         size_t strides[DIM];
         FT* ptr = accessor.ptr(*piece_iterator, strides);
-#ifdef DEBUG_LEGION
         // If we ever hit this it is a runtime error because the
         // runtime should already be guaranteeing these rectangles
         // are inside of pieces for the instance
-        assert(ptr != nullptr);
-#endif
+        legion_assert(ptr != nullptr);
         // Find the minimum stride and see if this piece is dense
         size_t min_stride = SIZE_MAX;
         for (int dim = 0; dim < DIM; dim++)
@@ -467,9 +463,7 @@ namespace Legion {
                   index = dim;
                 }
               }
-#ifdef DEBUG_LEGION
-              assert(index >= 0);
-#endif
+              legion_assert(index >= 0);
               dim_order[idx] = index;
               stride_floor = local_min;
             }
@@ -492,9 +486,7 @@ namespace Legion {
               partial_step_dim = dim;
               break;
             }
-#ifdef DEBUG_LEGION
-            assert(partial_step_dim >= 0);
-#endif
+            legion_assert(partial_step_dim >= 0);
             partial_step_point = piece_iterator->lo;
             current = Span<FT, LEGION_READ_WRITE>(
                 accessor.ptr(partial_step_point), extent, min_stride);
@@ -789,12 +781,10 @@ namespace Legion {
     {
       size_t strides[DIM];
       FT* ptr = accessor.ptr(*piece_iterator, strides);
-#ifdef DEBUG_LEGION
       // If we ever hit this it is a runtime error because the
       // runtime should already be guaranteeing these rectangles
       // are inside of pieces for the instance
-      assert(ptr != nullptr);
-#endif
+      legion_assert(ptr != nullptr);
       // Find the minimum stride and see if this piece is dense
       size_t min_stride = SIZE_MAX;
       for (int dim = 0; dim < DIM; dim++)
@@ -839,9 +829,7 @@ namespace Legion {
                 index = dim;
               }
             }
-#ifdef DEBUG_LEGION
-            assert(index >= 0);
-#endif
+            legion_assert(index >= 0);
             dim_order[idx] = index;
             stride_floor = local_min;
           }
@@ -864,9 +852,7 @@ namespace Legion {
             partial_step_dim = dim;
             break;
           }
-#ifdef DEBUG_LEGION
-          assert(partial_step_dim >= 0);
-#endif
+          legion_assert(partial_step_dim >= 0);
           partial_step_point = piece_iterator->lo;
           current = Span<FT, PM>(
               accessor.ptr(partial_step_point), extent, min_stride);

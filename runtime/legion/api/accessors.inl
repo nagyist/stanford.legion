@@ -629,7 +629,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, N, false)
@@ -672,7 +672,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, N, false)
@@ -725,7 +725,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, 1, false)
@@ -756,7 +756,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, 1, false)
@@ -798,7 +798,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, N, false)
@@ -847,7 +847,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, N, false)
@@ -909,7 +909,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, 1, false)
@@ -944,7 +944,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, 1, false)
@@ -994,7 +994,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, false)
@@ -1045,7 +1045,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, false)
@@ -1107,7 +1107,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, false)
@@ -1142,7 +1142,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, false)
@@ -1192,7 +1192,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, false)
@@ -1242,7 +1242,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_ONLY, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_ONLY, N, false)
@@ -1297,7 +1297,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_ONLY, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_ONLY, 1, false)
@@ -1331,7 +1331,7 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_ONLY, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_ONLY, 1, false)
@@ -2327,7 +2327,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, N, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(N, true)
 #else
@@ -2338,7 +2338,7 @@ namespace Legion {
     FieldAccessor(
         const Future& future, Memory::Kind memkind = Memory::NO_MEMKIND,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -2373,7 +2373,7 @@ namespace Legion {
         const Future& future, const Rect<N, T> source_bounds,
         Memory::Kind memkind = Memory::NO_MEMKIND,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -2458,7 +2458,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, N, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(N, true)
 #else
@@ -2469,7 +2469,7 @@ namespace Legion {
     FieldAccessor(
         const Future& future, Memory::Kind memkind = Memory::NO_MEMKIND,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -2510,7 +2510,7 @@ namespace Legion {
         const Future& future, const Rect<N, T> source_bounds,
         Memory::Kind memkind = Memory::NO_MEMKIND,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -2638,7 +2638,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, 1, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(1, true)
 #else
@@ -2649,7 +2649,7 @@ namespace Legion {
     FieldAccessor(
         const Future& future, Memory::Kind memkind = Memory::NO_MEMKIND,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -2681,7 +2681,7 @@ namespace Legion {
         const Future& future, const Rect<1, T> source_bounds,
         Memory::Kind memkind = Memory::NO_MEMKIND,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -2752,7 +2752,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, 1, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(1, true)
 #else
@@ -2763,7 +2763,7 @@ namespace Legion {
     FieldAccessor(
         const Future& future, Memory::Kind memkind = Memory::NO_MEMKIND,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -2801,7 +2801,7 @@ namespace Legion {
         const Future& future, const Rect<1, T> source_bounds,
         Memory::Kind memkind = Memory::NO_MEMKIND,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -2917,7 +2917,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, N, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(N, true)
 #else
@@ -2994,7 +2994,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, N, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(N, true)
 #else
@@ -3124,7 +3124,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, 1, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(1, true)
 #else
@@ -3187,7 +3187,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, 1, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(1, true)
 #else
@@ -3305,7 +3305,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(N, true)
 #else
@@ -3378,7 +3378,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(N, true)
 #else
@@ -3497,7 +3497,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(1, true)
 #else
@@ -3554,7 +3554,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(1, true)
 #else
@@ -3660,7 +3660,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(N, true)
 #else
@@ -3731,7 +3731,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(N, true)
 #else
@@ -3838,7 +3838,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(1, true)
 #else
@@ -3893,7 +3893,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, true)
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(1, true)
 #else
@@ -4800,7 +4800,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     ReductionAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(N, true)
     DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS(N, true)
 #else
@@ -4889,7 +4889,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     ReductionAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(N, true)
     DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS_WITH_BOUNDS(N, true)
 #else
@@ -5000,7 +5000,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     ReductionAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(1, true)
     DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS(1, true)
 #else
@@ -5073,7 +5073,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     ReductionAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(1, true)
     DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS_WITH_BOUNDS(1, true)
 #else
@@ -5424,7 +5424,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, N, false)
@@ -5506,7 +5506,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, N, false)
@@ -5621,7 +5621,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, 1, false)
@@ -5687,7 +5687,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, 1, false)
@@ -5789,7 +5789,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, N, false)
@@ -5878,7 +5878,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, N, false)
@@ -6016,7 +6016,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, 1, false)
@@ -6089,7 +6089,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, 1, false)
@@ -6215,7 +6215,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, false)
@@ -6299,7 +6299,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, false)
@@ -6426,7 +6426,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, false)
@@ -6494,7 +6494,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, false)
@@ -6607,7 +6607,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, false)
@@ -6688,7 +6688,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, false)
@@ -6802,7 +6802,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, false)
@@ -6867,7 +6867,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     FieldAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, false)
@@ -7242,7 +7242,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     ReductionAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(N, false)
@@ -7341,7 +7341,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     ReductionAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(N, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(N, false)
@@ -7459,7 +7459,7 @@ namespace Legion {
   public:
     __LEGION_CUDA_HD__
     ReductionAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS(1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS(1, false)
@@ -7542,7 +7542,7 @@ namespace Legion {
   public:
     // No CUDA support due to PhysicalRegion constructor
     ReductionAccessor(void) { }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(1, true)
 #else
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(1, false)
@@ -7655,7 +7655,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -7717,7 +7717,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -7789,7 +7789,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -7840,7 +7840,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -7909,7 +7909,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -7992,7 +7992,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8152,7 +8152,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8223,7 +8223,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8380,7 +8380,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8423,7 +8423,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<N, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8468,7 +8468,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8508,7 +8508,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<N, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8639,7 +8639,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8682,7 +8682,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<1, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8727,7 +8727,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8767,7 +8767,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<1, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8889,7 +8889,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8929,7 +8929,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<N, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -8969,7 +8969,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9006,7 +9006,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<N, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9083,7 +9083,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9123,7 +9123,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<1, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9163,7 +9163,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9200,7 +9200,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<1, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9272,7 +9272,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9317,7 +9317,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<N, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9363,7 +9363,7 @@ namespace Legion {
         InputIterator start, InputIterator stop,
         const AffineTransform<M, N, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9413,7 +9413,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9461,7 +9461,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9502,7 +9502,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<N, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9544,7 +9544,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const AffineTransform<M, N, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9590,7 +9590,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9785,7 +9785,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9830,7 +9830,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<1, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9876,7 +9876,7 @@ namespace Legion {
         InputIterator start, InputIterator stop,
         const AffineTransform<M, 1, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9926,7 +9926,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -9974,7 +9974,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10015,7 +10015,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<1, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10057,7 +10057,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const AffineTransform<M, 1, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10103,7 +10103,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10289,7 +10289,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10334,7 +10334,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<N, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10380,7 +10380,7 @@ namespace Legion {
         InputIterator start, InputIterator stop,
         const AffineTransform<M, N, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10430,7 +10430,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10478,7 +10478,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10519,7 +10519,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<N, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10561,7 +10561,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const AffineTransform<M, N, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10607,7 +10607,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10768,7 +10768,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10813,7 +10813,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<1, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10859,7 +10859,7 @@ namespace Legion {
         InputIterator start, InputIterator stop,
         const AffineTransform<M, 1, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10909,7 +10909,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10957,7 +10957,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -10998,7 +10998,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<1, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11040,7 +11040,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const AffineTransform<M, 1, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11086,7 +11086,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11237,7 +11237,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11276,7 +11276,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<N, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11316,7 +11316,7 @@ namespace Legion {
         InputIterator start, InputIterator stop,
         const AffineTransform<M, N, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11360,7 +11360,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11400,7 +11400,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11436,7 +11436,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<N, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11473,7 +11473,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const AffineTransform<M, N, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11514,7 +11514,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11598,7 +11598,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11637,7 +11637,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<1, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11677,7 +11677,7 @@ namespace Legion {
         InputIterator start, InputIterator stop,
         const AffineTransform<M, 1, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11721,7 +11721,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11761,7 +11761,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11797,7 +11797,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<1, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11834,7 +11834,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const AffineTransform<M, 1, T> transform, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11875,7 +11875,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -11953,7 +11953,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12000,7 +12000,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<N, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12047,7 +12047,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12090,7 +12090,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<N, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12285,7 +12285,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12331,7 +12331,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<1, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12377,7 +12377,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12419,7 +12419,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<1, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12603,7 +12603,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12650,7 +12650,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<N, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12697,7 +12697,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12740,7 +12740,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<N, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12900,7 +12900,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12946,7 +12946,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<1, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -12992,7 +12992,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13034,7 +13034,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<1, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13183,7 +13183,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13224,7 +13224,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<N, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13265,7 +13265,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13303,7 +13303,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<N, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13388,7 +13388,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13428,7 +13428,7 @@ namespace Legion {
     MultiRegionAccessor(
         InputIterator start, InputIterator stop, const Rect<1, T> source_bounds,
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13468,7 +13468,7 @@ namespace Legion {
     MultiRegionAccessor(
         const std::vector<PhysicalRegion>& regions, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -13505,7 +13505,7 @@ namespace Legion {
         const std::vector<PhysicalRegion>& regions,
         const Rect<1, T> source_bounds, FieldID fid,
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,

@@ -290,12 +290,6 @@ namespace Legion {
       int copy_fill_priority;
       std::atomic<int> outstanding_profiling_requests;
       std::atomic<int> outstanding_profiling_reported;
-#ifdef DEBUG_LEGION
-    protected:
-      // For checking that premapped instances didn't change during mapping
-      std::map<unsigned /*index*/, std::vector<Mapping::PhysicalInstance> >
-          premapped_instances;
-#endif
     };
 
   }  // namespace Internal

@@ -80,7 +80,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -98,7 +98,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -115,7 +115,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -133,7 +133,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -148,7 +148,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -164,7 +164,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -182,7 +182,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -202,7 +202,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -220,7 +220,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -239,7 +239,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -255,7 +255,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -271,7 +271,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -287,7 +287,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -304,7 +304,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -322,7 +322,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -341,7 +341,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -388,7 +388,7 @@ namespace Legion {
         bool silence_warnings = false, const char* warning_string = nullptr,
         size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -404,7 +404,7 @@ namespace Legion {
         const Rect<N, COORD_T> bounds, bool silence_warnings = false,
         const char* warning_string = nullptr, size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -420,7 +420,7 @@ namespace Legion {
         bool silence_warnings = false, const char* warning_string = nullptr,
         size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -436,7 +436,7 @@ namespace Legion {
         const Rect<N, COORD_T> bounds, bool silence_warnings = false,
         const char* warning_string = nullptr, size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -453,7 +453,7 @@ namespace Legion {
         ReductionOpID redop, bool silence_warnings = false,
         const char* warning_string = nullptr, size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -472,7 +472,7 @@ namespace Legion {
         bool silence_warnings = false, const char* warning_string = nullptr,
         size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -489,7 +489,7 @@ namespace Legion {
         bool silence_warnings = false, const char* warning_string = nullptr,
         size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -506,7 +506,7 @@ namespace Legion {
         const Rect<N, COORD_T> bounds, bool silence_warnings = false,
         const char* warning_string = nullptr, size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -520,7 +520,7 @@ namespace Legion {
         const UntypedDeferredValue& value, bool silence_warnings = false,
         const char* warning_string = nullptr, size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -535,7 +535,7 @@ namespace Legion {
         bool silence_warnings = false, const char* warning_string = nullptr,
         size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -550,7 +550,7 @@ namespace Legion {
         bool silence_warnings = false, const char* warning_string = nullptr,
         size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -565,7 +565,7 @@ namespace Legion {
         const Rect<N, COORD_T>& bounds, bool silence_warnings = false,
         const char* warning_string = nullptr, size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -582,7 +582,7 @@ namespace Legion {
         bool silence_warnings = false, const char* warning_string = nullptr,
         size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -599,7 +599,7 @@ namespace Legion {
         const Rect<N, COORD_T>& bounds, bool silence_warnings = false,
         const char* warning_string = nullptr, size_t subfield_offset = 0,
         size_t actual_field_size = sizeof(typename REDOP::RHS),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true
 #else
         bool check_field_size = false
@@ -651,7 +651,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -726,7 +726,7 @@ namespace Legion {
         // The actual field size in case it is different from
         // the one being used in FT and we still want to check
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -742,7 +742,7 @@ namespace Legion {
         // The actual field size in case it is different from
         // the one being used in FT and we still want to check
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -758,7 +758,7 @@ namespace Legion {
         // The actual field size in case it is different from
         // the one being used in FT and we still want to check
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -775,7 +775,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -789,7 +789,7 @@ namespace Legion {
         // The actual field size in case it is different from
         // the one being used in FT and we still want to check
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -804,7 +804,7 @@ namespace Legion {
         // The actual field size in case it is different from
         // the one being used in FT and we still want to check
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -820,7 +820,7 @@ namespace Legion {
         // The actual field size in case it is different from
         // the one being used in FT and we still want to check
         FieldID fid, size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,
@@ -837,7 +837,7 @@ namespace Legion {
         // The actual field size in case it is different from the
         // one being used in FT and we still want to check it
         size_t actual_field_size = sizeof(FT),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         bool check_field_size = true,
 #else
         bool check_field_size = false,

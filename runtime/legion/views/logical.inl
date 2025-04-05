@@ -221,9 +221,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_base_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -246,9 +244,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_nested_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -271,9 +267,7 @@ namespace Legion {
         ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_base_ref<false>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -281,9 +275,7 @@ namespace Legion {
       return remove_base_valid_ref_internal(source, cnt);
 #else
       int current = valid_references.load();
-#ifdef DEBUG_LEGION
-      assert(current >= cnt);
-#endif
+      legion_assert(current >= cnt);
       while (current > cnt)
       {
         int next = current - cnt;
@@ -299,9 +291,7 @@ namespace Legion {
         DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(cnt >= 0);
-#endif
+      legion_assert(cnt >= 0);
 #ifdef LEGION_GC
       log_nested_ref<false>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
@@ -310,9 +300,7 @@ namespace Legion {
           LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
 #else
       int current = valid_references.load();
-#ifdef DEBUG_LEGION
-      assert(current >= cnt);
-#endif
+      legion_assert(current >= cnt);
       while (current > cnt)
       {
         int next = current - cnt;

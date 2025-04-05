@@ -549,7 +549,6 @@ namespace Legion {
       IndexSpaceNode* launch_space;
       ShardingID sharding_functor;
       ShardingFunction* sharding_function;
-#ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective* collective)
       {
@@ -557,7 +556,6 @@ namespace Legion {
       }
     protected:
       ShardingGatherCollective* sharding_collective;
-#endif
     };
 
     /**
@@ -612,7 +610,6 @@ namespace Legion {
       std::set<std::pair<DomainPoint, ShardID> > unique_intra_space_deps;
       CollectiveID interfering_check_id;
       InterferingPointExchange<ReplIndexCopyOp>* interfering_exchange;
-#ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective* collective)
       {
@@ -620,7 +617,6 @@ namespace Legion {
       }
     protected:
       ShardingGatherCollective* sharding_collective;
-#endif
     };
 
     /**

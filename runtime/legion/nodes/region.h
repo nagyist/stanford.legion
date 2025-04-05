@@ -138,7 +138,7 @@ namespace Legion {
       virtual RegionTreeNode* get_parent(void) const = 0;
       virtual RegionTreeNode* get_tree_child(const LegionColor c) = 0;
       virtual bool is_region(void) const = 0;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual RegionNode* as_region_node(void) const = 0;
       virtual PartitionNode* as_partition_node(void) const = 0;
 #else
@@ -253,7 +253,7 @@ namespace Legion {
           const LegionColor c1, const LegionColor c2);
       virtual bool are_all_children_disjoint(void);
       virtual bool is_region(void) const;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual RegionNode* as_region_node(void) const;
       virtual PartitionNode* as_partition_node(void) const;
 #endif
@@ -358,7 +358,7 @@ namespace Legion {
           const LegionColor c1, const LegionColor c2);
       virtual bool are_all_children_disjoint(void);
       virtual bool is_region(void) const;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual RegionNode* as_region_node(void) const;
       virtual PartitionNode* as_partition_node(void) const;
 #endif
@@ -391,7 +391,7 @@ namespace Legion {
       std::map<LegionColor, RegionNode*> color_map;
     };
 
-#ifndef DEBUG_LEGION
+#ifndef LEGION_DEBUG
     //--------------------------------------------------------------------------
     inline RegionNode* RegionTreeNode::as_region_node(void) const
     //--------------------------------------------------------------------------

@@ -114,9 +114,7 @@ namespace Legion {
       bool silence_warnings, const char* warning_string)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(impl != nullptr);
-#endif
+    legion_assert(impl != nullptr);
     impl->wait_until_valid(silence_warnings, warning_string);
   }
 
@@ -407,9 +405,7 @@ namespace Legion {
     PhysicalRegionImpl::~PhysicalRegionImpl(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!termination_event.exists());
-#endif
+      legion_assert(!termination_event.exists());
       if (!references.empty() && !replaying)
       {
         if (leaf_region)
@@ -425,10 +421,8 @@ namespace Legion {
         const char* source)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(implicit_context != nullptr);
-      assert(implicit_context == context);
-#endif
+      legion_assert(implicit_context != nullptr);
+      legion_assert(implicit_context == context);
       context->record_blocking_call(blocking_index);
       if (runtime->runtime_warnings && !silence_warnings &&
           (context != nullptr) && !context->is_leaf_context())
@@ -524,9 +518,7 @@ namespace Legion {
     {
       if (!mapped)
         return;
-#ifdef DEBUG_LEGION
-      assert(termination_event.exists());
-#endif
+      legion_assert(termination_event.exists());
       // trigger the termination event conditional upon the ready event
       Runtime::trigger_event_untraced(termination_event, ready_event);
 #ifdef LEGION_SPY
@@ -557,9 +549,7 @@ namespace Legion {
         LegionSpy::log_event_dependence(
             termination_event, tracing_replay_event);
 #endif
-#ifdef DEBUG_LEGION
       termination_event = ApUserEvent::NO_AP_USER_EVENT;
-#endif
       mapped = false;
       valid = false;
     }
@@ -569,10 +559,8 @@ namespace Legion {
         ApEvent new_ready, uint64_t blocking)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!mapped);
-      assert(!termination_event.exists());
-#endif
+      legion_assert(!mapped);
+      legion_assert(!termination_event.exists());
       blocking_index = blocking;
       termination_event = Runtime::create_ap_user_event(nullptr);
       ready_event = new_ready;
@@ -601,11 +589,10 @@ namespace Legion {
     void PhysicalRegionImpl::set_reference(const InstanceRef& ref, bool safe)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(ref.has_ref());
-      assert(references.empty());
-      assert(safe || (mapped_event.exists() && !mapped_event.has_triggered()));
-#endif
+      legion_assert(ref.has_ref());
+      legion_assert(references.empty());
+      legion_assert(
+          safe || (mapped_event.exists() && !mapped_event.has_triggered()));
       references.add_instance(ref);
       if (!replaying)
       {
@@ -620,10 +607,9 @@ namespace Legion {
     void PhysicalRegionImpl::set_references(const InstanceSet& refs, bool safe)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(references.empty());
-      assert(safe || (mapped_event.exists() && !mapped_event.has_triggered()));
-#endif
+      legion_assert(references.empty());
+      legion_assert(
+          safe || (mapped_event.exists() && !mapped_event.has_triggered()));
       references = refs;
       if (!references.empty() && !replaying)
       {
@@ -810,9 +796,7 @@ namespace Legion {
                     "with mismatched reduction operators %d and %d "
                     "on field %d in task %s",
                     redop, req.redop, fid, context->get_task_name())
-#ifdef DEBUG_LEGION
-              assert(req.privilege == LEGION_READ_WRITE);
-#endif
+              legion_assert(req.privilege == LEGION_READ_WRITE);
             }
             break;
           }
@@ -863,9 +847,7 @@ namespace Legion {
             PhysicalRegion(this), nullptr /*prov*/, true /*internal*/);
         // At this point we should have a new ready event
         // and be mapped
-#ifdef DEBUG_LEGION
-        assert(mapped);
-#endif
+        legion_assert(mapped);
       }
       if (req.privilege_fields.find(fid) == req.privilege_fields.end())
         REPORT_LEGION_ERROR(
@@ -922,18 +904,14 @@ namespace Legion {
           if (need_padded_bounds)
           {
             Domain domain = bounds->get_tight_domain();
-#ifdef DEBUG_LEGION
-            assert(domain.dense());
-#endif
+            legion_assert(domain.dense());
             // Do not add padding to empty domains
             if (!domain.empty())
             {
               // Now we can compute the bounds on this instance
               const Domain& delta =
                   manager->layout->constraints->padding_constraint.delta;
-#ifdef DEBUG_LEGION
-              assert(domain.get_dim() == delta.get_dim());
-#endif
+              legion_assert(domain.get_dim() == delta.get_dim());
               const Domain padded_bounds =
                   Domain(domain.lo() - delta.lo(), domain.hi() + delta.hi());
               switch (domain.get_dim())
@@ -1040,9 +1018,7 @@ namespace Legion {
           // instance so we can get it's index space expression and it should
           // be dense so then we can just add the offsets
           Domain bounds = manager->instance_domain->get_tight_domain();
-#ifdef DEBUG_LEGION
-          assert(bounds.dense());
-#endif
+          legion_assert(bounds.dense());
           if (inner != nullptr)
             *inner = bounds;
           if (!bounds.empty())
@@ -1050,9 +1026,7 @@ namespace Legion {
             // Now we can compute the bounds on this instance
             const Domain& delta =
                 manager->layout->constraints->padding_constraint.delta;
-#ifdef DEBUG_LEGION
-            assert(bounds.get_dim() == delta.get_dim());
-#endif
+            legion_assert(bounds.get_dim() == delta.get_dim());
             outer = Domain(bounds.lo() - delta.lo(), bounds.hi() + delta.hi());
           }
           else
@@ -1417,10 +1391,8 @@ namespace Legion {
         unsigned index, PhysicalRegionImpl* region)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index < regions.size());
-      assert(regions[index].impl == nullptr);
-#endif
+      legion_assert(index < regions.size());
+      legion_assert(regions[index].impl == nullptr);
       regions[index] = PhysicalRegion(region);
     }
 
@@ -1428,9 +1400,7 @@ namespace Legion {
     PhysicalRegion ExternalResourcesImpl::get_region(unsigned index) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index < regions.size());
-#endif
+      legion_assert(index < regions.size());
       return regions[index];
     }
 
@@ -1438,9 +1408,7 @@ namespace Legion {
     void ExternalResourcesImpl::set_projection(ProjectionID id)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(pid == 0);
-#endif
+      legion_assert(pid == 0);
       pid = id;
     }
 

@@ -167,9 +167,7 @@ namespace Legion {
       mapper_data_size = launcher.map_arg.get_size();
       if (mapper_data_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper_data == nullptr);
-#endif
+        legion_assert(mapper_data == nullptr);
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
@@ -326,12 +324,7 @@ namespace Legion {
       ApEvent release_complete = release_restrictions(
           requirement, version_info, 0 /*idx*/, init_precondition, release_post,
           restricted_instances, source_instances, trace_info,
-          map_applied_conditions
-#ifdef DEBUG_LEGION
-          ,
-          get_logging_name(), unique_op_id
-#endif
-      );
+          map_applied_conditions);
       Runtime::trigger_event(
           release_post, release_complete, trace_info, map_applied_conditions);
       record_completion_effect(release_post);
@@ -418,10 +411,8 @@ namespace Legion {
     unsigned ReleaseOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx == 0);
-      assert(parent_req_index != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx == 0);
+      legion_assert(parent_req_index != TRACED_PARENT_INDEX);
       return parent_req_index;
     }
 
@@ -433,9 +424,7 @@ namespace Legion {
         std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       Mapper::SelectReleaseSrcInput input;
       Mapper::SelectReleaseSrcOutput output;
       prepare_for_mapping(target, input.target);
@@ -574,9 +563,7 @@ namespace Legion {
             mapper, output.profiling_requests.requested_measurements,
             profiling_requests, true /*warn*/);
         profiling_priority = output.profiling_priority;
-#ifdef DEBUG_LEGION
-        assert(!profiling_reported.exists());
-#endif
+        legion_assert(!profiling_reported.exists());
         profiling_reported = Runtime::create_rt_user_event();
       }
       if (!output.source_instances.empty())
@@ -623,9 +610,7 @@ namespace Legion {
         size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(mapper != nullptr);
-#endif
+      legion_assert(mapper != nullptr);
       const OpProfilingResponse* op_info =
           static_cast<const OpProfilingResponse*>(response.user_data());
       Realm::ProfilingMeasurements::OperationFinishEvent finish_event;
@@ -643,9 +628,7 @@ namespace Legion {
       info.fill_response = op_info->fill;
       mapper->invoke_release_report_profiling(this, info);
       const int count = outstanding_profiling_reported.fetch_add(1) + 1;
-#ifdef DEBUG_LEGION
-      assert(count <= outstanding_profiling_requests);
-#endif
+      legion_assert(count <= outstanding_profiling_requests);
       if (count == outstanding_profiling_requests)
         Runtime::trigger_event(profiling_reported);
       // Always record these as part of profiling
@@ -656,10 +639,8 @@ namespace Legion {
     void ReleaseOp::handle_profiling_update(int count)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(count > 0);
-      assert(!mapped_event.has_triggered());
-#endif
+      legion_assert(count > 0);
+      legion_assert(!mapped_event.has_triggered());
       outstanding_profiling_requests.fetch_add(count);
     }
 
@@ -693,18 +674,11 @@ namespace Legion {
         InstanceSet& restricted_instances,
         const std::vector<PhysicalManager*>& sources,
         const PhysicalTraceInfo& trace_info,
-        std::set<RtEvent>& map_applied_events
-#ifdef DEBUG_LEGION
-        ,
-        const char* log_name, UniqueID uid
-#endif
-    )
+        std::set<RtEvent>& map_applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
-      assert(IS_EXCLUSIVE(req));
-#endif
+      legion_assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
+      legion_assert(IS_EXCLUSIVE(req));
       const bool known_targets = !restricted_instances.empty();
       RegionNode* region = runtime->get_node(req.region);
       ReleaseAnalysis* analysis =
@@ -751,9 +725,7 @@ namespace Legion {
                  instances.begin();
              it != instances.end(); it++, inst_index++)
         {
-#ifdef DEBUG_LEGION
-          assert(it->first->is_individual_view());
-#endif
+          legion_assert(it->first->is_individual_view());
           IndividualView* inst_view = it->first->as_individual_view();
           PhysicalManager* manager = inst_view->get_manager();
           restricted_instances[inst_index] = InstanceRef(manager, it->second);
@@ -851,10 +823,8 @@ namespace Legion {
     void ReplReleaseOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Make sure we didn't leak our barrier
-      assert(!collective_map_barrier.exists());
-#endif
+      legion_assert(!collective_map_barrier.exists());
       ReplCollectiveViewCreator<CollectiveViewCreator<ReleaseOp> >::deactivate(
           false /*free*/);
       if (freeop)
@@ -865,12 +835,8 @@ namespace Legion {
     void ReplReleaseOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       collective_map_barrier = repl_ctx->get_next_collective_map_barriers();
       // See if we need to make a collective view rendezvous
       if (restricted_region.impl->collective)
@@ -883,9 +849,7 @@ namespace Legion {
     void ReplReleaseOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(collective_map_barrier.exists());
       // Signal that all of our mapping dependences are satisfied
       runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       if (parent_req_index == TRACED_PARENT_INDEX)
@@ -926,14 +890,9 @@ namespace Legion {
     {
       if (!restricted_region.impl->collective)
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-        assert(!collective_map_barrier.exists());
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
+        legion_assert(!collective_map_barrier.exists());
         mapping = &repl_ctx->shard_manager->get_collective_mapping();
         mapping->add_reference();
         first_local = is_first_local_shard;
@@ -945,9 +904,7 @@ namespace Legion {
     void ReplReleaseOp::predicate_false(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(collective_map_barrier.exists());
       runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       Runtime::advance_barrier(collective_map_barrier);
       elide_collective_rendezvous();
@@ -958,9 +915,7 @@ namespace Legion {
     void ReplReleaseOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_map_barrier.exists());
-#endif
+      legion_assert(collective_map_barrier.exists());
       // Elide both generations of the mapping fence barrier
       runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       Runtime::advance_barrier(collective_map_barrier);
@@ -981,13 +936,8 @@ namespace Legion {
       // all the shards have the same source instances
       if (runtime->safe_mapper)
       {
-#ifdef DEBUG_LEGION
         ReplicateContext* repl_ctx =
-            dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != nullptr);
-#else
-        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+            legion_safe_cast<ReplicateContext*>(parent_ctx);
         CheckCollectiveSources sources_collective(repl_ctx, sources_check);
         if (!sources_collective.verify(source_instances))
           REPORT_LEGION_ERROR(
@@ -1106,9 +1056,7 @@ namespace Legion {
         remote_ptr->select_sources(index, target, sources, ranking, points);
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(index == 0);
-#endif
+      legion_assert(index == 0);
       Mapper::SelectReleaseSrcInput input;
       Mapper::SelectReleaseSrcOutput output;
       prepare_for_mapping(

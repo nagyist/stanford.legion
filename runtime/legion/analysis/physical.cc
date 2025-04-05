@@ -71,16 +71,12 @@ namespace Legion {
           Runtime::trigger_event(
               deferred_applied_event,
               Runtime::merge_events(deferred_applied_events));
-#ifdef DEBUG_LEGION
           deferred_applied_events.clear();
-#endif
         }
         else
           Runtime::trigger_event(deferred_applied_event);
       }
-#ifdef DEBUG_LEGION
-      assert(deferred_applied_events.empty());
-#endif
+      legion_assert(deferred_applied_events.empty());
       if (analysis_expr->remove_base_expression_reference(
               PHYSICAL_ANALYSIS_REF))
         delete analysis_expr;
@@ -377,9 +373,7 @@ namespace Legion {
         op::FieldMaskMap<IndexSpaceExpression>& exprs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!remote_sets.empty());
-#endif
+      legion_assert(!remote_sets.empty());
       local::FieldMaskMap<IndexSpaceExpression> remote_exprs;
       for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
                const_iterator rit = remote_sets.begin();

@@ -128,10 +128,8 @@ namespace Legion {
     void LgEvent::record_event_trigger(LgEvent precondition) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(exists());
-      assert(implicit_profiler != nullptr);
-#endif
+      legion_assert(exists());
+      legion_assert(implicit_profiler != nullptr);
       implicit_profiler->record_event_trigger(*this, precondition);
     }
 
@@ -176,9 +174,7 @@ namespace Legion {
     void OperationCreator::produce(IndexSpaceOperation* op)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(result == nullptr);
-#endif
+      legion_assert(result == nullptr);
       result = op;
     }
 
@@ -188,9 +184,7 @@ namespace Legion {
     {
       if (result == nullptr)
         create_operation();
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       // Add an expression reference here since this is going to be put
       // into the region tree expression trie data structure, the reference
       // will be removed when the expressions is removed from the trie
@@ -318,7 +312,7 @@ namespace Legion {
         stealing_disabled(config.stealing_disabled),
         resilient_mode(config.resilient_mode),
         unsafe_launch(config.unsafe_launch),
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         safe_mapper(!config.unsafe_mapper),
 #else
         safe_mapper(config.safe_mapper),
@@ -331,9 +325,7 @@ namespace Legion {
         enable_test_mapper(config.enable_test_mapper),
         legion_ldb_enabled(!config.ldb_file.empty()),
         replay_file(legion_ldb_enabled ? config.ldb_file : config.replay_file),
-#ifdef DEBUG_LEGION
         verbose_logging(config.verbose_logging),
-#endif
         check_privileges(config.check_privileges),
         dump_free_ranges(config.dump_free_ranges),
         legion_collective_radix(config.legion_collective_radix),
@@ -388,13 +380,9 @@ namespace Legion {
         unique_distributed_id((unique == 0) ? runtime_stride : unique)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(runtime == nullptr);
-#endif
+      legion_assert(runtime == nullptr);
       runtime = this;
-#ifdef DEBUG_LEGION
-      assert((unique_constraint_id % runtime_stride) == unique);
-#endif
+      legion_assert((unique_constraint_id % runtime_stride) == unique);
       if (LEGION_MAX_NUM_NODES <= address_space)
         REPORT_LEGION_ERROR(
             ERROR_MAXIMUM_NODES_EXCEEDED,
@@ -407,9 +395,7 @@ namespace Legion {
       if (local_utils.empty())
       {
         // make the utility group the set of all the local processors
-#ifdef DEBUG_LEGION
-        assert(!locals.empty());
-#endif
+        legion_assert(!locals.empty());
         if (locals.size() == 1)
           utility_group = *(locals.begin());
         else
@@ -433,16 +419,12 @@ namespace Legion {
             all_local.end(), local_utils.begin(), local_utils.end());
         local_group = ProcessorGroup::create_group(all_local);
       }
-#ifdef DEBUG_LEGION
-      assert(utility_group.exists());
-#endif
+      legion_assert(utility_group.exists());
       // For each of the processors in our local set construct a manager
       for (std::set<Processor>::const_iterator it = local_procs.begin();
            it != local_procs.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert((*it).kind() != Processor::UTIL_PROC);
-#endif
+        legion_assert((*it).kind() != Processor::UTIL_PROC);
         ProcessorManager* manager = new ProcessorManager(
             *it, (*it).kind(), LEGION_DEFAULT_MAPPER_SLOTS, stealing_disabled,
             !replay_file.empty());
@@ -498,9 +480,7 @@ namespace Legion {
     Runtime::~Runtime(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(outstanding_operations.empty());
-#endif
+      legion_assert(outstanding_operations.empty());
       if (profiler != nullptr)
       {
         delete profiler;
@@ -770,9 +750,7 @@ namespace Legion {
         if (it->kind() == Processor::LOC_PROC)
           prof_procs.emplace_back(*it);
       }
-#ifdef DEBUG_LEGION
-      assert(!prof_procs.empty());
-#endif
+      legion_assert(!prof_procs.empty());
       const Processor target_proc_for_profiler =
           prof_procs.size() > 1 ? ProcessorGroup::create_group(prof_procs) :
                                   prof_procs.front();
@@ -1070,9 +1048,7 @@ namespace Legion {
         CollectiveMapping* mapping)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(virtual_manager == nullptr);
-#endif
+      legion_assert(virtual_manager == nullptr);
       // make a layout constraints
       FieldMask all_ones(LEGION_FIELD_MASK_FIELD_ALL_ONES);
       std::vector<unsigned> mask_index_map;
@@ -1200,11 +1176,9 @@ namespace Legion {
           // but there is no documentation anywhere about whether this is
           // legal or safe to do...
           Realm::FunctionPointerImplementation impl((void (*)(void))callback);
-#ifdef DEBUG_LEGION
-          assert(callback_translator.can_translate(
+          legion_assert(callback_translator.can_translate(
               typeid(Realm::FunctionPointerImplementation),
               typeid(Realm::DSOReferenceImplementation)));
-#endif
           dso = static_cast<Realm::DSOReferenceImplementation*>(
               callback_translator.translate(
                   &impl, typeid(Realm::DSOReferenceImplementation)));
@@ -1322,17 +1296,13 @@ namespace Legion {
           return local_perform;
       }
 #ifdef LEGION_USE_LIBDL
-#ifdef DEBUG_LEGION
-      assert(global);
-#endif
+      legion_assert(global);
       if (global_done.exists())
       {
         delete dso;
         return global_done;
       }
-#ifdef DEBUG_LEGION
-      assert(global_perform.exists());
-#endif
+      legion_assert(global_perform.exists());
       // See if we're inside of a task and can use that to help do the
       // global invocations of this registration callback
       if (!deduplicate || (implicit_context == nullptr))
@@ -1459,9 +1429,7 @@ namespace Legion {
             handle.get_id())
       if (!node->is_owner())
       {
-#ifdef DEBUG_LEGION
-        assert(!unpack_reference);
-#endif
+        legion_assert(!unpack_reference);
         if (!total_sharding_collective)
         {
           node->pack_valid_ref();
@@ -1494,9 +1462,7 @@ namespace Legion {
             handle.get_id())
       if (!node->is_owner())
       {
-#ifdef DEBUG_LEGION
-        assert(!unpack_reference);
-#endif
+        legion_assert(!unpack_reference);
         if (!total_sharding_collective)
         {
           node->pack_valid_ref();
@@ -1529,9 +1495,7 @@ namespace Legion {
             handle.get_id())
       if (!node->is_owner())
       {
-#ifdef DEBUG_LEGION
-        assert(!unpack_reference);
-#endif
+        legion_assert(!unpack_reference);
         if (!total_sharding_collective)
         {
           node->pack_global_ref();
@@ -1565,9 +1529,7 @@ namespace Legion {
             handle.get_tree_id())
       if (!node->is_owner())
       {
-#ifdef DEBUG_LEGION
-        assert(!unpack_reference);
-#endif
+        legion_assert(!unpack_reference);
         if (!total_sharding_collective)
         {
           node->pack_global_ref();
@@ -1626,9 +1588,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
       }
@@ -1650,9 +1610,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
         if (!wait_on.exists())
@@ -1664,9 +1622,7 @@ namespace Legion {
             // We're going to make the result
             record.result = unique_library_trace_id;
             unique_library_trace_id += count;
-#ifdef DEBUG_LEGION
-            assert(unique_library_trace_id > record.result);
-#endif
+            legion_assert(unique_library_trace_id > record.result);
             record.result_set = true;
             return record.result;
           }
@@ -1681,10 +1637,8 @@ namespace Legion {
         }
       }
       // Should only get here on nodes other than 0
-#ifdef DEBUG_LEGION
-      assert(address_space > 0);
-      assert(wait_on.exists());
-#endif
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
       if (request_event.exists())
       {
         // Include the null terminator in length
@@ -1705,10 +1659,8 @@ namespace Legion {
       AutoLock l_lock(library_lock, 1, false /*exclusive*/);
       std::map<std::string, LibraryTraceIDs>::const_iterator finder =
           library_trace_ids.find(library_name);
-#ifdef DEBUG_LEGION
-      assert(finder != library_trace_ids.end());
-      assert(finder->second.result_set);
-#endif
+      legion_assert(finder != library_trace_ids.end());
+      legion_assert(finder->second.result_set);
       return finder->second.result;
     }
 
@@ -1787,9 +1739,7 @@ namespace Legion {
             "Forward MPI mapping call not supported without "
             "calling configure_MPI_interoperability during "
             "start up")
-#ifdef DEBUG_LEGION
-      assert(!mpi_rank_table->forward_mapping.empty());
-#endif
+      legion_assert(!mpi_rank_table->forward_mapping.empty());
       return mpi_rank_table->forward_mapping;
     }
 
@@ -1803,9 +1753,7 @@ namespace Legion {
             "Reverse MPI mapping call not supported without "
             "calling configure_MPI_interoperability during "
             "start up")
-#ifdef DEBUG_LEGION
-      assert(!mpi_rank_table->reverse_mapping.empty());
-#endif
+      legion_assert(!mpi_rank_table->reverse_mapping.empty());
       return mpi_rank_table->reverse_mapping;
     }
 
@@ -1860,9 +1808,7 @@ namespace Legion {
       }
       else if (proc.address_space() == address_space)
       {
-#ifdef DEBUG_LEGION
-        assert(proc_managers.find(proc) != proc_managers.end());
-#endif
+        legion_assert(proc_managers.find(proc) != proc_managers.end());
         proc_managers[proc]->add_mapper(
             map_id, manager, true /*check*/, true /*own*/);
       }
@@ -1924,9 +1870,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
       }
@@ -1948,9 +1892,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
         if (!wait_on.exists())
@@ -1962,9 +1904,7 @@ namespace Legion {
             // We're going to make the result
             record.result = unique_library_mapper_id;
             unique_library_mapper_id += cnt;
-#ifdef DEBUG_LEGION
-            assert(unique_library_mapper_id > record.result);
-#endif
+            legion_assert(unique_library_mapper_id > record.result);
             record.result_set = true;
             return record.result;
           }
@@ -1979,10 +1919,8 @@ namespace Legion {
         }
       }
       // Should only get here on nodes other than 0
-#ifdef DEBUG_LEGION
-      assert(address_space > 0);
-      assert(wait_on.exists());
-#endif
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
       if (request_event.exists())
       {
         // Include the null terminator in length
@@ -2003,10 +1941,8 @@ namespace Legion {
       AutoLock l_lock(library_lock, 1, false /*exclusive*/);
       std::map<std::string, LibraryMapperIDs>::const_iterator finder =
           library_mapper_ids.find(library_name);
-#ifdef DEBUG_LEGION
-      assert(finder != library_mapper_ids.end());
-      assert(finder->second.result_set);
-#endif
+      legion_assert(finder != library_mapper_ids.end());
+      legion_assert(finder->second.result_set);
       return finder->second.result;
     }
 
@@ -2069,9 +2005,7 @@ namespace Legion {
       }
       else if (local_procs.find(proc) != local_procs.end())
       {
-#ifdef DEBUG_LEGION
-        assert(proc_managers.find(proc) != proc_managers.end());
-#endif
+        legion_assert(proc_managers.find(proc) != proc_managers.end());
         proc_managers[proc]->replace_default_mapper(manager, true /*own*/);
       }
       else
@@ -2134,14 +2068,10 @@ namespace Legion {
     MapperManager* Runtime::find_mapper(Processor target, MapperID map_id)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target.exists());
-#endif
+      legion_assert(target.exists());
       std::map<Processor, ProcessorManager*>::const_iterator finder =
           proc_managers.find(target);
-#ifdef DEBUG_LEGION
-      assert(finder != proc_managers.end());
-#endif
+      legion_assert(finder != proc_managers.end());
       return finder->second->find_mapper(map_id);
     }
 
@@ -2201,9 +2131,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
       }
@@ -2226,9 +2154,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
         if (!wait_on.exists())
@@ -2240,9 +2166,7 @@ namespace Legion {
             // We're going to make the result
             record.result = unique_library_projection_id;
             unique_library_projection_id += cnt;
-#ifdef DEBUG_LEGION
-            assert(unique_library_projection_id > record.result);
-#endif
+            legion_assert(unique_library_projection_id > record.result);
             record.result_set = true;
             return record.result;
           }
@@ -2257,10 +2181,8 @@ namespace Legion {
         }
       }
       // Should only get here on nodes other than 0
-#ifdef DEBUG_LEGION
-      assert(address_space > 0);
-      assert(wait_on.exists());
-#endif
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
       if (request_event.exists())
       {
         // Include the null terminator in length
@@ -2281,10 +2203,8 @@ namespace Legion {
       AutoLock l_lock(library_lock, 1, false /*exclusive*/);
       std::map<std::string, LibraryProjectionIDs>::const_iterator finder =
           library_projection_ids.find(library_name);
-#ifdef DEBUG_LEGION
-      assert(finder != library_projection_ids.end());
-      assert(finder->second.result_set);
-#endif
+      legion_assert(finder != library_projection_ids.end());
+      legion_assert(finder->second.result_set);
       return finder->second.result;
     }
 
@@ -2471,9 +2391,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
       }
@@ -2496,9 +2414,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
         if (!wait_on.exists())
@@ -2510,9 +2426,7 @@ namespace Legion {
             // We're going to make the result
             record.result = unique_library_sharding_id;
             unique_library_sharding_id += cnt;
-#ifdef DEBUG_LEGION
-            assert(unique_library_sharding_id > record.result);
-#endif
+            legion_assert(unique_library_sharding_id > record.result);
             record.result_set = true;
             return record.result;
           }
@@ -2527,10 +2441,8 @@ namespace Legion {
         }
       }
       // Should only get here on nodes other than 0
-#ifdef DEBUG_LEGION
-      assert(address_space > 0);
-      assert(wait_on.exists());
-#endif
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
       if (request_event.exists())
       {
         // Include the null terminator in length
@@ -2551,10 +2463,8 @@ namespace Legion {
       AutoLock l_lock(library_lock, 1, false /*exclusive*/);
       std::map<std::string, LibraryShardingIDs>::const_iterator finder =
           library_sharding_ids.find(library_name);
-#ifdef DEBUG_LEGION
-      assert(finder != library_sharding_ids.end());
-      assert(finder->second.result_set);
-#endif
+      legion_assert(finder != library_sharding_ids.end());
+      legion_assert(finder->second.result_set);
       return finder->second.result;
     }
 
@@ -2740,9 +2650,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
       }
@@ -2765,9 +2673,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
         if (!wait_on.exists())
@@ -2779,9 +2685,7 @@ namespace Legion {
             // We're going to make the result
             record.result = unique_library_concurrent_id;
             unique_library_concurrent_id += cnt;
-#ifdef DEBUG_LEGION
-            assert(unique_library_concurrent_id > record.result);
-#endif
+            legion_assert(unique_library_concurrent_id > record.result);
             record.result_set = true;
             return record.result;
           }
@@ -2796,10 +2700,8 @@ namespace Legion {
         }
       }
       // Should only get here on nodes other than 0
-#ifdef DEBUG_LEGION
-      assert(address_space > 0);
-      assert(wait_on.exists());
-#endif
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
       if (request_event.exists())
       {
         // Include the null terminator in length
@@ -2820,10 +2722,8 @@ namespace Legion {
       AutoLock l_lock(library_lock, 1, false /*exclusive*/);
       std::map<std::string, LibraryConcurrentIDs>::const_iterator finder =
           library_concurrent_ids.find(library_name);
-#ifdef DEBUG_LEGION
-      assert(finder != library_concurrent_ids.end());
-      assert(finder->second.result_set);
-#endif
+      legion_assert(finder != library_concurrent_ids.end());
+      legion_assert(finder->second.result_set);
       return finder->second.result;
     }
 
@@ -2972,9 +2872,7 @@ namespace Legion {
     void Runtime::unregister_projection_functor(ProjectionID pid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(runtime_started);
-#endif
+      legion_assert(runtime_started);
       AutoLock p_lock(projection_lock);
       std::map<ProjectionID, ProjectionFunction*>::iterator finder =
           projection_functions.find(pid);
@@ -3229,9 +3127,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
       }
@@ -3253,9 +3149,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
         if (!wait_on.exists())
@@ -3267,9 +3161,7 @@ namespace Legion {
             // We're going to make the result
             record.result = unique_library_task_id;
             unique_library_task_id += cnt;
-#ifdef DEBUG_LEGION
-            assert(unique_library_task_id > record.result);
-#endif
+            legion_assert(unique_library_task_id > record.result);
             record.result_set = true;
             return record.result;
           }
@@ -3284,10 +3176,8 @@ namespace Legion {
         }
       }
       // Should only get here on nodes other than 0
-#ifdef DEBUG_LEGION
-      assert(address_space > 0);
-      assert(wait_on.exists());
-#endif
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
       if (request_event.exists())
       {
         // Include the null terminator in length
@@ -3308,10 +3198,8 @@ namespace Legion {
       AutoLock l_lock(library_lock, 1, false /*exclusive*/);
       std::map<std::string, LibraryTaskIDs>::const_iterator finder =
           library_task_ids.find(library_name);
-#ifdef DEBUG_LEGION
-      assert(finder != library_task_ids.end());
-      assert(finder->second.result_set);
-#endif
+      legion_assert(finder != library_task_ids.end());
+      legion_assert(finder->second.result_set);
       return finder->second.result;
     }
 
@@ -3408,9 +3296,7 @@ namespace Legion {
       AutoLock tv_lock(task_variant_lock, 1, false /*exclusive*/);
       std::map<TaskID, TaskImpl*>::const_iterator finder =
           task_table.find(task_id);
-#ifdef DEBUG_LEGION
-      assert(finder != task_table.end());
-#endif
+      legion_assert(finder != task_table.end());
       return finder->second;
     }
 
@@ -3467,9 +3353,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
       }
@@ -3492,9 +3376,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
         if (!wait_on.exists())
@@ -3506,9 +3388,7 @@ namespace Legion {
             // We're going to make the result
             record.result = unique_library_redop_id;
             unique_library_redop_id += count;
-#ifdef DEBUG_LEGION
-            assert(unique_library_redop_id > unsigned(record.result));
-#endif
+            legion_assert(unique_library_redop_id > unsigned(record.result));
             record.result_set = true;
             return record.result;
           }
@@ -3523,10 +3403,8 @@ namespace Legion {
         }
       }
       // Should only get here on nodes other than 0
-#ifdef DEBUG_LEGION
-      assert(address_space > 0);
-      assert(wait_on.exists());
-#endif
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
       if (request_event.exists())
       {
         // Include the null terminator in length
@@ -3547,10 +3425,8 @@ namespace Legion {
       AutoLock l_lock(library_lock, 1, false /*exclusive*/);
       std::map<std::string, LibraryRedopIDs>::const_iterator finder =
           library_redop_ids.find(library_name);
-#ifdef DEBUG_LEGION
-      assert(finder != library_redop_ids.end());
-      assert(finder->second.result_set);
-#endif
+      legion_assert(finder != library_redop_ids.end());
+      legion_assert(finder->second.result_set);
       return finder->second.result;
     }
 
@@ -3598,9 +3474,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
       }
@@ -3623,9 +3497,7 @@ namespace Legion {
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
-#ifdef DEBUG_LEGION
-          assert(address_space > 0);
-#endif
+          legion_assert(address_space > 0);
           wait_on = finder->second.ready;
         }
         if (!wait_on.exists())
@@ -3637,9 +3509,7 @@ namespace Legion {
             // We're going to make the result
             record.result = unique_library_serdez_id;
             unique_library_serdez_id += count;
-#ifdef DEBUG_LEGION
-            assert(unique_library_serdez_id > unsigned(record.result));
-#endif
+            legion_assert(unique_library_serdez_id > unsigned(record.result));
             record.result_set = true;
             return record.result;
           }
@@ -3654,10 +3524,8 @@ namespace Legion {
         }
       }
       // Should only get here on nodes other than 0
-#ifdef DEBUG_LEGION
-      assert(address_space > 0);
-      assert(wait_on.exists());
-#endif
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
       if (request_event.exists())
       {
         // Include the null terminator in length
@@ -3678,10 +3546,8 @@ namespace Legion {
       AutoLock l_lock(library_lock, 1, false /*exclusive*/);
       std::map<std::string, LibrarySerdezIDs>::const_iterator finder =
           library_serdez_ids.find(library_name);
-#ifdef DEBUG_LEGION
-      assert(finder != library_serdez_ids.end());
-      assert(finder->second.result_set);
-#endif
+      legion_assert(finder != library_serdez_ids.end());
+      legion_assert(finder->second.result_set);
       return finder->second.result;
     }
 
@@ -3721,10 +3587,9 @@ namespace Legion {
     MessageManager* Runtime::find_messenger(AddressSpaceID sid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sid < LEGION_MAX_NUM_NODES);
-      assert(sid != address_space);  // shouldn't be sending messages to ourself
-#endif
+      legion_assert(sid < LEGION_MAX_NUM_NODES);
+      legion_assert(
+          sid != address_space);  // shouldn't be sending messages to ourself
       MessageManager* result = message_managers[sid].load();
       if (result != nullptr)
         return result;
@@ -3755,9 +3620,7 @@ namespace Legion {
       }
       if (send_request)
       {
-#ifdef DEBUG_LEGION
-        bool found = false;
-#endif
+        [[maybe_unused]] bool found = false;
         // Find a processor on which to send the task
         for (std::map<Processor, AddressSpaceID>::const_iterator it =
                  proc_spaces.begin();
@@ -3765,9 +3628,7 @@ namespace Legion {
         {
           if (it->second != sid)
             continue;
-#ifdef DEBUG_LEGION
           found = true;
-#endif
           Serializer rez;
           {
             RezCheck z(rez);
@@ -3780,20 +3641,14 @@ namespace Legion {
               empty_requests);
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(found);
-#endif
+        legion_assert(found);
       }
-#ifdef DEBUG_LEGION
-      assert(wait_on.exists());
-#endif
+      legion_assert(wait_on.exists());
       if (!wait_on.has_triggered())
         wait_on.wait();
       // When we wake up there should be a result
       result = message_managers[sid].load();
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       return result;
     }
 
@@ -3812,15 +3667,11 @@ namespace Legion {
           proc_spaces.find(target);
       if (finder != proc_spaces.end())
         return finder->second;
-#ifdef DEBUG_LEGION
       // If we get here then this better be a processor group
-      assert(target.kind() == Processor::PROC_GROUP);
-#endif
+      legion_assert(target.kind() == Processor::PROC_GROUP);
       AutoLock m_lock(message_manager_lock, 1, false /*exclusive*/);
       finder = endpoint_spaces.find(target);
-#ifdef DEBUG_LEGION
-      assert(finder != endpoint_spaces.end());
-#endif
+      legion_assert(finder != endpoint_spaces.end());
       return finder->second;
     }
 
@@ -3858,9 +3709,7 @@ namespace Legion {
         endpoint_spaces[remote_utility_group] = remote_space;
         std::map<AddressSpaceID, RtUserEvent>::iterator finder =
             pending_endpoint_requests.find(remote_space);
-#ifdef DEBUG_LEGION
-        assert(finder != pending_endpoint_requests.end());
-#endif
+        legion_assert(finder != pending_endpoint_requests.end());
         Runtime::trigger_event(finder->second);
         pending_endpoint_requests.erase(finder);
       }
@@ -4007,9 +3856,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const Processor target = task->target_proc;
-#ifdef DEBUG_LEGION
-      assert(!is_local(target));
-#endif
+      legion_assert(!is_local(target));
       MessageManager* manager = find_messenger(target);
       Serializer rez;
       bool deactivate_task;
@@ -4029,10 +3876,8 @@ namespace Legion {
     void Runtime::send_tasks(Processor target, std::vector<SingleTask*>& tasks)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!tasks.empty());
-      assert(target.exists());
-#endif
+      legion_assert(!tasks.empty());
+      legion_assert(target.exists());
       // Check to see if the target processor is still local
       std::map<Processor, ProcessorManager*>::const_iterator finder =
           proc_managers.find(target);
@@ -6730,9 +6575,7 @@ namespace Legion {
       std::vector<MapperID> thieves(num_mappers);
       for (int idx = 0; idx < num_mappers; idx++)
         derez.deserialize(thieves[idx]);
-#ifdef DEBUG_LEGION
-      assert(proc_managers.find(target) != proc_managers.end());
-#endif
+      legion_assert(proc_managers.find(target) != proc_managers.end());
       proc_managers[target]->process_steal_request(thief, thieves);
     }
 
@@ -6759,10 +6602,8 @@ namespace Legion {
     void Runtime::handle_registration_callback(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(implicit_context == nullptr);
-      assert(runtime != nullptr);
-#endif
+      legion_assert(implicit_context == nullptr);
+      legion_assert(runtime != nullptr);
       DerezCheck z(derez);
       size_t dso_size;
       derez.deserialize(dso_size);
@@ -6814,18 +6655,14 @@ namespace Legion {
 
       // Now we can do the translation of ourselves to get the function pointer
       Realm::DSOReferenceImplementation dso(dso_name, sym_name);
-#ifdef DEBUG_LEGION
-      assert(callback_translator.can_translate(
+      legion_assert(callback_translator.can_translate(
           typeid(Realm::DSOReferenceImplementation),
           typeid(Realm::FunctionPointerImplementation)));
-#endif
       Realm::FunctionPointerImplementation* impl =
           static_cast<Realm::FunctionPointerImplementation*>(
               callback_translator.translate(
                   &dso, typeid(Realm::FunctionPointerImplementation)));
-#ifdef DEBUG_LEGION
-      assert(impl != nullptr);
-#endif
+      legion_assert(impl != nullptr);
       void* callback = impl->get_impl<void*>();
       RtEvent precondition;
       // Now take the lock and see if we need to perform anything
@@ -6838,9 +6675,8 @@ namespace Legion {
         if (finder != pending_remote_callbacks.end())
         {
           // We should still be in there
-#ifdef DEBUG_LEGION
-          assert(finder->second.find(done_event) != finder->second.end());
-#endif
+          legion_assert(
+              finder->second.find(done_event) != finder->second.end());
           finder->second.erase(done_event);
           if (finder->second.empty())
             pending_remote_callbacks.erase(finder);
@@ -6849,9 +6685,7 @@ namespace Legion {
               local_callbacks_done.find(callback);
           if (finder != local_callbacks_done.end())
           {
-#ifdef DEBUG_LEGION
-            assert(finder->second.exists());
-#endif
+            legion_assert(finder->second.exists());
             precondition = finder->second;
           }
           else
@@ -7288,9 +7122,7 @@ namespace Legion {
       derez.deserialize(handle);
       RtUserEvent done;
       derez.deserialize(done);
-#ifdef DEBUG_LEGION
-      assert(done.exists());
-#endif
+      legion_assert(done.exists());
       std::set<RtEvent> applied;
       destroy_index_space(handle, source, applied);
       if (!applied.empty())
@@ -7308,9 +7140,7 @@ namespace Legion {
       derez.deserialize(handle);
       RtUserEvent done;
       derez.deserialize(done);
-#ifdef DEBUG_LEGION
-      assert(done.exists());
-#endif
+      legion_assert(done.exists());
       std::set<RtEvent> applied;
       destroy_index_partition(handle, applied);
       if (!applied.empty())
@@ -7328,9 +7158,7 @@ namespace Legion {
       derez.deserialize(handle);
       RtUserEvent done;
       derez.deserialize(done);
-#ifdef DEBUG_LEGION
-      assert(done.exists());
-#endif
+      legion_assert(done.exists());
       std::set<RtEvent> applied;
       destroy_field_space(handle, applied);
       if (!applied.empty())
@@ -8830,9 +8658,7 @@ namespace Legion {
     void Runtime::handle_mpi_rank_exchange(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(Runtime::mpi_rank_table != nullptr);
-#endif
+      legion_assert(Runtime::mpi_rank_table != nullptr);
       Runtime::mpi_rank_table->handle_mpi_rank_exchange(derez);
     }
 
@@ -8946,11 +8772,9 @@ namespace Legion {
         AutoLock l_lock(library_lock);
         std::map<std::string, LibraryMapperIDs>::iterator finder =
             library_mapper_ids.find(library_name);
-#ifdef DEBUG_LEGION
-        assert(finder != library_mapper_ids.end());
-        assert(!finder->second.result_set);
-        assert(finder->second.ready == done);
-#endif
+        legion_assert(finder != library_mapper_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
         finder->second.result = result;
         finder->second.result_set = true;
       }
@@ -9003,11 +8827,9 @@ namespace Legion {
         AutoLock l_lock(library_lock);
         std::map<std::string, LibraryTraceIDs>::iterator finder =
             library_trace_ids.find(library_name);
-#ifdef DEBUG_LEGION
-        assert(finder != library_trace_ids.end());
-        assert(!finder->second.result_set);
-        assert(finder->second.ready == done);
-#endif
+        legion_assert(finder != library_trace_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
         finder->second.result = result;
         finder->second.result_set = true;
       }
@@ -9060,11 +8882,9 @@ namespace Legion {
         AutoLock l_lock(library_lock);
         std::map<std::string, LibraryProjectionIDs>::iterator finder =
             library_projection_ids.find(library_name);
-#ifdef DEBUG_LEGION
-        assert(finder != library_projection_ids.end());
-        assert(!finder->second.result_set);
-        assert(finder->second.ready == done);
-#endif
+        legion_assert(finder != library_projection_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
         finder->second.result = result;
         finder->second.result_set = true;
       }
@@ -9117,11 +8937,9 @@ namespace Legion {
         AutoLock l_lock(library_lock);
         std::map<std::string, LibraryShardingIDs>::iterator finder =
             library_sharding_ids.find(library_name);
-#ifdef DEBUG_LEGION
-        assert(finder != library_sharding_ids.end());
-        assert(!finder->second.result_set);
-        assert(finder->second.ready == done);
-#endif
+        legion_assert(finder != library_sharding_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
         finder->second.result = result;
         finder->second.result_set = true;
       }
@@ -9174,11 +8992,9 @@ namespace Legion {
         AutoLock l_lock(library_lock);
         std::map<std::string, LibraryConcurrentIDs>::iterator finder =
             library_concurrent_ids.find(library_name);
-#ifdef DEBUG_LEGION
-        assert(finder != library_concurrent_ids.end());
-        assert(!finder->second.result_set);
-        assert(finder->second.ready == done);
-#endif
+        legion_assert(finder != library_concurrent_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
         finder->second.result = result;
         finder->second.result_set = true;
       }
@@ -9231,11 +9047,9 @@ namespace Legion {
         AutoLock l_lock(library_lock);
         std::map<std::string, LibraryTaskIDs>::iterator finder =
             library_task_ids.find(library_name);
-#ifdef DEBUG_LEGION
-        assert(finder != library_task_ids.end());
-        assert(!finder->second.result_set);
-        assert(finder->second.ready == done);
-#endif
+        legion_assert(finder != library_task_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
         finder->second.result = result;
         finder->second.result_set = true;
       }
@@ -9288,11 +9102,9 @@ namespace Legion {
         AutoLock l_lock(library_lock);
         std::map<std::string, LibraryRedopIDs>::iterator finder =
             library_redop_ids.find(library_name);
-#ifdef DEBUG_LEGION
-        assert(finder != library_redop_ids.end());
-        assert(!finder->second.result_set);
-        assert(finder->second.ready == done);
-#endif
+        legion_assert(finder != library_redop_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
         finder->second.result = result;
         finder->second.result_set = true;
       }
@@ -9345,11 +9157,9 @@ namespace Legion {
         AutoLock l_lock(library_lock);
         std::map<std::string, LibrarySerdezIDs>::iterator finder =
             library_serdez_ids.find(library_name);
-#ifdef DEBUG_LEGION
-        assert(finder != library_serdez_ids.end());
-        assert(!finder->second.result_set);
-        assert(finder->second.ready == done);
-#endif
+        legion_assert(finder != library_serdez_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
         finder->second.result = result;
         finder->second.result_set = true;
       }
@@ -9593,9 +9403,7 @@ namespace Legion {
     void Runtime::process_schedule_request(Processor proc)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_procs.find(proc) != local_procs.end());
-#endif
+      legion_assert(local_procs.find(proc) != local_procs.end());
       ProcessorManager* manager = proc_managers[proc];
       manager->perform_scheduling();
 #ifdef LEGION_TRACE_ALLOCATION
@@ -9644,10 +9452,8 @@ namespace Legion {
     void Runtime::add_to_ready_queue(Processor p, SingleTask* task)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(p.kind() != Processor::UTIL_PROC);
-      assert(proc_managers.find(p) != proc_managers.end());
-#endif
+      legion_assert(p.kind() != Processor::UTIL_PROC);
+      legion_assert(proc_managers.find(p) != proc_managers.end());
       proc_managers[p]->add_to_ready_queue(task);
     }
 
@@ -9720,9 +9526,7 @@ namespace Legion {
           continue;
         }
         unsigned next_index = processor_mapping.size();
-#ifdef DEBUG_LEGION
-        assert(next_index < LEGION_MAX_NUM_PROCS);
-#endif
+        legion_assert(next_index < LEGION_MAX_NUM_PROCS);
         processor_mapping[*it] = next_index;
         result.set_bit(next_index);
       }
@@ -9737,9 +9541,7 @@ namespace Legion {
     {
       std::map<Processor, ProcessorManager*>::const_iterator finder =
           proc_managers.find(proc);
-#ifdef DEBUG_LEGION
-      assert(finder != proc_managers.end());
-#endif
+      legion_assert(finder != proc_managers.end());
       finder->second->order_concurrent_task_launch(
           task, precondition, ready, vid);
     }
@@ -9750,9 +9552,7 @@ namespace Legion {
     {
       std::map<Processor, ProcessorManager*>::const_iterator finder =
           proc_managers.find(proc);
-#ifdef DEBUG_LEGION
-      assert(finder != proc_managers.end());
-#endif
+      legion_assert(finder != proc_managers.end());
       finder->second->end_concurrent_task();
     }
 
@@ -9760,20 +9560,10 @@ namespace Legion {
     DistributedID Runtime::get_next_static_distributed_id(uint64_t& next_did)
     //--------------------------------------------------------------------------
     {
-      DistributedID result = next_did++;
+      const DistributedID result = next_did++;
       // If we're the owner we have to bump the available ones here too
       if (determine_owner(result) == address_space)
-      {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-        DistributedID expected =
-#endif
-#endif
-            get_available_distributed_id();
-#ifdef DEBUG_LEGION
-        assert(result == expected);
-#endif
-      }
+        legion_no_skip_assert(get_available_distributed_id() == result);
       return result;
     }
 
@@ -9782,10 +9572,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DistributedID result = unique_distributed_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
       // Check for overflow
-      assert(result < LEGION_DISTRIBUTED_ID_MASK);
-#endif
+      legion_assert(result < LEGION_DISTRIBUTED_ID_MASK);
       return result;
     }
 
@@ -9802,9 +9590,7 @@ namespace Legion {
           SEND_REMOTE_DISTRIBUTED_ID_REQUEST, rez, true /*flush*/);
       if (!done.has_triggered())
         done.wait();
-#ifdef DEBUG_LEGION
-      assert(result.load() != 0);
-#endif
+      legion_assert(result.load() != 0);
       return result.load();
     }
 
@@ -9869,9 +9655,7 @@ namespace Legion {
       {
         AutoLock dc_lock(distributed_collectable_lock);
         // If we make it here then we have the lock
-#ifdef DEBUG_LEGION
-        assert(dist_collectables.find(did) == dist_collectables.end());
-#endif
+        legion_assert(dist_collectables.find(did) == dist_collectables.end());
         dist_collectables[did] = dc;
         // See if this was a pending collectable
         std::map<
@@ -9880,11 +9664,9 @@ namespace Legion {
             pending_collectables.find(did);
         if (finder != pending_collectables.end())
         {
-#ifdef DEBUG_LEGION
-          assert(
+          legion_assert(
               (finder->second.first == dc) ||
               (finder->second.first == nullptr));
-#endif
           to_trigger = finder->second.second;
           pending_collectables.erase(finder);
         }
@@ -9901,9 +9683,7 @@ namespace Legion {
       AutoLock d_lock(distributed_collectable_lock);
       lng::map<DistributedID, DistributedCollectable*>::iterator finder =
           dist_collectables.find(did);
-#ifdef DEBUG_LEGION
-      assert(finder != dist_collectables.end());
-#endif
+      legion_assert(finder != dist_collectables.end());
       dist_collectables.erase(finder);
     }
 
@@ -9981,9 +9761,7 @@ namespace Legion {
       AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
       lng::map<DistributedID, DistributedCollectable*>::const_iterator finder =
           dist_collectables.find(to_find);
-#ifdef DEBUG_LEGION
-      assert(finder != dist_collectables.end());
-#endif
+      legion_assert(finder != dist_collectables.end());
       return finder->second;
     }
 
@@ -10010,9 +9788,7 @@ namespace Legion {
     {
       did &= LEGION_DISTRIBUTED_ID_MASK;
       AutoLock d_lock(distributed_collectable_lock);
-#ifdef DEBUG_LEGION
-      assert(dist_collectables.find(did) == dist_collectables.end());
-#endif
+      legion_assert(dist_collectables.find(did) == dist_collectables.end());
       std::map<
           DistributedID,
           std::pair<DistributedCollectable*, RtUserEvent> >::iterator finder =
@@ -10101,9 +9877,7 @@ namespace Legion {
         DistributedID did, RtEvent& ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == EQUIVALENCE_SET_DC);
-#endif
+      legion_assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == EQUIVALENCE_SET_DC);
       DistributedCollectable* dc = find_or_request_distributed_collectable<
           EquivalenceSet, SEND_EQUIVALENCE_SET_REQUEST>(did, ready);
       // Have to static cast since the memory might not have been initialized
@@ -10114,9 +9888,7 @@ namespace Legion {
     InnerContext* Runtime::find_or_request_inner_context(DistributedID did)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == INNER_CONTEXT_DC);
-#endif
+      legion_assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == INNER_CONTEXT_DC);
       RtEvent ready;
       DistributedCollectable* dc = find_or_request_distributed_collectable<
           RemoteContext, SEND_REMOTE_CONTEXT_REQUEST>(did, ready);
@@ -10129,9 +9901,7 @@ namespace Legion {
     ShardManager* Runtime::find_shard_manager(DistributedID did, bool can_fail)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == SHARD_MANAGER_DC);
-#endif
+      legion_assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == SHARD_MANAGER_DC);
       if (can_fail)
       {
         const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
@@ -10189,9 +9959,8 @@ namespace Legion {
         ready = to_trigger;
       }
       AddressSpaceID target = determine_owner(did);
-#ifdef DEBUG_LEGION
-      assert(target != address_space);  // shouldn't be sending to ourself
-#endif
+      legion_assert(
+          target != address_space);  // shouldn't be sending to ourself
       // Now send the message
       Serializer rez;
       {
@@ -10219,12 +9988,7 @@ namespace Legion {
             finder = dist_collectables.find(did);
         if (finder != dist_collectables.end())
         {
-#ifdef DEBUG_LEGION
-          FutureImpl* result = dynamic_cast<FutureImpl*>(finder->second);
-          assert(result != nullptr);
-#else
-          FutureImpl* result = static_cast<FutureImpl*>(finder->second);
-#endif
+          FutureImpl* result = legion_safe_cast<FutureImpl*>(finder->second);
           return result;
         }
       }
@@ -10240,12 +10004,7 @@ namespace Legion {
       {
         // We lost the race
         delete result;
-#ifdef DEBUG_LEGION
-        result = dynamic_cast<FutureImpl*>(finder->second);
-        assert(result != nullptr);
-#else
-        result = static_cast<FutureImpl*>(finder->second);
-#endif
+        result = legion_safe_cast<FutureImpl*>(finder->second);
         return result;
       }
       registered = result->record_future_registered(has_global_reference);
@@ -10266,18 +10025,12 @@ namespace Legion {
             finder = dist_collectables.find(did);
         if (finder != dist_collectables.end())
         {
-#ifdef DEBUG_LEGION
-          FutureMapImpl* result = dynamic_cast<FutureMapImpl*>(finder->second);
-          assert(result != nullptr);
-#else
-          FutureMapImpl* result = static_cast<FutureMapImpl*>(finder->second);
-#endif
+          FutureMapImpl* result =
+              legion_safe_cast<FutureMapImpl*>(finder->second);
           return result;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(domain.exists());
-#endif
+      legion_assert(domain.exists());
       IndexSpaceNode* domain_node = get_node(domain);
       FutureMapImpl* result = new FutureMapImpl(
           ctx, domain_node, did, coord, ctx_index, provenance,
@@ -10289,12 +10042,7 @@ namespace Legion {
       {
         // We lost the race
         delete result;
-#ifdef DEBUG_LEGION
-        result = dynamic_cast<FutureMapImpl*>(finder->second);
-        assert(result != nullptr);
-#else
-        result = static_cast<FutureMapImpl*>(finder->second);
-#endif
+        result = legion_safe_cast<FutureMapImpl*>(finder->second);
         return result;
       }
       result->record_future_map_registered();
@@ -10308,9 +10056,7 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(type_tag != 0);
-#endif
+      legion_assert(type_tag != 0);
       const std::pair<Domain, TypeTag> key(domain, type_tag);
       {
         AutoLock is_lock(is_slice_lock, 1, false /*exclusive*/);
@@ -10379,10 +10125,8 @@ namespace Legion {
             std::pair<Domain, TypeTag>,
             std::pair<IndexSpace, RtUserEvent> >::iterator finder =
             index_slice_spaces.find(key);
-#ifdef DEBUG_LEGION
-        assert(finder != index_slice_spaces.end());
-        assert(!finder->second.first.exists());
-#endif
+        legion_assert(finder != index_slice_spaces.end());
+        legion_assert(!finder->second.first.exists());
         finder->second.first = result;
         if (finder->second.second.exists())
           Runtime::trigger_event(finder->second.second);
@@ -10401,10 +10145,8 @@ namespace Legion {
             std::pair<Domain, TypeTag>,
             std::pair<IndexSpace, RtUserEvent> >::const_iterator finder =
             index_slice_spaces.find(key);
-#ifdef DEBUG_LEGION
-        assert(finder != index_slice_spaces.end());
-        assert(finder->second.first.exists());
-#endif
+        legion_assert(finder != index_slice_spaces.end());
+        legion_assert(finder->second.first.exists());
         return finder->second.first;
       }
     }
@@ -10428,9 +10170,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       unsigned previous = outstanding_top_level_tasks.fetch_sub(1);
-#ifdef DEBUG_LEGION
-      assert(previous > 0);
-#endif
+      legion_assert(previous > 0);
       if (previous == 1)
       {
         if (address_space > 0)
@@ -10509,7 +10249,7 @@ namespace Legion {
       if (has_outstanding_tasks())
       {
         shutdown_manager->record_outstanding_tasks();
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         LG_TASK_DESCRIPTIONS(meta_task_names);
         AutoLock out_lock(outstanding_task_lock, 1, false /*exclusive*/);
         for (std::map<std::pair<unsigned, bool>, unsigned>::const_iterator it =
@@ -10542,10 +10282,8 @@ namespace Legion {
     void Runtime::prepare_runtime_shutdown(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!prepared_for_shutdown);
-      assert(virtual_manager != nullptr);
-#endif
+      legion_assert(!prepared_for_shutdown);
+      legion_assert(virtual_manager != nullptr);
       // Search through all our distributed collectables and find any
       // futures which are leaking and therefore need to be finalized
       std::vector<FutureImpl*> leaked_futures;
@@ -10559,12 +10297,7 @@ namespace Legion {
           // See if this is a future
           if (LEGION_DISTRIBUTED_HELP_DECODE(it->second->did) != FUTURE_DC)
             continue;
-#ifdef DEBUG_LEGION
-          FutureImpl* impl = dynamic_cast<FutureImpl*>(it->second);
-          assert(impl != nullptr);
-#else
-          FutureImpl* impl = static_cast<FutureImpl*>(it->second);
-#endif
+          FutureImpl* impl = legion_safe_cast<FutureImpl*>(it->second);
           impl->add_base_resource_ref(RUNTIME_REF);
           leaked_futures.emplace_back(impl);
         }
@@ -10649,7 +10382,7 @@ namespace Legion {
     bool Runtime::has_outstanding_tasks(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       AutoLock out_lock(outstanding_task_lock);
       return (total_outstanding_tasks > 0);
 #else
@@ -10657,11 +10390,11 @@ namespace Legion {
 #endif
     }
 
-#ifdef DEBUG_LEGION
     //--------------------------------------------------------------------------
     void Runtime::increment_total_outstanding_tasks(unsigned tid, bool meta)
     //--------------------------------------------------------------------------
     {
+#ifdef LEGION_DEBUG
       AutoLock out_lock(outstanding_task_lock);
       total_outstanding_tasks++;
       std::pair<unsigned, bool> key(tid, meta);
@@ -10671,23 +10404,29 @@ namespace Legion {
         outstanding_task_counts[key] = 1;
       else
         finder->second++;
+#else
+      total_outstanding_tasks.fetch_add(1);
+#endif
     }
 
     //--------------------------------------------------------------------------
     void Runtime::decrement_total_outstanding_tasks(unsigned tid, bool meta)
     //--------------------------------------------------------------------------
     {
+#ifdef LEGION_DEBUG
       AutoLock out_lock(outstanding_task_lock);
-      assert(total_outstanding_tasks > 0);
+      legion_assert(total_outstanding_tasks > 0);
       total_outstanding_tasks--;
       std::pair<unsigned, bool> key(tid, meta);
       std::map<std::pair<unsigned, bool>, unsigned>::iterator finder =
           outstanding_task_counts.find(key);
-      assert(finder != outstanding_task_counts.end());
-      assert(finder->second > 0);
+      legion_assert(finder != outstanding_task_counts.end());
+      legion_assert(finder->second > 0);
       finder->second--;
-    }
+#else
+      total_outstanding_tasks.fetch_sub(1);
 #endif
+    }
 
     //--------------------------------------------------------------------------
     IndexSpaceNode* Runtime::create_index_space(
@@ -10718,9 +10457,7 @@ namespace Legion {
           continue;
         exprs.insert(get_node(*it));
       }
-#ifdef DEBUG_LEGION
-      assert(!exprs.empty());
-#endif
+      legion_assert(!exprs.empty());
       IndexSpaceExpression* expr = union_index_spaces(exprs);
       return expr->create_node(
           handle, initialized, provenance, collective_mapping, expr_id);
@@ -10742,9 +10479,7 @@ namespace Legion {
           continue;
         exprs.insert(get_node(*it));
       }
-#ifdef DEBUG_LEGION
-      assert(!exprs.empty());
-#endif
+      legion_assert(!exprs.empty());
       IndexSpaceExpression* expr = intersect_index_spaces(exprs);
       return expr->create_node(
           handle, initialized, provenance, collective_mapping, expr_id);
@@ -10757,9 +10492,7 @@ namespace Legion {
         CollectiveMapping* collective_mapping, IndexSpaceExprID expr_id)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(left.exists());
-#endif
+      legion_assert(left.exists());
       IndexSpaceNode* lhs = get_node(left);
       if (!right.exists())
         return lhs->create_node(
@@ -11138,9 +10871,7 @@ namespace Legion {
         Provenance* provenance, bool sharded_non_owner)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sizes.size() == fields.size());
-#endif
+      legion_assert(sizes.size() == fields.size());
       // We know that none of these field allocations are local
       FieldSpaceNode* node = get_node(handle);
       RtEvent ready = node->allocate_fields(
@@ -11469,9 +11200,7 @@ namespace Legion {
         bool filter_specific_fields)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
       RegionNode* region_node = get_node(req.region);
       if (filter_specific_fields)
       {
@@ -11514,9 +11243,7 @@ namespace Legion {
           tree_valid);
       NT_TemplateHelper::demux<IndexSpaceCreator>(sp.get_type_tag(), &creator);
       IndexSpaceNode* result = creator.result;
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       // Check to see if someone else has already made it
       {
         // Hold the lookup lock while modifying the lookup table
@@ -11556,9 +11283,7 @@ namespace Legion {
                 true /*initializing*/);
           if (parent != nullptr)
           {
-#ifdef DEBUG_LEGION
-            assert(!add_root_reference);
-#endif
+            legion_assert(!add_root_reference);
             // Only do this after we've added all the references
             parent->add_child(result);
           }
@@ -11566,9 +11291,7 @@ namespace Legion {
           return result;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(domain.exists());
-#endif
+      legion_assert(domain.exists());
       if (result->set_domain(domain, is_ready, take_ownership))
         std::abort();  // should never hit this
       return result;
@@ -11586,9 +11309,7 @@ namespace Legion {
           true /*tree valid*/);
       NT_TemplateHelper::demux<IndexSpaceCreator>(sp.get_type_tag(), &creator);
       IndexSpaceNode* result = creator.result;
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       // Check to see if someone else has already made it
       {
         // Hold the lookup lock while modifying the lookup table
@@ -11625,10 +11346,8 @@ namespace Legion {
           mapping, provenance);
       NT_TemplateHelper::demux<IndexPartCreator>(p.get_type_tag(), &creator);
       IndexPartNode* result = creator.result;
-#ifdef DEBUG_LEGION
-      assert(parent != nullptr);
-      assert(result != nullptr);
-#endif
+      legion_assert(parent != nullptr);
+      legion_assert(result != nullptr);
       // Check to see if someone else has already made it
       {
         // Hold the lookup lock while modifying the lookup table
@@ -11681,10 +11400,8 @@ namespace Legion {
           provenance);
       NT_TemplateHelper::demux<IndexPartCreator>(p.get_type_tag(), &creator);
       IndexPartNode* result = creator.result;
-#ifdef DEBUG_LEGION
-      assert(parent != nullptr);
-      assert(result != nullptr);
-#endif
+      legion_assert(parent != nullptr);
+      legion_assert(result != nullptr);
       // Check to see if someone else has already made it
       {
         // Hold the lookup lock while modifying the lookup table
@@ -11730,9 +11447,7 @@ namespace Legion {
     {
       FieldSpaceNode* result =
           new FieldSpaceNode(space, initialized, mapping, provenance);
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       // Hold the lookup lock while modifying the lookup table
       {
         AutoLock l_lock(lookup_lock);
@@ -11764,9 +11479,7 @@ namespace Legion {
     {
       FieldSpaceNode* result =
           new FieldSpaceNode(space, initialized, mapping, provenance, derez);
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       // Hold the lookup lock while modifying the lookup table
       {
         AutoLock l_lock(lookup_lock);
@@ -11796,13 +11509,11 @@ namespace Legion {
         DistributedID did, Provenance* provenance, CollectiveMapping* mapping)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       if (parent != nullptr)
       {
-        assert(r.field_space == parent->handle.field_space);
-        assert(r.tree_did == parent->handle.tree_did);
+        legion_assert(r.field_space == parent->handle.field_space);
+        legion_assert(r.tree_did == parent->handle.tree_did);
       }
-#endif
       // Special case for root nodes without dids, we better find them
       if ((parent == nullptr) && (did == 0))
       {
@@ -11810,9 +11521,7 @@ namespace Legion {
         // Check to see if it already exists
         std::map<LogicalRegion, RegionNode*>::const_iterator finder =
             region_nodes.find(r);
-#ifdef DEBUG_LEGION
-        assert(finder != region_nodes.end());
-#endif
+        legion_assert(finder != region_nodes.end());
         return finder->second;
       }
       RtEvent row_ready, col_ready;
@@ -11837,9 +11546,7 @@ namespace Legion {
           r, parent, row_src, col_src, did, initialized,
           (parent == nullptr) ? initialized : parent->tree_initialized, mapping,
           provenance);
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       // Special case here in case multiple clients attempt to
       // make the node at the same time
       {
@@ -11861,9 +11568,7 @@ namespace Legion {
         // of top level tree IDs
         if (parent == nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(tree_nodes.find(r.get_tree_id()) == tree_nodes.end());
-#endif
+          legion_assert(tree_nodes.find(r.get_tree_id()) == tree_nodes.end());
           tree_nodes[r.get_tree_id()] = result;
           region_tree_requests.erase(r.get_tree_id());
           // If we're the root we get a valid reference on the owner
@@ -11880,11 +11585,9 @@ namespace Legion {
     PartitionNode* Runtime::create_node(LogicalPartition p, RegionNode* parent)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(parent != nullptr);
-      assert(p.field_space == parent->handle.field_space);
-      assert(p.tree_did == parent->handle.tree_did);
-#endif
+      legion_assert(parent != nullptr);
+      legion_assert(p.field_space == parent->handle.field_space);
+      legion_assert(p.tree_did == parent->handle.tree_did);
       RtEvent row_ready, col_ready;
       IndexPartNode* row_src = get_node(p.index_partition, &row_ready);
       FieldSpaceNode* col_src = get_node(p.field_space, &col_ready);
@@ -11905,9 +11608,7 @@ namespace Legion {
         initialized = Runtime::merge_events(initialized, row_ready, col_ready);
       PartitionNode* result = new PartitionNode(
           p, parent, row_src, col_src, initialized, parent->tree_initialized);
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       // Special case here in case multiple clients attempt
       // to make the node at the same time
       {
@@ -12505,9 +12206,7 @@ namespace Legion {
       IndexSpaceNode* index_node = get_node(handle.index_space);
       if (index_node->parent != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(index_node->parent != nullptr);
-#endif
+        legion_assert(index_node->parent != nullptr);
         LogicalPartition parent_handle(
             handle.tree_did, index_node->parent->handle, handle.field_space);
         // Note this request can recursively build more nodes, but we
@@ -12518,12 +12217,10 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
         // This better be a root node, if it's not then something requested
         // that we construct a logical reigon node after the parent partition
         // was destroyed which is very bad
-        assert(index_node->depth == 0);
-#endif
+        legion_assert(index_node->depth == 0);
         // Even though this is a root node, we'll discover it's already made
         result = create_node(handle, nullptr, RtEvent::NO_RT_EVENT, 0 /*did*/);
       }
@@ -12577,9 +12274,7 @@ namespace Legion {
       }
       // Otherwise it hasn't been made yet so make it
       IndexPartNode* index_node = get_node(handle.index_partition);
-#ifdef DEBUG_LEGION
-      assert(index_node->parent != nullptr);
-#endif
+      legion_assert(index_node->parent != nullptr);
       LogicalRegion parent_handle(
           handle.tree_did, index_node->parent->handle, handle.field_space);
       // Note this request can recursively build more nodes, but we
@@ -12764,14 +12459,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock l_lock(lookup_lock);
-#ifdef DEBUG_LEGION
       std::map<IndexSpace, IndexSpaceNode*>::iterator finder =
           index_nodes.find(space);
-      assert(finder != index_nodes.end());
+      legion_assert(finder != index_nodes.end());
       index_nodes.erase(finder);
-#else
-      index_nodes.erase(space);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -12779,15 +12470,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock l_lock(lookup_lock);
-#ifdef DEBUG_LEGION
-      assert(index_part_requests.find(part) == index_part_requests.end());
+      legion_assert(
+          index_part_requests.find(part) == index_part_requests.end());
       std::map<IndexPartition, IndexPartNode*>::iterator finder =
           index_parts.find(part);
-      assert(finder != index_parts.end());
+      legion_assert(finder != index_parts.end());
       index_parts.erase(finder);
-#else
-      index_parts.erase(part);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -12795,14 +12483,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock l_lock(lookup_lock);
-#ifdef DEBUG_LEGION
       std::map<FieldSpace, FieldSpaceNode*>::iterator finder =
           field_nodes.find(space);
-      assert(finder != field_nodes.end());
+      legion_assert(finder != field_nodes.end());
       field_nodes.erase(finder);
-#else
-      field_nodes.erase(space);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -12810,23 +12494,16 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock l_lock(lookup_lock);
-#ifdef DEBUG_LEGION
       if (top)
       {
         std::map<RegionTreeID, RegionNode*>::iterator finder =
             tree_nodes.find(handle.get_tree_id());
-        assert(finder != tree_nodes.end());
+        legion_assert(finder != tree_nodes.end());
         tree_nodes.erase(finder);
       }
-#else
-      if (top)
-        tree_nodes.erase(handle.get_tree_id());
-#endif
       std::map<LogicalRegion, RegionNode*>::iterator finder =
           region_nodes.find(handle);
-#ifdef DEBUG_LEGION
-      assert(finder != region_nodes.end());
-#endif
+      legion_assert(finder != region_nodes.end());
       region_nodes.erase(finder);
     }
 
@@ -12837,9 +12514,7 @@ namespace Legion {
       AutoLock l_lock(lookup_lock);
       std::map<LogicalPartition, PartitionNode*>::iterator finder =
           part_nodes.find(handle);
-#ifdef DEBUG_LEGION
-      assert(finder != part_nodes.end());
-#endif
+      legion_assert(finder != part_nodes.end());
       part_nodes.erase(finder);
     }
 
@@ -12847,14 +12522,11 @@ namespace Legion {
     void Runtime::record_pending_index_space(DistributedID space)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // We should be the owner for this space
-      assert((space % total_address_spaces) == address_space);
-#endif
+      legion_assert((space % total_address_spaces) == address_space);
       AutoLock l_lock(lookup_lock);
-#ifdef DEBUG_LEGION
-      assert(pending_index_spaces.find(space) == pending_index_spaces.end());
-#endif
+      legion_assert(
+          pending_index_spaces.find(space) == pending_index_spaces.end());
       pending_index_spaces[space] = RtUserEvent::NO_RT_USER_EVENT;
     }
 
@@ -12862,14 +12534,10 @@ namespace Legion {
     void Runtime::record_pending_partition(DistributedID pid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // We should be the owner for this space
-      assert((pid % total_address_spaces) == address_space);
-#endif
+      legion_assert((pid % total_address_spaces) == address_space);
       AutoLock l_lock(lookup_lock);
-#ifdef DEBUG_LEGION
-      assert(pending_partitions.find(pid) == pending_partitions.end());
-#endif
+      legion_assert(pending_partitions.find(pid) == pending_partitions.end());
       pending_partitions[pid] = RtUserEvent::NO_RT_USER_EVENT;
     }
 
@@ -12877,14 +12545,11 @@ namespace Legion {
     void Runtime::record_pending_field_space(DistributedID space)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // We should be the owner for this space
-      assert((space % total_address_spaces) == address_space);
-#endif
+      legion_assert((space % total_address_spaces) == address_space);
       AutoLock l_lock(lookup_lock);
-#ifdef DEBUG_LEGION
-      assert(pending_field_spaces.find(space) == pending_field_spaces.end());
-#endif
+      legion_assert(
+          pending_field_spaces.find(space) == pending_field_spaces.end());
       pending_field_spaces[space] = RtUserEvent::NO_RT_USER_EVENT;
     }
 
@@ -12892,14 +12557,11 @@ namespace Legion {
     void Runtime::record_pending_region_tree(RegionTreeID tid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // We should be the owner for this space
-      assert((tid % total_address_spaces) == address_space);
-#endif
+      legion_assert((tid % total_address_spaces) == address_space);
       AutoLock l_lock(lookup_lock);
-#ifdef DEBUG_LEGION
-      assert(pending_region_trees.find(tid) == pending_region_trees.end());
-#endif
+      legion_assert(
+          pending_region_trees.find(tid) == pending_region_trees.end());
       pending_region_trees[tid] = RtUserEvent::NO_RT_USER_EVENT;
     }
 
@@ -12912,9 +12574,7 @@ namespace Legion {
         AutoLock l_lock(lookup_lock);
         std::map<DistributedID, RtUserEvent>::iterator finder =
             pending_index_spaces.find(space);
-#ifdef DEBUG_LEGION
-        assert(finder != pending_index_spaces.end());
-#endif
+        legion_assert(finder != pending_index_spaces.end());
         to_trigger = finder->second;
         pending_index_spaces.erase(finder);
       }
@@ -12931,9 +12591,7 @@ namespace Legion {
         AutoLock l_lock(lookup_lock);
         std::map<DistributedID, RtUserEvent>::iterator finder =
             pending_partitions.find(pid);
-#ifdef DEBUG_LEGION
-        assert(finder != pending_partitions.end());
-#endif
+        legion_assert(finder != pending_partitions.end());
         to_trigger = finder->second;
         pending_partitions.erase(finder);
       }
@@ -12950,9 +12608,7 @@ namespace Legion {
         AutoLock l_lock(lookup_lock);
         std::map<DistributedID, RtUserEvent>::iterator finder =
             pending_field_spaces.find(space);
-#ifdef DEBUG_LEGION
-        assert(finder != pending_field_spaces.end());
-#endif
+        legion_assert(finder != pending_field_spaces.end());
         to_trigger = finder->second;
         pending_field_spaces.erase(finder);
       }
@@ -12969,9 +12625,7 @@ namespace Legion {
         AutoLock l_lock(lookup_lock);
         std::map<RegionTreeID, RtUserEvent>::iterator finder =
             pending_region_trees.find(tid);
-#ifdef DEBUG_LEGION
-        assert(finder != pending_region_trees.end());
-#endif
+        legion_assert(finder != pending_region_trees.end());
         to_trigger = finder->second;
         pending_region_trees.erase(finder);
       }
@@ -13095,9 +12749,7 @@ namespace Legion {
       // Bring them to the same depth
       while (one->depth < two->depth) two = two->get_parent();
       while (two->depth < one->depth) one = one->get_parent();
-#ifdef DEBUG_LEGION
-      assert(one->depth == two->depth);
-#endif
+      legion_assert(one->depth == two->depth);
       // Test again
       if (one == two)
       {
@@ -13114,10 +12766,8 @@ namespace Legion {
         two = parent_two;
         parent_two = two->get_parent();
       }
-#ifdef DEBUG_LEGION
-      assert(parent_one == parent_two);
-      assert(one != two);  // can't be the same child
-#endif
+      legion_assert(parent_one == parent_two);
+      legion_assert(one != two);  // can't be the same child
       // Now we have the common ancestor, see if the two children are disjoint
       if (parent_one->is_index_space_node())
       {
@@ -13160,9 +12810,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Check to see if dst is dominated by source
-#ifdef DEBUG_LEGION
-      assert(src.get_type_tag() == dst.get_type_tag());
-#endif
+      legion_assert(src.get_type_tag() == dst.get_type_tag());
       IndexSpaceNode* src_node = get_node(src);
       IndexSpaceNode* dst_node = get_node(dst);
       return src_node->dominates(dst_node);
@@ -13173,16 +12821,12 @@ namespace Legion {
         IndexSpace test, IndexPartition dominator)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(test.get_tree_id() == dominator.get_tree_id());
-#endif
+      legion_assert(test.get_tree_id() == dominator.get_tree_id());
       IndexSpaceNode* node = get_node(test);
       IndexPartNode* const dom = get_node(dominator);
       while (node->depth > (dom->depth + 1))
       {
-#ifdef DEBUG_LEGION
-        assert(node->parent != nullptr);
-#endif
+        legion_assert(node->parent != nullptr);
         node = node->parent->parent;
       }
       if (node->parent == dom)
@@ -13196,16 +12840,12 @@ namespace Legion {
         IndexPartition test, IndexSpace dominator)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(test.get_tree_id() == dominator.get_tree_id());
-#endif
+      legion_assert(test.get_tree_id() == dominator.get_tree_id());
       IndexPartNode* node = get_node(test);
       IndexSpaceNode* const dom = get_node(dominator);
       while (node->depth > (dom->depth + 1))
       {
-#ifdef DEBUG_LEGION
-        assert(node->parent != nullptr);
-#endif
+        legion_assert(node->parent != nullptr);
         node = node->parent->parent;
       }
       if (node->parent == dom)
@@ -13219,16 +12859,12 @@ namespace Legion {
         IndexPartition test, IndexPartition dominator)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(test.get_tree_id() == dominator.get_tree_id());
-#endif
+      legion_assert(test.get_tree_id() == dominator.get_tree_id());
       IndexPartNode* node = get_node(test);
       IndexPartNode* const dom = get_node(dominator);
       while (node->depth > dom->depth)
       {
-#ifdef DEBUG_LEGION
-        assert(node->parent != nullptr);
-#endif
+        legion_assert(node->parent != nullptr);
         node = node->parent->parent;
       }
       if (node == dom)
@@ -13276,7 +12912,7 @@ namespace Legion {
       unsigned depth = 0;
       while (start != finish)
       {
-        assert(start->get_depth() > finish->get_depth());
+        legion_assert(start->get_depth() > finish->get_depth());
         start = start->parent->parent;
         depth++;
       }
@@ -13289,15 +12925,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       RegionNode* start = get_node(result);
-      assert(start->parent != nullptr);
+      legion_assert(start->parent != nullptr);
       PartitionNode* finish = get_node(upper);
       unsigned depth = 0;
       while (start->parent != finish)
       {
-        assert(start->parent->get_depth() > finish->get_depth());
+        legion_assert(start->parent->get_depth() > finish->get_depth());
         start = start->parent->parent;
         depth++;
-        assert(start->parent != nullptr);
+        legion_assert(start->parent != nullptr);
       }
       return depth;
     }
@@ -13307,11 +12943,9 @@ namespace Legion {
         IndexSpaceExpression* lhs, IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lhs->type_tag == rhs->type_tag);
-      assert(lhs->is_valid());
-      assert(rhs->is_valid());
-#endif
+      legion_assert(lhs->type_tag == rhs->type_tag);
+      legion_assert(lhs->is_valid());
+      legion_assert(rhs->is_valid());
       if (lhs == rhs)
       {
         lhs->add_base_expression_reference(LIVE_EXPR_REF);
@@ -13363,11 +12997,11 @@ namespace Legion {
         const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!exprs.empty());
+      legion_assert(!exprs.empty());
+#ifdef LEGION_DEBUG
       for (SetView<IndexSpaceExpression*>::const_iterator it = exprs.begin();
            it != exprs.end(); it++)
-        assert((*it)->is_valid());
+        legion_assert((*it)->is_valid());
 #endif
       if (exprs.size() == 1)
       {
@@ -13414,9 +13048,7 @@ namespace Legion {
       if (last != expressions.end())
       {
         expressions.erase(last, expressions.end());
-#ifdef DEBUG_LEGION
-        assert(!expressions.empty());
-#endif
+        legion_assert(!expressions.empty());
         if (expressions.size() == 1)
         {
           IndexSpaceExpression* result = expressions.back();
@@ -13524,10 +13156,8 @@ namespace Legion {
         OperationCreator* creator /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(expressions.size() >= 2);
-      assert(expressions.size() <= MAX_EXPRESSION_FANOUT);
-#endif
+      legion_assert(expressions.size() >= 2);
+      legion_assert(expressions.size() <= MAX_EXPRESSION_FANOUT);
       IndexSpaceExpression* first = expressions[0];
       const IndexSpaceExprID key = first->expr_id;
       // See if we can find it in read-only mode
@@ -13568,9 +13198,7 @@ namespace Legion {
         }
         else
           node = finder->second;
-#ifdef DEBUG_LEGION
-        assert(node != nullptr);
-#endif
+        legion_assert(node != nullptr);
         return node->find_or_create_operation(expressions, union_creator);
       }
       else
@@ -13588,9 +13216,7 @@ namespace Legion {
         }
         else
           node = finder->second;
-#ifdef DEBUG_LEGION
-        assert(node != nullptr);
-#endif
+        legion_assert(node != nullptr);
         return node->find_or_create_operation(expressions, *creator);
       }
     }
@@ -13600,11 +13226,9 @@ namespace Legion {
         IndexSpaceExpression* lhs, IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lhs->type_tag == rhs->type_tag);
-      assert(lhs->is_valid());
-      assert(rhs->is_valid());
-#endif
+      legion_assert(lhs->type_tag == rhs->type_tag);
+      legion_assert(lhs->is_valid());
+      legion_assert(rhs->is_valid());
       if (lhs == rhs)
       {
         lhs->add_base_expression_reference(LIVE_EXPR_REF);
@@ -13656,11 +13280,11 @@ namespace Legion {
         const SetView<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!exprs.empty());
+      legion_assert(!exprs.empty());
+#ifdef LEGION_DEBUG
       for (SetView<IndexSpaceExpression*>::const_iterator it = exprs.begin();
            it != exprs.end(); it++)
-        assert((*it)->is_valid());
+        legion_assert((*it)->is_valid());
 #endif
       if (exprs.size() == 1)
       {
@@ -13700,9 +13324,7 @@ namespace Legion {
       if (last != expressions.end())
       {
         expressions.erase(last, expressions.end());
-#ifdef DEBUG_LEGION
-        assert(!expressions.empty());
-#endif
+        legion_assert(!expressions.empty());
         if (expressions.size() == 1)
         {
           IndexSpaceExpression* result = expressions.back();
@@ -13826,10 +13448,8 @@ namespace Legion {
         OperationCreator* creator /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(expressions.size() >= 2);
-      assert(expressions.size() <= MAX_EXPRESSION_FANOUT);
-#endif
+      legion_assert(expressions.size() >= 2);
+      legion_assert(expressions.size() <= MAX_EXPRESSION_FANOUT);
       IndexSpaceExpression* first = expressions[0];
       const IndexSpaceExprID key = first->expr_id;
       // See if we can find it in read-only mode
@@ -13871,9 +13491,7 @@ namespace Legion {
         }
         else
           node = finder->second;
-#ifdef DEBUG_LEGION
-        assert(node != nullptr);
-#endif
+        legion_assert(node != nullptr);
         return node->find_or_create_operation(expressions, inter_creator);
       }
       else
@@ -13892,9 +13510,7 @@ namespace Legion {
         }
         else
           node = finder->second;
-#ifdef DEBUG_LEGION
-        assert(node != nullptr);
-#endif
+        legion_assert(node != nullptr);
         return node->find_or_create_operation(expressions, *creator);
       }
     }
@@ -13905,11 +13521,9 @@ namespace Legion {
         OperationCreator* creator /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lhs->type_tag == rhs->type_tag);
-      assert(lhs->is_valid());
-      assert(rhs->is_valid());
-#endif
+      legion_assert(lhs->type_tag == rhs->type_tag);
+      legion_assert(lhs->is_valid());
+      legion_assert(rhs->is_valid());
       // Handle a few easy cases
       if (creator == nullptr)
       {
@@ -13984,9 +13598,7 @@ namespace Legion {
           }
           else
             node = finder->second;
-#ifdef DEBUG_LEGION
-          assert(node != nullptr);
-#endif
+          legion_assert(node != nullptr);
           result = node->find_or_create_operation(expressions, diff_creator);
         }
         else
@@ -14005,9 +13617,7 @@ namespace Legion {
           }
           else
             node = finder->second;
-#ifdef DEBUG_LEGION
-          assert(node != nullptr);
-#endif
+          legion_assert(node != nullptr);
           result = node->find_or_create_operation(expressions, *creator);
         }
       }
@@ -14039,16 +13649,8 @@ namespace Legion {
       AutoLock c_lock(congruence_lock);
       std::unordered_map<uint64_t, CanonicalSet>::iterator finder =
           canonical_expressions.find(hash_key);
-#ifdef DEBUG_LEGION
-      assert(finder != canonical_expressions.end());
-#ifndef NDEBUG
-      const bool found =
-#endif
-#endif
-          finder->second.erase(expr);
-#ifdef DEBUG_LEGION
-      assert(found);
-#endif
+      legion_assert(finder != canonical_expressions.end());
+      legion_no_skip_assert(finder->second.erase(expr));
       if (finder->second.empty())
         canonical_expressions.erase(finder);
     }
@@ -14067,16 +13669,12 @@ namespace Legion {
         const std::vector<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(op->op_kind == IndexSpaceOperation::UNION_OP_KIND);
-#endif
+      legion_assert(op->op_kind == IndexSpaceOperation::UNION_OP_KIND);
       const IndexSpaceExprID key = exprs[0]->expr_id;
       AutoLock l_lock(lookup_is_op_lock);
       std::map<IndexSpaceExprID, ExpressionTrieNode*>::iterator finder =
           union_ops.find(key);
-#ifdef DEBUG_LEGION
-      assert(finder != union_ops.end());
-#endif
+      legion_assert(finder != union_ops.end());
       if (finder->second->remove_operation(exprs))
       {
         delete finder->second;
@@ -14090,16 +13688,12 @@ namespace Legion {
         const std::vector<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(op->op_kind == IndexSpaceOperation::INTERSECT_OP_KIND);
-#endif
+      legion_assert(op->op_kind == IndexSpaceOperation::INTERSECT_OP_KIND);
       const IndexSpaceExprID key(exprs[0]->expr_id);
       AutoLock l_lock(lookup_is_op_lock);
       std::map<IndexSpaceExprID, ExpressionTrieNode*>::iterator finder =
           intersection_ops.find(key);
-#ifdef DEBUG_LEGION
-      assert(finder != intersection_ops.end());
-#endif
+      legion_assert(finder != intersection_ops.end());
       if (finder->second->remove_operation(exprs))
       {
         delete finder->second;
@@ -14113,9 +13707,7 @@ namespace Legion {
         IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(op->op_kind == IndexSpaceOperation::DIFFERENCE_OP_KIND);
-#endif
+      legion_assert(op->op_kind == IndexSpaceOperation::DIFFERENCE_OP_KIND);
       const IndexSpaceExprID key = lhs->expr_id;
       std::vector<IndexSpaceExpression*> exprs(2);
       exprs[0] = lhs;
@@ -14123,9 +13715,7 @@ namespace Legion {
       AutoLock l_lock(lookup_is_op_lock);
       std::map<IndexSpaceExprID, ExpressionTrieNode*>::iterator finder =
           difference_ops.find(key);
-#ifdef DEBUG_LEGION
-      assert(finder != difference_ops.end());
-#endif
+      legion_assert(finder != difference_ops.end());
       if (finder->second->remove_operation(exprs))
       {
         delete finder->second;
@@ -14166,9 +13756,7 @@ namespace Legion {
       derez.deserialize(type_tag);
       RemoteExpressionCreator creator(remote_expr_id, type_tag, derez);
       NT_TemplateHelper::demux<RemoteExpressionCreator>(type_tag, &creator);
-#ifdef DEBUG_LEGION
-      assert(creator.operation != nullptr);
-#endif
+      legion_assert(creator.operation != nullptr);
       remote_expressions[remote_expr_id] = creator.operation;
       return creator.operation;
     }
@@ -14212,7 +13800,7 @@ namespace Legion {
     void Runtime::free_region_tree_context(ContextID context)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       check_region_tree_context(context);
 #endif
       AutoLock ctx_lock(context_lock);
@@ -14223,9 +13811,7 @@ namespace Legion {
     bool Runtime::is_local(Processor proc) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(proc.exists());
-#endif
+      legion_assert(proc.exists());
       return (proc.address_space() == address_space);
     }
 
@@ -14235,9 +13821,7 @@ namespace Legion {
     {
       std::map<Processor, ProcessorManager*>::const_iterator finder =
           proc_managers.find(proc);
-#ifdef DEBUG_LEGION
-      assert(finder != proc_managers.end());
-#endif
+      legion_assert(finder != proc_managers.end());
       return finder->second;
     }
 
@@ -14381,12 +13965,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexTreeID result = unique_index_tree_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
       // check for overflow
       // If we have overflow on the number of region trees
       // created then we are really in a bad place.
-      assert(result <= unique_index_tree_id);
-#endif
+      legion_assert(result <= unique_index_tree_id);
       return result;
     }
 
@@ -14403,10 +13985,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       UniqueID result = unique_operation_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
       // check for overflow
-      assert(result <= unique_operation_id);
-#endif
+      legion_assert(result <= unique_operation_id);
       return result;
     }
 
@@ -14415,10 +13995,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldID result = unique_field_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
       // check for overflow
-      assert(result <= unique_field_id);
-#endif
+      legion_assert(result <= unique_field_id);
       return result;
     }
 
@@ -14428,10 +14006,8 @@ namespace Legion {
     {
       CodeDescriptorID result =
           unique_code_descriptor_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
       // check for overflow
-      assert(result <= unique_code_descriptor_id);
-#endif
+      legion_assert(result <= unique_code_descriptor_id);
       return result;
     }
 
@@ -14441,10 +14017,8 @@ namespace Legion {
     {
       LayoutConstraintID result =
           unique_constraint_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
       // check for overflow
-      assert(result <= unique_constraint_id);
-#endif
+      legion_assert(result <= unique_constraint_id);
       return result;
     }
 
@@ -14453,10 +14027,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexSpaceExprID result = unique_is_expr_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
       // check for overflow
-      assert(result <= unique_is_expr_id);
-#endif
+      legion_assert(result <= unique_is_expr_id);
       return result;
     }
 
@@ -14465,9 +14037,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       uint64_t result = unique_top_level_task_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
-      assert(result < unique_top_level_task_id);
-#endif
+      legion_assert(result < unique_top_level_task_id);
       return result;
     }
 
@@ -14478,9 +14048,7 @@ namespace Legion {
       // These count the same across all the nodes and don't need to be
       // atomic since it's up to the caller to guard againt concurrency here
       uint64_t result = unique_implicit_top_level_task_id++;
-#ifdef DEBUG_LEGION
-      assert(result < unique_implicit_top_level_task_id);
-#endif
+      legion_assert(result < unique_implicit_top_level_task_id);
       return result;
     }
 
@@ -14490,10 +14058,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       unsigned result = unique_indirections_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
       // check for overflow
-      assert(result <= unique_indirections_id);
-#endif
+      legion_assert(result <= unique_indirections_id);
       return result;
     }
 #endif
@@ -14701,9 +14267,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       LayoutConstraints* constraints = find_layout_constraints(layout_id);
-#ifdef DEBUG_LEGION
-      assert(!constraints->internal);
-#endif
+      legion_assert(!constraints->internal);
       // Check to see if this is the owner
       if (constraints->is_owner())
       {
@@ -14892,9 +14456,7 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-#ifdef DEBUG_LEGION
-        assert(finder != layout_constraints_table.end());
-#endif
+        legion_assert(finder != layout_constraints_table.end());
       }
       return finder->second;
     }
@@ -14987,15 +14549,13 @@ namespace Legion {
       const Processor first_proc = configure_runtime(
           argc, argv, config, realm, local_procs, background,
           supply_default_mapper);
-#ifdef DEBUG_LEGION
       // Startup kind should be a CPU or a Utility processor
-      assert(
+      legion_assert(
           (first_proc.kind() == Processor::LOC_PROC) ||
           (first_proc.kind() == Processor::UTIL_PROC));
       // First processor should be on node zero
-      assert(first_proc.address_space() == 0);
-      assert(!local_procs.empty());
-#endif
+      legion_assert(first_proc.address_space() == 0);
+      legion_assert(!local_procs.empty());
       // Configure MPI Interoperability
       const std::vector<LegionHandshake>& pending_handshakes =
           get_pending_handshake_table();
@@ -15058,9 +14618,7 @@ namespace Legion {
       {
         if (legion_main_set)
         {
-#ifdef DEBUG_LEGION
-          assert(top_context != nullptr);
-#endif
+          legion_assert(top_context != nullptr);
           TaskLauncher launcher(
               Runtime::legion_main_id,
               UntypedBuffer(&runtime->input_args, sizeof(InputArgs)),
@@ -15091,16 +14649,8 @@ namespace Legion {
       RealmRuntime realm = RealmRuntime::get_runtime();
       if (!runtime_initialized)
       {
-#ifndef NDEBUG
-        bool ok =
-#endif
-            realm.network_init(argc, argv);
-        assert(ok);
-#ifndef NDEBUG
-        ok =
-#endif
-            realm.create_configs(*argc, *argv);
-        assert(ok);
+        legion_no_skip_assert(realm.network_init(argc, argv));
+        legion_no_skip_assert(realm.create_configs(*argc, *argv));
         runtime_initialized = true;
       }
       if (runtime_cmdline_parsed || !parse)
@@ -15127,24 +14677,24 @@ namespace Legion {
           {
             // single quoted string
             e++;
-            assert(*e);
+            legion_assert(*e);
             starts = e;
             // read until next single quote
             while (*e && (*e != '\'')) e++;
             cmdline.emplace_back(std::string(starts, size_t(e++ - starts)));
-            assert(!*e || isspace(*e));
+            legion_assert(!*e || isspace(*e));
             continue;
           }
           if (*e == '\"')
           {
             // double quoted string
             e++;
-            assert(*e);
+            legion_assert(*e);
             starts = e;
             // read until next double quote
             while (*e && (*e != '\"')) e++;
             cmdline.emplace_back(std::string(starts, size_t(e++ - starts)));
-            assert(!*e || isspace(*e));
+            legion_assert(!*e || isspace(*e));
             continue;
           }
           // no quotes - just take until next whitespace
@@ -15223,9 +14773,7 @@ namespace Legion {
           .add_option_int("-lg:delay", config.delay_start, !filter)
           .add_option_string("-lg:replay", config.replay_file, !filter)
           .add_option_string("-lg:ldb", config.ldb_file, !filter)
-#ifdef DEBUG_LEGION
           .add_option_bool("-lg:verbose", config.verbose_logging, !filter)
-#endif
           .add_option_int("-lg:prof", config.num_profiling_nodes, !filter)
           .add_option_string("-lg:serializer", config.serializer_type, !filter)
           .add_option_string("-lg:prof_logfile", config.prof_logfile, !filter)
@@ -15270,9 +14818,7 @@ namespace Legion {
           .add_option_int("-hl:delay", config.delay_start, !filter)
           .add_option_string("-hl:replay", config.replay_file, !filter)
           .add_option_string("-hl:ldb", config.ldb_file, !filter)
-#ifdef DEBUG_LEGION
           .add_option_bool("-hl:verbose", config.verbose_logging, !filter)
-#endif
           .add_option_int("-hl:prof", config.num_profiling_nodes, !filter)
           .add_option_string("-hl:serializer", config.serializer_type, !filter)
           .add_option_string("-hl:prof_logfile", config.prof_logfile, !filter)
@@ -15289,11 +14835,11 @@ namespace Legion {
             const char* str = cmdline[idx].c_str();
             // Find the location of this string in the original
             // arguments to so that we can get its original pointer
-            assert(arg_index < num_args);
+            legion_assert(arg_index < num_args);
             while (strcmp(str, (*argv)[arg_index]) != 0)
             {
               arg_index++;
-              assert(arg_index < num_args);
+              legion_assert(arg_index < num_args);
             }
             // Now that we've got it's original pointer we can move
             // it to the new location in the outputs
@@ -15412,9 +14958,7 @@ namespace Legion {
         const TaskLauncher& launcher, TopLevelContext* top_context)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_procs.empty());
-#endif
+      legion_assert(!local_procs.empty());
       // Find a target processor, we'll prefer a CPU processor for
       // backwards compatibility, but will take anything we get
       Processor target = Processor::NO_PROC;
@@ -15429,9 +14973,7 @@ namespace Legion {
         else if (!target.exists())
           target = *it;
       }
-#ifdef DEBUG_LEGION
-      assert(target.exists());
-#endif
+      legion_assert(target.exists());
       if (top_context == nullptr)
         top_context = new TopLevelContext(
             target, get_unique_top_level_task_id(), 0 /*implicit*/);
@@ -15518,9 +15060,7 @@ namespace Legion {
       AutoLock s_lock(shard_lock);
       std::map<TaskID, ImplicitShardManager*>::iterator finder =
           implicit_shard_managers.find(top_task_id);
-#ifdef DEBUG_LEGION
-      assert(finder != implicit_shard_managers.end());
-#endif
+      legion_assert(finder != implicit_shard_managers.end());
       implicit_shard_managers.erase(finder);
     }
 
@@ -15567,9 +15107,7 @@ namespace Legion {
       Processor proxy = Processor::get_executing_processor();
       if (!proxy.exists())
       {
-#ifdef DEBUG_LEGION
-        assert(!local_procs.empty());
-#endif
+        legion_assert(!local_procs.empty());
         for (std::set<Processor>::const_iterator it = local_procs.begin();
              it != local_procs.end(); it++)
         {
@@ -15580,11 +15118,9 @@ namespace Legion {
           }
         }
       }
-#ifdef DEBUG_LEGION
       // TODO: remove this once realm supports drafting this thread
       // as a new kind of processor to use
-      assert(proxy.exists());
-#endif
+      legion_assert(proxy.exists());
       SingleTask* local_task = nullptr;
       // Now that the runtime is started we can make our context
       if (control_replicable && (total_address_spaces > 1))
@@ -15606,11 +15142,7 @@ namespace Legion {
         // Increment the pending count here
         local_task->get_context()->increment_pending();
       }
-#ifdef DEBUG_LEGION
       increment_total_outstanding_tasks(top_task_id, false);
-#else
-      increment_total_outstanding_tasks();
-#endif
       InnerContext* execution_context = local_task->create_implicit_context();
       execution_context->begin_task(proxy);
       return execution_context;
@@ -15677,7 +15209,7 @@ namespace Legion {
         const LegionConfiguration& config)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       if (config.num_profiling_nodes > 0)
       {
         // Give a massive warning about profiling with debug enabled
@@ -16186,9 +15718,7 @@ namespace Legion {
             ERROR_STATIC_CALL_POST_RUNTIME_START,
             "Illegal call to 'configure_MPI_interoperability' after "
             "the runtime has been started!");
-#ifdef DEBUG_LEGION
-      assert(rank >= 0);
-#endif
+      legion_assert(rank >= 0);
       // Check to see if it was already set
       if (mpi_rank >= 0)
       {
@@ -16239,11 +15769,9 @@ namespace Legion {
       {
         ReductionOpTable& red_table =
             Runtime::get_reduction_table(true /*safe*/);
-#ifdef DEBUG_LEGION
         if (red_table.find(redop_id) == red_table.end())
           REPORT_LEGION_ERROR(
               ERROR_INVALID_REDOP_ID, "Invalid ReductionOpID %d", redop_id)
-#endif
         return red_table[redop_id];
       }
       else
@@ -16277,9 +15805,7 @@ namespace Legion {
         return finder->second;
       const ReductionOp* reduction_op =
           get_reduction_op(redop, true /*has lock*/);
-#ifdef DEBUG_LEGION
-      assert(reduction_op->identity != nullptr);
-#endif
+      legion_assert(reduction_op->identity != nullptr);
       FillView* fill_view = new FillView(
           get_available_distributed_id(),
 #ifdef LEGION_SPY
@@ -16303,11 +15829,9 @@ namespace Legion {
       if (!runtime_started || has_lock)
       {
         SerdezOpTable& serdez_table = Runtime::get_serdez_table(true /*safe*/);
-#ifdef DEBUG_LEGION
         if (serdez_table.find(serdez_id) == serdez_table.end())
           REPORT_LEGION_ERROR(
               ERROR_INVALID_SERDEZ_ID, "Invalid CustomSerdezOpID %d", serdez_id)
-#endif
         return serdez_table[serdez_id];
       }
       else
@@ -16542,9 +16066,7 @@ namespace Legion {
         red_table[redop_id] = redop;
         if ((init_fnptr != nullptr) || (fold_fnptr != nullptr))
         {
-#ifdef DEBUG_LEGION
-          assert((init_fnptr != nullptr) && (fold_fnptr != nullptr));
-#endif
+          legion_assert((init_fnptr != nullptr) && (fold_fnptr != nullptr));
           SerdezRedopTable& serdez_red_table =
               Runtime::get_serdez_redop_table(true /*safe*/);
           SerdezRedopFns& fns = serdez_red_table[redop_id];
@@ -16882,16 +16404,15 @@ namespace Legion {
         Processor p)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
 #if (!defined(LEGION_MALLOC_INSTANCES) && !defined(LEGION_USE_CUDA)) || \
     (!defined(LEGION_MALLOC_INSTANCES) && !defined(LEGION_USE_HIP))
       // Meta-tasks can run on application processors only when there
       // are no utility processors for us to use
-      if (!runtime->local_utils.empty())
-        assert(implicit_context == nullptr);  // this better hold
+      legion_assert(
+          runtime->local_utils.empty() ||
+          (implicit_context == nullptr));  // this better hold
 #endif
-      assert(implicit_reference_tracker == nullptr);
-#endif
+      legion_assert(implicit_reference_tracker == nullptr);
       // We immediately bump the priority of all meta-tasks once they start
       // up to the highest level to ensure that they drain once they begin
       Processor::set_current_task_priority(LG_RUNNING_PRIORITY);
@@ -17389,13 +16910,8 @@ namespace Legion {
         delete implicit_reference_tracker;
         implicit_reference_tracker = nullptr;
       }
-#ifdef DEBUG_LEGION
       if (tid < LG_BEGIN_SHUTDOWN_TASK_IDS)
         runtime->decrement_total_outstanding_tasks(tid, true /*meta*/);
-#else
-      if (tid < LG_BEGIN_SHUTDOWN_TASK_IDS)
-        runtime->decrement_total_outstanding_tasks();
-#endif
 #ifdef DEBUG_SHUTDOWN_HANG
       runtime->outstanding_counts[tid].fetch_sub(1);
 #endif
@@ -17422,9 +16938,7 @@ namespace Legion {
       if (base->handler == nullptr)
       {
         // This is the remote message case
-#ifdef DEBUG_LEGION
-        assert(runtime->profiler != nullptr);
-#endif
+        legion_assert(runtime->profiler != nullptr);
         const long long t_start = Realm::Clock::current_time_in_nanoseconds();
         // Check to see if should report this profiling
         if (runtime->profiler->handle_profiling_response(
@@ -17462,9 +16976,7 @@ namespace Legion {
     void Runtime::broadcast_startup_barrier(RtBarrier startup_barrier)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(startup_barrier.exists());
-#endif
+      legion_assert(startup_barrier.exists());
       // Make sure the representation of the barriers haven't changed
       static_assert(
           sizeof(startup_barrier) ==
@@ -17526,9 +17038,7 @@ namespace Legion {
         Processor p)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == nullptr);
-#endif
+      legion_assert(implicit_reference_tracker == nullptr);
       if (runtime->profiler != nullptr)
       {
         implicit_fevent = LgEvent(Processor::get_current_finish_event());
@@ -17596,11 +17106,7 @@ namespace Legion {
         delete implicit_reference_tracker;
         implicit_reference_tracker = nullptr;
       }
-#ifdef DEBUG_LEGION
       runtime->decrement_total_outstanding_tasks(tid, true /*meta*/);
-#else
-      runtime->decrement_total_outstanding_tasks();
-#endif
 #ifdef DEBUG_SHUTDOWN_HANG
       runtime->outstanding_counts[tid].fetch_sub(1);
 #endif

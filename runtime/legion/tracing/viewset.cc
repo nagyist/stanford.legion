@@ -91,9 +91,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(view->is_individual_view());
-#endif
+        legion_assert(view->is_individual_view());
         const char* mem_names[] = {
 #define MEM_NAMES(name, desc) #name,
             REALM_MEMORY_KINDS(MEM_NAMES)
@@ -186,11 +184,9 @@ namespace Legion {
       const size_t expr_volume = expr->get_volume();
       if (expr != total_expr)
       {
-#ifdef DEBUG_LEGION
         // This is a necessary but not sufficient condition for dominance
         // If we need to we can put in the full intersection test later
-        assert(expr_volume <= total_expr->get_volume());
-#endif
+        legion_assert(expr_volume <= total_expr->get_volume());
         // Recognize total expressions when they get here
         if (expr_volume == total_expr->get_volume())
           expr = total_expr;
@@ -348,11 +344,9 @@ namespace Legion {
       }
       const size_t expr_volume = expr->get_volume();
       IndexSpaceExpression* const total_expr = expression;
-#ifdef DEBUG_LEGION
       // This is a necessary but not sufficient condition for dominance
       // If we need to we can put in the full intersection test later
-      assert(expr_volume <= total_expr->get_volume());
-#endif
+      legion_assert(expr_volume <= total_expr->get_volume());
       if ((expr == total_expr) || (expr_volume == total_expr->get_volume()))
       {
         // Expr covers the whole instance so no need to do intersections
@@ -565,19 +559,15 @@ namespace Legion {
         FieldMask& non_dominated) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!non_dominated);
-#endif
+      legion_assert(!!non_dominated);
       // If this is for an empty equivalence set then it doesn't matter
       if (expr->is_empty())
         return true;
       const size_t expr_volume = expr->get_volume();
       IndexSpaceExpression* const total_expr = expression;
-#ifdef DEBUG_LEGION
       // This is a necessary but not sufficient condition for dominance
       // If we need to we can put in the full intersection test later
-      assert(expr_volume <= total_expr->get_volume());
-#endif
+      legion_assert(expr_volume <= total_expr->get_volume());
       if (expr_volume == total_expr->get_volume())
         expr = total_expr;
       ViewExprs::const_iterator finder = conditions.find(view);
@@ -622,9 +612,7 @@ namespace Legion {
             return true;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(!!non_dominated);
-#endif
+      legion_assert(!!non_dominated);
       // If we couldn't find it directly then we need to deal with aliasing
       if (view->is_collective_view())
       {
@@ -704,19 +692,15 @@ namespace Legion {
             non_dominated) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(non_dominated.empty());
-#endif
+      legion_assert(non_dominated.empty());
       // If this is for an empty equivalence set then it doesn't matter
       if (expr->is_empty())
         return;
       const size_t expr_volume = expr->get_volume();
       IndexSpaceExpression* const total_expr = expression;
-#ifdef DEBUG_LEGION
       // This is a necessary but not sufficient condition for dominance
       // If we need to we can put in the full intersection test later
-      assert(expr_volume <= total_expr->get_volume());
-#endif
+      legion_assert(expr_volume <= total_expr->get_volume());
       if (expr_volume == total_expr->get_volume())
         expr = total_expr;
       ViewExprs::const_iterator finder = conditions.find(view);
@@ -780,9 +764,7 @@ namespace Legion {
       }
       else
         non_dominated[view].insert(expr, mask);
-#ifdef DEBUG_LEGION
-      assert(!non_dominated.empty());
-#endif
+      legion_assert(!non_dominated.empty());
       local::FieldMaskMap<IndexSpaceExpression>& non_view = non_dominated[view];
       // Now do the checks for any aliasing with collective views
       if (view->is_collective_view())
@@ -1181,9 +1163,7 @@ namespace Legion {
             target) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target.empty());
-#endif
+      legion_assert(target.empty());
       for (ViewExprs::const_iterator vit = conditions.begin();
            vit != conditions.end(); ++vit)
         for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
@@ -1287,9 +1267,7 @@ namespace Legion {
               // We dominate the expression so add ourselves and compute diff
               disjoint_components[idx].emplace_back(*isit);
               current = runtime->subtract_index_spaces(current, intersection);
-#ifdef DEBUG_LEGION
-              assert(!current->is_empty());
-#endif
+              legion_assert(!current->is_empty());
             }
             else
             {
@@ -1305,9 +1283,7 @@ namespace Legion {
               disjoint_expressions[idx] =
                   runtime->subtract_index_spaces(expr, intersection);
               current = runtime->subtract_index_spaces(current, intersection);
-#ifdef DEBUG_LEGION
-              assert(!current->is_empty());
-#endif
+              legion_assert(!current->is_empty());
             }
           }
           if (current != nullptr)
@@ -1328,9 +1304,7 @@ namespace Legion {
                    disjoint_components[idx].begin();
                sit != disjoint_components[idx].end(); sit++)
           {
-#ifdef DEBUG_LEGION
-            assert(intermediate.find(*sit) != intermediate.end());
-#endif
+            legion_assert(intermediate.find(*sit) != intermediate.end());
             const local::FieldMaskMap<LogicalView>& src_views =
                 intermediate[*sit];
             for (local::FieldMaskMap<LogicalView>::const_iterator it =
@@ -1608,9 +1582,7 @@ namespace Legion {
         std::vector<DistributedID> dids = it->first->instances;
         std::vector<DistributedID>::iterator finder =
             std::find(dids.begin(), dids.end(), view->manager->did);
-#ifdef DEBUG_LEGION
-        assert(finder != dids.end());
-#endif
+        legion_assert(finder != dids.end());
         dids.erase(finder);
         RtEvent ready;
         if (dids.size() > 1)
@@ -1645,9 +1617,7 @@ namespace Legion {
             individual_finder = individual_results.find(rit->first);
         if (individual_finder == individual_results.end())
         {
-#ifdef DEBUG_LEGION
-          assert(results.find(rit->first) != results.end());
-#endif
+          legion_assert(results.find(rit->first) != results.end());
           // Common case
           InnerContext::CollectiveResult* result = results[rit->first];
           // Then wait for the collective view to be registered
@@ -1780,9 +1750,7 @@ namespace Legion {
           alias_analysis.traverse(current, view_overlap, null_expr);
           if (intersection.size() == current->instances.size())
           {
-#ifdef DEBUG_LEGION
-            assert(intersection.size() < collective->instances.size());
-#endif
+            legion_assert(intersection.size() < collective->instances.size());
             vit++;
           }
           else
@@ -1902,9 +1870,7 @@ namespace Legion {
         const std::vector<DistributedID>& dids)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!dids.empty());
-#endif
+      legion_assert(!dids.empty());
       if (dids.size() > 1)
       {
         RtEvent ready;

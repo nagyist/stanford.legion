@@ -35,9 +35,7 @@ namespace Legion {
       : SingleTask(), shard_id(id)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(proc.address_space() == runtime->address_space);
-#endif
+      legion_assert(proc.address_space() == runtime->address_space);
       SingleTask::activate();
       set_current_proc(proc);  // do this before clone_single_from
       if (source != nullptr)
@@ -67,9 +65,7 @@ namespace Legion {
       : SingleTask(), shard_id(id)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(proc.address_space() == runtime->address_space);
-#endif
+      legion_assert(proc.address_space() == runtime->address_space);
       SingleTask::activate();
       set_current_proc(proc);
       stealable = false;
@@ -100,9 +96,7 @@ namespace Legion {
     ShardTask::~ShardTask(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shard_manager == nullptr);
-#endif
+      legion_assert(shard_manager == nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -271,10 +265,8 @@ namespace Legion {
             get_task_name(), get_unique_id(), input.shard_variant)
       if (!is_leaf() && !regions.empty() && runtime->safe_mapper)
       {
-#ifdef DEBUG_LEGION
-        assert(mapper != nullptr);
-        assert(regions.size() == virtual_mapped.size());
-#endif
+        legion_assert(mapper != nullptr);
+        legion_assert(regions.size() == virtual_mapped.size());
         // If this is not a leaf shard then check that all the shards agree
         // on which regions are going to be virtually mapped and which aren't
         shard_manager->rendezvous_check_virtual_mappings(
@@ -370,9 +362,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-#ifdef DEBUG_LEGION
-      assert(!single_task_termination.exists());
-#endif
+      legion_assert(!single_task_termination.exists());
       unpack_single_task(derez, ready_events);
       parent_ctx = InnerContext::unpack_inner_context(derez);
       set_current_proc(current);
@@ -394,9 +384,7 @@ namespace Legion {
         bool own_functor)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(functor == nullptr);
-#endif
+      legion_assert(functor == nullptr);
       if ((instance != nullptr) && (instance->size > 0))
         check_future_return_bounds(instance);
       if (shard_manager->handle_future(effects, instance, metadata, metasize) &&
@@ -495,12 +483,10 @@ namespace Legion {
             get_unique_id());
       if (!leaf_task)
       {
-#ifdef DEBUG_LEGION
         // Should have checked that we don't have any output regions here
-        assert(output_regions.empty());
-        assert(virtual_mapped.size() == regions.size());
-        assert(parent_req_indexes.size() == regions.size());
-#endif
+        legion_assert(output_regions.empty());
+        legion_assert(virtual_mapped.size() == regions.size());
+        legion_assert(parent_req_indexes.size() == regions.size());
         // If we have a control replication context then we do the special path.
         const Mapper::ContextConfigOutput& configuration =
             shard_manager->context_configuration;
@@ -597,9 +583,7 @@ namespace Legion {
         ResourceTracker* target, std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(execution_context != nullptr);
-#endif
+      legion_assert(execution_context != nullptr);
       execution_context->return_resources(target, context_index, preconditions);
     }
 
@@ -608,9 +592,7 @@ namespace Legion {
         std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(execution_context != nullptr);
-#endif
+      legion_assert(execution_context != nullptr);
       execution_context->report_leaks_and_duplicates(preconditions);
     }
 
@@ -720,15 +702,8 @@ namespace Legion {
     ReplicateContext* ShardTask::get_replicate_context(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(execution_context != nullptr);
-      ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(execution_context);
-      assert(repl_ctx != nullptr);
-      return repl_ctx;
-#else
-      return static_cast<ReplicateContext*>(execution_context);
-#endif
+      legion_assert(execution_context != nullptr);
+      return legion_safe_cast<ReplicateContext*>(execution_context);
     }
 
     //--------------------------------------------------------------------------

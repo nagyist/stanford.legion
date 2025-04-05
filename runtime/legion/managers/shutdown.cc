@@ -88,9 +88,7 @@ namespace Legion {
         if (result && !success)
           result = false;
         wait_for.insert(to_add.begin(), to_add.end());
-#ifdef DEBUG_LEGION
-        assert(needed_responses > 0);
-#endif
+        legion_assert(needed_responses > 0);
         needed_responses--;
         done = (needed_responses == 0);
       }
@@ -155,9 +153,7 @@ namespace Legion {
       }
       else if (runtime->address_space != source)
       {
-#ifdef DEBUG_LEGION
-        assert(owner != nullptr);
-#endif
+        legion_assert(owner != nullptr);
         // Send the message back
         Serializer rez;
         rez.serialize(owner);
@@ -171,9 +167,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!result);
-#endif
+        legion_assert(!result);
         log_shutdown.info("FAILED SHUTDOWN PHASE %d! Trying again...", phase);
         RtEvent precondition;
         if (!wait_for.empty())

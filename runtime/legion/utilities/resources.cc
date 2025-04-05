@@ -866,17 +866,13 @@ namespace Legion {
       {
         if (!created_fields.empty())
         {
-#ifdef DEBUG_LEGION
           for (std::set<std::pair<FieldSpace, FieldID> >::const_iterator it =
                    created_fids.begin();
                it != created_fids.end(); it++)
           {
-            assert(created_fields.find(*it) == created_fields.end());
+            legion_assert(created_fields.find(*it) == created_fields.end());
             created_fields.insert(*it);
           }
-#else
-          created_fields.insert(created_fids.begin(), created_fids.end());
-#endif
         }
         else
           created_fields.swap(created_fids);

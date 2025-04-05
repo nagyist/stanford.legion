@@ -28,9 +28,7 @@ namespace Legion {
       return false;
     if (tid != rhs.tid)
       return false;
-#ifdef DEBUG_LEGION
     assert(type_tag == rhs.type_tag);
-#endif
     return true;
   }
 
@@ -136,9 +134,7 @@ namespace Legion {
       return false;
     if (tid != rhs.tid)
       return false;
-#ifdef DEBUG_LEGION
     assert(type_tag == rhs.type_tag);
-#endif
     return true;
   }
 

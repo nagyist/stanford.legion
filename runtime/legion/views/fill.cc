@@ -68,9 +68,7 @@ namespace Legion {
         collective_first_active((map != nullptr) && map->contains(local_space))
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(value_size > 0);
-#endif
+      legion_assert(value_size > 0);
       memcpy(value.load(), val, size);
 #ifdef LEGION_GC
       log_garbage.info(
@@ -105,10 +103,8 @@ namespace Legion {
     void FillView::send_view(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-      assert(collective_mapping == nullptr);
-#endif
+      legion_assert(is_owner());
+      legion_assert(collective_mapping == nullptr);
       Serializer rez;
       {
         RezCheck z(rez);
@@ -195,9 +191,7 @@ namespace Legion {
         if (wait_on.exists())
           wait_on.wait();
       }
-#ifdef DEBUG_LEGION
-      assert(value != nullptr);
-#endif
+      legion_assert(value != nullptr);
       return other->matches(value, value_size);
     }
 
@@ -219,9 +213,7 @@ namespace Legion {
         if (wait_on.exists())
           wait_on.wait();
       }
-#ifdef DEBUG_LEGION
-      assert(value != nullptr);
-#endif
+      legion_assert(value != nullptr);
       if (value_size != size)
         return false;
       return (memcmp(value, other, value_size) == 0);
@@ -231,12 +223,10 @@ namespace Legion {
     bool FillView::set_value(const void* val, size_t size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(size > 0);
-      assert(val != nullptr);
-      assert(value.load() == nullptr);
-      assert(value_size.load() == 0);
-#endif
+      legion_assert(size > 0);
+      legion_assert(val != nullptr);
+      legion_assert(value.load() == nullptr);
+      legion_assert(value_size.load() == 0);
       void* result = malloc(size);
       memcpy(result, val, size);
       // Take the lock and sent out any notifications

@@ -92,10 +92,8 @@ namespace Legion {
       // Check for WAR or WAW with write-only
       if (IS_READ_ONLY(u1))
       {
-#ifdef DEBUG_LEGION
         // We know at least req1 or req2 is a writers, so if req1 is not...
-        assert(HAS_WRITE(u2));
-#endif
+        legion_assert(HAS_WRITE(u2));
         return LEGION_ANTI_DEPENDENCE;
       }
       else
@@ -153,9 +151,7 @@ namespace Legion {
       else
       {
         // Everything in here has at least one write
-#ifdef DEBUG_LEGION
-        assert(HAS_WRITE(u1) || HAS_WRITE(u2));
-#endif
+        legion_assert(HAS_WRITE(u1) || HAS_WRITE(u2));
         // If anything exclusive
         if (IS_EXCLUSIVE(u1) || IS_EXCLUSIVE(u2))
         {

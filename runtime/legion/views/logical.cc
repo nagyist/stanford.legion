@@ -36,9 +36,7 @@ namespace Legion {
     LogicalView::~LogicalView(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(valid_references == 0);
-#endif
+      legion_assert(valid_references == 0);
     }
 
     //--------------------------------------------------------------------------
@@ -51,12 +49,7 @@ namespace Legion {
       AddressSpaceID source;
       derez.deserialize(source);
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      LogicalView* view = dynamic_cast<LogicalView*>(dc);
-      assert(view != nullptr);
-#else
-      LogicalView* view = static_cast<LogicalView*>(dc);
-#endif
+      LogicalView* view = legion_safe_cast<LogicalView*>(dc);
       if (view->collective_mapping != nullptr)
       {
         // Check to see if this is a collective view, if the target
@@ -122,14 +115,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_references >= cnt);
-#endif
+      legion_assert(valid_references >= cnt);
       valid_references -= cnt;
       std::map<ReferenceSource, int>::iterator finder =
           detailed_base_valid_references.find(source);
-      assert(finder != detailed_base_valid_references.end());
-      assert(finder->second >= cnt);
+      legion_assert(finder != detailed_base_valid_references.end());
+      legion_assert(finder->second >= cnt);
       finder->second -= cnt;
       if (finder->second == 0)
         detailed_base_valid_references.erase(finder);
@@ -145,14 +136,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_references >= cnt);
-#endif
+      legion_assert(valid_references >= cnt);
       valid_references -= cnt;
       std::map<DistributedID, int>::iterator finder =
           detailed_nested_valid_references.find(source);
-      assert(finder != detailed_nested_valid_references.end());
-      assert(finder->second >= cnt);
+      legion_assert(finder != detailed_nested_valid_references.end());
+      legion_assert(finder->second >= cnt);
       finder->second -= cnt;
       if (finder->second == 0)
         detailed_nested_valid_references.erase(finder);
@@ -161,7 +150,7 @@ namespace Legion {
       else
         return false;
     }
-#else  // DEBUG_LEGION_GC
+#else   // DEBUG_LEGION_GC
     //--------------------------------------------------------------------------
     void LogicalView::add_valid_reference(int cnt)
     //--------------------------------------------------------------------------
@@ -176,9 +165,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
-#ifdef DEBUG_LEGION
-      assert(valid_references.load() >= cnt);
-#endif
+      legion_assert(valid_references.load() >= cnt);
       if (valid_references.fetch_sub(cnt) == cnt)
         return notify_invalid();
       else

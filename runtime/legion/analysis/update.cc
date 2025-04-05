@@ -83,9 +83,7 @@ namespace Legion {
     {
       if (!uninitialized)
       {
-#ifdef DEBUG_LEGION
-        assert(!uninitialized_reported.exists());
-#endif
+        legion_assert(!uninitialized_reported.exists());
         uninitialized_reported = Runtime::create_rt_user_event();
         applied_events.insert(uninitialized_reported);
       }
@@ -117,16 +115,12 @@ namespace Legion {
       // Easy out if we don't have any remote sets
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
-#ifdef DEBUG_LEGION
-      assert(!target_instances.empty());
-      assert(target_instances.size() == target_views.size());
-#endif
+      legion_assert(!target_instances.empty());
+      legion_assert(target_instances.size() == target_views.size());
       if (!remote_user_registered.exists())
       {
-#ifdef DEBUG_LEGION
-        assert(original_source == runtime->address_space);
-        assert(!user_registered.exists());
-#endif
+        legion_assert(original_source == runtime->address_space);
+        legion_assert(!user_registered.exists());
         user_registered = Runtime::create_rt_user_event();
         remote_user_registered = user_registered;
       }
@@ -135,9 +129,7 @@ namespace Legion {
                const_iterator rit = remote_sets.begin();
            rit != remote_sets.end(); rit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!rit->second.empty());
-#endif
+        legion_assert(!rit->second.empty());
         const AddressSpaceID target = rit->first;
         const RtUserEvent updated = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -212,10 +204,8 @@ namespace Legion {
       // Report any uninitialized data now that we know the traversal is done
       if (!!uninitialized)
       {
-#ifdef DEBUG_LEGION
-        assert(check_initialized);
-        assert(uninitialized_reported.exists());
-#endif
+        legion_assert(check_initialized);
+        legion_assert(uninitialized_reported.exists());
         region->report_uninitialized_usage(
             op, index, uninitialized, uninitialized_reported);
       }
@@ -262,11 +252,9 @@ namespace Legion {
         ApEvent termination, ApEvent& instances_ready, bool symbolic)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(usage == this->usage);
+      legion_assert(usage == this->usage);
       // Should always be local
-      assert(original_source == runtime->address_space);
-#endif
+      legion_assert(original_source == runtime->address_space);
       if (precondition.exists() && !precondition.has_triggered())
         return defer_registration(
             precondition, usage, applied_events, trace_info, init_precondition,
@@ -285,9 +273,7 @@ namespace Legion {
       // that they are all writing the same values in the end anyway.
       if (!collective_arrivals.empty() && IS_WRITE(usage) && HAS_READ(usage))
       {
-#ifdef DEBUG_LEGION
-        assert(IS_COLLECTIVE(usage));
-#endif
+        legion_assert(IS_COLLECTIVE(usage));
         for (std::map<InstanceView*, size_t>::const_iterator it =
                  collective_arrivals.begin();
              it != collective_arrivals.end(); it++)

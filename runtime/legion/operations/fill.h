@@ -360,7 +360,6 @@ namespace Legion {
       CreateCollectiveFillView* collective;
       CollectiveID collective_id;
       DistributedID fresh_did;
-#ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective* collective)
       {
@@ -368,7 +367,6 @@ namespace Legion {
       }
     protected:
       ShardingGatherCollective* sharding_collective;
-#endif
     };
 
     /**

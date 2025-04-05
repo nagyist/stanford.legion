@@ -487,9 +487,7 @@ namespace Legion {
     CollectiveView::CollectiveView(CollectiveViewImpl i) : impl(i)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(impl != nullptr);
-#endif
+      legion_assert(impl != nullptr);
       impl->add_base_gc_ref(Internal::MAPPER_REF);
     }
 
@@ -644,9 +642,7 @@ namespace Legion {
         const Realm::ProfilingResponse& resp)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(realm_resp == nullptr);
-#endif
+      legion_assert(realm_resp == nullptr);
       realm_resp = &resp;
     }
 
@@ -655,9 +651,7 @@ namespace Legion {
         ProfilingMeasurements::RuntimeOverhead* over)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(overhead == nullptr);
-#endif
+      legion_assert(overhead == nullptr);
       overhead = over;
     }
 
@@ -1353,9 +1347,7 @@ namespace Legion {
             ctx->get_mapper_call_name(), ctx->get_mapper_name());
         return false;
       }
-#ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != nullptr);
-#endif
+      legion_assert(ctx->acquired_instances != nullptr);
       // Important: do this before pausing the mapper call
       const bool safe_for_unbounded_pools =
           ctx->manager->is_safe_for_unbounded_pools();
@@ -1400,9 +1392,7 @@ namespace Legion {
             ctx->get_mapper_call_name(), ctx->get_mapper_name());
         return false;
       }
-#ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != nullptr);
-#endif
+      legion_assert(ctx->acquired_instances != nullptr);
       // Important: do this before pausing the mapper call
       const bool safe_for_unbounded_pools =
           ctx->manager->is_safe_for_unbounded_pools();
@@ -1456,9 +1446,7 @@ namespace Legion {
             ctx, target_memory, constraints, regions, result, acquire,
             tight_region_bounds);
       }
-#ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != nullptr);
-#endif
+      legion_assert(ctx->acquired_instances != nullptr);
       // Important: do this before pausing the mapper call
       const bool safe_for_unbounded_pools =
           ctx->manager->is_safe_for_unbounded_pools();
@@ -1511,9 +1499,7 @@ namespace Legion {
             ctx, target_memory, layout_id, regions, result, acquire,
             tight_region_bounds);
       }
-#ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != nullptr);
-#endif
+      legion_assert(ctx->acquired_instances != nullptr);
       // Important: do this before pausing the mapper call
       const bool safe_for_unbounded_pools =
           ctx->manager->is_safe_for_unbounded_pools();
@@ -2047,9 +2033,7 @@ namespace Legion {
             ctx->get_mapper_call_name(), ctx->get_mapper_name());
         return false;
       }
-#ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != nullptr);
-#endif
+      legion_assert(ctx->acquired_instances != nullptr);
       AutoMapperCall call(ctx, Internal::MAPPER_REDISTRICT_INSTANCE_CALL);
       Internal::MemoryManager* manager =
           instance.impl->as_physical_manager()->memory_manager;
@@ -2084,9 +2068,7 @@ namespace Legion {
             ctx->get_mapper_call_name(), ctx->get_mapper_name());
         return false;
       }
-#ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != nullptr);
-#endif
+      legion_assert(ctx->acquired_instances != nullptr);
       AutoMapperCall call(ctx, Internal::MAPPER_REDISTRICT_INSTANCE_CALL);
       Internal::LayoutConstraints* cons =
           runtime->find_layout_constraints(layout_id);
@@ -2120,15 +2102,9 @@ namespace Legion {
       const bool safe_for_unbounded_pools =
           ctx->manager->is_safe_for_unbounded_pools();
       AutoMapperCall call(ctx, Internal::MAPPER_ACQUIRE_FUTURE_CALL);
-#ifdef DEBUG_LEGION
-      assert(ctx->operation != nullptr);
+      legion_assert(ctx->operation != nullptr);
       Internal::SingleTask* task =
-          dynamic_cast<Internal::SingleTask*>(ctx->operation);
-      assert(task != nullptr);
-#else
-      Internal::SingleTask* task =
-          static_cast<Internal::SingleTask*>(ctx->operation);
-#endif
+          legion_safe_cast<Internal::SingleTask*>(ctx->operation);
       Internal::RtEvent unbounded_pool_wait;
       const bool result = future.impl->request_application_instance(
           memory, task,
@@ -2161,15 +2137,9 @@ namespace Legion {
       const bool safe_for_unbounded_pools =
           ctx->manager->is_safe_for_unbounded_pools();
       AutoMapperCall call(ctx, Internal::MAPPER_ACQUIRE_POOL_CALL);
-#ifdef DEBUG_LEGION
-      assert(ctx->operation != nullptr);
+      legion_assert(ctx->operation != nullptr);
       Internal::SingleTask* task =
-          dynamic_cast<Internal::SingleTask*>(ctx->operation);
-      assert(task != nullptr);
-#else
-      Internal::SingleTask* task =
-          static_cast<Internal::SingleTask*>(ctx->operation);
-#endif
+          legion_safe_cast<Internal::SingleTask*>(ctx->operation);
       Internal::RtEvent unbounded_pool_wait;
       const bool result = task->acquire_leaf_memory_pool(
           memory, bounds,
@@ -2197,15 +2167,9 @@ namespace Legion {
         return;
       }
       AutoMapperCall call(ctx, Internal::MAPPER_RELEASE_POOL_CALL);
-#ifdef DEBUG_LEGION
-      assert(ctx->operation != nullptr);
+      legion_assert(ctx->operation != nullptr);
       Internal::SingleTask* task =
-          dynamic_cast<Internal::SingleTask*>(ctx->operation);
-      assert(task != nullptr);
-#else
-      Internal::SingleTask* task =
-          static_cast<Internal::SingleTask*>(ctx->operation);
-#endif
+          legion_safe_cast<Internal::SingleTask*>(ctx->operation);
       task->release_leaf_memory_pool(memory);
     }
 
@@ -2745,9 +2709,7 @@ namespace Legion {
     {
       AutoMapperCall call(
           ctx, Internal::MAPPER_GET_LOGICAL_PARTITION_BY_COLOR_CALL);
-#ifdef DEBUG_LEGION
-      assert((color.get_dim() == 0) || (color.get_dim() == 1));
-#endif
+      legion_assert((color.get_dim() == 0) || (color.get_dim() == 1));
       return runtime->get_logical_partition_by_color(par, color[0]);
     }
 
@@ -3132,10 +3094,8 @@ namespace Legion {
     void AutoLock::reacquire(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!held);
-      assert(Internal::local_lock_list == previous);
-#endif
+      legion_assert(!held);
+      legion_assert(Internal::local_lock_list == previous);
 #ifdef DEBUG_REENTRANT_LOCKS
       if (previous != nullptr)
         previous->check_for_reentrant_locks(&local_lock);

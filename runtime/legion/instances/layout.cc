@@ -41,14 +41,12 @@ namespace Legion {
       field_infos.resize(field_sizes.size());
       // Switch data structures from layout by field order to order
       // of field locations in the bit mask
-#ifdef DEBUG_LEGION
       // Greater than or equal because local fields can alias onto the
       // same index for the allocated instances, note that the fields
       // themselves still get allocated their own space in the instance
-      assert(
+      legion_assert(
           mask_index_map.size() >=
           size_t(FieldMask::pop_count(allocated_fields)));
-#endif
       for (unsigned idx = 0; idx < mask_index_map.size(); idx++)
       {
         // This gives us the index in the field ordered data structures
@@ -84,9 +82,7 @@ namespace Legion {
     void LayoutDescription::log_instance_layout(LgEvent inst_event) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(runtime->legion_spy_enabled);
-#endif
+      legion_assert(runtime->legion_spy_enabled);
       for (std::map<FieldID, unsigned>::const_iterator it =
                field_indexes.begin();
            it != field_indexes.end(); it++)
@@ -139,9 +135,7 @@ namespace Legion {
       // they line up in the same order with the source/destination infos
       // (depending on the calling context of this function
       const unsigned pop_count = FieldMask::pop_count(compressed);
-#ifdef DEBUG_LEGION
-      assert(pop_count == FieldMask::pop_count(copy_mask));
-#endif
+      legion_assert(pop_count == FieldMask::pop_count(copy_mask));
       unsigned offset = fields.size();
       fields.resize(offset + pop_count);
       int next_start = 0;
@@ -169,9 +163,7 @@ namespace Legion {
       {
         std::map<FieldID, unsigned>::const_iterator finder =
             field_indexes.find(copy_fields[idx]);
-#ifdef DEBUG_LEGION
-        assert(finder != field_indexes.end());
-#endif
+        legion_assert(finder != field_indexes.end());
         CopySrcDstField& info = fields[offset + idx];
         info = field_infos[finder->second];
         // Since instances are annonymous in layout descriptions we
@@ -236,9 +228,7 @@ namespace Legion {
     {
       std::map<FieldID, unsigned>::const_iterator finder =
           field_indexes.find(fid);
-#ifdef DEBUG_LEGION
-      assert(finder != field_indexes.end());
-#endif
+      legion_assert(finder != field_indexes.end());
       return field_infos[finder->second];
     }
 
@@ -326,9 +316,7 @@ namespace Legion {
             size_t total_dims)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(constraints != nullptr);
-#endif
+      legion_assert(constraints != nullptr);
       FieldMask instance_mask;
       const std::vector<FieldID>& field_set =
           constraints->field_constraint.get_field_set();
@@ -340,9 +328,7 @@ namespace Legion {
       LayoutDescription* result = field_space_node->create_layout_description(
           instance_mask, total_dims, constraints, mask_index_map, field_set,
           field_sizes, serdez);
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       return result;
     }
 
@@ -476,9 +462,7 @@ namespace Legion {
     void LayoutConstraints::update_constraints(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(constraints_name == nullptr);
-#endif
+      legion_assert(constraints_name == nullptr);
       size_t name_len;
       derez.deserialize(name_len);
       constraints_name = (char*)malloc(name_len);
@@ -538,9 +522,8 @@ namespace Legion {
       const LayoutConstraint* result = nullptr;
       const bool entailment =
           entails(*constraints, total_dims, &result, test_pointer);
-#ifdef DEBUG_LEGION
-      assert(entailment ^ (result != nullptr));  // only one should be true
-#endif
+      legion_assert(
+          entailment ^ (result != nullptr));  // only one should be true
       if (!entailment && (failed_constraint != nullptr))
         *failed_constraint = result;
       // Save the result in the cache
@@ -592,9 +575,8 @@ namespace Legion {
       // Didn't find it, so do the test for real
       const LayoutConstraint* result = nullptr;
       const bool conflicted = conflicts(*constraints, total_dims, &result);
-#ifdef DEBUG_LEGION
-      assert(conflicted ^ (result == nullptr));  // only one should be true
-#endif
+      legion_assert(
+          conflicted ^ (result == nullptr));  // only one should be true
       // Save the result in the cache
       AutoLock lay(layout_lock);
       conflict_cache[key] = result;

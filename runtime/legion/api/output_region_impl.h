@@ -45,9 +45,7 @@ namespace Legion {
         template<typename DIM, typename COLOR_T>
         static inline void demux(LayoutCreator* creator)
         {
-#ifdef DEBUG_LEGION
-          assert(creator->dim_order.size() == DIM::N);
-#endif
+          legion_assert(creator->dim_order.size() == DIM::N);
           const DomainT<DIM::N, COLOR_T> bounds =
               Rect<DIM::N, COLOR_T>(creator->domain);
           creator->layout =

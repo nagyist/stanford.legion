@@ -135,15 +135,8 @@ namespace Legion {
       const size_t result_size = redop->sizeof_lhs;
       void* result_buffer = std::malloc(result_size);
       ApBarrier prev = Runtime::get_previous_phase(collective.phase_barrier);
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-      bool result =
-#endif
-#endif
-          Runtime::get_barrier_result(prev, result_buffer, result_size);
-#ifdef DEBUG_LEGION
-      assert(result);
-#endif
+      legion_no_skip_assert(
+          Runtime::get_barrier_result(prev, result_buffer, result_size));
       future.impl->set_local(result_buffer, result_size, true /*own*/);
       complete_execution();
     }

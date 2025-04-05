@@ -30,13 +30,7 @@ namespace Legion {
     inline KDNode<DIM, T>* KDTree::as_kdnode(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      KDNode<DIM, T>* result = dynamic_cast<KDNode<DIM, T>*>(this);
-      assert(result != nullptr);
-      return result;
-#else
-      return static_cast<KDNode<DIM, T>*>(this);
-#endif
+      return legion_safe_cast<KDNode<DIM, T>*>(this);
     }
 
     //--------------------------------------------------------------------------
@@ -163,9 +157,7 @@ namespace Legion {
           if (!it->first.second)
             total += it->second;
         }
-#ifdef DEBUG_LEGION
-        assert(lower_inclusive.size() == upper_exclusive.size());
-#endif
+        legion_assert(lower_inclusive.size() == upper_exclusive.size());
         // We want to take the mini-max of the two numbers in order
         // to try to balance the splitting plane across the two sets
         T split = 0;
@@ -211,10 +203,8 @@ namespace Legion {
           if (!right_rect.empty())
             right_set.emplace_back(right_rect);
         }
-#ifdef DEBUG_LEGION
-        assert(left_set.size() < rects.size());
-        assert(right_set.size() < rects.size());
-#endif
+        legion_assert(left_set.size() < rects.size());
+        legion_assert(right_set.size() < rects.size());
         // Compute the cost of this refinement
         // First get the percentage reductions of both sets
         float cost_left, cost_right;
@@ -247,9 +237,7 @@ namespace Legion {
         float cost_diff = (cost_left < cost_right) ? (cost_right - cost_left) :
                                                      (cost_left - cost_right);
         float total_cost = (cost_left + cost_right + cost_diff);
-#ifdef DEBUG_LEGION
-        assert((1.f <= total_cost) && (total_cost <= 2.f));
-#endif
+        legion_assert((1.f <= total_cost) && (total_cost <= 2.f));
         // Check to see if the cost is considered to be a "good" refinement
         // For now we'll say that this is a good cost if it is less than
         // or equal to 1.5, halfway between the range of costs from 1.0 to 2.0
@@ -357,9 +345,7 @@ namespace Legion {
           if (!it->first.second)
             count += it->second;
         }
-#ifdef DEBUG_LEGION
-        assert(lower_inclusive.size() == upper_exclusive.size());
-#endif
+        legion_assert(lower_inclusive.size() == upper_exclusive.size());
         // We want to take the mini-max of the two numbers in order
         // to try to balance the splitting plane across the two sets
         T split = 0;
@@ -397,10 +383,8 @@ namespace Legion {
           if (!right_rect.empty())
             right_set.emplace_back(std::make_pair(right_rect, it->second));
         }
-#ifdef DEBUG_LEGION
-        assert(left_set.size() < subrects.size());
-        assert(right_set.size() < subrects.size());
-#endif
+        legion_assert(left_set.size() < subrects.size());
+        legion_assert(right_set.size() < subrects.size());
         // Compute the cost of this refinement
         // First get the percentage reductions of both sets
         float cost_left = float(left_set.size()) / float(subrects.size());
@@ -414,9 +398,7 @@ namespace Legion {
         float cost_diff = (cost_left < cost_right) ? (cost_right - cost_left) :
                                                      (cost_left - cost_right);
         float total_cost = (cost_left + cost_right + cost_diff);
-#ifdef DEBUG_LEGION
-        assert((1.f <= total_cost) && (total_cost <= 2.f));
-#endif
+        legion_assert((1.f <= total_cost) && (total_cost <= 2.f));
         // Check to see if the cost is considered to be a "good" refinement
         // For now we'll say that this is a good cost if it is less than
         // or equal to 1.5, halfway between the range of costs from 1.0 to 2.0
@@ -623,13 +605,7 @@ namespace Legion {
     inline EqKDTreeT<DIM, T>* EqKDTree::as_eq_kd_tree(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      EqKDTreeT<DIM, T>* result = dynamic_cast<EqKDTreeT<DIM, T>*>(this);
-      assert(result != nullptr);
-      return result;
-#else
-      return static_cast<EqKDTreeT<DIM, T>*>(this);
-#endif
+      return legion_safe_cast<EqKDTreeT<DIM, T>*>(this);
     }
 
     //--------------------------------------------------------------------------
@@ -660,10 +636,8 @@ namespace Legion {
           rect, mask, trackers, tracker_spaces, new_tracker_references, eq_sets,
           pending_sets, subscriptions, to_create, creation_rects, creation_srcs,
           remote_shard_rects, local_shard);
-#ifdef DEBUG_LEGION
       // Should not have any of these at this point
-      assert(remote_shard_rects.empty());
-#endif
+      legion_assert(remote_shard_rects.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -679,10 +653,8 @@ namespace Legion {
       unsigned references = record_output_equivalence_set(
           set, rect, mask, tracker, tracker_space, new_subscriptions,
           remote_shard_rects, local_shard);
-#ifdef DEBUG_LEGION
       // Should not have any of these at this point
-      assert(remote_shard_rects.empty());
-#endif
+      legion_assert(remote_shard_rects.empty());
       return references;
     }
 
@@ -717,11 +689,9 @@ namespace Legion {
     EqKDNode<DIM, T>::~EqKDNode(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(subscriptions == nullptr);
-      assert(pending_set_creations == nullptr);
-      assert(pending_postconditions == nullptr);
-#endif
+      legion_assert(subscriptions == nullptr);
+      legion_assert(pending_set_creations == nullptr);
+      legion_assert(pending_postconditions == nullptr);
       if (lefts != nullptr)
       {
         for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
@@ -811,10 +781,8 @@ namespace Legion {
         // If we get here, we're traversing refinements
         if (current && !!all_previous_below)
           all_previous_below -= remaining;
-#ifdef DEBUG_LEGION
-        assert(!!remaining);
-        assert((lefts != nullptr) && (rights != nullptr));
-#endif
+        legion_assert(!!remaining);
+        legion_assert((lefts != nullptr) && (rights != nullptr));
         for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                  lefts->begin();
              it != lefts->end(); it++)
@@ -842,9 +810,7 @@ namespace Legion {
             const FieldMask overlap = remaining & it->second;
             if (!overlap)
               continue;
-#ifdef DEBUG_LEGION
-            assert(rect.overlaps(it->first->bounds));
-#endif
+            legion_assert(rect.overlaps(it->first->bounds));
             to_traverse.insert(it->first, overlap);
             remaining -= overlap;
             if (!remaining)
@@ -857,9 +823,7 @@ namespace Legion {
            it != to_traverse.end(); it++)
       {
         const Rect<DIM, T> overlap = rect.intersection(it->first->bounds);
-#ifdef DEBUG_LEGION
-        assert(!overlap.empty());
-#endif
+        legion_assert(!overlap.empty());
         it->first->initialize_set(
             set, overlap, it->second, local_shard, current);
       }
@@ -882,9 +846,7 @@ namespace Legion {
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       local::FieldMaskMap<EqKDNode<DIM, T> > to_traverse, to_get_previous,
           to_invalidate_previous;
       {
@@ -1081,9 +1043,7 @@ namespace Legion {
               else
               {
                 refine_node(rect, remaining);
-#ifdef DEBUG_LEGION
-                assert((lefts != nullptr) && (rights != nullptr));
-#endif
+                legion_assert((lefts != nullptr) && (rights != nullptr));
                 for (typename lng::FieldMaskMap<
                          EqKDNode<DIM, T> >::const_iterator it = lefts->begin();
                      it != lefts->end(); it++)
@@ -1113,9 +1073,7 @@ namespace Legion {
                     const FieldMask overlap = remaining & it->second;
                     if (!overlap)
                       continue;
-#ifdef DEBUG_LEGION
-                    assert(rect.overlaps(it->first->bounds));
-#endif
+                    legion_assert(rect.overlaps(it->first->bounds));
                     to_traverse.insert(it->first, overlap);
                     remaining -= overlap;
                     if (!remaining)
@@ -1160,17 +1118,14 @@ namespace Legion {
           }
         }
       }
-#ifdef DEBUG_LEGION
-      assert(to_traverse.get_valid_mask() * to_get_previous.get_valid_mask());
-#endif
+      legion_assert(
+          to_traverse.get_valid_mask() * to_get_previous.get_valid_mask());
       for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
                to_traverse.begin();
            it != to_traverse.end(); it++)
       {
         const Rect<DIM, T> overlap = rect.intersection(it->first->bounds);
-#ifdef DEBUG_LEGION
-        assert(!overlap.empty());
-#endif
+        legion_assert(!overlap.empty());
         it->first->compute_equivalence_sets(
             overlap, it->second, trackers, tracker_spaces,
             new_tracker_references, eq_sets, pending_sets, new_subscriptions,
@@ -1201,11 +1156,9 @@ namespace Legion {
       local::FieldMaskMap<EqKDNode<DIM, T> > to_get_previous;
       {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (current_sets == nullptr) ||
             (current_sets->get_valid_mask() * mask));
-#endif
         if (previous_sets != nullptr)
         {
           for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
@@ -1221,9 +1174,7 @@ namespace Legion {
               return;
           }
         }
-#ifdef DEBUG_LEGION
-        assert(!(mask - all_previous_below));
-#endif
+        legion_assert(!(mask - all_previous_below));
         find_to_get_previous(mask, to_get_previous);
       }
       for (typename local::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
@@ -1239,9 +1190,7 @@ namespace Legion {
         local::FieldMaskMap<EqKDNode<DIM, T> >& to_get_previous) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((lefts != nullptr) && (rights != nullptr));
-#endif
+      legion_assert((lefts != nullptr) && (rights != nullptr));
       // We're going to pull these out of the lefts and rights
       // since we're just going to use them to get the sets
       for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator it =
@@ -1265,9 +1214,7 @@ namespace Legion {
         if (!all_prev_below)
           break;
       }
-#ifdef DEBUG_LEGION
-      assert(!all_prev_below);
-#endif
+      legion_assert(!all_prev_below);
     }
 
     //--------------------------------------------------------------------------
@@ -1276,18 +1223,18 @@ namespace Legion {
         const Rect<DIM, T>& rect, const FieldMask& mask, bool refine_current)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // We shouldn't have any existing refinements for these fields
-      assert((lefts == nullptr) || (mask * lefts->get_valid_mask()));
-      assert((rights == nullptr) || (mask * rights->get_valid_mask()));
-      assert(mask * all_previous_below);
-      assert(
+      legion_assert((lefts == nullptr) || (mask * lefts->get_valid_mask()));
+      legion_assert((rights == nullptr) || (mask * rights->get_valid_mask()));
+      legion_assert(mask * all_previous_below);
+      legion_assert(
           (child_previous_below == nullptr) ||
           (mask * child_previous_below->get_valid_mask()));
       // We shouldn't have any current sets either for these fields
-      assert(
+      legion_assert(
           (current_sets == nullptr) ||
           (mask * current_sets->get_valid_mask()) || refine_current);
+#ifdef LEGION_DEBUG
       if (pending_set_creations != nullptr)
       {
         // Invalidations should never be racing with pending set
@@ -1297,7 +1244,7 @@ namespace Legion {
         for (shrt::map<RtUserEvent, FieldMask>::const_iterator it =
                  pending_set_creations->begin();
              it != pending_set_creations->end(); it++)
-          assert(mask * it->second);
+          legion_assert(mask * it->second);
       }
       if (subscriptions != nullptr)
       {
@@ -1305,7 +1252,7 @@ namespace Legion {
         for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqSetTracker> >::
                  const_iterator it = subscriptions->begin();
              it != subscriptions->end(); it++)
-          assert(mask * it->second.get_valid_mask());
+          legion_assert(mask * it->second.get_valid_mask());
       }
 #endif
       // Need to create a new refinement for these fields
@@ -1372,9 +1319,7 @@ namespace Legion {
             }
           }
         }
-#ifdef DEBUG_LEGION
-        assert(dim >= 0);
-#endif
+        legion_assert(dim >= 0);
       }
       Rect<DIM, T> left_bounds = this->bounds;
       Rect<DIM, T> right_bounds = this->bounds;
@@ -1408,10 +1353,9 @@ namespace Legion {
             it.merge(mask);
             break;
           }
-#ifdef DEBUG_LEGION
-          assert(prior_right != nullptr);
-          assert(left_bounds.contains(rect) || right_bounds.contains(rect));
-#endif
+          legion_assert(prior_right != nullptr);
+          legion_assert(
+              left_bounds.contains(rect) || right_bounds.contains(rect));
           if (previous_sets != nullptr)
           {
             if (!refine_current)
@@ -1453,18 +1397,14 @@ namespace Legion {
         const std::vector<EqSetTracker*>& creators)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!creators.empty());
-      assert(creator_spaces.size() == creators.size());
-#endif
+      legion_assert(!creators.empty());
+      legion_assert(creator_spaces.size() == creators.size());
       local::FieldMaskMap<EqKDNode<DIM, T> > to_invalidate_previous;
       {
         AutoLock n_lock(node_lock);
         if (current_sets == nullptr)
           current_sets = new lng::FieldMaskMap<EquivalenceSet>();
-#ifdef DEBUG_LEGION
-        assert(mask * current_sets->get_valid_mask());
-#endif
+        legion_assert(mask * current_sets->get_valid_mask());
         if (current_sets->insert(set, mask))
           set->add_base_gc_ref(DISJOINT_COMPLETE_REF);
         // Send notifications to all the subscriptions that are waiting for
@@ -1519,9 +1459,7 @@ namespace Legion {
                 }
                 runtime->send_compute_equivalence_sets_pending(sit->first, rez);
                 // Save this event as a postcondition for any pending creations
-#ifdef DEBUG_LEGION
-                assert(pending_set_creations != nullptr);
-#endif
+                legion_assert(pending_set_creations != nullptr);
                 for (shrt::map<RtUserEvent, FieldMask>::const_iterator it =
                          pending_set_creations->begin();
                      it != pending_set_creations->end(); it++)
@@ -1553,9 +1491,7 @@ namespace Legion {
             }
           }
         }
-#ifdef DEBUG_LEGION
-        assert(pending_set_creations != nullptr);
-#endif
+        legion_assert(pending_set_creations != nullptr);
         // Filter out any pending set creation events
         for (shrt::map<RtUserEvent, FieldMask>::iterator it =
                  pending_set_creations->begin();
@@ -1658,14 +1594,12 @@ namespace Legion {
           if (!!local_fields)
           {
             // Record the set and subscriptions here
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 (current_sets == nullptr) ||
                 (local_fields * current_sets->get_valid_mask()));
-            assert(
+            legion_assert(
                 (previous_sets == nullptr) ||
                 (local_fields * previous_sets->get_valid_mask()));
-#endif
             if (current_sets == nullptr)
               current_sets = new lng::FieldMaskMap<EquivalenceSet>();
             if (current_sets->insert(set, local_fields))
@@ -1687,9 +1621,7 @@ namespace Legion {
         // Check to see if there are any already refined nodes to traverse
         if (!!submask)
         {
-#ifdef DEBUG_LEGION
-          assert((lefts != nullptr) && (rights != nullptr));
-#endif
+          legion_assert((lefts != nullptr) && (rights != nullptr));
           for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
                    it = lefts->begin();
                it != lefts->end(); it++)
@@ -1716,9 +1648,7 @@ namespace Legion {
               const FieldMask overlap = submask & it->second;
               if (!overlap)
                 continue;
-#ifdef DEBUG_LEGION
-              assert(it->first->bounds.overlaps(rect));
-#endif
+              legion_assert(it->first->bounds.overlaps(rect));
               to_traverse.insert(it->first, overlap);
               submask -= overlap;
               if (!submask)
@@ -1797,9 +1727,7 @@ namespace Legion {
       }
       if (!(mask * all_previous_below))
       {
-#ifdef DEBUG_LEGION
-        assert((lefts != nullptr) && (rights != nullptr));
-#endif
+        legion_assert((lefts != nullptr) && (rights != nullptr));
         all_previous_below -= mask;
         std::vector<EqKDNode<DIM, T>*> to_delete;
         for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::iterator it =
@@ -1898,9 +1826,7 @@ namespace Legion {
         lng::FieldMaskMap<EquivalenceSet>*& sets, bool current)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(sets != nullptr);
-#endif
+      legion_assert(sets != nullptr);
       std::vector<EquivalenceSet*> to_delete;
       for (lng::FieldMaskMap<EquivalenceSet>::iterator it = sets->begin();
            it != sets->end(); it++)
@@ -2038,9 +1964,7 @@ namespace Legion {
         RegionNode* region) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dst_lower_shard < dst_upper_shard);
-#endif
+      legion_assert(dst_lower_shard < dst_upper_shard);
       // Split this the same way that EqKDSharded will split it to find
       // the rectangle that we need to use to search for equivalence sets
       // Check to see if we hit the minimum size
@@ -2065,9 +1989,7 @@ namespace Legion {
         dim = d;
         split = rect.lo[d] + (diff / 2);
       }
-#ifdef DEBUG_LEGION
-      assert(dim >= 0);
-#endif
+      legion_assert(dim >= 0);
       Rect<DIM, T> left_bounds = rect;
       Rect<DIM, T> right_bounds = rect;
       left_bounds.hi[dim] = split;
@@ -2094,9 +2016,7 @@ namespace Legion {
         local::FieldMaskMap<EquivalenceSet>& eq_sets) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       std::vector<EqKDNode<DIM, T>*> to_traverse;
       {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
@@ -2155,9 +2075,7 @@ namespace Legion {
             const FieldMask overlap = it->second & remaining;
             if (!overlap)
               continue;
-#ifdef DEBUG_LEGION
-            assert(it->first->bounds.overlaps(rect));
-#endif
+            legion_assert(it->first->bounds.overlaps(rect));
             to_traverse.emplace_back(it->first);
             remaining -= overlap;
             if (!remaining)
@@ -2170,9 +2088,7 @@ namespace Legion {
            it != to_traverse.end(); it++)
       {
         const Rect<DIM, T> overlap = (*it)->bounds.intersection(rect);
-#ifdef DEBUG_LEGION
-        assert(!overlap.empty());
-#endif
+        legion_assert(!overlap.empty());
         (*it)->find_rect_equivalence_sets(overlap, eq_sets);
       }
     }
@@ -2185,9 +2101,7 @@ namespace Legion {
         FieldMask* parent_all_previous)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       // This is very important: invalidations are protected from the root
       // of the equivalence set tree with an exclusive lock, that means that
       // any invalidation traversing the tree does not need to protect against
@@ -2222,12 +2136,10 @@ namespace Legion {
           {
             if (!(it->second * mask))
             {
-#ifdef DEBUG_LEGION
               // Better have triggered by the point we're doing
               // this invalidation or something is wrong with the
               // mapping dependences for this refinement operation
-              assert(it->first.has_triggered());
-#endif
+              legion_assert(it->first.has_triggered());
               invalidate_previous_sets(it->second, to_invalidate_previous);
               shrt::map<RtEvent, FieldMask>::iterator to_delete = it++;
               current_set_preconditions->erase(to_delete);
@@ -2404,10 +2316,8 @@ namespace Legion {
               if (!current_mask)
                 break;
             }
-#ifdef DEBUG_LEGION
             // Should have moved something over for all fields
-            assert(!current_mask);
-#endif
+            legion_assert(!current_mask);
             for (std::vector<EquivalenceSet*>::const_iterator it =
                      to_delete.begin();
                  it != to_delete.end(); it++)
@@ -2487,17 +2397,13 @@ namespace Legion {
                 const FieldMask overlap = it->second & right_mask;
                 if (!overlap)
                   continue;
-#ifdef DEBUG_LEGION
-                assert(rect.overlaps(it->first->bounds));
-#endif
+                legion_assert(rect.overlaps(it->first->bounds));
                 to_traverse.insert(it->first, overlap);
                 right_mask -= overlap;
                 if (!right_mask)
                   break;
               }
-#ifdef DEBUG_LEGION
-              assert(!right_mask);
-#endif
+              legion_assert(!right_mask);
             }
           }
         }
@@ -2520,9 +2426,7 @@ namespace Legion {
            it != to_traverse.end(); it++)
       {
         const Rect<DIM, T> intersection = rect.intersection(it->first->bounds);
-#ifdef DEBUG_LEGION
-        assert(!intersection.empty());
-#endif
+        legion_assert(!intersection.empty());
         FieldMask child_previous;
         it->first->invalidate_tree(
             intersection, it->second, invalidated, move_to_previous,
@@ -2688,9 +2592,7 @@ namespace Legion {
     {
       if (this->bounds.empty())
         return;
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       local::FieldMaskMap<EqKDNode<DIM, T> > to_traverse;
       {
         FieldMask remaining = mask;
@@ -2727,10 +2629,8 @@ namespace Legion {
         }
         if ((lefts != nullptr) && !(lefts->get_valid_mask() * remaining))
         {
-#ifdef DEBUG_LEGION
-          assert(rights != nullptr);
-          assert(!(rights->get_valid_mask() * remaining));
-#endif
+          legion_assert(rights != nullptr);
+          legion_assert(!(rights->get_valid_mask() * remaining));
           for (typename lng::FieldMaskMap<EqKDNode<DIM, T> >::const_iterator
                    it = lefts->begin();
                it != lefts->end(); it++)
@@ -2760,9 +2660,7 @@ namespace Legion {
            it != to_traverse.end(); it++)
       {
         const Rect<DIM, T> overlap = it->first->bounds.intersection(rect);
-#ifdef DEBUG_LEGION
-        assert(!overlap.empty());
-#endif
+        legion_assert(!overlap.empty());
         it->first->find_trace_local_sets(
             overlap, it->second, req_index, local_shard, local_sets);
       }
@@ -3018,9 +2916,7 @@ namespace Legion {
         std::map<EquivalenceSet*, unsigned>& current_sets) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       for (typename std::vector<EqKDTreeT<DIM, T>*>::const_iterator it =
                children.begin();
            it != children.end(); it++)
@@ -3077,11 +2973,9 @@ namespace Legion {
         ShardID local_shard, bool current)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-      assert(lower <= local_shard);
-      assert(local_shard <= upper);
-#endif
+      legion_assert(this->bounds.contains(rect));
+      legion_assert(lower <= local_shard);
+      legion_assert(local_shard <= upper);
       EqKDTreeT<DIM, T>* next = right.load();
       // Check to see if we've reached the bottom
       if (next == nullptr)
@@ -3106,10 +3000,8 @@ namespace Legion {
           next = right.load();
         }
       }
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-      assert(lower != upper);
-#endif
+      legion_assert(next != nullptr);
+      legion_assert(lower != upper);
       // We only need to traverse down the child that has our local shard
       ShardID diff = upper - lower;
       ShardID mid = lower + (diff / 2);
@@ -3137,9 +3029,7 @@ namespace Legion {
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       EqKDTreeT<DIM, T>* next = right.load();
       // Check to see if we've reached the bottom
       if (next == nullptr)
@@ -3170,9 +3060,7 @@ namespace Legion {
           next = right.load();
         }
       }
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-#endif
+      legion_assert(next != nullptr);
       const Rect<DIM, T> right_overlap = next->bounds.intersection(rect);
       if (!right_overlap.empty())
         next->compute_equivalence_sets(
@@ -3181,9 +3069,7 @@ namespace Legion {
             to_create, creation_rects, creation_srcs, remote_shard_rects,
             local_shard);
       next = left.load();
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-#endif
+      legion_assert(next != nullptr);
       const Rect<DIM, T> left_overlap = next->bounds.intersection(rect);
       if (!left_overlap.empty())
         next->compute_equivalence_sets(
@@ -3206,9 +3092,7 @@ namespace Legion {
     EqKDTreeT<DIM, T>* EqKDSharded<DIM, T>::refine_local(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(right.load() == nullptr);
-#endif
+      legion_assert(right.load() == nullptr);
       EqKDNode<DIM, T>* next = new EqKDNode<DIM, T>(this->bounds);
       EqKDTreeT<DIM, T>* expected = nullptr;
       if (left.compare_exchange_strong(expected, next))
@@ -3228,9 +3112,7 @@ namespace Legion {
     void EqKDSharded<DIM, T>::refine_node(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lower < upper);
-#endif
+      legion_assert(lower < upper);
       // Find the largest dimension and split it in half
       // Note we cannot use the rectangle to guide our splitting plane here
       // like we do with the EqKDNode because this splitting needs to be
@@ -3247,9 +3129,7 @@ namespace Legion {
         dim = d;
         split = this->bounds.lo[d] + (diff / 2);
       }
-#ifdef DEBUG_LEGION
-      assert(dim >= 0);
-#endif
+      legion_assert(dim >= 0);
       Rect<DIM, T> left_bounds = this->bounds;
       Rect<DIM, T> right_bounds = this->bounds;
       left_bounds.hi[dim] = split;
@@ -3295,9 +3175,7 @@ namespace Legion {
         ShardID local_shard)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       EqKDTreeT<DIM, T>* next = right.load();
       // Check to see if we've reached the bottom
       if (next == nullptr)
@@ -3329,18 +3207,14 @@ namespace Legion {
         }
       }
       unsigned new_subs = 0;
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-#endif
+      legion_assert(next != nullptr);
       const Rect<DIM, T> right_overlap = next->bounds.intersection(rect);
       if (!right_overlap.empty())
         new_subs += next->record_output_equivalence_set(
             set, right_overlap, mask, tracker, tracker_space, subscriptions,
             remote_shard_rects, local_shard);
       next = left.load();
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-#endif
+      legion_assert(next != nullptr);
       const Rect<DIM, T> left_overlap = next->bounds.intersection(rect);
       if (!left_overlap.empty())
         new_subs += next->record_output_equivalence_set(
@@ -3355,10 +3229,8 @@ namespace Legion {
         local::FieldMaskMap<EquivalenceSet>& eq_sets, ShardID local_shard) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lower <= local_shard);
-      assert(local_shard <= upper);
-#endif
+      legion_assert(lower <= local_shard);
+      legion_assert(local_shard <= upper);
       EqKDTreeT<DIM, T>* next = right.load();
       // Check to see if we've reached the bottom
       if (next == nullptr)
@@ -3377,10 +3249,8 @@ namespace Legion {
         }
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-      assert(lower != upper);
-#endif
+      legion_assert(next != nullptr);
+      legion_assert(lower != upper);
       // We only need to traverse down the child that has our local shard
       ShardID diff = upper - lower;
       ShardID mid = lower + (diff / 2);
@@ -3401,10 +3271,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Keep going to the local shard and split the dst shards along the way
-#ifdef DEBUG_LEGION
-      assert(lower <= source_shard);
-      assert(source_shard <= upper);
-#endif
+      legion_assert(lower <= source_shard);
+      legion_assert(source_shard <= upper);
       EqKDTreeT<DIM, T>* next = right.load();
       // Check to see if we've reached the bottom
       if (next == nullptr)
@@ -3425,10 +3293,8 @@ namespace Legion {
         }
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-      assert(lower != upper);
-#endif
+      legion_assert(next != nullptr);
+      legion_assert(lower != upper);
       // We only need to traverse down the child that has our local shard
       ShardID src_diff = upper - lower;
       ShardID src_mid = lower + (src_diff / 2);
@@ -3453,9 +3319,7 @@ namespace Legion {
         FieldMask* parent_all_previous)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       // Just traverse everything that is open, no need to do any refinements
       // since the same invalidation is being done on every shard
       EqKDTreeT<DIM, T>* next = left.load();
@@ -3490,9 +3354,7 @@ namespace Legion {
       // This invalidation is only being done on the local shard so we need
       // to perform any needed refinements so we can send the updates to
       // other shards to perform if necessary
-#ifdef DEBUG_LEGION
-      assert(this->bounds.contains(rect));
-#endif
+      legion_assert(this->bounds.contains(rect));
       EqKDTreeT<DIM, T>* next = right.load();
       // Check to see if we've reached the bottom
       if (next == nullptr)
@@ -3520,17 +3382,13 @@ namespace Legion {
           next = right.load();
         }
       }
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-#endif
+      legion_assert(next != nullptr);
       const Rect<DIM, T> right_overlap = next->bounds.intersection(rect);
       if (!right_overlap.empty())
         next->invalidate_shard_tree_remote(
             right_overlap, mask, invalidated, remote_shard_rects, local_shard);
       next = left.load();
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-#endif
+      legion_assert(next != nullptr);
       const Rect<DIM, T> left_overlap = next->bounds.intersection(rect);
       if (!left_overlap.empty())
         next->invalidate_shard_tree_remote(
@@ -3555,10 +3413,8 @@ namespace Legion {
         std::map<EquivalenceSet*, unsigned>& local_sets) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(lower <= local_shard);
-      assert(local_shard <= upper);
-#endif
+      legion_assert(lower <= local_shard);
+      legion_assert(local_shard <= upper);
       EqKDTreeT<DIM, T>* next = right.load();
       // Check to see if we've reached the bottom
       if (next == nullptr)
@@ -3579,10 +3435,8 @@ namespace Legion {
         // Else no need to create the refinement if it doesn't exist yet
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-      assert(lower != upper);
-#endif
+      legion_assert(next != nullptr);
+      legion_assert(lower != upper);
       // We only need to traverse down the child that has our local shard
       ShardID diff = upper - lower;
       ShardID mid = lower + (diff / 2);
@@ -3630,18 +3484,14 @@ namespace Legion {
           next = right.load();
         }
       }
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-#endif
+      legion_assert(next != nullptr);
       const Rect<DIM, T> right_overlap = next->bounds.intersection(rect);
       if (!right_overlap.empty())
         next->find_shard_trace_local_sets(
             right_overlap, mask, req_index, local_sets, remote_shards,
             local_shard);
       next = left.load();
-#ifdef DEBUG_LEGION
-      assert(next != nullptr);
-#endif
+      legion_assert(next != nullptr);
       const Rect<DIM, T> left_overlap = next->bounds.intersection(rect);
       if (!left_overlap.empty())
         next->find_shard_trace_local_sets(
@@ -3670,9 +3520,7 @@ namespace Legion {
       : EqKDSharded<DIM, T>(bound, low, high)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(rects.size() > 1);
-#endif
+      legion_assert(rects.size() > 1);
       rectangles.swap(rects);
       total_volume = 0;
       for (typename std::vector<Rect<DIM, T> >::const_iterator it =
@@ -3706,9 +3554,7 @@ namespace Legion {
     EqKDTreeT<DIM, T>* EqKDSparseSharded<DIM, T>::refine_local(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->right.load() == nullptr);
-#endif
+      legion_assert(this->right.load() == nullptr);
       EqKDSparse<DIM, T>* next =
           new EqKDSparse<DIM, T>(this->bounds, rectangles);
       EqKDTreeT<DIM, T>* expected = nullptr;
@@ -3729,9 +3575,7 @@ namespace Legion {
     void EqKDSparseSharded<DIM, T>::refine_node(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->lower < this->upper);
-#endif
+      legion_assert(this->lower < this->upper);
       // Note here that we don't want to evenly divide the rectangles across
       // the shards, but instead we want to evenly split the points across the
       // shards. We have two ways to do this, the first way is to call
@@ -3776,10 +3620,8 @@ namespace Legion {
           }
         }
       }
-#ifdef DEBUG_LEGION
-      assert(!left_set.empty());
-      assert(!right_set.empty());
-#endif
+      legion_assert(!left_set.empty());
+      legion_assert(!right_set.empty());
       // Find the splitting of the shards
       ShardID diff = this->upper - this->lower;
       ShardID mid = this->lower + (diff / 2);

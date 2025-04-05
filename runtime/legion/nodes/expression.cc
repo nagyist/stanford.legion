@@ -53,9 +53,7 @@ namespace Legion {
     IndexSpaceExpression::~IndexSpaceExpression(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(derived_operations.empty());
-#endif
+      legion_assert(derived_operations.empty());
       if (sparsity_map_kd_tree != nullptr)
         delete sparsity_map_kd_tree;
     }
@@ -84,9 +82,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock e_lock(expr_lock);
-#ifdef DEBUG_LEGION
-      assert(derived_operations.find(op) == derived_operations.end());
-#endif
+      legion_assert(derived_operations.find(op) == derived_operations.end());
       derived_operations.insert(op);
     }
 
@@ -95,9 +91,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock e_lock(expr_lock);
-#ifdef DEBUG_LEGION
-      assert(derived_operations.find(op) != derived_operations.end());
-#endif
+      legion_assert(derived_operations.find(op) != derived_operations.end());
       derived_operations.erase(op);
     }
 
@@ -162,9 +156,7 @@ namespace Legion {
     IndexSpaceExpression* IndexSpaceExpression::get_canonical_expression(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_valid());
-#endif
+      legion_assert(is_valid());
       IndexSpaceExpression* expr = canonical.load();
       if (expr != nullptr)
       {
@@ -227,12 +219,8 @@ namespace Legion {
         derez.deserialize(result);
         if (source != runtime->address_space)
         {
-#ifdef DEBUG_LEGION
-          IndexSpaceOperation* op = dynamic_cast<IndexSpaceOperation*>(result);
-          assert(op != nullptr);
-#else
-          IndexSpaceOperation* op = static_cast<IndexSpaceOperation*>(result);
-#endif
+          IndexSpaceOperation* op =
+              legion_safe_cast<IndexSpaceOperation*>(result);
           op->add_base_expression_reference(LIVE_EXPR_REF);
           op->unpack_global_ref();
         }
@@ -262,12 +250,8 @@ namespace Legion {
         IndexSpaceExpression* result =
             runtime->find_or_create_remote_expression(
                 remote_expr_id, derez, created);
-#ifdef DEBUG_LEGION
-        IndexSpaceOperation* op = dynamic_cast<IndexSpaceOperation*>(result);
-        assert(op != nullptr);
-#else
-        IndexSpaceOperation* op = static_cast<IndexSpaceOperation*>(result);
-#endif
+        IndexSpaceOperation* op =
+            legion_safe_cast<IndexSpaceOperation*>(result);
         result->add_base_expression_reference(LIVE_EXPR_REF);
         if (created && (source != op->owner_space))
           // Notify the owner of the new instance
@@ -306,9 +290,7 @@ namespace Legion {
         origin_expr(origin), op_kind(REMOTE_EXPRESSION_KIND), invalidated(0)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner());
-#endif
+      legion_assert(!is_owner());
 #ifdef LEGION_GC
       log_garbage.info(
           "GC Index Expr %lld %d %lld", LEGION_DISTRIBUTED_ID_FILTER(this->did),
@@ -438,10 +420,8 @@ namespace Legion {
         IndexSpaceExpression*& result, ExpressionTrieNode*& last)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(depth < expressions.size());
-      assert(expressions[depth]->expr_id == expr);  // these should match
-#endif
+      legion_assert(depth < expressions.size());
+      legion_assert(expressions[depth]->expr_id == expr);  // these should match
       // Three cases here
       if (expressions.size() == (depth + 1))
       {
@@ -499,9 +479,7 @@ namespace Legion {
           else
             next = node_finder->second;
         }
-#ifdef DEBUG_LEGION
-        assert(next != nullptr);
-#endif
+        legion_assert(next != nullptr);
         return next->find_operation(expressions, result, last);
       }
       else
@@ -543,9 +521,7 @@ namespace Legion {
           else  // lost the race
             next = finder->second;
         }
-#ifdef DEBUG_LEGION
-        assert(next != nullptr);
-#endif
+        legion_assert(next != nullptr);
         return next->find_operation(expressions, result, last);
       }
     }
@@ -556,10 +532,8 @@ namespace Legion {
         OperationCreator& creator)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(depth < expressions.size());
-      assert(expressions[depth]->expr_id == expr);  // these should match
-#endif
+      legion_assert(depth < expressions.size());
+      legion_assert(expressions[depth]->expr_id == expr);  // these should match
       // Three cases here
       if (expressions.size() == (depth + 1))
       {
@@ -622,9 +596,7 @@ namespace Legion {
           else
             next = node_finder->second;
         }
-#ifdef DEBUG_LEGION
-        assert(next != nullptr);
-#endif
+        legion_assert(next != nullptr);
         return next->find_or_create_operation(expressions, creator);
       }
       else
@@ -666,9 +638,7 @@ namespace Legion {
           else  // lost the race
             next = finder->second;
         }
-#ifdef DEBUG_LEGION
-        assert(next != nullptr);
-#endif
+        legion_assert(next != nullptr);
         return next->find_or_create_operation(expressions, creator);
       }
     }
@@ -678,10 +648,8 @@ namespace Legion {
         const std::vector<IndexSpaceExpression*>& expressions)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(depth < expressions.size());
-      assert(expressions[depth]->expr_id == expr);  // these should match
-#endif
+      legion_assert(depth < expressions.size());
+      legion_assert(expressions[depth]->expr_id == expr);  // these should match
       // No need for locks here, we're protected by the big lock at the top
       // Three cases here
       if (expressions.size() == (depth + 1))
@@ -699,9 +667,7 @@ namespace Legion {
         {
           std::map<IndexSpaceExprID, ExpressionTrieNode*>::iterator
               node_finder = nodes.find(target_expr);
-#ifdef DEBUG_LEGION
-          assert(node_finder != nodes.end());
-#endif
+          legion_assert(node_finder != nodes.end());
           if (node_finder->second->remove_operation(expressions))
           {
             delete node_finder->second;
@@ -716,9 +682,7 @@ namespace Legion {
         const IndexSpaceExprID target_expr = expressions[depth + 1]->expr_id;
         std::map<IndexSpaceExprID, ExpressionTrieNode*>::iterator finder =
             nodes.find(target_expr);
-#ifdef DEBUG_LEGION
-        assert(finder != nodes.end());
-#endif
+        legion_assert(finder != nodes.end());
         if (finder->second->remove_operation(expressions))
         {
           delete finder->second;

@@ -118,9 +118,7 @@ namespace Legion {
     void MultiTask::slice_index_space(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!sliced);
-#endif
+      legion_assert(!sliced);
       sliced = true;
       stealable = false;  // cannot steal something that has been sliced
       Mapper::SliceTaskInput input;
@@ -142,9 +140,7 @@ namespace Legion {
             "call on mapper %s. Mapper failed to specify an slices "
             "for task %s (ID %lld).",
             mapper->get_mapper_name(), get_task_name(), get_unique_id())
-#ifdef DEBUG_LEGION
       size_t total_points = 0;
-#endif
       for (unsigned idx = 0; idx < output.slices.size(); idx++)
       {
         Mapper::TaskSlice& slice = output.slices[idx];
@@ -170,32 +166,32 @@ namespace Legion {
               "original index space to be sliced.",
               mapper->get_mapper_name(), slice.domain_is.get_id(),
               get_task_name(), get_unique_id());
-#ifdef DEBUG_LEGION
-        // Check to make sure the domain is not empty
-        Domain& d = slice.domain;
-        if ((d == Domain::NO_DOMAIN) && slice.domain_is.exists())
-          runtime->find_domain(slice.domain_is, d);
-        bool empty = false;
-        size_t volume = d.get_volume();
-        if (volume == 0)
-          empty = true;
-        else
-          total_points += volume;
-        if (empty)
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output from invocation of 'slice_task' "
-              "on mapper %s. Mapper returned an empty slice for task "
-              "%s (ID %lld).",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id())
-#endif
+        if (runtime->safe_mapper)
+        {
+          // Check to make sure the domain is not empty
+          Domain& d = slice.domain;
+          if ((d == Domain::NO_DOMAIN) && slice.domain_is.exists())
+            runtime->find_domain(slice.domain_is, d);
+          bool empty = false;
+          size_t volume = d.get_volume();
+          if (volume == 0)
+            empty = true;
+          else
+            total_points += volume;
+          if (empty)
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_MAPPER_OUTPUT,
+                "Invalid mapper output from invocation of 'slice_task' "
+                "on mapper %s. Mapper returned an empty slice for task "
+                "%s (ID %lld).",
+                mapper->get_mapper_name(), get_task_name(), get_unique_id())
+        }
         SliceTask* new_slice = this->clone_as_slice_task(
             slice.domain_is, slice.proc, slice.recurse, slice.stealable);
         slices.emplace_back(new_slice);
       }
-#ifdef DEBUG_LEGION
       // If the volumes don't match, then something bad happend in the mapper
-      if (total_points != input.domain.get_volume())
+      if (runtime->safe_mapper && (total_points != input.domain.get_volume()))
         REPORT_LEGION_ERROR(
             ERROR_INVALID_MAPPER_OUTPUT,
             "Invalid mapper output from invocation of 'slice_task' "
@@ -204,7 +200,6 @@ namespace Legion {
             "%zd when slicing task %s (ID %lld).",
             mapper->get_mapper_name(), long(total_points),
             input.domain.get_volume(), get_task_name(), get_unique_id())
-#endif
       if (output.verify_correctness)
       {
         std::vector<IndexSpace> slice_spaces(slices.size());
@@ -282,10 +277,8 @@ namespace Legion {
         bool stealable)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this->launch_space == nullptr);
-      assert(this->future_handles == nullptr);
-#endif
+      legion_assert(this->launch_space == nullptr);
+      legion_assert(this->future_handles == nullptr);
       this->clone_task_op_from(rhs, p, stealable, false /*duplicate*/);
       this->index_domain = rhs->index_domain;
       this->launch_space = rhs->launch_space;
@@ -337,9 +330,7 @@ namespace Legion {
     {
       std::map<Color, ConcurrentGroup>::const_iterator finder =
           concurrent_groups.find(color);
-#ifdef DEBUG_LEGION
-      assert(finder != concurrent_groups.end());
-#endif
+      legion_assert(finder != concurrent_groups.end());
       return finder->second.task_barrier;
     }
 
@@ -347,9 +338,7 @@ namespace Legion {
     Domain MultiTask::get_slice_domain(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(internal_space.exists());
-#endif
+      legion_assert(internal_space.exists());
       Domain result;
       runtime->find_domain(internal_space, result);
       return result;
@@ -442,18 +431,14 @@ namespace Legion {
         rez.serialize(local_size);
         const std::map<DomainPoint, DistributedID>& handles =
             future_handles->handles;
-#ifdef DEBUG_LEGION
-        assert(local_size <= handles.size());
-#endif
+        legion_assert(local_size <= handles.size());
         if (local_size < handles.size())
         {
           for (Domain::DomainPointIterator itr(local_domain); itr; itr++)
           {
             std::map<DomainPoint, DistributedID>::const_iterator finder =
                 handles.find(itr.p);
-#ifdef DEBUG_LEGION
-            assert(finder != handles.end());
-#endif
+            legion_assert(finder != handles.end());
             rez.serialize(finder->first);
             rez.serialize(finder->second);
           }
@@ -521,9 +506,7 @@ namespace Legion {
       unpack_base_task(derez, ready_events);
       IndexSpace launch_handle;
       derez.deserialize(launch_handle);
-#ifdef DEBUG_LEGION
-      assert(launch_space == nullptr);
-#endif
+      legion_assert(launch_space == nullptr);
       launch_space = runtime->get_node(launch_handle);
       add_launch_space_reference(launch_space);
       derez.deserialize(sliced);
@@ -541,9 +524,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(future_handles == nullptr);
-#endif
+        legion_assert(future_handles == nullptr);
         size_t num_handles;
         derez.deserialize(num_handles);
         if (num_handles > 0)
@@ -611,9 +592,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Apply the reduction operation
-#ifdef DEBUG_LEGION
-      assert(reduction_op != nullptr);
-#endif
+      legion_assert(reduction_op != nullptr);
       // Perform the reduction, see if we have to do serdez reductions
       if (serdez_redop_fns != nullptr)
       {
@@ -668,9 +647,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(reduction_instance != nullptr);
-#endif
+        legion_assert(reduction_instance != nullptr);
         if (effects.exists())
         {
           if (reduction_instance_precondition.exists())

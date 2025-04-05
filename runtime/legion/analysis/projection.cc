@@ -49,10 +49,8 @@ namespace Legion {
       // There is special logic here to handle the case of singular region
       // requirements with sharding functions which we still want to treat as
       // projection region requirements for the logical analysis
-#ifdef DEBUG_LEGION
       // Should always have a launch space with a sharding function
-      assert((func == nullptr) || (launch_space != nullptr));
-#endif
+      legion_assert((func == nullptr) || (launch_space != nullptr));
       if (req->handle_type == LEGION_SINGULAR_PROJECTION)
       {
         if (func != nullptr)
@@ -83,9 +81,7 @@ namespace Legion {
         RegionTreeNode* node, const LogicalUser& user) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_projecting());
-#endif
+      legion_assert(is_projecting());
       return projection->is_complete(node, user.op, user.idx, projection_space);
     }
 
@@ -99,9 +95,7 @@ namespace Legion {
     {
       std::unordered_map<LegionColor, ShardID>::const_iterator finder =
           color_shards.find(color);
-#ifdef DEBUG_LEGION
-      assert(finder != color_shards.end());
-#endif
+      legion_assert(finder != color_shards.end());
       return finder->second;
     }
 
@@ -395,9 +389,7 @@ namespace Legion {
         ShardID local, unsigned total_shards) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(size > 0);
-#endif
+      legion_assert(size > 0);
       if (max == MAX_VALUES)
       {
         if (size == 1)
@@ -414,10 +406,8 @@ namespace Legion {
         {
           int index = local >> power;
           int offset = local & ((1U << power) - 1);
-#ifdef DEBUG_LEGION
           // Shouldn't exist in the set
-          assert(!(set.buffer[index] & (1U << offset)));
-#endif
+          legion_assert(!(set.buffer[index] & (1U << offset)));
           offset--;
           while (true)
           {
@@ -500,33 +490,25 @@ namespace Legion {
         else
           count = step;
       }
-#ifdef DEBUG_LEGION
-      assert(upper <= buffer_size);
-#endif
+      legion_assert(upper <= buffer_size);
       // Check to see if the upper bound exists or not
       unsigned lower = 0;
       if (upper == buffer_size)
       {
-#ifdef DEBUG_LEGION
-        assert(buffer[upper - 1] < local);
-#endif
+        legion_assert(buffer[upper - 1] < local);
         lower = buffer_size - 1;
         upper = 0;
       }
       else if (upper == 0)
       {
-#ifdef DEBUG_LEGION
-        assert(local < buffer[0]);
-#endif
+        legion_assert(local < buffer[0]);
         lower = buffer_size - 1;
       }
       else
       {
         lower = buffer[upper - 1];
-#ifdef DEBUG_LEGION
-        assert(buffer[lower] < local);
-        assert(local < buffer[upper]);
-#endif
+        legion_assert(buffer[lower] < local);
+        legion_assert(local < buffer[upper]);
       }
       // Figure out which of the two is closer
       unsigned lower_dist = find_distance(buffer[lower], local, total_shards);
@@ -611,9 +593,7 @@ namespace Legion {
           ShardID* buffer = (ShardID*)malloc(bit_max * sizeof(ShardID));
           for (unsigned idx = 0; idx < bit_max; idx++)
             derez.deserialize(buffer[idx]);
-#ifdef DEBUG_LEGION
-          assert(max < bit_max);
-#endif
+          legion_assert(max < bit_max);
           constexpr size_t power = STATIC_LOG2(sizeof(ShardID));
           if (max == MAX_VALUES)
           {
@@ -724,15 +704,9 @@ namespace Legion {
         ProjectionNode* other, ShardID local_shard, bool& dominates) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ProjectionRegion* rhs = dynamic_cast<ProjectionRegion*>(other);
-      assert(rhs != nullptr);
-      assert(region == rhs->region);
+      ProjectionRegion* rhs = legion_safe_cast<ProjectionRegion*>(other);
+      legion_assert(region == rhs->region);
       return has_interference(rhs, local_shard, dominates);
-#else
-      return has_interference(
-          static_cast<ProjectionRegion*>(other), local_shard, dominates);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -740,16 +714,10 @@ namespace Legion {
         const ProjectionNode* other) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       const ProjectionRegion* rhs =
-          dynamic_cast<const ProjectionRegion*>(other);
-      assert(rhs != nullptr);
-      assert(region == rhs->region);
+          legion_safe_cast<const ProjectionRegion*>(other);
+      legion_assert(region == rhs->region);
       return has_pointwise_dominance(rhs);
-#else
-      return has_pointwise_dominance(
-          static_cast<const ProjectionRegion*>(other));
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -759,9 +727,8 @@ namespace Legion {
         std::map<LogicalPartition, PartitionSummary>& partition_summaries) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(region_summaries.find(region->handle) == region_summaries.end());
-#endif
+      legion_assert(
+          region_summaries.find(region->handle) == region_summaries.end());
       RegionSummary& summary = region_summaries[region->handle];
       summary.users = shard_users;
       for (std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
@@ -782,9 +749,8 @@ namespace Legion {
         std::map<LogicalPartition, PartitionSummary>& partition_summaries)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(region_summaries.find(region->handle) != region_summaries.end());
-#endif
+      legion_assert(
+          region_summaries.find(region->handle) != region_summaries.end());
       RegionSummary& summary = region_summaries[region->handle];
       shard_users.swap(summary.users);
       shard_children.swap(summary.children);
@@ -794,23 +760,17 @@ namespace Legion {
         // one in which case we need to make a child for the partition
         // locally and unpack it so we can have the knowledge of which
         // shards know about the subregions of the partition
-#ifdef DEBUG_LEGION
-        assert(shard_children.ranges.size() == 1);
-#endif
+        legion_assert(shard_children.ranges.size() == 1);
         std::map<LegionColor, LegionColor>::const_iterator it =
             shard_children.ranges.begin();
-#ifdef DEBUG_LEGION
         // Should only be one color
-        assert((it->first + 1) == it->second);
-#endif
+        legion_assert((it->first + 1) == it->second);
         if (local_children.empty())
           local_children[it->first] =
               new ProjectionPartition(region->get_child(it->first));
-#ifdef DEBUG_LEGION
         else
-          assert(local_children.find(it->first) != local_children.end());
-        assert(local_children.size() == 1);
-#endif
+          legion_assert(local_children.find(it->first) != local_children.end());
+        legion_assert(local_children.size() == 1);
       }
       // Remove all our local children from the shard children
       for (std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
@@ -866,9 +826,7 @@ namespace Legion {
     {
       if (other->shard_users.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(!other->local_children.empty());
-#endif
+        legion_assert(!other->local_children.empty());
         if (!shard_users.empty())
           return false;
         for (std::unordered_map<
@@ -887,10 +845,8 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
         // Would violate name-based analysis
-        assert(other->local_children.empty());
-#endif
+        legion_assert(other->local_children.empty());
         // If we don't have any other local children then we can do
         // pointwise analysis regardless of where the shards are
         return local_children.empty();
@@ -1002,15 +958,9 @@ namespace Legion {
         ProjectionNode* other, ShardID local_shard, bool& dominates) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ProjectionPartition* rhs = dynamic_cast<ProjectionPartition*>(other);
-      assert(rhs != nullptr);
-      assert(partition == rhs->partition);
+      ProjectionPartition* rhs = legion_safe_cast<ProjectionPartition*>(other);
+      legion_assert(partition == rhs->partition);
       return has_interference(rhs, local_shard, dominates);
-#else
-      return has_interference(
-          static_cast<ProjectionPartition*>(other), local_shard, dominates);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1018,16 +968,10 @@ namespace Legion {
         const ProjectionNode* other) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       const ProjectionPartition* rhs =
-          dynamic_cast<const ProjectionPartition*>(other);
-      assert(rhs != nullptr);
-      assert(partition == rhs->partition);
+          legion_safe_cast<const ProjectionPartition*>(other);
+      legion_assert(partition == rhs->partition);
       return has_pointwise_dominance(rhs);
-#else
-      return has_pointwise_dominance(
-          static_cast<const ProjectionPartition*>(other));
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1037,11 +981,9 @@ namespace Legion {
         std::map<LogicalPartition, PartitionSummary>& partition_summaries) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           partition_summaries.find(partition->handle) ==
           partition_summaries.end());
-#endif
       PartitionSummary& summary = partition_summaries[partition->handle];
       for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
                it = local_children.begin();
@@ -1072,11 +1014,9 @@ namespace Legion {
         std::map<LogicalPartition, PartitionSummary>& partition_summaries)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           partition_summaries.find(partition->handle) !=
           partition_summaries.end());
-#endif
       PartitionSummary& summary = partition_summaries[partition->handle];
       shard_children.swap(summary.children);
       // Remove all our local children from the shard children
@@ -1107,9 +1047,7 @@ namespace Legion {
               it->second.find_nearest_shard(local_shard, total_shards);
         }
         // Now we can make our ShardedColorMap and save it
-#ifdef DEBUG_LEGION
-        assert(name_based_children_shards == nullptr);
-#endif
+        legion_assert(name_based_children_shards == nullptr);
         name_based_children_shards =
             new ShardedColorMap(std::move(nearest_shards));
         name_based_children_shards->add_reference();
@@ -1190,10 +1128,8 @@ namespace Legion {
         const ProjectionPartition* other) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should be disjoint or would violate name-based-self-analysis
-      assert(partition->row_source->is_disjoint(false /*from app*/));
-#endif
+      legion_assert(partition->row_source->is_disjoint(false /*from app*/));
       for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
                it = other->local_children.begin();
            it != other->local_children.end(); it++)
@@ -1245,10 +1181,8 @@ namespace Legion {
             true) /* no shard in non-control-replicated context */
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(proj_info.is_projecting());
-      assert(tree != nullptr);
-#endif
+      legion_assert(proj_info.is_projecting());
+      legion_assert(tree != nullptr);
       if (domain != nullptr)
         domain->add_base_gc_ref(PROJECTION_REF);
       if (sharding_domain != nullptr)
@@ -1280,10 +1214,8 @@ namespace Legion {
         permits_name_based_self_analysis(disjoint), unique_shard_users(unique)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(proj_info.is_projecting());
-      assert(tree != nullptr);
-#endif
+      legion_assert(proj_info.is_projecting());
+      legion_assert(tree != nullptr);
       if (domain != nullptr)
         domain->add_base_gc_ref(PROJECTION_REF);
       if (sharding_domain != nullptr)
@@ -1319,10 +1251,8 @@ namespace Legion {
         unique_shard_users(tree->is_unique_shards())
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(proj_info.is_projecting());
-      assert(tree != nullptr);
-#endif
+      legion_assert(proj_info.is_projecting());
+      legion_assert(tree != nullptr);
       exchange->perform_collective_async();
       if (domain != nullptr)
         domain->add_base_gc_ref(PROJECTION_REF);

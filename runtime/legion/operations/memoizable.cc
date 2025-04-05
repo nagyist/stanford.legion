@@ -62,9 +62,7 @@ namespace Legion {
       {
         PhysicalTrace* physical = trace->get_physical_trace();
         tpl = physical->get_current_template();
-#ifdef DEBUG_LEGION
-        assert(tpl != nullptr);
-#endif
+        legion_assert(tpl != nullptr);
         if (physical->is_recording())
         {
           memo_state = MEMO_RECORD;
@@ -86,11 +84,9 @@ namespace Legion {
     bool MemoizableOp::can_memoize_operation(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(trace != nullptr);
-      assert(!runtime->no_tracing);
-      assert(!runtime->no_physical_tracing);
-#endif
+      legion_assert(trace != nullptr);
+      legion_assert(!runtime->no_tracing);
+      legion_assert(!runtime->no_physical_tracing);
       Mappable* mappable = get_mappable();
       if (mappable != nullptr)
       {
@@ -102,9 +98,7 @@ namespace Legion {
         Processor mapper_proc = parent_ctx->get_executing_processor();
         MapperManager* mapper =
             runtime->find_mapper(mapper_proc, mappable->map_id);
-#ifdef DEBUG_LEGION
-        assert(mappable != nullptr);
-#endif
+        legion_assert(mappable != nullptr);
         mapper->invoke_memoize_operation(mappable, input, output);
         return output.memoize;
       }

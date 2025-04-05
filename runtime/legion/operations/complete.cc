@@ -158,9 +158,7 @@ namespace Legion {
     void ReplTraceComplete<OP>::deactivate(bool free)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!free);
-#endif
+      legion_assert(!free);
       OP::deactivate(free);
       if (replayable_collective != nullptr)
         delete replayable_collective;
@@ -174,15 +172,9 @@ namespace Legion {
         ReplayableStatus status)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(replayable_collective == nullptr);
+      legion_assert(replayable_collective == nullptr);
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->parent_ctx);
-#endif
+          legion_safe_cast<ReplicateContext*>(this->parent_ctx);
       replayable_collective =
           new AllReduceCollective<ProdReduction<bool>, false>(
               repl_ctx, replayable_collective_id);
@@ -198,9 +190,7 @@ namespace Legion {
         ReplayableStatus& status)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(replayable_collective != nullptr);
-#endif
+      legion_assert(replayable_collective != nullptr);
       if (!replayable_collective->get_result() && (status == REPLAYABLE))
         status = NOT_REPLAYABLE_REMOTE_SHARD;
     }
@@ -211,15 +201,9 @@ namespace Legion {
         IdempotencyStatus status)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idempotent_collective == nullptr);
+      legion_assert(idempotent_collective == nullptr);
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->parent_ctx);
-#endif
+          legion_safe_cast<ReplicateContext*>(this->parent_ctx);
       idempotent_collective =
           new AllReduceCollective<ProdReduction<bool>, false>(
               repl_ctx, idempotent_collective_id);
@@ -235,9 +219,7 @@ namespace Legion {
         IdempotencyStatus& status)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idempotent_collective != nullptr);
-#endif
+      legion_assert(idempotent_collective != nullptr);
       if (!idempotent_collective->get_result() && (status == IDEMPOTENT))
         status = NOT_IDEMPOTENT_REMOTE_SHARD;
     }
@@ -247,14 +229,8 @@ namespace Legion {
     void ReplTraceComplete<OP>::sync_compute_frontiers(RtEvent precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->parent_ctx);
-#endif
+          legion_safe_cast<ReplicateContext*>(this->parent_ctx);
       SlowBarrier pre_sync_barrier(
           repl_ctx, sync_compute_frontiers_collective_id);
       pre_sync_barrier.perform_collective_sync(precondition);
@@ -266,14 +242,8 @@ namespace Legion {
         std::map<EquivalenceSet*, unsigned>& condition_sets)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->parent_ctx);
-#endif
+          legion_safe_cast<ReplicateContext*>(this->parent_ctx);
       // If this replication doesn't span multiple nodes we don't care
       if (repl_ctx->shard_manager->collective_mapping == nullptr)
         return;
@@ -450,9 +420,7 @@ namespace Legion {
         delete trace;
       if (fence_before)
       {
-#ifdef DEBUG_LEGION
-        assert(fence_kind == EXECUTION_FENCE);
-#endif
+        legion_assert(fence_kind == EXECUTION_FENCE);
         // Perform the normal execution fence analysis
         parent_ctx->perform_execution_fence_analysis(
             this, execution_preconditions);

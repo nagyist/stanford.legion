@@ -53,9 +53,7 @@ namespace Legion {
     TaskContext::~TaskContext(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(task_local_instances.empty());
-#endif
+      legion_assert(task_local_instances.empty());
       // Clean up any local variables that we have
       if (!task_local_variables.empty())
       {
@@ -91,9 +89,7 @@ namespace Legion {
     InnerContext* TaskContext::find_parent_context(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(owner_task != nullptr);
-#endif
+      legion_assert(owner_task != nullptr);
       return owner_task->get_context();
     }
 
@@ -313,9 +309,8 @@ namespace Legion {
     PhysicalRegion TaskContext::get_physical_region(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < regions.size());  // should be one of our original regions
-#endif
+      legion_assert(
+          idx < regions.size());  // should be one of our original regions
       return physical_regions[idx];
     }
 
@@ -323,10 +318,8 @@ namespace Legion {
     OutputRegion TaskContext::get_output_region(unsigned idx) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           idx < output_regions.size());  // should be one of our output regions
-#endif
       return output_regions[idx];
     }
 
@@ -412,9 +405,7 @@ namespace Legion {
     bool TaskContext::is_region_mapped(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < physical_regions.size());
-#endif
+      legion_assert(idx < physical_regions.size());
       return physical_regions[idx].is_mapped();
     }
 
@@ -432,9 +423,7 @@ namespace Legion {
         int local_index, int& bad_index, bool skip_privilege) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(our_req.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(our_req.handle_type == LEGION_SINGULAR_PROJECTION);
       // Check to see if we found the requirement in the parent
       if (our_req.region == req.parent)
       {
@@ -575,9 +564,7 @@ namespace Legion {
       owner_task->current_proc = executing_processor;
       if (runtime->legion_spy_enabled)
         LegionSpy::log_task_processor(get_unique_id(), executing_processor.id);
-#ifdef DEBUG_LEGION
-      assert(regions.size() == physical_regions.size());
-#endif
+      legion_assert(regions.size() == physical_regions.size());
       // Issue a utility task to decrement the number of outstanding
       // tasks now that this task has started running
       if (!inline_task)
@@ -616,11 +603,9 @@ namespace Legion {
       bool eager_callback = false;
       if (callback_functor != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(res == nullptr);
-        assert(metadataptr == nullptr);
-        assert(metadatasize == 0);
-#endif
+        legion_assert(res == nullptr);
+        legion_assert(metadataptr == nullptr);
+        legion_assert(metadatasize == 0);
         if (owner_task->is_reducing_future())
         {
           eager_callback = true;
@@ -633,10 +618,8 @@ namespace Legion {
       FutureInstance* instance = nullptr;
       if (deferred_result_instance.exists())
       {
-#ifdef DEBUG_LEGION
-        assert(res != nullptr);
-        assert(freefunc == nullptr);
-#endif
+        legion_assert(res != nullptr);
+        legion_assert(freefunc == nullptr);
         // Find the unique event for this instance if there is one
         LgEvent unique_event;
         if (effects.exists() && !safe_effects.exists())
@@ -682,9 +665,7 @@ namespace Legion {
       }
       else if (res_size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(res != nullptr);
-#endif
+        legion_assert(res != nullptr);
         if (owned)
         {
           const Realm::ExternalMemoryResource resource(
@@ -718,10 +699,8 @@ namespace Legion {
       release_task_local_instances(effects, safe_effects);
       // Grab some information before doing the next step in case it
       // results in the deletion of 'this'
-#ifdef DEBUG_LEGION
-      assert(owner_task != nullptr);
+      legion_assert(owner_task != nullptr);
       const TaskID owner_task_id = owner_task->task_id;
-#endif
       // Tell the parent context that we are ready for post-end
       InnerContext* parent_ctx = owner_task->get_context();
       if (inline_task)
@@ -740,9 +719,6 @@ namespace Legion {
         // data onto the stack before we do any of the cleanup because
         // we might end up deleting this
         const UniqueID local_uid = get_unique_id();
-#ifndef DEBUG_LEGION
-        const TaskID owner_task_id = owner_task->task_id;
-#endif
         const ApEvent local_completion = owner_task->get_completion_event();
         ImplicitTaskProfiler* local_task_profiler = implicit_task_profiler;
         implicit_task_profiler = nullptr;  // We take ownership
@@ -753,23 +729,15 @@ namespace Legion {
         implicit_profiler->process_implicit(
             local_uid, owner_task_id, local_task_profiler->start_time, stop,
             local_task_profiler->waits, local_completion);
-#ifdef DEBUG_LEGION
         runtime->decrement_total_outstanding_tasks(
             owner_task_id, false /*meta*/);
-#else
-        runtime->decrement_total_outstanding_tasks();
-#endif
         delete local_task_profiler;
       }
       else
       {
         post_end_task();
-#ifdef DEBUG_LEGION
         runtime->decrement_total_outstanding_tasks(
             owner_task_id, false /*meta*/);
-#else
-        runtime->decrement_total_outstanding_tasks();
-#endif
       }
       // See if we can release our callback down
       if (release_callback)
@@ -813,10 +781,8 @@ namespace Legion {
         const Realm::InstanceLayoutGeneric** layouts)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(num_results > 0);
-      assert((layouts != nullptr) || (num_results == 1));
-#endif
+      legion_assert(num_results > 0);
+      legion_assert((layouts != nullptr) || (num_results == 1));
       std::map<PhysicalInstance, LgEvent>::iterator finder =
           task_local_instances.find(instance);
       if (finder != task_local_instances.end())
@@ -836,7 +802,7 @@ namespace Legion {
         task_local_instances.erase(finder);
       }
       std::vector<Realm::ProfilingRequestSet> requests(num_results);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       std::vector<MemoryManager::TaskLocalInstanceAllocator> allocators;
       allocators.reserve(num_results);
       std::vector<ProfilingResponseBase> bases;
@@ -856,7 +822,7 @@ namespace Legion {
           runtime->profiler->add_inst_request(
               requests[idx], get_unique_id(), unique_events[idx]);
         }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         allocators.emplace_back(
             MemoryManager::TaskLocalInstanceAllocator(unique_events[idx]));
         bases.emplace_back(
@@ -872,9 +838,7 @@ namespace Legion {
       const Realm::InstanceLayoutGeneric* layout = instance.get_layout();
       if (layouts == nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(num_results == 1);
-#endif
+        legion_assert(num_results == 1);
         ready = RtEvent(instance.redistrict(
             results, &layout, num_results, &requests.front()));
       }
@@ -885,9 +849,7 @@ namespace Legion {
         size_t remainder = layout->bytes_used;
         for (unsigned idx = 0; idx < num_results; idx++)
         {
-#ifdef DEBUG_LEGION
-          assert(layouts[idx]->bytes_used <= remainder);
-#endif
+          legion_assert(layouts[idx]->bytes_used <= remainder);
           remainder -= layouts[idx]->bytes_used;
         }
         if (remainder > 0)
@@ -899,15 +861,9 @@ namespace Legion {
         ready = RtEvent(instance.redistrict(
             results, layouts, num_results, &requests.front()));
       }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       for (unsigned idx = 0; idx < allocators.size(); idx++)
-      {
-#ifndef NDEBUG
-        const bool success =
-#endif
-            allocators[idx].succeeded();
-        assert(success);
-      }
+        legion_no_skip_assert(allocators[idx].succeeded());
 #endif
       return ready;
     }
@@ -943,13 +899,9 @@ namespace Legion {
       // Issue a utility task to decrement the number of outstanding
       // tasks now that this task has started running
       owner_task->get_context()->decrement_pending(owner_task);
-#ifdef DEBUG_LEGION
-      assert(owner_task != nullptr);
+      legion_assert(owner_task != nullptr);
       runtime->decrement_total_outstanding_tasks(
           owner_task->task_id, false /*meta*/);
-#else
-      runtime->decrement_total_outstanding_tasks();
-#endif
       owner_task->complete_execution();
       owner_task->trigger_children_committed();
     }
@@ -985,9 +937,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Make an overhead tracker
-#ifdef DEBUG_LEGION
-      assert(overhead_profiler == nullptr);
-#endif
+      legion_assert(overhead_profiler == nullptr);
       overhead_profiler = new OverheadProfiler();
     }
 
@@ -1101,9 +1051,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock i_lock(inline_lock);
-#ifdef DEBUG_LEGION
-      assert(inlined_tasks > 0);
-#endif
+      legion_assert(inlined_tasks > 0);
       if ((--inlined_tasks == 0) && inlining_done.exists())
       {
         Runtime::trigger_event(inlining_done);
@@ -1120,9 +1068,7 @@ namespace Legion {
         AutoLock i_lock(inline_lock);
         if (inlined_tasks > 0)
         {
-#ifdef DEBUG_LEGION
-          assert(!inlining_done.exists());
-#endif
+          legion_assert(!inlining_done.exists());
           inlining_done = Runtime::create_rt_user_event();
           wait_on = inlining_done;
         }
@@ -1253,9 +1199,7 @@ namespace Legion {
           if (!mask)
             break;
         }
-#ifdef DEBUG_LEGION
-        assert(!mask);
-#endif
+        legion_assert(!mask);
       }
       output.chosen_variant = 0;
       // Always do this with the child mapper

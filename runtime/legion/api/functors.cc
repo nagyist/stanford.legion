@@ -455,9 +455,7 @@ namespace Legion {
         const Domain& launch_domain, std::vector<DomainPoint>& ordered_points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(region == upper_bound);
-#endif
+      legion_assert(region == upper_bound);
       // This is a special case for the ordered mapping of point tasks in
       // the case where we used to try to premap regions for an index task
       // launch where all the points mapped the same region with read-write
@@ -473,9 +471,8 @@ namespace Legion {
         const Domain& launch_domain, std::vector<DomainPoint>& ordered_points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(runtime->get_parent_logical_partition(region) == upper_bound);
-#endif
+      legion_assert(
+          runtime->get_parent_logical_partition(region) == upper_bound);
       const DomainPoint point = runtime->get_logical_region_color_point(region);
       // Need to check if it is in the launch domain
       if (launch_domain.contains(point))
@@ -556,9 +553,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const RegionRequirement& req = task->regions[idx];
-#ifdef DEBUG_LEGION
-      assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
       size_t arglen = 0;
       const void* args = req.get_projection_args(&arglen);
       if (!is_exclusive)
@@ -626,9 +621,7 @@ namespace Legion {
         const size_t total_shards, bool replaying)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
       size_t arglen = 0;
       const void* args = req.get_projection_args(&arglen);
       std::map<LogicalRegion, std::vector<DomainPoint> > dependences;
@@ -807,9 +800,7 @@ namespace Legion {
           {
             std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                 finder = dependences.find(pointwise_regions[idx]);
-#ifdef DEBUG_LEGION
-            assert(finder != dependences.end());
-#endif
+            legion_assert(finder != dependences.end());
             point_tasks[idx]->record_intra_space_dependences(
                 index, finder->second);
           }
@@ -871,10 +862,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Mappable* mappable = op->get_mappable();
-#ifdef DEBUG_LEGION
-      assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
-      assert(mappable != nullptr);
-#endif
+      legion_assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
+      legion_assert(mappable != nullptr);
       size_t arglen = 0;
       const void* args = req.get_projection_args(&arglen);
       const bool find_dependences =
@@ -1044,9 +1033,7 @@ namespace Legion {
           {
             std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                 finder = dependences.find(pointwise_regions[idx]);
-#ifdef DEBUG_LEGION
-            assert(finder != dependences.end());
-#endif
+            legion_assert(finder != dependences.end());
             points[idx]->record_intra_space_dependences(index, finder->second);
           }
         }
@@ -1065,9 +1052,7 @@ namespace Legion {
             {
               std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                   finder = dependences.find(pointwise_regions[idx]);
-#ifdef DEBUG_LEGION
-              assert(finder != dependences.end());
-#endif
+              legion_assert(finder != dependences.end());
               if (total_shards > 1)
               {
                 const Domain shard_domain =
@@ -1190,27 +1175,28 @@ namespace Legion {
             "bound node of tree ID %lld",
             projection_id, result.get_tree_id(), idx, task->get_task_name(),
             task->get_unique_id(), upper_bound.get_tree_id())
-#ifdef DEBUG_LEGION
-      if (!runtime->is_subregion(result, upper_bound))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion which is not a subregion of the "
-            "upper bound region for region requirement %d of "
-            "task %s (UID %lld)",
-            projection_id, idx, task->get_task_name(), task->get_unique_id())
-      const unsigned projection_depth =
-          runtime->get_projection_depth(result, upper_bound);
-      if (projection_depth > functor->get_depth())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion which has projection depth %d which "
-            "is different from stated projection depth of the functor "
-            "which is %d for region requirement %d of task %s (ID %lld)",
-            projection_id, projection_depth, functor->get_depth(), idx,
-            task->get_task_name(), task->get_unique_id())
-#endif
+      if (runtime->safe_model)
+      {
+        if (!runtime->is_subregion(result, upper_bound))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_PROJECTION_RESULT,
+              "Projection functor %d produced an invalid "
+              "logical subregion which is not a subregion of the "
+              "upper bound region for region requirement %d of "
+              "task %s (UID %lld)",
+              projection_id, idx, task->get_task_name(), task->get_unique_id())
+        const unsigned projection_depth =
+            runtime->get_projection_depth(result, upper_bound);
+        if (projection_depth > functor->get_depth())
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_PROJECTION_RESULT,
+              "Projection functor %d produced an invalid "
+              "logical subregion which has projection depth %d which "
+              "is different from stated projection depth of the functor "
+              "which is %d for region requirement %d of task %s (ID %lld)",
+              projection_id, projection_depth, functor->get_depth(), idx,
+              task->get_task_name(), task->get_unique_id())
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1231,27 +1217,28 @@ namespace Legion {
             "bound node of tree ID %lld",
             projection_id, result.get_tree_id(), idx, task->get_task_name(),
             task->get_unique_id(), upper_bound.get_tree_id())
-#ifdef DEBUG_LEGION
-      if (!runtime->is_subregion(result, upper_bound))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion which is not a subregion of the "
-            "upper bound region for region requirement %d of "
-            "task %s (UID %lld)",
-            projection_id, idx, task->get_task_name(), task->get_unique_id())
-      const unsigned projection_depth =
-          runtime->get_projection_depth(result, upper_bound);
-      if (projection_depth > functor->get_depth())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion which has projection depth %d which "
-            "is different from stated projection depth of the functor "
-            "which is %d for region requirement %d of task %s (ID %lld)",
-            projection_id, projection_depth, functor->get_depth(), idx,
-            task->get_task_name(), task->get_unique_id())
-#endif
+      if (runtime->safe_model)
+      {
+        if (!runtime->is_subregion(result, upper_bound))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_PROJECTION_RESULT,
+              "Projection functor %d produced an invalid "
+              "logical subregion which is not a subregion of the "
+              "upper bound region for region requirement %d of "
+              "task %s (UID %lld)",
+              projection_id, idx, task->get_task_name(), task->get_unique_id())
+        const unsigned projection_depth =
+            runtime->get_projection_depth(result, upper_bound);
+        if (projection_depth > functor->get_depth())
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_PROJECTION_RESULT,
+              "Projection functor %d produced an invalid "
+              "logical subregion which has projection depth %d which "
+              "is different from stated projection depth of the functor "
+              "which is %d for region requirement %d of task %s (ID %lld)",
+              projection_id, projection_depth, functor->get_depth(), idx,
+              task->get_task_name(), task->get_unique_id())
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1272,27 +1259,29 @@ namespace Legion {
             "bound node of tree ID %lld",
             projection_id, result.get_tree_id(), idx, op->get_logging_name(),
             op->get_unique_op_id(), upper_bound.get_tree_id())
-#ifdef DEBUG_LEGION
-      if (!runtime->is_subregion(result, upper_bound))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion which is not a subregion of the "
-            "upper bound region for region requirement %d of "
-            "operation %s (UID %lld)",
-            projection_id, idx, op->get_logging_name(), op->get_unique_op_id())
-      const unsigned projection_depth =
-          runtime->get_projection_depth(result, upper_bound);
-      if (projection_depth > functor->get_depth())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion which has projection depth %d which "
-            "is different from stated projection depth of the functor "
-            "which is %d for region requirement %d of operation %s (ID %lld)",
-            projection_id, projection_depth, functor->get_depth(), idx,
-            op->get_logging_name(), op->get_unique_op_id())
-#endif
+      if (runtime->safe_model)
+      {
+        if (!runtime->is_subregion(result, upper_bound))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_PROJECTION_RESULT,
+              "Projection functor %d produced an invalid "
+              "logical subregion which is not a subregion of the "
+              "upper bound region for region requirement %d of "
+              "operation %s (UID %lld)",
+              projection_id, idx, op->get_logging_name(),
+              op->get_unique_op_id())
+        const unsigned projection_depth =
+            runtime->get_projection_depth(result, upper_bound);
+        if (projection_depth > functor->get_depth())
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_PROJECTION_RESULT,
+              "Projection functor %d produced an invalid "
+              "logical subregion which has projection depth %d which "
+              "is different from stated projection depth of the functor "
+              "which is %d for region requirement %d of operation %s (ID %lld)",
+              projection_id, projection_depth, functor->get_depth(), idx,
+              op->get_logging_name(), op->get_unique_op_id())
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1313,27 +1302,29 @@ namespace Legion {
             "bound node of tree ID %lld",
             projection_id, result.get_tree_id(), idx, op->get_logging_name(),
             op->get_unique_op_id(), upper_bound.get_tree_id())
-#ifdef DEBUG_LEGION
-      if (!runtime->is_subregion(result, upper_bound))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion which is not a subregion of the "
-            "upper bound region for region requirement %d of "
-            "operation %s (UID %lld)",
-            projection_id, idx, op->get_logging_name(), op->get_unique_op_id())
-      const unsigned projection_depth =
-          runtime->get_projection_depth(result, upper_bound);
-      if (projection_depth > functor->get_depth())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion which has projection depth %d which "
-            "is different from stated projection depth of the functor "
-            "which is %d for region requirement %d of operation %s (ID %lld)",
-            projection_id, projection_depth, functor->get_depth(), idx,
-            op->get_logging_name(), op->get_unique_op_id())
-#endif
+      if (runtime->safe_model)
+      {
+        if (!runtime->is_subregion(result, upper_bound))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_PROJECTION_RESULT,
+              "Projection functor %d produced an invalid "
+              "logical subregion which is not a subregion of the "
+              "upper bound region for region requirement %d of "
+              "operation %s (UID %lld)",
+              projection_id, idx, op->get_logging_name(),
+              op->get_unique_op_id())
+        const unsigned projection_depth =
+            runtime->get_projection_depth(result, upper_bound);
+        if (projection_depth > functor->get_depth())
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_PROJECTION_RESULT,
+              "Projection functor %d produced an invalid "
+              "logical subregion which has projection depth %d which "
+              "is different from stated projection depth of the functor "
+              "which is %d for region requirement %d of operation %s (ID %lld)",
+              projection_id, projection_depth, functor->get_depth(), idx,
+              op->get_logging_name(), op->get_unique_op_id())
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1353,31 +1344,32 @@ namespace Legion {
             "produced the region must always be included.",
             projection_id, index, op->get_logging_name(),
             op->get_unique_op_id())
-#ifdef DEBUG_LEGION
-      std::set<DomainPoint> unique_points;
-      for (std::vector<DomainPoint>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      if (runtime->safe_model)
       {
-        if (!launch_domain.contains(*it))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid inversion result "
-              "that contains points not in the launch domain for region "
-              "requirement %d of %s (UID %lld). Only points in the launch "
-              "domain can appear in the result.",
-              projection_id, index, op->get_logging_name(),
-              op->get_unique_op_id())
-        if (!unique_points.insert(*it).second)
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid inversion result "
-              "containing duplicate points for region requirement %d of "
-              "%s (UID %lld). Each point is only permitted to "
-              "appear once in an inversion.",
-              projection_id, index, op->get_logging_name(),
-              op->get_unique_op_id())
+        std::set<DomainPoint> unique_points;
+        for (std::vector<DomainPoint>::const_iterator it = points.begin();
+             it != points.end(); it++)
+        {
+          if (!launch_domain.contains(*it))
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_PROJECTION_RESULT,
+                "Projection functor %d produced an invalid inversion result "
+                "that contains points not in the launch domain for region "
+                "requirement %d of %s (UID %lld). Only points in the launch "
+                "domain can appear in the result.",
+                projection_id, index, op->get_logging_name(),
+                op->get_unique_op_id())
+          if (!unique_points.insert(*it).second)
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_PROJECTION_RESULT,
+                "Projection functor %d produced an invalid inversion result "
+                "containing duplicate points for region requirement %d of "
+                "%s (UID %lld). Each point is only permitted to "
+                "appear once in an inversion.",
+                projection_id, index, op->get_logging_name(),
+                op->get_unique_op_id())
+        }
       }
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1395,29 +1387,30 @@ namespace Legion {
             "Empty inversions are never legal because the point copy "
             "that produced the region must always be included.",
             projection_id, index, Operation::get_string_rep(op_kind), uid)
-#ifdef DEBUG_LEGION
-      std::set<DomainPoint> unique_points;
-      for (std::vector<DomainPoint>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      if (runtime->safe_model)
       {
-        if (!launch_domain.contains(*it))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid inversion result "
-              "that contains points not in the launch domain for region "
-              "requirement %d of %s (UID %lld). Only points in the launch "
-              "domain can appear in the result.",
-              projection_id, index, Operation::get_string_rep(op_kind), uid)
-        if (!unique_points.insert(*it).second)
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid inversion result "
-              "containing duplicate points for region requirement %d of "
-              "%s (UID %lld). Each point is only permitted to "
-              "appear once in an inversion.",
-              projection_id, index, Operation::get_string_rep(op_kind), uid)
+        std::set<DomainPoint> unique_points;
+        for (std::vector<DomainPoint>::const_iterator it = points.begin();
+             it != points.end(); it++)
+        {
+          if (!launch_domain.contains(*it))
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_PROJECTION_RESULT,
+                "Projection functor %d produced an invalid inversion result "
+                "that contains points not in the launch domain for region "
+                "requirement %d of %s (UID %lld). Only points in the launch "
+                "domain can appear in the result.",
+                projection_id, index, Operation::get_string_rep(op_kind), uid)
+          if (!unique_points.insert(*it).second)
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_PROJECTION_RESULT,
+                "Projection functor %d produced an invalid inversion result "
+                "containing duplicate points for region requirement %d of "
+                "%s (UID %lld). Each point is only permitted to "
+                "appear once in an inversion.",
+                projection_id, index, Operation::get_string_rep(op_kind), uid)
+        }
       }
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1426,22 +1419,24 @@ namespace Legion {
         const std::vector<DomainPoint>& points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      const DomainPoint& index_point = point->get_domain_point();
-      for (std::vector<DomainPoint>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      if (runtime->safe_model)
       {
-        if ((*it) == index_point)
-          return;
+        const DomainPoint& index_point = point->get_domain_point();
+        for (std::vector<DomainPoint>::const_iterator it = points.begin();
+             it != points.end(); it++)
+        {
+          if ((*it) == index_point)
+            return;
+        }
+        const Operation* op = point->as_operation();
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_PROJECTION_RESULT,
+            "Projection functor %d produced an invalid inversion result "
+            "that does not contain the original point for region requirement "
+            "%d of %s (UID %lld).",
+            projection_id, index, op->get_logging_name(),
+            op->get_unique_op_id())
       }
-      const Operation* op = point->as_operation();
-      REPORT_LEGION_ERROR(
-          ERROR_INVALID_PROJECTION_RESULT,
-          "Projection functor %d produced an invalid inversion result "
-          "that does not contain the original point for region requirement "
-          "%d of %s (UID %lld).",
-          projection_id, index, op->get_logging_name(), op->get_unique_op_id())
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1450,20 +1445,21 @@ namespace Legion {
         const DomainPoint& index_point, const std::vector<DomainPoint>& points)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      for (std::vector<DomainPoint>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      if (runtime->safe_model)
       {
-        if ((*it) == index_point)
-          return;
+        for (std::vector<DomainPoint>::const_iterator it = points.begin();
+             it != points.end(); it++)
+        {
+          if ((*it) == index_point)
+            return;
+        }
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_PROJECTION_RESULT,
+            "Projection functor %d produced an invalid inversion result "
+            "that does not contain the original point for region requirement "
+            "%d of %s (UID %lld).",
+            projection_id, index, Operation::get_string_rep(op_kind), uid)
       }
-      REPORT_LEGION_ERROR(
-          ERROR_INVALID_PROJECTION_RESULT,
-          "Projection functor %d produced an invalid inversion result "
-          "that does not contain the original point for region requirement "
-          "%d of %s (UID %lld).",
-          projection_id, index, Operation::get_string_rep(op_kind), uid)
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1727,9 +1723,7 @@ namespace Legion {
         const size_t total_shards)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(point.get_dim() == full_space.get_dim());
-#endif
+      legion_assert(point.get_dim() == full_space.get_dim());
       switch (point.get_dim())
       {
 #define DIMFUNC(DIM)                                        \
@@ -1812,9 +1806,7 @@ namespace Legion {
                 sharding_id)
           const unsigned offset =
               std::distance(manager->sorted_points.begin(), finder);
-#ifdef DEBUG_LEGION
-          assert(offset < manager->shard_lookup.size());
-#endif
+          legion_assert(offset < manager->shard_lookup.size());
           return manager->shard_lookup[offset];
         }
       }
@@ -1863,9 +1855,7 @@ namespace Legion {
         std::vector<ShardID>& participants)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(participants.empty());
-#endif
+      legion_assert(participants.empty());
       std::pair<IndexSpace, IndexSpace> key(full_space->handle, shard_space);
       {
         AutoLock s_lock(sharding_lock, 1, false /*exclusive*/);
@@ -1889,10 +1879,8 @@ namespace Legion {
       full_space->compute_range_shards(
           this, shard_space, manager->shard_points, manager->shard_domain,
           range_shards);
-#ifdef DEBUG_LEGION
       // Should always have at least one shard participant
-      assert(!range_shards.empty());
-#endif
+      legion_assert(!range_shards.empty());
       // Only need to record the results if they aren't all participating
       if (range_shards.size() < manager->total_shards)
         participants.insert(

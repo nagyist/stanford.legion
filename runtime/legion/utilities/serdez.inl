@@ -29,7 +29,7 @@ namespace Legion {
     while ((index + sizeof(T)) > total_bytes) resize();
     memcpy(buffer + index, (const void*)&element, sizeof(T));
     index += sizeof(T);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     context_bytes += sizeof(T);
 #endif
   }
@@ -200,7 +200,7 @@ namespace Legion {
     while ((index + bytes) > total_bytes) resize();
     memcpy(buffer + index, src, bytes);
     index += bytes;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     context_bytes += bytes;
 #endif
   }
@@ -209,7 +209,7 @@ namespace Legion {
   inline void Serializer::begin_context(void)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     while ((index + sizeof(context_bytes)) > total_bytes) resize();
     memcpy(buffer + index, &context_bytes, sizeof(context_bytes));
     index += sizeof(context_bytes);
@@ -221,7 +221,7 @@ namespace Legion {
   inline void Serializer::end_context(void)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     // Save the size into the buffer
     while ((index + sizeof(context_bytes)) > total_bytes) resize();
     memcpy(buffer + index, &context_bytes, sizeof(context_bytes));
@@ -237,7 +237,7 @@ namespace Legion {
     while ((index + bytes) > total_bytes) resize();
     void* result = buffer + index;
     index += bytes;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     context_bytes += bytes;
 #endif
     return result;
@@ -248,7 +248,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     index = 0;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     context_bytes = 0;
 #endif
   }
@@ -259,13 +259,9 @@ namespace Legion {
   {
     // Double the buffer size
     total_bytes *= 2;
-#ifdef DEBUG_LEGION
-    assert(total_bytes != 0);  // this would cause deallocation
-#endif
+    legion_assert(total_bytes != 0);  // this would cause deallocation
     uint8_t* next = (uint8_t*)realloc(buffer, total_bytes);
-#ifdef DEBUG_LEGION
-    assert(next != nullptr);
-#endif
+    legion_assert(next != nullptr);
     buffer = next;
   }
 
@@ -275,13 +271,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     static_assert(std::is_trivially_copyable<T>::value);
-#ifdef DEBUG_LEGION
     // Check to make sure we don't read past the end
-    assert((index + sizeof(T)) <= total_bytes);
-#endif
+    legion_assert((index + sizeof(T)) <= total_bytes);
     memcpy(&element, buffer + index, sizeof(T));
     index += sizeof(T);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     context_bytes += sizeof(T);
 #endif
   }
@@ -458,12 +452,10 @@ namespace Legion {
   inline void Deserializer::deserialize(void* dst, size_t bytes)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert((index + bytes) <= total_bytes);
-#endif
+    legion_assert((index + bytes) <= total_bytes);
     memcpy(dst, buffer + index, bytes);
     index += bytes;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     context_bytes += bytes;
 #endif
   }
@@ -472,15 +464,13 @@ namespace Legion {
   inline void Deserializer::begin_context(void)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     // Save our enclosing context on the stack
-#ifndef NDEBUG
     decltype(context_bytes) sent_context = 0;
     memcpy(&sent_context, buffer + index, sizeof(sent_context));
-#endif
     index += sizeof(context_bytes);
     // Check to make sure that they match
-    assert(sent_context == context_bytes);
+    legion_assert(sent_context == context_bytes);
     context_bytes = 0;
 #endif
   }
@@ -489,15 +479,13 @@ namespace Legion {
   inline void Deserializer::end_context(void)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     // Read the send context size out of the buffer
-#ifndef NDEBUG
     decltype(context_bytes) sent_context = 0;
     memcpy(&sent_context, buffer + index, sizeof(sent_context));
-#endif
     index += sizeof(context_bytes);
     // Check to make sure that they match
-    assert(sent_context == context_bytes);
+    legion_assert(sent_context == context_bytes);
     context_bytes = 0;
 #endif
   }
@@ -506,9 +494,7 @@ namespace Legion {
   inline size_t Deserializer::get_remaining_bytes(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(index <= total_bytes);
-#endif
+    legion_assert(index <= total_bytes);
     return total_bytes - index;
   }
 
@@ -516,9 +502,7 @@ namespace Legion {
   inline const void* Deserializer::get_current_pointer(void) const
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert(index <= total_bytes);
-#endif
+    legion_assert(index <= total_bytes);
     return (const void*)(buffer + index);
   }
 
@@ -526,8 +510,8 @@ namespace Legion {
   inline void Deserializer::advance_pointer(size_t bytes)
   //--------------------------------------------------------------------------
   {
-#ifdef DEBUG_LEGION
-    assert((index + bytes) <= total_bytes);
+#ifdef LEGION_DEBUG
+    legion_assert((index + bytes) <= total_bytes);
     context_bytes += bytes;
 #endif
     index += bytes;

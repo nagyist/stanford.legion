@@ -44,9 +44,7 @@ namespace Legion {
         const std::map<Operation*, GenerationID>& deps)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!has_preconditions);
-#endif
+      legion_assert(!has_preconditions);
       dependences = deps;
       has_preconditions = true;
       create_deletion_requirements();
@@ -104,10 +102,8 @@ namespace Legion {
         const bool non_owner_shard)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(impl != nullptr);
-      assert(allocator == nullptr);
-#endif
+      legion_assert(impl != nullptr);
+      legion_assert(allocator == nullptr);
       initialize_operation(ctx, provenance);
       kind = FIELD_DELETION;
       field_space = handle;
@@ -138,10 +134,8 @@ namespace Legion {
         const bool non_owner_shard)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(impl != nullptr);
-      assert(allocator == nullptr);
-#endif
+      legion_assert(impl != nullptr);
+      legion_assert(allocator == nullptr);
       initialize_operation(ctx, provenance);
       kind = FIELD_DELETION;
       field_space = handle;
@@ -258,9 +252,7 @@ namespace Legion {
         default:
           std::abort();
       }
-#ifdef DEBUG_LEGION
-      assert(deletion_requirements.size() == parent_req_indexes.size());
-#endif
+      legion_assert(deletion_requirements.size() == parent_req_indexes.size());
     }
 
     //--------------------------------------------------------------------------
@@ -402,9 +394,7 @@ namespace Legion {
       {
         case INDEX_SPACE_DELETION:
           {
-#ifdef DEBUG_LEGION
-            assert(deletion_req_indexes.empty());
-#endif
+            legion_assert(deletion_req_indexes.empty());
             runtime->destroy_index_space(
                 index_space, runtime->address_space, preconditions);
             if (!sub_partitions.empty())
@@ -418,9 +408,7 @@ namespace Legion {
           }
         case INDEX_PARTITION_DELETION:
           {
-#ifdef DEBUG_LEGION
-            assert(deletion_req_indexes.empty());
-#endif
+            legion_assert(deletion_req_indexes.empty());
             runtime->destroy_index_partition(index_part, preconditions);
             if (!sub_partitions.empty())
             {
@@ -433,9 +421,7 @@ namespace Legion {
           }
         case FIELD_SPACE_DELETION:
           {
-#ifdef DEBUG_LEGION
-            assert(deletion_req_indexes.empty());
-#endif
+            legion_assert(deletion_req_indexes.empty());
             runtime->destroy_field_space(field_space, preconditions);
             break;
           }
@@ -481,10 +467,8 @@ namespace Legion {
     unsigned DeletionOp::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < parent_req_indexes.size());
-      assert(parent_req_indexes[idx] != TRACED_PARENT_INDEX);
-#endif
+      legion_assert(idx < parent_req_indexes.size());
+      legion_assert(parent_req_indexes[idx] != TRACED_PARENT_INDEX);
       return parent_req_indexes[idx];
     }
 
@@ -505,9 +489,7 @@ namespace Legion {
         const bool collective_first_local)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
 
       const RegionUsage usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
       IndexSpaceExpression* local_expr =
@@ -573,14 +555,10 @@ namespace Legion {
       // We might have already received our barriers
       if (commit_barrier.exists())
         return;
-#ifdef DEBUG_LEGION
-      assert(!mapping_barrier.exists());
-      assert(!commit_barrier.exists());
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(!mapping_barrier.exists());
+      legion_assert(!commit_barrier.exists());
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Only field and region deletions need a ready barrier since they
       // will be touching the physical states of the region tree
       if ((kind == LOGICAL_REGION_DELETION) || (kind == FIELD_DELETION))
@@ -624,17 +602,11 @@ namespace Legion {
     void ReplDeletionOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       if (kind == FIELD_DELETION)
       {
-#ifdef DEBUG_LEGION
-        assert(mapping_barrier.exists());
-#endif
+        legion_assert(mapping_barrier.exists());
         if (is_first_local_shard)
         {
           // For this case we actually need to go through and prune out any
@@ -695,13 +667,9 @@ namespace Legion {
     void ReplDeletionOp::trigger_commit(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(commit_barrier.exists());
-      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
+      legion_assert(commit_barrier.exists());
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
       if (!commit_barrier.has_triggered())
       {
         // We need to make sure all the operations across all the shards
@@ -727,9 +695,7 @@ namespace Legion {
         {
           case INDEX_SPACE_DELETION:
             {
-#ifdef DEBUG_LEGION
-              assert(deletion_req_indexes.empty());
-#endif
+              legion_assert(deletion_req_indexes.empty());
               runtime->destroy_index_space(
                   index_space, runtime->address_space, applied, &mapping);
               if (!sub_partitions.empty())
@@ -743,9 +709,7 @@ namespace Legion {
             }
           case INDEX_PARTITION_DELETION:
             {
-#ifdef DEBUG_LEGION
-              assert(deletion_req_indexes.empty());
-#endif
+              legion_assert(deletion_req_indexes.empty());
               runtime->destroy_index_partition(index_part, applied, &mapping);
               if (!sub_partitions.empty())
               {
@@ -758,9 +722,7 @@ namespace Legion {
             }
           case FIELD_SPACE_DELETION:
             {
-#ifdef DEBUG_LEGION
-              assert(deletion_req_indexes.empty());
-#endif
+              legion_assert(deletion_req_indexes.empty());
               runtime->destroy_field_space(field_space, applied, &mapping);
               break;
             }
@@ -828,11 +790,9 @@ namespace Legion {
         RtBarrier* mapping_bar, RtBarrier* commit_bar)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!ready_barrier.exists());
-      assert(!mapping_barrier.exists());
-      assert(!commit_barrier.exists());
-#endif
+      legion_assert(!ready_barrier.exists());
+      legion_assert(!mapping_barrier.exists());
+      legion_assert(!commit_barrier.exists());
       is_first_local_shard = is_first;
       if (commit_bar != nullptr)
       {
@@ -864,54 +824,42 @@ namespace Legion {
       {
         case INDEX_SPACE_DELETION:
           {
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 index_space_deletions.find(index_space) ==
                 index_space_deletions.end());
-#endif
             index_space_deletions[index_space] = this;
             break;
           }
         case INDEX_PARTITION_DELETION:
           {
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 index_partition_deletions.find(index_part) ==
                 index_partition_deletions.end());
-#endif
             index_partition_deletions[index_part] = this;
             break;
           }
         case FIELD_SPACE_DELETION:
           {
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 field_space_deletions.find(field_space) ==
                 field_space_deletions.end());
-#endif
             field_space_deletions[field_space] = this;
             break;
           }
         case FIELD_DELETION:
           {
-#ifdef DEBUG_LEGION
-            assert(!free_fields.empty());
-#endif
+            legion_assert(!free_fields.empty());
             const std::pair<FieldSpace, FieldID> key(
                 field_space, *(free_fields.begin()));
-#ifdef DEBUG_LEGION
-            assert(field_deletions.find(key) == field_deletions.end());
-#endif
+            legion_assert(field_deletions.find(key) == field_deletions.end());
             field_deletions[key] = this;
             break;
           }
         case LOGICAL_REGION_DELETION:
           {
-#ifdef DEBUG_LEGION
-            assert(
+            legion_assert(
                 logical_region_deletions.find(logical_region) ==
                 logical_region_deletions.end());
-#endif
             logical_region_deletions[logical_region] = this;
             break;
           }

@@ -71,10 +71,8 @@ namespace Legion {
     void UniqueInst::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(view_did != 0);
-      assert(inst_did != 0);
-#endif
+      legion_assert(view_did != 0);
+      legion_assert(inst_did != 0);
       rez.serialize(view_did);
       rez.serialize(inst_did);
       rez.serialize(analysis_space);
@@ -114,9 +112,7 @@ namespace Legion {
       : origin_space(origin), remote_tpl(tpl), repl_did(did), trace_id(tid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(remote_tpl != nullptr);
-#endif
+      legion_assert(remote_tpl != nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -179,9 +175,8 @@ namespace Legion {
     void RemoteTraceRecorder::request_term_event(ApUserEvent& term_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!term_event.exists() || term_event.has_triggered_faultignorant());
-#endif
+      legion_assert(
+          !term_event.exists() || term_event.has_triggered_faultignorant());
       if (runtime->address_space != origin_space)
       {
         RtUserEvent ready = Runtime::create_rt_user_event();
@@ -433,9 +428,7 @@ namespace Legion {
         ShardID owner_shard)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bar.exists());
-#endif
+      legion_assert(bar.exists());
       if (runtime->address_space != origin_space)
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
@@ -485,9 +478,7 @@ namespace Legion {
           rez.serialize(&lhs);
           rez.serialize(lhs);
           expr->pack_expression(rez, origin_space);
-#ifdef DEBUG_LEGION
-          assert(src_fields.size() == dst_fields.size());
-#endif
+          legion_assert(src_fields.size() == dst_fields.size());
           rez.serialize<size_t>(src_fields.size());
           for (unsigned idx = 0; idx < src_fields.size(); idx++)
           {
@@ -933,9 +924,7 @@ namespace Legion {
             derez.deserialize(ready);
             ApUserEvent result;
             tpl->request_term_event(result);
-#ifdef DEBUG_LEGION
-            assert(result.exists());
-#endif
+            legion_assert(result.exists());
             Serializer rez;
             {
               RezCheck z2(rez);
@@ -957,9 +946,7 @@ namespace Legion {
             tlid.deserialize(derez);
             ApUserEvent result;
             tpl->record_create_ap_user_event(result, tlid);
-#ifdef DEBUG_LEGION
-            assert(result.exists());
-#endif
+            legion_assert(result.exists());
             Serializer rez;
             {
               RezCheck z2(rez);
@@ -1702,9 +1689,7 @@ namespace Legion {
       rez.serialize<bool>(recording);
       if (recording)
       {
-#ifdef DEBUG_LEGION
-        assert(rec != nullptr);
-#endif
+        legion_assert(rec != nullptr);
         tlid.serialize(rez);
         rez.serialize(index);
         rez.serialize(dst_index);

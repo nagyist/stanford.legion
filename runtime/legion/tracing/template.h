@@ -480,7 +480,7 @@ namespace Legion {
       void record_memo_entry(
           const TraceLocalID& tlid, unsigned entry, unsigned op_kind);
     protected:
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       // This is a virtual method in debug mode only since we have an
       // assertion that we want to check in the ShardedPhysicalTemplate
       virtual unsigned convert_event(const ApEvent& event, bool check = true);
@@ -616,7 +616,6 @@ namespace Legion {
     private:
       friend class PhysicalTrace;
       friend class Instruction;
-#ifdef DEBUG_LEGION
       friend class ReplayMapping;
       friend class CreateApUserEvent;
       friend class TriggerEvent;
@@ -631,7 +630,6 @@ namespace Legion {
       friend class ReleaseReplay;
       friend class BarrierArrival;
       friend class BarrierAdvance;
-#endif
     };
 
   }  // namespace Internal

@@ -124,12 +124,7 @@ namespace Legion {
           InstanceSet& restricted_instances,
           const std::vector<PhysicalManager*>& sources,
           const PhysicalTraceInfo& trace_info,
-          std::set<RtEvent>& map_applied_events
-#ifdef DEBUG_LEGION
-          ,
-          const char* log_name, UniqueID uid
-#endif
-      );
+          std::set<RtEvent>& map_applied_events);
     protected:
       RegionRequirement requirement;
       PhysicalRegion restricted_region;

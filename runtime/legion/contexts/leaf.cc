@@ -52,9 +52,7 @@ namespace Legion {
     LeafContext::~LeafContext(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(memory_pools.empty());
-#endif
+      legion_assert(memory_pools.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -94,9 +92,7 @@ namespace Legion {
       for (unsigned childidx = 0; childidx < child_regions.size(); childidx++)
       {
         const RegionRequirement& child_req = child->regions[childidx];
-#ifdef DEBUG_LEGION
-        bool found = false;
-#endif
+        [[maybe_unused]] bool found = false;
         for (unsigned our_idx = 0; our_idx < physical_regions.size(); our_idx++)
         {
           if (!physical_regions[our_idx].is_mapped())
@@ -110,14 +106,10 @@ namespace Legion {
                   false /*ignore privileges*/))
             continue;
           child_regions[childidx] = physical_regions[our_idx];
-#ifdef DEBUG_LEGION
           found = true;
-#endif
           break;
         }
-#ifdef DEBUG_LEGION
-        assert(found);
-#endif
+        legion_assert(found);
       }
       // Now select the variant for task based on the regions
       std::deque<InstanceSet> physical_instances(child_regions.size());
@@ -917,9 +909,7 @@ namespace Legion {
         const InstanceSet& physical_instances)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!unmap_event.exists());
-#endif
+      legion_assert(!unmap_event.exists());
       PhysicalRegionImpl* impl = new PhysicalRegionImpl(
           req, RtEvent::NO_RT_EVENT, ApEvent::NO_AP_EVENT,
           ApUserEvent::NO_AP_USER_EVENT, mapped, this, mid, tag,
@@ -1827,10 +1817,8 @@ namespace Legion {
             &safe_for_unbounded_pools);
         if (footprint == 0)
         {
-#ifdef DEBUG_LEGION
-          assert(instance.exists());
-          assert(!use_event.exists());
-#endif
+          legion_assert(instance.exists());
+          legion_assert(!use_event.exists());
           task_local_instances[instance] = unique_event;
           delete layout;
           return instance;
@@ -2059,9 +2047,7 @@ namespace Legion {
       }
       if (Processor::get_executing_processor().exists())
       {
-#ifdef DEBUG_LEGION
-        assert(!effects.exists());
-#endif
+        legion_assert(!effects.exists());
         effects = ApEvent(Processor::get_current_finish_event());
         if (owner_task->is_concurrent())
           runtime->end_concurrent_task(executing_processor);
@@ -2087,10 +2073,8 @@ namespace Legion {
         const Realm::InstanceLayoutGeneric** layouts)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(num_results > 0);
-      assert((layouts != nullptr) || (num_results == 1));
-#endif
+      legion_assert(num_results > 0);
+      legion_assert((layouts != nullptr) || (num_results == 1));
       if (!memory_pools.empty())
       {
         // See if this is an instance that we made
@@ -2159,7 +2143,7 @@ namespace Legion {
         it->second->finalize_pool(safe_effects);
         delete it->second;
       }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       memory_pools.clear();
 #endif
     }
@@ -2174,7 +2158,7 @@ namespace Legion {
                  memory_pools.begin();
              it != memory_pools.end(); it++)
           delete it->second;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         memory_pools.clear();
 #endif
       }

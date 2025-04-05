@@ -52,9 +52,7 @@ namespace Legion {
     AddressSpaceID ShardMapping::operator[](unsigned idx) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < address_spaces.size());
-#endif
+      legion_assert(idx < address_spaces.size());
       return address_spaces[idx];
     }
 
@@ -62,9 +60,7 @@ namespace Legion {
     AddressSpaceID& ShardMapping::operator[](unsigned idx)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < address_spaces.size());
-#endif
+      legion_assert(idx < address_spaces.size());
       return address_spaces[idx];
     }
 
@@ -130,29 +126,23 @@ namespace Legion {
         virtual_mapping_rendezvous(nullptr)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(total_shards > 0);
-      assert((local_constituents > 0) || (remote_constituents > 0));
-      assert(shard_points.size() == sorted_points.size());
-      assert(shard_points.size() == shard_lookup.size());
-#endif
+      legion_assert(total_shards > 0);
+      legion_assert((local_constituents > 0) || (remote_constituents > 0));
+      legion_assert(shard_points.size() == sorted_points.size());
+      legion_assert(shard_points.size() == shard_lookup.size());
       if (is_owner())
       {
-#ifdef DEBUG_LEGION
-        assert(!callback_barrier.exists());
-#endif
+        legion_assert(!callback_barrier.exists());
         if (control_replicated)
         {
           callback_barrier = runtime->create_rt_barrier(
               (collective_mapping == nullptr) ? 1 : collective_mapping->size());
         }
       }
-#ifdef DEBUG_LEGION
       else
       {
-        assert(callback_barrier.exists() == control_replicated);
+        legion_assert(callback_barrier.exists() == control_replicated);
       }
-#endif
 #ifdef LEGION_GC
       log_garbage.info(
           "GC Shard Manager %lld %d", LEGION_DISTRIBUTED_ID_FILTER(this->did),
@@ -179,9 +169,7 @@ namespace Legion {
         callback_barrier.destroy_barrier();
       if ((address_spaces != nullptr) && address_spaces->remove_reference())
         delete address_spaces;
-#ifdef DEBUG_LEGION
-      assert(created_equivalence_sets.empty());
-#endif
+      legion_assert(created_equivalence_sets.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -221,10 +209,8 @@ namespace Legion {
         std::vector<VariantID>& leaf_variants)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_shards.empty());
-      assert((variant == 0) == !leaf_variants.empty());
-#endif
+      legion_assert(!local_shards.empty());
+      legion_assert((variant == 0) == !leaf_variants.empty());
       // Initialize the address spaces data structure
       set_shard_mapping(target_processors);
       if (collective_mapping != nullptr)
@@ -267,11 +253,9 @@ namespace Legion {
       {
         TaskTreeCoordinates coordinates;
         ctx->compute_task_tree_coordinates(coordinates);
-#ifdef DEBUG_LEGION
-        assert(coordinates.size() == 1);
-        assert(coordinates.back().context_index == 0);
-        assert(coordinates.back().index_point[0] == 0);
-#endif
+        legion_assert(coordinates.size() == 1);
+        legion_assert(coordinates.back().context_index == 0);
+        legion_assert(coordinates.back().index_point[0] == 0);
         const coord_t implicit_coord = coordinates.back().index_point[1];
         for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
              it != children.end(); it++)
@@ -319,9 +303,7 @@ namespace Legion {
       rez.serialize<bool>(control_replicated);
       rez.serialize(callback_barrier);
       collective_mapping->pack(rez);
-#ifdef DEBUG_LEGION
-      assert(shard_mapping.size() == total_shards);
-#endif
+      legion_assert(shard_mapping.size() == total_shards);
       for (unsigned idx = 0; idx < total_shards; idx++)
         rez.serialize(shard_mapping[idx]);
       if (control_replicated)
@@ -332,10 +314,8 @@ namespace Legion {
     void ShardManager::set_shard_mapping(std::vector<Processor>& mapping)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(address_spaces == nullptr);
-      assert(mapping.size() == total_shards);
-#endif
+      legion_assert(address_spaces == nullptr);
+      legion_assert(mapping.size() == total_shards);
       shard_mapping.swap(mapping);
       address_spaces = new ShardMapping();
       address_spaces->add_reference();
@@ -383,10 +363,8 @@ namespace Legion {
         op::map<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // All shards should be using the same region
-      assert(to_perform.size() <= 1);
-#endif
+      legion_assert(to_perform.size() <= 1);
       if (!is_owner())
       {
         const AddressSpaceID target =
@@ -412,10 +390,8 @@ namespace Legion {
         std::map<LogicalRegion, CollectiveRendezvous>& rendezvous)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // All shards should be using the same region
-      assert(rendezvous.size() == 1);
-#endif
+      legion_assert(rendezvous.size() == 1);
       if (!is_owner())
       {
         const AddressSpaceID target =
@@ -463,9 +439,7 @@ namespace Legion {
         const std::vector<bool>& virtual_mappings)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!virtual_mappings.empty());
-#endif
+      legion_assert(!virtual_mappings.empty());
       AutoLock m_lock(manager_lock);
       if (virtual_mapping_rendezvous == nullptr)
       {
@@ -505,9 +479,7 @@ namespace Legion {
       {
         const std::vector<bool>& previous_mappings =
             virtual_mapping_rendezvous->virtual_mappings;
-#ifdef DEBUG_LEGION
-        assert(previous_mappings.size() == virtual_mappings.size());
-#endif
+        legion_assert(previous_mappings.size() == virtual_mappings.size());
         // Check to see if they are the same
         int bad_index = -1;
         for (unsigned idx = 0; idx < virtual_mappings.size(); idx++)
@@ -521,9 +493,7 @@ namespace Legion {
         {
           if (mapper == nullptr)
             mapper = virtual_mapping_rendezvous->mapper;
-#ifdef DEBUG_LEGION
-          assert(mapper != nullptr);
-#endif
+          legion_assert(mapper != nullptr);
           REPORT_LEGION_ERROR(
               ERROR_INVALID_MAPPER_OUTPUT,
               "Mapper %s provided different virtual mapping outputs for "
@@ -542,9 +512,7 @@ namespace Legion {
               local_shards.back()->get_task_name())
         }
       }
-#ifdef DEBUG_LEGION
-      assert(virtual_mapping_rendezvous->remaining_arrivals > 0);
-#endif
+      legion_assert(virtual_mapping_rendezvous->remaining_arrivals > 0);
       if (--virtual_mapping_rendezvous->remaining_arrivals == 0)
       {
         delete virtual_mapping_rendezvous;
@@ -565,9 +533,7 @@ namespace Legion {
           return (*it)->handle_pointwise_dependence(
               context_index, point, shard, to_trigger);
       const AddressSpaceID target_space = (*address_spaces)[shard];
-#ifdef DEBUG_LEGION
-      assert(target_space != runtime->address_space);
-#endif
+      legion_assert(target_space != runtime->address_space);
       if (!to_trigger.exists())
         to_trigger = Runtime::create_rt_user_event();
       Serializer rez;
@@ -637,9 +603,7 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(collective_mapping != nullptr);
-#endif
+          legion_assert(collective_mapping != nullptr);
           eq_mapping = collective_mapping;
           local_users = local_shards.size();
         }
@@ -688,11 +652,9 @@ namespace Legion {
           }
           else
           {
-#ifdef DEBUG_LEGION
-            assert(finder->second.new_set == nullptr);
-            assert(finder->second.ready_event.exists());
-            assert(finder->second.remaining > 1);
-#endif
+            legion_assert(finder->second.new_set == nullptr);
+            legion_assert(finder->second.ready_event.exists());
+            legion_assert(finder->second.remaining > 1);
             finder->second.new_set = result;
             finder->second.remaining--;
             Runtime::trigger_event(finder->second.ready_event);
@@ -735,9 +697,7 @@ namespace Legion {
           if (finder->second.new_set != nullptr)
           {
             EquivalenceSet* result = finder->second.new_set;
-#ifdef DEBUG_LEGION
-            assert(finder->second.remaining > 0);
-#endif
+            legion_assert(finder->second.remaining > 0);
             if (--finder->second.remaining == 0)
               created_equivalence_sets.erase(finder);
             return result;
@@ -769,9 +729,7 @@ namespace Legion {
                 runtime->determine_owner(finder->second.did),
                 region_node->row_source, region_node->handle.get_tree_id(),
                 context, true /*register now*/, finder->second.mapping);
-#ifdef DEBUG_LEGION
-            assert(finder->second.remaining > 0);
-#endif
+            legion_assert(finder->second.remaining > 0);
             result->initialize_collective_references(finder->second.remaining);
             if (--finder->second.remaining == 0)
               created_equivalence_sets.erase(finder);
@@ -779,35 +737,25 @@ namespace Legion {
               finder->second.new_set = result;
             return result;
           }
-#ifdef DEBUG_LEGION
-          assert(finder->second.ready_event.exists());
-#endif
+          legion_assert(finder->second.ready_event.exists());
           wait_on = finder->second.ready_event;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(wait_on.exists());
-#endif
+      legion_assert(wait_on.exists());
       wait_on.wait();
       AutoLock m_lock(manager_lock);
       std::map<EquivalenceSetKey, NewEquivalenceSet>::iterator finder =
           created_equivalence_sets.find(key);
-#ifdef DEBUG_LEGION
-      assert(finder != created_equivalence_sets.end());
-      assert(finder->second.remaining > 0);
-#endif
+      legion_assert(finder != created_equivalence_sets.end());
+      legion_assert(finder->second.remaining > 0);
       if (finder->second.new_set == nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(finder->second.did > 0);
-#endif
+        legion_assert(finder->second.did > 0);
         finder->second.new_set = new EquivalenceSet(
             finder->second.did, runtime->determine_owner(finder->second.did),
             region_node->row_source, region_node->handle.get_tree_id(), context,
             true /*register now*/, finder->second.mapping);
-#ifdef DEBUG_LEGION
-        assert(finder->second.remaining > 0);
-#endif
+        legion_assert(finder->second.remaining > 0);
         finder->second.new_set->initialize_collective_references(
             finder->second.remaining);
       }
@@ -822,9 +770,7 @@ namespace Legion {
         DistributedID fill_did, FillOp* op, bool& set_view)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!set_view);
-#endif
+      legion_assert(!set_view);
       if (local_shards.size() > 1)
       {
         FillView* result = nullptr;
@@ -835,9 +781,7 @@ namespace Legion {
         if (finder != created_fill_views.end())
         {
           result = finder->second.first;
-#ifdef DEBUG_LEGION
-          assert(finder->second.second > 0);
-#endif
+          legion_assert(finder->second.second > 0);
           if (--finder->second.second == 0)
           {
             created_fill_views.erase(finder);
@@ -910,17 +854,13 @@ namespace Legion {
           attach_deduplication = new AttachDeduplication();
         if (attach_deduplication->launchers.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(!attach_deduplication->pending.exists());
-#endif
+          legion_assert(!attach_deduplication->pending.exists());
           attach_deduplication->pending = Runtime::create_rt_user_event();
         }
         attach_deduplication->launchers.emplace_back(&launcher);
         if (attach_deduplication->launchers.size() == local_shards.size())
         {
-#ifdef DEBUG_LEGION
-          assert(attach_deduplication->pending.exists());
-#endif
+          legion_assert(attach_deduplication->pending.exists());
           to_trigger = attach_deduplication->pending;
           // Make a new event for signaling when we are done
           attach_deduplication->pending = Runtime::create_rt_user_event();
@@ -986,9 +926,7 @@ namespace Legion {
         const LogicalRegion handle = launcher.handles[idx];
         std::map<LogicalRegion, const IndexAttachLauncher*>::const_iterator
             finder = attach_deduplication->owners.find(handle);
-#ifdef DEBUG_LEGION
-        assert(finder != attach_deduplication->owners.end());
-#endif
+        legion_assert(finder != attach_deduplication->owners.end());
         // Only add it if we own it
         if (finder->second == &launcher)
           indexes.emplace_back(idx);
@@ -997,9 +935,7 @@ namespace Legion {
       // everyone is done accessing our launcher before we leave
       {
         AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-        assert(attach_deduplication->done_count < local_shards.size());
-#endif
+        legion_assert(attach_deduplication->done_count < local_shards.size());
         attach_deduplication->done_count++;
         if (attach_deduplication->done_count == local_shards.size())
           to_trigger = attach_deduplication->pending;
@@ -1033,19 +969,14 @@ namespace Legion {
         if (finder != created_futures.end())
         {
           // Make sure to bump the future coordinate for this context as well
-#ifndef NDEBUG
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
           const uint64_t index =
 #endif
-#endif
               ctx->get_next_blocking_index();
-#ifdef DEBUG_LEGION
-          assert(index == finder->second.first->coordinate.context_index);
-#endif
+          legion_assert(
+              index == finder->second.first->coordinate.context_index);
           Future result(finder->second.first);
-#ifdef DEBUG_LEGION
-          assert(finder->second.second > 0);
-#endif
+          legion_assert(finder->second.second > 0);
           if (--finder->second.second == 0)
           {
             if (finder->second.first->remove_base_gc_ref(RUNTIME_REF))
@@ -1106,19 +1037,13 @@ namespace Legion {
         if (finder != created_future_maps.end())
         {
           // Make sure to bump the future coordinate for this context as well
-#ifndef NDEBUG
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
           const uint64_t index =
 #endif
-#endif
               ctx->get_next_blocking_index();
-#ifdef DEBUG_LEGION
-          assert(index == finder->second.first->blocking_index);
-#endif
+          legion_assert(index == finder->second.first->blocking_index);
           FutureMap result(finder->second.first);
-#ifdef DEBUG_LEGION
-          assert(finder->second.second > 0);
-#endif
+          legion_assert(finder->second.second > 0);
           if (--finder->second.second == 0)
           {
             if (finder->second.first->remove_nested_gc_ref(did))
@@ -1172,9 +1097,7 @@ namespace Legion {
         if (finder != created_future_maps.end())
         {
           FutureMap result(finder->second.first);
-#ifdef DEBUG_LEGION
-          assert(finder->second.second > 0);
-#endif
+          legion_assert(finder->second.second > 0);
           if (--finder->second.second == 0)
           {
             if (finder->second.first->remove_nested_gc_ref(did))
@@ -1226,9 +1149,7 @@ namespace Legion {
         size_t size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_shards.empty());
-#endif
+      legion_assert(!local_shards.empty());
       if (local_shards.size() == 1)
         return;
       RtUserEvent to_trigger;
@@ -1252,9 +1173,7 @@ namespace Legion {
         size_t size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_shards.size() > 1);
-#endif
+      legion_assert(local_shards.size() > 1);
       RtEvent wait_on;
       const std::pair<size_t, size_t> key(context_index, exchange_index);
       {
@@ -1269,9 +1188,7 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(size == data.size);
-#endif
+          legion_assert(size == data.size);
           memcpy(result, data.buffer, data.size);
           if ((--data.remaining) == 0)
           {
@@ -1286,11 +1203,9 @@ namespace Legion {
       AutoLock m_lock(manager_lock);
       std::map<std::pair<size_t, size_t>, ShardLocalData>::iterator finder =
           shard_local_data.find(key);
-#ifdef DEBUG_LEGION
-      assert(finder != shard_local_data.end());
-      assert(finder->second.remaining > 0);
-      assert(size == finder->second.size);
-#endif
+      legion_assert(finder != shard_local_data.end());
+      legion_assert(finder->second.remaining > 0);
+      legion_assert(size == finder->second.size);
       memcpy(result, finder->second.buffer, finder->second.size);
       if ((--finder->second.remaining) == 0)
       {
@@ -1304,9 +1219,7 @@ namespace Legion {
         uint64_t context_index, size_t exchange_index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!local_shards.empty());
-#endif
+      legion_assert(!local_shards.empty());
       if (local_shards.size() == 1)
         return;
       RtEvent wait_on;
@@ -1317,10 +1230,8 @@ namespace Legion {
             shard_local_data.find(key);
         if (finder != shard_local_data.end())
         {
-#ifdef DEBUG_LEGION
-          assert(finder->second.remaining > 0);
-          assert(finder->second.pending.exists());
-#endif
+          legion_assert(finder->second.remaining > 0);
+          legion_assert(finder->second.pending.exists());
           finder->second.remaining--;
           if (finder->second.remaining == 0)
           {
@@ -1354,16 +1265,12 @@ namespace Legion {
         if (local)
         {
           local_startup_complete++;
-#ifdef DEBUG_LEGION
-          assert(local_startup_complete <= local_constituents);
-#endif
+          legion_assert(local_startup_complete <= local_constituents);
         }
         else
         {
           remote_startup_complete++;
-#ifdef DEBUG_LEGION
-          assert(remote_startup_complete <= remote_constituents);
-#endif
+          legion_assert(remote_startup_complete <= remote_constituents);
         }
         if (!startup_complete.exists())
           startup_complete = Runtime::create_rt_user_event();
@@ -1373,9 +1280,7 @@ namespace Legion {
       }
       if (notify)
       {
-#ifdef DEBUG_LEGION
-        assert(startup_complete.exists());
-#endif
+        legion_assert(startup_complete.exists());
         if (!is_owner())
         {
           Serializer rez;
@@ -1402,16 +1307,12 @@ namespace Legion {
         if (local)
         {
           local_mapping_complete++;
-#ifdef DEBUG_LEGION
-          assert(local_mapping_complete <= local_constituents);
-#endif
+          legion_assert(local_mapping_complete <= local_constituents);
         }
         else
         {
           remote_mapping_complete++;
-#ifdef DEBUG_LEGION
-          assert(remote_mapping_complete <= remote_constituents);
-#endif
+          legion_assert(remote_mapping_complete <= remote_constituents);
         }
         notify = (local_mapping_complete == local_constituents) &&
                  (remote_mapping_complete == remote_constituents);
@@ -1482,16 +1383,12 @@ namespace Legion {
         if (local)
         {
           trigger_local_complete++;
-#ifdef DEBUG_LEGION
-          assert(trigger_local_complete <= local_constituents);
-#endif
+          legion_assert(trigger_local_complete <= local_constituents);
         }
         else
         {
           trigger_remote_complete++;
-#ifdef DEBUG_LEGION
-          assert(trigger_remote_complete <= remote_constituents);
-#endif
+          legion_assert(trigger_remote_complete <= remote_constituents);
         }
         if (effects.exists())
           shard_effects.insert(effects);
@@ -1522,9 +1419,7 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(!local_shards.empty());
-#endif
+          legion_assert(!local_shards.empty());
           if (all_shard_effects.exists())
             original_task->record_completion_effect(all_shard_effects);
           if (all_shards_complete.exists())
@@ -1546,16 +1441,12 @@ namespace Legion {
         if (local)
         {
           trigger_local_commit++;
-#ifdef DEBUG_LEGION
-          assert(trigger_local_commit <= local_constituents);
-#endif
+          legion_assert(trigger_local_commit <= local_constituents);
         }
         else
         {
           trigger_remote_commit++;
-#ifdef DEBUG_LEGION
-          assert(trigger_remote_commit <= remote_constituents);
-#endif
+          legion_assert(trigger_remote_commit <= remote_constituents);
         }
         if (precondition.exists())
           commit_preconditions.insert(precondition);
@@ -1594,9 +1485,7 @@ namespace Legion {
         MessageKind message, ShardID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
@@ -1635,9 +1524,7 @@ namespace Legion {
     void ShardManager::send_rendezvous_message(ShardID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
@@ -1677,9 +1564,7 @@ namespace Legion {
         ShardID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
@@ -1727,9 +1612,7 @@ namespace Legion {
       derez.deserialize(eq_did);
       size_t num_spaces;
       derez.deserialize(num_spaces);
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(collective_mapping != nullptr);
       CollectiveMapping* eq_mapping =
           (num_spaces == 0) ? collective_mapping :
                               new CollectiveMapping(derez, num_spaces);
@@ -1771,13 +1654,11 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(finder->second.new_set == nullptr);
-        assert(finder->second.did == 0);
-        assert(finder->second.mapping == nullptr);
-        assert(finder->second.ready_event.exists());
-        assert(finder->second.remaining > 0);
-#endif
+        legion_assert(finder->second.new_set == nullptr);
+        legion_assert(finder->second.did == 0);
+        legion_assert(finder->second.mapping == nullptr);
+        legion_assert(finder->second.ready_event.exists());
+        legion_assert(finder->second.remaining > 0);
         finder->second.did = eq_did;
         finder->second.mapping = eq_mapping;
         Runtime::trigger_event(finder->second.ready_event);
@@ -1789,9 +1670,7 @@ namespace Legion {
         ShardID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
@@ -1832,9 +1711,7 @@ namespace Legion {
         ShardID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
@@ -1892,9 +1769,7 @@ namespace Legion {
         ShardID target, Serializer& rez, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       if (target_space == runtime->address_space)
       {
@@ -1987,9 +1862,7 @@ namespace Legion {
       // First pack it out and send it out to any remote nodes
       if (collective_mapping != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(collective_mapping->contains(local_space));
-#endif
+        legion_assert(collective_mapping->contains(local_space));
         std::vector<AddressSpaceID> targets;
         collective_mapping->get_children(local_space, local_space, targets);
         for (std::vector<AddressSpaceID>::const_iterator it = targets.begin();
@@ -2037,9 +1910,7 @@ namespace Legion {
     void ShardManager::handle_broadcast(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(collective_mapping != nullptr);
       AddressSpaceID origin;
       derez.deserialize(origin);
       BroadcastMessageKind kind;
@@ -2111,9 +1982,7 @@ namespace Legion {
       // then forward the request onto the proper node
       if (event_space != runtime->address_space)
       {
-#ifdef DEBUG_LEGION
-        assert(template_source == runtime->address_space);
-#endif
+        legion_assert(template_source == runtime->address_space);
         // Check to see if we have a shard on that address space, if not
         // then we know that this event can't have come from there
         bool found = false;
@@ -2244,10 +2113,8 @@ namespace Legion {
     {
       if (target != local_space)
       {
-#ifdef DEBUG_LEGION
-        assert(collective_mapping != nullptr);
-        assert(collective_mapping->contains(target));
-#endif
+        legion_assert(collective_mapping != nullptr);
+        legion_assert(collective_mapping->contains(target));
         const RtUserEvent done = Runtime::create_rt_user_event();
         Serializer rez;
         {
@@ -2313,9 +2180,7 @@ namespace Legion {
       // then forward the request onto the proper node
       if (event_space != runtime->address_space)
       {
-#ifdef DEBUG_LEGION
-        assert(template_source == runtime->address_space);
-#endif
+        legion_assert(template_source == runtime->address_space);
         // Check to see if we have a shard on that address space, if not
         // then we know that this event can't have come from there
         bool found = false;
@@ -2448,9 +2313,7 @@ namespace Legion {
     void ShardManager::send_trace_update(ShardID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
@@ -2491,9 +2354,7 @@ namespace Legion {
         ShardID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
@@ -2555,9 +2416,7 @@ namespace Legion {
         ShardID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target < address_spaces->size());
-#endif
+      legion_assert(target < address_spaces->size());
       AddressSpaceID target_space = (*address_spaces)[target];
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
@@ -2695,9 +2554,7 @@ namespace Legion {
       derez.deserialize(callback_barrier);
       size_t num_spaces;
       derez.deserialize(num_spaces);
-#ifdef DEBUG_LEGION
-      assert(num_spaces > 0);
-#endif
+      legion_assert(num_spaces > 0);
       CollectiveMapping* mapping = new CollectiveMapping(derez, num_spaces);
       unsigned local_shards = 0;
       std::vector<Processor> target_processors(total_shards);
@@ -3032,9 +2889,7 @@ namespace Legion {
         RtEvent global_done, std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(control_replicated);
-#endif
+      legion_assert(control_replicated);
       // See if we're the first one to handle this DSO
       const Runtime::RegistrationKey key(
           dedup_tag, dso->dso_name, dso->symbol_name);
@@ -3053,9 +2908,7 @@ namespace Legion {
         std::set<RtEvent> local_preconditions;
         if (collective_mapping != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(collective_mapping->contains(local_space));
-#endif
+          legion_assert(collective_mapping->contains(local_space));
           const unsigned index = collective_mapping->find_index(local_space);
           for (AddressSpaceID space = 0; space < runtime->total_address_spaces;
                space++)
@@ -3113,9 +2966,7 @@ namespace Legion {
       if (local_shards.size() == 1)
         return true;
       AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-      assert(semantic_attach_counter < local_shards.size());
-#endif
+      legion_assert(semantic_attach_counter < local_shards.size());
       if (++semantic_attach_counter == local_shards.size())
       {
         semantic_attach_counter = 0;
@@ -3139,9 +2990,7 @@ namespace Legion {
         collective_mapping(nullptr), local_task_name(nullptr)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(runtime->total_address_spaces > 0);
-#endif
+      legion_assert(runtime->total_address_spaces > 0);
       std::vector<AddressSpaceID> spaces(runtime->total_address_spaces);
       for (unsigned idx = 0; idx < spaces.size(); idx++) spaces[idx] = idx;
       collective_mapping =
@@ -3170,9 +3019,7 @@ namespace Legion {
       ShardTask* task = nullptr;
       {
         AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-        assert(local_shard_id < shards_per_address_space);
-#endif
+        legion_assert(local_shard_id < shards_per_address_space);
         local_proxy = proxy;
         local_task_name = task_name;
         const ShardID shard =
@@ -3223,10 +3070,8 @@ namespace Legion {
           wait_on.wait();
           m_lock.reacquire();
         }
-#ifdef DEBUG_LEGION
-        assert(top_context != nullptr);
-        assert(shard_manager != nullptr);
-#endif
+        legion_assert(top_context != nullptr);
+        legion_assert(shard_manager != nullptr);
         task = shard_manager->create_shard(
             shard, proxy, 0 /*variant id*/, top_context, nullptr /*source*/);
       }
@@ -3242,20 +3087,14 @@ namespace Legion {
     {
       const size_t total_shards =
           runtime->total_address_spaces * shards_per_address_space;
-#ifdef DEBUG_LEGION
-      assert(runtime->address_space == 0);
-      assert(top_context == nullptr);
-      assert(shard_manager == nullptr);
-      assert(shard_points.size() == total_shards);
-#endif
+      legion_assert(runtime->address_space == 0);
+      legion_assert(top_context == nullptr);
+      legion_assert(shard_manager == nullptr);
+      legion_assert(shard_points.size() == total_shards);
       IndividualTask* implicit_top = runtime->create_implicit_top_level(
           task_id, mapper_id, local_proxy, local_task_name, collective_mapping);
-#ifdef DEBUG_LEGION
-      top_context = dynamic_cast<TopLevelContext*>(implicit_top->get_context());
-      assert(top_context != nullptr);
-#else
-      top_context = static_cast<TopLevelContext*>(implicit_top->get_context());
-#endif
+      top_context =
+          legion_safe_cast<TopLevelContext*>(implicit_top->get_context());
       // Now we need to make the shard manager
       const DistributedID repl_context =
           runtime->get_available_distributed_id();
@@ -3283,9 +3122,7 @@ namespace Legion {
           isomorphic_points = false;
         sorted_points.emplace_back(it->first);
         shard_lookup.emplace_back(it->second.first);
-#ifdef DEBUG_LEGION
-        assert(it->second.first < points.size());
-#endif
+        legion_assert(it->second.first < points.size());
         // Should not be any duplicate shard IDs
         if (points[it->second.first].get_dim() > 0)
           REPORT_LEGION_ERROR(
@@ -3324,10 +3161,8 @@ namespace Legion {
     void ImplicitShardManager::request_shard_manager(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shard_manager == nullptr);
-      assert(runtime->address_space > 0);
-#endif
+      legion_assert(shard_manager == nullptr);
+      legion_assert(runtime->address_space > 0);
       Serializer rez;
       {
         RezCheck z(rez);
@@ -3360,16 +3195,12 @@ namespace Legion {
       {
         DomainPoint point;
         derez.deserialize(point);
-#ifdef DEBUG_LEGION
-        assert(shard_points.find(point) == shard_points.end());
-#endif
+        legion_assert(shard_points.find(point) == shard_points.end());
         std::pair<ShardID, Processor>& pair = shard_points[point];
         derez.deserialize(pair.first);
         derez.deserialize(pair.second);
       }
-#ifdef DEBUG_LEGION
-      assert(remaining_remote_arrivals > 0);
-#endif
+      legion_assert(remaining_remote_arrivals > 0);
       if ((--remaining_remote_arrivals == 0) && (remaining_local_arrivals == 0))
       {
         if (runtime->address_space > 0)
@@ -3385,11 +3216,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-      assert(top_context == nullptr);
-      assert(shard_manager == nullptr);
-      assert(manager_ready.exists());
-#endif
+      legion_assert(top_context == nullptr);
+      legion_assert(shard_manager == nullptr);
+      legion_assert(manager_ready.exists());
       top_context = c;
       shard_manager = m;
       RtUserEvent to_trigger = manager_ready;

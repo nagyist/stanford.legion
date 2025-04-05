@@ -63,15 +63,9 @@ namespace Legion {
   //----------------------------------------------------------------------------
   {
     static_assert(std::is_same<coord_t, long long>::value, "coord_t changed");
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-    constexpr bool CHECK =
-        std::is_unsigned<T>::value && (sizeof(T) >= sizeof(coord_t));
     assert(
-        !CHECK ||
+        (!std::is_unsigned<T>::value || (sizeof(T) < sizeof(coord_t))) ||
         (((unsigned long long)value) <= ((unsigned long long)LLONG_MAX)));
-#endif
-#endif
     return coord_t(value);
   }
 
@@ -495,8 +489,7 @@ namespace Legion {
   //----------------------------------------------------------------------------
   {
     static_assert(std::is_same<coord_t, long long>::value, "coord_t changed");
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
     constexpr bool CHECK =
         std::is_unsigned<T>::value && (sizeof(T) >= sizeof(coord_t));
 #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
@@ -505,7 +498,6 @@ namespace Legion {
     const uint64_t MAX = LLONG_MAX;
 #endif
     assert(!CHECK || (((uint64_t)value) <= MAX));
-#endif
 #endif
     return coord_t(value);
   }
@@ -746,12 +738,9 @@ namespace Legion {
     DomainT<DIM, T> result;
     if (is_id > 0)
     {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-      TypeTag type = Internal::NT_TemplateHelper::template encode_tag<DIM, T>();
-      assert(is_type == type);
-#endif
-#endif
+      legion_assert(
+          (is_type ==
+           Internal::NT_TemplateHelper::template encode_tag<DIM, T>()));
       result.sparsity.id = is_id;
     }
     else

@@ -96,9 +96,7 @@ namespace Legion {
       if (trace->has_physical_trace())
       {
         PhysicalTrace* physical = trace->get_physical_trace();
-#ifdef DEBUG_LEGION
-        assert(!physical->has_current_template());
-#endif
+        legion_assert(!physical->has_current_template());
         std::set<RtEvent> refresh_ready;
         physical->refresh_condition_sets(this, refresh_ready);
         if (!refresh_ready.empty())
@@ -182,9 +180,7 @@ namespace Legion {
     void ReplTraceBegin<OP>::deactivate(bool free)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!free);
-#endif
+      legion_assert(!free);
       OP::deactivate(free);
       status_collective_ids.clear();
       if (slow_barrier != nullptr)
@@ -197,14 +193,8 @@ namespace Legion {
         PhysicalTrace* physical)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->parent_ctx);
-#endif
+          legion_safe_cast<ReplicateContext*>(this->parent_ctx);
       return new ShardedPhysicalTemplate(
           physical, this->get_completion_event(), repl_ctx);
     }
@@ -215,15 +205,9 @@ namespace Legion {
         bool& valid, bool acquired)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!status_collective_ids.empty());
+      legion_assert(!status_collective_ids.empty());
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->parent_ctx);
-#endif
+          legion_safe_cast<ReplicateContext*>(this->parent_ctx);
       AllReduceCollective<typename OP::StatusReduction, false> allreduce(
           repl_ctx, status_collective_ids.back());
       if (!acquired)
@@ -240,16 +224,10 @@ namespace Legion {
     void ReplTraceBegin<OP>::perform_template_creation_barrier(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(slow_barrier_id > 0);
-      assert(slow_barrier == nullptr);
+      legion_assert(slow_barrier_id > 0);
+      legion_assert(slow_barrier == nullptr);
       ReplicateContext* repl_ctx =
-          dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != nullptr);
-#else
-      ReplicateContext* repl_ctx =
-          static_cast<ReplicateContext*>(this->parent_ctx);
-#endif
+          legion_safe_cast<ReplicateContext*>(this->parent_ctx);
       slow_barrier = new SlowBarrier(repl_ctx, slow_barrier_id);
       slow_barrier->perform_collective_async();
       this->map_applied_conditions.insert(
@@ -334,10 +312,8 @@ namespace Legion {
       if (trace->has_physical_trace())
       {
         PhysicalTrace* physical = trace->get_physical_trace();
-#ifdef DEBUG_LEGION
-        assert(mapping_fence_barrier.exists());
-        assert(!physical->has_current_template());
-#endif
+        legion_assert(mapping_fence_barrier.exists());
+        legion_assert(!physical->has_current_template());
         std::set<RtEvent> refresh_ready;
         physical->refresh_condition_sets(this, refresh_ready);
         // Have to do the mapping fence on the way in for physical traces
@@ -365,9 +341,7 @@ namespace Legion {
     {
       if (trace->has_physical_trace())
       {
-#ifdef DEBUG_LEGION
-        assert(fence_kind == EXECUTION_FENCE);
-#endif
+        legion_assert(fence_kind == EXECUTION_FENCE);
         PhysicalTrace* physical = trace->get_physical_trace();
         const bool replaying = physical->begin_physical_trace(
             this, map_applied_conditions, execution_preconditions);

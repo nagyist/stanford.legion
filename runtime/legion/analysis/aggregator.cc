@@ -50,11 +50,9 @@ namespace Legion {
     CopyFillGuard::~CopyFillGuard(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(releasing_guards);  // should have done a release
-      assert(guarded_sets.empty());
-      assert(remote_release_events.empty());
-#endif
+      legion_assert(releasing_guards);  // should have done a release
+      legion_assert(guarded_sets.empty());
+      legion_assert(remote_release_events.empty());
     }
 
     //--------------------------------------------------------------------------
@@ -68,10 +66,8 @@ namespace Legion {
         rez.serialize(RtUserEvent::NO_RT_USER_EVENT);
         return;
       }
-#ifdef DEBUG_LEGION
-      assert(!guarded_sets.empty());
-      assert(effects_applied.exists());
-#endif
+      legion_assert(!guarded_sets.empty());
+      legion_assert(effects_applied.exists());
       // We only ever pack the effects applied event here because once a
       // guard is on a remote node then the guard postcondition is no longer
       // useful since all remote copy fill operations will need to key off
@@ -104,12 +100,8 @@ namespace Legion {
 #endif
       bool read_only_guard;
       derez.deserialize(read_only_guard);
-#ifdef DEBUG_LEGION
       if (!result->record_guard_set(set, read_only_guard))
         std::abort();
-#else
-      result->record_guard_set(set, read_only_guard);
-#endif
       RtUserEvent remote_release;
       derez.deserialize(remote_release);
       std::set<RtEvent> release_preconditions;
@@ -132,9 +124,7 @@ namespace Legion {
       // Check again after getting the lock to avoid the race
       if (releasing_guards)
         return false;
-#ifdef DEBUG_LEGION
-      assert(guarded_sets.empty() || (read_only_guard == read_only));
-#endif
+      legion_assert(guarded_sets.empty() || (read_only_guard == read_only));
       guarded_sets.insert(set);
       read_only_guard = read_only;
       return true;
@@ -182,9 +172,7 @@ namespace Legion {
       std::set<EquivalenceSet*> to_remove;
       {
         AutoLock g_lock(guard_lock);
-#ifdef DEBUG_LEGION
-        assert(!releasing_guards);
-#endif
+        legion_assert(!releasing_guards);
         releasing_guards = true;
         to_remove.swap(guarded_sets);
         if (!remote_release_events.empty())
@@ -272,9 +260,8 @@ namespace Legion {
         predicate_guard(p), track_events(t)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((previous == nullptr) || !alternative_precondition.exists());
-#endif
+      legion_assert(
+          (previous == nullptr) || !alternative_precondition.exists());
       analysis->add_reference();
       // Need to transitively chain effects across aggregators since they
       // each need to summarize all the ones that came before
@@ -286,12 +273,10 @@ namespace Legion {
     CopyFillAggregator::~CopyFillAggregator(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
 #ifndef NON_AGGRESSIVE_AGGREGATORS
-      assert(guard_postcondition.has_triggered());
+      legion_assert(guard_postcondition.has_triggered());
 #endif
-      assert(effects_applied.has_triggered());
-#endif
+      legion_assert(effects_applied.has_triggered());
       if (analysis->remove_reference())
         delete analysis;
       // Remove references from any views that we have
@@ -391,15 +376,11 @@ namespace Legion {
         ReductionOpID redop /*=0*/, CopyAcrossHelper* helper /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!src_mask);
-      assert(!expr->is_empty());
-#endif
+      legion_assert(!!src_mask);
+      legion_assert(!expr->is_empty());
       if (src_view->is_deferred_view())
       {
-#ifdef DEBUG_LEGION
-        assert(redop == 0);
-#endif
+        legion_assert(redop == 0);
         DeferredView* def_view = src_view->as_deferred_view();
         def_view->flatten(
             *this, dst_view, src_mask, expr, predicate_guard, trace_info,
@@ -416,9 +397,7 @@ namespace Legion {
             std::vector<InstanceView*> src_views(1, inst_view);
             const SelectSourcesResult& result =
                 select_sources(dst_view, dst_man, src_views);
-#ifdef DEBUG_LEGION
-            assert(result.ranking.size() == 1);
-#endif
+            legion_assert(result.ranking.size() == 1);
             std::map<unsigned, PhysicalManager*>::const_iterator finder =
                 result.points.find(0);
             if (finder != result.points.end())
@@ -463,11 +442,9 @@ namespace Legion {
             const std::vector<InstanceView*>& src_views)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(dst_view != nullptr);
-      assert(dst_man != nullptr);
-      assert(!src_views.empty());
-#endif
+      legion_assert(dst_view != nullptr);
+      legion_assert(dst_man != nullptr);
+      legion_assert(!src_views.empty());
       const std::pair<InstanceView*, PhysicalManager*> key(dst_view, dst_man);
       std::map<
           std::pair<InstanceView*, PhysicalManager*>,
@@ -530,11 +507,9 @@ namespace Legion {
         CopyAcrossHelper* helper /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!src_mask);
-      assert(!src_views.empty());
-      assert(!expr->is_empty());
-#endif
+      legion_assert(!!src_mask);
+      legion_assert(!src_views.empty());
+      legion_assert(!expr->is_empty());
       if (src_views.size() == 1)
       {
         LogicalView* src_view = src_views.begin()->first;
@@ -601,9 +576,7 @@ namespace Legion {
                 // ask the mapper which one to use
                 const SelectSourcesResult& result =
                     select_sources(dst_view, dst_man, instances);
-#ifdef DEBUG_LEGION
-                assert(result.ranking.size() == instances.size());
-#endif
+                legion_assert(result.ranking.size() == instances.size());
                 const unsigned first = result.ranking.front();
                 InstanceView* src_view = instances[first];
                 PhysicalManager* src_man = nullptr;
@@ -637,11 +610,9 @@ namespace Legion {
         ReductionOpID redop, CopyAcrossHelper* across_helper)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!src_mask);
-      assert(!src_views.empty());
-      assert(!expr->is_empty());
-#endif
+      legion_assert(!!src_mask);
+      legion_assert(!src_views.empty());
+      legion_assert(!expr->is_empty());
       update_fields |= src_mask;
       record_view(dst_view);
       std::vector<InstanceView*> instances;
@@ -686,9 +657,7 @@ namespace Legion {
               continue;
             local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                 remainders.find(it->first.first);
-#ifdef DEBUG_LEGION
-            assert(finder != remainders.end());
-#endif
+            legion_assert(finder != remainders.end());
             finder.filter(it->second);
             if (!finder->second)
               remainders.erase(finder);
@@ -756,9 +725,7 @@ namespace Legion {
             src_man = src_view->as_individual_view()->get_manager();
           MapView<LogicalView*, local::FieldMaskMap<IndexSpaceExpression> >::
               const_iterator finder = src_views.find(src_view);
-#ifdef DEBUG_LEGION
-          assert(finder != src_views.end());
-#endif
+          legion_assert(finder != src_views.end());
           local::map<
               std::pair<IndexSpaceExpression*, IndexSpaceExpression*>,
               FieldMask>
@@ -779,9 +746,7 @@ namespace Legion {
               continue;
             local::FieldMaskMap<IndexSpaceExpression>::iterator finder =
                 remainders.find(it->first.first);
-#ifdef DEBUG_LEGION
-            assert(finder != remainders.end());
-#endif
+            legion_assert(finder != remainders.end());
             finder.filter(it->second);
             if (!finder->second)
               remainders.erase(finder);
@@ -823,10 +788,8 @@ namespace Legion {
         EquivalenceSet* tracing_eq, CopyAcrossHelper* helper /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!!fill_mask);
-      assert(!expr->is_empty());
-#endif
+      legion_assert(!!fill_mask);
+      legion_assert(!expr->is_empty());
       update_fields |= fill_mask;
       record_view(src_view);
       record_view(dst_view);
@@ -850,9 +813,7 @@ namespace Legion {
         EquivalenceSet* tracing_eq, CopyAcrossHelper* across_helper)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!src_views.empty());
-#endif
+      legion_assert(!src_views.empty());
       update_fields.set_bit(src_fidx);
       record_view(dst_view);
       const std::pair<InstanceView*, unsigned> dst_key(dst_view, dst_fidx);
@@ -866,14 +827,10 @@ namespace Legion {
                const_iterator it = src_views.begin();
            it != src_views.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(!it->second->is_empty());
-#endif
+        legion_assert(!it->second->is_empty());
         record_view(it->first);
         const ReductionOpID redop = it->first->get_redop();
-#ifdef DEBUG_LEGION
-        assert(redop > 0);
-#endif
+        legion_assert(redop > 0);
         PhysicalManager* src_man = nullptr;
         if (it->first->is_collective_view())
         {
@@ -882,9 +839,7 @@ namespace Legion {
             std::vector<InstanceView*> src_views(1, it->first);
             const SelectSourcesResult& result =
                 select_sources(dst_view, dst_man, src_views);
-#ifdef DEBUG_LEGION
-            assert(result.ranking.size() == 1);
-#endif
+            legion_assert(result.ranking.size() == 1);
             std::map<unsigned, PhysicalManager*>::const_iterator finder =
                 result.points.find(0);
             if (finder != result.points.end())
@@ -906,9 +861,7 @@ namespace Legion {
           redop_index++;
         if (redop_index == redop_epochs.size())
         {
-#ifdef DEBUG_LEGION
-          assert(redop_index <= reductions.size());
-#endif
+          legion_assert(redop_index <= reductions.size());
           // Start a new redop epoch if necessary
           redop_epochs.emplace_back(redop);
           if (reductions.size() == redop_index)
@@ -936,9 +889,7 @@ namespace Legion {
         std::map<InstanceView*, std::vector<ApEvent> >* dst_events, int stage)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!sources.empty() || !reductions.empty());
-#endif
+      legion_assert(!sources.empty() || !reductions.empty());
       if (guard_precondition.exists() && !guard_precondition.has_triggered())
       {
         if (track_events && !summary_event.exists())
@@ -951,10 +902,8 @@ namespace Legion {
             args, LG_THROUGHPUT_DEFERRED_PRIORITY, guard_precondition);
         return summary_event;
       }
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           !guard_precondition.exists() || guard_precondition.has_triggered());
-#endif
 #ifndef NON_AGGRESSIVE_AGGREGATORS
       std::set<RtEvent> recorded_events;
 #endif
@@ -982,9 +931,7 @@ namespace Legion {
       // Perform updates from any sources first
       if (stage < 0)
       {
-#ifdef DEBUG_LEGION
-        assert(stage == -1);
-#endif
+        legion_assert(stage == -1);
         if (!sources.empty())
         {
           pipeline = perform_updates(
@@ -1093,9 +1040,7 @@ namespace Legion {
         ReductionOpID redop) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(tracing_eq != nullptr);
-#endif
+      legion_assert(tracing_eq != nullptr);
       if (redop > 0)
         tracing_eq->update_tracing_reduction_views(
             src, dst, expr, mask, (src_index != dst_index));
@@ -1125,15 +1070,11 @@ namespace Legion {
         // previous passes as part of the preconditions for this pass
         if (!manage_dst_events)
         {
-#ifdef DEBUG_LEGION
-          assert(dst_events != nullptr);
-#endif
+          legion_assert(dst_events != nullptr);
           // This only happens in the case of across copies
           std::map<InstanceView*, std::vector<ApEvent> >::iterator finder =
               dst_events->find(uit->first);
-#ifdef DEBUG_LEGION
-          assert(finder != dst_events->end());
-#endif
+          legion_assert(finder != dst_events->end());
           if (!finder->second.empty())
           {
             // Update our precondition to incude the copies from
@@ -1204,32 +1145,22 @@ namespace Legion {
         std::vector<ApEvent>* dst_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!fills.empty());
-      assert(!!fill_mask);
+      legion_assert(!fills.empty());
+      legion_assert(!!fill_mask);
       // Should only have across helper on across copies
-      assert((fills[0]->across_helper == nullptr) || !manage_dst_events);
-      assert((dst_events == nullptr) || track_events);
-#endif
+      legion_assert((fills[0]->across_helper == nullptr) || !manage_dst_events);
+      legion_assert((dst_events == nullptr) || track_events);
       const IndexSpaceID match_space = analysis->get_collective_match_space();
       if (fills.size() == 1)
       {
         FillUpdate* update = fills[0];
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
         // Should cover all the fields
         if (fills[0]->across_helper != nullptr)
-        {
-          const FieldMask src_mask =
-              fills[0]->across_helper->convert_dst_to_src(fill_mask);
-          assert(!(src_mask - update->src_mask));
-        }
+          legion_assert(
+              !(fills[0]->across_helper->convert_dst_to_src(fill_mask) -
+                update->src_mask));
         else
-        {
-          assert(!(fill_mask - update->src_mask));
-        }
-#endif
-#endif
+          legion_assert(!(fill_mask - update->src_mask));
         IndexSpaceExpression* fill_expr = update->expr;
         FillView* fill_view = update->source;
         const ApEvent result = target->fill_from(
@@ -1247,18 +1178,16 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
         FieldMask src_mask;
         if (fills[0]->across_helper != nullptr)
           src_mask = fills[0]->across_helper->convert_dst_to_src(fill_mask);
         else
           src_mask = fill_mask;
+#endif
         // These should all have had the same across helper
         for (unsigned idx = 1; idx < fills.size(); idx++)
-          assert(fills[idx]->across_helper == fills[0]->across_helper);
-#endif
-#endif
+          legion_assert(fills[idx]->across_helper == fills[0]->across_helper);
         // Fills can have different predicates because of nested predicated
         // fills so we can only merge across fills with the same predicates
         std::map<
@@ -1267,12 +1196,10 @@ namespace Legion {
         for (std::vector<FillUpdate*>::const_iterator it = fills.begin();
              it != fills.end(); it++)
         {
-#ifdef DEBUG_LEGION
           // Should cover all the fields
-          assert(!(src_mask - (*it)->src_mask));
+          legion_assert(!(src_mask - (*it)->src_mask));
           // Should also have the same across helper as the first one
-          assert(fills[0]->across_helper == (*it)->across_helper);
-#endif
+          legion_assert(fills[0]->across_helper == (*it)->across_helper);
           std::pair<FillView*, PredEvent> key((*it)->source, (*it)->fill_guard);
           exprs[key].insert((*it)->expr);
         }
@@ -1313,12 +1240,10 @@ namespace Legion {
         std::vector<ApEvent>* dst_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!copies.empty());
-      assert(!!copy_mask);
-      assert((src_index == dst_index) || !manage_dst_events);
-      assert((dst_events == nullptr) || track_events);
-#endif
+      legion_assert(!copies.empty());
+      legion_assert(!!copy_mask);
+      legion_assert((src_index == dst_index) || !manage_dst_events);
+      legion_assert((dst_events == nullptr) || track_events);
       const IndexSpaceID match_space = analysis->get_collective_match_space();
       // We'll also look for an interesting optimization case here
       // that was identified by cuNumeric tensor contractions, in
@@ -1346,10 +1271,8 @@ namespace Legion {
                it != cit->second.end();
                /*nothing*/)
           {
-#ifdef DEBUG_LEGION
-            assert((*it)->across_helper == nullptr);
-            assert(!(copy_mask - (*it)->src_mask));
-#endif
+            legion_assert((*it)->across_helper == nullptr);
+            legion_assert(!(copy_mask - (*it)->src_mask));
             if ((*it)->redop == 0)
             {
               fused_gather_copies[source].emplace_back(*it);
@@ -1369,9 +1292,7 @@ namespace Legion {
         }
         if (fused_gather_copies.size() > 1)
         {
-#ifdef DEBUG_LEGION
-          assert(manage_dst_events);
-#endif
+          legion_assert(manage_dst_events);
           CollectiveView* target_collective = target->as_collective_view();
           std::map<IndividualView*, IndexSpaceExpression*> view_exprs;
           for (std::map<IndividualView*, std::vector<CopyUpdate*> >::iterator
@@ -1420,31 +1341,21 @@ namespace Legion {
                cit = copies.begin();
            cit != copies.end(); cit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!cit->second.empty());
+        legion_assert(!cit->second.empty());
         // Should only have across helpers for across copies
-        assert(
+        legion_assert(
             (cit->second[0]->across_helper == nullptr) || !manage_dst_events);
-#endif
         if (cit->second.size() == 1)
         {
           // Easy case of a single update copy
           CopyUpdate* update = cit->second[0];
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
           if (cit->second[0]->across_helper != nullptr)
-          {
-            const FieldMask src_mask =
-                cit->second[0]->across_helper->convert_dst_to_src(copy_mask);
-            assert(!(src_mask - update->src_mask));
-          }
+            legion_assert(
+                !(cit->second[0]->across_helper->convert_dst_to_src(copy_mask) -
+                  update->src_mask));
           else
-          {
             // Should cover all the fields
-            assert(!(copy_mask - update->src_mask));
-          }
-#endif
-#endif
+            legion_assert(!(copy_mask - update->src_mask));
           InstanceView* source = update->source;
           IndexSpaceExpression* copy_expr = update->expr;
           const ApEvent result = target->copy_from(
@@ -1463,15 +1374,13 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
           FieldMask src_mask;
           if (cit->second[0]->across_helper != nullptr)
             src_mask =
                 cit->second[0]->across_helper->convert_dst_to_src(copy_mask);
           else
             src_mask = copy_mask;
-#endif
 #endif
           // Have to group by source instances in order to merge together
           // different index space expressions for the same copy
@@ -1487,14 +1396,13 @@ namespace Legion {
                    cit->second.begin();
                it != cit->second.end(); it++)
           {
-#ifdef DEBUG_LEGION
             // Should cover all the fields
-            assert(!(src_mask - (*it)->src_mask));
+            legion_assert(!(src_mask - (*it)->src_mask));
             // Should have the same redop
-            assert(redop == (*it)->redop);
+            legion_assert(redop == (*it)->redop);
             // Should also have the same across helper as the first one
-            assert(cit->second[0]->across_helper == (*it)->across_helper);
-#endif
+            legion_assert(
+                cit->second[0]->across_helper == (*it)->across_helper);
             const std::pair<InstanceView*, PhysicalManager*> key(
                 (*it)->source, (*it)->src_man);
             fused_exprs[key].insert((*it)->expr);

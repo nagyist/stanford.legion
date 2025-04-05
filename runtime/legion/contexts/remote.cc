@@ -240,9 +240,7 @@ namespace Legion {
     {
       if (!top_level_context)
         return find_parent_context()->find_top_context(this);
-#ifdef DEBUG_LEGION
-      assert(previous != nullptr);
-#endif
+      legion_assert(previous != nullptr);
       return previous;
     }
 
@@ -256,15 +254,11 @@ namespace Legion {
       InnerContext* result = parent_ctx.load();
       if (result != nullptr)
         return result;
-#ifdef DEBUG_LEGION
-      assert(parent_context_did != 0);
-#endif
+      legion_assert(parent_context_did != 0);
       // THIS IS ONLY SAFE BECAUSE THIS FUNCTION IS NEVER CALLED BY
       // A MESSAGE IN THE CONTEXT_VIRTUAL_CHANNEL
       result = runtime->find_or_request_inner_context(parent_context_did);
-#ifdef DEBUG_LEGION
-      assert(result != nullptr);
-#endif
+      legion_assert(result != nullptr);
       if (parent_ctx.exchange(result) == nullptr)
         remote_task.parent_task = result->get_task();
       return result;
@@ -278,10 +272,8 @@ namespace Legion {
         const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!top_level_context);
-      assert(targets.size() == target_spaces.size());
-#endif
+      legion_assert(!top_level_context);
+      legion_assert(targets.size() == target_spaces.size());
       // If this is virtual mapped, then continue up to the parent
       if ((req_index < regions.size()) && virtual_mapped[req_index])
         return find_parent_context()->compute_equivalence_sets(
@@ -316,9 +308,7 @@ namespace Legion {
         EquivalenceSet* set, const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(regions.size() <= req_index);
-#endif
+      legion_assert(regions.size() <= req_index);
       const RtUserEvent recorded = Runtime::create_rt_user_event();
       Serializer rez;
       {
@@ -340,10 +330,8 @@ namespace Legion {
     InnerContext* RemoteContext::find_parent_physical_context(unsigned index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(regions.size() <= virtual_mapped.size());
-      assert(regions.size() <= parent_req_indexes.size());
-#endif
+      legion_assert(regions.size() <= virtual_mapped.size());
+      legion_assert(regions.size() <= parent_req_indexes.size());
       if (index < regions.size())
       {
         // See if it is virtual mapped
@@ -395,9 +383,7 @@ namespace Legion {
         wait_on.wait();
         // When we wake up it should be there
         AutoLock rem_lock(remote_lock, 1, false /*exclusive*/);
-#ifdef DEBUG_LEGION
-        assert(physical_contexts.find(index) != physical_contexts.end());
-#endif
+        legion_assert(physical_contexts.find(index) != physical_contexts.end());
         return physical_contexts[index];
       }
     }
@@ -417,9 +403,7 @@ namespace Legion {
             RtEvent& ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instances.size() > 1);
-#endif
+      legion_assert(instances.size() > 1);
       const RtUserEvent to_trigger = Runtime::create_rt_user_event();
       CollectiveResult* result = new CollectiveResult(instances);
       result->add_reference();
@@ -447,9 +431,7 @@ namespace Legion {
         bool sharded, bool first, const CollectiveMapping* mapping)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!sharded);
-#endif
+      legion_assert(!sharded);
       if ((req_index < regions.size()) && virtual_mapped[req_index])
       {
         find_parent_context()->refine_equivalence_sets(
@@ -562,9 +544,7 @@ namespace Legion {
         ShardID source_shard)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(created_nodes.size() == created_trees.size());
-#endif
+      legion_assert(created_nodes.size() == created_trees.size());
       const RtUserEvent done_event = Runtime::create_rt_user_event();
       Serializer rez;
       {
@@ -840,15 +820,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock rem_lock(remote_lock);
-#ifdef DEBUG_LEGION
-      assert(physical_contexts.find(index) == physical_contexts.end());
-#endif
+      legion_assert(physical_contexts.find(index) == physical_contexts.end());
       physical_contexts[index] = result;
       std::map<unsigned, RtEvent>::iterator finder =
           pending_physical_contexts.find(index);
-#ifdef DEBUG_LEGION
-      assert(finder != pending_physical_contexts.end());
-#endif
+      legion_assert(finder != pending_physical_contexts.end());
       pending_physical_contexts.erase(finder);
     }
 
@@ -919,9 +895,7 @@ namespace Legion {
       derez.deserialize(target->ready_event);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
-#ifdef DEBUG_LEGION
-      assert(to_trigger.exists());
-#endif
+      legion_assert(to_trigger.exists());
       Runtime::trigger_event(to_trigger);
     }
 
@@ -1008,9 +982,7 @@ namespace Legion {
                    current_sets.begin();
                it != current_sets.end(); it++)
           {
-#ifdef DEBUG_LEGION
-            assert(req_index == it->second);
-#endif
+            legion_assert(req_index == it->second);
             rez.serialize(it->first->did);
           }
           rez.serialize(done);
@@ -1084,12 +1056,7 @@ namespace Legion {
       AddressSpaceID source;
       derez.deserialize(source);
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
-#ifdef DEBUG_LEGION
-      InnerContext* context = dynamic_cast<InnerContext*>(dc);
-      assert(context != nullptr);
-#else
-      InnerContext* context = static_cast<InnerContext*>(dc);
-#endif
+      InnerContext* context = legion_safe_cast<InnerContext*>(dc);
       context->send_context(source);
     }
 

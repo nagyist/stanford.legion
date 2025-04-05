@@ -56,10 +56,8 @@ namespace Legion {
         target_views(target_vws), source_views(source_vws)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(on_heap);
-      assert(target_instances.size() == target_views.size());
-#endif
+      legion_assert(on_heap);
+      legion_assert(target_instances.size() == target_views.size());
       region->add_base_resource_ref(PHYSICAL_ANALYSIS_REF);
     }
 
@@ -74,9 +72,7 @@ namespace Legion {
         region(node), context_index(op->get_context_index()), trace_info(t_info)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(on_heap);
-#endif
+      legion_assert(on_heap);
       region->add_base_resource_ref(PHYSICAL_ANALYSIS_REF);
     }
 
@@ -156,10 +152,8 @@ namespace Legion {
         ApEvent termination, ApEvent& instances_ready, bool symbolic)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(region != nullptr);
-      assert(termination.exists());
-#endif
+      legion_assert(region != nullptr);
+      legion_assert(termination.exists());
       if (precondition.exists() && !precondition.has_triggered())
         return defer_registration(
             precondition, usage, applied_events, trace_info, init_precondition,
@@ -169,9 +163,7 @@ namespace Legion {
       const size_t op_ctx_index = op->get_context_index();
       const AddressSpaceID local_space = runtime->address_space;
       IndexSpaceNode* expr_node = region->row_source;
-#ifdef DEBUG_LEGION
-      assert(expr_node == analysis_expr);
-#endif
+      legion_assert(expr_node == analysis_expr);
       std::vector<RtEvent> registered_events;
       std::vector<ApEvent> inst_ready_events;
       const IndexSpaceID match_space = get_collective_match_space();
@@ -186,9 +178,7 @@ namespace Legion {
           {
             std::map<InstanceView*, size_t>::const_iterator finder =
                 collective_arrivals.find(it->first);
-#ifdef DEBUG_LEGION
-            assert(finder != collective_arrivals.end());
-#endif
+            legion_assert(finder != collective_arrivals.end());
             view_collective_arrivals = finder->second;
           }
           const ApEvent ready = it->first->register_user(

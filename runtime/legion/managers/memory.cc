@@ -83,9 +83,7 @@ namespace Legion {
         size_t size, size_t alignment, size_t offset)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(alignment > 0);
-#endif
+      legion_assert(alignment > 0);
       const DomainT<1, coord_t> bounds =
           (size == 0) ? Rect<1>(1, 0) :
                         Rect<1>(offset, Point<1>(offset + size - 1));
@@ -110,10 +108,8 @@ namespace Legion {
         ranges_initialized(false), released(false)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-      assert(inst.exists() == (remain > 0));
-#endif
+      legion_assert(manager != nullptr);
+      legion_assert(inst.exists() == (remain > 0));
       // Might not have an instance if this is a zero-sized pool
       if (inst.exists())
         backing_instances.emplace(std::make_pair(inst, use));
@@ -130,9 +126,7 @@ namespace Legion {
     {
       if (backing_instances.empty())
         return ApEvent::NO_AP_EVENT;
-#ifdef DEBUG_LEGION
-      assert(backing_instances.size() == 1);
-#endif
+      legion_assert(backing_instances.size() == 1);
       return ApEvent(backing_instances.begin()->second);
     }
 
@@ -165,10 +159,8 @@ namespace Legion {
         UniqueID creator_uid, size_t size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(size > 0);
-      assert(!released);
-#endif
+      legion_assert(size > 0);
+      legion_assert(!released);
       if (remaining_bytes < size)
         return nullptr;
       size_t alignment = manager->compute_future_alignment(size);
@@ -196,9 +188,7 @@ namespace Legion {
           range_index, 1 /*num_results*/, &instance, &unique_event,
           (const Realm::InstanceLayoutGeneric**)&layout, creator_uid);
       delete layout;
-#ifdef DEBUG_LEGION
-      assert(instance.exists());
-#endif
+      legion_assert(instance.exists());
       return new FutureInstance(
           reinterpret_cast<const void*>(start), size, false /*external*/,
           true /*own allocation*/, unique_event, instance, Processor::NO_PROC,
@@ -211,11 +201,9 @@ namespace Legion {
         const Realm::InstanceLayoutGeneric* layout, RtEvent& use_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!released);
+      legion_assert(!released);
       // Should have been checked earlier
-      assert(layout->alignment_reqd <= max_alignment);
-#endif
+      legion_assert(layout->alignment_reqd <= max_alignment);
       if (layout->bytes_used == 0)
       {
         // Special case for empty instances
@@ -225,10 +213,8 @@ namespace Legion {
         use_event = RtEvent(PhysicalInstance::create_instance(
             instance, manager->memory, *layout, empty_requests));
         delete layout;
-#ifdef DEBUG_LEGION
-        assert(instance.exists());
-        assert(allocated.find(instance) == allocated.end());
-#endif
+        legion_assert(instance.exists());
+        legion_assert(allocated.find(instance) == allocated.end());
         allocated[instance] = SENTINEL;
         return instance;
       }
@@ -259,10 +245,8 @@ namespace Legion {
         use_event = RtEvent(PhysicalInstance::create_external_instance(
             instance, manager->memory, *layout, *external_resource,
             empty_requests, backing_instances[range.instance]));
-#ifdef DEBUG_LEGION
-        assert(instance.exists());
-        assert(allocated.find(instance) == allocated.end());
-#endif
+        legion_assert(instance.exists());
+        legion_assert(allocated.find(instance) == allocated.end());
         // Store it in the allocated data structure
         allocated[instance] = range_index;
         return instance;
@@ -285,9 +269,7 @@ namespace Legion {
         const Realm::InstanceLayoutGeneric** layouts, UniqueID creator_uid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instance.exists());
-#endif
+      legion_assert(instance.exists());
       std::map<PhysicalInstance, unsigned>::iterator finder =
           allocated.find(instance);
       if (finder == allocated.end())
@@ -303,9 +285,7 @@ namespace Legion {
       {
         // Handle the case where we are escaping a deferred buffer/value
         // to become a future and we're just going to reuse the same layout
-#ifdef DEBUG_LEGION
-        assert(num_results == 1);
-#endif
+        legion_assert(num_results == 1);
         layouts = &layout;
       }
       RtEvent result;
@@ -314,7 +294,7 @@ namespace Legion {
         // This is a zero-sized range, so we can just redistrict it directly
         // into the N instances that we need
         std::vector<Realm::ProfilingRequestSet> requests(num_results);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         std::vector<MemoryManager::TaskLocalInstanceAllocator> allocators;
         allocators.reserve(num_results);
         std::vector<ProfilingResponseBase> bases;
@@ -334,7 +314,7 @@ namespace Legion {
             runtime->profiler->add_inst_request(
                 requests[idx], creator_uid, unique_events[idx]);
           }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
           allocators.emplace_back(
               MemoryManager::TaskLocalInstanceAllocator(unique_events[idx]));
           bases.emplace_back(
@@ -348,15 +328,9 @@ namespace Legion {
         }
         result = RtEvent(instance.redistrict(
             results, layouts, num_results, &requests.front()));
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         for (unsigned idx = 0; idx < allocators.size(); idx++)
-        {
-#ifndef NDEBUG
-          const bool success =
-#endif
-              allocators[idx].succeeded();
-          assert(success);
-        }
+          legion_no_skip_assert(allocators[idx].succeeded());
 #endif
       }
       else  // Non-zero-sized instance so can escape like normal
@@ -375,9 +349,7 @@ namespace Legion {
         PhysicalInstance instance, RtEvent precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instance.exists());
-#endif
+      legion_assert(instance.exists());
       std::map<PhysicalInstance, unsigned>::iterator finder =
           allocated.find(instance);
       if (finder == allocated.end())
@@ -389,9 +361,7 @@ namespace Legion {
             " or deferred value twice which is illegal.",
             instance.id, manager->get_name(), implicit_context->get_task_name(),
             implicit_context->get_unique_id())
-#ifdef DEBUG_LEGION
-      assert(finder != allocated.end());
-#endif
+      legion_assert(finder != allocated.end());
       if (released)
       {
         // If we're released then we can free the backing instance
@@ -401,9 +371,7 @@ namespace Legion {
         // going to bother recycling this memory since we're released
         std::map<PhysicalInstance, RtEvent>::iterator backing_finder =
             backing_instances.find(range.instance);
-#ifdef DEBUG_LEGION
-        assert(backing_finder != backing_instances.end());
-#endif
+        legion_assert(backing_finder != backing_instances.end());
         backing_finder->first.destroy(
             Runtime::merge_events(backing_finder->second, precondition));
         backing_instances.erase(backing_finder);
@@ -425,23 +393,17 @@ namespace Legion {
         size_t size, size_t alignment, uintptr_t& alloc_first)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(size > 0);
-#endif
+      legion_assert(size > 0);
       // Make sure we've inserted the initial range if from the backing
       // instance if we haven't already done that
       if (!ranges_initialized)
       {
         if (!backing_instances.empty())
         {
-#ifdef DEBUG_LEGION
-          assert(backing_instances.size() == 1);
-#endif
+          legion_assert(backing_instances.size() == 1);
           std::map<PhysicalInstance, RtEvent>::const_iterator it =
               backing_instances.begin();
-#ifdef DEBUG_LEGION
-          assert(it->second.has_triggered());
-#endif
+          legion_assert(it->second.has_triggered());
           // If we're on the local node for the instance then set up the ranges
           const void* base = it->first.pointer_untyped(0, 0);
           if (base != NULL)
@@ -532,9 +494,7 @@ namespace Legion {
             // tie this off because we use it to detect allocated-ness
             r->prev_free = r->next_free = index;
             // Decrement the number of free bytes available
-#ifdef DEBUG_LEGION
-            assert(size <= remaining_bytes);
-#endif
+            legion_assert(size <= remaining_bytes);
             remaining_bytes -= size;
             return index;
           }
@@ -579,9 +539,7 @@ namespace Legion {
             try_again = true;
             std::map<unsigned, RtEvent>::iterator finder =
                 pending_frees.find(smallest_index);
-#ifdef DEBUG_LEGION
-            assert(finder != pending_frees.end());
-#endif
+            legion_assert(finder != pending_frees.end());
             deallocate(finder->first);
             finder->second.wait();
             pending_frees.erase(finder);
@@ -615,9 +573,7 @@ namespace Legion {
       Range& r = ranges[index];
       // Add these bytes back into the available pool
       remaining_bytes += (r.last - r.first);
-#ifdef DEBUG_LEGION
-      assert(remaining_bytes <= limit);
-#endif
+      legion_assert(remaining_bytes <= limit);
       // See if the previous range is free so we can merge with it
       const unsigned pf_idx = r.prev;
       const bool merge_prev =
@@ -685,9 +641,7 @@ namespace Legion {
         uintptr_t first, uintptr_t last, PhysicalInstance instance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(first < last);  // should not be allocating empty ranges
-#endif
+      legion_assert(first < last);  // should not be allocating empty ranges
       // find/make a free index in the range list for this range
       unsigned new_idx;
       if (first_unused_range != SENTINEL)
@@ -721,9 +675,7 @@ namespace Legion {
         UniqueID creator_uid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index < ranges.size());
-#endif
+      legion_assert(index < ranges.size());
       Range* range = &ranges[index];
       // We only need to update the ranges if we're not released because
       // releasing means we're never going to need to allocated again
@@ -813,11 +765,9 @@ namespace Legion {
       // Perform instance redistricting to create all the new instances
       std::map<PhysicalInstance, RtEvent>::iterator finder =
           backing_instances.find(range->instance);
-#ifdef DEBUG_LEGION
-      assert(finder != backing_instances.end());
-#endif
+      legion_assert(finder != backing_instances.end());
       RtEvent result;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       std::vector<MemoryManager::TaskLocalInstanceAllocator> allocators;
       allocators.reserve(num_results + 2);
       std::vector<ProfilingResponseBase> bases;
@@ -825,11 +775,9 @@ namespace Legion {
 #endif
       if ((prev_index != index) || (index != next_index))
       {
-#ifdef DEBUG_LEGION
         // Shouldn't be here if we're released because each allocated range
         // should have exactly one backing instance
-        assert(!released);
-#endif
+        legion_assert(!released);
         std::vector<LgEvent> extra_unique_events;
         std::vector<const Realm::InstanceLayoutGeneric*> extra_layouts;
         if (prev_index != index)
@@ -884,7 +832,7 @@ namespace Legion {
           if (runtime->profiler != nullptr)
             runtime->profiler->add_inst_request(
                 requests[idx], creator_uid, extra_unique_events[idx]);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
           allocators.emplace_back(MemoryManager::TaskLocalInstanceAllocator(
               extra_unique_events[idx]));
           bases.emplace_back(
@@ -956,7 +904,7 @@ namespace Legion {
             runtime->profiler->add_inst_request(
                 requests[idx], creator_uid, unique_events[idx]);
           }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
           allocators.emplace_back(
               MemoryManager::TaskLocalInstanceAllocator(unique_events[idx]));
           bases.emplace_back(
@@ -974,15 +922,9 @@ namespace Legion {
         // existing range in place as though it is allocated and it
         // will never be deallocated
       }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       for (unsigned idx = 0; idx < allocators.size(); idx++)
-      {
-#ifndef NDEBUG
-        const bool success =
-#endif
-            allocators[idx].succeeded();
-        assert(success);
-      }
+        legion_no_skip_assert(allocators[idx].succeeded());
 #endif
       // Mark the current range as having escaped
       range->instance = PhysicalInstance::NO_INST;
@@ -1065,9 +1007,7 @@ namespace Legion {
     /*static*/ unsigned ConcretePool::floor_log2(uint64_t size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(size > 0);
-#endif
+      legion_assert(size > 0);
       // Round down to the nearest power of two to figure out which range
       // to put it in using DeBruijin algorithm to compute integer log2
       // Taken from Hacker's Delight
@@ -1148,10 +1088,8 @@ namespace Legion {
         // We're the first item in the list
         const size_t size = range.last - range.first;
         const unsigned log2_size = floor_log2(size);
-#ifdef DEBUG_LEGION
-        assert(log2_size < size_based_free_lists.size());
-        assert(size_based_free_lists[log2_size] == index);
-#endif
+        legion_assert(log2_size < size_based_free_lists.size());
+        legion_assert(size_based_free_lists[log2_size] == index);
         if (range.next_free != SENTINEL)
           ranges[range.next_free].prev_free = SENTINEL;
         size_based_free_lists[log2_size] = range.next_free;
@@ -1217,9 +1155,7 @@ namespace Legion {
       rez.serialize(max_alignment);
       if (!backing_instances.empty())
       {
-#ifdef DEBUG_LEGION
-        assert(backing_instances.size() == 1);
-#endif
+        legion_assert(backing_instances.size() == 1);
         std::map<PhysicalInstance, RtEvent>::const_iterator finder =
             backing_instances.begin();
         rez.serialize(finder->first);
@@ -1240,10 +1176,8 @@ namespace Legion {
         max_freed_bytes(max_bytes), freed_bytes(0), scope(s), released(false)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-      assert(!coords.empty());
-#endif
+      legion_assert(manager != nullptr);
+      legion_assert(!coords.empty());
       coordinates.swap(coords);
     }
 
@@ -1288,10 +1222,8 @@ namespace Legion {
         UniqueID creator_uid, size_t size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(size > 0);
-      assert(!released);
-#endif
+      legion_assert(size > 0);
+      legion_assert(!released);
       // Check to see if we have a local freed instance that is big enough
       // to use for this instance
       if (!freed_instances.empty())
@@ -1340,9 +1272,7 @@ namespace Legion {
           if (allocator.succeeded())
           {
             size_t bytes_used = instance.get_layout()->bytes_used;
-#ifdef DEBUG_LEGION
-            assert(bytes_used <= previous_size);
-#endif
+            legion_assert(bytes_used <= previous_size);
             if (bytes_used < previous_size)
               manager->update_remaining_capacity(previous_size - bytes_used);
             delete layout;
@@ -1388,9 +1318,7 @@ namespace Legion {
         const Realm::InstanceLayoutGeneric* layout, RtEvent& use_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!released);
-#endif
+      legion_assert(!released);
       if (layout->bytes_used == 0)
       {
         // Special case for empty instances, we don't need to talk to anyone
@@ -1426,9 +1354,7 @@ namespace Legion {
           if (allocator.succeeded())
           {
             size_t bytes_used = instance.get_layout()->bytes_used;
-#ifdef DEBUG_LEGION
-            assert(bytes_used <= previous_size);
-#endif
+            legion_assert(bytes_used <= previous_size);
             if (bytes_used < previous_size)
               manager->update_remaining_capacity(previous_size - bytes_used);
             return instance;
@@ -1472,10 +1398,8 @@ namespace Legion {
                iterator sit = freed_instances.lower_bound(size);
            sit != freed_instances.end(); sit++)
       {
-#ifdef DEBUG_LEGION
-        assert(!sit->second.empty());
-        assert(sit->first <= freed_bytes);
-#endif
+        legion_assert(!sit->second.empty());
+        legion_assert(sit->first <= freed_bytes);
         for (std::list<std::pair<PhysicalInstance, RtEvent> >::iterator it =
                  sit->second.begin();
              it != sit->second.end(); it++)
@@ -1602,9 +1526,7 @@ namespace Legion {
     void UnboundPool::serialize(Serializer& rez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       rez.serialize(manager->memory);
       rez.serialize<bool>(false);  // bounded;
       rez.serialize(max_freed_bytes);
@@ -1635,7 +1557,7 @@ namespace Legion {
         Machine::ProcessorQuery finder(runtime->machine);
         finder.best_affinity_to(memory);
         finder.only_kind(Processor::TOC_PROC);
-        assert(finder.count() > 0);
+        legion_assert(finder.count() > 0);
         local_gpu = finder.first();
       }
       else if (memory.kind() == Memory::Z_COPY_MEM)
@@ -1643,7 +1565,7 @@ namespace Legion {
         Machine::ProcessorQuery finder(runtime->machine);
         finder.has_affinity_to(memory);
         finder.only_kind(Processor::TOC_PROC);
-        assert(finder.count() > 0);
+        legion_assert(finder.count() > 0);
         local_gpu = finder.first();
       }
 #endif
@@ -1738,9 +1660,7 @@ namespace Legion {
       for (std::vector<PhysicalManager*>::const_iterator it = to_delete.begin();
            it != to_delete.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(!(*it)->is_external_instance());
-#endif
+        legion_assert(!(*it)->is_external_instance());
         RtEvent deletion_done;
         (*it)->collect(deletion_done);
         if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
@@ -1797,14 +1717,10 @@ namespace Legion {
     void MemoryManager::register_remote_instance(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner);
-#endif
+      legion_assert(!is_owner);
       AutoLock m_lock(manager_lock);
       TreeInstances& insts = current_instances[manager->tree_id];
-#ifdef DEBUG_LEGION
-      assert(insts.find(manager) == insts.end());
-#endif
+      legion_assert(insts.find(manager) == insts.end());
       insts[manager] = LEGION_GC_NEVER_PRIORITY;
     }
 
@@ -1812,16 +1728,12 @@ namespace Legion {
     void MemoryManager::unregister_remote_instance(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_owner);
-#endif
+      legion_assert(!is_owner);
       AutoLock m_lock(manager_lock);
       lng::map<RegionTreeID, TreeInstances>::iterator finder =
           current_instances.find(manager->tree_id);
-#ifdef DEBUG_LEGION
-      assert(finder != current_instances.end());
-      assert(finder->second.find(manager) != finder->second.end());
-#endif
+      legion_assert(finder != current_instances.end());
+      legion_assert(finder->second.find(manager) != finder->second.end());
       finder->second.erase(manager);
       if (finder->second.empty())
         current_instances.erase(finder);
@@ -1831,20 +1743,14 @@ namespace Legion {
     void MemoryManager::unregister_deleted_instance(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       {
         AutoLock m_lock(manager_lock);
         lng::map<RegionTreeID, TreeInstances>::iterator tree_finder =
             current_instances.find(manager->tree_id);
-#ifdef DEBUG_LEGION
-        assert(tree_finder != current_instances.end());
-#endif
+        legion_assert(tree_finder != current_instances.end());
         TreeInstances::iterator finder = tree_finder->second.find(manager);
-#ifdef DEBUG_LEGION
-        assert(finder != tree_finder->second.end());
-#endif
+        legion_assert(finder != tree_finder->second.end());
         remove_collectable(finder->second, finder->first);
         tree_finder->second.erase(finder);
         if (tree_finder->second.empty())
@@ -2259,9 +2165,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PhysicalManager* manager = instance.impl->as_physical_manager();
-#ifdef DEBUG_LEGION
-      assert(manager->memory_manager == this);
-#endif
+      legion_assert(manager->memory_manager == this);
       if (!is_owner)
       {
         // Not the owner, send a meessage to the owner to request the redistrict
@@ -2320,9 +2224,7 @@ namespace Legion {
               collected, hole);
           if (manager != nullptr)
           {
-#ifdef DEBUG_LEGION
-            assert(footprint <= manager->instance_footprint);
-#endif
+            legion_assert(footprint <= manager->instance_footprint);
             if (runtime->legion_spy_enabled)
               manager->log_instance_creation(creator_id, processor, regions);
             instance = MappingInstance(manager);
@@ -2331,15 +2233,11 @@ namespace Legion {
             if (footprint < manager->instance_footprint)
             {
               const size_t diff = manager->instance_footprint - footprint;
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
               const size_t previous =
 #endif
-#endif
                   remaining_capacity.fetch_add(diff);
-#ifdef DEBUG_LEGION
-              assert((previous + diff) <= capacity);
-#endif
+              legion_assert((previous + diff) <= capacity);
             }
             return true;
           }
@@ -2347,15 +2245,11 @@ namespace Legion {
           {
             // The previous instance was deleted but we didn't reallocate
             // so we freed up all the space for it
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
             const size_t previous =
 #endif
-#endif
                 remaining_capacity.fetch_add(manager->instance_footprint);
-#ifdef DEBUG_LEGION
-            assert((previous + manager->instance_footprint) <= capacity);
-#endif
+            legion_assert((previous + manager->instance_footprint) <= capacity);
           }
         }
         return false;
@@ -2371,9 +2265,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PhysicalManager* manager = instance.impl->as_physical_manager();
-#ifdef DEBUG_LEGION
-      assert(manager->memory_manager == this);
-#endif
+      legion_assert(manager->memory_manager == this);
       if (!is_owner)
       {
         // Not the owner, send a meessage to the owner to request the redistrict
@@ -2433,9 +2325,7 @@ namespace Legion {
               collected, hole);
           if (manager != nullptr)
           {
-#ifdef DEBUG_LEGION
-            assert(footprint <= manager->instance_footprint);
-#endif
+            legion_assert(footprint <= manager->instance_footprint);
             if (runtime->legion_spy_enabled)
               manager->log_instance_creation(creator_id, processor, regions);
             instance = MappingInstance(manager);
@@ -2444,15 +2334,11 @@ namespace Legion {
             if (footprint < manager->instance_footprint)
             {
               const size_t diff = manager->instance_footprint - footprint;
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
               const size_t previous =
 #endif
-#endif
                   remaining_capacity.fetch_add(diff);
-#ifdef DEBUG_LEGION
-              assert((previous + diff) <= capacity);
-#endif
+              legion_assert((previous + diff) <= capacity);
             }
             return true;
           }
@@ -2460,15 +2346,11 @@ namespace Legion {
           {
             // The previous instance was deleted but we didn't reallocate
             // so we freed up all the space for it
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
             const size_t previous =
 #endif
-#endif
                 remaining_capacity.fetch_add(manager->instance_footprint);
-#ifdef DEBUG_LEGION
-            assert((previous + manager->instance_footprint) <= capacity);
-#endif
+            legion_assert((previous + manager->instance_footprint) <= capacity);
           }
         }
         return false;
@@ -2615,9 +2497,7 @@ namespace Legion {
           for (unsigned idx = 0; idx < managers->size(); idx++)
           {
             PhysicalManager* manager = managers->at(idx);
-#ifdef DEBUG_LEGION
-            assert(manager != nullptr);
-#endif
+            legion_assert(manager != nullptr);
             results.emplace_back(MappingInstance(manager));
             manager->unpack_global_ref();
             if (acquire && !manager->acquire_instance(MAPPING_ACQUIRE_REF))
@@ -2665,9 +2545,7 @@ namespace Legion {
           for (unsigned idx = 0; idx < managers->size(); idx++)
           {
             PhysicalManager* manager = managers->at(idx);
-#ifdef DEBUG_LEGION
-            assert(manager != nullptr);
-#endif
+            legion_assert(manager != nullptr);
             results.emplace_back(MappingInstance(manager));
             manager->unpack_global_ref();
             if (acquire && !manager->acquire_instance(MAPPING_ACQUIRE_REF))
@@ -2718,15 +2596,12 @@ namespace Legion {
             {
               it->first->add_base_gc_ref(MEMORY_MANAGER_REF);
               to_delete.emplace_back(it->first);
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
               const size_t previous =
 #endif
-#endif
                   remaining_capacity.fetch_add(it->first->instance_footprint);
-#ifdef DEBUG_LEGION
-              assert((previous + it->first->instance_footprint) <= capacity);
-#endif
+              legion_assert(
+                  (previous + it->first->instance_footprint) <= capacity);
             }
             else if (already_collected)
               remove_collectable(it->second, it->first);
@@ -2742,19 +2617,13 @@ namespace Legion {
         PhysicalManager* manager, GCPriority priority)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       AutoLock m_lock(manager_lock);
       lng::map<RegionTreeID, TreeInstances>::iterator tree_finder =
           current_instances.find(manager->tree_id);
-#ifdef DEBUG_LEGION
-      assert(tree_finder != current_instances.end());
-#endif
+      legion_assert(tree_finder != current_instances.end());
       TreeInstances::iterator finder = tree_finder->second.find(manager);
-#ifdef DEBUG_LEGION
-      assert(finder != tree_finder->second.end());
-#endif
+      legion_assert(finder != tree_finder->second.end());
       remove_collectable(finder->second, manager);
       finder->second = priority;
       if (priority != LEGION_GC_NEVER_PRIORITY)
@@ -2766,9 +2635,7 @@ namespace Legion {
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       RequestKind kind;
       derez.deserialize(kind);
       RtUserEvent to_trigger;
@@ -3388,11 +3255,9 @@ namespace Legion {
         derez.deserialize(did);
         std::atomic<PhysicalManager*>* target;
         derez.deserialize(target);
-#ifdef DEBUG_LEGION
-        assert(
+        legion_assert(
             (CREATE_INSTANCE_CONSTRAINTS <= kind) &&
             (kind <= FIND_ONLY_LAYOUT));
-#endif
         if (did > 0)
         {
           RtEvent manager_ready = RtEvent::NO_RT_EVENT;
@@ -3864,9 +3729,7 @@ namespace Legion {
         RtEvent* safe_for_unbounded_pools)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);  // should only happen on the owner
-#endif
+      legion_assert(is_owner);  // should only happen on the owner
       AutoLock m_lock(manager_lock);
       if (!pending_allocation_attempts.empty())
       {
@@ -3933,9 +3796,7 @@ namespace Legion {
           // Check to see if this is safe for unbounded pools
           if (safe_for_unbounded_pools != nullptr)
           {
-#ifdef DEBUG_LEGION
-            assert(!safe_for_unbounded_pools->exists());
-#endif
+            legion_assert(!safe_for_unbounded_pools->exists());
             // If there is an unbounded pool that we're going to block
             // on that is potentially unsafe
             if ((unbounded_pool_scope == LEGION_STRICT_UNBOUNDED_POOL) ||
@@ -3964,9 +3825,7 @@ namespace Legion {
           // Cannot bypass with different coordinates
           if (safe_for_unbounded_pools != nullptr)
           {
-#ifdef DEBUG_LEGION
-            assert(!safe_for_unbounded_pools->exists());
-#endif
+            legion_assert(!safe_for_unbounded_pools->exists());
             if (!unbounded_transition_event.exists())
               unbounded_transition_event = Runtime::create_rt_user_event();
             *safe_for_unbounded_pools = unbounded_transition_event;
@@ -3984,9 +3843,7 @@ namespace Legion {
           // Cannot bypass without being in the same index space task
           if (safe_for_unbounded_pools != nullptr)
           {
-#ifdef DEBUG_LEGION
-            assert(!safe_for_unbounded_pools->exists());
-#endif
+            legion_assert(!safe_for_unbounded_pools->exists());
             if (!unbounded_transition_event.exists())
               unbounded_transition_event = Runtime::create_rt_user_event();
             *safe_for_unbounded_pools = unbounded_transition_event;
@@ -4012,24 +3869,18 @@ namespace Legion {
     void MemoryManager::release_allocation_privilege(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);  // should only happen on the owner
-#endif
+      legion_assert(is_owner);  // should only happen on the owner
       RtUserEvent to_trigger;
       {
         AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-        assert(!pending_allocation_attempts.empty());
-#endif
+        legion_assert(!pending_allocation_attempts.empty());
         // Pop the current pending allocation off the list
         pending_allocation_attempts.pop_front();
         if (!pending_allocation_attempts.empty())
         {
           const std::pair<RtUserEvent, const TaskTreeCoordinates*>& next =
               pending_allocation_attempts.front();
-#ifdef DEBUG_LEGION
-          assert(next.first.exists());
-#endif
+          legion_assert(next.first.exists());
           // If we're in an unbounded pool, see if the next allocation
           // can also bypass the current one, if we're not in one of those
           // scenarios then we can always start the next allocation
@@ -4191,15 +4042,11 @@ namespace Legion {
     void MemoryManager::GarbageCollector::update_capacity(size_t size)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
       const size_t previous =
 #endif
-#endif
           remaining_capacity.fetch_add(size);
-#ifdef DEBUG_LEGION
-      assert((previous + size) <= capacity);
-#endif
+      legion_assert((previous + size) <= capacity);
     }
 
     //--------------------------------------------------------------------------
@@ -4372,9 +4219,7 @@ namespace Legion {
         LayoutConstraintKind* unsat_kind, unsigned* unsat_index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       // First, just try to make the instance as is, if it works we are done
       size_t needed_size;
       PhysicalManager* result = builder.create_physical_instance(
@@ -4383,15 +4228,11 @@ namespace Legion {
         *footprint = needed_size;
       if ((result != nullptr) || (needed_size == 0))
       {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
         size_t previous =
 #endif
-#endif
             remaining_capacity.fetch_sub(needed_size);
-#ifdef DEBUG_LEGION
-        assert(needed_size <= previous);
-#endif
+        legion_assert(needed_size <= previous);
         return result;
       }
       GarbageCollector collector(
@@ -4406,15 +4247,11 @@ namespace Legion {
             unsat_kind, unsat_index, nullptr, collection_done, hole_instance);
         if (result != nullptr)
         {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
           size_t previous =
 #endif
-#endif
               remaining_capacity.fetch_sub(needed_size);
-#ifdef DEBUG_LEGION
-          assert(needed_size <= previous);
-#endif
+          legion_assert(needed_size <= previous);
           break;
         }
       }
@@ -4426,22 +4263,10 @@ namespace Legion {
         PhysicalManager* manager, bool acquire, GCPriority priority)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       // Add references first to prevent races with collection
       if (acquire)
-      {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-        const bool result =
-#endif
-#endif
-            manager->acquire_instance(MAPPING_ACQUIRE_REF);
-#ifdef DEBUG_LEGION
-        assert(result);
-#endif
-      }
+        legion_no_skip_assert(manager->acquire_instance(MAPPING_ACQUIRE_REF));
       // Since we're going to put this in the table add a gc reference
       // which will keep this manager eligible for acquires until the
       // point where we actually end up deleting it
@@ -4454,9 +4279,7 @@ namespace Legion {
       {
         AutoLock m_lock(manager_lock);
         TreeInstances& insts = current_instances[manager->tree_id];
-#ifdef DEBUG_LEGION
-        assert(insts.find(manager) == insts.end());
-#endif
+        legion_assert(insts.find(manager) == insts.end());
         insts[manager] = priority;
         if (priority != LEGION_GC_NEVER_PRIORITY)
           collectable_instances[priority].insert(manager);
@@ -4545,9 +4368,7 @@ namespace Legion {
     size_t MemoryManager::query_available_memory(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       return remaining_capacity.load();
     }
 
@@ -4628,9 +4449,7 @@ namespace Legion {
                           Runtime::create_rt_user_event();
                     if (safe_for_unbounded_pools != nullptr)
                     {
-#ifdef DEBUG_LEGION
-                      assert(!safe_for_unbounded_pools->exists());
-#endif
+                      legion_assert(!safe_for_unbounded_pools->exists());
                       *safe_for_unbounded_pools = unbounded_transition_event;
                       return nullptr;
                     }
@@ -4650,9 +4469,7 @@ namespace Legion {
                           Runtime::create_rt_user_event();
                     if (safe_for_unbounded_pools != nullptr)
                     {
-#ifdef DEBUG_LEGION
-                      assert(!safe_for_unbounded_pools->exists());
-#endif
+                      legion_assert(!safe_for_unbounded_pools->exists());
                       *safe_for_unbounded_pools = unbounded_transition_event;
                       return nullptr;
                     }
@@ -4671,9 +4488,7 @@ namespace Legion {
                           Runtime::create_rt_user_event();
                     if (safe_for_unbounded_pools != nullptr)
                     {
-#ifdef DEBUG_LEGION
-                      assert(!safe_for_unbounded_pools->exists());
-#endif
+                      legion_assert(!safe_for_unbounded_pools->exists());
                       *safe_for_unbounded_pools = unbounded_transition_event;
                       return nullptr;
                     }
@@ -4714,13 +4529,9 @@ namespace Legion {
     void MemoryManager::release_unbound_pool(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-      assert(outstanding_unbounded_allocations > 0);
-#endif
+      legion_assert(outstanding_unbounded_allocations > 0);
       if (--outstanding_unbounded_allocations > 0)
         return;
       // Wake up any waiting allocations attempts
@@ -4734,9 +4545,7 @@ namespace Legion {
               pending_allocation_attempts.front();
           if (*front.second != unbounded_coordinates)
           {
-#ifdef DEBUG_LEGION
-            assert(front.first.exists());
-#endif
+            legion_assert(front.first.exists());
             Runtime::trigger_event(front.first);
           }
         }
@@ -4748,9 +4557,7 @@ namespace Legion {
               pending_allocation_attempts.front();
           if (!front.second->same_index_space(unbounded_coordinates))
           {
-#ifdef DEBUG_LEGION
-            assert(front.first.exists());
-#endif
+            legion_assert(front.first.exists());
             Runtime::trigger_event(front.first);
           }
         }
@@ -4838,9 +4645,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-      assert(collective_tasks.find(task) == collective_tasks.end());
-#endif
+      legion_assert(collective_tasks.find(task) == collective_tasks.end());
       const uint64_t lamport_clock = collective_lamport_clock++;
       collective_tasks.insert(
           std::make_pair(task, CollectiveState(lamport_clock)));
@@ -4855,11 +4660,9 @@ namespace Legion {
       AutoLock m_lock(manager_lock);
       std::map<SingleTask*, CollectiveState>::iterator finder =
           collective_tasks.find(task);
-#ifdef DEBUG_LEGION
-      assert(finder != collective_tasks.end());
-      assert(!finder->second.max);
-      assert(finder->second.lamport_clock <= max_lamport_clock);
-#endif
+      legion_assert(finder != collective_tasks.end());
+      legion_assert(!finder->second.max);
+      legion_assert(finder->second.lamport_clock <= max_lamport_clock);
       if (collective_lamport_clock <= max_lamport_clock)
         collective_lamport_clock = max_lamport_clock + 1;
       finder->second.lamport_clock = max_lamport_clock;
@@ -4874,9 +4677,7 @@ namespace Legion {
           return RtEvent::NO_RT_EVENT;
       }
       // Unable to start now so make an event to defer it
-#ifdef DEBUG_LEGION
-      assert(!finder->second.ready_event.exists());
-#endif
+      legion_assert(!finder->second.ready_event.exists());
       finder->second.ready_event = Runtime::create_rt_user_event();
       return finder->second.ready_event;
     }
@@ -4886,9 +4687,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-      assert(outstanding_collective_tasks > 0);
-#endif
+      legion_assert(outstanding_collective_tasks > 0);
       if ((--outstanding_collective_tasks == 0) && (ready_collective_tasks > 0))
         start_next_collective_unbounded_pools_task();
     }
@@ -4897,11 +4696,9 @@ namespace Legion {
     void MemoryManager::start_next_collective_unbounded_pools_task(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!collective_tasks.empty());
-      assert(outstanding_collective_tasks == 0);
-      assert(ready_collective_tasks > 0);
-#endif
+      legion_assert(!collective_tasks.empty());
+      legion_assert(outstanding_collective_tasks == 0);
+      legion_assert(ready_collective_tasks > 0);
       // See if we can prove that there is a task that is safe to start
       uint64_t min_next = std::numeric_limits<uint64_t>::max();
       uint64_t min_pending = std::numeric_limits<uint64_t>::max();
@@ -4966,9 +4763,7 @@ namespace Legion {
               }
               if (equal)
               {
-#ifdef DEBUG_LEGION
-                assert(next_coords.size() != it_coords.size());
-#endif
+                legion_assert(next_coords.size() != it_coords.size());
                 if (it_coords.size() < next_coords.size())
                 {
                   next_tasks.clear();
@@ -5000,17 +4795,13 @@ namespace Legion {
         {
           std::map<SingleTask*, CollectiveState>::iterator finder =
               collective_tasks.find(*it);
-#ifdef DEBUG_LEGION
-          assert(finder != collective_tasks.end());
-#endif
+          legion_assert(finder != collective_tasks.end());
           if (finder->second.ready_event.exists())
             Runtime::trigger_event(finder->second.ready_event);
           collective_tasks.erase(finder);
         }
-#ifdef DEBUG_LEGION
-        assert(outstanding_collective_tasks == 0);
-        assert(next_tasks.size() <= ready_collective_tasks);
-#endif
+        legion_assert(outstanding_collective_tasks == 0);
+        legion_assert(next_tasks.size() <= ready_collective_tasks);
         ready_collective_tasks -= next_tasks.size();
         outstanding_collective_tasks = next_tasks.size();
       }
@@ -5023,9 +4814,7 @@ namespace Legion {
         RtEvent& use_event, RtEvent* safe_for_unbounded_pools)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       GarbageCollector* collector = nullptr;
       PhysicalInstance instance = PhysicalInstance::NO_INST;
       // We don't need to serialize this with respect to region allocations
@@ -5049,9 +4838,7 @@ namespace Legion {
                   unbounded_transition_event = Runtime::create_rt_user_event();
                 if (safe_for_unbounded_pools != nullptr)
                 {
-#ifdef DEBUG_LEGION
-                  assert(!safe_for_unbounded_pools->exists());
-#endif
+                  legion_assert(!safe_for_unbounded_pools->exists());
                   *safe_for_unbounded_pools = unbounded_transition_event;
                   return PhysicalInstance::NO_INST;
                 }
@@ -5067,9 +4854,7 @@ namespace Legion {
                   unbounded_transition_event = Runtime::create_rt_user_event();
                 if (safe_for_unbounded_pools != nullptr)
                 {
-#ifdef DEBUG_LEGION
-                  assert(!safe_for_unbounded_pools->exists());
-#endif
+                  legion_assert(!safe_for_unbounded_pools->exists());
                   *safe_for_unbounded_pools = unbounded_transition_event;
                   return PhysicalInstance::NO_INST;
                 }
@@ -5090,9 +4875,7 @@ namespace Legion {
         if (collector != nullptr)
           alloc_precondition = collector->perform_collection(hole_instance);
         Realm::ProfilingRequestSet requests;
-#ifdef DEBUG_LEGION
-        assert(!instance.exists());
-#endif
+        legion_assert(!instance.exists());
 #ifndef LEGION_MALLOC_INSTANCES
         TaskLocalInstanceAllocator allocator(unique_event);
         ProfilingResponseBase base(&allocator, creator_uid, false);
@@ -5116,15 +4899,11 @@ namespace Legion {
           if (use_event.exists() && (implicit_profiler != nullptr))
             implicit_profiler->record_instance_ready(
                 use_event, unique_event, alloc_precondition);
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
           size_t previous =
 #endif
-#endif
               remaining_capacity.fetch_sub(layout->bytes_used);
-#ifdef DEBUG_LEGION
-          assert(layout->bytes_used <= previous);
-#endif
+          legion_assert(layout->bytes_used <= previous);
           break;
         }
         else if (instance.exists())
@@ -5136,15 +4915,11 @@ namespace Legion {
         use_event = allocate_legion_instance(layout, requests, instance);
         if (instance.exists())
         {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
           size_t previous =
 #endif
-#endif
               remaining_capacity.fetch_sub(layout->bytes_used);
-#ifdef DEBUG_LEGIOn
-          assert(layout->bytes_used <= previous);
-#endif
+          legion_assert(layout->bytes_used <= previous);
           break;
         }
 #endif
@@ -5158,9 +4933,7 @@ namespace Legion {
         delete collector;
       // Retake the lock and mark that our allocation is done
       AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-      assert(outstanding_task_local_allocations > 0);
-#endif
+      legion_assert(outstanding_task_local_allocations > 0);
       outstanding_task_local_allocations--;
       if (unbounded_transition_event.exists() &&
           pending_allocation_attempts.empty() &&
@@ -5178,15 +4951,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const size_t size = instance.get_layout()->bytes_used;
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
       const size_t previous =
 #endif
-#endif
           remaining_capacity.fetch_add(size);
-#ifdef DEBUG_LEGION
-      assert((previous + size) <= capacity);
-#endif
+      legion_assert((previous + size) <= capacity);
       instance.destroy(precondition);
     }
 
@@ -5194,9 +4963,7 @@ namespace Legion {
     size_t MemoryManager::compute_future_alignment(size_t size) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(size > 0);
-#endif
+      legion_assert(size > 0);
       // Default max alignment is 32 bytes
       size_t max_alignment = 32;
       const Memory::Kind kind = memory.kind();
@@ -5315,15 +5082,11 @@ namespace Legion {
       else
       {
         // perform the deferred deletion on this instance
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
+#ifdef LEGION_DEBUG
         const size_t previous =
 #endif
-#endif
             remaining_capacity.fetch_add(size);
-#ifdef DEBUG_LEGION
-        assert((previous + size) <= capacity);
-#endif
+        legion_assert((previous + size) <= capacity);
         inst.destroy(free_event);
       }
     }
@@ -5352,22 +5115,13 @@ namespace Legion {
         size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::InstanceAllocResult>());
-#endif
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::InstanceAllocResult>());
       Realm::ProfilingMeasurements::InstanceAllocResult result;
       result.success = false;  // Need this to avoid compiler warnings
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-      const bool measured =
-#endif
-#endif
+      legion_no_skip_assert(
           response.get_measurement<
-              Realm::ProfilingMeasurements::InstanceAllocResult>(result);
-#ifdef DEBUG_LEGION
-      assert(measured);
-#endif
+              Realm::ProfilingMeasurements::InstanceAllocResult>(result));
       success = result.success;
       failed_alloc = !success;
       if (failed_alloc)
@@ -5384,9 +5138,7 @@ namespace Legion {
     RtEvent MemoryManager::attach_external_instance(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager->is_external_instance());
-#endif
+      legion_assert(manager->is_external_instance());
       if (!is_owner)
       {
         // Send a message to the owner node to do the record
@@ -5401,17 +5153,13 @@ namespace Legion {
         runtime->send_external_attach(manager->owner_space, rez);
         return result;
       }
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       // Since we're going to put this in the table add a reference
       manager->add_base_resource_ref(MEMORY_MANAGER_REF);
       {
         AutoLock m_lock(manager_lock);
         TreeInstances& insts = current_instances[manager->tree_id];
-#ifdef DEBUG_LEGION
-        assert(insts.find(manager) == insts.end());
-#endif
+        legion_assert(insts.find(manager) == insts.end());
         insts[manager] = LEGION_GC_NEVER_PRIORITY;
       }
       return RtEvent::NO_RT_EVENT;
@@ -5421,9 +5169,7 @@ namespace Legion {
     void MemoryManager::detach_external_instance(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager->is_external_instance());
-#endif
+      legion_assert(manager->is_external_instance());
       if (!is_owner)
       {
         // Send a message to the owner node to do the deletion
@@ -5548,9 +5294,7 @@ namespace Legion {
         LgEvent unique_event, bool needs_deferral)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       RtEvent result;
       const size_t footprint = layout->bytes_used;
       switch (memory.kind())
@@ -5712,9 +5456,7 @@ namespace Legion {
         if (result.exists() && (implicit_profiler != nullptr))
           implicit_profiler->record_instance_ready(result, unique_event);
         AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-        assert(allocations.find(instance) == allocations.end());
-#endif
+        legion_assert(allocations.find(instance) == allocations.end());
         allocations[instance] = footprint;
       }
       return result;
@@ -5725,13 +5467,9 @@ namespace Legion {
         InstanceManager* man, PhysicalInstance instance)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-      assert(legion_instances.find(man) == legion_instances.end());
-#endif
+      legion_assert(legion_instances.find(man) == legion_instances.end());
       legion_instances[man] = instance;
     }
 
@@ -5740,17 +5478,13 @@ namespace Legion {
         InstanceManager* man, RtEvent defer)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-#endif
+      legion_assert(is_owner);
       PhysicalInstance instance;
       {
         AutoLock m_lock(manager_lock);
         std::map<InstanceManager*, PhysicalInstance>::iterator finder =
             legion_instances.find(man);
-#ifdef DEBUG_LEGION
-        assert(finder != legion_instances.end());
-#endif
+        legion_assert(finder != legion_instances.end());
         instance = finder->second;
         legion_instances.erase(finder);
       }
@@ -5762,10 +5496,8 @@ namespace Legion {
         RtEvent defer, PhysicalInstance instance, bool needs_defer)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner);
-      assert(instance.exists());
-#endif
+      legion_assert(is_owner);
+      legion_assert(instance.exists());
       size_t size;
       {
         AutoLock m_lock(manager_lock);
@@ -5792,9 +5524,7 @@ namespace Legion {
         }
         std::map<PhysicalInstance, size_t>::iterator finder =
             allocations.find(instance);
-#ifdef DEBUG_LEGION
-        assert(finder != allocations.end());
-#endif
+        legion_assert(finder != allocations.end());
         size = finder->second;
         allocations.erase(finder);
       }
@@ -5807,9 +5537,7 @@ namespace Legion {
         // for it on the second pass
         {
           AutoLock m_lock(manager_lock);
-#ifdef DEBUG_LEGION
-          assert(allocations.find(instance) == allocations.end());
-#endif
+          legion_assert(allocations.find(instance) == allocations.end());
           allocations[instance] = size;
         }
         FreeInstanceArgs args(this, instance);

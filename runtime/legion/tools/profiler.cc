@@ -42,9 +42,7 @@ namespace Legion {
         fevent(implicit_fevent)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(fevent.exists());
-#endif
+      legion_assert(fevent.exists());
     }
 
     //--------------------------------------------------------------------------
@@ -169,9 +167,7 @@ namespace Legion {
         }
         if (instances[idx] == instance)
         {
-#ifdef DEBUG_LEGION
-          assert(names[idx] == name);
-#endif
+          legion_assert(names[idx] == name);
           return;
         }
       }
@@ -630,10 +626,8 @@ namespace Legion {
     {
       if (owner->no_critical_paths)
         return;
-#ifdef DEBUG_LEGION
-      assert(result.is_barrier());
-      assert(owner->all_critical_arrivals);
-#endif
+      legion_assert(result.is_barrier());
+      legion_assert(owner->all_critical_arrivals);
       BarrierArrivalInfo& info =
           barrier_arrival_infos.emplace_back(BarrierArrivalInfo());
       info.performed = Realm::Clock::current_time_in_nanoseconds();
@@ -641,9 +635,7 @@ namespace Legion {
       info.precondition = pre;
       if (pre.is_barrier())
         record_barrier_use(pre, implicit_provenance);
-#ifdef DEBUG_LEGION
-      assert(implicit_fevent.exists());
-#endif
+      legion_assert(implicit_fevent.exists());
       info.fevent = implicit_fevent;
       owner->update_footprint(sizeof(info), this);
     }
@@ -652,9 +644,7 @@ namespace Legion {
     void LegionProfInstance::record_barrier_use(LgEvent bar, UniqueID uid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(bar.is_barrier());
-#endif
+      legion_assert(bar.is_barrier());
       // We don't need to record this if we're recording all barrier arrivals
       // since the profiler will be able to look at all the log files and
       // do this by itself
@@ -675,17 +665,10 @@ namespace Legion {
           while (barrier.id != previous.id)
           {
             ArrivalInfo arrival_info;
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-            const bool found =
-#endif
-#endif
-                // TODO: what happens if the barrier is poisoned
-                barrier.get_result(&arrival_info, sizeof(arrival_info));
-#ifdef DEBUG_LEGION
-            assert(found);
-            assert(arrival_info.fevent.exists());
-#endif
+            // TODO: what happens if the barrier is poisoned
+            legion_no_skip_assert(
+                barrier.get_result(&arrival_info, sizeof(arrival_info)));
+            legion_assert(arrival_info.fevent.exists());
             BarrierArrivalInfo& info =
                 barrier_arrival_infos.emplace_back(BarrierArrivalInfo());
             info.result = LgEvent(barrier);
@@ -777,10 +760,8 @@ namespace Legion {
         const Realm::ProfilingMeasurements::OperationProcessorUsage& usage)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationTimeline>());
-#endif
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationTimeline>());
       Realm::ProfilingMeasurements::OperationTimeline timeline;
       response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
           timeline);
@@ -788,18 +769,14 @@ namespace Legion {
       response
           .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
               waits);
-#ifdef DEBUG_LEGION
-      assert(timeline.is_valid());
-#endif
+      legion_assert(timeline.is_valid());
       if (prof_info->critical.is_barrier())
         record_barrier_use(prof_info->critical, prof_info->op_id);
       Realm::ProfilingMeasurements::OperationTimelineGPU timeline_gpu;
       if (response.get_measurement<
               Realm::ProfilingMeasurements::OperationTimelineGPU>(timeline_gpu))
       {
-#ifdef DEBUG_LEGION
-        assert(timeline_gpu.is_valid());
-#endif
+        legion_assert(timeline_gpu.is_valid());
         gpu_task_infos.emplace_back(GPUTaskInfo());
         GPUTaskInfo& info = gpu_task_infos.back();
         info.op_id = prof_info->op_id;
@@ -880,10 +857,8 @@ namespace Legion {
         const Realm::ProfilingMeasurements::OperationProcessorUsage& usage)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationTimeline>());
-#endif
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationTimeline>());
       Realm::ProfilingMeasurements::OperationTimeline timeline;
       response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
           timeline);
@@ -891,9 +866,7 @@ namespace Legion {
       response
           .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
               waits);
-#ifdef DEBUG_LEGION
-      assert(timeline.is_valid());
-#endif
+      legion_assert(timeline.is_valid());
       meta_infos.emplace_back(MetaInfo());
       MetaInfo& info = meta_infos.back();
       info.op_id = prof_info->op_id;
@@ -938,16 +911,12 @@ namespace Legion {
       // Do a quick check to see if this is a message task we're profiling
       // If it is then we only profile it if we're self-profiling the profiler
       const MessageKind kind = (MessageKind)(prof_info->id - LG_MESSAGE_ID);
-#ifdef DEBUG_LEGION
-      assert(kind < LAST_SEND_KIND);
-#endif
+      legion_assert(kind < LAST_SEND_KIND);
       const VirtualChannelKind vc = MessageManager::find_message_vc(kind);
       if ((vc == PROFILING_VIRTUAL_CHANNEL) && !owner->self_profile)
         return;
-#ifdef DEBUG_LEGION
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationTimeline>());
-#endif
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationTimeline>());
       Realm::ProfilingMeasurements::OperationTimeline timeline;
       response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
           timeline);
@@ -955,9 +924,7 @@ namespace Legion {
       response
           .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
               waits);
-#ifdef DEBUG_LEGION
-      assert(timeline.is_valid());
-#endif
+      legion_assert(timeline.is_valid());
       message_infos.emplace_back(MessageInfo());
       MessageInfo& info = message_infos.back();
       info.op_id = prof_info->op_id;
@@ -1023,14 +990,12 @@ namespace Legion {
         const Realm::ProfilingMeasurements::OperationMemoryUsage& usage)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationTimeline>());
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationCopyInfo>());
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationFinishEvent>());
-#endif
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationTimeline>());
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationCopyInfo>());
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationFinishEvent>());
 
       Realm::ProfilingMeasurements::OperationCopyInfo cpinfo;
       response.get_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>(
@@ -1046,9 +1011,7 @@ namespace Legion {
           .get_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>(
               fevent);
 
-#ifdef DEBUG_LEGION
-      assert(timeline.is_valid());
-#endif
+      legion_assert(timeline.is_valid());
       copy_infos.emplace_back(CopyInfo());
       CopyInfo& info = copy_infos.back();
       info.op_id = prof_info->op_id;
@@ -1060,16 +1023,14 @@ namespace Legion {
       info.stop = timeline.complete_time;
       info.fevent = LgEvent(fevent.finish_event);
       info.collective = (CollectiveKind)prof_info->id;
-      assert(!cpinfo.inst_info.empty());
+      legion_assert(!cpinfo.inst_info.empty());
       InstanceNameClosure* closure = prof_info->extra.closure;
       typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo
           InstInfo;
       for (std::vector<InstInfo>::const_iterator it = cpinfo.inst_info.begin();
            it != cpinfo.inst_info.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(it->src_fields.size() == it->dst_fields.size());
-#endif
+        legion_assert(it->src_fields.size() == it->dst_fields.size());
         if (it->src_indirection_inst.exists() ||
             it->dst_indirection_inst.exists())
         {
@@ -1145,12 +1106,10 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
           // Ask the Realm developers about why these assertions are true
           // because I still don't completely understand the logic
-          assert(it->src_insts.size() == 1);
-          assert(it->dst_insts.size() == 1);
-#endif
+          legion_assert(it->src_insts.size() == 1);
+          legion_assert(it->dst_insts.size() == 1);
           PhysicalInstance src_inst = it->src_insts.front();
           PhysicalInstance dst_inst = it->dst_insts.front();
           Memory src_location = src_inst.get_location();
@@ -1191,12 +1150,10 @@ namespace Legion {
         const Realm::ProfilingMeasurements::OperationMemoryUsage& usage)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationCopyInfo>());
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationTimeline>());
-#endif
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationCopyInfo>());
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationTimeline>());
       Realm::ProfilingMeasurements::OperationCopyInfo cpinfo;
       response.get_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>(
           cpinfo);
@@ -1204,9 +1161,7 @@ namespace Legion {
       Realm::ProfilingMeasurements::OperationTimeline timeline;
       response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
           timeline);
-#ifdef DEBUG_LEGION
-      assert(timeline.is_valid());
-#endif
+      legion_assert(timeline.is_valid());
       fill_infos.emplace_back(FillInfo());
       FillInfo& info = fill_infos.back();
       info.op_id = prof_info->op_id;
@@ -1226,10 +1181,8 @@ namespace Legion {
       for (std::vector<InstInfo>::const_iterator it = cpinfo.inst_info.begin();
            it != cpinfo.inst_info.end(); it++)
       {
-#ifdef DEBUG_LEGION
-        assert(!it->dst_fields.empty());
-        assert(it->dst_insts.size() == 1);
-#endif
+        legion_assert(!it->dst_fields.empty());
+        legion_assert(it->dst_insts.size() == 1);
         PhysicalInstance instance = it->dst_insts.front();
         Memory location = instance.get_location();
         LgEvent name = closure->find_instance_name(instance);
@@ -1282,10 +1235,8 @@ namespace Legion {
         const Realm::ProfilingResponse& response)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(response.has_measurement<
-             Realm::ProfilingMeasurements::OperationTimeline>());
-#endif
+      legion_assert(response.has_measurement<
+                    Realm::ProfilingMeasurements::OperationTimeline>());
       // Check to see if this dependent partition operation has a finish event
       // If it doesn't that means that it was executed inline and we don't
       // need to bother recording
@@ -2246,16 +2197,14 @@ namespace Legion {
         next_backtrace_id(
             (runtime->address_space == 0) ? runtime->total_address_spaces :
                                             runtime->address_space),
-#ifndef DEBUG_LEGION
+#ifndef LEGION_DEBUG
         total_outstanding_requests(1 /*start with guard*/),
 #endif
         total_memory_footprint(0), implicit_top_level_task_proc(0),
         need_default_mapper_warning(!slow_config_ok)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target_proc.exists());
-#endif
+      legion_assert(target_proc.exists());
       if (!strcmp(serializer_type, "binary"))
       {
         if (prof_logfile == nullptr)
@@ -2352,7 +2301,7 @@ namespace Legion {
       serializer->serialize(max_dim_desc);
       // Log the runtime configuration
       const LegionProfDesc::RuntimeConfig config = {
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
           true,
 #else
           false,
@@ -2376,7 +2325,7 @@ namespace Legion {
           runtime->resilient_mode,
       };
       serializer->serialize(config);
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       for (unsigned idx = 0; idx < LEGION_PROF_LAST; idx++)
         total_outstanding_requests[idx] = 0;
       total_outstanding_requests[LEGION_PROF_META] = 1;  // guard
@@ -2594,9 +2543,7 @@ namespace Legion {
       // Check to see if we lost the race
       if (implicit_top_level_task_proc.load() > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(proc == implicit_top_level_task_proc.load());
-#endif
+        legion_assert(proc == implicit_top_level_task_proc.load());
         return proc;
       }
       // Record the processor kind as being an I/O kind so that the profiler
@@ -2615,11 +2562,7 @@ namespace Legion {
         UniqueID task_uid, Processor p, LgEvent critical)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_TASK);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_TASK, task_uid);
       info.id = tid;
       info.extra.id2 = vid;
@@ -2643,11 +2586,7 @@ namespace Legion {
         LgEvent critical)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_META);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_META, op);
       info.id = tid;
       info.critical = critical;
@@ -2695,11 +2634,7 @@ namespace Legion {
         CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_COPY, count);
-#else
-      increment_total_outstanding_requests(count);
-#endif
       ProfilingInfo info(this, LEGION_PROF_COPY, op);
       // Use ID to encode the collective copy kind
       info.id = collective;
@@ -2721,11 +2656,7 @@ namespace Legion {
         Operation* op, LgEvent critical, CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_FILL);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_FILL, op);
       // Use ID to encode the collective copy kind
       info.id = collective;
@@ -2747,11 +2678,7 @@ namespace Legion {
         LgEvent unique_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_INST);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_INST, op);
       info.id = unique_event.id;
       // Instances use two profiling requests so that we can get MemoryUsage
@@ -2770,11 +2697,7 @@ namespace Legion {
         DepPartOpKind part_op, LgEvent critical)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_PARTITION);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_PARTITION, op);
       // Pass the part_op as the ID
       info.id = part_op;
@@ -2793,11 +2716,7 @@ namespace Legion {
         UniqueID uid, LgEvent critical)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_TASK);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_TASK, uid);
       info.id = tid;
       info.extra.id2 = vid;
@@ -2818,11 +2737,7 @@ namespace Legion {
         LgEvent critical)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_META);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_META, uid);
       info.id = tid;
       info.critical = critical;
@@ -2843,11 +2758,7 @@ namespace Legion {
         CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_COPY, count);
-#else
-      increment_total_outstanding_requests(count);
-#endif
       ProfilingInfo info(this, LEGION_PROF_COPY, uid);
       // Use ID to encode the collective copy kind
       info.id = collective;
@@ -2869,11 +2780,7 @@ namespace Legion {
         UniqueID uid, LgEvent critical, CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_FILL);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_FILL, uid);
       // Use ID to encode the collective copy kind
       info.id = collective;
@@ -2895,11 +2802,7 @@ namespace Legion {
         LgEvent unique_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_INST);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_INST, uid);
       info.id = unique_event.id;
       // Instances use two profiling requests so that we can get MemoryUsage
@@ -2918,11 +2821,7 @@ namespace Legion {
         DepPartOpKind part_op, LgEvent critical)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_PARTITION);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_PARTITION, uid);
       // Pass the partition op kind as the ID
       info.id = part_op;
@@ -2940,12 +2839,8 @@ namespace Legion {
         Realm::Event protected_precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(precondition.exists());
+      legion_assert(precondition.exists());
       increment_total_outstanding_requests(LEGION_PROF_ARRIVAL);
-#else
-      increment_total_outstanding_requests();
-#endif
       // This is tricky: to measure when the arrival for this barrier is
       // actually done then we are going to run a no-op task when the
       // protected precondition triggers. It's a no-op because it is not
@@ -2976,11 +2871,7 @@ namespace Legion {
         Realm::Barrier bar, UniqueID uid)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       increment_total_outstanding_requests(LEGION_PROF_BARRIER);
-#else
-      increment_total_outstanding_requests();
-#endif
       ProfilingInfo info(this, LEGION_PROF_BARRIER, uid);
       info.id = bar.id;
       Realm::ProfilingRequestSet requests;
@@ -3002,10 +2893,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Realm::ID id(bar.id);
-#ifdef DEBUG_LEGION
-      assert(bar.exists());
-      assert(id.is_barrier());
-#endif
+      legion_assert(bar.exists());
+      legion_assert(id.is_barrier());
       const std::pair<unsigned, unsigned> key(
           id.barrier_creator_node(), id.barrier_barrier_idx());
       const unsigned generation = id.barrier_generation();
@@ -3046,9 +2935,7 @@ namespace Legion {
       long long start = 0;
       if (self_profile)
         start = Realm::Clock::current_time_in_nanoseconds();
-#ifdef DEBUG_LEGION
-      assert(response.user_data_size() == sizeof(ProfilingInfo));
-#endif
+      legion_assert(response.user_data_size() == sizeof(ProfilingInfo));
       const ProfilingInfo* info =
           static_cast<const ProfilingInfo*>(response.user_data());
       switch (info->kind)
@@ -3196,11 +3083,7 @@ namespace Legion {
           }
         }
       }
-#ifdef DEBUG_LEGION
       decrement_total_outstanding_requests(info->kind);
-#else
-      decrement_total_outstanding_requests();
-#endif
       // Already recorded the prof task profiling in this case
       return false;
     }
@@ -3210,11 +3093,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Remove our guard outstanding request
-#ifdef DEBUG_LEGION
       decrement_total_outstanding_requests(LEGION_PROF_META);
-#else
-      decrement_total_outstanding_requests();
-#endif
       LegionProfDesc::CalibrationErr calibration_err;
       calibration_err.calibration_err = Realm::Clock::get_calibration_error();
       serializer->serialize(calibration_err);
@@ -3297,12 +3176,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Increment the count of outstanding message requests
-#ifdef DEBUG_LEGION
-      assert(implicit_fevent.exists());
+      legion_assert(implicit_fevent.exists());
       increment_total_outstanding_requests(LegionProfiler::LEGION_PROF_MESSAGE);
-#else
-      increment_total_outstanding_requests();
-#endif
       // This part is a bit tricky: we want the implicit_fevent to always be
       // an event local to this node so that the profiler can always look up
       // which node ot consult based on the fevent for a task. However, Realm
@@ -3331,22 +3206,23 @@ namespace Legion {
       AutoLock prof_lock(profiler_lock);
       std::map<LgEvent, LgEvent>::iterator finder =
           message_fevents.find(original_fevent);
-#ifdef DEBUG_LEGION
-      assert(finder != message_fevents.end());
-#endif
+      legion_assert(finder != message_fevents.end());
       const LgEvent result = finder->second;
       message_fevents.erase(finder);
       return result;
     }
 
-#ifdef DEBUG_LEGION
     //--------------------------------------------------------------------------
     void LegionProfiler::increment_total_outstanding_requests(
         ProfilingKind kind, unsigned cnt)
     //--------------------------------------------------------------------------
     {
+#ifdef LEGION_DEBUG
       AutoLock p_lock(profiler_lock);
       total_outstanding_requests[kind] += cnt;
+#else
+      total_outstanding_requests.fetch_add(cnt);
+#endif
     }
 
     //--------------------------------------------------------------------------
@@ -3354,8 +3230,9 @@ namespace Legion {
         ProfilingKind kind, unsigned cnt)
     //--------------------------------------------------------------------------
     {
+#ifdef LEGION_DEBUG
       AutoLock p_lock(profiler_lock);
-      assert(total_outstanding_requests[kind] >= cnt);
+      legion_assert(total_outstanding_requests[kind] >= cnt);
       total_outstanding_requests[kind] -= cnt;
       if (total_outstanding_requests[kind] > 0)
         return;
@@ -3366,35 +3243,19 @@ namespace Legion {
         if (total_outstanding_requests[idx] > 0)
           return;
       }
-      assert(!done_event.has_triggered());
+      legion_assert(!done_event.has_triggered());
       Runtime::trigger_event(done_event);
-    }
 #else
-    //--------------------------------------------------------------------------
-    void LegionProfiler::increment_total_outstanding_requests(unsigned cnt)
-    //--------------------------------------------------------------------------
-    {
-      total_outstanding_requests.fetch_add(cnt);
-    }
-
-    //--------------------------------------------------------------------------
-    void LegionProfiler::decrement_total_outstanding_requests(unsigned cnt)
-    //--------------------------------------------------------------------------
-    {
       unsigned prev = total_outstanding_requests.fetch_sub(cnt);
-#ifdef DEBUG_LEGION
-      assert(prev >= cnt);
-#endif
+      legion_assert(prev >= cnt);
       // If we were the last outstanding event we can trigger the event
       if (prev == cnt)
       {
-#ifdef DEBUG_LEGION
-        assert(!done_event.has_triggered());
-#endif
+        legion_assert(!done_event.has_triggered());
         Runtime::trigger_event(done_event);
       }
-    }
 #endif
+    }
 
     //--------------------------------------------------------------------------
     void LegionProfiler::update_footprint(size_t diff, LegionProfInstance* inst)
@@ -3425,15 +3286,8 @@ namespace Legion {
         }
         else
           diff = inst->dump_inter(serializer, over_scale);
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-        footprint =
-#endif
-#endif
-            total_memory_footprint.fetch_sub(diff);
-#ifdef DEBUG_LEGION
-        assert(footprint >= diff);  // check for wrap-around
-#endif
+        footprint = total_memory_footprint.fetch_sub(diff);
+        legion_assert(footprint >= diff);  // check for wrap-around
       }
     }
 

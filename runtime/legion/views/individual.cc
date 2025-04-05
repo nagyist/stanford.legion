@@ -37,9 +37,7 @@ namespace Legion {
         copy_user(cpy), covers(cov)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(expr != nullptr);
-#endif
+      legion_assert(expr != nullptr);
       expr->add_base_expression_reference(PHYSICAL_USER_REF);
     }
 
@@ -47,9 +45,7 @@ namespace Legion {
     PhysicalUser::~PhysicalUser(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(expr != nullptr);
-#endif
+      legion_assert(expr != nullptr);
       if (expr->remove_base_expression_reference(PHYSICAL_USER_REF))
         delete expr;
     }
@@ -111,9 +107,7 @@ namespace Legion {
       if (result != std::numeric_limits<size_t>::max())
         return result;
       result = view_expr->get_volume();
-#ifdef DEBUG_LEGION
-      assert(result != std::numeric_limits<size_t>::max());
-#endif
+      legion_assert(result != std::numeric_limits<size_t>::max());
       view_volume.store(result);
       return result;
     }
@@ -233,10 +227,8 @@ namespace Legion {
                 usage, user_mask, user_expr, term_event, op_id, index,
                 user_dominates, preconditions, dead_users, current_to_filter,
                 observed, non_dominated, trace_recording, false /*copy*/);
-#ifdef DEBUG_LEGION
-            assert(!observed);
-            assert(current_to_filter.empty());
-#endif
+            legion_assert(!observed);
+            legion_assert(current_to_filter.empty());
           }
           if (!previous_epoch_users.empty())
             find_previous_preconditions(
@@ -375,10 +367,8 @@ namespace Legion {
                 usage, copy_mask, copy_expr, ApEvent::NO_AP_EVENT, op_id, index,
                 copy_dominates, preconditions, dead_users, current_to_filter,
                 observed, non_dominated, trace_recording, true /*copy user*/);
-#ifdef DEBUG_LEGION
-            assert(!observed);
-            assert(current_to_filter.empty());
-#endif
+            legion_assert(!observed);
+            legion_assert(current_to_filter.empty());
           }
           if (!previous_epoch_users.empty())
             find_previous_preconditions(
@@ -513,9 +503,7 @@ namespace Legion {
     void ExprView::insert_subview(ExprView* subview, FieldMask& subview_mask)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(this != subview);
-#endif
+      legion_assert(this != subview);
       // Iterate over all subviews and see which ones we dominate and which
       // ones dominate the subview
       if (!subviews.empty() && !(subviews.get_valid_mask() * subview_mask))
@@ -539,19 +527,15 @@ namespace Legion {
           // See if we dominate or just intersect
           if (overlap_volume == subview->get_view_volume())
           {
-#ifdef DEBUG_LEGION
             // Should only strictly dominate if they were congruent
             // then we wouldn't be inserting in the first place
-            assert(overlap_volume < it->first->get_view_volume());
-#endif
+            legion_assert(overlap_volume < it->first->get_view_volume());
             // Dominator so we can just continue traversing
             dominating_subviews.insert(it->first, overlap_mask);
           }
           else if (overlap_volume == it->first->get_view_volume())
           {
-#ifdef DEBUG_LEGION
-            assert(overlap_mask * dominating_subviews.get_valid_mask());
-#endif
+            legion_assert(overlap_mask * dominating_subviews.get_valid_mask());
             // We dominate this view so we can just pull it
             // in underneath of us now
             it.filter(overlap_mask);
@@ -595,9 +579,7 @@ namespace Legion {
                   (subview_mask * dominating_subviews.get_valid_mask()))
                 break;
             }
-#ifdef DEBUG_LEGION
-            assert(subview_mask * dominating_subviews.get_valid_mask());
-#endif
+            legion_assert(subview_mask * dominating_subviews.get_valid_mask());
           }
           else
           {
@@ -651,10 +633,8 @@ namespace Legion {
           // See if we dominate or just intersect
           if (overlap_volume == expr->get_volume())
           {
-#ifdef DEBUG_LEGION
             // Should strictly dominate otherwise we'd be congruent
-            assert(overlap_volume < it->first->get_view_volume());
-#endif
+            legion_assert(overlap_volume < it->first->get_view_volume());
             dominated_mask |= overlap_mask;
             // Continute the traversal
             it->first->find_tightest_subviews(
@@ -787,19 +767,15 @@ namespace Legion {
           const FieldMask new_invalid = it->second - new_mask;
           if (!!new_invalid)
           {
-#ifdef DEBUG_LEGION
             // Should only have been one path here
-            assert(it->first->invalid_fields * new_invalid);
-#endif
+            legion_assert(it->first->invalid_fields * new_invalid);
             it->first->invalid_fields |= new_invalid;
           }
         }
         else
         {
-#ifdef DEBUG_LEGION
           // Should only have been one path here
-          assert(it->first->invalid_fields * it->second);
-#endif
+          legion_assert(it->first->invalid_fields * it->second);
           it->first->invalid_fields |= it->second;
         }
         if (!!new_mask)
@@ -1131,9 +1107,7 @@ namespace Legion {
         expr_cache_uses(0), outstanding_additions(0)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(manager != nullptr);
-#endif
+      legion_assert(manager != nullptr);
       // Keep the manager from being collected
       manager->add_nested_resource_ref(did);
       manager->add_nested_gc_ref(did);
@@ -1167,15 +1141,7 @@ namespace Legion {
     void IndividualView::notify_valid(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-      bool result =
-#endif
-          manager->acquire_instance(did);
-      assert(result);
-#else
-      manager->add_nested_valid_ref(did);
-#endif
+      legion_no_skip_assert(manager->acquire_instance(did));
       add_base_gc_ref(INTERNAL_VALID_REF);
     }
 
@@ -1215,9 +1181,7 @@ namespace Legion {
         PhysicalManager* instance) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instance == manager);
-#endif
+      legion_assert(instance == manager);
       return logical_owner;
     }
 
@@ -1249,9 +1213,7 @@ namespace Legion {
         const bool fill_restricted, const bool need_valid_return)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((across_helper == nullptr) || !manage_dst_events);
-#endif
+      legion_assert((across_helper == nullptr) || !manage_dst_events);
       // Compute the precondition first
       if (manage_dst_events)
       {
@@ -1300,9 +1262,7 @@ namespace Legion {
         const bool copy_restricted, const bool need_valid_return)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert((across_helper == nullptr) || !manage_dst_events);
-#endif
+      legion_assert((across_helper == nullptr) || !manage_dst_events);
       // Compute the preconditions first
       const UniqueID op_id = op->get_unique_op_id();
       // We'll need to compute our destination precondition no matter what
@@ -1355,16 +1315,14 @@ namespace Legion {
         else
           across_helper->compute_across_offsets(src_mask, dst_fields);
         PhysicalManager* source_manager = source_view->get_manager();
-        assert(manager->instance.id != source_manager->instance.id);
+        legion_assert(manager->instance.id != source_manager->instance.id);
         source_manager->compute_copy_offsets(src_mask, src_fields);
         std::vector<Reservation> reservations;
         // If we're doing a reduction operation then set the reduction
         // information on the source-dst fields
         if (reduction_op_id > 0)
         {
-#ifdef DEBUG_LEGION
-          assert((get_redop() == 0) || (get_redop() == reduction_op_id));
-#endif
+          legion_assert((get_redop() == 0) || (get_redop() == reduction_op_id));
           // Get the reservations
           find_field_reservations(copy_mask, reservations);
           // Set the redop on the destination fields
@@ -1414,9 +1372,7 @@ namespace Legion {
         std::vector<Reservation> reservations;
         if (reduction_op_id > 0)
         {
-#ifdef DEBUG_LEGION
-          assert((get_redop() == 0) || (get_redop() == reduction_op_id));
-#endif
+          legion_assert((get_redop() == 0) || (get_redop() == reduction_op_id));
           find_field_reservations(copy_mask, reservations);
           // Set the redop on the destination fields
           // Note that we can mark these as exclusive copies since
@@ -1428,9 +1384,7 @@ namespace Legion {
         }
         if (collective->is_allreduce_view())
         {
-#ifdef DEBUG_LEGION
-          assert(reduction_op_id == collective->get_redop());
-#endif
+          legion_assert(reduction_op_id == collective->get_redop());
           AllreduceView* allreduce = collective->as_allreduce_view();
           // Case 3
           // This is subtle as fuck
@@ -1667,9 +1621,7 @@ namespace Legion {
         const UniqueID op_id, const unsigned index)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_logical_owner());
-#endif
+      legion_assert(is_logical_owner());
       add_internal_task_user(
           usage, user_expr, user_mask, term_event, op_id, index);
     }
@@ -1686,9 +1638,7 @@ namespace Legion {
         const AddressSpaceID source, const bool symbolic /*=false*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target == manager);
-#endif
+      legion_assert(target == manager);
       // Handle the collective rendezvous if necessary
       if (local_collective_arrivals > 0)
         return register_collective_user(
@@ -1764,10 +1714,9 @@ namespace Legion {
             usage, user_expr, user_mask, term_event, op_id, index);
         manager->record_instance_user(term_event, applied_events);
         // At this point tasks shouldn't be allowed to wait on themselves
-#ifdef DEBUG_LEGION
-        if (term_event.exists())
-          assert(wait_on_events.find(term_event) == wait_on_events.end());
-#endif
+        legion_assert(
+            !term_event.exists() ||
+            (wait_on_events.find(term_event) == wait_on_events.end()));
         // Return the merge of the events
         if (!wait_on_events.empty())
           return Runtime::merge_events(&trace_info, wait_on_events);
@@ -1901,9 +1850,7 @@ namespace Legion {
         IndexSpaceExpression* expr, std::vector<RtEvent>& ready_events) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instance == manager);
-#endif
+      legion_assert(instance == manager);
       // Check to see if we're on the right node to perform this analysis
       if (logical_owner != local_space)
       {
@@ -1952,9 +1899,7 @@ namespace Legion {
         // finding it because it is congruent to the output region
         const size_t user_volume = user_expr->get_volume();
         const size_t root_volume = current_users->view_expr->get_volume();
-#ifdef DEBUG_LEGION
-        assert(user_volume <= root_volume);
-#endif
+        legion_assert(user_volume <= root_volume);
         if (user_volume < root_volume)
           user_expr = user_expr->get_canonical_expression();
         else
@@ -2113,9 +2058,7 @@ namespace Legion {
         // finding it because it is congruent to the output region
         const size_t user_volume = user_expr->get_volume();
         const size_t root_volume = current_users->view_expr->get_volume();
-#ifdef DEBUG_LEGION
-        assert(user_volume <= root_volume);
-#endif
+        legion_assert(user_volume <= root_volume);
         if (user_volume < root_volume)
           user_expr = user_expr->get_canonical_expression();
         else
@@ -2306,9 +2249,7 @@ namespace Legion {
         const CollectiveView* source, CollectiveAnalysis* analysis)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       const RendezvousKey key(
           analysis->get_context_index(), analysis->get_requirement_index(),
           analysis->get_match_space());
@@ -2322,15 +2263,11 @@ namespace Legion {
           // Note that this will deduplicate multiple registrations
           if (finder->second.analysis == nullptr)
           {
-#ifdef DEBUG_LEGION
-            assert(finder->second.ready.exists());
-#endif
+            legion_assert(finder->second.ready.exists());
             analysis->add_analysis_reference();
             finder->second.analysis = analysis;
             to_trigger = finder->second.ready;
-#ifdef DEBUG_LEGION
             finder->second.ready = RtUserEvent::NO_RT_USER_EVENT;
-#endif
           }
           // Record the view so we know how many registrations to expect
           // We'll see one unregister for each source view
@@ -2353,9 +2290,7 @@ namespace Legion {
         size_t context_index, unsigned region_index, IndexSpaceID match_space)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-#endif
+      legion_assert(is_owner());
       RtEvent wait_on;
       const RendezvousKey key(context_index, region_index, match_space);
       {
@@ -2366,9 +2301,7 @@ namespace Legion {
         {
           if (finder->second.analysis == nullptr)
           {
-#ifdef DEBUG_LEGION
-            assert(finder->second.ready.exists());
-#endif
+            legion_assert(finder->second.ready.exists());
             wait_on = finder->second.ready;
           }
           else
@@ -2387,10 +2320,8 @@ namespace Legion {
       AutoLock v_lock(view_lock);
       std::map<RendezvousKey, RegisteredAnalysis>::iterator finder =
           collective_analyses.find(key);
-#ifdef DEBUG_LEGION
-      assert(finder != collective_analyses.end());
-      assert(finder->second.analysis != nullptr);
-#endif
+      legion_assert(finder != collective_analyses.end());
+      legion_assert(finder->second.analysis != nullptr);
       return finder->second.analysis;
     }
 
@@ -2412,15 +2343,11 @@ namespace Legion {
         // FilterAnalysis in the case where there is no flush
         if (finder == collective_analyses.end())
           return;
-#ifdef DEBUG_LEGION
-        assert(finder->second.analysis != nullptr);
-        assert(!finder->second.ready.exists());
-#endif
+        legion_assert(finder->second.analysis != nullptr);
+        legion_assert(!finder->second.ready.exists());
         std::set<DistributedID>::iterator view_finder =
             finder->second.views.find(source->did);
-#ifdef DEBUG_LEGION
-        assert(view_finder != finder->second.views.end());
-#endif
+        legion_assert(view_finder != finder->second.views.end());
         finder->second.views.erase(view_finder);
         // If we're not the last view that needs to unregister this
         // analysis then we don't remove it yet
@@ -2450,10 +2377,9 @@ namespace Legion {
       // will occur with control replication doing attach operations on
       // file instances, but can occur outside of control replication as
       // well, especially in intra-node cases
-#ifdef DEBUG_LEGION
-      assert(local_collective_arrivals > 0);
-      assert((analysis_mapping != nullptr) || (local_collective_arrivals > 1));
-#endif
+      legion_assert(local_collective_arrivals > 0);
+      legion_assert(
+          (analysis_mapping != nullptr) || (local_collective_arrivals > 1));
       // First we need to decide which node is going to be the owner node
       // We'll prefer it to be the logical view owner since that is where
       // the event will be produced, otherwise, we'll just pick whichever
@@ -2502,11 +2428,9 @@ namespace Legion {
         }
         else if (!finder->second.local_initialized)
         {
-#ifdef DEBUG_LEGION
-          assert(!finder->second.ready_event.exists());
-          assert(finder->second.trace_info == nullptr);
-          assert(finder->second.analysis_mapping != nullptr);
-#endif
+          legion_assert(!finder->second.ready_event.exists());
+          legion_assert(finder->second.trace_info == nullptr);
+          legion_assert(finder->second.analysis_mapping != nullptr);
           // First local arrival
           finder->second.remaining_local_arrivals = local_collective_arrivals;
           finder->second.local_initialized = true;
@@ -2538,10 +2462,8 @@ namespace Legion {
         applied_events.insert(applied);
         if (term_event.exists())
           finder->second.term_events.emplace_back(term_event);
-#ifdef DEBUG_LEGION
-        assert(finder->second.local_initialized);
-        assert(finder->second.remaining_local_arrivals > 0);
-#endif
+        legion_assert(finder->second.local_initialized);
+        legion_assert(finder->second.remaining_local_arrivals > 0);
         // If we're still expecting arrivals then nothing to do yet
         if ((--finder->second.remaining_local_arrivals > 0) ||
             (finder->second.remaining_remote_arrivals > 0))
@@ -2563,9 +2485,7 @@ namespace Legion {
         }
         term_events.swap(finder->second.term_events);
         expr = finder->second.expr;
-#ifdef DEBUG_LEGION
-        assert(finder->second.remote_ready_events.empty());
-#endif
+        legion_assert(finder->second.remote_ready_events.empty());
         // We're done with our entry after this so no need to keep it
         rendezvous_users.erase(finder);
       }
@@ -2573,9 +2493,7 @@ namespace Legion {
         term_event = Runtime::merge_events(&trace_info, term_events);
       if (local_space != origin)
       {
-#ifdef DEBUG_LEGION
-        assert(analysis_mapping != nullptr);
-#endif
+        legion_assert(analysis_mapping != nullptr);
         const AddressSpaceID parent =
             analysis_mapping->get_parent(origin, local_space);
         Serializer rez;
@@ -2633,9 +2551,7 @@ namespace Legion {
         std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(analysis_mapping != nullptr);
-#endif
+      legion_assert(analysis_mapping != nullptr);
       UserRendezvous to_perform;
       const RendezvousKey key(op_ctx_index, index, match_space);
       {
@@ -2673,18 +2589,14 @@ namespace Legion {
           Runtime::trigger_event(
               remote_ready_event, finder->second.ready_event, trace_info,
               applied_events);
-#ifdef DEBUG_LEGION
-        assert(finder->second.remaining_remote_arrivals > 0);
-#endif
+        legion_assert(finder->second.remaining_remote_arrivals > 0);
         // Check to see if we've done all the arrivals
         if ((--finder->second.remaining_remote_arrivals > 0) ||
             !finder->second.local_initialized ||
             (finder->second.remaining_local_arrivals > 0))
           return;
-#ifdef DEBUG_LEGION
-        assert(finder->second.remote_ready_events.empty());
-        assert(finder->second.trace_info != nullptr);
-#endif
+        legion_assert(finder->second.remote_ready_events.empty());
+        legion_assert(finder->second.trace_info != nullptr);
         // Last needed arrival, see if we're the origin or not
         to_perform = std::move(finder->second);
         rendezvous_users.erase(finder);
@@ -2695,10 +2607,8 @@ namespace Legion {
             to_perform.trace_info, to_perform.term_events);
       if (local_space != origin)
       {
-#ifdef DEBUG_LEGION
-        assert(to_perform.applied.exists());
-        assert(to_perform.analysis_mapping != nullptr);
-#endif
+        legion_assert(to_perform.applied.exists());
+        legion_assert(to_perform.analysis_mapping != nullptr);
         // Send the message to the parent
         const AddressSpaceID parent =
             to_perform.analysis_mapping->get_parent(origin, local_space);
@@ -2726,9 +2636,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(to_perform.applied.exists());
-#endif
+        legion_assert(to_perform.applied.exists());
         std::vector<RtEvent> registered_events;
         std::set<RtEvent> applied_events;
         const ApEvent ready = register_user(
@@ -2785,9 +2693,7 @@ namespace Legion {
           PhysicalTraceInfo::unpack_trace_info(derez);
       size_t num_spaces;
       derez.deserialize(num_spaces);
-#ifdef DEBUG_LEGION
-      assert(num_spaces > 0);
-#endif
+      legion_assert(num_spaces > 0);
       CollectiveMapping* mapping = new CollectiveMapping(derez, num_spaces);
       mapping->add_reference();
       ApEvent term_event;
@@ -2917,9 +2823,7 @@ namespace Legion {
       }
       if (source != local_space)
       {
-#ifdef DEBUG_LEGION
-        assert(to_trigger.exists());
-#endif
+        legion_assert(to_trigger.exists());
         // Send the result back to the source
         Serializer rez;
         {
@@ -2949,9 +2853,7 @@ namespace Legion {
         const FieldMask& mask, const std::vector<Reservation>& reservations)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_logical_owner());
-#endif
+      legion_assert(!is_logical_owner());
       AutoLock v_lock(view_lock);
       unsigned offset = 0;
       for (int idx = mask.find_first_set(); idx >= 0;
@@ -3091,9 +2993,7 @@ namespace Legion {
 
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
-#ifdef DEBUG_LEGION
-      assert(view->is_individual_view());
-#endif
+      legion_assert(view->is_individual_view());
       IndividualView* inst_view = view->as_individual_view();
 
       std::set<RtEvent> applied_events;
@@ -3140,9 +3040,7 @@ namespace Legion {
         ready.wait();
       if (manager_ready.exists() && !manager_ready.has_triggered())
         manager_ready.wait();
-#ifdef DEBUG_LEGION
-      assert(view->is_individual_view());
-#endif
+      legion_assert(view->is_individual_view());
       IndividualView* inst_view = view->as_individual_view();
       inst_view->find_last_users(manager, result, usage, mask, expr, applied);
       if (!result.empty())

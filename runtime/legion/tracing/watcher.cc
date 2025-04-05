@@ -66,9 +66,7 @@ namespace Legion {
             std::vector<Murmur3Hasher::Hash> hashes(pointer.depth);
             for (unsigned j = 0; j < pointer.depth; j++)
             {
-#ifdef DEBUG_LEGION
-              assert(node != nullptr);
-#endif
+              legion_assert(node != nullptr);
               hashes[pointer.depth - j - 1] = node->get_token();
               node = node->get_parent();
             }

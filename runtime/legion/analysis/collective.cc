@@ -106,10 +106,8 @@ namespace Legion {
             first_local, exclusive)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(on_heap);
-      assert(target_instances.size() == target_views.size());
-#endif
+      legion_assert(on_heap);
+      legion_assert(target_instances.size() == target_views.size());
       // Remote case so no registration to perform
     }
 

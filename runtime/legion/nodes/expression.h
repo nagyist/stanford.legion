@@ -89,7 +89,7 @@ namespace Legion {
       virtual IndexSpaceExpression* inline_subtraction(
           IndexSpaceExpression* rhs) = 0;
     public:
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual bool is_valid(void) = 0;
 #endif
       virtual DistributedID get_distributed_id(void) const = 0;
@@ -393,7 +393,7 @@ namespace Legion {
       virtual void pack_expression(Serializer& rez, AddressSpaceID target) = 0;
       virtual void skip_unpack_expression(Deserializer& derez) const = 0;
     public:
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
       virtual bool is_valid(void)
       {
         return DistributedCollectable::is_global();
@@ -756,9 +756,7 @@ namespace Legion {
         creator->derez.deserialize(origin);
         DistributedID did;
         creator->derez.deserialize(did);
-#ifdef DEBUG_LEGION
-        assert(creator->operation == nullptr);
-#endif
+        legion_assert(creator->operation == nullptr);
         creator->operation = new RemoteExpression<N::N, T>(
             creator->expr_id, did, origin, creator->type_tag, creator->derez);
       }

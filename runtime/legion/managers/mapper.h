@@ -403,10 +403,8 @@ namespace Legion {
     public:
       inline void begin_runtime_call(bool eager_pause)
       {
-#ifdef DEBUG_LEGION
-        assert(!paused);
-        assert(!runtime_call);
-#endif
+        legion_assert(!paused);
+        legion_assert(!runtime_call);
         runtime_call = true;
         if (eager_pause)
         {
@@ -424,9 +422,7 @@ namespace Legion {
       }
       inline void resume_mapper_call(void)
       {
-#ifdef DEBUG_LEGION
-        assert(runtime_call);
-#endif
+        legion_assert(runtime_call);
         if (paused)
         {
           manager->resume_mapper_call(this);

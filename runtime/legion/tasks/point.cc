@@ -106,9 +106,7 @@ namespace Legion {
     bool PointTask::distribute_task(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!is_origin_mapped());
-#endif
+      legion_assert(!is_origin_mapped());
       // Point tasks are never sent anywhere
       return true;
     }
@@ -154,16 +152,12 @@ namespace Legion {
       // a non-null args for concurrent tasks so points can map in parallel
       if (concurrent_task)
       {
-#ifdef DEBUG_LEGION
-        assert(target_proc.exists());
-        assert(concurrent_postcondition.exists());
-#endif
+        legion_assert(target_proc.exists());
+        legion_assert(concurrent_postcondition.exists());
         concurrent_precondition.interpreted = Runtime::create_rt_user_event();
         if (must_epoch_task)
         {
-#ifdef DEBUG_LEGION
-          assert(is_origin_mapped());
-#endif
+          legion_assert(is_origin_mapped());
           must_epoch->rendezvous_concurrent_mapped(
               concurrent_precondition.interpreted);
         }
@@ -194,9 +188,7 @@ namespace Legion {
         size_t return_type_size, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(!elide_future_return);
-#endif
+      legion_assert(!elide_future_return);
       slice_owner->handle_future_size(return_type_size, index_point);
     }
 
@@ -220,10 +212,8 @@ namespace Legion {
     void PointTask::shard_off(RtEvent mapped_precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should only be happening for must-epoch operations
-      assert(must_epoch != nullptr);
-#endif
+      legion_assert(must_epoch != nullptr);
       slice_owner->record_point_mapped(
           this, mapped_precondition, true /*shard off*/);
       SingleTask::shard_off(mapped_precondition);
@@ -422,12 +412,8 @@ namespace Legion {
     {
       // First thing: increment the meta-task counts since we decremented
       // them in case we didn't end up running
-#ifdef DEBUG_LEGION
       runtime->increment_total_outstanding_tasks(
           MispredicationTaskArgs::TASK_ID, true /*meta*/);
-#else
-      runtime->increment_total_outstanding_tasks();
-#endif
 #ifdef DEBUG_SHUTDOWN_HANG
       runtime->outstanding_counts[MispredicationTaskArgs::TASK_ID].fetch_add(1);
 #endif
@@ -443,9 +429,7 @@ namespace Legion {
     {
       if (must_epoch_task)
       {
-#ifdef DEBUG_LEGION
-        assert(is_origin_mapped());
-#endif
+        legion_assert(is_origin_mapped());
         return must_epoch->collective_lamport_allreduce(
             lamport_clock, need_result);
       }
@@ -458,10 +442,8 @@ namespace Legion {
     ApEvent PointTask::order_concurrent_launch(ApEvent start, VariantImpl* impl)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target_processors.size() == 1);
-      assert(concurrent_postcondition.exists());
-#endif
+      legion_assert(target_processors.size() == 1);
+      legion_assert(concurrent_postcondition.exists());
       // To order concurrent launches we do a two-phase algorithm here
       // 1. We do a barrier across all the point tasks to make sure that
       //    the preconditions for all the point tasks are ready before we
@@ -563,12 +545,10 @@ namespace Legion {
       runtime->phase_barrier_arrive(concurrent_task_barrier, 1 /*count*/);
       concurrent_task_barrier.wait();
       Runtime::advance_barrier(concurrent_task_barrier);
-#ifdef DEBUG_LEGION
       // If you ever fail this assertion then we exhausted the number
       // of generations in a barrier. Hopefully CUDA will fix its bug
       // before we ever need to deal with this
-      assert(concurrent_task_barrier.exists());
-#endif
+      legion_assert(concurrent_task_barrier.exists());
     }
 
     //--------------------------------------------------------------------------
@@ -582,13 +562,9 @@ namespace Legion {
     void PointTask::set_projection_result(unsigned idx, LogicalRegion result)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(idx < get_region_count());
-#endif
+      legion_assert(idx < get_region_count());
       RegionRequirement& req = logical_regions[idx];
-#ifdef DEBUG_LEGION
-      assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
-#endif
+      legion_assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
       req.region = result;
       req.handle_type = LEGION_SINGULAR_PROJECTION;
       // Check to see if the region is a NO_REGION,
@@ -686,13 +662,11 @@ namespace Legion {
     void PointTask::complete_replay(ApEvent instance_ready_event)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_leaf());
-      assert(is_origin_mapped());
-      assert(!target_processors.empty());
-      assert(single_task_termination.exists());
-      assert(region_preconditions.empty());
-#endif
+      legion_assert(is_leaf());
+      legion_assert(is_origin_mapped());
+      legion_assert(!target_processors.empty());
+      legion_assert(single_task_termination.exists());
+      legion_assert(region_preconditions.empty());
       const AddressSpaceID target_space =
           runtime->find_address_space(target_processors.front());
       // Check to see if we're replaying this locally or remotely
@@ -776,9 +750,7 @@ namespace Legion {
             to_perform)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shard_manager != nullptr);
-#endif
+      legion_assert(shard_manager != nullptr);
       if (IS_COLLECTIVE(regions[index]) ||
           std::binary_search(
               check_collective_regions.begin(), check_collective_regions.end(),
@@ -798,9 +770,7 @@ namespace Legion {
             rendezvous)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shard_manager != nullptr);
-#endif
+      legion_assert(shard_manager != nullptr);
       if (IS_COLLECTIVE(regions[key.region_index]) ||
           std::binary_search(
               check_collective_regions.begin(), check_collective_regions.end(),
@@ -815,15 +785,11 @@ namespace Legion {
         unsigned index, const std::vector<DomainPoint>& dependences)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should have been caught by the caller
-      assert(!dependences.empty());
-#endif
+      legion_assert(!dependences.empty());
       if (dependences.size() == 1)
       {
-#ifdef DEBUG_LEGION
-        assert(dependences.back() == index_point);
-#endif
+        legion_assert(dependences.back() == index_point);
         return;
       }
       if (concurrent_task)

@@ -4001,15 +4001,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     // Read the context out of the buffer
-#ifdef DEBUG_LEGION
-    assert(datalen == sizeof(Context));
-#endif
+    legion_assert(datalen == sizeof(Context));
     ctx = *((const Context*)data);
     task = ctx->get_task();
     const Processor exec_proc = Processor::get_executing_processor();
-#ifdef DEBUG_LEGION
-    assert(exec_proc.exists());
-#endif
+    legion_assert(exec_proc.exists());
     reg = &ctx->begin_task(exec_proc);
     runtime = Internal::runtime->external;
   }

@@ -241,10 +241,9 @@ namespace Legion {
         index_space_set(false), index_space_tight(false)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      if (parent != nullptr)
-        assert(handle.get_type_tag() == parent->handle.get_type_tag());
-#endif
+      legion_assert(
+          (parent == nullptr) ||
+          (handle.get_type_tag() == parent->handle.get_type_tag()));
       if (parent != nullptr)
         parent->add_nested_resource_ref(did);
 #ifdef LEGION_GC
@@ -299,7 +298,7 @@ namespace Legion {
       return true;
     }
 
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     //--------------------------------------------------------------------------
     IndexSpaceNode* IndexSpaceNode::as_index_space_node(void)
     //--------------------------------------------------------------------------
@@ -380,9 +379,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(get_owner_space() == runtime->address_space);
-#endif
+      legion_assert(get_owner_space() == runtime->address_space);
       RtEvent precondition;
       void* result = nullptr;
       size_t size = 0;
@@ -579,10 +576,8 @@ namespace Legion {
         AutoLock n_lock(node_lock);
         std::map<LegionColor, IndexPartNode*>::iterator finder =
             color_map.find(color);
-#ifdef DEBUG_LEGION
-        assert(finder != color_map.end());
-        assert(finder->second == nullptr);
-#endif
+        legion_assert(finder != color_map.end());
+        legion_assert(finder->second == nullptr);
         color_map.erase(finder);
       }
       else
@@ -688,12 +683,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
       // Can have a nullptr pointer
-      assert(
+      legion_assert(
           (color_map.find(child->color) == color_map.end()) ||
           (color_map[child->color] == nullptr));
-#endif
       if (is_owner() &&
           (remote_colors.find(INVALID_COLOR) != remote_colors.end()) &&
           (color_map.find(child->color) == color_map.end()))
@@ -717,11 +710,9 @@ namespace Legion {
       AutoLock n_lock(node_lock);
       std::map<LegionColor, IndexPartNode*>::iterator finder =
           color_map.find(c);
-#ifdef DEBUG_LEGION
-      assert(finder != color_map.end());
-      assert(finder->second != nullptr);
-      assert(finder->second != ((IndexPartNode*)REMOVED_CHILD));
-#endif
+      legion_assert(finder != color_map.end());
+      legion_assert(finder->second != nullptr);
+      legion_assert(finder->second != ((IndexPartNode*)REMOVED_CHILD));
       finder->second = (IndexPartNode*)REMOVED_CHILD;
       while ((finder->first == next_uncollected_color) &&
              (finder->second == ((IndexPartNode*)REMOVED_CHILD)))
@@ -796,14 +787,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-      assert(is_owner());
-      assert(
+      legion_assert(is_owner());
+      legion_assert(
           (remote_colors.find(part_color) == remote_colors.end()) ||
           (remote_colors[part_color] == pid));
       // should only happen on the owner node
-      assert(get_owner_space() == runtime->address_space);
-#endif
+      legion_assert(get_owner_space() == runtime->address_space);
       if ((remote_colors.find(INVALID_COLOR) != remote_colors.end()) &&
           (color_map.find(part_color) == color_map.end()))
         REPORT_LEGION_ERROR(
@@ -838,9 +827,7 @@ namespace Legion {
         }
         runtime->send_index_space_colors_request(owner_space, rez);
         ready_event.wait();
-#ifdef DEBUG_LEGION
-        assert(bound != INVALID_COLOR);
-#endif
+        legion_assert(bound != INVALID_COLOR);
         return bound;
       }
       else
@@ -892,10 +879,8 @@ namespace Legion {
            (local_space == collective_mapping->find_nearest(target))))
       {
         AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-        assert(is_global());
-        assert(is_valid() || !recurse);
-#endif
+        legion_assert(is_global());
+        legion_assert(is_valid() || !recurse);
         if (!has_remote_instance(target))
         {
           Serializer rez;
@@ -957,9 +942,7 @@ namespace Legion {
         const CollectiveMapping* mapping)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(parent == nullptr);
-#endif
+      legion_assert(parent == nullptr);
       bool need_broadcast = true;
       if (source == local_space)
       {
@@ -1004,12 +987,10 @@ namespace Legion {
       if (need_broadcast && (collective_mapping != nullptr) &&
           collective_mapping->contains(local_space))
       {
-#ifdef DEBUG_LEGION
         // Should be from our parent
-        assert(
+        legion_assert(
             is_owner() || (source == collective_mapping->get_parent(
                                          owner_space, local_space)));
-#endif
         // Keep broadcasting this out to all the children
         std::vector<AddressSpaceID> children;
         collective_mapping->get_children(owner_space, local_space, children);
@@ -1054,9 +1035,7 @@ namespace Legion {
           handle, Domain::NO_DOMAIN, true /*take ownership*/, parent_node,
           color, initialized, provenance, ApEvent::NO_AP_EVENT, expr_id,
           mapping, false /*add root reference*/, depth, valid);
-#ifdef DEBUG_LEGION
-      assert(node != nullptr);
-#endif
+      legion_assert(node != nullptr);
       size_t num_semantic;
       derez.deserialize(num_semantic);
       for (unsigned idx = 0; idx < num_semantic; idx++)
@@ -1097,10 +1076,9 @@ namespace Legion {
         // right node and if not forward it on to the right node
         if (target->collective_mapping != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(!target->collective_mapping->contains(source));
-          assert(target->collective_mapping->contains(target->local_space));
-#endif
+          legion_assert(!target->collective_mapping->contains(source));
+          legion_assert(
+              target->collective_mapping->contains(target->local_space));
           if (target->is_owner())
           {
             const AddressSpaceID nearest =
@@ -1117,14 +1095,12 @@ namespace Legion {
               return;
             }
           }
-#ifdef DEBUG_LEGION
           else
           {
-            assert(
+            legion_assert(
                 target->local_space ==
                 target->collective_mapping->find_nearest(source));
           }
-#endif
         }
         // See if we're going to be sending the whole tree or not
         bool recurse = false;
@@ -1608,9 +1584,7 @@ namespace Legion {
     bool IndexSpaceNode::intersects_with(IndexSpaceNode* rhs, bool compute)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(rhs->handle.get_type_tag() == handle.get_type_tag());
-#endif
+      legion_assert(rhs->handle.get_type_tag() == handle.get_type_tag());
       if (rhs == this)
         return true;
       // We're about to do something expensive so if these are both
@@ -1658,9 +1632,7 @@ namespace Legion {
     bool IndexSpaceNode::dominates(IndexSpaceNode* rhs)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(rhs->handle.get_type_tag() == handle.get_type_tag());
-#endif
+      legion_assert(rhs->handle.get_type_tag() == handle.get_type_tag());
       if (rhs == this)
         return true;
       // We're about to do something expensive, so use the region tree
@@ -1707,9 +1679,7 @@ namespace Legion {
     {
       parent->add_nested_resource_ref(did);
       color_space->add_nested_resource_ref(did);
-#ifdef DEBUG_LEGION
-      assert(handle.get_type_tag() == parent->handle.get_type_tag());
-#endif
+      legion_assert(handle.get_type_tag() == parent->handle.get_type_tag());
 #ifdef LEGION_GC
       log_garbage.info(
           "GC Index Partition %lld %d %lld",
@@ -1734,9 +1704,7 @@ namespace Legion {
     {
       parent->add_nested_resource_ref(did);
       color_space->add_nested_resource_ref(did);
-#ifdef DEBUG_LEGION
-      assert(handle.get_type_tag() == parent->handle.get_type_tag());
-#endif
+      legion_assert(handle.get_type_tag() == parent->handle.get_type_tag());
 #ifdef LEGION_GC
       log_garbage.info(
           "GC Index Partition %lld %d %lld",
@@ -1767,9 +1735,7 @@ namespace Legion {
               collective_mapping->count_children(owner_space, local_space);
         if (remaining_global_disjoint_complete_notifications == 0)
         {
-#ifdef DEBUG_LEGION
-          assert(!is_owner());
-#endif
+          legion_assert(!is_owner());
           const AddressSpaceID target =
               collective_mapping->get_parent(owner_space, local_space);
           Serializer rez;
@@ -1872,7 +1838,7 @@ namespace Legion {
       return false;
     }
 
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     //--------------------------------------------------------------------------
     IndexSpaceNode* IndexPartNode::as_index_space_node(void)
     //--------------------------------------------------------------------------
@@ -1954,9 +1920,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(get_owner_space() == runtime->address_space);
-#endif
+      legion_assert(get_owner_space() == runtime->address_space);
       RtEvent precondition;
       void* result = nullptr;
       size_t size = 0;
@@ -2057,9 +2021,7 @@ namespace Legion {
         LegionColor color, CollectiveMapping*& child_mapping) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(child_mapping == nullptr);
-#endif
+      legion_assert(child_mapping == nullptr);
       if (collective_mapping == nullptr)
       {
         if (is_owner())
@@ -2077,9 +2039,7 @@ namespace Legion {
               (max_linearized_color + collective_mapping->size() - 1) /
               collective_mapping->size();
           const unsigned offset = color / chunk;
-#ifdef DEBUG_LEGION
-          assert(offset < collective_mapping->size());
-#endif
+          legion_assert(offset < collective_mapping->size());
           return (*collective_mapping)[offset];
         }
         else
@@ -2087,15 +2047,11 @@ namespace Legion {
           // Replicated so find the child collective mapping
           std::vector<AddressSpaceID> child_spaces;
           const unsigned offset = color_space->compute_color_offset(color);
-#ifdef DEBUG_LEGION
-          assert(offset < collective_mapping->size());
-#endif
+          legion_assert(offset < collective_mapping->size());
           for (unsigned idx = offset; idx < collective_mapping->size();
                idx += total_children)
             child_spaces.emplace_back((*collective_mapping)[idx]);
-#ifdef DEBUG_LEGION
-          assert(!child_spaces.empty());
-#endif
+          legion_assert(!child_spaces.empty());
           child_mapping = new CollectiveMapping(
               child_spaces, runtime->legion_collective_radix);
           if (child_mapping->contains(local_space))
@@ -2174,9 +2130,7 @@ namespace Legion {
           // Make sure we have to event to wait on for when the child is ready
           std::map<LegionColor, RtUserEvent>::iterator pending_finder =
               pending_child_map.find(c);
-#ifdef DEBUG_LEGION
-          assert(pending_finder != pending_child_map.end());
-#endif
+          legion_assert(pending_finder != pending_child_map.end());
           if (!pending_finder->second.exists())
             pending_finder->second = Runtime::create_rt_user_event();
           ready_event = pending_finder->second;
@@ -2196,9 +2150,7 @@ namespace Legion {
             return finder->second;
           std::map<LegionColor, RtUserEvent>::iterator pending_finder =
               pending_child_map.find(c);
-#ifdef DEBUG_LEGION
-          assert(pending_finder != pending_child_map.end());
-#endif
+          legion_assert(pending_finder != pending_child_map.end());
           if (!pending_finder->second.exists())
             pending_finder->second = Runtime::create_rt_user_event();
           ready_event = pending_finder->second;
@@ -2207,14 +2159,12 @@ namespace Legion {
         {
           // If we get here then we're the ones to actually make the name
           // of the index subspace and instantiate the node
-#ifdef DEBUG_LEGION
-          assert(
+          legion_assert(
               is_owner() || ((collective_mapping != nullptr) &&
                              collective_mapping->contains(local_space)));
-          assert(
+          legion_assert(
               (child_mapping == nullptr) ||
               (local_space == child_mapping->get_origin()));
-#endif
           IndexSpace is(
               runtime->get_unique_index_space_id(), handle.get_tree_id(),
               handle.get_type_tag());
@@ -2230,9 +2180,7 @@ namespace Legion {
             // are also going to consider child as a local child
             std::vector<AddressSpaceID> children;
             child_mapping->get_children(local_space, local_space, children);
-#ifdef DEBUG_LEGION
-            assert(!children.empty());
-#endif
+            legion_assert(!children.empty());
             Serializer rez;
             {
               RezCheck z(rez);
@@ -2257,9 +2205,7 @@ namespace Legion {
           return result;
         }
       }
-#ifdef DEBUG_LEGION
-      assert(ready_event.exists());
-#endif
+      legion_assert(ready_event.exists());
       if (defer == nullptr)
       {
         ready_event.wait();
@@ -2287,9 +2233,7 @@ namespace Legion {
       derez.deserialize(expr_id);
       size_t num_spaces;
       derez.deserialize(num_spaces);
-#ifdef DEBUG_LEGION
-      assert(num_spaces > 0);
-#endif
+      legion_assert(num_spaces > 0);
       CollectiveMapping* mapping = new CollectiveMapping(derez, num_spaces);
 
       IndexPartNode* parent = runtime->get_node(parent_handle);
@@ -2326,10 +2270,8 @@ namespace Legion {
       RtUserEvent to_trigger;
       {
         AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-        assert(is_valid());
-        assert(color_map.find(child->color) == color_map.end());
-#endif
+        legion_assert(is_valid());
+        legion_assert(color_map.find(child->color) == color_map.end());
         color_map[child->color] = child;
         std::map<LegionColor, RtUserEvent>::iterator finder =
             pending_child_map.find(child->color);
@@ -2351,10 +2293,8 @@ namespace Legion {
       AutoLock n_lock(node_lock);
       if (!has_disjoint || !has_complete)
       {
-#ifdef DEBUG_LEGION
-        assert(remaining_local_disjoint_complete_notifications > 0);
-        assert(remaining_global_disjoint_complete_notifications > 0);
-#endif
+        legion_assert(remaining_local_disjoint_complete_notifications > 0);
+        legion_assert(remaining_global_disjoint_complete_notifications > 0);
         if (--remaining_local_disjoint_complete_notifications == 0)
         {
           // Launch the task to perform the local disjointness
@@ -2421,11 +2361,9 @@ namespace Legion {
     bool IndexPartNode::compute_disjointness_and_completeness(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(
+      legion_assert(
           is_owner() || ((collective_mapping != nullptr) &&
                          collective_mapping->contains(local_space)));
-#endif
       if (is_complete(false /*from app*/, true /*false if not ready*/) ||
           is_disjoint(false /*from app*/, true /*false if not ready*/))
       {
@@ -2534,10 +2472,10 @@ namespace Legion {
             }
             else
             {
-#ifdef DEBUG_LEGION
-              assert(!interfering.empty());
+              legion_assert(!interfering.empty());
+#ifdef LEGION_DEBUG
               std::sort(interfering.begin(), interfering.end());
-              assert(std::binary_search(
+              legion_assert(std::binary_search(
                   interfering.begin(), interfering.end(), *itr));
 #endif
               if (interfering.size() > 1)
@@ -2629,10 +2567,10 @@ namespace Legion {
             }
             else
             {
-#ifdef DEBUG_LEGION
-              assert(!interfering.empty());
+              legion_assert(!interfering.empty());
+#ifdef LEGION_DEBUG
               std::sort(interfering.begin(), interfering.end());
-              assert(std::binary_search(
+              legion_assert(std::binary_search(
                   interfering.begin(), interfering.end(), *itr));
 #endif
               if (interfering.size() > 1)
@@ -2685,9 +2623,7 @@ namespace Legion {
       total_children_volume += children_volume;
       total_intersection_volume += intersection_volume;
       // Check to see if we've seen all our arrivals
-#ifdef DEBUG_LEGION
-      assert(remaining_global_disjoint_complete_notifications > 0);
-#endif
+      legion_assert(remaining_global_disjoint_complete_notifications > 0);
       if (--remaining_global_disjoint_complete_notifications == 0)
       {
         if (is_owner())
@@ -2742,18 +2678,14 @@ namespace Legion {
           total_intersection_volumes.swap(*intersection_volumes);
       }
       // Check to see if we've seen all our arrivals
-#ifdef DEBUG_LEGION
-      assert(remaining_global_disjoint_complete_notifications > 0);
-#endif
+      legion_assert(remaining_global_disjoint_complete_notifications > 0);
       if (--remaining_global_disjoint_complete_notifications == 0)
       {
         if (is_owner())
         {
           // We can now compute the final sums
-#ifdef DEBUG_LEGION
-          assert(total_children_volume == 0);
-          assert(total_intersection_volume == 0);
-#endif
+          legion_assert(total_children_volume == 0);
+          legion_assert(total_intersection_volume == 0);
           for (std::map<LegionColor, uint64_t>::const_iterator it =
                    total_children_volumes.begin();
                it != total_children_volumes.end(); it++)
@@ -2813,43 +2745,31 @@ namespace Legion {
         // We can now tell what our status is
         if (is_complete(false /*from app*/, true /*false if not ready*/))
         {
-#ifdef DEBUG_LEGION
-          assert(parent_volume <= total_children_volume);
-#endif
+          legion_assert(parent_volume <= total_children_volume);
           disjoint.store((parent_volume == total_children_volume));
         }
         else if (is_disjoint(false /*from app*/, true /*false if not ready*/))
         {
-#ifdef DEBUG_LEGION
-          assert(total_children_volume <= parent_volume);
-#endif
+          legion_assert(total_children_volume <= parent_volume);
           complete.store((parent_volume == total_children_volume));
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(
+          legion_assert(
               (total_children_volume - total_intersection_volume) <=
               parent_volume);
-#endif
           if (total_intersection_volume == 0)
           {
             disjoint.store(true);
-#ifdef DEBUG_LEGION
-            assert((total_children_volume <= parent_volume));
-#endif
+            legion_assert((total_children_volume <= parent_volume));
             complete.store((total_children_volume == parent_volume));
           }
           else
           {
             disjoint.store(false);
-#ifdef DEBUG_LEGION
-            assert(total_intersection_volume < total_children_volume);
-#endif
+            legion_assert(total_intersection_volume < total_children_volume);
             total_children_volume -= total_intersection_volume;
-#ifdef DEBUG_LEGION
-            assert(total_children_volume <= parent_volume);
-#endif
+            legion_assert(total_children_volume <= parent_volume);
             complete.store((parent_volume == total_children_volume));
           }
         }
@@ -2913,9 +2833,7 @@ namespace Legion {
         wait_on = disjoint_complete_ready;
       }
       wait_on.wait();
-#ifdef DEBUG_LEGION
-      assert(has_disjoint.load());
-#endif
+      legion_assert(has_disjoint.load());
       return disjoint.load();
     }
 
@@ -2975,9 +2893,7 @@ namespace Legion {
         wait_on = disjoint_complete_ready;
       }
       wait_on.wait();
-#ifdef DEBUG_LEGION
-      assert(has_complete.load());
-#endif
+      legion_assert(has_complete.load());
       return complete.load();
     }
 
@@ -3029,9 +2945,7 @@ namespace Legion {
         derez.deserialize(is_disjoint);
         derez.deserialize(is_complete);
         AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-        assert(remaining_global_disjoint_complete_notifications == 0);
-#endif
+        legion_assert(remaining_global_disjoint_complete_notifications == 0);
         disjoint.store(is_disjoint);
         complete.store(is_complete);
         return finalize_disjoint_complete();
@@ -3122,9 +3036,7 @@ namespace Legion {
     bool IndexPartNode::intersects_with(IndexSpaceNode* rhs, bool compute)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(rhs->handle.get_type_tag() == handle.get_type_tag());
-#endif
+      legion_assert(rhs->handle.get_type_tag() == handle.get_type_tag());
       // A very simple test but an obvious one
       if ((rhs->parent == this) || (parent == rhs))
         return true;
@@ -3174,9 +3086,7 @@ namespace Legion {
     bool IndexPartNode::intersects_with(IndexPartNode* rhs, bool compute)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(rhs->handle.get_type_tag() == handle.get_type_tag());
-#endif
+      legion_assert(rhs->handle.get_type_tag() == handle.get_type_tag());
       // A very simple but obvious test to do
       if (rhs == this)
         return true;
@@ -3230,12 +3140,10 @@ namespace Legion {
         IndexSpaceExpression* expr, std::vector<LegionColor>& colors)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // This should only be called on disjoint and complete partitions
-      assert(is_disjoint());
-      assert(is_complete());
-      assert(colors.empty());
-#endif
+      legion_assert(is_disjoint());
+      legion_assert(is_complete());
+      legion_assert(colors.empty());
       // Check to see if we have this in the cache
       {
         AutoLock n_lock(node_lock);
@@ -3312,10 +3220,8 @@ namespace Legion {
     void IndexPartNode::send_node(AddressSpaceID target, bool recurse)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(recurse);
-      assert(parent != nullptr);
-#endif
+      legion_assert(recurse);
+      legion_assert(parent != nullptr);
       // Quick out if we've already sent this
       if (has_remote_instance(target))
         return;
@@ -3331,9 +3237,7 @@ namespace Legion {
            (local_space == collective_mapping->find_nearest(target))))
       {
         AutoLock n_lock(node_lock);
-#ifdef DEBUG_LEGION
-        assert(is_valid());
-#endif
+        legion_assert(is_valid());
         if (!has_remote_instance(target))
         {
           Serializer rez;
@@ -3418,10 +3322,8 @@ namespace Legion {
       AutoProvenance provenance(Provenance::deserialize(derez));
       IndexSpaceNode* parent_node = runtime->get_node(parent);
       IndexSpaceNode* color_space_node = runtime->get_node(color_space);
-#ifdef DEBUG_LEGION
-      assert(parent_node != nullptr);
-      assert(color_space_node != nullptr);
-#endif
+      legion_assert(parent_node != nullptr);
+      legion_assert(color_space_node != nullptr);
       IndexPartNode* node =
           has_disjoint ?
               runtime->create_node(
@@ -3430,9 +3332,7 @@ namespace Legion {
               runtime->create_node(
                   handle, parent_node, color_space_node, color, complete,
                   provenance, initialized, mapping);
-#ifdef DEBUG_LEGION
-      assert(node != nullptr);
-#endif
+      legion_assert(node != nullptr);
       size_t num_semantic;
       derez.deserialize(num_semantic);
       for (unsigned idx = 0; idx < num_semantic; idx++)
@@ -3468,10 +3368,9 @@ namespace Legion {
         // right node and if not forward it on to the right node
         if (target->collective_mapping != nullptr)
         {
-#ifdef DEBUG_LEGION
-          assert(!target->collective_mapping->contains(source));
-          assert(target->collective_mapping->contains(target->local_space));
-#endif
+          legion_assert(!target->collective_mapping->contains(source));
+          legion_assert(
+              target->collective_mapping->contains(target->local_space));
           if (target->is_owner())
           {
             const AddressSpaceID nearest =
@@ -3488,14 +3387,12 @@ namespace Legion {
               return;
             }
           }
-#ifdef DEBUG_LEGION
           else
           {
-            assert(
+            legion_assert(
                 target->local_space ==
                 target->collective_mapping->find_nearest(source));
           }
-#endif
         }
         target->pack_valid_ref();
         target->send_node(source, true /*recurse*/);
@@ -3629,9 +3526,7 @@ namespace Legion {
     RtEvent IndexPartNode::request_shard_rects(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(collective_mapping != nullptr);
       std::vector<AddressSpaceID> children;
       {
         AutoLock n_lock(node_lock);
@@ -3668,9 +3563,7 @@ namespace Legion {
         Deserializer& derez, AddressSpace source)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(collective_mapping != nullptr);
-#endif
+      legion_assert(collective_mapping != nullptr);
       bool up;
       derez.deserialize<bool>(up);
       if (up)
@@ -3686,8 +3579,8 @@ namespace Legion {
           add_base_gc_ref(RUNTIME_REF);
           // Figure out how many downstream requests we have
           collective_mapping->get_children(owner_space, local_space, children);
-#ifdef DEBUG_LEGION
-          assert(!children.empty());
+          legion_assert(!children.empty());
+#ifdef LEGION_DEBUG
           bool found = false;
           for (std::vector<AddressSpaceID>::const_iterator it =
                    children.begin();
@@ -3698,7 +3591,7 @@ namespace Legion {
             found = true;
             break;
           }
-          assert(found);
+          legion_assert(found);
 #endif
           need_local = true;
           remaining_rect_notifications = children.size() + 1;
@@ -3714,11 +3607,11 @@ namespace Legion {
               runtime->send_index_partition_shard_rects_request(*it, rez);
           initialize_shard_rects();
         }
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         else
         {
           collective_mapping->get_children(owner_space, local_space, children);
-          assert(!children.empty());
+          legion_assert(!children.empty());
           bool found = false;
           for (std::vector<AddressSpaceID>::const_iterator it =
                    children.begin();
@@ -3729,15 +3622,13 @@ namespace Legion {
             found = true;
             break;
           }
-          assert(found);
+          legion_assert(found);
         }
 #endif
         unpack_shard_rects(derez);
         if (perform_shard_rects_notification())
         {
-#ifdef DEBUG_LEGION
-          assert(!need_local);
-#endif
+          legion_assert(!need_local);
           return true;
         }
         else if (!need_local)
@@ -3748,9 +3639,7 @@ namespace Legion {
         // Going down
         AutoLock n_lock(node_lock);
         unpack_shard_rects(derez);
-#ifdef DEBUG_LEGION
-        assert(shard_rects_ready.exists());
-#endif
+        legion_assert(shard_rects_ready.exists());
         std::vector<AddressSpaceID> children;
         collective_mapping->get_children(owner_space, local_space, children);
         if (!children.empty())
@@ -3781,16 +3670,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Lock held from caller
-#ifdef DEBUG_LEGION
-      assert(remaining_rect_notifications > 0);
-#endif
+      legion_assert(remaining_rect_notifications > 0);
       if (--remaining_rect_notifications == 0)
       {
         if (is_owner())
         {
-#ifdef DEBUG_LEGION
-          assert(shard_rects_ready.exists());
-#endif
+          legion_assert(shard_rects_ready.exists());
           std::vector<AddressSpaceID> children;
           collective_mapping->get_children(owner_space, local_space, children);
           // We've got all the data now, so we can broadcast it back out
@@ -3839,19 +3724,15 @@ namespace Legion {
         IndexSpaceExpression* expr)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(remaining.load() == 0);
-      assert(!targets.empty());
-#endif
+      legion_assert(remaining.load() == 0);
+      legion_assert(!targets.empty());
       remaining.store(targets.size());
       for (std::set<AddressSpaceID>::const_iterator it = targets.begin();
            it != targets.end(); it++)
       {
         if ((*it) == runtime->address_space)
         {
-#ifdef DEBUG_LEGION
-          assert(remaining.load() > 0);
-#endif
+          legion_assert(remaining.load() > 0);
           if (remaining.fetch_sub(1) == 1)
             return RtEvent::NO_RT_EVENT;
           continue;
@@ -3906,9 +3787,7 @@ namespace Legion {
         derez.deserialize(color);
         remote_colors.insert(color);
       }
-#ifdef DEBUG_LEGION
-      assert(remaining.load() > 0);
-#endif
+      legion_assert(remaining.load() > 0);
       if ((remaining.fetch_sub(1) == 1) && done_event.exists())
         return done_event;
       else
@@ -4010,9 +3889,7 @@ namespace Legion {
             end = partition->max_linearized_color;
             const unsigned offset = index % partition->total_children;
             for (unsigned idx = 0; idx < offset; idx++) step();
-#ifdef DEBUG_LEGION
-            assert(current < end);
-#endif
+            legion_assert(current < end);
             end = current + 1;
           }
           else
@@ -4037,9 +3914,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!local_only || partition->is_owner());
-#endif
+        legion_assert(!local_only || partition->is_owner());
         current = 0;
         end = partition->max_linearized_color;
       }
@@ -4083,9 +3958,7 @@ namespace Legion {
     LegionColor ColorSpaceIterator::operator*(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(current < end);
-#endif
+      legion_assert(current < end);
       return current;
     }
 

@@ -85,14 +85,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // This should only be called for inlining operations
-#ifdef DEBUG_LEGION
-      assert(!true_guard.exists() && !false_guard.exists());
-#endif
+      legion_assert(!true_guard.exists() && !false_guard.exists());
       if (predication_state == PENDING_PREDICATE_STATE)
       {
-#ifdef DEBUG_LEGION
-        assert(predicate != nullptr);
-#endif
+        legion_assert(predicate != nullptr);
         bool value = predicate->get_predicate(index, true_guard, false_guard);
         if (false_guard.exists())
           // Wait for the predicate to resolve

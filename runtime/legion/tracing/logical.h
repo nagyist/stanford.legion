@@ -139,9 +139,7 @@ namespace Legion {
         inline void pop_dependences(std::vector<StaticDependence>& deps)
         {
           AutoLock t_lock(translator_lock);
-#ifdef DEBUG_LEGION
-          assert(!dependences.empty());
-#endif
+          legion_assert(!dependences.empty());
           deps.swap(dependences.front());
           dependences.pop_front();
         }

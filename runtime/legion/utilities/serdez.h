@@ -28,7 +28,7 @@ namespace Legion {
   public:
     Serializer(size_t base_bytes = 4096)
       : total_bytes(base_bytes), buffer((uint8_t*)malloc(base_bytes)), index(0)
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         ,
         context_bytes(0)
 #endif
@@ -94,7 +94,7 @@ namespace Legion {
     size_t total_bytes;
     uint8_t* buffer;
     size_t index;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     size_t context_bytes;
 #endif
   };
@@ -106,13 +106,13 @@ namespace Legion {
   public:
     Deserializer(
         const void* buf, size_t buffer_size
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         ,
         size_t ctx_bytes = 0
 #endif
         )
       : total_bytes(buffer_size), buffer((const uint8_t*)buf), index(0)
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
         ,
         context_bytes(ctx_bytes)
 #endif
@@ -121,10 +121,8 @@ namespace Legion {
   public:
     ~Deserializer(void)
     {
-#ifdef DEBUG_LEGION
       // should have used the whole buffer
-      assert(index == total_bytes);
-#endif
+      legion_assert(index == total_bytes);
     }
   public:
     Deserializer& operator=(const Deserializer& rhs) = delete;
@@ -179,7 +177,7 @@ namespace Legion {
     const size_t total_bytes;
     const uint8_t* buffer;
     size_t index;
-#ifdef DEBUG_LEGION
+#ifdef LEGION_DEBUG
     size_t context_bytes;
   public:
     inline size_t get_context_bytes(void) const { return context_bytes; }

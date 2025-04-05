@@ -30,13 +30,8 @@ namespace Legion {
     {
       // If this is not a task directly related to shutdown or is a message,
       // to a remote node then increment the number of outstanding tasks
-#ifdef DEBUG_LEGION
       if (T::TASK_ID < LG_BEGIN_SHUTDOWN_TASK_IDS)
         increment_total_outstanding_tasks(args.lg_task_id, true /*meta*/);
-#else
-      if (T::TASK_ID < LG_BEGIN_SHUTDOWN_TASK_IDS)
-        increment_total_outstanding_tasks();
-#endif
 #ifdef DEBUG_SHUTDOWN_HANG
       outstanding_counts[T::TASK_ID].fetch_add(1);
 #endif
@@ -46,9 +41,7 @@ namespace Legion {
         // out which of our utility processors to use
         target = utility_group;
       }
-#ifdef DEBUG_LEGION
-      assert(target.exists());
-#endif
+      legion_assert(target.exists());
       if (profiler != nullptr)
       {
         Realm::ProfilingRequestSet requests;
@@ -85,13 +78,9 @@ namespace Legion {
           "Shutdown tasks should never be run directly on application procs");
       // If this is not a task directly related to shutdown or is a message,
       // to a remote node then increment the number of outstanding tasks
-#ifdef DEBUG_LEGION
-      assert(target.exists());
-      assert(target.kind() != Processor::UTIL_PROC);
+      legion_assert(target.exists());
+      legion_assert(target.kind() != Processor::UTIL_PROC);
       increment_total_outstanding_tasks(args.lg_task_id, true /*meta*/);
-#else
-      increment_total_outstanding_tasks();
-#endif
 #ifdef DEBUG_SHUTDOWN_HANG
       outstanding_counts[T::TASK_ID].fetch_add(1);
 #endif
@@ -590,10 +579,8 @@ namespace Legion {
         const TraceInfo* info, PredEvent e1, PredEvent e2)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(e1.exists());
-      assert(e2.exists());
-#endif
+      legion_assert(e1.exists());
+      legion_assert(e2.exists());
       PredEvent result(Realm::Event::merge_events(e1, e2));
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == e1) || (result == e2))
@@ -700,9 +687,7 @@ namespace Legion {
         }
         else
         {
-#ifdef DEBUG_LEGION
-          assert(reduce_value == nullptr);
-#endif
+          legion_assert(reduce_value == nullptr);
           // We're computing the critical path through the graph so
           // need to record when when this arrival triggers so we can
           // feed it into the reduction for the barrier
@@ -867,9 +852,7 @@ namespace Legion {
       // might be expensive to propagate the effects
       if ((profiler != nullptr) && !profiler->no_critical_paths)
       {
-#ifdef DEBUG_LEGION
-        assert(profiler->all_critical_arrivals);
-#endif
+        legion_assert(profiler->all_critical_arrivals);
         if (implicit_profiler != nullptr)
           implicit_profiler->record_barrier_arrival(bar, precondition);
       }

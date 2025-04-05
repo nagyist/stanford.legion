@@ -42,7 +42,7 @@ namespace Legion {
     /*static*/ void CollectiveCheckReduction::apply<true>(LHS& lhs, RHS rhs)
     //--------------------------------------------------------------------------
     {
-      assert(rhs > IDENTITY);
+      legion_assert(rhs > IDENTITY);
       if (lhs != IDENTITY)
       {
         if (lhs != rhs)
@@ -73,7 +73,7 @@ namespace Legion {
     /*static*/ void CollectiveCheckReduction::fold<true>(RHS& rhs1, RHS rhs2)
     //--------------------------------------------------------------------------
     {
-      assert(rhs2 > IDENTITY);
+      legion_assert(rhs2 > IDENTITY);
       if (rhs1 != IDENTITY)
       {
         if (rhs1 != rhs2)
@@ -253,9 +253,7 @@ namespace Legion {
     bool ShardCollective::defer_collective_async(RtEvent precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(precondition.exists());
-#endif
+      legion_assert(precondition.exists());
       DeferCollectiveArgs args(this);
       if (precondition.has_triggered())
         return false;
@@ -318,9 +316,7 @@ namespace Legion {
     void BroadcastCollective::perform_collective_async(RtEvent precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_shard == origin);
-#endif
+      legion_assert(local_shard == origin);
       if (precondition.exists() && defer_collective_async(precondition))
         return;
       // Register this with the context
@@ -332,9 +328,7 @@ namespace Legion {
     RtEvent BroadcastCollective::perform_collective_wait(bool block /*=true*/)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_shard != origin);
-#endif
+      legion_assert(local_shard != origin);
       // Register this with the context
       context->register_collective(this);
       if (!done_event.has_triggered())
@@ -351,9 +345,7 @@ namespace Legion {
     void BroadcastCollective::handle_collective_message(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_shard != origin);
-#endif
+      legion_assert(local_shard != origin);
       // No need for the lock since this is only written to once
       unpack_collective(derez);
       // Send our messages
@@ -374,9 +366,7 @@ namespace Legion {
     RtEvent BroadcastCollective::get_done_event(void) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(local_shard != origin);
-#endif
+      legion_assert(local_shard != origin);
       return done_event;
     }
 
@@ -443,9 +433,7 @@ namespace Legion {
       bool done = false;
       {
         AutoLock c_lock(collective_lock);
-#ifdef DEBUG_LEGION
-        assert(received_notifications < expected_notifications);
-#endif
+        legion_assert(received_notifications < expected_notifications);
         done = (++received_notifications == expected_notifications);
         // This is a bit tricky but if we're done increment the expected
         // notifications by one to make sure something calling get_done_event
@@ -461,9 +449,7 @@ namespace Legion {
         RtUserEvent to_trigger;
         {
           AutoLock c_lock(collective_lock);
-#ifdef DEBUG_LEGION
-          assert((received_notifications + 1) == expected_notifications);
-#endif
+          legion_assert((received_notifications + 1) == expected_notifications);
           // remove the guard
           received_notifications++;
           if (done_event.to_trigger.exists())
@@ -518,9 +504,7 @@ namespace Legion {
         AutoLock c_lock(collective_lock);
         // Unpack the result
         unpack_collective(derez);
-#ifdef DEBUG_LEGION
-        assert(received_notifications < expected_notifications);
-#endif
+        legion_assert(received_notifications < expected_notifications);
         done = (++received_notifications == expected_notifications);
         // This is a bit tricky but if we're done increment the expected
         // notifications by one to make sure something calling get_done_event
@@ -536,9 +520,7 @@ namespace Legion {
         RtUserEvent to_trigger;
         {
           AutoLock c_lock(collective_lock);
-#ifdef DEBUG_LEGION
-          assert((received_notifications + 1) == expected_notifications);
-#endif
+          legion_assert((received_notifications + 1) == expected_notifications);
           // Remove the guard
           received_notifications++;
           if (done_event.to_trigger.exists())
@@ -559,9 +541,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock c_lock(collective_lock);
-#ifdef DEBUG_LEGION
-      assert(received_notifications == 0);
-#endif
+      legion_assert(received_notifications == 0);
       received_notifications = expected_notifications;
       if (done_event.to_trigger.exists())
       {
@@ -579,9 +559,7 @@ namespace Legion {
     {
       // Convert to our local index
       const int local_index = convert_to_index(local_shard, target);
-#ifdef DEBUG_LEGION
-      assert(local_index > 0);  // should never be here for zero
-#endif
+      legion_assert(local_index > 0);  // should never be here for zero
       // Subtract by 1 and then divide to get the target (truncate)
       const int target_index = (local_index - 1) / shard_collective_radix;
       // Then convert back to the target
@@ -631,11 +609,8 @@ namespace Legion {
             ctx->get_shard_collective_participating_shards()),
         shard_collective_last_radix(ctx->get_shard_collective_last_radix()),
         participating(local_index < shard_collective_participating_shards),
-        reorder_stages(nullptr), pending_send_ready_stages(0)
-#ifdef DEBUG_LEGION
-        ,
+        reorder_stages(nullptr), pending_send_ready_stages(0),
         done_triggered(false)
-#endif
     //--------------------------------------------------------------------------
     {
       initialize_collective();
@@ -654,11 +629,8 @@ namespace Legion {
             ctx->get_shard_collective_participating_shards()),
         shard_collective_last_radix(ctx->get_shard_collective_last_radix()),
         participating(local_index < shard_collective_participating_shards),
-        reorder_stages(nullptr), pending_send_ready_stages(0)
-#ifdef DEBUG_LEGION
-        ,
+        reorder_stages(nullptr), pending_send_ready_stages(0),
         done_triggered(false)
-#endif
     //--------------------------------------------------------------------------
     {
       initialize_collective();
@@ -671,23 +643,16 @@ namespace Legion {
         const std::vector<ShardID>& parts)
       : ShardCollective(ctx, id), participants(&parts),
         total_shards(parts.size()), reorder_stages(nullptr),
-        pending_send_ready_stages(0)
-#ifdef DEBUG_LEGION
-        ,
-        done_triggered(false)
-#endif
+        pending_send_ready_stages(0), done_triggered(false)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(std::is_sorted(parts.begin(), parts.end()));
-      assert(std::binary_search(parts.begin(), parts.end(), local_shard));
-#endif
+      legion_assert(std::is_sorted(parts.begin(), parts.end()));
+      legion_assert(
+          std::binary_search(parts.begin(), parts.end(), local_shard));
       std::vector<ShardID>::const_iterator finder =
           std::lower_bound(parts.begin(), parts.end(), local_shard);
-#ifdef DEBUG_LEGION
-      assert(finder != parts.end());
-      assert(*finder == local_shard);
-#endif
+      legion_assert(finder != parts.end());
+      legion_assert(*finder == local_shard);
       local_index = std::distance(parts.begin(), finder);
       shard_collective_radix = runtime->legion_collective_radix;
       participating = configure_collective_settings(
@@ -708,9 +673,7 @@ namespace Legion {
         // we can set the inditial participants to 1
         if (participating)
         {
-#ifdef DEBUG_LEGION
-          assert(shard_collective_stages > 0);
-#endif
+          legion_assert(shard_collective_stages > 0);
           sent_stages.resize(shard_collective_stages, false);
           stage_notifications.resize(shard_collective_stages, 1);
           // Stage 0 always starts with 0 notifications since we'll
@@ -728,20 +691,18 @@ namespace Legion {
     {
       if (reorder_stages != nullptr)
       {
-#ifdef DEBUG_LEGION
-        assert(reorder_stages->empty());
-#endif
+        legion_assert(reorder_stages->empty());
         delete reorder_stages;
       }
-#ifdef DEBUG_LEGION
       if (participating)
       {
         // We should have sent all our stages before being deleted
         for (unsigned idx = 0; idx < sent_stages.size(); idx++)
-          assert(sent_stages[idx]);
-        assert(done_triggered);
+        {
+          legion_assert(sent_stages[idx]);
+        }
+        legion_assert(done_triggered);
       }
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -756,9 +717,7 @@ namespace Legion {
       if (total_shards <= 1)
       {
         post_complete_exchange().wait();
-#ifdef DEBUG_LEGION
         done_triggered = true;
-#endif
         return;
       }
       // See if we are a participating shard or not
@@ -810,9 +769,7 @@ namespace Legion {
     {
       int stage;
       derez.deserialize(stage);
-#ifdef DEBUG_LEGION
-      assert(participating || (stage == -1));
-#endif
+      legion_assert(participating || (stage == -1));
       unpack_stage(stage, derez);
       bool all_stages_done = false;
       if (stage == -1)
@@ -833,18 +790,14 @@ namespace Legion {
     void AllGatherCollective<INORDER>::elide_collective(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // make it look like we sent all the stages
       for (unsigned idx = 0; idx < sent_stages.size(); idx++)
         sent_stages[idx] = true;
-      assert(!done_triggered);
-      assert(!done_event.has_triggered());
-#endif
+      legion_assert(!done_triggered);
+      legion_assert(!done_event.has_triggered());
       // Trigger the user event
       Runtime::trigger_event(done_event);
-#ifdef DEBUG_LEGION
       done_triggered = true;
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -866,20 +819,21 @@ namespace Legion {
     bool AllGatherCollective<INORDER>::initiate_collective(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(participating);  // should only get this for participating shards
-#endif
+      legion_assert(
+          participating);  // should only get this for participating shards
       {
         AutoLock c_lock(collective_lock);
-#ifdef DEBUG_LEGION
-        assert(!sent_stages.empty());
-        assert(!sent_stages[0]);  // stage 0 shouldn't be sent yet
-        assert(!stage_notifications.empty());
+        legion_assert(!sent_stages.empty());
+        legion_assert(!sent_stages[0]);  // stage 0 shouldn't be sent yet
+        legion_assert(!stage_notifications.empty());
         if (shard_collective_stages == 1)
-          assert(stage_notifications[0] < shard_collective_last_radix);
+        {
+          legion_assert(stage_notifications[0] < shard_collective_last_radix);
+        }
         else
-          assert(stage_notifications[0] < shard_collective_radix);
-#endif
+        {
+          legion_assert(stage_notifications[0] < shard_collective_radix);
+        }
         stage_notifications[0]++;
         // Increment our guard to prevent deletion of the collective
         // object while we are still traversing
@@ -902,9 +856,7 @@ namespace Legion {
                 (local_shard + shard_collective_participating_shards) :
                 participants->at(
                     local_index + shard_collective_participating_shards);
-#ifdef DEBUG_LEGION
-        assert(target < manager->total_shards);
-#endif
+        legion_assert(target < manager->total_shards);
         Serializer rez;
         construct_message(target, -1 /*stage*/, rez);
         manager->send_collective_message(message, target, rez);
@@ -928,9 +880,7 @@ namespace Legion {
     bool AllGatherCollective<INORDER>::send_ready_stages(const int start_stage)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(participating);
-#endif
+      legion_assert(participating);
       // Iterate through the stages and send any that are ready
       // Remember that stages have to be done in order
       bool sent_previous_stage = false;
@@ -941,18 +891,14 @@ namespace Legion {
           AutoLock c_lock(collective_lock);
           if (sent_previous_stage)
           {
-#ifdef DEBUG_LEGION
-            assert(!sent_stages[stage - 1]);
-#endif
+            legion_assert(!sent_stages[stage - 1]);
             sent_stages[stage - 1] = true;
             sent_previous_stage = false;
           }
           // If this stage has already been sent then we can keep going
           if (sent_stages[stage])
             continue;
-#ifdef DEBUG_LEGION
-          assert(pending_send_ready_stages > 0);
-#endif
+          legion_assert(pending_send_ready_stages > 0);
           // Check to see if we're sending this stage
           // We need all the notifications from the previous stage before
           // we can send this stage
@@ -1030,22 +976,16 @@ namespace Legion {
       AutoLock c_lock(collective_lock);
       if (sent_previous_stage)
       {
-#ifdef DEBUG_LEGION
-        assert(!sent_stages[shard_collective_stages - 1]);
-#endif
+        legion_assert(!sent_stages[shard_collective_stages - 1]);
         sent_stages[shard_collective_stages - 1] = true;
       }
       // Remove our pending guard and then check to see if we are done
-#ifdef DEBUG_LEGION
-      assert(pending_send_ready_stages > 0);
-#endif
+      legion_assert(pending_send_ready_stages > 0);
       if (((--pending_send_ready_stages) == 0) &&
           (stage_notifications.back() == shard_collective_last_radix))
       {
-#ifdef DEBUG_LEGION
-        assert(!done_triggered);
+        legion_assert(!done_triggered);
         done_triggered = true;
-#endif
         return true;
       }
       else
@@ -1085,13 +1025,16 @@ namespace Legion {
         unpack_collective_stage(derez, stage);
       if (stage >= 0)
       {
-#ifdef DEBUG_LEGION
-        assert(stage < int(stage_notifications.size()));
+        legion_assert(stage < int(stage_notifications.size()));
         if (stage < (shard_collective_stages - 1))
-          assert(stage_notifications[stage] < shard_collective_radix);
+        {
+          legion_assert(stage_notifications[stage] < shard_collective_radix);
+        }
         else
-          assert(stage_notifications[stage] < shard_collective_last_radix);
-#endif
+        {
+          legion_assert(
+              stage_notifications[stage] < shard_collective_last_radix);
+        }
         stage_notifications[stage]++;
         // Increment our guard to prevent deletion of the collective
         // object while we are still traversing
@@ -1106,9 +1049,7 @@ namespace Legion {
     {
       if ((reorder_stages != nullptr) && !reorder_stages->empty())
       {
-#ifdef DEBUG_LEGION
-        assert(reorder_stages->size() == 1);
-#endif
+        legion_assert(reorder_stages->size() == 1);
         std::map<int, std::vector<std::pair<void*, size_t> > >::iterator
             remaining = reorder_stages->begin();
         for (std::vector<std::pair<void*, size_t> >::const_iterator it =
@@ -1257,9 +1198,7 @@ namespace Legion {
     void BufferBroadcast::broadcast(void* b, size_t s, bool copy)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(buffer == nullptr);
-#endif
+      legion_assert(buffer == nullptr);
       if (copy)
       {
         size = s;
@@ -1302,9 +1241,7 @@ namespace Legion {
       derez.deserialize(size);
       if (size > 0)
       {
-#ifdef DEBUG_LEGION
-        assert(buffer == nullptr);
-#endif
+        legion_assert(buffer == nullptr);
         buffer = malloc(size);
         derez.deserialize(buffer, size);
         own = true;
@@ -1482,9 +1419,7 @@ namespace Legion {
             {
               if (stage == -1)
               {
-#ifdef DEBUG_LEGION
-                assert(current_stage == (shard_collective_stages - 1));
-#endif
+                legion_assert(current_stage == (shard_collective_stages - 1));
                 instance_ready = new_instance_ready;
                 // No need for packing the shadow on the way out
                 pack_shadow = false;
@@ -1527,23 +1462,17 @@ namespace Legion {
         }
         if (check_for_shadow)
         {
-#ifdef DEBUG_LEGION
           // should be stage 0 (first stage) or final stage 0
-          assert((stage == 0) || (stage == -1));
-#endif
+          legion_assert((stage == 0) || (stage == -1));
           if (stage == -1)
           {
-#ifdef DEBUG_LEGION
-            assert(current_stage == (shard_collective_stages - 1));
-#endif
+            legion_assert(current_stage == (shard_collective_stages - 1));
             // No need for packing the shadow on the way out
             pack_shadow = false;
           }
           else if (instance_ready.exists() || !instance->can_pack_by_value())
           {
-#ifdef DEBUG_LEGION
-            assert(current_stage == -1);
-#endif
+            legion_assert(current_stage == -1);
             // Have to make a copy in this case
             if (shadow_instance != nullptr)
             {
@@ -1616,10 +1545,8 @@ namespace Legion {
     RtEvent FutureAllReduceCollective::post_complete_exchange(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       // Should be exactly one stage left
-      assert((pending_reductions.size() == 1) || (current_stage == -1));
-#endif
+      legion_assert((pending_reductions.size() == 1) || (current_stage == -1));
       if (!pending_reductions.empty())
       {
         std::map<int, std::map<ShardID, PendingReduction> >::iterator last =
@@ -1627,9 +1554,7 @@ namespace Legion {
         if (last->first == -1)
         {
           // Copy-in last stage which includes our value so we just overwrite
-#ifdef DEBUG_LEGION
-          assert(last->second.size() == 1);
-#endif
+          legion_assert(last->second.size() == 1);
           PendingReduction& pending = last->second.begin()->second;
           instance_ready = instance->copy_from(
               pending.instance, op,
@@ -1644,9 +1569,7 @@ namespace Legion {
           instance_ready = perform_reductions(last->second);
         pending_reductions.erase(last);
       }
-#ifdef DEBUG_LEGION
-      assert(finished.exists());
-#endif
+      legion_assert(finished.exists());
       // Trigger the finish event for the collective
       Runtime::trigger_event_untraced(finished, instance_ready);
       return RtEvent::NO_RT_EVENT;
@@ -1656,9 +1579,7 @@ namespace Legion {
     void FutureAllReduceCollective::elide_collective(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(finished.exists());
-#endif
+      legion_assert(finished.exists());
       // Clean up the finished event we aren't going to trigger
       Runtime::trigger_event_untraced(finished);
       // elide the collective for the base class
@@ -1669,10 +1590,8 @@ namespace Legion {
     void FutureAllReduceCollective::set_shadow_instance(FutureInstance* shadow)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shadow != nullptr);
-      assert(shadow_instance == nullptr);
-#endif
+      legion_assert(shadow != nullptr);
+      legion_assert(shadow_instance == nullptr);
       shadow_instance = shadow;
     }
 
@@ -1681,17 +1600,16 @@ namespace Legion {
         FutureInstance* inst, ApEvent& ready)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instance == nullptr);
+      legion_assert(instance == nullptr);
       // Should be meta-visible unless it is a large instance
-      assert(inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
+      legion_assert(
+          inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
       // We should either have a shadow instance at this point or the nature
       // of the instance is that it is small enough and on system memory so
       // we will be able to do everything ourselves locally.
-      assert(
+      legion_assert(
           (shadow_instance != nullptr) ||
           ((inst->is_meta_visible) && (inst->size <= LEGION_MAX_RETURN_SIZE)));
-#endif
       instance = inst;
       instance_ready = ready;
       // Record that this is the event that will trigger when finished
@@ -1715,11 +1633,9 @@ namespace Legion {
     void FutureAllReduceCollective::create_shadow_instance(void)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shadow_instance == nullptr);
-      assert(instance->is_meta_visible);
-      assert(instance->size <= LEGION_MAX_RETURN_SIZE);
-#endif
+      legion_assert(shadow_instance == nullptr);
+      legion_assert(instance->is_meta_visible);
+      legion_assert(instance->size <= LEGION_MAX_RETURN_SIZE);
       // We're past the mapping stage of the pipeline at this point so
       // it is too late to be making instances the normal way through
       // eager allocation, so we need to just call malloc and make an
@@ -1847,26 +1763,21 @@ namespace Legion {
         FutureInstance* inst, ApEvent precondition, RtEvent post)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instance == nullptr);
+      legion_assert(instance == nullptr);
       // Should be meta-visible unless it is large
-      assert(inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
-#endif
+      legion_assert(
+          inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
       instance = inst;
       if (is_origin())
       {
-#ifdef DEBUG_LEGION
-        assert(!post.exists());
-#endif
+        legion_assert(!post.exists());
         write_event = precondition;
         perform_collective_async();
         return post_broadcast();
       }
       else
       {
-#ifdef DEBUG_LEGION
-        assert(!precondition.exists());
-#endif
+        legion_assert(!precondition.exists());
         postcondition = post;
         return perform_collective_wait(false /*block*/);
       }
@@ -1885,9 +1796,7 @@ namespace Legion {
         redop_id(redid), instance(nullptr)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(target == broadcast->origin);
-#endif
+      legion_assert(target == broadcast->origin);
     }
 
     //--------------------------------------------------------------------------
@@ -1946,11 +1855,10 @@ namespace Legion {
         FutureInstance* inst, ApEvent precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(instance == nullptr);
+      legion_assert(instance == nullptr);
       // Should be meta-visible unless it is large
-      assert(inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
-#endif
+      legion_assert(
+          inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
       instance = inst;
       ready = precondition;
       // This is a small, but important optimization:
@@ -2035,9 +1943,7 @@ namespace Legion {
         std::vector<ShardID>& shards)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(shards.empty());
-#endif
+      legion_assert(shards.empty());
       perform_collective_wait();
       if (participants.size() < manager->total_shards)
       {
@@ -2107,9 +2013,7 @@ namespace Legion {
             domain_points[req_idx];
         if (!participating)
         {
-#ifdef DEBUG_LEGION
-          assert(stage == -1);
-#endif
+          legion_assert(stage == -1);
           points.clear();
         }
         const unsigned offset = points.size();
@@ -2198,9 +2102,7 @@ namespace Legion {
     {
       {
         AutoLock c_lock(collective_lock);
-#ifdef DEBUG_LEGION
-        assert(results.find(local_shard) == results.end());
-#endif
+        legion_assert(results.find(local_shard) == results.end());
         results[local_shard] = value;
       }
       perform_collective_async();
@@ -2210,9 +2112,7 @@ namespace Legion {
     bool ShardingGatherCollective::validate(ShardingID value)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(is_target());
-#endif
+      legion_assert(is_target());
       // Wait for the results
       perform_collective_wait();
       for (std::map<ShardID, ShardingID>::const_iterator it = results.begin();
@@ -2254,13 +2154,9 @@ namespace Legion {
       : total_spaces(total)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(total_spaces > 0);
-#endif
+      legion_assert(total_spaces > 0);
       derez.deserialize(unique_sorted_spaces);
-#ifdef DEBUG_LEGION
-      assert(total_spaces == unique_sorted_spaces.size());
-#endif
+      legion_assert(total_spaces == unique_sorted_spaces.size());
       derez.deserialize(radix);
     }
 
@@ -2294,17 +2190,13 @@ namespace Legion {
     {
       const unsigned local_index = find_index(local);
       const unsigned origin_index = find_index(origin);
-#ifdef DEBUG_LEGION
-      assert(local_index < total_spaces);
-      assert(origin_index < total_spaces);
-#endif
+      legion_assert(local_index < total_spaces);
+      legion_assert(origin_index < total_spaces);
       const unsigned offset = convert_to_offset(local_index, origin_index);
       const unsigned index =
           convert_to_index((offset - 1) / radix, origin_index);
       const int result = unique_sorted_spaces.get_index(index);
-#ifdef DEBUG_LEGION
-      assert(result >= 0);
-#endif
+      legion_assert(result >= 0);
       return result;
     }
 
@@ -2315,10 +2207,8 @@ namespace Legion {
     {
       const unsigned local_index = find_index(local);
       const unsigned origin_index = find_index(origin);
-#ifdef DEBUG_LEGION
-      assert(local_index < total_spaces);
-      assert(origin_index < total_spaces);
-#endif
+      legion_assert(local_index < total_spaces);
+      legion_assert(origin_index < total_spaces);
       const unsigned offset =
           radix * convert_to_offset(local_index, origin_index);
       size_t result = 0;
@@ -2339,10 +2229,8 @@ namespace Legion {
     {
       const unsigned local_index = find_index(local);
       const unsigned origin_index = find_index(origin);
-#ifdef DEBUG_LEGION
-      assert(local_index < total_spaces);
-      assert(origin_index < total_spaces);
-#endif
+      legion_assert(local_index < total_spaces);
+      legion_assert(origin_index < total_spaces);
       const unsigned offset =
           radix * convert_to_offset(local_index, origin_index);
       for (unsigned idx = 1; idx <= radix; idx++)
@@ -2352,9 +2240,7 @@ namespace Legion {
         {
           const unsigned index = convert_to_index(child_offset, origin_index);
           const int child = unique_sorted_spaces.get_index(index);
-#ifdef DEBUG_LEGION
-          assert(child >= 0);
-#endif
+          legion_assert(child >= 0);
           children.emplace_back(child);
         }
       }
@@ -2377,10 +2263,8 @@ namespace Legion {
       {
         mid = (first + last) / 2;
         const AddressSpaceID midval = (*this)[mid];
-#ifdef DEBUG_LEGION
         // Should never actually find it
-        assert(search != midval);
-#endif
+        legion_assert(search != midval);
         if (search < midval)
           last = mid - 1;
         else if (midval < search)
@@ -2388,9 +2272,7 @@ namespace Legion {
         else
           break;
       }
-#ifdef DEBUG_LEGION
-      assert(first != last);
-#endif
+      legion_assert(first != last);
       const unsigned diff_low = search - (*this)[first];
       const unsigned diff_high = (*this)[last] - search;
       if (diff_low < diff_high)
@@ -2420,9 +2302,7 @@ namespace Legion {
     void CollectiveMapping::pack(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(total_spaces > 0);
-#endif
+      legion_assert(total_spaces > 0);
       rez.serialize(total_spaces);
       rez.serialize(unique_sorted_spaces);
       rez.serialize(radix);
@@ -2440,10 +2320,8 @@ namespace Legion {
         unsigned index, unsigned origin_index) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(index < total_spaces);
-      assert(origin_index < total_spaces);
-#endif
+      legion_assert(index < total_spaces);
+      legion_assert(origin_index < total_spaces);
       if (index < origin_index)
       {
         // Modulus arithmetic here
@@ -2458,10 +2336,8 @@ namespace Legion {
         unsigned offset, unsigned origin_index) const
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(offset < total_spaces);
-      assert(origin_index < total_spaces);
-#endif
+      legion_assert(offset < total_spaces);
+      legion_assert(origin_index < total_spaces);
       unsigned result = origin_index + offset;
       if (result >= total_spaces)
         result -= total_spaces;
