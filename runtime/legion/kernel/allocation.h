@@ -35,7 +35,16 @@
 #ifdef LEGION_TRACE_ALLOCATION
 #include <typeinfo>
 #endif
-#include "legion/api/config.h"
+#include "legion/api/types.h"
+
+// A bit tricky here, we ban use of the auto keyword in Legion.
+// Types in a library like Legion should always be written
+// out in full because types are for other humans to read so they
+// can better understand the code. We put this declaration here
+// because this file is included in almost all Legion internal
+// code but is not included in user-facing code and users should
+// still be allowed to use the auto keyword in their applications.
+#define auto static_assert(false, "The 'auto' keyword is banned in Legion.");
 
 namespace Legion {
   namespace Internal {

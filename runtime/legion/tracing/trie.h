@@ -34,10 +34,8 @@ namespace Legion {
       { }
       ~TrieNode()
       {
-        for (auto it : this->children)
-        {
-          delete it.second;
-        }
+        for (const std::pair<T, TrieNode<T, V>*>& child : this->children)
+          delete child.second;
       }
       const std::unordered_map<T, TrieNode<T, V>*>& get_children() const
       {
@@ -92,10 +90,11 @@ namespace Legion {
       {
         TrieNode<T, V>* node = &this->root;
 
-        for (auto tokitr = start; tokitr != end; tokitr++)
+        for (ITER tokitr = start; tokitr != end; tokitr++)
         {
-          auto token = *tokitr;
-          auto it = node->children.find(token);
+          T token = *tokitr;
+          typename std::unordered_map<T, TrieNode<T, V>*>::const_iterator it =
+              node->children.find(token);
           if (it != node->children.end())
           {
             node = it->second;
@@ -120,8 +119,9 @@ namespace Legion {
 
         for (unsigned idx = 0; idx < size; idx++)
         {
-          auto token = tokens[idx];
-          auto it = node->children.find(token);
+          T token = tokens[idx];
+          typename std::unordered_map<T, TrieNode<T, V>*>::const_iterator it =
+              node->children.find(token);
           if (it != node->children.end())
           {
             node = it->second;
@@ -147,10 +147,11 @@ namespace Legion {
       {
         const TrieNode<T, V>* node = &this->root;
         int64_t matched_toks = 0;
-        for (auto tokitr = start; tokitr != end; tokitr++)
+        for (ITER tokitr = start; tokitr != end; tokitr++)
         {
-          auto token = *tokitr;
-          auto it = node->children.find(token);
+          T token = *tokitr;
+          typename std::unordered_map<T, TrieNode<T, V>*>::const_iterator it =
+              node->children.find(token);
           if (it != node->children.end())
           {
             node = it->second;
@@ -182,8 +183,9 @@ namespace Legion {
         size_t matched_toks = 0;
         for (unsigned idx = 0; idx < size; idx++)
         {
-          auto token = tokens[idx];
-          auto it = node->children.find(token);
+          T token = tokens[idx];
+          typename std::unordered_map<T, TrieNode<T, V>*>::const_iterator it =
+              node->children.find(token);
           if (it != node->children.end())
           {
             node = it->second;
@@ -213,10 +215,11 @@ namespace Legion {
       bool contains(ITER start, ITER end) const
       {
         const TrieNode<T, V>* node = &this->root;
-        for (auto tokitr = start; tokitr != end; tokitr++)
+        for (ITER tokitr = start; tokitr != end; tokitr++)
         {
-          auto token = *tokitr;
-          auto it = node->children.find(token);
+          T token = *tokitr;
+          typename std::unordered_map<T, TrieNode<T, V>*>::const_iterator it =
+              node->children.find(token);
           if (it != node->children.end())
           {
             node = it->second;
@@ -235,10 +238,11 @@ namespace Legion {
       {
         const TrieNode<T, V>* node = &this->root;
 
-        for (auto tokitr = start; tokitr != end; tokitr++)
+        for (ITER tokitr = start; tokitr != end; tokitr++)
         {
-          auto token = *tokitr;
-          auto it = node->children.find(token);
+          T token = *tokitr;
+          typename std::unordered_map<T, TrieNode<T, V>*>::const_iterator it =
+              node->children.find(token);
           if (it != node->children.end())
           {
             node = it->second;
@@ -258,8 +262,9 @@ namespace Legion {
 
         for (unsigned idx = 0; idx < size; idx++)
         {
-          auto token = tokens[idx];
-          auto it = node->children.find(token);
+          T token = tokens[idx];
+          typename std::unordered_map<T, TrieNode<T, V>*>::const_iterator it =
+              node->children.find(token);
           if (it != node->children.end())
           {
             node = it->second;

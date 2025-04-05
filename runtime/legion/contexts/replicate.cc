@@ -397,7 +397,7 @@ namespace Legion {
         // everyone else to register the variant with this ID.
         if (vid == LEGION_AUTO_GENERATE_ID)
         {
-          auto impl = runtime->find_or_create_task_impl(registrar.task_id);
+          TaskImpl* impl = runtime->find_or_create_task_impl(registrar.task_id);
           ValueBroadcast<VariantID> collective(
               this, this->dynamic_id_allocator_shard, COLLECTIVE_LOC_17);
           if (this->owner_shard->shard_id == this->dynamic_id_allocator_shard)

@@ -235,8 +235,8 @@ namespace Legion {
               continue;
             DomainPoint neighbor = color;
             --neighbor[dim];
-            auto finder = output_extents.find(neighbor);
-            legion_assert(finder != output_extents.end());
+            legion_assert(
+                output_extents.find(neighbor) != output_extents.end());
 
             const DomainPoint& neighbor_extent = it->second;
             if (extent[dim] != neighbor_extent[dim])

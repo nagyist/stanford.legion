@@ -1136,7 +1136,8 @@ namespace Legion {
       unsigned cur_id = 0;
       // fields explicitly specified in any constraint for region requirement
       std::set<FieldID> explicit_fields, align_fields, offset_fields;
-      for (auto it = layout_constraints.layouts.begin();
+      for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
+               layout_constraints.layouts.begin();
            it != layout_constraints.layouts.end(); it++)
       {
         // obtain all fields explicitly specified in task layout constraints for
@@ -1148,7 +1149,8 @@ namespace Legion {
           align_fields.clear();
           offset_fields.clear();
           req_id++;
-          for (auto lay_it = layout_constraints.layouts.lower_bound(it->first);
+          for (std::multimap<unsigned, LayoutConstraintID>::const_iterator
+                   lay_it = layout_constraints.layouts.lower_bound(it->first);
                lay_it != layout_constraints.layouts.upper_bound(it->first);
                lay_it++)
           {
@@ -1162,7 +1164,8 @@ namespace Legion {
             for (FieldID fid : constraint_fields)
             {
               // check if the field is included in the needed_fields
-              auto finder = explicit_fields.find(fid);
+              std::set<FieldID>::const_iterator finder =
+                  explicit_fields.find(fid);
               if (finder == explicit_fields.end())
               {
                 explicit_fields.insert(fid);
@@ -1174,8 +1177,9 @@ namespace Legion {
               for (unsigned idx = 0;
                    idx < index_constraints->alignment_constraints.size(); idx++)
               {
-                auto fid = index_constraints->alignment_constraints[idx].fid;
-                auto finder = explicit_fields.find(fid);
+                FieldID fid = index_constraints->alignment_constraints[idx].fid;
+                std::set<FieldID>::const_iterator finder =
+                    explicit_fields.find(fid);
                 if (finder == explicit_fields.end())
                 {
                   explicit_fields.insert(fid);
@@ -1189,8 +1193,9 @@ namespace Legion {
               for (unsigned idx = 0;
                    idx < index_constraints->offset_constraints.size(); idx++)
               {
-                auto fid = index_constraints->offset_constraints[idx].fid;
-                auto finder = explicit_fields.find(fid);
+                FieldID fid = index_constraints->offset_constraints[idx].fid;
+                std::set<FieldID>::const_iterator finder =
+                    explicit_fields.find(fid);
                 if (finder == explicit_fields.end())
                 {
                   explicit_fields.insert(fid);
