@@ -19,10 +19,20 @@
 #include <limits>
 #include <optional>
 
-#include "legion/api/config.h"
 #include "realm.h"
 #include "realm/id.h"
 #include "realm/dynamic_templates.h"
+#include "legion/api/config.h"
+#ifdef LEGION_REDOP_COMPLEX
+#ifdef LEGION_REDOP_HALF
+#define COMPLEX_HALF
+#endif
+#include "mathtypes/complex.h"
+#endif
+
+#ifdef LEGION_REDOP_HALF
+#include "mathtypes/half.h"
+#endif
 
 #ifndef LEGION_DEPRECATED
 // This is from before Legion required c++17
