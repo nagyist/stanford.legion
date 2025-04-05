@@ -15,15 +15,6 @@
 
 #include <sys/mman.h>  // munlock
 
-#include "legion/managers/memory.h"
-#include "legion/contexts/context.h"
-#include "legion/kernel/runtime.h"
-#include "legion/instances/builder.h"
-#include "legion/instances/physical.h"
-#include "legion/api/future_impl.h"
-#include "legion/nodes/region.h"
-#include "legion/tasks/single.h"
-
 #ifdef LEGION_USE_CUDA
 #include <cuda.h>
 #ifdef LEGION_MALLOC_INSTANCES
@@ -36,6 +27,15 @@
 #include "realm/hip/hip_access.h"
 #endif
 #endif
+
+#include "legion/managers/memory.h"
+#include "legion/contexts/context.h"
+#include "legion/kernel/runtime.h"
+#include "legion/instances/builder.h"
+#include "legion/instances/physical.h"
+#include "legion/api/future_impl.h"
+#include "legion/nodes/region.h"
+#include "legion/tasks/single.h"
 
 namespace Legion {
   namespace Internal {
