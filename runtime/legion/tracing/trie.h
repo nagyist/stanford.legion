@@ -34,7 +34,7 @@ namespace Legion {
       { }
       ~TrieNode()
       {
-        for (const std::pair<T, TrieNode<T, V>*>& child : this->children)
+        for (const std::pair<const T, TrieNode<T, V>*>& child : this->children)
           delete child.second;
       }
       const std::unordered_map<T, TrieNode<T, V>*>& get_children() const
