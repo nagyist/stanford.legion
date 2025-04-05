@@ -15,6 +15,8 @@
 
 #include <sys/mman.h>  // munlock
 
+#include "legion_config.h"  // need this for cuda/hip includes
+
 #ifdef LEGION_USE_CUDA
 #include <cuda.h>
 #ifdef LEGION_MALLOC_INSTANCES
