@@ -271,7 +271,7 @@ namespace Legion {
             const DomainPoint& point, const Domain& full_space,
             const size_t total_shards)
         {
-          return UINT_MAX;
+          return std::numeric_limits<ShardID>::max();
         }
       };
     public:

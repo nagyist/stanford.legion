@@ -34,7 +34,8 @@ namespace Legion {
     public:
       LogicalUser(
           Operation* o, unsigned id, const RegionUsage& u,
-          ProjectionSummary* proj = nullptr, unsigned internal_idx = UINT_MAX);
+          ProjectionSummary* proj = nullptr,
+          unsigned internal_idx = std::numeric_limits<unsigned>::max());
       LogicalUser(const LogicalUser& rhs) = delete;
       ~LogicalUser(void);
     public:
@@ -238,7 +239,8 @@ namespace Legion {
      */
     class LogicalAnalysis : public NoHeapify {
     public:
-      static constexpr unsigned NO_OUTPUT_OFFSET = UINT_MAX;
+      static constexpr unsigned NO_OUTPUT_OFFSET =
+          std::numeric_limits<unsigned>::max();
       LogicalAnalysis(Operation* op, unsigned output_offset = NO_OUTPUT_OFFSET);
       LogicalAnalysis(const LogicalAnalysis& rhs) = delete;
       ~LogicalAnalysis(void);

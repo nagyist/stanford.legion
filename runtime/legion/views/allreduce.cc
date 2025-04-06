@@ -148,7 +148,7 @@ namespace Legion {
       unsigned target_index = 0;
       if (src_inst_did > 0)
       {
-        target_index = UINT_MAX;
+        target_index = std::numeric_limits<unsigned>::max();
         for (unsigned idx = 0; idx < local_views.size(); idx++)
         {
           if (local_views[idx]->get_manager()->did != src_inst_did)
@@ -156,7 +156,7 @@ namespace Legion {
           target_index = idx;
           break;
         }
-        legion_assert(target_index != UINT_MAX);
+        legion_assert(target_index != std::numeric_limits<unsigned>::max());
       }
       IndividualView* local_view = local_views[target_index];
       PhysicalManager* local_manager = local_view->get_manager();

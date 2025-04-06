@@ -255,7 +255,10 @@ namespace Legion {
       public:
         virtual bool is_functional(void) const { return true; }
         // Some depth >0 means the runtime can't analyze it
-        virtual unsigned get_depth(void) const { return UINT_MAX; }
+        virtual unsigned get_depth(void) const
+        {
+          return std::numeric_limits<unsigned>::max();
+        }
       public:
         static unsigned compute_offset(
             const DomainPoint& point, const Domain& launch);

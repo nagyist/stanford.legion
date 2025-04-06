@@ -550,13 +550,14 @@ namespace Legion {
           IndexPartNode* par, LegionColor color, RtEvent initialized,
           Provenance* provenance, ApEvent is_ready = ApEvent::NO_AP_EVENT,
           IndexSpaceExprID expr_id = 0, CollectiveMapping* mapping = nullptr,
-          const bool add_root_reference = false, unsigned depth = UINT_MAX,
+          const bool add_root_reference = false,
+          unsigned depth = std::numeric_limits<unsigned>::max(),
           const bool tree_valid = true);
       IndexSpaceNode* create_node(
           IndexSpace is, IndexPartNode& par, LegionColor color,
           RtEvent initialized, Provenance* provenance,
           IndexSpaceExprID expr_id = 0, CollectiveMapping* mapping = nullptr,
-          unsigned depth = UINT_MAX);
+          unsigned depth = std::numeric_limits<unsigned>::max());
       // We know the disjointness of the index partition
       IndexPartNode* create_node(
           IndexPartition p, IndexSpaceNode* par, IndexSpaceNode* color_space,

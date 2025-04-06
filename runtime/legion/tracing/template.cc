@@ -2909,7 +2909,7 @@ namespace Legion {
 #ifdef LEGION_DEBUG
       // Make sure we're always recording user events on the same shard
       // where the create user event is recorded
-      unsigned lhs_ = UINT_MAX;
+      unsigned lhs_ = std::numeric_limits<unsigned>::max();
       for (std::map<unsigned, ApUserEvent>::const_iterator it =
                user_events.begin();
            it != user_events.end(); it++)
@@ -2919,7 +2919,7 @@ namespace Legion {
         lhs_ = it->first;
         break;
       }
-      legion_assert(lhs_ != UINT_MAX);
+      legion_assert(lhs_ != std::numeric_limits<unsigned>::max());
 #else
       unsigned lhs_ = find_event(lhs, tpl_lock);
 #endif

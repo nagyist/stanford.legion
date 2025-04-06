@@ -241,7 +241,7 @@ namespace Legion {
     //              that we should handle to unblock work
     //              on our own node
     enum LgPriority {
-      LG_MIN_PRIORITY = INT_MIN,
+      LG_MIN_PRIORITY = std::numeric_limits<int>::min(),
       LG_LOW_PRIORITY = -1,
       // Throughput priorities
       LG_THROUGHPUT_WORK_PRIORITY = 0,

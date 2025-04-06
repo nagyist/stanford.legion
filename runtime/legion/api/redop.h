@@ -938,7 +938,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = SCHAR_MIN;
+    static const int8_t identity = std::numeric_limits<int8_t>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_INT8;
 
     template<bool EXCLUSIVE>
@@ -953,7 +953,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = SHRT_MIN;
+    static const int16_t identity = std::numeric_limits<int16_t>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_INT16;
 
     template<bool EXCLUSIVE>
@@ -968,7 +968,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = INT_MIN;
+    static const int32_t identity = std::numeric_limits<int32_t>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_INT32;
 
     template<bool EXCLUSIVE>
@@ -983,7 +983,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = LLONG_MIN;
+    static const int64_t identity = std::numeric_limits<int64_t>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_INT64;
 
     template<bool EXCLUSIVE>
@@ -1126,7 +1126,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = SCHAR_MAX;
+    static const int8_t identity = std::numeric_limits<int8_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_INT8;
 
     template<bool EXCLUSIVE>
@@ -1141,7 +1141,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = SHRT_MAX;
+    static const int16_t identity = std::numeric_limits<int16_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_INT16;
 
     template<bool EXCLUSIVE>
@@ -1156,7 +1156,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = INT_MAX;
+    static const int32_t identity = std::numeric_limits<int32_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_INT32;
 
     template<bool EXCLUSIVE>
@@ -1171,7 +1171,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = LLONG_MAX;
+    static const int64_t identity = std::numeric_limits<int64_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_INT64;
 
     template<bool EXCLUSIVE>
@@ -1186,7 +1186,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = UCHAR_MAX;
+    static const uint8_t identity = std::numeric_limits<uint8_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_UINT8;
 
     template<bool EXCLUSIVE>
@@ -1201,7 +1201,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = USHRT_MAX;
+    static const uint16_t identity = std::numeric_limits<uint16_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_UINT16;
 
     template<bool EXCLUSIVE>
@@ -1216,7 +1216,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = UINT_MAX;
+    static const uint32_t identity = std::numeric_limits<uint32_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_UINT32;
 
     template<bool EXCLUSIVE>
@@ -1231,7 +1231,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = ULLONG_MAX;
+    static const uint64_t identity = std::numeric_limits<uint64_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_UINT64;
 
     template<bool EXCLUSIVE>
@@ -1683,164 +1683,138 @@ namespace Legion {
   // Depending on configuration, we may instantiate these reduction ops in a
   //  one or more different ways, so define a helper macro that lists all the
   //  ops to be instantiated
-#define LEGION_REDOP_LIST_BASE(__op__)                                         \
-  /* Sum Reductions */                                                         \
-  __op__(LEGION_REDOP_SUM_INT8, SumReduction<int8_t>) __op__(                  \
-      LEGION_REDOP_SUM_INT16, SumReduction<int16_t>)                           \
-      __op__(LEGION_REDOP_SUM_INT32, SumReduction<int32_t>) __op__(            \
-          LEGION_REDOP_SUM_INT64, SumReduction<int64_t>)                       \
-          __op__(LEGION_REDOP_SUM_UINT8, SumReduction<uint8_t>) __op__(        \
-              LEGION_REDOP_SUM_UINT16, SumReduction<uint16_t>)                 \
-              __op__(LEGION_REDOP_SUM_UINT32, SumReduction<uint32_t>) __op__(  \
-                  LEGION_REDOP_SUM_UINT64, SumReduction<uint64_t>)             \
-                  __op__(LEGION_REDOP_SUM_FLOAT32, SumReduction<float>)        \
-                      __op__(                                                  \
-                          LEGION_REDOP_SUM_FLOAT64,                            \
-                          SumReduction<double>) /* Difference Reductions */    \
-      __op__(LEGION_REDOP_DIFF_INT8, DiffReduction<int8_t>) __op__(            \
-          LEGION_REDOP_DIFF_INT16, DiffReduction<int16_t>)                     \
-          __op__(LEGION_REDOP_DIFF_INT32, DiffReduction<int32_t>) __op__(      \
-              LEGION_REDOP_DIFF_INT64, DiffReduction<int64_t>)                 \
-              __op__(LEGION_REDOP_DIFF_UINT8, DiffReduction<uint8_t>) __op__(  \
-                  LEGION_REDOP_DIFF_UINT16, DiffReduction<uint16_t>)           \
-                  __op__(LEGION_REDOP_DIFF_UINT32, DiffReduction<uint32_t>)    \
-                      __op__(                                                  \
-                          LEGION_REDOP_DIFF_UINT64, DiffReduction<uint64_t>)   \
-                          __op__(                                              \
-                              LEGION_REDOP_DIFF_FLOAT32, DiffReduction<float>) \
-                              __op__(                                          \
-                                  LEGION_REDOP_DIFF_FLOAT64,                   \
-                                  DiffReduction<double>) /* Product Reductions \
-                                                          */                   \
-      __op__(LEGION_REDOP_PROD_INT8, ProdReduction<int8_t>) __op__(            \
-          LEGION_REDOP_PROD_INT16, ProdReduction<int16_t>)                     \
-          __op__(LEGION_REDOP_PROD_INT32, ProdReduction<int32_t>) __op__(      \
-              LEGION_REDOP_PROD_INT64, ProdReduction<int64_t>)                 \
-              __op__(LEGION_REDOP_PROD_UINT8, ProdReduction<uint8_t>) __op__(  \
-                  LEGION_REDOP_PROD_UINT16, ProdReduction<uint16_t>)           \
-                  __op__(LEGION_REDOP_PROD_UINT32, ProdReduction<uint32_t>)    \
-                      __op__(                                                  \
-                          LEGION_REDOP_PROD_UINT64, ProdReduction<uint64_t>)   \
-                          __op__(                                              \
-                              LEGION_REDOP_PROD_FLOAT32, ProdReduction<float>) \
-                              __op__(                                          \
-                                  LEGION_REDOP_PROD_FLOAT64,                   \
-                                  ProdReduction<double>) /* Divide Reductions  \
-                                                          */                   \
-      __op__(LEGION_REDOP_DIV_INT8, DivReduction<int8_t>) __op__(              \
-          LEGION_REDOP_DIV_INT16, DivReduction<int16_t>)                       \
-          __op__(LEGION_REDOP_DIV_INT32, DivReduction<int32_t>) __op__(        \
-              LEGION_REDOP_DIV_INT64, DivReduction<int64_t>)                   \
-              __op__(LEGION_REDOP_DIV_UINT8, DivReduction<uint8_t>) __op__(    \
-                  LEGION_REDOP_DIV_UINT16, DivReduction<uint16_t>)             \
-                  __op__(LEGION_REDOP_DIV_UINT32, DivReduction<uint32_t>)      \
-                      __op__(LEGION_REDOP_DIV_UINT64, DivReduction<uint64_t>)  \
-                          __op__(                                              \
-                              LEGION_REDOP_DIV_FLOAT32, DivReduction<float>)   \
-                              __op__(                                          \
-                                  LEGION_REDOP_DIV_FLOAT64,                    \
-                                  DivReduction<double>) /* Max Reductions */   \
-      __op__(LEGION_REDOP_MAX_BOOL, MaxReduction<bool>) __op__(                \
-          LEGION_REDOP_MAX_INT8, MaxReduction<int8_t>)                         \
-          __op__(LEGION_REDOP_MAX_INT16, MaxReduction<int16_t>) __op__(        \
-              LEGION_REDOP_MAX_INT32, MaxReduction<int32_t>)                   \
-              __op__(LEGION_REDOP_MAX_INT64, MaxReduction<int64_t>) __op__(    \
-                  LEGION_REDOP_MAX_UINT8, MaxReduction<uint8_t>)               \
-                  __op__(LEGION_REDOP_MAX_UINT16, MaxReduction<uint16_t>)      \
-                      __op__(LEGION_REDOP_MAX_UINT32, MaxReduction<uint32_t>)  \
-                          __op__(                                              \
-                              LEGION_REDOP_MAX_UINT64, MaxReduction<uint64_t>) \
-                              __op__(                                          \
-                                  LEGION_REDOP_MAX_FLOAT32,                    \
-                                  MaxReduction<float>)                         \
-                                  __op__(                                      \
-                                      LEGION_REDOP_MAX_FLOAT64,                \
-                                      MaxReduction<double>) /* Min Reductions  \
-                                                             */                \
-      __op__(LEGION_REDOP_MIN_BOOL, MinReduction<bool>) __op__(                \
-          LEGION_REDOP_MIN_INT8, MinReduction<int8_t>)                         \
-          __op__(LEGION_REDOP_MIN_INT16, MinReduction<int16_t>) __op__(        \
-              LEGION_REDOP_MIN_INT32, MinReduction<int32_t>)                   \
-              __op__(LEGION_REDOP_MIN_INT64, MinReduction<int64_t>) __op__(    \
-                  LEGION_REDOP_MIN_UINT8, MinReduction<uint8_t>)               \
-                  __op__(LEGION_REDOP_MIN_UINT16, MinReduction<uint16_t>)      \
-                      __op__(LEGION_REDOP_MIN_UINT32, MinReduction<uint32_t>)  \
-                          __op__(                                              \
-                              LEGION_REDOP_MIN_UINT64, MinReduction<uint64_t>) \
-                              __op__(                                          \
-                                  LEGION_REDOP_MIN_FLOAT32,                    \
-                                  MinReduction<float>)                         \
-                                  __op__(                                      \
-                                      LEGION_REDOP_MIN_FLOAT64,                \
-                                      MinReduction<double>) /* Bitwise-OR      \
-                                                               Reductions */   \
-      __op__(LEGION_REDOP_OR_BOOL, SumReduction<bool>)                         \
-          __op__(LEGION_REDOP_OR_INT8, OrReduction<int8_t>) __op__(            \
-              LEGION_REDOP_OR_INT16, OrReduction<int16_t>)                     \
-              __op__(LEGION_REDOP_OR_INT32, OrReduction<int32_t>) __op__(      \
-                  LEGION_REDOP_OR_INT64, OrReduction<int64_t>)                 \
-                  __op__(LEGION_REDOP_OR_UINT8, OrReduction<uint8_t>) __op__(  \
-                      LEGION_REDOP_OR_UINT16, OrReduction<uint16_t>)           \
-                      __op__(LEGION_REDOP_OR_UINT32, OrReduction<uint32_t>)    \
-                          __op__(                                              \
-                              LEGION_REDOP_OR_UINT64,                          \
-                              OrReduction<uint64_t>) /* Bitwise-AND Reductions \
-                                                      */                       \
-      __op__(LEGION_REDOP_AND_BOOL, ProdReduction<bool>) __op__(               \
-          LEGION_REDOP_AND_INT8, AndReduction<int8_t>)                         \
-          __op__(LEGION_REDOP_AND_INT16, AndReduction<int16_t>) __op__(        \
-              LEGION_REDOP_AND_INT32, AndReduction<int32_t>)                   \
-              __op__(LEGION_REDOP_AND_INT64, AndReduction<int64_t>) __op__(    \
-                  LEGION_REDOP_AND_UINT8, AndReduction<uint8_t>)               \
-                  __op__(LEGION_REDOP_AND_UINT16, AndReduction<uint16_t>)      \
-                      __op__(LEGION_REDOP_AND_UINT32, AndReduction<uint32_t>)  \
-                          __op__(                                              \
-                              LEGION_REDOP_AND_UINT64,                         \
-                              AndReduction<uint64_t>) /* Bitwise-XOR           \
-                                                         Reductions */         \
-      __op__(LEGION_REDOP_XOR_BOOL, XorReduction<bool>) __op__(                \
-          LEGION_REDOP_XOR_INT8, XorReduction<int8_t>)                         \
-          __op__(LEGION_REDOP_XOR_INT16, XorReduction<int16_t>) __op__(        \
-              LEGION_REDOP_XOR_INT32, XorReduction<int32_t>)                   \
-              __op__(LEGION_REDOP_XOR_INT64, XorReduction<int64_t>) __op__(    \
-                  LEGION_REDOP_XOR_UINT8, XorReduction<uint8_t>)               \
-                  __op__(LEGION_REDOP_XOR_UINT16, XorReduction<uint16_t>)      \
-                      __op__(LEGION_REDOP_XOR_UINT32, XorReduction<uint32_t>)  \
-                          __op__(                                              \
-                              LEGION_REDOP_XOR_UINT64, XorReduction<uint64_t>)
+  // clang-format off
+#define LEGION_REDOP_LIST_BASE(__op__) \
+      /* Sum Reductions */ \
+      __op__(LEGION_REDOP_SUM_INT8, SumReduction<int8_t>) \
+      __op__(LEGION_REDOP_SUM_INT16, SumReduction<int16_t>) \
+      __op__(LEGION_REDOP_SUM_INT32, SumReduction<int32_t>) \
+      __op__(LEGION_REDOP_SUM_INT64, SumReduction<int64_t>) \
+      __op__(LEGION_REDOP_SUM_UINT8, SumReduction<uint8_t>) \
+      __op__(LEGION_REDOP_SUM_UINT16, SumReduction<uint16_t>) \
+      __op__(LEGION_REDOP_SUM_UINT32, SumReduction<uint32_t>) \
+      __op__(LEGION_REDOP_SUM_UINT64, SumReduction<uint64_t>) \
+      __op__(LEGION_REDOP_SUM_FLOAT32, SumReduction<float>) \
+      __op__(LEGION_REDOP_SUM_FLOAT64, SumReduction<double>) \
+      /* Difference Reductions */ \
+      __op__(LEGION_REDOP_DIFF_INT8, DiffReduction<int8_t>) \
+      __op__(LEGION_REDOP_DIFF_INT16, DiffReduction<int16_t>) \
+      __op__(LEGION_REDOP_DIFF_INT32, DiffReduction<int32_t>) \
+      __op__(LEGION_REDOP_DIFF_INT64, DiffReduction<int64_t>) \
+      __op__(LEGION_REDOP_DIFF_UINT8, DiffReduction<uint8_t>) \
+      __op__(LEGION_REDOP_DIFF_UINT16, DiffReduction<uint16_t>) \
+      __op__(LEGION_REDOP_DIFF_UINT32, DiffReduction<uint32_t>) \
+      __op__(LEGION_REDOP_DIFF_UINT64, DiffReduction<uint64_t>) \
+      __op__(LEGION_REDOP_DIFF_FLOAT32, DiffReduction<float>) \
+      __op__(LEGION_REDOP_DIFF_FLOAT64, DiffReduction<double>) \
+      /* Product Reductions */ \
+      __op__(LEGION_REDOP_PROD_INT8, ProdReduction<int8_t>) \
+      __op__(LEGION_REDOP_PROD_INT16, ProdReduction<int16_t>) \
+      __op__(LEGION_REDOP_PROD_INT32, ProdReduction<int32_t>) \
+      __op__(LEGION_REDOP_PROD_INT64, ProdReduction<int64_t>) \
+      __op__(LEGION_REDOP_PROD_UINT8, ProdReduction<uint8_t>) \
+      __op__(LEGION_REDOP_PROD_UINT16, ProdReduction<uint16_t>) \
+      __op__(LEGION_REDOP_PROD_UINT32, ProdReduction<uint32_t>) \
+      __op__(LEGION_REDOP_PROD_UINT64, ProdReduction<uint64_t>) \
+      __op__(LEGION_REDOP_PROD_FLOAT32, ProdReduction<float>) \
+      __op__(LEGION_REDOP_PROD_FLOAT64, ProdReduction<double>) \
+      /* Divide Reductions */ \
+      __op__(LEGION_REDOP_DIV_INT8, DivReduction<int8_t>) \
+      __op__(LEGION_REDOP_DIV_INT16, DivReduction<int16_t>) \
+      __op__(LEGION_REDOP_DIV_INT32, DivReduction<int32_t>) \
+      __op__(LEGION_REDOP_DIV_INT64, DivReduction<int64_t>) \
+      __op__(LEGION_REDOP_DIV_UINT8, DivReduction<uint8_t>) \
+      __op__(LEGION_REDOP_DIV_UINT16, DivReduction<uint16_t>) \
+      __op__(LEGION_REDOP_DIV_UINT32, DivReduction<uint32_t>) \
+      __op__(LEGION_REDOP_DIV_UINT64, DivReduction<uint64_t>) \
+      __op__(LEGION_REDOP_DIV_FLOAT32, DivReduction<float>) \
+      __op__(LEGION_REDOP_DIV_FLOAT64, DivReduction<double>) \
+      /* Max Reductions */ \
+      __op__(LEGION_REDOP_MAX_BOOL, MaxReduction<bool>) \
+      __op__(LEGION_REDOP_MAX_INT8, MaxReduction<int8_t>) \
+      __op__(LEGION_REDOP_MAX_INT16, MaxReduction<int16_t>) \
+      __op__(LEGION_REDOP_MAX_INT32, MaxReduction<int32_t>) \
+      __op__(LEGION_REDOP_MAX_INT64, MaxReduction<int64_t>) \
+      __op__(LEGION_REDOP_MAX_UINT8, MaxReduction<uint8_t>) \
+      __op__(LEGION_REDOP_MAX_UINT16, MaxReduction<uint16_t>) \
+      __op__(LEGION_REDOP_MAX_UINT32, MaxReduction<uint32_t>) \
+      __op__(LEGION_REDOP_MAX_UINT64, MaxReduction<uint64_t>) \
+      __op__(LEGION_REDOP_MAX_FLOAT32, MaxReduction<float>) \
+      __op__(LEGION_REDOP_MAX_FLOAT64, MaxReduction<double>) \
+      /* Min Reductions */ \
+      __op__(LEGION_REDOP_MIN_BOOL, MinReduction<bool>) \
+      __op__(LEGION_REDOP_MIN_INT8, MinReduction<int8_t>) \
+      __op__(LEGION_REDOP_MIN_INT16, MinReduction<int16_t>) \
+      __op__(LEGION_REDOP_MIN_INT32, MinReduction<int32_t>) \
+      __op__(LEGION_REDOP_MIN_INT64, MinReduction<int64_t>) \
+      __op__(LEGION_REDOP_MIN_UINT8, MinReduction<uint8_t>) \
+      __op__(LEGION_REDOP_MIN_UINT16, MinReduction<uint16_t>) \
+      __op__(LEGION_REDOP_MIN_UINT32, MinReduction<uint32_t>) \
+      __op__(LEGION_REDOP_MIN_UINT64, MinReduction<uint64_t>) \
+      __op__(LEGION_REDOP_MIN_FLOAT32, MinReduction<float>) \
+      __op__(LEGION_REDOP_MIN_FLOAT64, MinReduction<double>) \
+      /* Bitwise-OR Reductions */ \
+      __op__(LEGION_REDOP_OR_BOOL, SumReduction<bool>) \
+      __op__(LEGION_REDOP_OR_INT8, OrReduction<int8_t>) \
+      __op__(LEGION_REDOP_OR_INT16, OrReduction<int16_t>) \
+      __op__(LEGION_REDOP_OR_INT32, OrReduction<int32_t>) \
+      __op__(LEGION_REDOP_OR_INT64, OrReduction<int64_t>) \
+      __op__(LEGION_REDOP_OR_UINT8, OrReduction<uint8_t>) \
+      __op__(LEGION_REDOP_OR_UINT16, OrReduction<uint16_t>) \
+      __op__(LEGION_REDOP_OR_UINT32, OrReduction<uint32_t>) \
+      __op__(LEGION_REDOP_OR_UINT64, OrReduction<uint64_t>) \
+      /* Bitwise-AND Reductions */ \
+      __op__(LEGION_REDOP_AND_BOOL, ProdReduction<bool>) \
+      __op__(LEGION_REDOP_AND_INT8, AndReduction<int8_t>) \
+      __op__(LEGION_REDOP_AND_INT16, AndReduction<int16_t>) \
+      __op__(LEGION_REDOP_AND_INT32, AndReduction<int32_t>) \
+      __op__(LEGION_REDOP_AND_INT64, AndReduction<int64_t>) \
+      __op__(LEGION_REDOP_AND_UINT8, AndReduction<uint8_t>) \
+      __op__(LEGION_REDOP_AND_UINT16, AndReduction<uint16_t>) \
+      __op__(LEGION_REDOP_AND_UINT32, AndReduction<uint32_t>) \
+      __op__(LEGION_REDOP_AND_UINT64, AndReduction<uint64_t>) \
+      /* Bitwise-XOR Reductions */ \
+      __op__(LEGION_REDOP_XOR_BOOL, XorReduction<bool>) \
+      __op__(LEGION_REDOP_XOR_INT8, XorReduction<int8_t>) \
+      __op__(LEGION_REDOP_XOR_INT16, XorReduction<int16_t>) \
+      __op__(LEGION_REDOP_XOR_INT32, XorReduction<int32_t>) \
+      __op__(LEGION_REDOP_XOR_INT64, XorReduction<int64_t>) \
+      __op__(LEGION_REDOP_XOR_UINT8, XorReduction<uint8_t>) \
+      __op__(LEGION_REDOP_XOR_UINT16, XorReduction<uint16_t>) \
+      __op__(LEGION_REDOP_XOR_UINT32, XorReduction<uint32_t>) \
+      __op__(LEGION_REDOP_XOR_UINT64, XorReduction<uint64_t>)
 
 #ifdef LEGION_REDOP_HALF
-#define LEGION_REDOP_LIST_HALF(__op__)                                   \
-  __op__(LEGION_REDOP_SUM_FLOAT16, SumReduction<__half>)                 \
-      __op__(LEGION_REDOP_DIFF_FLOAT16, DiffReduction<__half>)           \
-          __op__(LEGION_REDOP_PROD_FLOAT16, ProdReduction<__half>)       \
-              __op__(LEGION_REDOP_DIV_FLOAT16, DivReduction<__half>)     \
-                  __op__(LEGION_REDOP_MAX_FLOAT16, MaxReduction<__half>) \
-                      __op__(LEGION_REDOP_MIN_FLOAT16, MinReduction<__half>)
+  #define LEGION_REDOP_LIST_HALF(__op__)    \
+      __op__(LEGION_REDOP_SUM_FLOAT16, SumReduction<__half>) \
+      __op__(LEGION_REDOP_DIFF_FLOAT16, DiffReduction<__half>) \
+      __op__(LEGION_REDOP_PROD_FLOAT16, ProdReduction<__half>) \
+      __op__(LEGION_REDOP_DIV_FLOAT16, DivReduction<__half>) \
+      __op__(LEGION_REDOP_MAX_FLOAT16, MaxReduction<__half>) \
+      __op__(LEGION_REDOP_MIN_FLOAT16, MinReduction<__half>)
 #else
-#define LEGION_REDOP_LIST_HALF(__op__)
+  #define LEGION_REDOP_LIST_HALF(__op__)
 #endif
 #ifdef LEGION_REDOP_COMPLEX
-#define LEGION_REDOP_LIST_COMPLEX(__op__)                                   \
-  __op__(LEGION_REDOP_SUM_COMPLEX64, SumReduction<complex<float> >) __op__( \
-      LEGION_REDOP_DIFF_COMPLEX64, DiffReduction<complex<float> >)          \
-      __op__(LEGION_REDOP_PROD_COMPLEX64, ProdReduction<complex<float> >)   \
-          __op__(LEGION_REDOP_DIV_COMPLEX64, DivReduction<complex<float> >) \
-              __op__(                                                       \
-                  LEGION_REDOP_SUM_COMPLEX128, SumReduction<complex<double> >)
+  #define LEGION_REDOP_LIST_COMPLEX(__op__) \
+      __op__(LEGION_REDOP_SUM_COMPLEX64, SumReduction<complex<float> >) \
+      __op__(LEGION_REDOP_DIFF_COMPLEX64, DiffReduction<complex<float> >) \
+      __op__(LEGION_REDOP_PROD_COMPLEX64, ProdReduction<complex<float> >) \
+      __op__(LEGION_REDOP_DIV_COMPLEX64, DivReduction<complex<float> >) \
+      __op__(LEGION_REDOP_SUM_COMPLEX128, SumReduction<complex<double> >)
 
-#ifdef LEGION_REDOP_HALF
-#define LEGION_REDOP_LIST_HALF_COMPLEX(__op__)                               \
-  __op__(LEGION_REDOP_SUM_COMPLEX32, SumReduction<complex<__half> >) __op__( \
-      LEGION_REDOP_DIFF_COMPLEX32, DiffReduction<complex<__half> >)          \
-      __op__(LEGION_REDOP_PROD_COMPLEX32, ProdReduction<complex<__half> >)   \
-          __op__(LEGION_REDOP_DIV_COMPLEX32, DivReduction<complex<__half> >)
+  #ifdef LEGION_REDOP_HALF
+    #define LEGION_REDOP_LIST_HALF_COMPLEX(__op__)    \
+      __op__(LEGION_REDOP_SUM_COMPLEX32, SumReduction<complex<__half> >) \
+      __op__(LEGION_REDOP_DIFF_COMPLEX32, DiffReduction<complex<__half> >) \
+      __op__(LEGION_REDOP_PROD_COMPLEX32, ProdReduction<complex<__half> >) \
+      __op__(LEGION_REDOP_DIV_COMPLEX32, DivReduction<complex<__half> >)
+  #else
+    #define LEGION_REDOP_LIST_HALF_COMPLEX(__op__)
+  #endif
 #else
-#define LEGION_REDOP_LIST_HALF_COMPLEX(__op__)
-#endif
-#else
-#define LEGION_REDOP_LIST_COMPLEX(__op__)
-#define LEGION_REDOP_LIST_HALF_COMPLEX(__op__)
+  #define LEGION_REDOP_LIST_COMPLEX(__op__)
+  #define LEGION_REDOP_LIST_HALF_COMPLEX(__op__)
 #endif
 
 #define LEGION_REDOP_LIST(__op__)   \
@@ -1848,6 +1822,8 @@ namespace Legion {
   LEGION_REDOP_LIST_HALF(__op__)    \
   LEGION_REDOP_LIST_COMPLEX(__op__) \
   LEGION_REDOP_LIST_HALF_COMPLEX(__op__)
+
+  // clang-format on
 
 }  // namespace Legion
 

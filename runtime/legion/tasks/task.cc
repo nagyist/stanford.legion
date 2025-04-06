@@ -1601,7 +1601,8 @@ namespace Legion {
       VariantID result = runtime->address_space;
       if (result == 0)  // Never use VariantID 0
         result = runtime->runtime_stride;
-      for (; result <= (UINT_MAX - runtime->runtime_stride);
+      for (; result <=
+             (std::numeric_limits<unsigned>::max() - runtime->runtime_stride);
            result += runtime->runtime_stride)
       {
         if (variants.find(result) != variants.end())

@@ -532,7 +532,7 @@ namespace Legion {
       bool set_realm_index_space(
           const Realm::IndexSpace<DIM, T>& value, ApEvent valid,
           bool initialization = false, bool broadcast = false,
-          AddressSpaceID source = UINT_MAX);
+          AddressSpaceID source = std::numeric_limits<AddressSpaceID>::max());
       RtEvent get_realm_index_space_ready(bool need_tight_result);
     public:
       virtual bool is_sparse(void);

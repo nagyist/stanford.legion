@@ -246,7 +246,7 @@ namespace Legion {
       InnerContext* parent_ctx = op->get_context();
       // Legion prof uses ULLONG_MAX to represent the unique IDs of the root
       inst.parent_id = (parent_ctx->get_depth() < 0) ?
-                           ULLONG_MAX :
+                           std::numeric_limits<UniqueID>::max() :
                            parent_ctx->get_unique_id();
       inst.kind = op->get_operation_kind();
       Provenance* prov = op->get_provenance();

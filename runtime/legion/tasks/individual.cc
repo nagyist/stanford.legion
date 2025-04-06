@@ -1213,7 +1213,7 @@ namespace Legion {
       IndividualTask::activate();
       owner_shard = 0;
       launch_space = nullptr;
-      sharding_functor = UINT_MAX;
+      sharding_functor = std::numeric_limits<ShardingID>::max();
       sharding_function = nullptr;
       output_bar = RtBarrier::NO_RT_BARRIER;
       sharding_collective = nullptr;
@@ -1247,7 +1247,7 @@ namespace Legion {
         Mapper::SelectShardingFunctorOutput output = {
             std::numeric_limits<ShardingID>::max(), true};
         mapper->invoke_task_select_sharding_functor(this, *input, output);
-        if (output.chosen_functor == UINT_MAX)
+        if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
           REPORT_LEGION_ERROR(
               ERROR_INVALID_MAPPER_OUTPUT,
               "Mapper %s failed to pick a valid sharding functor for "

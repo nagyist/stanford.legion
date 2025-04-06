@@ -1393,7 +1393,8 @@ namespace Legion {
       context_configuration.auto_tracing_window_size = 1000;
       context_configuration.auto_tracing_ruler_function = 100;
       context_configuration.auto_tracing_min_trace_length = 5;
-      context_configuration.auto_tracing_max_trace_length = UINT_MAX;
+      context_configuration.auto_tracing_max_trace_length =
+          std::numeric_limits<unsigned>::max();
       context_configuration.auto_tracing_visit_threshold = 10;
       if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);

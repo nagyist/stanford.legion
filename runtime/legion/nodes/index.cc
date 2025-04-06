@@ -231,7 +231,9 @@ namespace Legion {
         IndexSpaceExprID exp_id, RtEvent init, unsigned dep, Provenance* prov,
         CollectiveMapping* map, bool tree_valid)
       : IndexTreeNode(
-            (dep == UINT_MAX) ? ((par == nullptr) ? 0 : par->depth + 1) : dep,
+            (dep == std::numeric_limits<unsigned>::max()) ?
+                ((par == nullptr) ? 0 : par->depth + 1) :
+                dep,
             c, h.did, init, map, prov, tree_valid),
         IndexSpaceExpression(
             h.type_tag,

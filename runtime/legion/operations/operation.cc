@@ -1980,7 +1980,7 @@ namespace Legion {
       LogicalUser* user = new LogicalUser(
           this, idx, RegionUsage(req), shard_proj,
           (get_must_epoch_op() == nullptr) ?
-              UINT_MAX :
+              std::numeric_limits<unsigned>::max() :
               get_must_epoch_op()->find_operation_index(
                   this, get_generation()));
       user->add_reference();

@@ -4454,7 +4454,8 @@ namespace Legion {
           // than the upper bound rectangle that we already have
           if ((logn_children > 1) &&
               child_space.compute_covering(
-                  logn_children, INT_MAX /*overhead*/, covering))
+                  logn_children, std::numeric_limits<int>::max() /*overhead*/,
+                  covering))
           {
             for (typename std::vector<Rect<DIM, T> >::const_iterator cit =
                      covering.begin();

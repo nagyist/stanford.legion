@@ -3021,7 +3021,7 @@ namespace Legion {
       unsigned instance_index = 0;
       if (src_inst_did > 0)
       {
-        instance_index = UINT_MAX;
+        instance_index = std::numeric_limits<unsigned>::max();
         for (unsigned idx = 0; idx < local_views.size(); idx++)
         {
           PhysicalManager* manager = local_views[idx]->get_manager();
@@ -3030,7 +3030,7 @@ namespace Legion {
           instance_index = idx;
           break;
         }
-        legion_assert(instance_index != UINT_MAX);
+        legion_assert(instance_index != std::numeric_limits<unsigned>::max());
       }
       else if (instances.size() > 1)
       {
@@ -3619,7 +3619,8 @@ namespace Legion {
           if (idx == root_index)
             first_in_memory[memory] = root_index;
           else
-            first_in_memory[memory] = UINT_MAX;  // not set yet
+            first_in_memory[memory] =
+                std::numeric_limits<unsigned>::max();  // not set yet
         }
       }
       legion_assert(first_in_memory.size() > 1);  // should be multiple memories
@@ -3647,7 +3648,8 @@ namespace Legion {
       // We represent the spanning tree using a vector that maps each node
       // to it's "parent" node (e.g. the one that produces it) in the
       // spanning tree (the root has no parent)
-      std::vector<unsigned> previous(total_memories, UINT_MAX);
+      std::vector<unsigned> previous(
+          total_memories, std::numeric_limits<unsigned>::max());
       if (same_bandwidth)
         compute_spanning_tree_same_bandwidth(
             root_memory_index, adjacency_matrix, previous, first_in_memory);
@@ -3661,7 +3663,8 @@ namespace Legion {
       std::vector<std::pair<unsigned, bool> > dfs_stack;
       dfs_stack.emplace_back(
           std::pair<unsigned, bool>(root_memory_index, true));
-      std::vector<unsigned> max_subtree_depth(total_memories, UINT_MAX);
+      std::vector<unsigned> max_subtree_depth(
+          total_memories, std::numeric_limits<unsigned>::max());
       while (!dfs_stack.empty())
       {
         std::pair<unsigned, bool>& next = dfs_stack.back();
@@ -3686,7 +3689,9 @@ namespace Legion {
           {
             if (previous[child] != next.first)
               continue;
-            legion_assert(max_subtree_depth[child] != UINT_MAX);
+            legion_assert(
+                max_subtree_depth[child] !=
+                std::numeric_limits<unsigned>::max());
             unsigned depth = max_subtree_depth[child] + 1;
             if (max_depth < depth)
               max_depth = depth;
@@ -3715,7 +3720,7 @@ namespace Legion {
         {
           if (previous[child] != next.first)
             continue;
-          legion_assert(it->second != UINT_MAX);
+          legion_assert(it->second != std::numeric_limits<unsigned>::max());
           child_depths.emplace_back(
               std::make_pair(max_subtree_depth[child], it->second));
           // Add the child to the queue to traverse next
@@ -3792,19 +3797,21 @@ namespace Legion {
             continue;
           legion_assert(count == 1);
           legion_assert(affinity.front().bandwidth > 0);
-          legion_assert(affinity.front().bandwidth < UINT_MAX);
+          legion_assert(
+              affinity.front().bandwidth <
+              std::numeric_limits<unsigned>::max());
           unsigned bandwidth = affinity.front().bandwidth;
           float cost = 1.f / bandwidth;
           // Assume symmetric bandwidth here
           adjacency_matrix[row * total_memories + col] = cost;
           adjacency_matrix[col * total_memories + row] = cost;
           // Keep track of whether we are the same bandwidth everywhere
-          if (same_bandwidth != UINT_MAX)
+          if (same_bandwidth != std::numeric_limits<unsigned>::max())
           {
             if (same_bandwidth == 0)  // First time we've seen any bandwidth
               same_bandwidth = bandwidth;
             else if (same_bandwidth != bandwidth)  // Check if they are the same
-              same_bandwidth = UINT_MAX;
+              same_bandwidth = std::numeric_limits<unsigned>::max();
           }
         }
       }
@@ -3846,10 +3853,10 @@ namespace Legion {
           // They will all have the same bandwidth in this case
           same_bandwidth = 1;
         }
-        else if (same_bandwidth != UINT_MAX)
+        else if (same_bandwidth != std::numeric_limits<unsigned>::max())
         {
           // No longer true that they all have the same bandwidth
-          same_bandwidth = UINT_MAX;
+          same_bandwidth = std::numeric_limits<unsigned>::max();
         }
         // Go through and add in multi-hop copy edges with cost 2
         for (unsigned row = 0; row < total_memories; row++)
@@ -3866,7 +3873,7 @@ namespace Legion {
         }
       }
       legion_assert(same_bandwidth != 0);
-      return (same_bandwidth != UINT_MAX);
+      return (same_bandwidth != std::numeric_limits<unsigned>::max());
     }
 
     //--------------------------------------------------------------------------
@@ -3893,7 +3900,7 @@ namespace Legion {
           if ((child == next.first) || (child == root_index))
             continue;
           // Check to see if the next child is already reached
-          if (previous[child] != UINT_MAX)
+          if (previous[child] != std::numeric_limits<unsigned>::max())
             continue;
           // Check to see if we have an edge to the next child
           if (adjacency_matrix[next.first * total_memories + child] < 0.f)
@@ -3901,7 +3908,7 @@ namespace Legion {
           // Find the first local view in this memory
           std::map<Memory, unsigned>::iterator finder = first_in_memory.begin();
           std::advance(finder, child);
-          legion_assert(finder->second == UINT_MAX);
+          legion_assert(finder->second == std::numeric_limits<unsigned>::max());
           for (unsigned idx = 0; idx < local_views.size(); idx++)
           {
             if (local_views[idx]->get_manager()->memory_manager->memory !=
@@ -3910,7 +3917,7 @@ namespace Legion {
             finder->second = idx;
             break;
           }
-          legion_assert(finder->second != UINT_MAX);
+          legion_assert(finder->second != std::numeric_limits<unsigned>::max());
           // Record it in the spanning
           previous[child] = next.first;
           // Add it the child to list to search
@@ -3948,14 +3955,14 @@ namespace Legion {
         // hasn't been traversed with the lowest cost to get to
         unsigned total_children = 0;
         float lowest_cost = -1.f;
-        unsigned lowest_child = UINT_MAX;
+        unsigned lowest_child = std::numeric_limits<unsigned>::max();
         for (unsigned child = 0; child < total_memories; child++)
         {
           // Skip going to ourself or back to the root
           if ((child == next) || (child == root_index))
             continue;
           // Check to see if the next child is already reached
-          if (previous[child] != UINT_MAX)
+          if (previous[child] != std::numeric_limits<unsigned>::max())
             continue;
           // Check to see if we have an edge to the next child
           float cost = adjacency_matrix[next * total_memories + child];
@@ -3976,7 +3983,7 @@ namespace Legion {
           // Find the first local view in this memory
           std::map<Memory, unsigned>::iterator finder = first_in_memory.begin();
           std::advance(finder, lowest_child);
-          legion_assert(finder->second == UINT_MAX);
+          legion_assert(finder->second == std::numeric_limits<unsigned>::max());
           for (unsigned idx = 0; idx < local_views.size(); idx++)
           {
             if (local_views[idx]->get_manager()->memory_manager->memory !=
@@ -3985,8 +3992,9 @@ namespace Legion {
             finder->second = idx;
             break;
           }
-          legion_assert(finder->second != UINT_MAX);
-          legion_assert(previous[lowest_child] == UINT_MAX);
+          legion_assert(finder->second != std::numeric_limits<unsigned>::max());
+          legion_assert(
+              previous[lowest_child] == std::numeric_limits<unsigned>::max());
           // Record it in the spanning
           previous[lowest_child] = next;
           // Add the child to list to search

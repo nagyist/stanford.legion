@@ -1856,7 +1856,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       MustEpochOp::activate();
-      sharding_functor = UINT_MAX;
+      sharding_functor = std::numeric_limits<ShardingID>::max();
       sharding_function = nullptr;
       mapping_collective_id = 0;
       collective_map_must_epoch_call = false;
@@ -2243,7 +2243,7 @@ namespace Legion {
       Mapper::SelectShardingFunctorInput sharding_input;
       sharding_input.shard_mapping = repl_ctx->shard_manager->shard_mapping;
       Mapper::MustEpochShardingFunctorOutput sharding_output;
-      sharding_output.chosen_functor = UINT_MAX;
+      sharding_output.chosen_functor = std::numeric_limits<ShardingID>::max();
       sharding_output.collective_map_must_epoch_call = false;
       mapper->invoke_must_epoch_select_sharding_functor(
           this, sharding_input, sharding_output);
@@ -2251,7 +2251,8 @@ namespace Legion {
       individual_tasks.clear();
       index_space_tasks.clear();
       // Check that we have a sharding ID
-      if (sharding_output.chosen_functor == UINT_MAX)
+      if (sharding_output.chosen_functor ==
+          std::numeric_limits<ShardingID>::max())
         REPORT_LEGION_ERROR(
             ERROR_INVALID_MAPPER_OUTPUT,
             "Invalid mapper output from invocation of "

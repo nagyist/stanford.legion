@@ -17697,7 +17697,8 @@ namespace Legion {
       VariantID result = runtime->address_space;
       if (result == 0)  // Never use VariantID 0
         result = runtime->runtime_stride;
-      for (; result <= (UINT_MAX - runtime->runtime_stride);
+      for (; result <=
+             (std::numeric_limits<unsinged>::max() - runtime->runtime_stride);
            result += runtime->runtime_stride)
       {
         if (variants.find(result) != variants.end())
@@ -24078,10 +24079,11 @@ namespace Legion {
         bool silence_warnings, const char* warning_string, bool preregistered)
     //--------------------------------------------------------------------------
     {
-      if (sid == UINT_MAX)
+      if (sid == std::numeric_limits<ShardingID>::max())
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_SHARDING_ID,
-            "ERROR: %d (UINT_MAX) is a reserved sharding ID.", UINT_MAX)
+            "ERROR: %d (UINT_MAX) is a reserved sharding ID.",
+            std::numeric_limits<ShardingID>::max())
       else if (need_zero_check && (sid == 0))
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_SHARDING_ID, "ERROR: ShardingID zero is reserved.")
@@ -24128,10 +24130,11 @@ namespace Legion {
             ERROR_STATIC_CALL_POST_RUNTIME_START,
             "Illegal call to 'preregister_sharding_functor' after "
             "the runtime has started!");
-      if (sid == UINT_MAX)
+      if (sid == std::numeric_limits<ShardingID>::max())
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_SHARDING_ID,
-            "ERROR: %d (UINT_MAX) is a reserved sharding ID.", UINT_MAX)
+            "ERROR: %d (UINT_MAX) is a reserved sharding ID.",
+            std::numeric_limits<ShardingID>::max())
       else if (sid == 0)
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_SHARDING_ID, "ERROR: ShardingID zero is reserved.")
@@ -24346,10 +24349,11 @@ namespace Legion {
         bool preregistered)
     //--------------------------------------------------------------------------
     {
-      if (cid == UINT_MAX)
+      if (cid == std::numeric_limits<ConcurrentID>::max())
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_CONCURRENT_ID,
-            "ERROR: %d (UINT_MAX) is a reserved concurrent ID.", UINT_MAX)
+            "ERROR: %d (UINT_MAX) is a reserved concurrent ID.",
+            std::numeric_limit<ConcurrentID>::max())
       else if (need_zero_check && (cid == 0))
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_CONCURRENT_ID,
@@ -24397,10 +24401,11 @@ namespace Legion {
             ERROR_STATIC_CALL_POST_RUNTIME_START,
             "Illegal call to 'preregister_concurrent_colorin_functor'"
             " after the runtime has started!");
-      if (cid == UINT_MAX)
+      if (cid == std::numeric_limits<ConcurrentID>::max())
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_CONCURRENT_ID,
-            "ERROR: %d (UINT_MAX) is a reserved concurrent ID.", UINT_MAX)
+            "ERROR: %d (UINT_MAX) is a reserved concurrent ID.",
+            std::numeric_limits<ConcurrentID>::max())
       else if (cid == 0)
         REPORT_LEGION_ERROR(
             ERROR_RESERVED_CONCURRENT_ID,

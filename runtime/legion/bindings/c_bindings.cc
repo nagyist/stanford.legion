@@ -776,7 +776,7 @@ legion_index_partition_t legion_index_partition_create_coloring(
   Coloring* coloring = CObjectWrapper::unwrap(coloring_);
 
   std::map<DomainPoint, Domain> domains;
-  Color lower_bound = UINT_MAX, upper_bound = 0;
+  Color lower_bound = std::numeric_limits<Color>::max(), upper_bound = 0;
   for (Coloring::const_iterator cit = coloring->begin(); cit != coloring->end();
        cit++)
   {

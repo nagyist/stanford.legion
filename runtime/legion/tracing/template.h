@@ -524,7 +524,7 @@ namespace Legion {
       mutable LocalLock template_lock;
       const unsigned fence_completion_id;
     protected:
-      static constexpr unsigned NO_INDEX = UINT_MAX;
+      static constexpr unsigned NO_INDEX = std::numeric_limits<unsigned>::max();
     protected:
       std::map<TraceLocalID, MemoizableOp*> operations;
       // Pair in memo_entries is <entry index, Operation::Kind>

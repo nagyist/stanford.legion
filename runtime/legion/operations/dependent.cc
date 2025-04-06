@@ -1885,7 +1885,7 @@ namespace Legion {
       Mapper::SelectShardingFunctorOutput output = {
           std::numeric_limits<ShardingID>::max(), true};
       mapper->invoke_partition_select_sharding_functor(this, *input, output);
-      if (output.chosen_functor == UINT_MAX)
+      if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
         REPORT_LEGION_ERROR(
             ERROR_INVALID_MAPPER_OUTPUT,
             "Mapper %s failed to pick a valid sharding functor for "
