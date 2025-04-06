@@ -3096,7 +3096,7 @@ namespace Legion {
     {
       legion_assert(!held);
       legion_assert(Internal::local_lock_list == previous);
-#ifdef DEBUG_REENTRANT_LOCKS
+#ifdef LEGION_DEBUG_REENTRANT_LOCKS
       if (previous != nullptr)
         previous->check_for_reentrant_locks(&local_lock);
 #endif

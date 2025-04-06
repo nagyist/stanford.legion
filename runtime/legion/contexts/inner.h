@@ -862,7 +862,7 @@ namespace Legion {
       void decrement_frame(void);
       void finish_frame(FrameOp* frame);
     public:
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       virtual MergeCloseOp* get_merge_close_op(
           Operation* op, RegionTreeNode* node);
       virtual RefinementOp* get_refinement_op(

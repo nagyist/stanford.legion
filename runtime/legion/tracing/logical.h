@@ -62,12 +62,12 @@ namespace Legion {
       public:
         CloseInfo(
             MergeCloseOp* op, unsigned idx,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
             RegionTreeNode* n,
 #endif
             const RegionRequirement& r)
           : close_op(op), requirement(r), creator_idx(idx)
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
             ,
             node(n)
 #endif
@@ -78,7 +78,7 @@ namespace Legion {
         ctx::vector<DependenceRecord> dependences;
         FieldMask close_mask;
         unsigned creator_idx;
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         RegionTreeNode* node;
 #endif
       };
@@ -169,7 +169,7 @@ namespace Legion {
       void register_internal(InternalOp* op);
       void register_close(
           MergeCloseOp* op, unsigned creator_idx,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
           RegionTreeNode* node,
 #endif
           const RegionRequirement& req);

@@ -1302,7 +1302,7 @@ namespace Legion {
         pending.insert(it->first, refinement_mask);
         return;
       }
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       RefinementOp* refinement_op =
           context->get_refinement_op(op, refinement_node);
 #else
@@ -1339,7 +1339,7 @@ namespace Legion {
           req = RegionRequirement(
               path_node->as_partition_node()->handle, 0, LEGION_READ_WRITE,
               LEGION_EXCLUSIVE, parent);
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         MergeCloseOp* close_op = context->get_merge_close_op(op, path_node);
 #else
         MergeCloseOp* close_op = context->get_merge_close_op();

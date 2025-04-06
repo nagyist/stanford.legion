@@ -778,7 +778,7 @@ namespace Legion {
       // them in case we didn't end up running
       runtime->increment_total_outstanding_tasks(
           MispredicationTaskArgs::TASK_ID, true /*meta*/);
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
       runtime->outstanding_counts[MispredicationTaskArgs::TASK_ID].fetch_add(1);
 #endif
       if (!elide_future_return)

@@ -317,7 +317,7 @@ namespace Legion {
         for (ctx::vector<CloseInfo>::const_iterator cit = info.closes.begin();
              cit != info.closes.end(); cit++)
         {
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
           MergeCloseOp* close_op = context->get_merge_close_op(op, cit->node);
 #else
           MergeCloseOp* close_op = context->get_merge_close_op();
@@ -364,7 +364,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void LogicalTrace::register_close(
         MergeCloseOp* op, unsigned creator_idx,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         RegionTreeNode* node,
 #endif
         const RegionRequirement& req)
@@ -379,7 +379,7 @@ namespace Legion {
       OperationInfo& info = replay_info.back();
       info.closes.emplace_back(CloseInfo(
           op, creator_idx,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
           node,
 #endif
           req));
@@ -889,7 +889,7 @@ namespace Legion {
           RegionRequirement req(
               root_region, LEGION_READ_WRITE, LEGION_EXCLUSIVE, root_region);
           req.privilege_fields = it->dependent_fields;
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
           MergeCloseOp* close_op =
               context->get_merge_close_op(op, runtime->get_node(root_region));
 #else
@@ -899,7 +899,7 @@ namespace Legion {
           close_op->update_close_mask(mask);
           register_close(
               close_op, it->current_req_index,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
               runtime->get_node(root_region),
 #endif
               req);

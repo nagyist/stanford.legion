@@ -1069,7 +1069,7 @@ namespace Legion {
     // delayed and batched together.
     inline thread_local ImplicitReferenceTracker* implicit_reference_tracker =
         nullptr;
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
     thread_local LgTaskID implicit_task_kind;
     thread_local LgTaskID implicit_task_caller;
 #endif
@@ -1094,7 +1094,7 @@ namespace Legion {
       inline AutoLock(LocalLock& r, int mode = 0, bool excl = true)
         : local_lock(r), previous(local_lock_list), exclusive(excl), held(true)
       {
-#ifdef DEBUG_REENTRANT_LOCKS
+#ifdef LEGION_DEBUG_REENTRANT_LOCKS
         if (previous != nullptr)
           previous->check_for_reentrant_locks(&local_lock);
 #endif
@@ -1123,7 +1123,7 @@ namespace Legion {
       inline AutoLock(int mode, bool excl, LocalLock& r)
         : local_lock(r), previous(local_lock_list), exclusive(excl), held(false)
       {
-#ifdef DEBUG_REENTRANT_LOCKS
+#ifdef LEGION_DEBUG_REENTRANT_LOCKS
         if (previous != nullptr)
           previous->check_for_reentrant_locks(&local_lock);
 #endif
@@ -1158,7 +1158,7 @@ namespace Legion {
       {
         legion_assert(!held);
         legion_assert(local_lock_list == previous);
-#ifdef DEBUG_REENTRANT_LOCKS
+#ifdef LEGION_DEBUG_REENTRANT_LOCKS
         if (previous != nullptr)
           previous->check_for_reentrant_locks(&local_lock);
 #endif
@@ -1198,7 +1198,7 @@ namespace Legion {
         if (previous != nullptr)
           previous->advise_sleep_exit();
       }
-#ifdef DEBUG_REENTRANT_LOCKS
+#ifdef LEGION_DEBUG_REENTRANT_LOCKS
       inline void check_for_reentrant_locks(LocalLock* to_acquire) const
       {
         legion_assert(to_acquire != &local_lock);
@@ -1244,7 +1244,7 @@ namespace Legion {
     {
       if (!exists())
         return;
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       LgTaskID local_kind = implicit_task_kind;
       LgTaskID local_caller = implicit_task_caller;
 #endif
@@ -1340,7 +1340,7 @@ namespace Legion {
       implicit_provenance = local_provenance;
       // Restore the local profiler
       implicit_profiler = local_profiler;
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       implicit_task_kind = local_kind;
       implicit_task_caller = local_caller;
 #endif
@@ -1359,7 +1359,7 @@ namespace Legion {
         return;
       if (has_triggered_faultaware(poisoned))
         return;
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       LgTaskID local_kind = implicit_task_kind;
       LgTaskID local_caller = implicit_task_caller;
 #endif
@@ -1455,7 +1455,7 @@ namespace Legion {
       implicit_provenance = local_provenance;
       // Restore the local profiler
       implicit_profiler = local_profiler;
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       implicit_task_kind = local_kind;
       implicit_task_caller = local_caller;
 #endif

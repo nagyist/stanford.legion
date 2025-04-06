@@ -74,7 +74,7 @@ namespace Legion {
       virtual void pack_valid_ref(void) = 0;
       virtual void unpack_valid_ref(void) = 0;
     protected:
-#ifndef DEBUG_LEGION_GC
+#ifndef LEGION_DEBUG_GC
       void add_valid_reference(int cnt);
       bool remove_valid_reference(int cnt);
 #else
@@ -103,12 +103,12 @@ namespace Legion {
     protected:
       mutable LocalLock view_lock;
     protected:
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       int valid_references;
 #else
       std::atomic<int> valid_references;
 #endif
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     protected:
       std::map<ReferenceSource, int> detailed_base_valid_references;
       std::map<DistributedID, int> detailed_nested_valid_references;

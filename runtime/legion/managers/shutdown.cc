@@ -107,7 +107,7 @@ namespace Legion {
       // Do our local check
       runtime->confirm_runtime_shutdown(
           this, (phase == CHECK_TERMINATION) || (phase == CHECK_SHUTDOWN));
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
       if (!result)
       {
         LG_TASK_DESCRIPTIONS(task_descs);

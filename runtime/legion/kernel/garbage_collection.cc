@@ -110,14 +110,14 @@ namespace Legion {
       // Promote the current state back up if we had a pending downgrade
       if (current_state == PENDING_LOCAL_REF_STATE)
         current_state = GLOBAL_REF_STATE;
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       gc_references += cnt;
 #else
       gc_references.fetch_add(cnt);
 #endif
     }
 
-#ifndef DEBUG_LEGION_GC
+#ifndef LEGION_DEBUG_GC
     //--------------------------------------------------------------------------
     bool DistributedCollectable::remove_gc_reference(int cnt)
     //--------------------------------------------------------------------------
@@ -152,10 +152,10 @@ namespace Legion {
       else
         return false;
     }
-#endif  // not defined DEBUG_LEGION_GC
+#endif  // not defined LEGION_DEBUG_GC
 
     //--------------------------------------------------------------------------
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     template<typename T>
     bool DistributedCollectable::acquire_global(
         int cnt, T source, std::map<T, int>& detailed_gc_references)
@@ -171,7 +171,7 @@ namespace Legion {
         // added the references in which case we are done
         if (gc_references > 0)
         {
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
           gc_references += cnt;
           typename std::map<T, int>::iterator finder =
               detailed_gc_references.find(source);
@@ -195,7 +195,7 @@ namespace Legion {
               legion_assert(
                   (current_state != PENDING_GLOBAL_REF_STATE) ||
                   (downgrade_owner != local_space));
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
               gc_references += cnt;
               typename std::map<T, int>::iterator finder =
                   detailed_gc_references.find(source);
@@ -244,7 +244,7 @@ namespace Legion {
       ready.wait();
       if (result.load())
       {
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
         AutoLock gc(gc_lock);
         typename std::map<T, int>::iterator finder =
             detailed_gc_references.find(source);
@@ -259,7 +259,7 @@ namespace Legion {
         return false;
     }
 
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     template bool DistributedCollectable::acquire_global<ReferenceSource>(
         int, ReferenceSource, std::map<ReferenceSource, int>&);
     template bool DistributedCollectable::acquire_global<DistributedID>(
@@ -280,7 +280,7 @@ namespace Legion {
           if (source == local_space)
           {
             // If we're local we can add the references now
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
             gc_references += count;
 #else
             gc_references.fetch_add(count);
@@ -391,7 +391,7 @@ namespace Legion {
       Runtime::trigger_event(ready);
     }
 
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     //--------------------------------------------------------------------------
     void DistributedCollectable::add_base_gc_ref_internal(
         ReferenceSource source, int cnt)
@@ -535,7 +535,7 @@ namespace Legion {
       else
         return false;
     }
-#endif  // DEBUG_LEGION_GC
+#endif  // LEGION_DEBUG_GC
 
     //--------------------------------------------------------------------------
     bool DistributedCollectable::has_remote_instance(
@@ -830,7 +830,7 @@ namespace Legion {
       current_state = LOCAL_REF_STATE;
       // Add a resource reference here to prevent collection while we
       // release the lock to perform the callback
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       resource_references++;
 #else
       resource_references.fetch_add(1);
@@ -846,7 +846,7 @@ namespace Legion {
       gc.reacquire();
       legion_assert(resource_references > 0);
       // Remove the guard resource reference that we added before
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       if (--resource_references == 0)
 #else
       if (resource_references.fetch_sub(1) == 1)
@@ -1379,14 +1379,14 @@ namespace Legion {
       // Promote the current state back up if we had a pending downgrade
       if (current_state == PENDING_GLOBAL_REF_STATE)
         current_state = VALID_REF_STATE;
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       valid_references += cnt;
 #else
       valid_references.fetch_add(cnt);
 #endif
     }
 
-#ifndef DEBUG_LEGION_GC
+#ifndef LEGION_DEBUG_GC
     //--------------------------------------------------------------------------
     bool ValidDistributedCollectable::remove_valid_reference(int cnt)
     //--------------------------------------------------------------------------
@@ -1399,7 +1399,7 @@ namespace Legion {
       else
         return false;
     }
-#else  // ifndef DEBUG_LEGION_GC
+#else  // ifndef LEGION_DEBUG_GC
     //--------------------------------------------------------------------------
     void ValidDistributedCollectable::add_base_valid_ref_internal(
         ReferenceSource source, int cnt)
@@ -1474,7 +1474,7 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     template<typename T>
     bool ValidDistributedCollectable::acquire_valid(
         int cnt, T source, std::map<T, int>& detailed_valid_references)
@@ -1490,7 +1490,7 @@ namespace Legion {
         // added the references in which case we are done
         if (valid_references > 0)
         {
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
           valid_references += cnt;
           typename std::map<T, int>::iterator finder =
               detailed_valid_references.find(source);
@@ -1508,7 +1508,7 @@ namespace Legion {
           case VALID_REF_STATE:
             {
               // No downgrade in progress so we can just add the references
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
               valid_references += cnt;
               typename std::map<T, int>::iterator finder =
                   detailed_valid_references.find(source);
@@ -1559,7 +1559,7 @@ namespace Legion {
       ready.wait();
       if (result.load())
       {
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
         AutoLock gc(gc_lock);
         typename std::map<T, int>::iterator finder =
             detailed_valid_references.find(source);
@@ -1574,7 +1574,7 @@ namespace Legion {
         return false;
     }
 
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     template bool ValidDistributedCollectable::acquire_valid<ReferenceSource>(
         int, ReferenceSource, std::map<ReferenceSource, int>&);
     template bool ValidDistributedCollectable::acquire_valid<DistributedID>(
@@ -1595,7 +1595,7 @@ namespace Legion {
           if (source == local_space)
           {
             // If we're local we can add the references now
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
             valid_references += count;
 #else
             valid_references.fetch_add(count);
@@ -1784,7 +1784,7 @@ namespace Legion {
         current_state = GLOBAL_REF_STATE;
         // Add a gc reference here prevent downgrades from the global ref
         // state until we are done performing the callback
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
         gc_references++;
 #else
         gc_references.fetch_add(1);
@@ -1794,7 +1794,7 @@ namespace Legion {
         gc.reacquire();
         legion_assert(gc_references > 0);
         // Remove the guard reference that we added before
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
         if (--gc_references == 0)
 #else
         if (gc_references.fetch_sub(1) == 1)

@@ -80,7 +80,7 @@ namespace Legion {
     Realm::Logger log_spy("legion_spy");
     Realm::Logger log_registration("registration");
 
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
     thread_local LgTaskID implicit_task_kind = LG_SCHEDULER_ID;
     thread_local LgTaskID implicit_task_caller = LG_SCHEDULER_ID;
 #endif
@@ -469,7 +469,7 @@ namespace Legion {
         }
       }
 #endif
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
       outstanding_counts = std::vector<std::atomic<int> >(LG_LAST_TASK_ID);
       for (unsigned idx = 0; idx < outstanding_counts.size(); idx++)
         outstanding_counts[idx].store(0);
@@ -14520,10 +14520,10 @@ namespace Legion {
           Realm::Logger::REALM_LOGGING_MIN_LEVEL <= Realm::Logger::LEVEL_INFO,
           "Legion GC requires a COMPILE_TIME_MIN_LEVEL of at most LEVEL_INFO.");
 #endif
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
       static_assert(
           Realm::Logger::REALM_LOGGING_MIN_LEVEL <= Realm::Logger::LEVEL_INFO,
-          "DEBUG_SHUTDOWN_HANG requires a COMPILE_TIME_MIN_LEVEL "
+          "LEGION_DEBUG_SHUTDOWN_HANG requires a COMPILE_TIME_MIN_LEVEL "
           "of at most LEVEL_INFO.");
 #endif
       // Register builtin reduction operators
@@ -15614,7 +15614,7 @@ namespace Legion {
       red_table[BarrierArrivalReduction::REDOP] =
           Realm::ReductionOpUntyped::create_reduction_op<
               BarrierArrivalReduction>();
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       red_table[CollectiveCheckReduction::REDOP] =
           Realm::ReductionOpUntyped::create_reduction_op<
               CollectiveCheckReduction>();
@@ -16424,13 +16424,13 @@ namespace Legion {
       implicit_provenance = *((const UniqueID*)data);
       data += sizeof(implicit_provenance);
       arglen -= sizeof(implicit_provenance);
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       implicit_task_caller = *((const LgTaskID*)data);
       data += sizeof(implicit_task_caller);
       arglen -= sizeof(implicit_task_caller);
 #endif
       LgTaskID tid = *((const LgTaskID*)data);
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       implicit_task_kind = tid;
 #endif
       data += sizeof(tid);
@@ -16916,7 +16916,7 @@ namespace Legion {
       }
       if (tid < LG_BEGIN_SHUTDOWN_TASK_IDS)
         runtime->decrement_total_outstanding_tasks(tid, true /*meta*/);
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
       runtime->outstanding_counts[tid].fetch_sub(1);
 #endif
     }
@@ -17057,7 +17057,7 @@ namespace Legion {
       implicit_provenance = *((const UniqueID*)data);
       data += sizeof(implicit_provenance);
       arglen -= sizeof(implicit_provenance);
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       implicit_task_caller = *((const LgTaskID*)data);
       data += sizeof(implicit_task_caller);
       arglen -= sizeof(implicit_task_caller);
@@ -17065,7 +17065,7 @@ namespace Legion {
       LgTaskID tid = *((const LgTaskID*)data);
       data += sizeof(tid);
       arglen -= sizeof(tid);
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       implicit_task_kind = tid;
 #endif
       switch (tid)
@@ -17111,7 +17111,7 @@ namespace Legion {
         implicit_reference_tracker = nullptr;
       }
       runtime->decrement_total_outstanding_tasks(tid, true /*meta*/);
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
       runtime->outstanding_counts[tid].fetch_sub(1);
 #endif
     }

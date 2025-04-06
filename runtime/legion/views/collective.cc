@@ -2358,7 +2358,7 @@ namespace Legion {
           // registration such that the follow-on decrement after the
           // registration will only invalidate the collective view if
           // the view wasn't registered with a collective analysis
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
           if (valid_references++ == 0)
 #else
           if (valid_references.fetch_add(1) == 0)
@@ -2384,7 +2384,7 @@ namespace Legion {
           finder->second.local_initialized = true;
           // This is very subtle!
           // See similar comment above for what we are doing here
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
           if (valid_references++ == 0)
 #else
           if (valid_references.fetch_add(1) == 0)
@@ -2754,7 +2754,7 @@ namespace Legion {
       // Remove the valid reference that we added for registration
       AutoLock v_lock(view_lock);
       legion_assert(valid_references > 0);
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       if ((--valid_references) == 0)
 #else
       if (valid_references.fetch_sub(1) == 1)

@@ -646,7 +646,7 @@ namespace Legion {
       received_valid_references++;
     }
 
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     //--------------------------------------------------------------------------
     void PhysicalManager::add_base_valid_ref_internal(
         ReferenceSource source, int cnt)
@@ -732,7 +732,7 @@ namespace Legion {
         notify_valid(need_check);
       valid_references += cnt;
     }
-#else   // DEBUG_LEGION_GC
+#else   // LEGION_DEBUG_GC
     //--------------------------------------------------------------------------
     void PhysicalManager::add_valid_reference(int cnt, bool need_check)
     //--------------------------------------------------------------------------
@@ -753,7 +753,7 @@ namespace Legion {
       else
         return false;
     }
-#endif  // !defined DEBUG_LEGION_GC
+#endif  // !defined LEGION_DEBUG_GC
 
     //--------------------------------------------------------------------------
     void PhysicalManager::notify_valid(bool need_check)
@@ -889,7 +889,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     template<typename T>
     bool PhysicalManager::acquire_internal(
         T source, std::map<T, int>& detailed_valid_references)
@@ -936,7 +936,7 @@ namespace Legion {
         }
         if (success)
         {
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
           valid_references++;
           typename std::map<T, int>::iterator finder =
               detailed_valid_references.find(source);
@@ -965,7 +965,7 @@ namespace Legion {
       ready.wait();
       if (result.load())
       {
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
         AutoLock i_lock(inst_lock);
         typename std::map<T, int>::iterator finder =
             detailed_valid_references.find(source);
@@ -999,7 +999,7 @@ namespace Legion {
       }
     }
 
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     // Explicit template instantiations
     template bool PhysicalManager::acquire_internal<ReferenceSource>(
         ReferenceSource, std::map<ReferenceSource, int>&);
@@ -1786,7 +1786,7 @@ namespace Legion {
               log_base_ref<true>(
                   VALID_REF_KIND, did, local_space, NEVER_GC_REF, 1);
 #endif
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
               valid_references++;
               std::map<ReferenceSource, int>::iterator finder =
                   detailed_base_valid_references.find(NEVER_GC_REF);

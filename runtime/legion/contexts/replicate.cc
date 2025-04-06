@@ -93,7 +93,7 @@ namespace Legion {
         unordered_collective(nullptr), minimize_repeats_collective(nullptr)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       collective_guard_reentrant = false;
       logical_guard_reentrant = false;
 #endif
@@ -8079,7 +8079,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
     MergeCloseOp* ReplicateContext::get_merge_close_op(
         Operation* op, RegionTreeNode* node)
 #else
@@ -8090,7 +8090,7 @@ namespace Legion {
       ReplMergeCloseOp* result = runtime->get_operation<ReplMergeCloseOp>();
       // Get the mapped barrier for the close operation
       const RtBarrier mapped_bar = get_next_close_mapped_barrier();
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       CloseCheckReduction::RHS barrier(
           op, mapped_bar, node, false /*read only*/);
       const RtBarrier close_check_bar = close_check_barrier.next(
@@ -8110,7 +8110,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
     RefinementOp* ReplicateContext::get_refinement_op(
         Operation* op, RegionTreeNode* node)
 #else
@@ -8121,7 +8121,7 @@ namespace Legion {
       ReplRefinementOp* result = runtime->get_operation<ReplRefinementOp>();
       // Get the mapped barrier for the refinement operation
       RtBarrier mapped_bar = get_next_refinement_mapped_barrier();
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       CloseCheckReduction::RHS barrier(
           op, mapped_bar, node, false /*read only*/);
       const RtBarrier refinement_check_bar = refinement_check_barrier.next(
@@ -9172,7 +9172,7 @@ namespace Legion {
       // logical depedence analysis stage of the pipeline
       if (logical)
       {
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         if (!logical_guard_reentrant)
         {
           CollectiveCheckReduction::RHS location = loc;
@@ -9199,7 +9199,7 @@ namespace Legion {
       }
       else
       {
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         if (!collective_guard_reentrant)
         {
           CollectiveCheckReduction::RHS location = loc;
@@ -9856,7 +9856,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool ReplicateContext::create_new_replicate_barrier(
         RtBarrier& bar,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         ReductionOpID redop, const void* init, size_t init_size,
 #endif
         size_t arrivals)
@@ -9869,7 +9869,7 @@ namespace Legion {
           this, next_replicate_bar_index, COLLECTIVE_LOC_83);
       if (owner_shard->shard_id == next_replicate_bar_index++)
       {
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         bar = RtBarrier(
             Realm::Barrier::create_barrier(arrivals, redop, init, init_size));
 #else
@@ -9889,7 +9889,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool ReplicateContext::create_new_replicate_barrier(
         ApBarrier& bar,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         ReductionOpID redop, const void* init, size_t init_size,
 #endif
         size_t arrivals)
@@ -9902,7 +9902,7 @@ namespace Legion {
           this, next_replicate_bar_index, COLLECTIVE_LOC_84);
       if (owner_shard->shard_id == next_replicate_bar_index++)
       {
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         bar = ApBarrier(
             Realm::Barrier::create_barrier(arrivals, redop, init, init_size));
 #else
@@ -9922,7 +9922,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool ReplicateContext::create_new_logical_barrier(
         RtBarrier& bar,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         ReductionOpID redop, const void* init, size_t init_size,
 #endif
         size_t arrivals)
@@ -9936,7 +9936,7 @@ namespace Legion {
       ValueBroadcast<RtBarrier> collective(cid, this, next_logical_bar_index);
       if (owner_shard->shard_id == next_logical_bar_index++)
       {
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         bar = RtBarrier(
             Realm::Barrier::create_barrier(arrivals, redop, init, init_size));
 #else
@@ -9956,7 +9956,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool ReplicateContext::create_new_logical_barrier(
         ApBarrier& bar,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         ReductionOpID redop, const void* init, size_t init_size,
 #endif
         size_t arrivals)
@@ -9970,7 +9970,7 @@ namespace Legion {
       ValueBroadcast<ApBarrier> collective(cid, this, next_logical_bar_index);
       if (owner_shard->shard_id == next_logical_bar_index++)
       {
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         bar = ApBarrier(
             Realm::Barrier::create_barrier(arrivals, redop, init, init_size));
 #else

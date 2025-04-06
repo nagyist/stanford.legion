@@ -32,7 +32,7 @@ namespace Legion {
       // to a remote node then increment the number of outstanding tasks
       if (T::TASK_ID < LG_BEGIN_SHUTDOWN_TASK_IDS)
         increment_total_outstanding_tasks(args.lg_task_id, true /*meta*/);
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
       outstanding_counts[T::TASK_ID].fetch_add(1);
 #endif
       if (!target.exists())
@@ -81,7 +81,7 @@ namespace Legion {
       legion_assert(target.exists());
       legion_assert(target.kind() != Processor::UTIL_PROC);
       increment_total_outstanding_tasks(args.lg_task_id, true /*meta*/);
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
       outstanding_counts[T::TASK_ID].fetch_add(1);
 #endif
       if (profiler != nullptr)
@@ -840,7 +840,7 @@ namespace Legion {
       return RtBarrier(copy.get_previous_phase());
     }
 
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
     //--------------------------------------------------------------------------
     inline void Runtime::phase_barrier_arrive(
         const RtBarrier& bar, unsigned count, RtEvent precondition,

@@ -1970,7 +1970,7 @@ namespace Legion {
       std::atomic<unsigned> total_outstanding_tasks;
 #endif
       std::atomic<unsigned> outstanding_top_level_tasks;
-#ifdef DEBUG_SHUTDOWN_HANG
+#ifdef LEGION_DEBUG_SHUTDOWN_HANG
     public:
       std::vector<std::atomic<int> > outstanding_counts;
 #endif
@@ -2552,7 +2552,7 @@ namespace Legion {
     public:
       inline RtBarrier create_rt_barrier(size_t arrivals);
       static inline RtBarrier get_previous_phase(const RtBarrier& bar);
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       inline void phase_barrier_arrive(
           const RtBarrier& bar, unsigned cnt,
           RtEvent precondition = RtEvent::NO_RT_EVENT,

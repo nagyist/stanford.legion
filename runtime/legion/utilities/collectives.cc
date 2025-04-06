@@ -26,7 +26,7 @@
 namespace Legion {
   namespace Internal {
 
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
     /////////////////////////////////////////////////////////////
     // Collective Check Reduction
     /////////////////////////////////////////////////////////////
@@ -196,7 +196,7 @@ namespace Legion {
       // Not supported at the moment
       std::abort();
     }
-#endif  // DEBUG_LEGION_COLLECTIVES
+#endif  // LEGION_DEBUG_COLLECTIVES
 
     /////////////////////////////////////////////////////////////
     // Shard Collective

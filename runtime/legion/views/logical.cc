@@ -74,7 +74,7 @@ namespace Legion {
       view->send_view(source);
     }
 
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     //--------------------------------------------------------------------------
     void LogicalView::add_base_valid_ref_internal(
         ReferenceSource source, int cnt)
@@ -150,7 +150,7 @@ namespace Legion {
       else
         return false;
     }
-#else   // DEBUG_LEGION_GC
+#else   // LEGION_DEBUG_GC
     //--------------------------------------------------------------------------
     void LogicalView::add_valid_reference(int cnt)
     //--------------------------------------------------------------------------
@@ -171,7 +171,7 @@ namespace Legion {
       else
         return false;
     }
-#endif  // DEBUG_LEGION_GC
+#endif  // LEGION_DEBUG_GC
 
   }  // namespace Internal
 }  // namespace Legion

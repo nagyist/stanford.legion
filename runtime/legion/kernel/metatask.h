@@ -268,7 +268,7 @@ namespace Legion {
     public:
       LgTaskArgs(::legion_unique_id_t uid)
         : provenance(uid),
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
           lg_call_id(implicit_task_kind),
 #endif
           lg_task_id(T::TASK_ID)
@@ -276,7 +276,7 @@ namespace Legion {
     public:
       // In this order for alignment reasons
       const ::legion_unique_id_t provenance;
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       const LgTaskID lg_call_id;
 #endif
       const LgTaskID lg_task_id;

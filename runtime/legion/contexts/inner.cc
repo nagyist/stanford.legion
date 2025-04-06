@@ -8488,7 +8488,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
     RefinementOp* InnerContext::get_refinement_op(
         Operation* op, RegionTreeNode* node)
 #else
@@ -8856,7 +8856,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
     MergeCloseOp* InnerContext::get_merge_close_op(
         Operation* op, RegionTreeNode* node)
 #else

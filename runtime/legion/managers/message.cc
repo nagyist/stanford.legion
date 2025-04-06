@@ -66,7 +66,7 @@ namespace Legion {
       // messages so we can just set this to zero.
       memset(sending_buffer, 0, sizeof(UniqueID));
       sending_index = sizeof(UniqueID);
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
       const LgTaskID scheduler = LG_SCHEDULER_ID;
       memcpy(sending_buffer + sending_index, &sched, sizeof(scheduler));
       sending_index += sizeof(scheduler);
@@ -121,7 +121,7 @@ namespace Legion {
       size_t buffer_size = rez.get_used_bytes();
       const uint8_t* buffer = (const uint8_t*)rez.get_buffer();
       const size_t header_size =
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
           sizeof(LgTaskID) +
 #endif
           sizeof(k) + sizeof(implicit_provenance) + sizeof(buffer_size);
@@ -142,7 +142,7 @@ namespace Legion {
             sending_buffer + sending_index, &implicit_provenance,
             sizeof(implicit_provenance));
         sending_index += sizeof(implicit_provenance);
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
         memcpy(
             sending_buffer + sending_index, &implicit_task_kind,
             sizeof(implicit_task_kind));
@@ -178,7 +178,7 @@ namespace Legion {
             sending_buffer + sending_index, &implicit_provenance,
             sizeof(implicit_provenance));
         sending_index += sizeof(implicit_provenance);
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
         memcpy(
             sending_buffer + sending_index, &implicit_task_kind,
             sizeof(implicit_task_kind));
@@ -233,7 +233,7 @@ namespace Legion {
       }
       // Save the header and the number of messages into the buffer
       const size_t base_size = sizeof(UniqueID) + sizeof(LgTaskID) +
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
                                sizeof(LgTaskID) +
 #endif
                                sizeof(AddressSpaceID) +
@@ -586,7 +586,7 @@ namespace Legion {
         memcpy(&implicit_provenance, args, sizeof(implicit_provenance));
         args += sizeof(implicit_provenance);
         arglen -= sizeof(implicit_provenance);
-#ifdef DEBUG_LEGION_CALLERS
+#ifdef LEGION_DEBUG_CALLERS
         implicit_task_kind = (LgTaskID)(LG_MESSAGE_ID + kind);
         memcpy(&implicit_task_caller, args, sizeof(implicit_task_caller));
         args += sizeof(implicit_task_caller);

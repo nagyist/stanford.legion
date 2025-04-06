@@ -259,7 +259,7 @@ namespace Legion {
       // Atomic check and increment operations
       inline bool check_global_and_increment(ReferenceSource src, int cnt = 1);
       inline bool check_global_and_increment(DistributedID source, int cnt = 1);
-#ifndef DEBUG_LEGION_GC
+#ifndef LEGION_DEBUG_GC
     private:
       void add_gc_reference(int cnt);
       bool remove_gc_reference(int cnt);
@@ -347,14 +347,14 @@ namespace Legion {
     protected:
       State current_state;
     protected:
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       int gc_references;
       int resource_references;
 #else
       std::atomic<int> gc_references;
       std::atomic<int> resource_references;
 #endif
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     protected:
       std::map<ReferenceSource, int> detailed_base_gc_references;
       std::map<DistributedID, int> detailed_nested_gc_references;
@@ -398,7 +398,7 @@ namespace Legion {
       bool is_valid(void) const;
       bool check_valid_and_increment(ReferenceSource source, int cnt = 1);
       bool check_valid_and_increment(DistributedID source, int cnt = 1);
-#ifndef DEBUG_LEGION_GC
+#ifndef LEGION_DEBUG_GC
     private:
       void add_valid_reference(int cnt);
       bool remove_valid_reference(int cnt);
@@ -433,12 +433,12 @@ namespace Legion {
       static void handle_valid_acquire_request(Deserializer& derez);
       static void handle_valid_acquire_response(Deserializer& derez);
     protected:
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       int valid_references;
 #else
       std::atomic<int> valid_references;
 #endif
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     protected:
       std::map<ReferenceSource, int> detailed_base_valid_references;
       std::map<DistributedID, int> detailed_nested_valid_references;

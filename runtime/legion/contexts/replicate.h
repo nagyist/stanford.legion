@@ -119,7 +119,7 @@ namespace Legion {
           return *this;
         }
       public:
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         inline T next(
             ReplicateContext* ctx, ReductionOpID redop = 0,
             const void* init_value = nullptr, size_t init_size = 0)
@@ -132,14 +132,14 @@ namespace Legion {
             if (LOGICAL)
               owner = ctx->create_new_logical_barrier(
                   barrier,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
                   redop, init_value, init_size,
 #endif
                   SINGLE ? 1 : ctx->total_shards);
             else
               owner = ctx->create_new_replicate_barrier(
                   barrier,
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
                   redop, init_value, init_size,
 #endif
                   SINGLE ? 1 : ctx->total_shards);
@@ -793,7 +793,7 @@ namespace Legion {
       virtual DynamicCollective advance_dynamic_collective(
           DynamicCollective dc);
     public:
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       virtual MergeCloseOp* get_merge_close_op(
           Operation* op, RegionTreeNode* node);
       virtual RefinementOp* get_refinement_op(
@@ -999,7 +999,7 @@ namespace Legion {
         return result;
       }
     protected:
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
       // Versions of the methods below but with reduction initialization
       bool create_new_replicate_barrier(
           RtBarrier& bar, ReductionOpID redop, const void* init,
@@ -1138,7 +1138,7 @@ namespace Legion {
       RtReplBar future_wait_barrier;
       RtReplBar inorder_barrier;
       RtReplBar output_regions_barrier;
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
     protected:
       RtReplBar collective_check_barrier;
       RtLogicalBar logical_check_barrier;

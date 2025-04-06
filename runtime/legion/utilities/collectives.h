@@ -209,7 +209,7 @@ namespace Legion {
       COLLECTIVE_LOC_109 = 109,
     };
 
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
     /**
      * \class CollectiveCheckReduction
      * A small helper reduction for use with checking that

@@ -2188,7 +2188,7 @@ namespace Legion {
         output_footprint_threshold(footprint_threshold),
         output_target_latency(target_latency), target_proc(target),
         self_profile(self_prof), no_critical_paths(no_critical),
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         // Can't rely on the barrier reduction in this case
         all_critical_arrivals(true),
 #else

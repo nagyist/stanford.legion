@@ -241,7 +241,7 @@ namespace Legion {
       if (tracing)
       {
         parent_req_index = creator->find_parent_index(close_idx);
-#ifdef DEBUG_LEGION_COLLECTIVES
+#ifdef LEGION_DEBUG_COLLECTIVES
         trace->register_close(
             this, creator_req_idx,
             (req.handle_type == LEGION_SINGULAR_PROJECTION) ?

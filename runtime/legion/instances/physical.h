@@ -150,7 +150,7 @@ namespace Legion {
     protected:
       // Internal valid reference counting
       void add_valid_reference(int cnt, bool need_check = true);
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       void add_base_valid_ref_internal(ReferenceSource source, int cnt);
       void add_nested_valid_ref_internal(DistributedID source, int cnt);
       bool remove_base_valid_ref_internal(ReferenceSource source, int cnt);
@@ -328,14 +328,14 @@ namespace Legion {
       // The number of events added since the last time we pruned the list
       unsigned added_gc_events;
     private:
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
       int valid_references;
 #else
       std::atomic<int> valid_references;
 #endif
       uint64_t sent_valid_references, received_valid_references;
       std::map<unsigned, Reservation>* padded_reservations;
-#ifdef DEBUG_LEGION_GC
+#ifdef LEGION_DEBUG_GC
     private:
       std::map<ReferenceSource, int> detailed_base_valid_references;
       std::map<DistributedID, int> detailed_nested_valid_references;
