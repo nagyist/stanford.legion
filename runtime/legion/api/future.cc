@@ -2545,8 +2545,24 @@ namespace Legion {
       derez.deserialize(did);
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
       FutureImpl* future = legion_safe_cast<FutureImpl*>(dc);
+#ifdef LEGION_DEBUG
+      // A little bit strange, but if we go to do the broadcast when
+      // unpacking the result, we might need to pack other global references
+      // and the check in global references wants to see that we have at
+      // least one global reference on this node. Technically we have one
+      // since we haven't unpacked our global reference yet, but that check
+      // can't see it, so instead we do a global acquire and make sure that
+      // works so we have at least one concrete reference on this node in
+      // case we need to pack any global references.
+      legion_no_skip_assert(future->check_global_and_increment(RUNTIME_REF));
+      future->unpack_global_ref();
+      future->unpack_future_result(derez);
+      if (future->remove_base_gc_ref(RUNTIME_REF))
+        delete future;
+#else
       future->unpack_future_result(derez);
       future->unpack_global_ref();
+#endif
     }
 
     //--------------------------------------------------------------------------
