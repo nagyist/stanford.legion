@@ -3125,6 +3125,8 @@ namespace Legion {
         Realm::InstanceLayoutGeneric* ilg =
             Realm::InstanceLayoutGeneric::choose_instance_layout<1, coord_t>(
                 rect_space, constraints, dim_order);
+        const uintptr_t base = reinterpret_cast<uintptr_t>(get_data());
+        ilg->alignment_reqd = (base & -base);  // maximum alignment
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
         const Realm::UserEvent temp_unique_event =
             Realm::UserEvent::create_user_event();
@@ -3176,6 +3178,8 @@ namespace Legion {
         Realm::InstanceLayoutGeneric* ilg =
             Realm::InstanceLayoutGeneric::choose_instance_layout<1, coord_t>(
                 rect_space, constraints, dim_order);
+        const uintptr_t base = reinterpret_cast<uintptr_t>(get_data());
+        ilg->alignment_reqd = (base & -base);  // alignment reqd
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
         {

@@ -78,6 +78,10 @@ namespace Legion {
       void attach_ready(bool point);
       InstanceRef create_external_instance(
           const RegionRequirement& req, const std::vector<FieldID>& field_set);
+      ApEvent create_external(
+          RegionNode* node, const std::vector<FieldID>& field_set,
+          const std::vector<size_t>& sizes, PhysicalInstance& instance,
+          LgEvent& unique_event, size_t& footprint);
       ApEvent attach_external(
           const ApEvent termination_event, const PhysicalTraceInfo& trace_info);
     public:

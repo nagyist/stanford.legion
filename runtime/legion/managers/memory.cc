@@ -1248,6 +1248,7 @@ namespace Legion {
                 Realm::Rect<1, coord_t>(zero, zero));
             layout = Realm::InstanceLayoutGeneric::choose_instance_layout<
                 1, coord_t>(rect_space, constraints, dim_order);
+            layout->alignment_reqd = manager->compute_future_alignment(size);
           }
           LgEvent unique_event;
           if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
