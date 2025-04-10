@@ -4944,12 +4944,16 @@ namespace Legion {
         if (allocator.succeeded())
         {
           // Only record this if we succeeded in the allocation
-          if (hole_instance.exists())
-            implicit_profiler->record_instance_redistrict(
-                use_event, hole_unique_event, unique_event, alloc_precondition);
-          else
-            implicit_profiler->record_instance_ready(
-                use_event, unique_event, alloc_precondition);
+          if (implicit_profiler != nullptr)
+          {
+            if (hole_instance.exists())
+              implicit_profiler->record_instance_redistrict(
+                  use_event, hole_unique_event, unique_event,
+                  alloc_precondition);
+            else
+              implicit_profiler->record_instance_ready(
+                  use_event, unique_event, alloc_precondition);
+          }
 #ifdef LEGION_DEBUG
           size_t previous =
 #endif
