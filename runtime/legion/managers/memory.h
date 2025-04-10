@@ -49,7 +49,8 @@ namespace Legion {
           PhysicalInstance* result, LgEvent* unique_events,
           const Realm::InstanceLayoutGeneric** layouts, UniqueID creator) = 0;
       virtual void free_instance(
-          PhysicalInstance instance, RtEvent precondition) = 0;
+          PhysicalInstance instance, RtEvent precondition,
+          LgEvent unique_event) = 0;
       virtual bool is_released(void) const = 0;
       virtual void release_pool(UniqueID creator) = 0;
       virtual void finalize_pool(RtEvent done) = 0;
@@ -83,7 +84,7 @@ namespace Legion {
     public:
       ConcretePool(
           PhysicalInstance instance, size_t size, size_t alignment,
-          RtEvent use_event, MemoryManager* manager);
+          RtEvent use_event, LgEvent unique_event, MemoryManager* manager);
       virtual ~ConcretePool(void) override;
       virtual ApEvent get_ready_event(void) const override;
       virtual size_t query_memory_limit(void) override;
@@ -101,7 +102,8 @@ namespace Legion {
           PhysicalInstance* result, LgEvent* unique_events,
           const Realm::InstanceLayoutGeneric** layouts, UniqueID uid) override;
       virtual void free_instance(
-          PhysicalInstance instance, RtEvent precondition) override;
+          PhysicalInstance instance, RtEvent precondition,
+          LgEvent unique_event) override;
       virtual bool is_released(void) const override;
       virtual void release_pool(UniqueID creator) override;
       virtual void finalize_pool(RtEvent done) override;
@@ -130,7 +132,8 @@ namespace Legion {
       // Each external instance has a range that it corresponds to
       std::map<PhysicalInstance, unsigned> allocated;
       // Each backing instance has a start range and use event
-      std::map<PhysicalInstance, RtEvent> backing_instances;
+      std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >
+          backing_instances;
       // Instances that are freed with event preconditions
       std::map<unsigned, RtEvent> pending_frees;
       // Free lists associated with a specific sizes by powers of 2
@@ -178,17 +181,24 @@ namespace Legion {
           PhysicalInstance* result, LgEvent* unique_events,
           const Realm::InstanceLayoutGeneric** layouts, UniqueID uid) override;
       virtual void free_instance(
-          PhysicalInstance instance, RtEvent precondition) override;
+          PhysicalInstance instance, RtEvent precondition,
+          LgEvent unique_event) override;
       virtual bool is_released(void) const override;
       virtual void release_pool(UniqueID creator) override;
       virtual void finalize_pool(RtEvent done) override;
       virtual void serialize(Serializer& rez) override;
     private:
-      PhysicalInstance find_local_freed_hole(size_t size, size_t& prev_size);
+      PhysicalInstance find_local_freed_hole(
+          size_t size, size_t& prev_size, RtEvent& previous_done,
+          LgEvent& previous_unique);
     private:
       TaskTreeCoordinates coordinates;
-      std::map<size_t, std::list<std::pair<PhysicalInstance, RtEvent> > >
-          freed_instances;
+      struct FreedInstance {
+        PhysicalInstance instance;
+        RtEvent precondition;
+        LgEvent unique_event;
+      };
+      std::map<size_t, std::list<FreedInstance> > freed_instances;
       MemoryManager* const manager;
       const size_t max_freed_bytes;
       size_t freed_bytes;
@@ -562,7 +572,8 @@ namespace Legion {
       public:
         GarbageCollector& operator=(const GarbageCollector& rhs) = delete;
       public:
-        RtEvent perform_collection(PhysicalInstance& hole_instance);
+        RtEvent perform_collection(
+            PhysicalInstance& hole_instance, LgEvent& hole_unique_event);
         inline bool collection_complete(void) const
         {
           return (current_priority == LEGION_GC_NEVER_PRIORITY);

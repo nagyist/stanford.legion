@@ -1989,7 +1989,6 @@ namespace Legion {
             "Detected double deletion of deferred buffer " IDFMT
             "in parent task %s (UID %lld).",
             instance.id, get_task_name(), get_unique_id())
-      task_local_instances.erase(finder);
       std::map<Memory, MemoryPool*>::const_iterator pool_finder =
           memory_pools.find(instance.get_location());
       if (pool_finder == memory_pools.end())
@@ -2002,7 +2001,9 @@ namespace Legion {
         manager->free_task_local_instance(instance, precondition);
       }
       else
-        pool_finder->second->free_instance(instance, precondition);
+        pool_finder->second->free_instance(
+            instance, precondition, finder->second);
+      task_local_instances.erase(finder);
     }
 
     //--------------------------------------------------------------------------

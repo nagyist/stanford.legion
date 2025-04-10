@@ -62,7 +62,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalManager* InstanceBuilder::create_physical_instance(
         LayoutConstraintKind* unsat_kind, unsigned* unsat_index,
-        size_t* footprint, RtEvent precondition, PhysicalInstance hole)
+        size_t* footprint, RtEvent precondition, PhysicalInstance hole,
+        LgEvent hole_unique_event)
     //--------------------------------------------------------------------------
     {
       if (!valid)
@@ -254,7 +255,13 @@ namespace Legion {
       memory_manager->record_legion_instance(result, instance);
 #else
       if (ready.exists() && (implicit_profiler != nullptr))
-        implicit_profiler->record_instance_ready(ready, unique_event);
+      {
+        if (hole.exists())
+          implicit_profiler->record_instance_redistrict(
+              ready, hole_unique_event, unique_event, precondition);
+        else
+          implicit_profiler->record_instance_ready(ready, unique_event);
+      }
 #endif
       if (implicit_profiler != nullptr)
       {

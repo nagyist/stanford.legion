@@ -120,6 +120,8 @@ namespace Legion {
           const LegionProfInstance::ReservationAcquireInfo&) = 0;
       virtual void serialize(const LegionProfInstance::InstanceReadyInfo&) = 0;
       virtual void serialize(
+          const LegionProfInstance::InstanceRedistrictInfo&) = 0;
+      virtual void serialize(
           const LegionProfInstance::CompletionQueueInfo&) = 0;
       virtual void serialize(const LegionProfInstance::ProfTaskInfo&) = 0;
     };
@@ -202,6 +204,7 @@ namespace Legion {
       void serialize(const LegionProfInstance::BarrierArrivalInfo&);
       void serialize(const LegionProfInstance::ReservationAcquireInfo&);
       void serialize(const LegionProfInstance::InstanceReadyInfo&);
+      void serialize(const LegionProfInstance::InstanceRedistrictInfo&);
       void serialize(const LegionProfInstance::CompletionQueueInfo&);
       void serialize(const LegionProfInstance::ProfTaskInfo&);
     private:
@@ -268,6 +271,7 @@ namespace Legion {
         BARRIER_ARRIVAL_INFO_ID,
         RESERVATION_ACQUIRE_INFO_ID,
         INSTANCE_READY_INFO_ID,
+        INSTANCE_REDISTRICT_INFO_ID,
         COMPLETION_QUEUE_INFO_ID,
         PROFTASK_INFO_ID,
         ZERO_TIME_ID,
@@ -352,6 +356,7 @@ namespace Legion {
       void serialize(const LegionProfInstance::BarrierArrivalInfo&);
       void serialize(const LegionProfInstance::ReservationAcquireInfo&);
       void serialize(const LegionProfInstance::InstanceReadyInfo&);
+      void serialize(const LegionProfInstance::InstanceRedistrictInfo&);
       void serialize(const LegionProfInstance::CompletionQueueInfo&);
       void serialize(const LegionProfInstance::ProfTaskInfo&);
     };

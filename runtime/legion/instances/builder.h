@@ -51,7 +51,8 @@ namespace Legion {
           LayoutConstraintKind* unsat_kind, unsigned* unsat_index,
           size_t* footprint = nullptr,
           RtEvent collection_done = RtEvent::NO_RT_EVENT,
-          PhysicalInstance hole = PhysicalInstance::NO_INST);
+          PhysicalInstance hole = PhysicalInstance::NO_INST,
+          LgEvent hole_unique_event = LgEvent::NO_LG_EVENT);
     public:
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse& response, const void* orig,
