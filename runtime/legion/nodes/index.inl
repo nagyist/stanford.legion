@@ -373,7 +373,7 @@ namespace Legion {
                   rez.serialize(handle);
                 }
                 // References were already added on the source node
-                pack_index_space(rez, false /*pack reference*/);
+                pack_index_space(rez, 0 /*reference count*/);
               }
               for (std::vector<AddressSpaceID>::const_iterator it =
                        children.begin();
@@ -399,7 +399,7 @@ namespace Legion {
                 rez.serialize(IndexPartition::NO_PART);
                 rez.serialize(handle);
               }
-              pack_index_space(rez, true /*pack reference*/);
+              pack_index_space(rez, 1 /*reference count*/);
             }
             if (collective_mapping != nullptr)
               runtime->send_index_space_set(
@@ -425,7 +425,7 @@ namespace Legion {
               rez.serialize(IndexPartition::NO_PART);
               rez.serialize(handle);
             }
-            pack_index_space(rez, true /*pack reference*/);
+            pack_index_space(rez, count_remote_instances());
           }
           IndexSpaceSetFunctor functor(source, rez);
           map_over_remote_instances(functor);
@@ -1316,7 +1316,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     void IndexSpaceNodeT<DIM, T>::pack_index_space(
-        Serializer& rez, bool pack_reference) const
+        Serializer& rez, unsigned references) const
     //--------------------------------------------------------------------------
     {
       legion_assert(index_space_set.load());
@@ -1325,10 +1325,10 @@ namespace Legion {
       rez.serialize(index_space_valid);
       if (!realm_index_space.dense())
       {
-        if (pack_reference)
+        if (references > 0)
         {
           Realm::SparsityMap<DIM, T> copy = realm_index_space.sparsity;
-          const ApEvent added(copy.add_reference());
+          const ApEvent added(copy.add_reference(references));
           rez.serialize(added);
         }
         else
