@@ -7239,6 +7239,36 @@ namespace Legion {
              idx < context_configuration.meta_task_vector_width; idx++)
         {
           to_perform.emplace_back(ready_queue.front());
+#ifdef LEGION_SPY
+          previous_completion_events.insert(
+              to_perform.back()->get_completion_event());
+          // Periodically merge these to keep this data structure from exploding
+          // when we have a long-running task, although don't do this for fence
+          // operations in case we have to prune ourselves out of the set
+          if (previous_completion_events.size() >=
+              LEGION_DEFAULT_MAX_TASK_WINDOW)
+          {
+            // Only merge ones that we know are completed
+            std::vector<ApEvent> triggered;
+            for (std::set<ApEvent>::const_iterator pit =
+                     previous_completion_events.begin();
+                 pit != previous_completion_events.end();
+                 /*nothing*/)
+            {
+              if (pit->has_triggered_faultignorant())
+              {
+                triggered.emplace_back(*pit);
+                std::set<ApEvent>::const_iterator delete_it = pit++;
+                previous_completion_events.erase(delete_it);
+              }
+              else
+                pit++;
+            }
+            if (!triggered.empty())
+              previous_completion_events.insert(
+                  Runtime::merge_events(nullptr, triggered));
+          }
+#endif
           ready_queue.pop_front();
           if (ready_queue.empty())
             break;
@@ -7250,34 +7280,6 @@ namespace Legion {
            it != to_perform.end(); it++)
       {
         (*it)->set_execution_fence_event(current_execution_fence_event);
-#ifdef LEGION_SPY
-        previous_completion_events.insert((*it)->get_completion_event());
-        // Periodically merge these to keep this data structure from exploding
-        // when we have a long-running task, although don't do this for fence
-        // operations in case we have to prune ourselves out of the set
-        if (previous_completion_events.size() >= LEGION_DEFAULT_MAX_TASK_WINDOW)
-        {
-          // Only merge ones that we know are completed
-          std::vector<ApEvent> triggered;
-          for (std::set<ApEvent>::const_iterator pit =
-                   previous_completion_events.begin();
-               pit != previous_completion_events.end();
-               /*nothing*/)
-          {
-            if (pit->has_triggered_faultignorant())
-            {
-              triggered.emplace_back(*pit);
-              std::set<ApEvent>::const_iterator delete_it = pit++;
-              previous_completion_events.erase(delete_it);
-            }
-            else
-              pit++;
-          }
-          if (!triggered.empty())
-            previous_completion_events.insert(
-                Runtime::merge_events(nullptr, triggered));
-        }
-#endif
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->trigger_ready();
       }
@@ -8475,6 +8477,8 @@ namespace Legion {
       }
 #ifdef LEGION_SPY
       // If we're doing execution record dependence on all previous operations
+      // We can do this without the lock here because this is a fence and we
+      // know that no other operations can be mapping in parallel with it
       previous_events.insert(
           previous_completion_events.begin(), previous_completion_events.end());
       // Don't include ourselves though
