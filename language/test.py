@@ -234,7 +234,7 @@ def test_run_pass(filename, debug, verbose, out_dir, short, timelimit, py_exe_pa
 def test_spy(filename, debug, verbose, out_dir, short, timelimit, py_exe_path, legion_prof_rs, flags, env):
     spy_dir = tempfile.mkdtemp(dir=out_dir, prefix='test_spy_%s_' % (os.path.splitext(os.path.basename(filename))[0]))
     spy_log = os.path.join(spy_dir, 'spy_%.log')
-    spy_flags = ['-lg:spy', '-level', 'legion_spy=2', '-logfile', spy_log]
+    spy_flags = ['-lg:spy', '2', '-level', 'legion_spy=2', '-logfile', spy_log]
 
     runs_with = find_labeled_flags(filename, 'runs-with', short)
     try:
