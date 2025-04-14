@@ -62,7 +62,6 @@ namespace Legion {
           std::set<RtEvent>& applied) const;
       virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
     protected:
-      void log_requirement(void);
       void discard_fields(const PhysicalTraceInfo& trace_info);
     public:
       RegionRequirement requirement;

@@ -59,8 +59,7 @@ namespace Legion {
         {
           ApEvent e = Runtime::get_previous_phase(it->phase_barrier);
           sync_preconditions.emplace_back(e);
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_wait(this->get_unique_op_id(), e);
+          LegionSpy::log_phase_barrier_wait(this->get_unique_op_id(), e);
         }
         for (std::vector<Grant>::const_iterator it = this->grants.begin();
              it != this->grants.end(); it++)

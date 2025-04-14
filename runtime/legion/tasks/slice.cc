@@ -521,8 +521,7 @@ namespace Legion {
       derez.deserialize(origin_mapped);
       parent_ctx = InnerContext::unpack_inner_context(derez);
       derez.deserialize(internal_space);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_slice_slice(remote_unique_id, get_unique_id());
+      LegionSpy::log_slice_slice(remote_unique_id, get_unique_id());
       if (implicit_profiler != nullptr)
         implicit_profiler->register_slice_owner(
             remote_unique_id, get_unique_op_id());
@@ -554,9 +553,8 @@ namespace Legion {
         point->unpack_task(derez, current, ready_events);
         point->parent_ctx = parent_ctx;
         points.emplace_back(point);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_slice_point(
-              get_unique_id(), point->get_unique_id(), point->index_point);
+        LegionSpy::log_slice_point(
+            get_unique_id(), point->get_unique_id(), point->index_point);
       }
       if (concurrent_task)
       {
@@ -652,8 +650,7 @@ namespace Legion {
           parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance());
       result->clone_multi_from(this, is, p, recurse, stealable);
       result->index_owner = this->index_owner;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_slice_slice(get_unique_id(), result->get_unique_id());
+      LegionSpy::log_slice_slice(get_unique_id(), result->get_unique_id());
       if (implicit_profiler != nullptr)
         implicit_profiler->register_slice_owner(
             get_unique_op_id(), result->get_unique_op_id());
@@ -840,9 +837,8 @@ namespace Legion {
               finder->second.precondition.interpreted;
         }
       }
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_slice_point(
-            get_unique_id(), result->get_unique_id(), result->index_point);
+      LegionSpy::log_slice_point(
+          get_unique_id(), result->get_unique_id(), result->index_point);
       return result;
     }
 

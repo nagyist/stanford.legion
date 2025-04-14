@@ -48,10 +48,8 @@ namespace Legion {
         result = Future(new FutureImpl(
             parent_ctx, true /*register*/,
             runtime->get_available_distributed_id(), get_provenance(), this));
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_fence_operation(
-            parent_ctx->get_unique_id(), unique_op_id,
-            (kind == EXECUTION_FENCE));
+      LegionSpy::log_fence_operation(
+          parent_ctx->get_unique_id(), unique_op_id, (kind == EXECUTION_FENCE));
       return result;
     }
 
@@ -135,9 +133,7 @@ namespace Legion {
     void FenceOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       complete_mapping();
     }
 

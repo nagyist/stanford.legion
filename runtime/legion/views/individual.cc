@@ -811,21 +811,22 @@ namespace Legion {
            it != dead_users.end(); it++)
       {
         unsigned refs_to_remove = 1;
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-        shrt::FieldMaskMap<PhysicalUser>::iterator finder =
-            current_epoch_users.find(*it);
-        if (finder != current_epoch_users.end())
+        if (spy_logging_level <= LIGHT_SPY_LOGGING)
         {
-          current_epoch_users.erase(finder);
-          refs_to_remove++;
+          shrt::FieldMaskMap<PhysicalUser>::iterator finder =
+              current_epoch_users.find(*it);
+          if (finder != current_epoch_users.end())
+          {
+            current_epoch_users.erase(finder);
+            refs_to_remove++;
+          }
+          finder = previous_epoch_users.find(*it);
+          if (finder != previous_epoch_users.end())
+          {
+            previous_epoch_users.erase(finder);
+            refs_to_remove++;
+          }
         }
-        finder = previous_epoch_users.find(*it);
-        if (finder != previous_epoch_users.end())
-        {
-          previous_epoch_users.erase(finder);
-          refs_to_remove++;
-        }
-#endif
         if ((*it)->remove_reference(refs_to_remove))
           delete (*it);
       }
@@ -914,11 +915,10 @@ namespace Legion {
       {
         if (it->first->term_event == term_event)
           continue;
-#ifndef LEGION_DISABLE_EVENT_PRUNING
         // We're about to do a bunch of expensive tests,
         // so first do something cheap to see if we can
         // skip all the tests.
-        if (!trace_recording &&
+        if (!trace_recording && (spy_logging_level <= LIGHT_SPY_LOGGING) &&
             it->first->term_event.has_triggered_faultignorant())
         {
           if (dead_users.insert(it->first).second)
@@ -932,7 +932,6 @@ namespace Legion {
         if (!trace_recording &&
             preconditions.find(it->first->term_event) != preconditions.end())
           continue;
-#endif
 #endif
         const FieldMask overlap = user_mask & it->second;
         if (!overlap)
@@ -975,11 +974,10 @@ namespace Legion {
       {
         if (it->first->term_event == term_event)
           continue;
-#ifndef LEGION_DISABLE_EVENT_PRUNING
         // We're about to do a bunch of expensive tests,
         // so first do something cheap to see if we can
         // skip all the tests.
-        if (!trace_recording &&
+        if (!trace_recording && (spy_logging_level <= LIGHT_SPY_LOGGING) &&
             it->first->term_event.has_triggered_faultignorant())
         {
           if (dead_users.insert(it->first).second)
@@ -993,7 +991,6 @@ namespace Legion {
         if (!trace_recording &&
             preconditions.find(it->first->term_event) != preconditions.end())
           continue;
-#endif
 #endif
         const FieldMask overlap = user_mask & it->second;
         if (!overlap)
@@ -1335,10 +1332,8 @@ namespace Legion {
         }
         result = copy_expression->issue_copy(
             op, trace_info, dst_fields, src_fields, reservations,
-#ifdef LEGION_SPY
-            source_manager->tree_id, manager->tree_id,
-#endif
-            precondition, predicate_guard, source_manager->get_unique_event(),
+            source_manager->tree_id, manager->tree_id, precondition,
+            predicate_guard, source_manager->get_unique_event(),
             manager->get_unique_event(), COLLECTIVE_NONE, copy_restricted);
         if (result.exists())
         {
@@ -2727,7 +2722,7 @@ namespace Legion {
       rez.serialize<size_t>(fields.size());
       for (unsigned idx = 0; idx < fields.size(); idx++)
         rez.serialize(fields[idx]);
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         rez.serialize<size_t>(0);  // not part of the collective
         rez.serialize(did);

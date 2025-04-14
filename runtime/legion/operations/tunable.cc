@@ -57,14 +57,11 @@ namespace Legion {
       result = Future(new FutureImpl(
           parent_ctx, true /*register*/,
           runtime->get_available_distributed_id(), get_provenance(), this));
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_tunable_operation(ctx->get_unique_id(), unique_op_id);
-        const DomainPoint empty_point;
-        LegionSpy::log_future_creation(
-            unique_op_id, result.impl->did, empty_point);
-        tunable_index = parent_ctx->get_tunable_index();
-      }
+      LegionSpy::log_tunable_operation(ctx->get_unique_id(), unique_op_id);
+      const DomainPoint empty_point;
+      LegionSpy::log_future_creation(
+          unique_op_id, result.impl->did, empty_point);
+      tunable_index = parent_ctx->get_tunable_index();
       return result;
     }
 
@@ -185,10 +182,9 @@ namespace Legion {
       mapper->invoke_select_tunable_value(
           parent_ctx->get_owner_task(), input, output);
       process_result(mapper, output.value, output.size);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_tunable_value(
-            parent_ctx->get_unique_id(), tunable_index, output.value,
-            output.size);
+      LegionSpy::log_tunable_value(
+          parent_ctx->get_unique_id(), tunable_index, output.value,
+          output.size);
       if (instance != nullptr)
       {
         if (output.size > return_type_size)

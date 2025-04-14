@@ -893,11 +893,9 @@ namespace Legion {
                     // See if we the new user dominates or not
                     if (!dominates)
                       dominator_mask -= overlap;
-#ifdef LEGION_SPY
                     LegionSpy::log_mapping_dependence(
                         user.op->get_context()->get_unique_id(), prev.uid,
                         prev.idx, user.uid, user.idx, dtype, true);
-#endif
                   }
                   else
                   {
@@ -906,11 +904,9 @@ namespace Legion {
                     // just register a normal dependence
                     user.op->register_region_dependence(
                         user.idx, prev.op, prev.gen, prev.idx, dtype, overlap);
-#ifdef LEGION_SPY
                     LegionSpy::log_mapping_dependence(
                         user.op->get_context()->get_unique_id(), prev.uid,
                         prev.idx, user.uid, user.idx, dtype);
-#endif
                     if (prev.shard_proj != nullptr)
                     {
                       // Two operations from the same must epoch shouldn't

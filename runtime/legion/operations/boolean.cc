@@ -78,12 +78,9 @@ namespace Legion {
       future = f;
       predicate = Predicate(ctx->create_predicate_impl(this));
       to_predicate = true;
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
-        if (future.impl != nullptr)
-          LegionSpy::log_future_use(unique_op_id, future.impl->did);
-      }
+      LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
+      if (future.impl != nullptr)
+        LegionSpy::log_future_use(unique_op_id, future.impl->did);
       return predicate;
     }
 
@@ -100,11 +97,8 @@ namespace Legion {
           parent_ctx, true /*register*/,
           runtime->get_available_distributed_id(), get_provenance(), this));
       to_predicate = false;
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
-        LegionSpy::log_predicate_use(unique_op_id, p.impl->creator_uid);
-      }
+      LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_predicate_use(unique_op_id, p.impl->creator_uid);
       return future;
     }
 
@@ -196,11 +190,8 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       to_set = Predicate(ctx->create_predicate_impl(this));
       previous = p;
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
-        LegionSpy::log_predicate_use(unique_op_id, p.impl->creator_uid);
-      }
+      LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_predicate_use(unique_op_id, p.impl->creator_uid);
       return to_set;
     }
 
@@ -294,13 +285,10 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       to_set = Predicate(ctx->create_predicate_impl(this));
       previous.swap(predicates);
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
-        for (std::vector<Predicate>::const_iterator it = previous.begin();
-             it != previous.end(); it++)
-          LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid);
-      }
+      LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
+      for (std::vector<Predicate>::const_iterator it = previous.begin();
+           it != previous.end(); it++)
+        LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid);
       return to_set;
     }
 
@@ -415,13 +403,10 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       previous.swap(predicates);
       to_set = Predicate(ctx->create_predicate_impl(this));
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
-        for (std::vector<Predicate>::const_iterator it = previous.begin();
-             it != previous.end(); it++)
-          LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid);
-      }
+      LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
+      for (std::vector<Predicate>::const_iterator it = previous.begin();
+           it != previous.end(); it++)
+        LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid);
       return to_set;
     }
 

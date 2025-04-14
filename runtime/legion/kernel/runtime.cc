@@ -320,7 +320,6 @@ namespace Legion {
         safe_model(config.safe_model), safe_tracing(config.safe_tracing),
         disable_independence_tests(config.disable_independence_tests),
         enable_pointwise_analysis(config.enable_pointwise_analysis),
-        legion_spy_enabled(config.legion_spy_enabled),
         supply_default_mapper(default_mapper),
         enable_test_mapper(config.enable_test_mapper),
         legion_ldb_enabled(!config.ldb_file.empty()),
@@ -358,9 +357,7 @@ namespace Legion {
         unique_top_level_task_id((unique == 0) ? runtime_stride : unique),
         unique_provenance_id((unique == 0) ? runtime_stride : unique),
         unique_implicit_top_level_task_id(0),
-#ifdef LEGION_SPY
         unique_indirections_id((unique == 0) ? runtime_stride : unique),
-#endif
         unique_task_id(get_current_static_task_id() + unique),
         unique_mapper_id(get_current_static_mapper_id() + unique),
         unique_trace_id(get_current_static_trace_id() + unique),
@@ -454,7 +451,7 @@ namespace Legion {
       if (config.num_profiling_nodes > 0)
         initialize_legion_prof(config);
 
-      if (config.legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
         log_local_machine();
 
 #ifdef LEGION_TRACE_ALLOCATION
@@ -2271,9 +2268,8 @@ namespace Legion {
             "the region projection table\n",
             pid)
       projection_functions[pid] = function;
-      if (legion_spy_enabled)
-        LegionSpy::log_projection_function(
-            pid, function->depth, function->is_invertible);
+      LegionSpy::log_projection_function(
+          pid, function->depth, function->is_invertible);
     }
 
     //--------------------------------------------------------------------------
@@ -2900,7 +2896,7 @@ namespace Legion {
               __func__, ReplicateContext::REPLICATE_ATTACH_TASK_INFO, &task_id,
               sizeof(task_id), tag, buffer, size, is_mutable, send_to_owner))
         return;
-      if ((tag == LEGION_NAME_SEMANTIC_TAG) && legion_spy_enabled)
+      if (tag == LEGION_NAME_SEMANTIC_TAG)
         LegionSpy::log_task_name(task_id, static_cast<const char*>(buffer));
       TaskImpl* impl = find_or_create_task_impl(task_id);
       impl->attach_semantic_information(
@@ -3261,10 +3257,9 @@ namespace Legion {
         impl->broadcast_variant(done_event, address_space, 0);
         done_event.wait();
       }
-      if (legion_spy_enabled)
-        LegionSpy::log_task_variant(
-            registrar.task_id, vid, impl->is_inner(), impl->is_leaf(),
-            impl->is_idempotent(), impl->get_name());
+      LegionSpy::log_task_variant(
+          registrar.task_id, vid, impl->is_inner(), impl->is_leaf(),
+          impl->is_idempotent(), impl->get_name());
       return vid;
     }
 
@@ -10118,10 +10113,9 @@ namespace Legion {
             result, domain, take_ownership, nullptr /*parent*/, 0 /*color*/,
             RtEvent::NO_RT_EVENT, provenance, ApEvent::NO_AP_EVENT,
             0 /*expr id*/, nullptr /*mapping*/, true /*add root reference*/);
-        if (legion_spy_enabled)
-          LegionSpy::log_top_index_space(
-              result.get_id(), address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_top_index_space(
+            result.get_id(), address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
         // Overwrite and leak for now, don't care too much as this
         // should occur infrequently
         AutoLock is_lock(is_slice_lock);
@@ -14056,7 +14050,6 @@ namespace Legion {
       return result;
     }
 
-#ifdef LEGION_SPY
     //--------------------------------------------------------------------------
     unsigned Runtime::get_unique_indirections_id(void)
     //--------------------------------------------------------------------------
@@ -14066,7 +14059,6 @@ namespace Legion {
       legion_assert(result <= unique_indirections_id);
       return result;
     }
-#endif
 
     //--------------------------------------------------------------------------
     Provenance* Runtime::find_or_create_provenance(
@@ -14511,9 +14503,9 @@ namespace Legion {
           "LEGION_DEFAULT_MAX_MESSAGE_SIZE");
 #ifdef LEGION_SPY
       static_assert(
-          Realm::Logger::REALM_LOGGING_MIN_LEVEL <= Realm::Logger::LEVEL_INFO,
+          Realm::Logger::REALM_LOGGING_MIN_LEVEL <= Realm::Logger::LEVEL_PRINT,
           "Legion Spy requires a COMPILE_TIME_MIN_LEVEL of at most "
-          "LEVEL_INFO.");
+          "LEVEL_PRINT.");
 #endif
 #ifdef LEGION_GC
       static_assert(
@@ -14546,8 +14538,7 @@ namespace Legion {
       if (!config.slow_config_ok)
         perform_slow_config_checks(config);
       // Configure legion spy if necessary
-      if (config.legion_spy_enabled)
-        LegionSpy::log_legion_spy_config();
+      LegionSpy::log_legion_spy_config();
       // Construct our runtime objects
       std::set<Processor> local_procs;
       const Processor first_proc = configure_runtime(
@@ -14711,6 +14702,7 @@ namespace Legion {
       cmdline.reserve(cmdline.size() + ((num_args > 0) ? num_args - 1 : 0));
       for (unsigned i = 1; i < num_args; i++) cmdline.emplace_back((*argv)[i]);
       realm.parse_command_line(cmdline, filter);
+      unsigned spy_level = spy_logging_level;
       Realm::CommandLineParser cp;
       cp.add_option_bool(
             "-lg:warn_backtrace", config.warnings_backtrace, !filter)
@@ -14772,7 +14764,7 @@ namespace Legion {
           .add_option_bool(
               "-lg:enable_pointwise_analysis", config.enable_pointwise_analysis,
               !filter)
-          .add_option_bool("-lg:spy", config.legion_spy_enabled, !filter)
+          .add_option_int("-lg:spy", spy_level, !filter)
           .add_option_bool("-lg:test", config.enable_test_mapper, !filter)
           .add_option_int("-lg:delay", config.delay_start, !filter)
           .add_option_string("-lg:replay", config.replay_file, !filter)
@@ -14817,7 +14809,6 @@ namespace Legion {
           .add_option_int("-hl:epoch", config.gc_epoch_size, !filter)
           .add_option_bool(
               "-hl:no_dyn", config.disable_independence_tests, !filter)
-          .add_option_bool("-hl:spy", config.legion_spy_enabled, !filter)
           .add_option_bool("-hl:test", config.enable_test_mapper, !filter)
           .add_option_int("-hl:delay", config.delay_start, !filter)
           .add_option_string("-hl:replay", config.replay_file, !filter)
@@ -14827,6 +14818,8 @@ namespace Legion {
           .add_option_string("-hl:serializer", config.serializer_type, !filter)
           .add_option_string("-hl:prof_logfile", config.prof_logfile, !filter)
           .parse_command_line(cmdline);
+      // Restore the legion spy logging level
+      spy_logging_level = (SpyLoggingLevel)spy_level;
       // If we asked to filter the arguments, now we need to go back in
       // and update the arguments so that they reflect the pruned data
       if (filter)
@@ -14869,16 +14862,14 @@ namespace Legion {
             "Illegal max local fields value %d which is larger than the "
             "value of LEGION_MAX_FIELDS (%d).",
             config.max_local_fields, LEGION_MAX_FIELDS)
-      const Realm::Logger::LoggingLevel compile_time_min_level =
+      constexpr Realm::Logger::LoggingLevel compile_time_min_level =
           Realm::Logger::REALM_LOGGING_MIN_LEVEL;
-      if (config.legion_spy_enabled &&
-          (Realm::Logger::LEVEL_INFO < compile_time_min_level))
+      if ((spy_logging_level > NO_SPY_LOGGING) &&
+          (Realm::Logger::LEVEL_PRINT < compile_time_min_level))
         REPORT_LEGION_ERROR(
             ERROR_LEGION_CONFIGURATION,
             "Legion Spy logging requires a COMPILE_TIME_MIN_LEVEL "
-            "of at most LEVEL_INFO, but current setting is %s",
-            (compile_time_min_level == Realm::Logger::LEVEL_PRINT) ?
-                "LEVEL_PRINT" :
+            "of at most LEVEL_PRINT, but current setting is %s",
             (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
                 "LEVEL_WARNING" :
             (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
@@ -15244,38 +15235,8 @@ namespace Legion {
         sleep(5);
       }
 #endif
-#ifdef LEGION_SPY
-      if (config.num_profiling_nodes > 0)
-      {
-        // Give a massive warning about profiling with Legion Spy enabled
-        for (int i = 0; i < 2; i++)
-          fprintf(
-              stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-        for (int i = 0; i < 4; i++)
-          fprintf(
-              stderr, "!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
-        for (int i = 0; i < 2; i++)
-          fprintf(
-              stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-        fprintf(stderr, "!!! YOU ARE PROFILING WITH LegionSpy ENABLED  !!!\n");
-        fprintf(stderr, "!!! SERIOUS PERFORMANCE DEGRADATION WILL OCCUR!!!\n");
-        fprintf(stderr, "!!! COMPILE WITHOUT -DLEGION_SPY FOR PROFILING!!!\n");
-        for (int i = 0; i < 2; i++)
-          fprintf(
-              stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-        for (int i = 0; i < 4; i++)
-          fprintf(
-              stderr, "!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
-        for (int i = 0; i < 2; i++)
-          fprintf(
-              stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "SLEEPING FOR 5 SECONDS SO YOU READ THIS WARNING...\n");
-        fflush(stderr);
-        sleep(5);
-      }
-#else
-      if (config.legion_spy_enabled && (config.num_profiling_nodes > 0))
+      if ((spy_logging_level > NO_SPY_LOGGING) &&
+          (config.num_profiling_nodes > 0))
       {
         // Give a massive warning about profiling with Legion Spy enabled
         for (int i = 0; i < 2; i++)
@@ -15304,7 +15265,6 @@ namespace Legion {
         fflush(stderr);
         sleep(5);
       }
-#endif
 #ifdef LEGION_BOUNDS_CHECKS
       if (config.num_profiling_nodes > 0)
       {
@@ -15811,10 +15771,7 @@ namespace Legion {
           get_reduction_op(redop, true /*has lock*/);
       legion_assert(reduction_op->identity != nullptr);
       FillView* fill_view = new FillView(
-          get_available_distributed_id(),
-#ifdef LEGION_SPY
-          0 /*no creator*/,
-#endif
+          get_available_distributed_id(), 0 /*no creator*/,
           reduction_op->identity, reduction_op->sizeof_rhs,
           true /*register now*/);
       fill_view->add_base_valid_ref(RUNTIME_REF);

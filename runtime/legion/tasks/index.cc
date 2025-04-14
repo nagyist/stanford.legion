@@ -472,7 +472,7 @@ namespace Legion {
             "epoch or index task). Nested concurrency is not supported.",
             get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
             parent_ctx->get_unique_id())
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         // Don't log this yet if we're part of a must epoch operation
         if (track)
@@ -616,7 +616,7 @@ namespace Legion {
             "epoch or index task). Nested concurrency is not supported.",
             get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
             parent_ctx->get_unique_id())
-      if (runtime->legion_spy_enabled && track)
+      if ((spy_logging_level > NO_SPY_LOGGING) && track)
       {
         LegionSpy::log_index_task(
             parent_ctx->get_unique_id(), unique_op_id, task_id,
@@ -729,7 +729,7 @@ namespace Legion {
               mapper->get_mapper_name(), get_task_name(), get_unique_id());
         }
       }
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         for (unsigned idx = 0; idx < logical_regions.size(); idx++)
           TaskOp::log_requirement(unique_op_id, idx, logical_regions[idx]);
@@ -907,8 +907,7 @@ namespace Legion {
              it != point_futures.end(); it++)
           it->impl->register_dependence(this);
       }
-#ifdef LEGION_SPY
-      else
+      else if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
         // Record pointwise dependences on the point futures
         for (std::vector<FutureMap>::const_iterator it = point_futures.begin();
@@ -921,7 +920,6 @@ namespace Legion {
               true /*pointwise*/);
         }
       }
-#endif
       if (!wait_barriers.empty() || !arrive_barriers.empty())
         parent_ctx->perform_barrier_dependence_analysis(
             this, wait_barriers, arrive_barriers, must_epoch);
@@ -1577,10 +1575,8 @@ namespace Legion {
     void IndexTask::trigger_complete(ApEvent effects)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       LegionSpy::log_operation_events(
           unique_op_id, ApEvent::NO_AP_EVENT, effects);
-#endif
       // Set the future if we actually ran the task or we speculated
       if ((redop > 0) && (predication_state != PREDICATED_FALSE_STATE))
       {
@@ -1707,8 +1703,7 @@ namespace Legion {
           parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance());
       result->clone_multi_from(this, is, p, recurse, stealable);
       result->index_owner = this;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_index_slice(get_unique_id(), result->get_unique_id());
+      LegionSpy::log_index_slice(get_unique_id(), result->get_unique_id());
       if (implicit_profiler != nullptr)
         implicit_profiler->register_slice_owner(
             get_unique_op_id(), result->get_unique_op_id());
@@ -2375,9 +2370,7 @@ namespace Legion {
     {
       legion_assert(is_replaying());
       legion_assert(current_proc.exists());
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       // If we're going to be doing an output reduction do that now
       if (redop > 0)
       {
@@ -3271,11 +3264,9 @@ namespace Legion {
         // Still need to participate in any collective view rendezvous
         if (!collective_view_rendezvous.empty())
           shard_off_collective_rendezvous(commit_preconditions);
-#ifdef LEGION_SPY
         // Still have to do this for legion spy
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         // Finalize any output regions
         if (output_size_collective != nullptr)
         {
@@ -3377,11 +3368,9 @@ namespace Legion {
       // If it's empty we're done, otherwise we do the replay
       if (!internal_space.exists())
       {
-#ifdef LEGION_SPY
         LegionSpy::log_replay_operation(unique_op_id);
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         // We have no local points, so we can just trigger
         if (serdez_redop_fns == nullptr)
         {

@@ -126,21 +126,16 @@ namespace Legion {
       virtual ApEvent issue_fill(
           Operation* op, const PhysicalTraceInfo& trace_info,
           const std::vector<CopySrcDstField>& dst_fields,
-          const void* fill_value, size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-          CollectiveKind collective, bool record_effect, int priority = 0,
-          bool replay = false) = 0;
+          const void* fill_value, size_t fill_size, UniqueID fill_uid,
+          FieldSpace handle, RegionTreeID tree_id, ApEvent precondition,
+          PredEvent pred_guard, LgEvent unique_event, CollectiveKind collective,
+          bool record_effect, int priority = 0, bool replay = false) = 0;
       virtual ApEvent issue_copy(
           Operation* op, const PhysicalTraceInfo& trace_info,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, CollectiveKind collective, bool record_effect,
           int priority = 0, bool replay = false) = 0;
@@ -238,13 +233,10 @@ namespace Legion {
           Operation* op, const Realm::IndexSpace<DIM, T>& space,
           const PhysicalTraceInfo& trace_info,
           const std::vector<CopySrcDstField>& dst_fields,
-          const void* fill_value, size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-          CollectiveKind collective, bool record_effect, int priority,
-          bool replay);
+          const void* fill_value, size_t fill_size, UniqueID fill_uid,
+          FieldSpace handle, RegionTreeID tree_id, ApEvent precondition,
+          PredEvent pred_guard, LgEvent unique_event, CollectiveKind collective,
+          bool record_effect, int priority, bool replay);
     public:
       // Make this one public so it can be accessed by CopyUnstructuredT
       // Be careful using this directly
@@ -255,9 +247,7 @@ namespace Legion {
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, CollectiveKind collective, bool record_effect,
           int priority, bool replay);
@@ -472,21 +462,16 @@ namespace Legion {
       virtual ApEvent issue_fill(
           Operation* op, const PhysicalTraceInfo& trace_info,
           const std::vector<CopySrcDstField>& dst_fields,
-          const void* fill_value, size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-          CollectiveKind collective, bool record_effect, int priority = 0,
-          bool replay = false);
+          const void* fill_value, size_t fill_size, UniqueID fill_uid,
+          FieldSpace handle, RegionTreeID tree_id, ApEvent precondition,
+          PredEvent pred_guard, LgEvent unique_event, CollectiveKind collective,
+          bool record_effect, int priority = 0, bool replay = false);
       virtual ApEvent issue_copy(
           Operation* op, const PhysicalTraceInfo& trace_info,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, CollectiveKind collective, bool record_effect,
           int priority = 0, bool replay = false);

@@ -47,19 +47,15 @@ namespace Legion {
       if (runtime->safe_model)
         verify_requirement(requirement);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_reset_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
-        LegionSpy::log_logical_requirement(
-            unique_op_id, 0 /*idx*/, true /*region*/,
-            requirement.region.index_space.get_id(),
-            requirement.region.field_space.get_id(),
-            requirement.region.get_tree_id(), requirement.privilege,
-            requirement.prop, requirement.redop,
-            requirement.parent.index_space.get_id());
-        LegionSpy::log_requirement_fields(unique_op_id, 0 /*idx*/, fids);
-      }
+      LegionSpy::log_reset_operation(parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_logical_requirement(
+          unique_op_id, 0 /*idx*/, true /*region*/,
+          requirement.region.index_space.get_id(),
+          requirement.region.field_space.get_id(),
+          requirement.region.get_tree_id(), requirement.privilege,
+          requirement.prop, requirement.redop,
+          requirement.parent.index_space.get_id());
+      LegionSpy::log_requirement_fields(unique_op_id, 0 /*idx*/, fids);
     }
 
     //--------------------------------------------------------------------------

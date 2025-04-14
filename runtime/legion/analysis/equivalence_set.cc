@@ -878,11 +878,9 @@ namespace Legion {
           "GC Equivalence Set %lld %d", LEGION_DISTRIBUTED_ID_FILTER(this->did),
           local_space);
 #endif
-#ifdef LEGION_SPY_EQUIVALENCE_SETS
       if (is_logical_owner())
         LegionSpy::log_equivalence_set(
             did, expr->expr_id, tree_id, implicit_provenance);
-#endif
     }
 
     //--------------------------------------------------------------------------

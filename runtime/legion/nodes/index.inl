@@ -606,14 +606,14 @@ namespace Legion {
         }
         old_space.destroy(index_space_valid);
       }
-      if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
+      if ((spy_logging_level > NO_SPY_LOGGING) ||
+          (runtime->profiler != nullptr))
       {
         // Log subspaces being set on the owner
         const AddressSpaceID owner_space = get_owner_space();
         if (owner_space == runtime->address_space)
         {
-          if (runtime->legion_spy_enabled)
-            this->log_index_space_points(tight_space);
+          this->log_index_space_points(tight_space);
           if (runtime->profiler != nullptr)
             this->log_profiler_index_space_points(tight_space);
         }
@@ -688,6 +688,8 @@ namespace Legion {
         const Realm::IndexSpace<DIM, T>& tight_space) const
     //--------------------------------------------------------------------------
     {
+      if (spy_logging_level == NO_SPY_LOGGING)
+        return;
       // Be careful, Realm can lie to us here
       if (!tight_space.empty())
       {
@@ -1385,20 +1387,13 @@ namespace Legion {
               requests, op, DEP_PART_EQUAL, ready);
         ApEvent result(local_space.create_equal_subspaces(
             count, granularity, subspaces, requests, ready));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-        if (!result.exists() || (result == ready))
-        {
-          ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-          Runtime::trigger_event_untraced(new_result);
-          result = new_result;
-        }
-#endif
+        if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+            (!result.exists() || (result == ready)))
+          Runtime::rename_event(result);
         if (to_trigger.exists())
           Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
         LegionSpy::log_deppart_events(
             op->get_unique_op_id(), expr_id, ready, result, DEP_PART_EQUAL);
-#endif
         // Enumerate the colors and assign the spaces
         unsigned subspace_index = 0;
         for (ColorSpaceIterator itr(partition); itr; itr++)
@@ -1493,21 +1488,14 @@ namespace Legion {
             requests, op, DEP_PART_UNIONS, precondition);
       ApEvent result(Realm::IndexSpace<DIM, T>::compute_unions(
           lhs_spaces, rhs_spaces, subspaces, requests, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, precondition, result,
           DEP_PART_UNIONS);
-#endif
       // Now set the index spaces for the results
       unsigned subspace_index = 0;
       for (ColorSpaceIterator itr(partition, true /*local only*/); itr; itr++)
@@ -1562,21 +1550,14 @@ namespace Legion {
             requests, op, DEP_PART_INTERSECTIONS, precondition);
       ApEvent result(Realm::IndexSpace<DIM, T>::compute_intersections(
           lhs_spaces, rhs_spaces, subspaces, requests, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, precondition, result,
           DEP_PART_INTERSECTIONS);
-#endif
       // Now set the index spaces for the results
       unsigned subspace_index = 0;
       for (ColorSpaceIterator itr(partition, true /*local only*/); itr; itr++)
@@ -1640,21 +1621,14 @@ namespace Legion {
         result = ApEvent(Realm::IndexSpace<DIM, T>::compute_intersections(
             lhs_space, rhs_spaces, subspaces, requests, precondition));
       }
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, precondition, result,
           DEP_PART_INTERSECTIONS);
-#endif
       // Now set the index spaces for the results
       unsigned subspace_index = 0;
       for (ColorSpaceIterator itr(partition, true /*local only*/); itr; itr++)
@@ -1710,21 +1684,14 @@ namespace Legion {
             requests, op, DEP_PART_DIFFERENCES, precondition);
       ApEvent result(Realm::IndexSpace<DIM, T>::compute_differences(
           lhs_spaces, rhs_spaces, subspaces, requests, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, precondition, result,
           DEP_PART_DIFFERENCES);
-#endif
       // Now set the index spaces for the results
       unsigned subspace_index = 0;
       for (ColorSpaceIterator itr(partition, true /*local only*/); itr; itr++)
@@ -2055,20 +2022,13 @@ namespace Legion {
                   ready) :
               local_space.create_weighted_subspaces(
                   count, granularity, weights, subspaces, requests, ready));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == ready))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == ready)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, ready, result, DEP_PART_WEIGHTS);
-#endif
       // Iterate the local colors and destroy any that we don't use
       unsigned next = 0;
       for (ColorSpaceIterator itr(partition, true /*local only*/); itr; itr++)
@@ -2180,21 +2140,14 @@ namespace Legion {
       ApEvent result(local_space.create_subspaces_by_field(
           descriptors, colors, subspaces, requests, precondition));
       legion_assert(colors.size() == subspaces.size());
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, precondition, result,
           DEP_PART_BY_FIELD);
-#endif
       unsigned index = (results == nullptr) ? 0 : colors.size();
       // Set our local children results here
       for (ColorSpaceIterator itr(partition, true /*local only*/); itr; itr++)
@@ -2362,19 +2315,12 @@ namespace Legion {
         Realm::IndexSpace<DIM1, T1> subspace;
         ApEvent result(local_space.create_subspace_by_image(
             descriptors, source, subspace, requests, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-        if (!result.exists() || (result == precondition))
-        {
-          ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-          Runtime::trigger_event_untraced(new_result);
-          result = new_result;
-        }
-#endif
-#ifdef LEGION_SPY
+        if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+            (!result.exists() || (result == precondition)))
+          Runtime::rename_event(result);
         LegionSpy::log_deppart_events(
             op->get_unique_op_id(), expr_id, precondition, result,
             DEP_PART_BY_IMAGE);
-#endif
         // Set the result and indicate that we're broadcasting it
         if (child->set_realm_index_space(
                 subspace, result, false /*initialization*/, true /*broadcast*/,
@@ -2482,19 +2428,12 @@ namespace Legion {
         Realm::IndexSpace<DIM1, T1> subspace;
         ApEvent result(local_space.create_subspace_by_image(
             descriptors, source, subspace, requests, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-        if (!result.exists() || (result == precondition))
-        {
-          ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-          Runtime::trigger_event_untraced(new_result);
-          result = new_result;
-        }
-#endif
-#ifdef LEGION_SPY
+        if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+            (!result.exists() || (result == precondition)))
+          Runtime::rename_event(result);
         LegionSpy::log_deppart_events(
             op->get_unique_op_id(), expr_id, precondition, result,
             DEP_PART_BY_IMAGE_RANGE);
-#endif
         // Set the result and indicate that we're broadcasting it
         if (child->set_realm_index_space(
                 subspace, result, false /*initialization*/, true /*broadcast*/,
@@ -2657,21 +2596,14 @@ namespace Legion {
             requests, op, DEP_PART_BY_PREIMAGE, precondition);
       ApEvent result(local_space.create_subspaces_by_preimage(
           descriptors, targets, subspaces, requests, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, precondition, result,
           DEP_PART_BY_PREIMAGE);
-#endif
       // Update any local children with their results
       unsigned index = (results == nullptr) ? 0 : subspaces.size();
       // Set our local children results here
@@ -2840,21 +2772,14 @@ namespace Legion {
             requests, op, DEP_PART_BY_PREIMAGE_RANGE, precondition);
       ApEvent result(local_space.create_subspaces_by_preimage(
           descriptors, targets, subspaces, requests, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, precondition, result,
           DEP_PART_BY_PREIMAGE_RANGE);
-#endif
       // Update any local children with their results
       unsigned index = (results == nullptr) ? 0 : subspaces.size();
       // Set our local children results here
@@ -2945,21 +2870,14 @@ namespace Legion {
             requests, op, DEP_PART_ASSOCIATION, precondition);
       ApEvent result(local_space.create_association(
           descriptors, range_space, requests, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
-#ifdef LEGION_SPY
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr_id, precondition, result,
           DEP_PART_ASSOCIATION);
-#endif
       return result;
     }
 #endif  // defined(DEFINE_NTNT_TEMPLATES)
@@ -3084,23 +3002,17 @@ namespace Legion {
     ApEvent IndexSpaceNodeT<DIM, T>::issue_fill(
         Operation* op, const PhysicalTraceInfo& trace_info,
         const std::vector<CopySrcDstField>& dst_fields, const void* fill_value,
-        size_t fill_size,
-#ifdef LEGION_SPY
-        UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-        CollectiveKind collective, bool record_effect, int priority,
-        bool replay)
+        size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+        RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent unique_event, CollectiveKind collective, bool record_effect,
+        int priority, bool replay)
     //--------------------------------------------------------------------------
     {
       DomainT<DIM, T> local_space = get_tight_index_space();
       return issue_fill_internal(
           op, local_space, trace_info, dst_fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-          fill_uid, handle, tree_id,
-#endif
-          precondition, pred_guard, unique_event, collective, record_effect,
-          priority, replay);
+          fill_uid, handle, tree_id, precondition, pred_guard, unique_event,
+          collective, record_effect, priority, replay);
     }
 
     //--------------------------------------------------------------------------
@@ -3109,23 +3021,17 @@ namespace Legion {
         Operation* op, const PhysicalTraceInfo& trace_info,
         const std::vector<CopySrcDstField>& dst_fields,
         const std::vector<CopySrcDstField>& src_fields,
-        const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
-        RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
-        LgEvent dst_unique, CollectiveKind collective, bool record_effect,
-        int priority, bool replay)
+        const std::vector<Reservation>& reservations, RegionTreeID src_tree_id,
+        RegionTreeID dst_tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent src_unique, LgEvent dst_unique, CollectiveKind collective,
+        bool record_effect, int priority, bool replay)
     //--------------------------------------------------------------------------
     {
       DomainT<DIM, T> local_space = get_tight_index_space();
       return issue_copy_internal(
           op, local_space, trace_info, dst_fields, src_fields, reservations,
-#ifdef LEGION_SPY
-          src_tree_id, dst_tree_id,
-#endif
-          precondition, pred_guard, src_unique, dst_unique, collective,
-          record_effect, priority, replay);
+          src_tree_id, dst_tree_id, precondition, pred_guard, src_unique,
+          dst_unique, collective, record_effect, priority, replay);
     }
 
     //--------------------------------------------------------------------------

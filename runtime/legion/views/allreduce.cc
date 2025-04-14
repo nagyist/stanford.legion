@@ -272,11 +272,9 @@ namespace Legion {
       // Perform the reduction to the destination
       const ApEvent reduce_post = copy_expression->issue_copy(
           op, trace_info, dst_fields, local_fields, reservations,
-#ifdef LEGION_SPY
-          local_manager->tree_id, dst_inst.tid,
-#endif
-          precondition, predicate_guard, local_manager->get_unique_event(),
-          dst_unique_event, collective_kind, false /*copy restricted*/);
+          local_manager->tree_id, dst_inst.tid, precondition, predicate_guard,
+          local_manager->get_unique_event(), dst_unique_event, collective_kind,
+          false /*copy restricted*/);
       // Trigger the output
       Runtime::trigger_event(result, reduce_post, trace_info, applied_events);
       // Save the result, note that this reading of this final reduction
@@ -402,11 +400,9 @@ namespace Legion {
           // Issue the copy
           local_events[it->second] = copy_expression->issue_copy(
               op, trace_info, local_fields[it->first], local_fields[it->second],
-              local_reservations[it->first],
-#ifdef LEGION_SPY
-              local_manager->tree_id, src_manager->tree_id,
-#endif
-              reduce_pre, predicate_guard, src_manager->get_unique_event(),
+              local_reservations[it->first], local_manager->tree_id,
+              src_manager->tree_id, reduce_pre, predicate_guard,
+              src_manager->get_unique_event(),
               local_manager->get_unique_event(), collective_kind,
               false /*copy restricted*/);
           // Clear the redop in case we're reading them next
@@ -482,10 +478,8 @@ namespace Legion {
           }
           const ApEvent reduce_post = copy_expression->issue_copy(
               op, trace_info, dst_fields, src_fields, dst_reservations,
-#ifdef LEGION_SPY
-              dst_manager->tree_id, src_manager->tree_id,
-#endif
-              reduce_pre, predicate_guard, src_manager->get_unique_event(),
+              dst_manager->tree_id, src_manager->tree_id, reduce_pre,
+              predicate_guard, src_manager->get_unique_event(),
               dst_manager->get_unique_event(), collective_kind,
               false /*copy restricted*/);
           if (reduce_post.exists())
@@ -705,12 +699,9 @@ namespace Legion {
         local_manager->compute_copy_offsets(copy_mask, src_fields);
         const ApEvent copy_post = copy_expression->issue_copy(
             op, trace_info, dst_fields, src_fields, reservations,
-#ifdef LEGION_SPY
-            local_manager->tree_id, dst_inst.tid,
-#endif
-            src_pre, predicate_guard, local_manager->get_unique_event(),
-            dst_unique_event, COLLECTIVE_HAMMER_REDUCTION,
-            false /*copy restricted*/);
+            local_manager->tree_id, dst_inst.tid, src_pre, predicate_guard,
+            local_manager->get_unique_event(), dst_unique_event,
+            COLLECTIVE_HAMMER_REDUCTION, false /*copy restricted*/);
         if (copy_post.exists())
         {
           done_events.emplace_back(copy_post);
@@ -1075,14 +1066,10 @@ namespace Legion {
             // Realm should ignore the redop data on these fields
             instance_events[0] = copy_expression->issue_fill(
                 op, trace_info, local_fields[0], reduction_op->identity,
-                reduction_op->sizeof_rhs,
-#ifdef LEGION_SPY
-                fill_view->fill_op_uid,
+                reduction_op->sizeof_rhs, fill_view->fill_op_uid,
                 local_views[0]->manager->field_space_node->handle,
-                local_views[0]->manager->tree_id,
-#endif
-                instance_events[0], predicate_guard,
-                local_views[0]->manager->get_unique_event(),
+                local_views[0]->manager->tree_id, instance_events[0],
+                predicate_guard, local_views[0]->manager->get_unique_event(),
                 COLLECTIVE_BUTTERFLY_ALLREDUCE, false /*restricted*/);
             if (trace_info.recording)
             {
@@ -1303,11 +1290,9 @@ namespace Legion {
           instance_events[dst_inst_index] = copy_expression->issue_fill(
               op, trace_info, local_fields[dst_inst_index],
               reduction_op->identity, reduction_op->sizeof_rhs,
-#ifdef LEGION_SPY
               fill_view->fill_op_uid,
               local_views[dst_inst_index]->manager->field_space_node->handle,
               local_views[dst_inst_index]->manager->tree_id,
-#endif
               instance_events[dst_inst_index], predicate_guard,
               local_views[dst_inst_index]->manager->get_unique_event(),
               COLLECTIVE_BUTTERFLY_ALLREDUCE, false /*restricted*/);
@@ -1326,11 +1311,9 @@ namespace Legion {
           const ApEvent local_post = copy_expression->issue_copy(
               op, trace_info, local_fields[dst_inst_index],
               local_fields[src_inst_index], reservations[dst_inst_index],
-#ifdef LEGION_SPY
               local_views[src_inst_index]->manager->tree_id,
-              local_views[dst_inst_index]->manager->tree_id,
-#endif
-              local_precondition, predicate_guard,
+              local_views[dst_inst_index]->manager->tree_id, local_precondition,
+              predicate_guard,
               local_views[src_inst_index]->manager->get_unique_event(),
               local_views[dst_inst_index]->manager->get_unique_event(),
               COLLECTIVE_BUTTERFLY_ALLREDUCE, false /*copy restricted*/);
@@ -1778,10 +1761,8 @@ namespace Legion {
               &trace_info, it->src_precondition, dst_precondition);
           const ApEvent post = copy_expression->issue_copy(
               op, trace_info, dst_fields, it->src_fields, reservations,
-#ifdef LEGION_SPY
-              it->src_inst.tid, dst_inst.tid,
-#endif
-              pre, predicate_guard, it->src_unique_event, dst_unique_event,
+              it->src_inst.tid, dst_inst.tid, pre, predicate_guard,
+              it->src_unique_event, dst_unique_event,
               COLLECTIVE_BUTTERFLY_ALLREDUCE, false /*copy restricted*/);
           if (trace_info.recording)
             trace_info.record_copy_insts(
@@ -1850,10 +1831,8 @@ namespace Legion {
       const ApEvent copy_post = finder->second.copy_expression->issue_copy(
           finder->second.op, *(finder->second.trace_info),
           finder->second.dst_fields, src_fields, finder->second.reservations,
-#ifdef LEGION_SPY
-          src_inst.tid, dst_inst.tid,
-#endif
-          precondition, finder->second.predicate_guard, src_unique_event,
+          src_inst.tid, dst_inst.tid, precondition,
+          finder->second.predicate_guard, src_unique_event,
           local_views[finder->second.dst_index]->manager->get_unique_event(),
           COLLECTIVE_BUTTERFLY_ALLREDUCE, false /*copy restricted*/);
       std::set<RtEvent> applied_events;

@@ -60,7 +60,7 @@ namespace Legion {
       mapper_id = map_id;
       tag = t;
       deterministic = is_deterministic;
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         LegionSpy::log_all_reduce_operation(ctx->get_unique_id(), unique_op_id);
         const DomainPoint empty_point;
@@ -151,8 +151,7 @@ namespace Legion {
       const void* source = impl->find_runtime_buffer(parent_ctx, src_size);
       (*(serdez_redop_fns->fold_fn))(
           redop, serdez_redop_buffer, future_result_size, source);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_future_use(unique_op_id, impl->did);
+      LegionSpy::log_future_use(unique_op_id, impl->did);
     }
 
     //--------------------------------------------------------------------------
@@ -219,9 +218,7 @@ namespace Legion {
     void AllReduceOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       tpl->get_allreduce_mapping(this, target_memories, future_result_size);
       perform_allreduce();
     }
@@ -478,8 +475,7 @@ namespace Legion {
             preconditions[idx] = it->second->reduce_to(
                 targets[idx], this, redop_id, redop, true /*exclusive*/,
                 preconditions[idx]);
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_future_use(unique_op_id, it->second->did);
+          LegionSpy::log_future_use(unique_op_id, it->second->did);
         }
         for (std::vector<ApEvent>::const_iterator it = preconditions.begin();
              it != preconditions.end(); it++)
@@ -500,8 +496,7 @@ namespace Legion {
             if (done.exists())
               postconditions.emplace_back(done);
           }
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_future_use(unique_op_id, it->second->did);
+          LegionSpy::log_future_use(unique_op_id, it->second->did);
         }
       }
       if (!postconditions.empty())
@@ -694,8 +689,7 @@ namespace Legion {
               "RHS inputs of %zd bytes.",
               parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
               source_size, redop->sizeof_rhs)
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_future_use(unique_op_id, impl->did);
+        LegionSpy::log_future_use(unique_op_id, impl->did);
       }
       legion_assert(!targets.empty());
       // We're going to need to do an all-reduce between the shards so
@@ -712,8 +706,7 @@ namespace Legion {
           local_precondition = it->second->reduce_to(
               local_target, this, redop_id, redop, true /*exclusive*/,
               local_precondition);
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_future_use(unique_op_id, it->second->did);
+          LegionSpy::log_future_use(unique_op_id, it->second->did);
         }
       }
       else
@@ -728,8 +721,7 @@ namespace Legion {
               local_precondition);
           if (postcondition.exists())
             postconditions.emplace_back(postcondition);
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_future_use(unique_op_id, it->second->did);
+          LegionSpy::log_future_use(unique_op_id, it->second->did);
         }
         if (!postconditions.empty())
           local_precondition = Runtime::merge_events(nullptr, postconditions);

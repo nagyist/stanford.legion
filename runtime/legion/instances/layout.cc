@@ -82,7 +82,8 @@ namespace Legion {
     void LayoutDescription::log_instance_layout(LgEvent inst_event) const
     //--------------------------------------------------------------------------
     {
-      legion_assert(runtime->legion_spy_enabled);
+      if (spy_logging_level == NO_SPY_LOGGING)
+        return;
       for (std::map<FieldID, unsigned>::const_iterator it =
                field_indexes.begin();
            it != field_indexes.end(); it++)

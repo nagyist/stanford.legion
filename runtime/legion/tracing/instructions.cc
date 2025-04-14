@@ -243,17 +243,11 @@ namespace Legion {
         PhysicalTemplate& tpl, unsigned l, IndexSpaceExpression* e,
         const TraceLocalID& key, const std::vector<CopySrcDstField>& s,
         const std::vector<CopySrcDstField>& d,
-        const std::vector<Reservation>& r,
-#ifdef LEGION_SPY
-        RegionTreeID src_tid, RegionTreeID dst_tid,
-#endif
-        unsigned pi, LgEvent src_uni, LgEvent dst_uni, int pr,
-        CollectiveKind collect, bool effect)
+        const std::vector<Reservation>& r, RegionTreeID src_tid,
+        RegionTreeID dst_tid, unsigned pi, LgEvent src_uni, LgEvent dst_uni,
+        int pr, CollectiveKind collect, bool effect)
       : Instruction(tpl, key), lhs(l), expr(e), src_fields(s), dst_fields(d),
-        reservations(r),
-#ifdef LEGION_SPY
-        src_tree_id(src_tid), dst_tree_id(dst_tid),
-#endif
+        reservations(r), src_tree_id(src_tid), dst_tree_id(dst_tid),
         precondition_idx(pi), src_unique(src_uni), dst_unique(dst_uni),
         priority(pr), collective(collect), record_effect(effect)
     //--------------------------------------------------------------------------
@@ -297,11 +291,9 @@ namespace Legion {
       const PhysicalTraceInfo trace_info(finder->second, -1U);
       events[lhs] = expr->issue_copy(
           finder->second, trace_info, dst_fields, src_fields, reservations,
-#ifdef LEGION_SPY
-          src_tree_id, dst_tree_id,
-#endif
-          precondition, PredEvent::NO_PRED_EVENT, src_unique, dst_unique,
-          collective, record_effect, priority, true /*replay*/);
+          src_tree_id, dst_tree_id, precondition, PredEvent::NO_PRED_EVENT,
+          src_unique, dst_unique, collective, record_effect, priority,
+          true /*replay*/);
     }
 
     //--------------------------------------------------------------------------
@@ -415,18 +407,13 @@ namespace Legion {
     IssueFill::IssueFill(
         PhysicalTemplate& tpl, unsigned l, IndexSpaceExpression* e,
         const TraceLocalID& key, const std::vector<CopySrcDstField>& f,
-        const void* value, size_t size,
-#ifdef LEGION_SPY
-        UniqueID uid, FieldSpace h, RegionTreeID tid,
-#endif
-        unsigned pi, LgEvent unique, int pr, CollectiveKind collect,
-        bool effect)
+        const void* value, size_t size, UniqueID uid, FieldSpace h,
+        RegionTreeID tid, unsigned pi, LgEvent unique, int pr,
+        CollectiveKind collect, bool effect)
       : Instruction(tpl, key), lhs(l), expr(e), fields(f), fill_size(size),
-#ifdef LEGION_SPY
-        fill_uid(uid), handle(h), tree_id(tid),
-#endif
-        precondition_idx(pi), unique_event(unique), priority(pr),
-        collective(collect), record_effect(effect)
+        fill_uid(uid), handle(h), tree_id(tid), precondition_idx(pi),
+        unique_event(unique), priority(pr), collective(collect),
+        record_effect(effect)
     //--------------------------------------------------------------------------
     {
       legion_assert(lhs < tpl.events.size());
@@ -468,12 +455,9 @@ namespace Legion {
       ApEvent precondition = events[precondition_idx];
       const PhysicalTraceInfo trace_info(finder->second, -1U);
       events[lhs] = expr->issue_fill(
-          finder->second, trace_info, fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-          fill_uid, handle, tree_id,
-#endif
-          precondition, PredEvent::NO_PRED_EVENT, unique_event, collective,
-          record_effect, priority, true /*replay*/);
+          finder->second, trace_info, fields, fill_value, fill_size, fill_uid,
+          handle, tree_id, precondition, PredEvent::NO_PRED_EVENT, unique_event,
+          collective, record_effect, priority, true /*replay*/);
     }
 
     //--------------------------------------------------------------------------

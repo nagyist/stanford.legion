@@ -48,24 +48,18 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    UniqueInst::UniqueInst(void) : inst_did(0), view_did(0), analysis_space(0)
+    UniqueInst::UniqueInst(void)
+      : inst_did(0), view_did(0), analysis_space(0), tid(0)
     //--------------------------------------------------------------------------
-    {
-#ifdef LEGION_SPY
-      tid = 0;
-#endif
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueInst::UniqueInst(IndividualView* view)
       : inst_did(view->get_manager()->did), view_did(view->did),
-        analysis_space(view->get_analysis_space(view->get_manager()))
+        analysis_space(view->get_analysis_space(view->get_manager())),
+        tid(view->get_manager()->tree_id)
     //--------------------------------------------------------------------------
-    {
-#ifdef LEGION_SPY
-      tid = view->get_manager()->tree_id;
-#endif
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void UniqueInst::serialize(Serializer& rez) const
@@ -76,9 +70,7 @@ namespace Legion {
       rez.serialize(view_did);
       rez.serialize(inst_did);
       rez.serialize(analysis_space);
-#ifdef LEGION_SPY
       rez.serialize(tid);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -88,9 +80,7 @@ namespace Legion {
       derez.deserialize(view_did);
       derez.deserialize(inst_did);
       derez.deserialize(analysis_space);
-#ifdef LEGION_SPY
       derez.deserialize(tid);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -456,13 +446,10 @@ namespace Legion {
         const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
         const std::vector<CopySrcDstField>& src_fields,
         const std::vector<CopySrcDstField>& dst_fields,
-        const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
-        RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
-        LgEvent dst_unique, int priority, CollectiveKind collective,
-        bool copy_restricted)
+        const std::vector<Reservation>& reservations, RegionTreeID src_tree_id,
+        RegionTreeID dst_tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent src_unique, LgEvent dst_unique, int priority,
+        CollectiveKind collective, bool copy_restricted)
     //--------------------------------------------------------------------------
     {
       if (runtime->address_space != origin_space)
@@ -488,10 +475,8 @@ namespace Legion {
           rez.serialize<size_t>(reservations.size());
           for (unsigned idx = 0; idx < reservations.size(); idx++)
             rez.serialize(reservations[idx]);
-#ifdef LEGION_SPY
           rez.serialize(src_tree_id);
           rez.serialize(dst_tree_id);
-#endif
           rez.serialize(precondition);
           rez.serialize(pred_guard);
           rez.serialize(src_unique);
@@ -506,12 +491,9 @@ namespace Legion {
       }
       else
         remote_tpl->record_issue_copy(
-            tlid, lhs, expr, src_fields, dst_fields, reservations,
-#ifdef LEGION_SPY
-            src_tree_id, dst_tree_id,
-#endif
-            precondition, pred_guard, src_unique, dst_unique, priority,
-            collective, copy_restricted);
+            tlid, lhs, expr, src_fields, dst_fields, reservations, src_tree_id,
+            dst_tree_id, precondition, pred_guard, src_unique, dst_unique,
+            priority, collective, copy_restricted);
     }
 
     //--------------------------------------------------------------------------
@@ -594,12 +576,10 @@ namespace Legion {
     void RemoteTraceRecorder::record_issue_fill(
         const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
         const std::vector<CopySrcDstField>& fields, const void* fill_value,
-        size_t fill_size,
-#ifdef LEGION_SPY
-        UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-        int priority, CollectiveKind collective, bool fill_restricted)
+        size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+        RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent unique_event, int priority, CollectiveKind collective,
+        bool fill_restricted)
     //--------------------------------------------------------------------------
     {
       if (runtime->address_space != origin_space)
@@ -620,11 +600,9 @@ namespace Legion {
             pack_src_dst_field(rez, fields[idx]);
           rez.serialize(fill_size);
           rez.serialize(fill_value, fill_size);
-#ifdef LEGION_SPY
           rez.serialize(fill_uid);
           rez.serialize(handle);
           rez.serialize(tree_id);
-#endif
           rez.serialize(precondition);
           rez.serialize(pred_guard);
           rez.serialize(unique_event);
@@ -638,12 +616,9 @@ namespace Legion {
       }
       else
         remote_tpl->record_issue_fill(
-            tlid, lhs, expr, fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-            fill_uid, handle, tree_id,
-#endif
-            precondition, pred_guard, unique_event, priority, collective,
-            fill_restricted);
+            tlid, lhs, expr, fields, fill_value, fill_size, fill_uid, handle,
+            tree_id, precondition, pred_guard, unique_event, priority,
+            collective, fill_restricted);
     }
 
     //--------------------------------------------------------------------------
@@ -1083,11 +1058,9 @@ namespace Legion {
             std::vector<Reservation> reservations(num_reservations);
             for (unsigned idx = 0; idx < num_reservations; idx++)
               derez.deserialize(reservations[idx]);
-#ifdef LEGION_SPY
             RegionTreeID src_tree_id, dst_tree_id;
             derez.deserialize(src_tree_id);
             derez.deserialize(dst_tree_id);
-#endif
             ApEvent precondition;
             derez.deserialize(precondition);
             PredEvent pred_guard;
@@ -1106,11 +1079,8 @@ namespace Legion {
             // Do the base call
             tpl->record_issue_copy(
                 tlid, lhs, expr, src_fields, dst_fields, reservations,
-#ifdef LEGION_SPY
-                src_tree_id, dst_tree_id,
-#endif
-                precondition, pred_guard, src_unique, dst_unique, priority,
-                collective, copy_restricted);
+                src_tree_id, dst_tree_id, precondition, pred_guard, src_unique,
+                dst_unique, priority, collective, copy_restricted);
             if (lhs != lhs_copy)
             {
               Serializer rez;
@@ -1182,14 +1152,12 @@ namespace Legion {
             derez.deserialize(fill_size);
             const void* fill_value = derez.get_current_pointer();
             derez.advance_pointer(fill_size);
-#ifdef LEGION_SPY
             UniqueID fill_uid;
             derez.deserialize(fill_uid);
             FieldSpace handle;
             derez.deserialize(handle);
             RegionTreeID tree_id;
             derez.deserialize(tree_id);
-#endif
             ApEvent precondition;
             derez.deserialize(precondition);
             PredEvent pred_guard;
@@ -1206,12 +1174,9 @@ namespace Legion {
             const ApUserEvent lhs_copy = lhs;
             // Do the base call
             tpl->record_issue_fill(
-                tlid, lhs, expr, fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-                fill_uid, handle, tree_id,
-#endif
-                precondition, pred_guard, unique_event, priority, collective,
-                fill_restricted);
+                tlid, lhs, expr, fields, fill_value, fill_size, fill_uid,
+                handle, tree_id, precondition, pred_guard, unique_event,
+                priority, collective, fill_restricted);
             if (lhs != lhs_copy)
             {
               Serializer rez;

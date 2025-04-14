@@ -166,20 +166,9 @@ namespace Legion {
       // because we need all events to go back to a node where we know that
       // we have a shard that can answer queries about it
       const AddressSpaceID event_space = find_event_space(lhs);
-      if (event_space != runtime->address_space)
-      {
-        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(rename, lhs);
-        lhs = rename;
-      }
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-      else if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
-      {
-        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(rename, lhs);
-        lhs = rename;
-      }
-#endif
+      if ((event_space != runtime->address_space) || !lhs.exists() ||
+          (rhs.find(lhs) != rhs.end()))
+        Runtime::rename_event(lhs);
       insert_instruction(new MergeEvent(*this, convert_event(lhs), rhs_, tlid));
     }
 
@@ -256,32 +245,18 @@ namespace Legion {
       // because we need all events to go back to a node where we know that
       // we have a shard that can answer queries about it
       const AddressSpaceID event_space = find_event_space(lhs);
-      if (event_space != runtime->address_space)
-      {
-        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(rename, lhs);
-        lhs = rename;
-      }
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-      else if (!lhs.exists())
-      {
-        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(rename);
-        lhs = rename;
-      }
+      if ((event_space != runtime->address_space) || !lhs.exists())
+        Runtime::rename_event(lhs);
       else
       {
         for (unsigned idx = 0; idx < rhs.size(); idx++)
         {
           if (lhs != rhs[idx])
             continue;
-          ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-          Runtime::trigger_event_untraced(rename, lhs);
-          lhs = rename;
+          Runtime::rename_event(lhs);
           break;
         }
       }
-#endif
       insert_instruction(new MergeEvent(*this, convert_event(lhs), rhs_, tlid));
     }
 
@@ -425,12 +400,33 @@ namespace Legion {
         const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
         const std::vector<CopySrcDstField>& src_fields,
         const std::vector<CopySrcDstField>& dst_fields,
-        const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
-        RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
-        LgEvent dst_unique, int priority, CollectiveKind collective,
+        const std::vector<Reservation>& reservations, RegionTreeID src_tree_id,
+        RegionTreeID dst_tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent src_unique, LgEvent dst_unique, int priority,
+        CollectiveKind collective, bool record_effect)
+    //--------------------------------------------------------------------------
+    {
+      // Make sure the lhs event is local to our shard
+      if (lhs.exists())
+      {
+        const AddressSpaceID event_space = find_event_space(lhs);
+        if (event_space != runtime->address_space)
+          Runtime::rename_event(lhs);
+      }
+      // Then do the base call
+      PhysicalTemplate::record_issue_copy(
+          tlid, lhs, expr, src_fields, dst_fields, reservations, src_tree_id,
+          dst_tree_id, precondition, pred_guard, src_unique, dst_unique,
+          priority, collective, record_effect);
+    }
+
+    //--------------------------------------------------------------------------
+    void ShardedPhysicalTemplate::record_issue_fill(
+        const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
+        const std::vector<CopySrcDstField>& fields, const void* fill_value,
+        size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+        RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent unique_event, int priority, CollectiveKind collective,
         bool record_effect)
     //--------------------------------------------------------------------------
     {
@@ -439,52 +435,12 @@ namespace Legion {
       {
         const AddressSpaceID event_space = find_event_space(lhs);
         if (event_space != runtime->address_space)
-        {
-          ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-          Runtime::trigger_event_untraced(rename, lhs);
-          lhs = rename;
-        }
-      }
-      // Then do the base call
-      PhysicalTemplate::record_issue_copy(
-          tlid, lhs, expr, src_fields, dst_fields, reservations,
-#ifdef LEGION_SPY
-          src_tree_id, dst_tree_id,
-#endif
-          precondition, pred_guard, src_unique, dst_unique, priority,
-          collective, record_effect);
-    }
-
-    //--------------------------------------------------------------------------
-    void ShardedPhysicalTemplate::record_issue_fill(
-        const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
-        const std::vector<CopySrcDstField>& fields, const void* fill_value,
-        size_t fill_size,
-#ifdef LEGION_SPY
-        UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-        int priority, CollectiveKind collective, bool record_effect)
-    //--------------------------------------------------------------------------
-    {
-      // Make sure the lhs event is local to our shard
-      if (lhs.exists())
-      {
-        const AddressSpaceID event_space = find_event_space(lhs);
-        if (event_space != runtime->address_space)
-        {
-          ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-          Runtime::trigger_event_untraced(rename, lhs);
-          lhs = rename;
-        }
+          Runtime::rename_event(lhs);
       }
       // Then do the base call
       PhysicalTemplate::record_issue_fill(
-          tlid, lhs, expr, fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-          fill_uid, handle, tree_id,
-#endif
-          precondition, pred_guard, unique_event, priority, collective,
+          tlid, lhs, expr, fields, fill_value, fill_size, fill_uid, handle,
+          tree_id, precondition, pred_guard, unique_event, priority, collective,
           record_effect);
     }
 
@@ -500,11 +456,7 @@ namespace Legion {
       {
         const AddressSpaceID event_space = find_event_space(lhs);
         if (event_space != runtime->address_space)
-        {
-          ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-          Runtime::trigger_event_untraced(rename, lhs);
-          lhs = rename;
-        }
+          Runtime::rename_event(lhs);
       }
       // Then do the base call
       PhysicalTemplate::record_issue_across(

@@ -315,8 +315,7 @@ namespace Legion {
         result->add_nested_gc_ref(did);
         result->add_nested_resource_ref(did);
         futures[point] = result;
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_future_creation(op_uid, result->did, point);
+        LegionSpy::log_future_creation(op_uid, result->did, point);
         return Future(result);
       }
     }
@@ -529,10 +528,8 @@ namespace Legion {
       if (consumer_depth == op_depth)
       {
         consumer_op->register_dependence(op, op_gen);
-#ifdef LEGION_SPY
         LegionSpy::log_future_dependence(
             context->get_unique_id(), op_uid, consumer_op->get_unique_op_id());
-#endif
       }
     }
 
@@ -631,11 +628,7 @@ namespace Legion {
       RtEvent dummy;
       FutureImpl* impl = runtime->find_or_create_future(
           future_did, context->did, coordinate, provenance,
-          true /*has global ref*/, dummy, op, op_gen,
-#ifdef LEGION_SPY
-          op_uid,
-#endif
-          op_depth);
+          true /*has global ref*/, dummy, op, op_gen, op_uid, op_depth);
       set_future(coordinate.index_point, impl);
       impl->unpack_global_ref();
     }
@@ -1046,8 +1039,7 @@ namespace Legion {
         result->add_nested_gc_ref(did);
         result->add_nested_resource_ref(did);
         futures[point] = result;
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_future_creation(op_uid, result->did, point);
+        LegionSpy::log_future_creation(op_uid, result->did, point);
         return Future(result);
       }
     }

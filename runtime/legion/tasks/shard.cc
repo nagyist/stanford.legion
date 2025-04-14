@@ -51,11 +51,8 @@ namespace Legion {
       check_collective_regions.resize(regions.size());
       for (unsigned idx = 0; idx < regions.size(); idx++)
         check_collective_regions[idx] = idx;
-      if (runtime->legion_spy_enabled)
-      {
-        for (unsigned idx = 0; idx < logical_regions.size(); idx++)
-          log_requirement(unique_op_id, idx, logical_regions[idx]);
-      }
+      for (unsigned idx = 0; idx < logical_regions.size(); idx++)
+        log_requirement(unique_op_id, idx, logical_regions[idx]);
     }
 
     //--------------------------------------------------------------------------
@@ -80,11 +77,8 @@ namespace Legion {
       check_collective_regions.resize(regions.size());
       for (unsigned idx = 0; idx < regions.size(); idx++)
         check_collective_regions[idx] = idx;
-      if (runtime->legion_spy_enabled)
-      {
-        for (unsigned idx = 0; idx < logical_regions.size(); idx++)
-          log_requirement(unique_op_id, idx, logical_regions[idx]);
-      }
+      for (unsigned idx = 0; idx < logical_regions.size(); idx++)
+        log_requirement(unique_op_id, idx, logical_regions[idx]);
       if (!ready_events.empty())
       {
         const RtEvent wait_on = Runtime::merge_events(ready_events);
@@ -317,8 +311,7 @@ namespace Legion {
       execution_context->invalidate_region_tree_contexts(
           is_top_level_task(), commit_preconditions,
           &shard_manager->get_mapping(), shard_id);
-      if (runtime->legion_spy_enabled)
-        execution_context->log_created_requirements();
+      execution_context->log_created_requirements();
       if (profiling_reported.exists() && !profiling_reported.has_triggered())
         commit_preconditions.insert(profiling_reported);
       RtEvent commit_precondition;
@@ -452,9 +445,8 @@ namespace Legion {
         std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_collective_rendezvous(
-            unique_op_id, requirement_index, analysis_index);
+      LegionSpy::log_collective_rendezvous(
+          unique_op_id, requirement_index, analysis_index);
       return shard_manager->convert_collective_views(
           requirement_index, analysis_index, region, targets, physical_ctx,
           analysis_mapping, first_local, target_views, collective_arrivals);
@@ -477,10 +469,9 @@ namespace Legion {
         bool leaf_task)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_shard(
-            LEGION_DISTRIBUTED_ID_FILTER(shard_manager->did), shard_id,
-            get_unique_id());
+      LegionSpy::log_shard(
+          LEGION_DISTRIBUTED_ID_FILTER(shard_manager->did), shard_id,
+          get_unique_id());
       if (!leaf_task)
       {
         // Should have checked that we don't have any output regions here

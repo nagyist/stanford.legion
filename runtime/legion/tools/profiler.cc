@@ -733,11 +733,7 @@ namespace Legion {
         return;
       // If the result is the same as the precondition make a new event
       if (result == precondition)
-      {
-        const Realm::UserEvent rename = Realm::UserEvent::create_user_event();
-        rename.trigger(precondition);
-        result = LgEvent(rename);
-      }
+        Runtime::rename_event(result);
       InstanceRedistrictInfo& info =
           instance_redistrict_infos.emplace_back(InstanceRedistrictInfo());
       info.performed = Realm::Clock::current_time_in_nanoseconds();
@@ -2347,7 +2343,7 @@ namespace Legion {
 #else
           false,
 #endif
-          runtime->legion_spy_enabled,
+          spy_logging_level > NO_SPY_LOGGING,
 #ifdef LEGION_GC
           true,
 #else
@@ -3228,9 +3224,8 @@ namespace Legion {
       // here before we handle the message, and then we pretend like the
       // actuall finish event is a user event triggered after we get the
       // profiling response for this task.
-      const Realm::UserEvent rename = Realm::UserEvent::create_user_event();
-      rename.trigger();
-      const LgEvent fevent(rename);
+      LgEvent fevent;
+      Runtime::rename_event(fevent);
       // Well this is fun, we might even block on this lock acquire so
       // make sure we've set up our implicit fevent correctly
       const LgEvent original_fevent = implicit_fevent;

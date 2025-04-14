@@ -120,18 +120,19 @@ namespace Legion {
       for (unsigned idx = 0; idx < grants.size(); idx++)
         grants[idx].impl->register_operation(termination_event);
       wait_barriers = launcher.wait_barriers;
-#ifdef LEGION_SPY
-      for (std::vector<PhaseBarrier>::const_iterator it =
-               launcher.arrive_barriers.begin();
-           it != launcher.arrive_barriers.end(); it++)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
-        arrive_barriers.emplace_back(*it);
-        LegionSpy::log_event_dependence(
-            it->phase_barrier, arrive_barriers.back().phase_barrier);
+        for (std::vector<PhaseBarrier>::const_iterator it =
+                 launcher.arrive_barriers.begin();
+             it != launcher.arrive_barriers.end(); it++)
+        {
+          arrive_barriers.emplace_back(*it);
+          LegionSpy::log_event_dependence(
+              it->phase_barrier, arrive_barriers.back().phase_barrier);
+        }
       }
-#else
-      arrive_barriers = launcher.arrive_barriers;
-#endif
+      else
+        arrive_barriers = launcher.arrive_barriers;
       map_id = launcher.map_id;
       tag = launcher.tag;
       mapper_data_size = launcher.map_arg.get_size();
@@ -143,9 +144,8 @@ namespace Legion {
       }
       layout_constraint_id = launcher.layout_constraint_id;
 
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_mapping_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_mapping_operation(
+          parent_ctx->get_unique_id(), unique_op_id);
       return region;
     }
 
@@ -169,9 +169,8 @@ namespace Legion {
       remap_region = true;
       // No need to check the privileges here since we know that we have
       // them from the first time that we made this physical region
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_mapping_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_mapping_operation(
+          parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -250,7 +249,7 @@ namespace Legion {
     void MapOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         LegionSpy::log_logical_requirement(
             unique_op_id, 0 /*index*/, true /*region*/,
@@ -350,18 +349,13 @@ namespace Legion {
         for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
              it != arrive_barriers.end(); it++)
         {
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_arrival(
-                unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
           runtime->phase_barrier_arrive(
               it->phase_barrier, 1 /*count*/, termination_event);
         }
       }
-#ifdef LEGION_SPY
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_operation_events(
-            unique_op_id, map_complete_event, ready_event);
-#endif
+      LegionSpy::log_operation_events(
+          unique_op_id, map_complete_event, ready_event);
       // Map operations do not wait for the unmapping to be considered complete
       record_completion_effect(map_complete_event);
       // We can trigger the ready event now that we know its precondition

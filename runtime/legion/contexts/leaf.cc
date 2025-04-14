@@ -81,8 +81,7 @@ namespace Legion {
     void LeafContext::inline_child_task(TaskOp* child)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_inline_task(child->get_unique_id());
+      LegionSpy::log_inline_task(child->get_unique_id());
       // Find the mapped physical regions associated with each of the
       // child task's region requirements. If they aren't mapped then
       // we need a mapping fence to ensure that all the mappings are
@@ -1396,9 +1395,8 @@ namespace Legion {
       output.size = 0;
       output.take_ownership = true;
       mapper->invoke_select_tunable_value(owner_task, input, output);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_tunable_value(
-            get_unique_id(), get_tunable_index(), output.value, output.size);
+      LegionSpy::log_tunable_value(
+          get_unique_id(), get_tunable_index(), output.value, output.size);
       future->set_local(output.value, output.size, output.take_ownership);
       return Future(future);
     }
@@ -1787,12 +1785,7 @@ namespace Legion {
       RtEvent use_event;
       LgEvent unique_event;
       if (runtime->profiler != nullptr)
-      {
-        // If we're profiling then each of these needs a unique event
-        const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-        unique.trigger();
-        unique_event = LgEvent(unique);
-      }
+        Runtime::rename_event(unique_event);
       const size_t footprint = layout->bytes_used;
       std::map<Memory, MemoryPool*>::const_iterator finder =
           memory_pools.find(memory);

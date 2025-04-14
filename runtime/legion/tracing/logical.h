@@ -232,10 +232,6 @@ namespace Legion {
       void translate_dependence_records(
           Operation* op, const unsigned index,
           const std::vector<StaticDependence>& dependences);
-#ifdef LEGION_SPY
-    public:
-      UniqueID get_current_uid_by_index(unsigned op_idx) const;
-#endif
     public:
       InnerContext* const context;
       const TraceID tid;
@@ -270,7 +266,7 @@ namespace Legion {
       bool recording;
       size_t replay_index;
       std::deque<OperationInfo> replay_info;
-      std::set<std::pair<Operation*, GenerationID>> frontiers;
+      std::map<std::pair<Operation*, GenerationID>, UniqueID> frontiers;
       std::vector<OpInfo> operations;
       // Only need this backwards lookup for trace capture
       std::map<
@@ -282,11 +278,6 @@ namespace Legion {
     protected:
       // Help for control replicated concurrent index task launches
       std::map<TraceLocalID, std::vector<Color>> concurrent_colors;
-#ifdef LEGION_SPY
-    protected:
-      std::map<std::pair<Operation*, GenerationID>, UniqueID> current_uids;
-      std::map<std::pair<Operation*, GenerationID>, unsigned> num_regions;
-#endif
     };
 
   }  // namespace Internal

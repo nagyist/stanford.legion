@@ -562,8 +562,7 @@ namespace Legion {
       // that has actually been assigned to run this task.
       executing_processor = proc;
       owner_task->current_proc = executing_processor;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_task_processor(get_unique_id(), executing_processor.id);
+      LegionSpy::log_task_processor(get_unique_id(), executing_processor.id);
       legion_assert(regions.size() == physical_regions.size());
       // Issue a utility task to decrement the number of outstanding
       // tasks now that this task has started running
@@ -815,12 +814,7 @@ namespace Legion {
         if (runtime->profiler != nullptr)
         {
           if (!unique_events[idx].exists())
-          {
-            const Realm::UserEvent unique =
-                Realm::UserEvent::create_user_event();
-            unique.trigger();
-            unique_events[idx] = LgEvent(unique);
-          }
+            Runtime::rename_event(unique_events[idx]);
           runtime->profiler->add_inst_request(
               requests[idx], get_unique_id(), unique_events[idx]);
         }
@@ -947,9 +941,7 @@ namespace Legion {
     {
       PhaseBarrier result = pb;
       Runtime::advance_barrier(result);
-#ifdef LEGION_SPY
       LegionSpy::log_event_dependence(pb.phase_barrier, result.phase_barrier);
-#endif
       return result;
     }
 

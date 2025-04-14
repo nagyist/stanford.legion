@@ -44,9 +44,7 @@ namespace Legion {
       std::vector<PhysicalInstance> instances;
       // Only valid if profiling is enabled
       std::vector<LgEvent> instance_events;
-#ifdef LEGION_SPY
       IndexSpace index_space;
-#endif
       Domain domain;
       ApEvent domain_ready;
     };
@@ -190,10 +188,8 @@ namespace Legion {
       // order of the fields in the original region requirements
       std::vector<CopySrcDstField> src_fields, dst_fields;
       std::vector<LgEvent> src_unique_events, dst_unique_events;
-#ifdef LEGION_SPY
       RegionTreeID src_tree_id, dst_tree_id;
       unsigned unique_indirections_identifier;
-#endif
     public:
       // All the 'instances' in the entries in these data strctures are
       // ordered by the order of the fields in the origin region requirements
@@ -335,10 +331,8 @@ namespace Legion {
       std::vector<std::vector<unsigned> > individual_field_indexes;
       // For help in creating shadow indirections
       Realm::InstanceLayoutGeneric* shadow_layout;
-#ifdef LEGION_SPY
       std::deque<ApEvent> src_preimage_preconditions;
       std::deque<ApEvent> dst_preimage_preconditions;
-#endif
       bool need_src_indirect_precondition, need_dst_indirect_precondition;
       bool src_indirect_immutable_for_tracing;
       bool dst_indirect_immutable_for_tracing;

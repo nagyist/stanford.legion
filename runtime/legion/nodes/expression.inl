@@ -63,7 +63,7 @@ namespace Legion {
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
         return nullptr;
       DomainT<DIM, T> domain = get_tight_domain();
       if (!domain.dense())
@@ -95,7 +95,7 @@ namespace Legion {
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
         return nullptr;
       if (exprs.size() == 2)
         return this->inline_union_internal<DIM, T>(*std::next(exprs.begin()));
@@ -166,7 +166,7 @@ namespace Legion {
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
         return nullptr;
       DomainT<DIM, T> left = get_tight_domain();
       DomainT<DIM, T> right = rhs->get_tight_domain();
@@ -230,7 +230,7 @@ namespace Legion {
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
         return nullptr;
       DomainT<DIM, T> domain = get_tight_domain();
       if (domain.empty())
@@ -278,7 +278,7 @@ namespace Legion {
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
         return nullptr;
       DomainT<DIM, T> left = get_tight_domain();
       DomainT<DIM, T> right = rhs->get_tight_domain();
@@ -373,13 +373,10 @@ namespace Legion {
         Operation* op, const Realm::IndexSpace<DIM, T>& space,
         const PhysicalTraceInfo& trace_info,
         const std::vector<CopySrcDstField>& dst_fields, const void* fill_value,
-        size_t fill_size,
-#ifdef LEGION_SPY
-        UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-        CollectiveKind collective, bool record_effect, int priority,
-        bool replay)
+        size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+        RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent unique_event, CollectiveKind collective, bool record_effect,
+        int priority, bool replay)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_DEBUG
@@ -432,40 +429,28 @@ namespace Legion {
           // Little catch here for tracing, make sure the result is unique
           if (trace_info.recording && result.exists() &&
               (result == precondition))
-          {
-            ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-            Runtime::trigger_event_untraced(new_result, precondition);
-            result = new_result;
-          }
+            Runtime::rename_event(result);
         }
       }
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists())
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
+        if (!result.exists())
+          Runtime::rename_event(result);
+        LegionSpy::log_fill_events(
+            op->get_unique_op_id(), expr_id, handle, tree_id, precondition,
+            result, fill_uid, collective);
+        for (unsigned idx = 0; idx < dst_fields.size(); idx++)
+          LegionSpy::log_fill_field(
+              result, dst_fields[idx].field_id, unique_event);
       }
-#endif
       record_index_space_user(result);
-#ifdef LEGION_SPY
-      LegionSpy::log_fill_events(
-          op->get_unique_op_id(), expr_id, handle, tree_id, precondition,
-          result, fill_uid, collective);
-      for (unsigned idx = 0; idx < dst_fields.size(); idx++)
-        LegionSpy::log_fill_field(
-            result, dst_fields[idx].field_id, unique_event);
-#endif
       if (record_effect && result.exists())
         op->record_completion_effect(result);
       if (trace_info.recording)
         trace_info.record_issue_fill(
-            result, this, dst_fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-            fill_uid, handle, tree_id,
-#endif
-            precondition, pred_guard, unique_event, priority, collective,
-            record_effect);
+            result, this, dst_fields, fill_value, fill_size, fill_uid, handle,
+            tree_id, precondition, pred_guard, unique_event, priority,
+            collective, record_effect);
       return result;
     }
 
@@ -476,13 +461,10 @@ namespace Legion {
         const PhysicalTraceInfo& trace_info,
         const std::vector<CopySrcDstField>& dst_fields,
         const std::vector<CopySrcDstField>& src_fields,
-        const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
-        RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
-        LgEvent dst_unique, CollectiveKind collective, bool record_effect,
-        int priority, bool replay)
+        const std::vector<Reservation>& reservations, RegionTreeID src_tree_id,
+        RegionTreeID dst_tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent src_unique, LgEvent dst_unique, CollectiveKind collective,
+        bool record_effect, int priority, bool replay)
     //--------------------------------------------------------------------------
     {
       legion_assert(!space.empty());
@@ -536,41 +518,29 @@ namespace Legion {
           // Little catch here for tracing, make sure the result is unique
           if (trace_info.recording && result.exists() &&
               (result == precondition))
-          {
-            ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-            Runtime::trigger_event_untraced(new_result, precondition);
-            result = new_result;
-          }
+            Runtime::rename_event(result);
         }
       }
       if (record_effect && result.exists())
         op->record_completion_effect(result);
       if (trace_info.recording)
         trace_info.record_issue_copy(
-            result, this, src_fields, dst_fields, reservations,
-#ifdef LEGION_SPY
-            src_tree_id, dst_tree_id,
-#endif
-            precondition, pred_guard, src_unique, dst_unique, priority,
-            collective, record_effect);
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists())
+            result, this, src_fields, dst_fields, reservations, src_tree_id,
+            dst_tree_id, precondition, pred_guard, src_unique, dst_unique,
+            priority, collective, record_effect);
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
+        if (!result.exists())
+          Runtime::rename_event(result);
+        LegionSpy::log_copy_events(
+            op->get_unique_op_id(), expr_id, src_tree_id, dst_tree_id,
+            precondition, result, collective);
+        for (unsigned idx = 0; idx < src_fields.size(); idx++)
+          LegionSpy::log_copy_field(
+              result, src_fields[idx].field_id, src_unique,
+              dst_fields[idx].field_id, dst_unique, dst_fields[idx].redop_id);
       }
-#endif
       record_index_space_user(result);
-#ifdef LEGION_SPY
-      LegionSpy::log_copy_events(
-          op->get_unique_op_id(), expr_id, src_tree_id, dst_tree_id,
-          precondition, result, collective);
-      for (unsigned idx = 0; idx < src_fields.size(); idx++)
-        LegionSpy::log_copy_field(
-            result, src_fields[idx].field_id, src_unique,
-            dst_fields[idx].field_id, dst_unique, dst_fields[idx].redop_id);
-#endif
       return result;
     }
 
@@ -1697,23 +1667,17 @@ namespace Legion {
     ApEvent IndexSpaceOperationT<DIM, T>::issue_fill(
         Operation* op, const PhysicalTraceInfo& trace_info,
         const std::vector<CopySrcDstField>& dst_fields, const void* fill_value,
-        size_t fill_size,
-#ifdef LEGION_SPY
-        UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-        CollectiveKind collective, bool record_effect, int priority,
-        bool replay)
+        size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+        RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent unique_event, CollectiveKind collective, bool record_effect,
+        int priority, bool replay)
     //--------------------------------------------------------------------------
     {
       DomainT<DIM, T> local_space = get_tight_index_space();
       return issue_fill_internal(
           op, local_space, trace_info, dst_fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-          fill_uid, handle, tree_id,
-#endif
-          precondition, pred_guard, unique_event, collective, priority, replay,
-          record_effect);
+          fill_uid, handle, tree_id, precondition, pred_guard, unique_event,
+          collective, priority, replay, record_effect);
     }
 
     //--------------------------------------------------------------------------
@@ -1722,23 +1686,17 @@ namespace Legion {
         Operation* op, const PhysicalTraceInfo& trace_info,
         const std::vector<CopySrcDstField>& dst_fields,
         const std::vector<CopySrcDstField>& src_fields,
-        const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
-        RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
-        LgEvent dst_unique, CollectiveKind collective, bool record_effect,
-        int priority, bool replay)
+        const std::vector<Reservation>& reservations, RegionTreeID src_tree_id,
+        RegionTreeID dst_tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent src_unique, LgEvent dst_unique, CollectiveKind collective,
+        bool record_effect, int priority, bool replay)
     //--------------------------------------------------------------------------
     {
       DomainT<DIM, T> local_space = get_tight_index_space();
       return issue_copy_internal(
           op, local_space, trace_info, dst_fields, src_fields, reservations,
-#ifdef LEGION_SPY
-          src_tree_id, dst_tree_id,
-#endif
-          precondition, pred_guard, src_unique, dst_unique, collective,
-          record_effect, priority, replay);
+          src_tree_id, dst_tree_id, precondition, pred_guard, src_unique,
+          dst_unique, collective, record_effect, priority, replay);
     }
 
     //--------------------------------------------------------------------------
@@ -1943,7 +1901,7 @@ namespace Legion {
       }
       else  // We can do the tighten call now
         this->tighten_index_space();
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         std::vector<IndexSpaceExprID> sources(this->sub_expressions.size());
         for (unsigned idx = 0; idx < this->sub_expressions.size(); idx++)
@@ -1961,7 +1919,7 @@ namespace Legion {
       // Shouldn't be here if Legion Spy is enabled since we don't have
       // logging for this and we don't want to make too many index space
       // expressions for Legion Spy to deal with
-      legion_assert(!runtime->legion_spy_enabled);
+      legion_assert(spy_logging_level == NO_SPY_LOGGING);
       this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
@@ -2068,7 +2026,7 @@ namespace Legion {
       }
       else  // We can do the tighten call now
         this->tighten_index_space();
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         std::vector<IndexSpaceExprID> sources(this->sub_expressions.size());
         for (unsigned idx = 0; idx < this->sub_expressions.size(); idx++)
@@ -2087,7 +2045,7 @@ namespace Legion {
       // Shouldn't be here if Legion Spy is enabled since we don't have
       // logging for this and we don't want to make too many index space
       // expressions for Legion Spy to deal with
-      legion_assert(!runtime->legion_spy_enabled);
+      legion_assert(spy_logging_level == NO_SPY_LOGGING);
       this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
@@ -2204,7 +2162,7 @@ namespace Legion {
         else  // We can do the tighten call now
           this->tighten_index_space();
       }
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
         LegionSpy::log_index_space_difference(
             this->expr_id, lhs->expr_id, rhs->expr_id);
     }
@@ -2220,7 +2178,7 @@ namespace Legion {
       // Shouldn't be here if Legion Spy is enabled since we don't have
       // logging for this and we don't want to make too many index space
       // expressions for Legion Spy to deal with
-      legion_assert(!runtime->legion_spy_enabled);
+      legion_assert(spy_logging_level == NO_SPY_LOGGING);
       this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
@@ -2303,7 +2261,7 @@ namespace Legion {
         this->tight_index_space = this->realm_index_space;
         this->is_index_space_tight.store(true);
       }
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         // These index expressions cannot be computed, so we'll pretend
         // like they are index spaces to Legion Spy since these are

@@ -88,7 +88,7 @@ namespace Legion {
       parent_req_index = parent_index;
       if (tracing)
         trace->register_internal(this);
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         LegionSpy::log_refinement_operation(
             parent_ctx->get_unique_id(), unique_op_id);
@@ -126,7 +126,7 @@ namespace Legion {
       legion_assert(refinement_node != nullptr);
       refinement_mask = mask;
       refinement_number = number;
-      if (runtime->legion_spy_enabled && !!mask)
+      if ((spy_logging_level > NO_SPY_LOGGING) && !!mask)
       {
         std::set<FieldID> fields;
         refinement_node->column_source->get_field_set(mask, parent_ctx, fields);

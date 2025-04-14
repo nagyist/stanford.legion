@@ -2297,11 +2297,10 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), sources[0].get_type_tag());
       Internal::AutoProvenance prov(provenance);
       runtime->create_union_space(result, prov, sources);
-      if (runtime->legion_spy_enabled)
-        Internal::LegionSpy::log_top_index_space(
-            result.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() :
-                                      std::string_view(provenance));
+      Internal::LegionSpy::log_top_index_space(
+          result.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() :
+                                    std::string_view(provenance));
       return result;
     }
 
@@ -2334,11 +2333,10 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), sources[0].get_type_tag());
       Internal::AutoProvenance prov(provenance);
       runtime->create_intersection_space(result, prov, sources);
-      if (runtime->legion_spy_enabled)
-        Internal::LegionSpy::log_top_index_space(
-            result.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() :
-                                      std::string_view(provenance));
+      Internal::LegionSpy::log_top_index_space(
+          result.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() :
+                                    std::string_view(provenance));
       return result;
     }
 
@@ -2362,11 +2360,10 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), left.get_type_tag());
       Internal::AutoProvenance prov(provenance);
       runtime->create_difference_space(result, prov, left, right);
-      if (runtime->legion_spy_enabled)
-        Internal::LegionSpy::log_top_index_space(
-            result.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() :
-                                      std::string_view(provenance));
+      Internal::LegionSpy::log_top_index_space(
+          result.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() :
+                                    std::string_view(provenance));
       return result;
     }
 

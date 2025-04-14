@@ -1468,10 +1468,9 @@ namespace Legion {
             &collective_mapping, true /*add root reference*/);
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(
-              handle.get_id(), runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_top_index_space(
+            handle.get_id(), runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1613,10 +1612,9 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(
-              handle.get_id(), runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_top_index_space(
+            handle.get_id(), runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1801,10 +1799,9 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(
-              handle.get_id(), runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_top_index_space(
+            handle.get_id(), runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1901,10 +1898,9 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(
-              handle.get_id(), runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_top_index_space(
+            handle.get_id(), runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1991,10 +1987,9 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_index_space(value.did);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(
-              handle.get_id(), runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_top_index_space(
+            handle.get_id(), runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -3940,10 +3935,9 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_field_space(value.did);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_field_space(
-              space.get_id(), runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_field_space(
+            space.get_id(), runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -4072,7 +4066,7 @@ namespace Legion {
             sizes, resulting_fields, serdez_id, provenance,
             true /*collective*/);
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
-        if (runtime->legion_spy_enabled && !non_owner)
+        if (!non_owner)
           for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
             LegionSpy::log_field_creation(
                 space.get_id(), resulting_fields[idx], sizes[idx],
@@ -4435,7 +4429,7 @@ namespace Legion {
         const bool non_owner = (finder->second.first != owner_shard->shard_id);
         precondition = runtime->allocate_field(
             space, field_size, fid, serdez_id, provenance, non_owner);
-        if (runtime->legion_spy_enabled && !non_owner)
+        if (!non_owner)
           LegionSpy::log_field_creation(
               space.get_id(), fid, field_size,
               (provenance == nullptr) ? std::string_view() : provenance->human);
@@ -4748,7 +4742,7 @@ namespace Legion {
         const bool non_owner = (finder->second.first != owner_shard->shard_id);
         precondition = runtime->allocate_fields(
             space, sizes, resulting_fields, serdez_id, provenance, non_owner);
-        if (runtime->legion_spy_enabled && !non_owner)
+        if (!non_owner)
           for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
             LegionSpy::log_field_creation(
                 space.get_id(), resulting_fields[idx], sizes[idx],
@@ -5000,11 +4994,10 @@ namespace Legion {
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         runtime->revoke_pending_region_tree(value.tid);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_region(
-              index_space.get_id(), field_space.get_id(), handle.get_tree_id(),
-              runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_top_region(
+            index_space.get_id(), field_space.get_id(), handle.get_tree_id(),
+            runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -7309,9 +7302,8 @@ namespace Legion {
       {
         // Record the event for when the trace replay is ready
         physical_trace_replay_status.store(trace_op->get_mapped_event().id);
-#ifdef LEGION_SPY
-        tracing_replay_event = trace_op->get_completion_event();
-#endif
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
+          tracing_replay_event = trace_op->get_completion_event();
       }
       add_to_dependence_queue(trace_op);
       // Now mark that we are starting a trace
@@ -7982,11 +7974,9 @@ namespace Legion {
       }
       PhaseBarrier result = bar;
       Runtime::advance_barrier(result);
-#ifdef LEGION_SPY
       if (owner_shard->shard_id == 0)
         LegionSpy::log_event_dependence(
             bar.phase_barrier, result.phase_barrier);
-#endif
       return result;
     }
 
@@ -8071,10 +8061,8 @@ namespace Legion {
       }
       DynamicCollective result = dc;
       Runtime::advance_barrier(result);
-#ifdef LEGION_SPY
       if (owner_shard->shard_id == 0)
         LegionSpy::log_event_dependence(dc.phase_barrier, result.phase_barrier);
-#endif
       return result;
     }
 

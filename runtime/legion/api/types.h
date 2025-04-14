@@ -73,13 +73,6 @@
 #endif
 // clang-format on
 
-// If we're doing full LEGION_SPY then turn off event pruning
-#ifdef LEGION_SPY
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-#define LEGION_DISABLE_EVENT_PRUNING
-#endif
-#endif
-
 #ifdef LEGION_DEBUG
 #define legion_assert(expr) assert(expr)
 #ifndef NDEBUG
@@ -1033,6 +1026,20 @@ namespace Legion {
     // only be thread-local or logggers
     // This is the pointer to the runtime singleton
     inline Runtime* runtime = nullptr;
+    // One more global variable for the spy_logging_level which says
+    // which level of legion spy logging we are doing, put this here
+    // so that we inline it into everything
+    enum SpyLoggingLevel {
+      NO_SPY_LOGGING,
+      LIGHT_SPY_LOGGING,
+      HEAVY_SPY_LOGGING,
+      EQ_SPY_LOGGING,
+    };
+#ifdef LEGION_SPY
+    inline SpyLoggingLevel spy_logging_level = HEAVY_SPY_LOGGING;
+#else
+    inline SpyLoggingLevel spy_logging_level = NO_SPY_LOGGING;
+#endif
     // Nasty global variable for TLS support of figuring out
     // our context implicitly
     inline thread_local TaskContext* implicit_context = nullptr;

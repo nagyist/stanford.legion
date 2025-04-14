@@ -43,8 +43,7 @@ namespace Legion {
       Future f = FenceOp::initialize(
           ctx, EXECUTION_FENCE, true /*need future*/, provenance);
       measurement = launcher.measurement;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_timing_operation(ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_timing_operation(ctx->get_unique_id(), unique_op_id);
       return f;
     }
 
@@ -154,8 +153,7 @@ namespace Legion {
       Future f = ReplFenceOp::initialize(
           ctx, EXECUTION_FENCE, true /*need future*/, provenance);
       measurement = launcher.measurement;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_timing_operation(ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_timing_operation(ctx->get_unique_id(), unique_op_id);
       return f;
     }
 

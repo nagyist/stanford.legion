@@ -141,12 +141,9 @@ namespace Legion {
       legion_assert(!allocated);
       legion_assert(!instance.exists());  // shouldn't exist before this
       LgEvent unique_event;
-      if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
-      {
-        Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-        unique.trigger();
-        unique_event = LgEvent(unique);
-      }
+      if ((spy_logging_level > NO_SPY_LOGGING) ||
+          (runtime->profiler != nullptr))
+        Runtime::rename_event(unique_event);
       ApEvent ready;
       if (runtime->profiler != nullptr)
       {

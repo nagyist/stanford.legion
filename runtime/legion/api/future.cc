@@ -2150,11 +2150,9 @@ namespace Legion {
         if (consumer_context == context)
         {
           consumer_op->register_dependence(producer_op, op_gen);
-#ifdef LEGION_SPY
           LegionSpy::log_future_dependence(
               context->get_unique_id(), producer_uid,
               consumer_op->get_unique_op_id());
-#endif
         }
         else
         {
@@ -3200,9 +3198,7 @@ namespace Legion {
         if (runtime->profiler != nullptr)
         {
           // Need to try to make a unique event
-          Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-          unique.trigger();
-          unique_event = LgEvent(unique);
+          Runtime::rename_event(unique_event);
           runtime->profiler->add_inst_request(
               requests, implicit_provenance, unique_event);
         }

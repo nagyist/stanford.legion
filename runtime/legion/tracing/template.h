@@ -305,11 +305,9 @@ namespace Legion {
     private:
       void dump_instructions(
           const std::vector<Instruction*>& instructions) const;
-#ifdef LEGION_SPY
     public:
       void set_fence_uid(UniqueID fence_uid) { prev_fence_uid = fence_uid; }
       UniqueID get_fence_uid(void) const { return prev_fence_uid; }
-#endif
     public:
       inline bool is_replaying(void) const { return trace->is_replaying(); }
       inline bool is_replayable(void) const
@@ -389,9 +387,7 @@ namespace Legion {
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, int priority, CollectiveKind collective,
           bool record_effect);
@@ -420,12 +416,10 @@ namespace Legion {
       virtual void record_issue_fill(
           const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
           const std::vector<CopySrcDstField>& fields, const void* fill_value,
-          size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-          int priority, CollectiveKind collective, bool record_effect);
+          size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+          RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+          LgEvent unique_event, int priority, CollectiveKind collective,
+          bool record_effect);
     public:
       virtual void record_op_inst(
           const TraceLocalID& tlid, unsigned idx, const UniqueInst& inst,
@@ -609,10 +603,9 @@ namespace Legion {
       std::vector<TraceConditionSet*> preconditions;
       std::vector<TraceConditionSet*> anticonditions;
       std::vector<TraceConditionSet*> postconditions;
-#ifdef LEGION_SPY
     private:
+      // For Legion Spy
       UniqueID prev_fence_uid;
-#endif
     private:
       friend class PhysicalTrace;
       friend class Instruction;

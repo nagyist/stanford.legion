@@ -796,11 +796,8 @@ namespace Legion {
             runtime->find_or_create_pending_collectable_location<FillView>(
                 fill_did);
         result = new (location) FillView(
-            fill_did,
-#ifdef LEGION_SPY
-            op->get_unique_op_id(),
-#endif
-            false /*register now*/, collective_mapping);
+            fill_did, op->get_unique_op_id(), false /*register now*/,
+            collective_mapping);
         // Make sure we hold a valid reference before we register it
         // otherwise there can be races with deletions, add two of them
         // one for returning and one for us to hold until we're done
@@ -818,11 +815,8 @@ namespace Legion {
             runtime->find_or_create_pending_collectable_location<FillView>(
                 fill_did);
         FillView* fill_view = new (location) FillView(
-            fill_did,
-#ifdef LEGION_SPY
-            op->get_unique_op_id(),
-#endif
-            false /*register now*/, collective_mapping);
+            fill_did, op->get_unique_op_id(), false /*register now*/,
+            collective_mapping);
         // Make sure we hold a valid reference before we register it
         // otherwise there can be races with deletions
         fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
@@ -991,9 +985,8 @@ namespace Legion {
             ContextCoordinate(ctx->get_next_blocking_index(), index_point),
             op->get_unique_op_id(), ctx->get_depth(), op->get_provenance(),
             collective_mapping);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_future_creation(
-              op->get_unique_op_id(), result->did, index_point);
+        LegionSpy::log_future_creation(
+            op->get_unique_op_id(), result->did, index_point);
         // Add a reference to it to keep it from being deleted and then
         // register it with the runtime
         result->add_base_gc_ref(RUNTIME_REF);
@@ -1011,9 +1004,8 @@ namespace Legion {
             ContextCoordinate(ctx->get_next_blocking_index(), index_point),
             op->get_unique_op_id(), ctx->get_depth(), op->get_provenance(),
             collective_mapping);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_future_creation(
-              op->get_unique_op_id(), impl->did, index_point);
+        LegionSpy::log_future_creation(
+            op->get_unique_op_id(), impl->did, index_point);
         // Get a reference on it before we register it
         Future result(impl);
         impl->register_with_runtime();
@@ -3147,10 +3139,9 @@ namespace Legion {
       shard_manager = manager;
       implicit_top->set_shard_manager(manager);
       manager->set_shard_mapping(shard_mapping);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_replication(
-            implicit_top->get_unique_id(), repl_context,
-            true /*control replication*/);
+      LegionSpy::log_replication(
+          implicit_top->get_unique_id(), repl_context,
+          true /*control replication*/);
       manager->distribute_implicit(
           task_id, mapper_id, kind, shards_per_address_space, top_context);
       if (manager_ready.exists())

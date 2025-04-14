@@ -52,9 +52,8 @@ namespace Legion {
       futures.emplace_back(f);
       mapping = map;
       owner = own;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_creation_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_creation_operation(
+          parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -72,9 +71,8 @@ namespace Legion {
       fields.emplace_back(fid);
       futures.emplace_back(field_size);
       owner = own;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_creation_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_creation_operation(
+          parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -95,9 +93,8 @@ namespace Legion {
       fields = fids;
       futures = field_sizes;
       owner = own;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_creation_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_creation_operation(
+          parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -115,9 +112,8 @@ namespace Legion {
                future_points.begin();
            it != future_points.end(); it++, index++)
         futures[index] = it->second;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_creation_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_creation_operation(
+          parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -294,12 +290,10 @@ namespace Legion {
                 field_space_node->update_field_size(
                     fields[idx], *field_size, complete_preconditions,
                     runtime->address_space);
-                if (runtime->legion_spy_enabled)
-                  LegionSpy::log_field_creation(
-                      field_space_node->handle.get_id(), fields[idx],
-                      *field_size,
-                      (get_provenance() == nullptr) ? std::string_view() :
-                                                      get_provenance()->human);
+                LegionSpy::log_field_creation(
+                    field_space_node->handle.get_id(), fields[idx], *field_size,
+                    (get_provenance() == nullptr) ? std::string_view() :
+                                                    get_provenance()->human);
               }
             }
             break;

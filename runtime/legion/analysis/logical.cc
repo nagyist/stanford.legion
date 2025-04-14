@@ -1078,7 +1078,8 @@ namespace Legion {
     {
       // We only run this function if we're not doing legion spy verification
       // as it will mess up the logical dependence analysis verification
-#ifndef LEGION_SPY
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
+        return;
       // Skip this if we're tracing
       if (analysis.op->is_tracing())
         return;
@@ -1150,7 +1151,6 @@ namespace Legion {
         curr_epoch_users.tighten_valid_mask();
       if (tighten_previous)
         prev_epoch_users.tighten_valid_mask();
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1224,12 +1224,10 @@ namespace Legion {
             FieldMask overlap = it->second & finder->second->get_close_mask();
             if (!!overlap)
             {
-#ifdef LEGION_SPY
               LegionSpy::log_mapping_dependence(
                   context->get_unique_id(), finder->second->get_unique_op_id(),
                   0 /*index*/, it->first->get_unique_op_id(), 0 /*index*/,
                   LEGION_TRUE_DEPENDENCE);
-#endif
               it->first->register_region_dependence(
                   0 /*index*/, finder->second, finder->second->get_generation(),
                   0 /*index*/, LEGION_TRUE_DEPENDENCE, overlap);
@@ -1350,12 +1348,10 @@ namespace Legion {
         finder =
             pending_closes.insert(std::make_pair(path_node, close_op)).first;
       }
-#ifdef LEGION_SPY
       LegionSpy::log_mapping_dependence(
           context->get_unique_id(), user->uid, user->idx,
           finder->second->get_unique_op_id(), 0 /*index*/,
           LEGION_TRUE_DEPENDENCE);
-#endif
       finder->second->register_region_dependence(
           0 /*index*/, user->op, user->gen, user->idx, LEGION_TRUE_DEPENDENCE,
           mask);
@@ -1384,12 +1380,10 @@ namespace Legion {
           internal_op->get_internal_index(), internal_op,
           internal_op->get_generation(), 0 /*internal idx*/,
           LEGION_TRUE_DEPENDENCE, internal_mask);
-#ifdef LEGION_SPY
       LegionSpy::log_mapping_dependence(
           context->get_unique_id(), internal_op->get_unique_op_id(),
           0 /*index*/, op->get_unique_op_id(),
           internal_op->get_internal_index(), LEGION_TRUE_DEPENDENCE);
-#endif
       // Mark that we are done, this puts the op in the pipeline!
       internal_op->end_dependence_analysis();
     }

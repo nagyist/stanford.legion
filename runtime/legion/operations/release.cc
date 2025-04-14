@@ -150,18 +150,19 @@ namespace Legion {
       for (unsigned idx = 0; idx < grants.size(); idx++)
         grants[idx].impl->register_operation(get_completion_event());
       wait_barriers = launcher.wait_barriers;
-#ifdef LEGION_SPY
-      for (std::vector<PhaseBarrier>::const_iterator it =
-               launcher.arrive_barriers.begin();
-           it != launcher.arrive_barriers.end(); it++)
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        arrive_barriers.emplace_back(*it);
-        LegionSpy::log_event_dependence(
-            it->phase_barrier, arrive_barriers.back().phase_barrier);
+        for (std::vector<PhaseBarrier>::const_iterator it =
+                 launcher.arrive_barriers.begin();
+             it != launcher.arrive_barriers.end(); it++)
+        {
+          arrive_barriers.emplace_back(*it);
+          LegionSpy::log_event_dependence(
+              it->phase_barrier, arrive_barriers.back().phase_barrier);
+        }
       }
-#else
-      arrive_barriers = launcher.arrive_barriers;
-#endif
+      else
+        arrive_barriers = launcher.arrive_barriers;
       map_id = launcher.map_id;
       tag = launcher.tag;
       mapper_data_size = launcher.map_arg.get_size();
@@ -171,9 +172,8 @@ namespace Legion {
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_release_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_release_operation(
+          parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -248,8 +248,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // First compute the parent index
-      if (runtime->legion_spy_enabled)
-        log_release_requirement();
+      log_release_requirement();
     }
 
     //--------------------------------------------------------------------------
@@ -329,12 +328,8 @@ namespace Legion {
           release_post, release_complete, trace_info, map_applied_conditions);
       record_completion_effect(release_post);
       log_mapping_decision(0 /*idx*/, requirement, restricted_instances);
-#ifdef LEGION_SPY
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_operation_events(
-            unique_op_id, release_complete, release_post);
-#endif
-
+      LegionSpy::log_operation_events(
+          unique_op_id, release_complete, release_post);
       // Remove profiling our guard and trigger the profiling event if necessary
       if ((outstanding_profiling_requests.fetch_sub(1) == 1) &&
           profiling_reported.exists())
@@ -363,9 +358,7 @@ namespace Legion {
                  arrive_barriers.begin();
              it != arrive_barriers.end(); it++)
         {
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_arrival(
-                unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
           runtime->phase_barrier_arrive(
               it->phase_barrier, 1 /*count*/, complete);
         }
@@ -499,9 +492,7 @@ namespace Legion {
     void ReleaseOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       complete_mapping(finalize_complete_mapping(RtEvent::NO_RT_EVENT));
     }
 
@@ -516,9 +507,7 @@ namespace Legion {
         for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
              it != arrive_barriers.end(); it++)
         {
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_arrival(
-                unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
           runtime->phase_barrier_arrive(
               it->phase_barrier, 1 /*count*/, release_complete_event);
         }

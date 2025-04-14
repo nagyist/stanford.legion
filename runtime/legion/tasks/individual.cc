@@ -163,7 +163,7 @@ namespace Legion {
       // If this is the top-level task we can record some extra properties
       if (top_level)
         this->top_level_task = true;
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         if (top_level)
           LegionSpy::log_top_level_task(
@@ -192,8 +192,7 @@ namespace Legion {
       FutureImpl* impl = new FutureImpl(
           parent_ctx, true /*register*/,
           runtime->get_available_distributed_id(), get_provenance(), this);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_future_creation(unique_op_id, impl->did, index_point);
+      LegionSpy::log_future_creation(unique_op_id, impl->did, index_point);
       return Future(impl);
     }
 
@@ -268,11 +267,8 @@ namespace Legion {
       if (local_function)
         return;
       update_no_access_regions();
-      if (runtime->legion_spy_enabled)
-      {
-        for (unsigned idx = 0; idx < logical_regions.size(); idx++)
-          log_requirement(unique_op_id, idx, logical_regions[idx]);
-      }
+      for (unsigned idx = 0; idx < logical_regions.size(); idx++)
+        log_requirement(unique_op_id, idx, logical_regions[idx]);
     }
 
     //--------------------------------------------------------------------------
@@ -684,8 +680,7 @@ namespace Legion {
       {
         execution_context->invalidate_region_tree_contexts(
             is_top_level_task(), commit_preconditions);
-        if (runtime->legion_spy_enabled)
-          execution_context->log_created_requirements();
+        execution_context->log_created_requirements();
       }
       if (profiling_reported.exists())
       {
@@ -1026,8 +1021,7 @@ namespace Legion {
       parent_task = parent_ctx->get_task();
       // Have to do this before resolving speculation in case
       // we get cleaned up after the resolve speculation call
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_point_point(remote_unique_id, get_unique_id());
+      LegionSpy::log_point_point(remote_unique_id, get_unique_id());
       if (implicit_profiler != nullptr)
         implicit_profiler->register_operation(this);
       // Return true to add ourselves to the ready queue
@@ -1325,16 +1319,13 @@ namespace Legion {
         legion_assert((tpl != nullptr) && tpl->is_recording());
         tpl->record_owner_shard(trace_local_id, owner_shard);
       }
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
+      LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
       // If we own it we go on the queue, otherwise we complete early
       if (owner_shard != repl_ctx->owner_shard->shard_id)
       {
-#ifdef LEGION_SPY
         // Still have to do this for legion spy
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         if (output_bar.exists())
           record_output_registered(
               RtEvent::NO_RT_EVENT, map_applied_conditions);
@@ -1359,13 +1350,10 @@ namespace Legion {
       ReplicateContext* repl_ctx =
           legion_safe_cast<ReplicateContext*>(parent_ctx);
       owner_shard = tpl->find_owner_shard(trace_local_id);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
+      LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
       if (owner_shard != repl_ctx->owner_shard->shard_id)
       {
-#ifdef LEGION_SPY
         LegionSpy::log_replay_operation(unique_op_id);
-#endif
         shard_off(RtEvent::NO_RT_EVENT);
       }
       else
@@ -1394,11 +1382,9 @@ namespace Legion {
     void ReplIndividualTask::shard_off(RtEvent mapped_precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       // Still need this to record that this operation is done for LegionSpy
       LegionSpy::log_operation_events(
           unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
       complete_mapping(mapped_precondition);
       complete_execution();
       trigger_children_committed();

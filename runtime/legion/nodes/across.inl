@@ -130,9 +130,8 @@ namespace Legion {
             src_preimages_ready = Runtime::protect_event(helper.result);
           AutoLock p_lock(preimage_lock);
           src_preimages.emplace_back(helper.new_preimages);
-#ifdef LEGION_SPY
-          src_preimage_preconditions.emplace_back(helper.result);
-#endif
+          if (spy_logging_level > LIGHT_SPY_LOGGING)
+            src_preimage_preconditions.emplace_back(helper.result);
         }
         if (!dst_indirections.empty() && compute_preimages &&
             (!dst_indirect_immutable_for_tracing || !recurrent_replay))
@@ -146,9 +145,8 @@ namespace Legion {
             dst_preimages_ready = Runtime::protect_event(helper.result);
           AutoLock p_lock(preimage_lock);
           dst_preimages.emplace_back(helper.new_preimages);
-#ifdef LEGION_SPY
-          dst_preimage_preconditions.emplace_back(helper.result);
-#endif
+          if (spy_logging_level > LIGHT_SPY_LOGGING)
+            dst_preimage_preconditions.emplace_back(helper.result);
         }
         // Make sure that all the stage 1's are ordered
         // by deferring execution if necessary
@@ -181,10 +179,10 @@ namespace Legion {
       // are computing preimages and not doing a recurrent replay
       if (indirections.empty() || (!recurrent_replay && compute_preimages))
       {
-#ifdef LEGION_SPY
         // Make a unique indirections identifier if necessary
-        unique_indirections_identifier = runtime->get_unique_indirections_id();
-#endif
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
+          unique_indirections_identifier =
+              runtime->get_unique_indirections_id();
         // No need for the lock here, we know we are ordered
         if (!indirections.empty())
         {
@@ -214,11 +212,12 @@ namespace Legion {
             legion_assert(!src_preimages.empty());
             current_src_preimages.swap(src_preimages.front());
             src_preimages.pop_front();
-#ifdef LEGION_SPY
-            legion_assert(!src_preimage_preconditions.empty());
-            src_indirect_precondition = src_preimage_preconditions.front();
-            src_preimage_preconditions.pop_front();
-#endif
+            if (spy_logging_level > LIGHT_SPY_LOGGING)
+            {
+              legion_assert(!src_preimage_preconditions.empty());
+              src_indirect_precondition = src_preimage_preconditions.front();
+              src_preimage_preconditions.pop_front();
+            }
           }
           RebuildIndirectionsHelper helper(
               this, op, src_indirect_precondition, true /*sources*/);
@@ -244,11 +243,12 @@ namespace Legion {
             legion_assert(!dst_preimages.empty());
             current_dst_preimages.swap(dst_preimages.front());
             dst_preimages.pop_front();
-#ifdef LEGION_SPY
-            legion_assert(!dst_preimage_preconditions.empty());
-            dst_indirect_precondition = dst_preimage_preconditions.front();
-            dst_preimage_preconditions.pop_front();
-#endif
+            if (spy_logging_level > LIGHT_SPY_LOGGING)
+            {
+              legion_assert(!dst_preimage_preconditions.empty());
+              dst_indirect_precondition = dst_preimage_preconditions.front();
+              dst_preimage_preconditions.pop_front();
+            }
           }
           RebuildIndirectionsHelper helper(
               this, op, dst_indirect_precondition, false /*sources*/);
@@ -257,38 +257,40 @@ namespace Legion {
           if (helper.empty)
             has_empty_preimages = true;
         }
-#ifdef LEGION_SPY
-        // This part isn't necessary for correctness but it helps Legion Spy
-        // see the dependences between the preimages and copy operations
-        if (src_indirect_precondition.exists() ||
-            dst_indirect_precondition.exists())
-          copy_precondition = Runtime::merge_events(
-              nullptr, copy_precondition, src_indirect_precondition,
-              dst_indirect_precondition);
-#endif
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
+        {
+          // This part isn't necessary for correctness but it helps Legion Spy
+          // see the dependences between the preimages and copy operations
+          if (src_indirect_precondition.exists() ||
+              dst_indirect_precondition.exists())
+            copy_precondition = Runtime::merge_events(
+                nullptr, copy_precondition, src_indirect_precondition,
+                dst_indirect_precondition);
+        }
       }
       if (has_empty_preimages)
       {
-#ifdef LEGION_SPY
-        ApUserEvent new_last_copy = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_last_copy);
-        last_copy = new_last_copy;
-        LegionSpy::log_indirect_events(
-            op->get_unique_op_id(), expr->expr_id,
-            unique_indirections_identifier, copy_precondition, last_copy);
-        for (unsigned idx = 0; idx < src_fields.size(); idx++)
-          LegionSpy::log_indirect_field(
-              last_copy, src_fields[idx].field_id,
-              (idx < src_unique_events.size()) ? src_unique_events[idx] :
-                                                 LgEvent::NO_LG_EVENT,
-              src_fields[idx].indirect_index, dst_fields[idx].field_id,
-              (idx < dst_unique_events.size()) ? dst_unique_events[idx] :
-                                                 LgEvent::NO_LG_EVENT,
-              dst_fields[idx].indirect_index, dst_fields[idx].redop_id);
-        return last_copy;
-#else
-        return ApEvent::NO_AP_EVENT;
-#endif
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
+        {
+          ApUserEvent new_last_copy = Runtime::create_ap_user_event(nullptr);
+          Runtime::trigger_event_untraced(new_last_copy);
+          last_copy = new_last_copy;
+          LegionSpy::log_indirect_events(
+              op->get_unique_op_id(), expr->expr_id,
+              unique_indirections_identifier, copy_precondition, last_copy);
+          for (unsigned idx = 0; idx < src_fields.size(); idx++)
+            LegionSpy::log_indirect_field(
+                last_copy, src_fields[idx].field_id,
+                (idx < src_unique_events.size()) ? src_unique_events[idx] :
+                                                   LgEvent::NO_LG_EVENT,
+                src_fields[idx].indirect_index, dst_fields[idx].field_id,
+                (idx < dst_unique_events.size()) ? dst_unique_events[idx] :
+                                                   LgEvent::NO_LG_EVENT,
+                dst_fields[idx].indirect_index, dst_fields[idx].redop_id);
+          return last_copy;
+        }
+        else
+          return ApEvent::NO_AP_EVENT;
       }
       legion_assert(src_fields.size() == dst_fields.size());
       // Now that we know we're going to do this copy add any profling requests
@@ -366,43 +368,38 @@ namespace Legion {
             last_copy = copy_precondition;
         }
       }
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!last_copy.exists())
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        ApUserEvent new_last_copy = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_last_copy);
-        last_copy = new_last_copy;
+        if (!last_copy.exists())
+          Runtime::rename_event(last_copy);
+        legion_assert(op != nullptr);
+        if (src_indirections.empty() && dst_indirections.empty())
+        {
+          LegionSpy::log_copy_events(
+              op->get_unique_op_id(), expr->expr_id, src_tree_id, dst_tree_id,
+              copy_precondition, last_copy, COLLECTIVE_NONE);
+          for (unsigned idx = 0; idx < src_fields.size(); idx++)
+            LegionSpy::log_copy_field(
+                last_copy, src_fields[idx].field_id, src_unique_events[idx],
+                dst_fields[idx].field_id, dst_unique_events[idx],
+                dst_fields[idx].redop_id);
+        }
+        else
+        {
+          LegionSpy::log_indirect_events(
+              op->get_unique_op_id(), expr->expr_id,
+              unique_indirections_identifier, copy_precondition, last_copy);
+          for (unsigned idx = 0; idx < src_fields.size(); idx++)
+            LegionSpy::log_indirect_field(
+                last_copy, src_fields[idx].field_id,
+                (idx < src_unique_events.size()) ? src_unique_events[idx] :
+                                                   LgEvent::NO_LG_EVENT,
+                src_fields[idx].indirect_index, dst_fields[idx].field_id,
+                (idx < dst_unique_events.size()) ? dst_unique_events[idx] :
+                                                   LgEvent::NO_LG_EVENT,
+                dst_fields[idx].indirect_index, dst_fields[idx].redop_id);
+        }
       }
-#endif
-#ifdef LEGION_SPY
-      legion_assert(op != nullptr);
-      if (src_indirections.empty() && dst_indirections.empty())
-      {
-        LegionSpy::log_copy_events(
-            op->get_unique_op_id(), expr->expr_id, src_tree_id, dst_tree_id,
-            copy_precondition, last_copy, COLLECTIVE_NONE);
-        for (unsigned idx = 0; idx < src_fields.size(); idx++)
-          LegionSpy::log_copy_field(
-              last_copy, src_fields[idx].field_id, src_unique_events[idx],
-              dst_fields[idx].field_id, dst_unique_events[idx],
-              dst_fields[idx].redop_id);
-      }
-      else
-      {
-        LegionSpy::log_indirect_events(
-            op->get_unique_op_id(), expr->expr_id,
-            unique_indirections_identifier, copy_precondition, last_copy);
-        for (unsigned idx = 0; idx < src_fields.size(); idx++)
-          LegionSpy::log_indirect_field(
-              last_copy, src_fields[idx].field_id,
-              (idx < src_unique_events.size()) ? src_unique_events[idx] :
-                                                 LgEvent::NO_LG_EVENT,
-              src_fields[idx].indirect_index, dst_fields[idx].field_id,
-              (idx < dst_unique_events.size()) ? dst_unique_events[idx] :
-                                                 LgEvent::NO_LG_EVENT,
-              dst_fields[idx].indirect_index, dst_fields[idx].redop_id);
-      }
-#endif
       return last_copy;
     }
 
@@ -582,11 +579,7 @@ namespace Legion {
       // here which is not strictly safe, but since we're only going to hold
       // onto the memory if we allocation it immediately makes it safe.
       if (!unique_event.exists() && (runtime->profiler != nullptr))
-      {
-        const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-        unique.trigger();
-        unique_event = LgEvent(unique);
-      }
+        Runtime::rename_event(unique_event);
       MemoryManager::TaskLocalInstanceAllocator allocator(unique_event);
       ProfilingResponseBase base(&allocator, creator_uid, false);
       Realm::ProfilingRequestSet requests;
@@ -645,13 +638,10 @@ namespace Legion {
         dst_field.set_field(shadow, src_indirect_field, field_size);
         return expr->issue_copy_internal(
             op, update_domain, dummy_trace_info, dst_fields, src_fields,
-            no_reservations,
-#ifdef LEGION_SPY
-            src_tree_id, src_tree_id,
-#endif
-            indirection_ready, PredEvent::NO_PRED_EVENT,
-            src_indirect_instance_event, unique_event, COLLECTIVE_NONE,
-            false /*record effect*/, priority, false /*replay*/);
+            no_reservations, src_tree_id, src_tree_id, indirection_ready,
+            PredEvent::NO_PRED_EVENT, src_indirect_instance_event, unique_event,
+            COLLECTIVE_NONE, false /*record effect*/, priority,
+            false /*replay*/);
       }
       else
       {
@@ -660,13 +650,10 @@ namespace Legion {
         dst_field.set_field(shadow, dst_indirect_field, field_size);
         return expr->issue_copy_internal(
             op, update_domain, dummy_trace_info, dst_fields, src_fields,
-            no_reservations,
-#ifdef LEGION_SPY
-            dst_tree_id, dst_tree_id,
-#endif
-            indirection_ready, PredEvent::NO_PRED_EVENT,
-            dst_indirect_instance_event, unique_event, COLLECTIVE_NONE,
-            false /*record effect*/, priority, false /*replay*/);
+            no_reservations, dst_tree_id, dst_tree_id, indirection_ready,
+            PredEvent::NO_PRED_EVENT, dst_indirect_instance_event, unique_event,
+            COLLECTIVE_NONE, false /*record effect*/, priority,
+            false /*replay*/);
       }
     }
 #endif  // defined(DEFINE_NT_TEMPLATES)
@@ -777,19 +764,12 @@ namespace Legion {
           valid_events.emplace_back(result);
         result = Runtime::merge_events(nullptr, valid_events);
       }
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == precondition))
-      {
-        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(new_result);
-        result = new_result;
-      }
-#endif
-#ifdef LEGION_SPY
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == precondition)))
+        Runtime::rename_event(result);
       LegionSpy::log_deppart_events(
           op->get_unique_op_id(), expr->expr_id, precondition, result,
           DEP_PART_BY_PREIMAGE);
-#endif
       return result;
     }
 
@@ -838,10 +818,10 @@ namespace Legion {
               UnstructuredIndirection;
       // Legion Spy doesn't understand preimages, so go through and build
       // indirections for everything even if we are empty
-#ifndef LEGION_SPY
-      if (nonempty_indexes.empty())
+      if (nonempty_indexes.empty() && (spy_logging_level <= LIGHT_SPY_LOGGING))
         return true;
-      if (compute_preimages &&
+      const unsigned base_offset = indirections.size();
+      if (compute_preimages && (spy_logging_level <= LIGHT_SPY_LOGGING) &&
           (source ? dst_indirections.empty() : src_indirections.empty()))
       {
         // In the case that we've computed preimages, and we know we're just
@@ -1047,34 +1027,33 @@ namespace Legion {
         preimages.swap(new_preimages);
       }
       else
-#else
-      const unsigned offset = indirections.size();
-#endif
       {
         // Now that we have the non-empty indexes we can go through and make
         // the indirections for each of the fields. We'll try to share
         // indirections as much as possible wherever we can
-#ifndef LEGION_SPY
-        const unsigned offset = indirections.size();
-#endif
         for (unsigned fidx = 0; fidx < fields.size(); fidx++)
         {
           // Compute our physical instances for this field
-#ifdef LEGION_SPY
-          std::vector<PhysicalInstance> instances(indirect_records.size());
-          for (unsigned idx = 0; idx < indirect_records.size(); idx++)
-            instances[idx] = indirect_records[idx].instances[fidx];
-#else
-          std::vector<PhysicalInstance> instances(nonempty_indexes.size());
-          for (unsigned idx = 0; idx < nonempty_indexes.size(); idx++)
-            instances[idx] =
-                indirect_records[nonempty_indexes[idx]].instances[fidx];
-#endif
+          std::vector<PhysicalInstance> instances;
+          if (spy_logging_level > LIGHT_SPY_LOGGING)
+          {
+            instances.resize(indirect_records.size());
+            for (unsigned idx = 0; idx < indirect_records.size(); idx++)
+              instances[idx] = indirect_records[idx].instances[fidx];
+          }
+          else
+          {
+            instances.resize(nonempty_indexes.size());
+            for (unsigned idx = 0; idx < nonempty_indexes.size(); idx++)
+              instances[idx] =
+                  indirect_records[nonempty_indexes[idx]].instances[fidx];
+          }
           // See if there is an unstructured index which already is what we want
           int indirect_index = -1;
           // Search through all the existing copy indirections starting from
           // the offset and check to see if we can reuse them
-          for (unsigned index = offset; index < indirections.size(); index++)
+          for (unsigned index = base_offset; index < indirections.size();
+               index++)
           {
             // It's safe to cast here because we know that the same types
             // made all these indirections as well
@@ -1127,20 +1106,21 @@ namespace Legion {
             unstructured->next_indirection = nullptr;
             indirect_index = indirections.size();
             indirections.emplace_back(unstructured);
-#ifdef LEGION_SPY
-            // If we made a new indirection then log it with Legion Spy
-            LegionSpy::log_indirect_instance(
-                unique_indirections_identifier, indirect_index,
-                source ? src_indirect_instance_event :
-                         dst_indirect_instance_event,
-                unstructured->field_id);
-            for (std::vector<IndirectRecord>::const_iterator it =
-                     indirect_records.begin();
-                 it != indirect_records.end(); it++)
-              LegionSpy::log_indirect_group(
+            if (spy_logging_level > LIGHT_SPY_LOGGING)
+            {
+              // If we made a new indirection then log it with Legion Spy
+              LegionSpy::log_indirect_instance(
                   unique_indirections_identifier, indirect_index,
-                  it->instance_events[fidx], it->index_space.get_id());
-#endif
+                  source ? src_indirect_instance_event :
+                           dst_indirect_instance_event,
+                  unstructured->field_id);
+              for (std::vector<IndirectRecord>::const_iterator it =
+                       indirect_records.begin();
+                   it != indirect_records.end(); it++)
+                LegionSpy::log_indirect_group(
+                    unique_indirections_identifier, indirect_index,
+                    it->instance_events[fidx], it->index_space.get_id());
+            }
           }
           fields[fidx].indirect_index = indirect_index;
         }
@@ -1151,29 +1131,29 @@ namespace Legion {
                old_shadows.begin();
            it != old_shadows.end(); it++)
         it->second.instance.destroy(last_copy);
-#ifdef LEGION_SPY
-      if (compute_preimages)
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        const size_t nonempty_size = nonempty_indexes.size();
-        // Go through and fix-up all the indirections for execution
-        for (typename std::vector<const CopyIndirection*>::const_iterator it =
-                 indirections.begin() + offset;
-             it != indirections.end(); it++)
+        if (compute_preimages)
         {
-          UnstructuredIndirection* unstructured =
-              const_cast<UnstructuredIndirection*>(
-                  static_cast<const UnstructuredIndirection*>(*it));
-          std::vector<PhysicalInstance> instances(nonempty_size);
-          for (unsigned idx = 0; idx < nonempty_indexes.size(); idx++)
-            instances[idx] = unstructured->insts[nonempty_indexes[idx]];
-          unstructured->insts.swap(instances);
+          const size_t nonempty_size = nonempty_indexes.size();
+          // Go through and fix-up all the indirections for execution
+          for (typename std::vector<const CopyIndirection*>::const_iterator it =
+                   indirections.begin() + base_offset;
+               it != indirections.end(); it++)
+          {
+            UnstructuredIndirection* unstructured =
+                const_cast<UnstructuredIndirection*>(
+                    static_cast<const UnstructuredIndirection*>(*it));
+            std::vector<PhysicalInstance> instances(nonempty_size);
+            for (unsigned idx = 0; idx < nonempty_indexes.size(); idx++)
+              instances[idx] = unstructured->insts[nonempty_indexes[idx]];
+            unstructured->insts.swap(instances);
+          }
         }
+        return nonempty_indexes.empty();
       }
-      return nonempty_indexes.empty();
-#else
-      // Not empty
-      return false;
-#endif
+      else  // Not empty
+        return false;
     }
 #endif  // defined(DEFINE_NTNT_TEMPLATES)
 

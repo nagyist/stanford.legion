@@ -55,17 +55,15 @@ namespace Legion {
         bool value = this->predicate->get_predicate(
             this->context_index, this->true_guard, this->false_guard);
         bool ready = !this->false_guard.exists();
-#ifdef LEGION_SPY
         // We don't support speculation for legion spy validation runs
         // as it doesn't really understand the event graphs that get
         // generated because of the predication events
-        if (!ready)
+        if ((spy_logging_level > LIGHT_SPY_LOGGING) && !ready)
         {
           // If false was poisoned then predicate resolve true
           this->false_guard.wait_faultaware(value, true /*from application*/);
           ready = true;
         }
-#endif
         // Hold the lock while doing this to prevent races on checking
         // the predication state
         AutoLock o_lock(this->op_lock);
@@ -82,8 +80,7 @@ namespace Legion {
           REPORT_LEGION_FATAL(
               LEGION_FATAL_UNIMPLEMENTED_FEATURE,
               "Recording of predicated operations is not yet supported")
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_predicated_false_op(this->unique_op_id);
+        LegionSpy::log_predicated_false_op(this->unique_op_id);
         this->predicate_false();
       }
       else

@@ -62,9 +62,8 @@ namespace Legion {
       result = Future(new FutureImpl(
           parent_ctx, true /*register*/,
           runtime->get_available_distributed_id(), get_provenance(), this));
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_detach_operation(
-            parent_ctx->get_unique_id(), unique_op_id, unordered);
+      LegionSpy::log_detach_operation(
+          parent_ctx->get_unique_id(), unique_op_id, unordered);
       return result;
     }
 
@@ -115,9 +114,7 @@ namespace Legion {
     void DetachOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-      // First compute the parent index
-      if (runtime->legion_spy_enabled)
-        log_requirement();
+      log_requirement();
     }
 
     //--------------------------------------------------------------------------
@@ -208,11 +205,7 @@ namespace Legion {
           detach_post, detach_event, trace_info, map_applied_conditions);
       record_completion_effect(detach_post);
       log_mapping_decision(0 /*idx*/, requirement, references);
-#ifdef LEGION_SPY
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_operation_events(
-            unique_op_id, detach_event, detach_post);
-#endif
+      LegionSpy::log_operation_events(unique_op_id, detach_event, detach_post);
       if (!map_applied_conditions.empty())
         complete_mapping(finalize_complete_mapping(
             Runtime::merge_events(map_applied_conditions)));
@@ -445,12 +438,9 @@ namespace Legion {
       result = Future(new FutureImpl(
           parent_ctx, true /*register*/,
           runtime->get_available_distributed_id(), get_provenance(), this));
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_detach_operation(
-            parent_ctx->get_unique_id(), unique_op_id, unordered);
-        log_launch_space(launch_space->handle);
-      }
+      LegionSpy::log_detach_operation(
+          parent_ctx->get_unique_id(), unique_op_id, unordered);
+      log_launch_space(launch_space->handle);
       return result;
     }
 
@@ -472,8 +462,7 @@ namespace Legion {
     {
       // Get the projection ID which we know is valid on the external resources
       requirement.projection = resources.impl->get_projection();
-      if (runtime->legion_spy_enabled)
-        log_requirement();
+      log_requirement();
       analyze_region_requirements(launch_space);
     }
 
@@ -573,11 +562,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       result.impl->set_result(effects);
-#ifdef LEGION_SPY
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_operation_events(
-            unique_op_id, effects, ApEvent::NO_AP_EVENT);
-#endif
+      LegionSpy::log_operation_events(
+          unique_op_id, effects, ApEvent::NO_AP_EVENT);
       complete_operation(effects);
     }
 
@@ -734,12 +720,9 @@ namespace Legion {
       requirement.privilege = LEGION_READ_WRITE;
       requirement.prop = LEGION_EXCLUSIVE;
       // No need for a future here
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_index_point(
-            owner->get_unique_op_id(), unique_op_id, point);
-        log_requirement();
-      }
+      LegionSpy::log_index_point(
+          owner->get_unique_op_id(), unique_op_id, point);
+      log_requirement();
     }
 
     //--------------------------------------------------------------------------
@@ -783,9 +766,8 @@ namespace Legion {
         std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_collective_rendezvous(
-            unique_op_id, requirement_index, analysis_index);
+      LegionSpy::log_collective_rendezvous(
+          unique_op_id, requirement_index, analysis_index);
       return owner->convert_collective_views(
           requirement_index, analysis_index, region, targets, physical_ctx,
           analysis_mapping, first_local, target_views, collective_arrivals);
@@ -1080,8 +1062,7 @@ namespace Legion {
           legion_safe_cast<ReplicateContext*>(parent_ctx);
       // Get the projection ID which we know is valid on the external resources
       requirement.projection = resources.impl->get_projection();
-      if (runtime->legion_spy_enabled)
-        log_requirement();
+      log_requirement();
       analyze_region_requirements(launch_space, sharding_function);
       create_collective_rendezvous(requirement.parent.get_tree_id(), 0);
       // If we're flushing we need a second analysis rendezvous

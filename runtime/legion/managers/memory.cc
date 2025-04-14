@@ -307,12 +307,7 @@ namespace Legion {
           if (runtime->profiler != NULL)
           {
             if (!unique_events[idx].exists())
-            {
-              const Realm::UserEvent unique =
-                  Realm::UserEvent::create_user_event();
-              unique.trigger();
-              unique_events[idx] = LgEvent(unique);
-            }
+              Runtime::rename_event(unique_events[idx]);
             runtime->profiler->add_inst_request(
                 requests, creator_uid, unique_events[idx]);
           }
@@ -787,10 +782,8 @@ namespace Legion {
               create_layout(size, 1 /*alignment*/, offset));
           if (runtime->profiler != nullptr)
           {
-            const Realm::UserEvent unique =
-                Realm::UserEvent::create_user_event();
-            unique.trigger();
-            extra_unique_events.emplace_back(LgEvent(unique));
+            extra_unique_events.emplace_back(LgEvent::NO_LG_EVENT);
+            Runtime::rename_event(extra_unique_events.back());
           }
           else
             extra_unique_events.emplace_back(LgEvent::NO_LG_EVENT);
@@ -799,12 +792,7 @@ namespace Legion {
         {
           extra_layouts.emplace_back(layouts[idx]);
           if ((runtime->profiler != nullptr) && !unique_events[idx].exists())
-          {
-            const Realm::UserEvent unique =
-                Realm::UserEvent::create_user_event();
-            unique.trigger();
-            unique_events[idx] = LgEvent(unique);
-          }
+            Runtime::rename_event(unique_events[idx]);
           extra_unique_events.emplace_back(unique_events[idx]);
         }
         if (next_index != index)
@@ -816,10 +804,8 @@ namespace Legion {
               create_layout(size, 1 /*alignment*/, offset));
           if (runtime->profiler != nullptr)
           {
-            const Realm::UserEvent unique =
-                Realm::UserEvent::create_user_event();
-            unique.trigger();
-            extra_unique_events.emplace_back(LgEvent(unique));
+            extra_unique_events.emplace_back(LgEvent::NO_LG_EVENT);
+            Runtime::rename_event(extra_unique_events.back());
           }
           else
             extra_unique_events.emplace_back(LgEvent::NO_LG_EVENT);
@@ -902,12 +888,7 @@ namespace Legion {
           if (runtime->profiler != nullptr)
           {
             if (!unique_events[idx].exists())
-            {
-              const Realm::UserEvent unique =
-                  Realm::UserEvent::create_user_event();
-              unique.trigger();
-              unique_events[idx] = LgEvent(unique);
-            }
+              Runtime::rename_event(unique_events[idx]);
             runtime->profiler->add_inst_request(
                 requests[idx], creator_uid, unique_events[idx]);
           }
@@ -1272,13 +1253,9 @@ namespace Legion {
             layout->alignment_reqd = manager->compute_future_alignment(size);
           }
           LgEvent unique_event;
-          if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
-          {
-            const Realm::UserEvent unique =
-                Realm::UserEvent::create_user_event();
-            unique.trigger();
-            unique_event = LgEvent(unique);
-          }
+          if ((spy_logging_level > NO_SPY_LOGGING) ||
+              (runtime->profiler != nullptr))
+            Runtime::rename_event(unique_event);
           // Try to do the redistrict the previous instance into a new one
           MemoryManager::TaskLocalInstanceAllocator allocator(unique_event);
           ProfilingResponseBase base(&allocator, creator_uid, false);
@@ -1875,8 +1852,7 @@ namespace Legion {
         bool success = false;
         if (manager != nullptr)
         {
-          if (runtime->legion_spy_enabled)
-            manager->log_instance_creation(creator_id, processor, regions);
+          manager->log_instance_creation(creator_id, processor, regions);
           // Do this first to add a resource reference
           result = MappingInstance(manager);
           record_created_instance(manager, acquire, priority);
@@ -1961,8 +1937,7 @@ namespace Legion {
         bool success = false;
         if (manager != nullptr)
         {
-          if (runtime->legion_spy_enabled)
-            manager->log_instance_creation(creator_id, processor, regions);
+          manager->log_instance_creation(creator_id, processor, regions);
           // Do this first to add a resource reference
           result = MappingInstance(manager);
           record_created_instance(manager, acquire, priority);
@@ -2064,8 +2039,7 @@ namespace Legion {
           if (manager != nullptr)
           {
             success = true;
-            if (runtime->legion_spy_enabled)
-              manager->log_instance_creation(creator_id, processor, regions);
+            manager->log_instance_creation(creator_id, processor, regions);
             // Do this first to add a resource reference
             result = MappingInstance(manager);
             record_created_instance(manager, acquire, priority);
@@ -2173,8 +2147,7 @@ namespace Legion {
           if (manager != nullptr)
           {
             success = true;
-            if (runtime->legion_spy_enabled)
-              manager->log_instance_creation(creator_id, processor, regions);
+            manager->log_instance_creation(creator_id, processor, regions);
             // Do this first to add a resource reference
             result = MappingInstance(manager);
             record_created_instance(manager, acquire, priority);
@@ -2259,9 +2232,7 @@ namespace Legion {
           if (new_manager != nullptr)
           {
             legion_assert(footprint <= new_manager->instance_footprint);
-            if (runtime->legion_spy_enabled)
-              new_manager->log_instance_creation(
-                  creator_id, processor, regions);
+            new_manager->log_instance_creation(creator_id, processor, regions);
             instance = MappingInstance(new_manager);
             record_created_instance(new_manager, acquire, priority);
             // Update the footprint if necessary
@@ -2362,9 +2333,7 @@ namespace Legion {
           if (new_manager != nullptr)
           {
             legion_assert(footprint <= old_manager->instance_footprint);
-            if (runtime->legion_spy_enabled)
-              new_manager->log_instance_creation(
-                  creator_id, processor, regions);
+            new_manager->log_instance_creation(creator_id, processor, regions);
             instance = MappingInstance(new_manager);
             record_created_instance(new_manager, acquire, priority);
             // Update the footprint if necessary
@@ -3739,15 +3708,11 @@ namespace Legion {
       DistributedID did = runtime->get_available_distributed_id();
 
       LgEvent unique_event;
-      if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
-      {
-        // When Legion Spy is enabled, we want the ready event to be unique.
-        // So we create a fresh event and trigger it with the producer event
-        Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-        unique.trigger();
-        unique_event = LgEvent(unique);
-      }
-
+      // When Legion Spy is enabled, we want the ready event to be unique.
+      // So we create a fresh event and trigger it with the producer event
+      if ((spy_logging_level > NO_SPY_LOGGING) ||
+          (runtime->profiler != nullptr))
+        Runtime::rename_event(unique_event);
       PhysicalManager* manager = new PhysicalManager(
           did, this, PhysicalInstance::NO_INST,
           node->get_row_source()->as_index_space_node(), nullptr /*piece_list*/,
@@ -4454,11 +4419,7 @@ namespace Legion {
             ConcretePool::create_layout(bounds.size, bounds.alignment);
         LgEvent unique_event;
         if (runtime->profiler != nullptr)
-        {
-          const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-          unique.trigger();
-          unique_event = LgEvent(unique);
-        }
+          Runtime::rename_event(unique_event);
         RtEvent use_event;
         PhysicalInstance instance = create_task_local_instance(
             creator_uid, coordinates, unique_event, layout, use_event,
@@ -5101,12 +5062,9 @@ namespace Legion {
       // Create the layout for the future
       ilg->alignment_reqd = compute_future_alignment(size);
       LgEvent unique_event;
-      if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
-      {
-        Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-        unique.trigger();
-        unique_event = LgEvent(unique);
-      }
+      if ((spy_logging_level > NO_SPY_LOGGING) ||
+          (runtime->profiler != nullptr))
+        Runtime::rename_event(unique_event);
       RtEvent use_event;
       PhysicalInstance instance = create_task_local_instance(
           creator_uid, coordinates, unique_event, ilg, use_event,

@@ -116,23 +116,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ApEvent result(Realm::Event::merge_events(e1, e2));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == e1) || (result == e2))
-      {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        if (result == e1)
-          rename.trigger(e1);
-        else if (result == e2)
-          rename.trigger(e2);
-        else
-          rename.trigger();
-        result = ApEvent(rename);
-      }
-#endif
-#ifdef LEGION_SPY
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == e1) || (result == e2)))
+        rename_event(result);
       LegionSpy::log_event_dependence(e1, result);
       LegionSpy::log_event_dependence(e2, result);
-#endif
       if ((implicit_profiler != nullptr) && result.exists())
       {
         const LgEvent preconditions[2] = {e1, e2};
@@ -150,27 +138,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ApEvent result(Realm::Event::merge_events(e1, e2, e3));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == e1) || (result == e2) ||
-          (result == e3))
-      {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        if (result == e1)
-          rename.trigger(e1);
-        else if (result == e2)
-          rename.trigger(e2);
-        else if (result == e3)
-          rename.trigger(e3);
-        else
-          rename.trigger();
-        result = ApEvent(rename);
-      }
-#endif
-#ifdef LEGION_SPY
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == e1) || (result == e2) ||
+           (result == e3)))
+        rename_event(result);
       LegionSpy::log_event_dependence(e1, result);
       LegionSpy::log_event_dependence(e2, result);
       LegionSpy::log_event_dependence(e3, result);
-#endif
       if ((implicit_profiler != nullptr) && result.exists())
       {
         const LgEvent preconditions[3] = {e1, e2, e3};
@@ -187,32 +161,33 @@ namespace Legion {
         const TraceInfo* info, const std::set<ApEvent>& events)
     //--------------------------------------------------------------------------
     {
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-      if (events.empty())
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
-        // Still need to do this for tracing because of merge filter code
-        if ((info != nullptr) && info->recording)
+        if (events.empty())
         {
-          ApEvent result;
-          info->record_merge_events(result, events);
-          return result;
+          // Still need to do this for tracing because of merge filter code
+          if ((info != nullptr) && info->recording)
+          {
+            ApEvent result;
+            info->record_merge_events(result, events);
+            return result;
+          }
+          else
+            return ApEvent::NO_AP_EVENT;
         }
-        else
-          return ApEvent::NO_AP_EVENT;
-      }
-      if (events.size() == 1)
-      {
-        // Still need to do this for tracing because of merge filter code
-        if ((info != nullptr) && info->recording)
+        if (events.size() == 1)
         {
-          ApEvent result = *(events.begin());
-          info->record_merge_events(result, events);
-          return result;
+          // Still need to do this for tracing because of merge filter code
+          if ((info != nullptr) && info->recording)
+          {
+            ApEvent result = *(events.begin());
+            info->record_merge_events(result, events);
+            return result;
+          }
+          else
+            return *(events.begin());
         }
-        else
-          return *(events.begin());
       }
-#endif
       // Fuck C++
       const std::set<ApEvent>* legion_events = &events;
       const std::set<Realm::Event>* realm_events;
@@ -220,22 +195,14 @@ namespace Legion {
       static_assert(sizeof(ApEvent) == sizeof(Realm::Event));
       memcpy(&realm_events, &legion_events, sizeof(legion_events));
       ApEvent result(Realm::Event::merge_events(*realm_events));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (events.find(result) != events.end()))
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        if (events.find(result) != events.end())
-          rename.trigger(result);
-        else
-          rename.trigger();
-        result = ApEvent(rename);
+        if (!result.exists() || (events.find(result) != events.end()))
+          rename_event(result);
+        for (std::set<ApEvent>::const_iterator it = events.begin();
+             it != events.end(); it++)
+          LegionSpy::log_event_dependence(*it, result);
       }
-#endif
-#ifdef LEGION_SPY
-      for (std::set<ApEvent>::const_iterator it = events.begin();
-           it != events.end(); it++)
-        LegionSpy::log_event_dependence(*it, result);
-#endif
       if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(ApEvent) == sizeof(LgEvent));
@@ -254,32 +221,33 @@ namespace Legion {
         const TraceInfo* info, const std::vector<ApEvent>& events)
     //--------------------------------------------------------------------------
     {
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-      if (events.empty())
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
-        // Still need to do this for tracing because of merge filter code
-        if ((info != nullptr) && info->recording)
+        if (events.empty())
         {
-          ApEvent result;
-          info->record_merge_events(result, events);
-          return result;
+          // Still need to do this for tracing because of merge filter code
+          if ((info != nullptr) && info->recording)
+          {
+            ApEvent result;
+            info->record_merge_events(result, events);
+            return result;
+          }
+          else
+            return ApEvent::NO_AP_EVENT;
         }
-        else
-          return ApEvent::NO_AP_EVENT;
-      }
-      if (events.size() == 1)
-      {
-        // Still need to do this for tracing because of merge filter code
-        if ((info != nullptr) && info->recording)
+        if (events.size() == 1)
         {
-          ApEvent result = events.front();
-          info->record_merge_events(result, events);
-          return result;
+          // Still need to do this for tracing because of merge filter code
+          if ((info != nullptr) && info->recording)
+          {
+            ApEvent result = events.front();
+            info->record_merge_events(result, events);
+            return result;
+          }
+          else
+            return events.front();
         }
-        else
-          return events.front();
       }
-#endif
       // Fuck C++
       const std::vector<ApEvent>* legion_events = &events;
       const std::vector<Realm::Event>* realm_events;
@@ -287,32 +255,25 @@ namespace Legion {
       static_assert(sizeof(ApEvent) == sizeof(Realm::Event));
       memcpy(&realm_events, &legion_events, sizeof(legion_events));
       ApEvent result(Realm::Event::merge_events(*realm_events));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists())
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        rename.trigger();
-        result = ApEvent(rename);
-      }
-      else
-      {
-        // Check to make sure it isn't a rename
-        for (unsigned idx = 0; idx < events.size(); idx++)
+        if (result.exists())
         {
-          if (events[idx] != result)
-            continue;
-          Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-          rename.trigger(result);
-          result = ApEvent(rename);
-          break;
+          // Check to make sure it isn't a rename
+          for (unsigned idx = 0; idx < events.size(); idx++)
+          {
+            if (events[idx] != result)
+              continue;
+            rename_event(result);
+            break;
+          }
         }
+        else
+          rename_event(result);
+        for (std::vector<ApEvent>::const_iterator it = events.begin();
+             it != events.end(); it++)
+          LegionSpy::log_event_dependence(*it, result);
       }
-#endif
-#ifdef LEGION_SPY
-      for (std::vector<ApEvent>::const_iterator it = events.begin();
-           it != events.end(); it++)
-        LegionSpy::log_event_dependence(*it, result);
-#endif
       if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(ApEvent) == sizeof(LgEvent));
@@ -359,12 +320,13 @@ namespace Legion {
         const std::set<RtEvent>& events)
     //--------------------------------------------------------------------------
     {
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-      if (events.empty())
-        return RtEvent::NO_RT_EVENT;
-      if (events.size() == 1)
-        return *(events.begin());
-#endif
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
+      {
+        if (events.empty())
+          return RtEvent::NO_RT_EVENT;
+        if (events.size() == 1)
+          return *(events.begin());
+      }
       // Fuck C++
       const std::set<RtEvent>* legion_events = &events;
       const std::set<Realm::Event>* realm_events;
@@ -388,12 +350,13 @@ namespace Legion {
         const std::vector<RtEvent>& events)
     //--------------------------------------------------------------------------
     {
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-      if (events.empty())
-        return RtEvent::NO_RT_EVENT;
-      if (events.size() == 1)
-        return events.front();
-#endif
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
+      {
+        if (events.empty())
+          return RtEvent::NO_RT_EVENT;
+        if (events.size() == 1)
+          return events.front();
+      }
       // Fuck C++
       const std::vector<RtEvent>* legion_events = &events;
       const std::vector<Realm::Event>* realm_events;
@@ -420,9 +383,7 @@ namespace Legion {
       if ((info == nullptr) || !info->recording)
       {
         result = ApUserEvent(Realm::UserEvent::create_user_event());
-#ifdef LEGION_SPY
         LegionSpy::log_ap_user_event(result);
-#endif
       }
       else
         info->record_create_ap_user_event(result);
@@ -440,11 +401,9 @@ namespace Legion {
         implicit_profiler->record_event_trigger(to_trigger, precondition);
       Realm::UserEvent copy = to_trigger;
       copy.trigger(precondition);
-#ifdef LEGION_SPY
       LegionSpy::log_ap_user_event_trigger(to_trigger);
       if (precondition.exists())
         LegionSpy::log_event_dependence(precondition, to_trigger);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -459,11 +418,9 @@ namespace Legion {
         implicit_profiler->record_event_trigger(to_trigger, precondition);
       Realm::UserEvent copy = to_trigger;
       copy.trigger(precondition);
-#ifdef LEGION_SPY
       LegionSpy::log_ap_user_event_trigger(to_trigger);
       if (precondition.exists())
         LegionSpy::log_event_dependence(precondition, to_trigger);
-#endif
       if (info.recording)
         info.record_trigger_event(to_trigger, precondition, applied);
     }
@@ -478,23 +435,17 @@ namespace Legion {
         implicit_profiler->record_event_poison(to_poison);
       Realm::UserEvent copy = to_poison;
       copy.cancel();
-#ifdef LEGION_SPY
       // This counts as triggering
       LegionSpy::log_ap_user_event_trigger(to_poison);
-#endif
     }
 
     //--------------------------------------------------------------------------
     /*static*/ inline RtUserEvent Runtime::create_rt_user_event(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       RtUserEvent result(Realm::UserEvent::create_user_event());
       LegionSpy::log_rt_user_event(result);
       return result;
-#else
-      return RtUserEvent(Realm::UserEvent::create_user_event());
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -508,9 +459,7 @@ namespace Legion {
         implicit_profiler->record_event_trigger(to_trigger, precondition);
       Realm::UserEvent copy = to_trigger;
       copy.trigger(precondition);
-#ifdef LEGION_SPY
       LegionSpy::log_rt_user_event_trigger(to_trigger);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -523,23 +472,17 @@ namespace Legion {
         implicit_profiler->record_event_poison(to_poison);
       Realm::UserEvent copy = to_poison;
       copy.cancel();
-#ifdef LEGION_SPY
       // This counts as triggering
       LegionSpy::log_rt_user_event_trigger(to_poison);
-#endif
     }
 
     //--------------------------------------------------------------------------
     /*static*/ inline PredUserEvent Runtime::create_pred_event(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       PredUserEvent result(Realm::UserEvent::create_user_event());
       LegionSpy::log_pred_event(result);
       return result;
-#else
-      return PredUserEvent(Realm::UserEvent::create_user_event());
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -553,9 +496,7 @@ namespace Legion {
             to_trigger, LgEvent::NO_LG_EVENT);
       Realm::UserEvent copy = to_trigger;
       copy.trigger();
-#ifdef LEGION_SPY
       LegionSpy::log_pred_event_trigger(to_trigger);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -568,10 +509,8 @@ namespace Legion {
         implicit_profiler->record_event_poison(to_poison);
       Realm::UserEvent copy = to_poison;
       copy.cancel();
-#ifdef LEGION_SPY
       // This counts as triggering
       LegionSpy::log_pred_event_trigger(to_poison);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -582,23 +521,11 @@ namespace Legion {
       legion_assert(e1.exists());
       legion_assert(e2.exists());
       PredEvent result(Realm::Event::merge_events(e1, e2));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists() || (result == e1) || (result == e2))
-      {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        if (result == e1)
-          rename.trigger(e1);
-        else if (result == e2)
-          rename.trigger(e2);
-        else
-          rename.trigger();
-        result = PredEvent(rename);
-      }
-#endif
-#ifdef LEGION_SPY
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
+          (!result.exists() || (result == e1) || (result == e2)))
+        rename_event(result);
       LegionSpy::log_event_dependence(e1, result);
       LegionSpy::log_event_dependence(e2, result);
-#endif
       if ((implicit_profiler != nullptr) && result.exists())
       {
         const LgEvent preconditions[2] = {e1, e2};
@@ -615,17 +542,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ApEvent result(Realm::Event::ignorefaults(e));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (!result.exists())
-      {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        rename.trigger();
-        result = ApEvent(rename);
-      }
-#ifdef LEGION_SPY
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) && !result.exists())
+        rename_event(result);
       LegionSpy::log_event_dependence(ApEvent(e), result);
-#endif
-#endif
       if ((implicit_profiler != nullptr) && result.exists() && (result != e))
         implicit_profiler->record_event_trigger(result, e);
       return result;
@@ -705,10 +624,8 @@ namespace Legion {
       }
       else
         copy.arrive(count, precondition, reduce_value, reduce_value_size);
-#ifdef LEGION_SPY
       if (precondition.exists())
         LegionSpy::log_event_dependence(precondition, bar.phase_barrier);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -795,10 +712,8 @@ namespace Legion {
       }
       else
         copy.arrive(count, precondition);
-#ifdef LEGION_SPY
       if (precondition.exists())
         LegionSpy::log_event_dependence(precondition, bar);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -926,17 +841,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ApEvent result(r.acquire(exclusive ? 0 : 1, exclusive, precondition));
-#ifdef LEGION_DISABLE_EVENT_PRUNING
-      if (precondition.exists() && !result.exists())
-      {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        rename.trigger();
-        result = ApEvent(rename);
-      }
-#endif
-#ifdef LEGION_SPY
+      if ((spy_logging_level > LIGHT_SPY_LOGGING) && precondition.exists() &&
+          !result.exists())
+        rename_event(result);
       LegionSpy::log_reservation_acquire(r, precondition, result);
-#endif
       // Result can be the same as precondition if precondition is poisoned
       if ((implicit_profiler != nullptr) && result.exists() &&
           (result != precondition))
@@ -963,6 +871,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       r.release(precondition);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ inline void Runtime::rename_event(LgEvent& to_rename)
+    //--------------------------------------------------------------------------
+    {
+      const Realm::UserEvent renamed = Realm::UserEvent::create_user_event();
+      renamed.trigger(to_rename);
+      to_rename = LgEvent(renamed);
     }
 
   }  // namespace Internal

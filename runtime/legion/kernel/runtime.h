@@ -142,19 +142,13 @@ namespace Legion {
             safe_model(false),
 #endif
             safe_tracing(false), disable_independence_tests(false),
-            enable_pointwise_analysis(false),
-#ifdef LEGION_SPY
-            legion_spy_enabled(true),
-#else
-            legion_spy_enabled(false),
-#endif
-            enable_test_mapper(false), slow_config_ok(false),
-            verbose_logging(false), check_privileges(true),
-            dump_free_ranges(false), num_profiling_nodes(0),
-            serializer_type("binary"), prof_footprint_threshold(128 << 20),
-            prof_target_latency(100), prof_call_threshold(0),
-            prof_self_profile(false), prof_no_critical_paths(false),
-            prof_all_critical_arrivals(false)
+            enable_pointwise_analysis(false), enable_test_mapper(false),
+            slow_config_ok(false), verbose_logging(false),
+            check_privileges(true), dump_free_ranges(false),
+            num_profiling_nodes(0), serializer_type("binary"),
+            prof_footprint_threshold(128 << 20), prof_target_latency(100),
+            prof_call_threshold(0), prof_self_profile(false),
+            prof_no_critical_paths(false), prof_all_critical_arrivals(false)
         { }
       public:
         int delay_start;
@@ -196,7 +190,6 @@ namespace Legion {
         bool safe_tracing;
         bool disable_independence_tests;
         bool enable_pointwise_analysis;
-        bool legion_spy_enabled;
         bool enable_test_mapper;
         std::string replay_file;
         std::string ldb_file;
@@ -321,7 +314,6 @@ namespace Legion {
       const bool safe_tracing;
       const bool disable_independence_tests;
       const bool enable_pointwise_analysis;
-      const bool legion_spy_enabled;
       const bool supply_default_mapper;
       const bool enable_test_mapper;
       const bool legion_ldb_enabled;
@@ -1915,9 +1907,7 @@ namespace Legion {
       IndexSpaceExprID get_unique_index_space_expr_id(void);
       uint64_t get_unique_top_level_task_id(void);
       uint64_t get_unique_implicit_top_level_task_id(void);
-#ifdef LEGION_SPY
       unsigned get_unique_indirections_id(void);
-#endif
     public:
       Provenance* find_or_create_provenance(const char* prov, size_t length);
     public:
@@ -2028,9 +2018,7 @@ namespace Legion {
       std::atomic<uint64_t> unique_top_level_task_id;
       uint64_t unique_provenance_id;
       uint64_t unique_implicit_top_level_task_id;
-#ifdef LEGION_SPY
       std::atomic<unsigned> unique_indirections_id;
-#endif
       std::atomic<unsigned> unique_task_id;
       std::atomic<unsigned> unique_mapper_id;
       std::atomic<unsigned> unique_trace_id;
@@ -2575,6 +2563,7 @@ namespace Legion {
           RtEvent precondition = RtEvent::NO_RT_EVENT);
       static inline void release_reservation(
           Reservation r, LgEvent precondition = LgEvent::NO_LG_EVENT);
+      static inline void rename_event(LgEvent& to_rename);
     };
 
   }  // namespace Internal

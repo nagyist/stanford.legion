@@ -131,9 +131,7 @@ namespace Legion {
           "GC Inner Context %lld %d", LEGION_DISTRIBUTED_ID_FILTER(this->did),
           local_space);
 #endif
-#ifdef LEGION_SPY
       current_fence_uid = 0;
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -1971,8 +1969,7 @@ namespace Legion {
       RegionRequirement& new_req = created_requirements[index];
       new_req = RegionRequirement(
           top->handle, LEGION_READ_WRITE, LEGION_EXCLUSIVE, top->handle);
-      if (runtime->legion_spy_enabled)
-        TaskOp::log_requirement(get_unique_id(), index, new_req);
+      TaskOp::log_requirement(get_unique_id(), index, new_req);
       // Add our fields
       new_req.privilege_fields.insert(
           req.privilege_fields.begin(), req.privilege_fields.end());
@@ -2142,8 +2139,7 @@ namespace Legion {
       RegionRequirement& new_req = created_requirements[result];
       new_req = RegionRequirement(
           top->handle, LEGION_READ_WRITE, LEGION_EXCLUSIVE, top->handle);
-      if (runtime->legion_spy_enabled)
-        TaskOp::log_requirement(get_unique_id(), result, new_req);
+      TaskOp::log_requirement(get_unique_id(), result, new_req);
       // Add our fields
       new_req.privilege_fields.insert(
           req.privilege_fields.begin(), req.privilege_fields.end());
@@ -2450,10 +2446,9 @@ namespace Legion {
       IndexSpace handle(
           runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), type_tag);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_index_space(
-            handle.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_top_index_space(
+          handle.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       runtime->create_index_space(handle, bounds, take_ownership, provenance);
       register_index_space_creation(handle);
       return handle;
@@ -2556,10 +2551,9 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), spaces[0].get_type_tag());
       runtime->create_union_space(handle, provenance, spaces);
       register_index_space_creation(handle);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_index_space(
-            handle.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_top_index_space(
+          handle.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       return handle;
     }
 
@@ -2590,10 +2584,9 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), spaces[0].get_type_tag());
       runtime->create_intersection_space(handle, provenance, spaces);
       register_index_space_creation(handle);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_index_space(
-            handle.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_top_index_space(
+          handle.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       return handle;
     }
 
@@ -2615,10 +2608,9 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), left.get_type_tag());
       runtime->create_difference_space(handle, provenance, left, right);
       register_index_space_creation(handle);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_index_space(
-            handle.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_top_index_space(
+          handle.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       return handle;
     }
 
@@ -2630,10 +2622,9 @@ namespace Legion {
       IndexSpace handle(
           runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), type_tag);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_index_space(
-            handle.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_top_index_space(
+          handle.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       // Get a new creation operation
       CreationOp* creator_op = runtime->get_operation<CreationOp>();
       const ApEvent ready = creator_op->get_completion_event();
@@ -3911,10 +3902,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldSpace space(runtime->get_unique_field_space_id());
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_field_space(
-            space.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_field_space(
+          space.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       runtime->create_node(space, RtEvent::NO_RT_EVENT, provenance);
       register_field_space_creation(space);
       return space;
@@ -3928,10 +3918,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldSpace space(runtime->get_unique_field_space_id());
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_field_space(
-            space.get_id(), runtime->address_space,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_field_space(
+          space.get_id(), runtime->address_space,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       FieldSpaceNode* node =
           runtime->create_node(space, RtEvent::NO_RT_EVENT, provenance);
       register_field_space_creation(space);
@@ -3948,10 +3937,9 @@ namespace Legion {
               "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
               "bound set in legion_config.h",
               get_task_name(), get_unique_id(), resulting_fields[idx])
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_field_creation(
-              space.get_id(), resulting_fields[idx], sizes[idx],
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_field_creation(
+            space.get_id(), resulting_fields[idx], sizes[idx],
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       node->initialize_fields(sizes, resulting_fields, serdez_id, provenance);
       register_all_field_creations(space, false /*local*/, resulting_fields);
@@ -4151,10 +4139,9 @@ namespace Legion {
             "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
             "bound set in legion_config.h",
             get_task_name(), get_unique_id(), fid)
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_field_creation(
-            space.get_id(), fid, field_size,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_field_creation(
+          space.get_id(), fid, field_size,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       std::set<RtEvent> done_events;
       if (local)
         allocate_local_field(
@@ -4190,10 +4177,9 @@ namespace Legion {
               "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
               "bound set in legion_config.h",
               get_task_name(), get_unique_id(), resulting_fields[idx])
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_field_creation(
-              space.get_id(), resulting_fields[idx], sizes[idx],
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_field_creation(
+            space.get_id(), resulting_fields[idx], sizes[idx],
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       std::set<RtEvent> done_events;
       if (local)
@@ -4591,11 +4577,10 @@ namespace Legion {
     {
       RegionTreeID tid = runtime->get_unique_region_tree_id();
       LogicalRegion region(tid, index_space, field_space);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_region(
-            index_space.get_id(), field_space.get_id(), tid,
-            runtime->address_space,
-            (provenance == nullptr) ? std::string_view() : provenance->human);
+      LegionSpy::log_top_region(
+          index_space.get_id(), field_space.get_id(), tid,
+          runtime->address_space,
+          (provenance == nullptr) ? std::string_view() : provenance->human);
       const DistributedID did = runtime->get_available_distributed_id();
       runtime->create_node(
           region, nullptr /*parent*/, RtEvent::NO_RT_EVENT, did, provenance);
@@ -4824,8 +4809,7 @@ namespace Legion {
           handle, LEGION_READ_WRITE, LEGION_EXCLUSIVE, handle);
       if (output_region)
         new_req.flags |= LEGION_CREATED_OUTPUT_REQUIREMENT_FLAG;
-      if (runtime->legion_spy_enabled)
-        TaskOp::log_requirement(get_unique_id(), next_created_index, new_req);
+      TaskOp::log_requirement(get_unique_id(), next_created_index, new_req);
       // Put a region requirement with no fields in the list of
       // created requirements, we know we can add any fields for
       // this field space in the future since we own all privileges
@@ -5260,12 +5244,9 @@ namespace Legion {
           req.handle_type = LEGION_SINGULAR_PROJECTION;
           parent_req_indexes.emplace_back(it->first);
           // We need some extra logging for legion spy
-          if (runtime->legion_spy_enabled)
-          {
-            LegionSpy::log_requirement_fields(
-                get_unique_id(), it->first, req.privilege_fields);
-            owner_task->log_virtual_mapping(it->first, req);
-          }
+          LegionSpy::log_requirement_fields(
+              get_unique_id(), it->first, req.privilege_fields);
+          owner_task->log_virtual_mapping(it->first, req);
         }
       }
       if (!local_to_free.empty())
@@ -5281,7 +5262,7 @@ namespace Legion {
     {
       // If we're deleting a field space then we can't be deleting any of the
       // original requirements, only requirements that we created
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         // We need some extra logging for legion spy
         std::vector<MappingInstance> instances(
@@ -6467,9 +6448,8 @@ namespace Legion {
       runtime->register_projection_functor(
           result, functor, false /*check*/, true /*silence warnings*/);
       finder->second.emplace_back(functor);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_projection_function(
-            result, functor->get_depth(), functor->is_invertible());
+      LegionSpy::log_projection_function(
+          result, functor->get_depth(), functor->is_invertible());
       return result;
     }
 
@@ -7239,36 +7219,38 @@ namespace Legion {
              idx < context_configuration.meta_task_vector_width; idx++)
         {
           to_perform.emplace_back(ready_queue.front());
-#ifdef LEGION_SPY
-          previous_completion_events.insert(
-              to_perform.back()->get_completion_event());
-          // Periodically merge these to keep this data structure from exploding
-          // when we have a long-running task, although don't do this for fence
-          // operations in case we have to prune ourselves out of the set
-          if (previous_completion_events.size() >=
-              LEGION_DEFAULT_MAX_TASK_WINDOW)
+          if (spy_logging_level > LIGHT_SPY_LOGGING)
           {
-            // Only merge ones that we know are completed
-            std::vector<ApEvent> triggered;
-            for (std::set<ApEvent>::const_iterator pit =
-                     previous_completion_events.begin();
-                 pit != previous_completion_events.end();
-                 /*nothing*/)
+            previous_completion_events.insert(
+                to_perform.back()->get_completion_event());
+            // Periodically merge these to keep this data structure from
+            // exploding when we have a long-running task, although don't do
+            // this for fence operations in case we have to prune ourselves out
+            // of the set
+            if (previous_completion_events.size() >=
+                LEGION_DEFAULT_MAX_TASK_WINDOW)
             {
-              if (pit->has_triggered_faultignorant())
+              // Only merge ones that we know are completed
+              std::vector<ApEvent> triggered;
+              for (std::set<ApEvent>::const_iterator pit =
+                       previous_completion_events.begin();
+                   pit != previous_completion_events.end();
+                   /*nothing*/)
               {
-                triggered.emplace_back(*pit);
-                std::set<ApEvent>::const_iterator delete_it = pit++;
-                previous_completion_events.erase(delete_it);
+                if (pit->has_triggered_faultignorant())
+                {
+                  triggered.emplace_back(*pit);
+                  std::set<ApEvent>::const_iterator delete_it = pit++;
+                  previous_completion_events.erase(delete_it);
+                }
+                else
+                  pit++;
               }
-              else
-                pit++;
+              if (!triggered.empty())
+                previous_completion_events.insert(
+                    Runtime::merge_events(nullptr, triggered));
             }
-            if (!triggered.empty())
-              previous_completion_events.insert(
-                  Runtime::merge_events(nullptr, triggered));
           }
-#endif
           ready_queue.pop_front();
           if (ready_queue.empty())
             break;
@@ -7850,8 +7832,7 @@ namespace Legion {
         add_base_resource_ref(META_TASK_REF);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
       }
-#ifdef LEGION_SPY
-      if (!task_executed)
+      if (!task_executed && (spy_logging_level > LIGHT_SPY_LOGGING))
       {
         if (entry.complete_event.exists())
           cummulative_child_completion_events.emplace_back(
@@ -7866,7 +7847,6 @@ namespace Legion {
           cummulative_child_completion_events.emplace_back(merged);
         }
       }
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -8321,51 +8301,45 @@ namespace Legion {
       // so we always record a dependence on it
       if (last_implicit_creation != nullptr)
       {
-#ifdef LEGION_SPY
-        // Can't prune when doing legion spy
-        op->register_dependence(
-            last_implicit_creation, last_implicit_creation_gen);
-#else
         if (op->register_dependence(
-                last_implicit_creation, last_implicit_creation_gen))
+                last_implicit_creation, last_implicit_creation_gen) &&
+            // Can't prune when doing legion spy
+            (spy_logging_level <= LIGHT_SPY_LOGGING))
           last_implicit_creation = nullptr;
-#endif
       }
       if (current_mapping_fence != nullptr)
       {
-#ifdef LEGION_SPY
-        if (current_fence_uid > 0)
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
         {
-          unsigned num_regions = op->get_region_count();
-          if (num_regions > 0)
+          if (current_fence_uid > 0)
           {
-            for (unsigned idx = 0; idx < num_regions; idx++)
+            unsigned num_regions = op->get_region_count();
+            if (num_regions > 0)
             {
+              for (unsigned idx = 0; idx < num_regions; idx++)
+              {
+                LegionSpy::log_mapping_dependence(
+                    get_unique_id(), current_fence_uid, 0,
+                    op->get_unique_op_id(), idx, TRUE_DEPENDENCE);
+              }
+            }
+            else
               LegionSpy::log_mapping_dependence(
                   get_unique_id(), current_fence_uid, 0, op->get_unique_op_id(),
-                  idx, TRUE_DEPENDENCE);
-            }
+                  0, TRUE_DEPENDENCE);
           }
-          else
-            LegionSpy::log_mapping_dependence(
-                get_unique_id(), current_fence_uid, 0, op->get_unique_op_id(),
-                0, TRUE_DEPENDENCE);
+          // Have to record this operation in case there is a fence later
+          ops_since_last_fence.emplace_back(op->get_unique_op_id());
+          // Cannot prune because of Legion Spy
+          op->register_dependence(
+              current_mapping_fence, current_mapping_fence_gen);
         }
-        // Have to record this operation in case there is a fence later
-        ops_since_last_fence.emplace_back(op->get_unique_op_id());
-        // Cannot prune because of Legion Spy
-        op->register_dependence(
-            current_mapping_fence, current_mapping_fence_gen);
-#else
-        if (op->register_dependence(
-                current_mapping_fence, current_mapping_fence_gen))
+        else if (op->register_dependence(
+                     current_mapping_fence, current_mapping_fence_gen))
           current_mapping_fence = nullptr;
-#endif
       }
-#ifdef LEGION_SPY
-      else
+      else if (spy_logging_level > LIGHT_SPY_LOGGING)
         ops_since_last_fence.emplace_back(op->get_unique_op_id());
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -8418,24 +8392,25 @@ namespace Legion {
              it != previous_operations.end(); it++)
           op->register_dependence(it->first, it->second);
       }
-#ifdef LEGION_SPY
-      // Record a dependence on the previous fence
-      if (current_fence_uid > 0)
-        LegionSpy::log_mapping_dependence(
-            get_unique_id(), current_fence_uid, 0 /*index*/,
-            op->get_unique_op_id(), 0 /*index*/, TRUE_DEPENDENCE);
-      for (std::deque<UniqueID>::const_iterator it =
-               ops_since_last_fence.begin();
-           it != ops_since_last_fence.end(); it++)
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        // Skip ourselves if we are here
-        if ((*it) == op->get_unique_op_id())
-          continue;
-        LegionSpy::log_mapping_dependence(
-            get_unique_id(), *it, 0 /*index*/, op->get_unique_op_id(),
-            0 /*index*/, TRUE_DEPENDENCE);
+        // Record a dependence on the previous fence
+        if (current_fence_uid > 0)
+          LegionSpy::log_mapping_dependence(
+              get_unique_id(), current_fence_uid, 0 /*index*/,
+              op->get_unique_op_id(), 0 /*index*/, TRUE_DEPENDENCE);
+        for (std::deque<UniqueID>::const_iterator it =
+                 ops_since_last_fence.begin();
+             it != ops_since_last_fence.end(); it++)
+        {
+          // Skip ourselves if we are here
+          if ((*it) == op->get_unique_op_id())
+            continue;
+          LegionSpy::log_mapping_dependence(
+              get_unique_id(), *it, 0 /*index*/, op->get_unique_op_id(),
+              0 /*index*/, TRUE_DEPENDENCE);
+        }
       }
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -8475,15 +8450,17 @@ namespace Legion {
           previous_events.insert(it->operation->get_completion_event());
         }
       }
-#ifdef LEGION_SPY
-      // If we're doing execution record dependence on all previous operations
-      // We can do this without the lock here because this is a fence and we
-      // know that no other operations can be mapping in parallel with it
-      previous_events.insert(
-          previous_completion_events.begin(), previous_completion_events.end());
-      // Don't include ourselves though
-      previous_events.erase(op->get_completion_event());
-#endif
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
+      {
+        // If we're doing execution record dependence on all previous operations
+        // We can do this without the lock here because this is a fence and we
+        // know that no other operations can be mapping in parallel with it
+        previous_events.insert(
+            previous_completion_events.begin(),
+            previous_completion_events.end());
+        // Don't include ourselves though
+        previous_events.erase(op->get_completion_event());
+      }
       // Also include the current execution fence in case the operation
       // already completed and wasn't in the set, make sure to do this
       // before we update the current fence
@@ -8510,10 +8487,11 @@ namespace Legion {
       current_mapping_fence = op;
       current_mapping_fence_gen = op->get_generation();
       current_mapping_fence_index = op->get_context_index();
-#ifdef LEGION_SPY
-      current_fence_uid = op->get_unique_op_id();
-      ops_since_last_fence.clear();
-#endif
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
+      {
+        current_fence_uid = op->get_unique_op_id();
+        ops_since_last_fence.clear();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -8600,9 +8578,8 @@ namespace Legion {
       {
         // Record the event for when the trace replay is ready
         physical_trace_replay_status.store(trace_op->get_mapped_event().id);
-#ifdef LEGION_SPY
-        tracing_replay_event = trace_op->get_completion_event();
-#endif
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
+          tracing_replay_event = trace_op->get_completion_event();
       }
       add_to_dependence_queue(trace_op);
       // Now mark that we are starting a trace
@@ -8670,9 +8647,8 @@ namespace Legion {
       current_trace->reset_intermediate_fence();
       previous_trace = current_trace;
       current_trace = nullptr;
-#ifdef LEGION_SPY
-      tracing_replay_event = ApEvent::NO_AP_EVENT;
-#endif
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
+        tracing_replay_event = ApEvent::NO_AP_EVENT;
     }
 
     //--------------------------------------------------------------------------
@@ -8998,12 +8974,7 @@ namespace Legion {
       AutoLock pb_lock(phase_barrier_lock);
       barrier_contributions[barrier_name].emplace_back(BarrierContribution(
           future.impl->producer_op, future.impl->op_gen,
-#ifdef LEGION_SPY
-          future.impl->producer_uid,
-#else
-          0 /*no uid*/,
-#endif
-          0 /*no muid*/, barrier_gen));
+          future.impl->producer_uid, 0 /*no muid*/, barrier_gen));
     }
 
     //--------------------------------------------------------------------------
@@ -9058,18 +9029,14 @@ namespace Legion {
             it++;
             continue;
           }
-#ifdef LEGION_SPY
-          // No pruning for Legion Spy
-          op->register_dependence(it->op, it->gen);
           LegionSpy::log_mapping_dependence(
               get_unique_id(), it->uid, 0, uid, 0, TRUE_DEPENDENCE);
-          it++;
-#else
-          if (op->register_dependence(it->op, it->gen))
+          if (op->register_dependence(it->op, it->gen) ||
+              // No pruning for Legion Spy
+              (spy_logging_level > LIGHT_SPY_LOGGING))
             it++;
           else
             it = previous.erase(it);
-#endif
         }
         previous.emplace_back(
             BarrierContribution(op, gen, uid, muid, barrier_gen));
@@ -9095,9 +9062,7 @@ namespace Legion {
     {
       DynamicCollective result = dc;
       Runtime::advance_barrier(result);
-#ifdef LEGION_SPY
       LegionSpy::log_event_dependence(dc.phase_barrier, result.phase_barrier);
-#endif
       return result;
     }
 
@@ -9167,14 +9132,11 @@ namespace Legion {
           }
           continue;
         }
-#ifdef LEGION_SPY
         RegionUsage usage(req);
         // Make this read-write so that users always pick up a dependence on it
         // for Legion Spy. This is a major hack and should be removed eventually
-        usage.privilege = LEGION_READ_WRITE;
-#else
-        const RegionUsage usage(req);
-#endif
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
+          usage.privilege = LEGION_READ_WRITE;
         legion_assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
         // Make our equivalence set kd tree for look-ups
         RegionNode* region_node = runtime->get_node(req.region);
@@ -9220,10 +9182,9 @@ namespace Legion {
                 context_uid, idx1);
           }
         }
-#ifdef LEGION_SPY
         // Restore the normal usage now that we've added the users
-        usage = RegionUsage(req);
-#endif
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
+          usage = RegionUsage(req);
         // Only need to do the initialization if we're the logical owner
         if (eq_set->is_logical_owner())
         {
@@ -10089,18 +10050,19 @@ namespace Legion {
     void InnerContext::record_fill_view_creation(FillView* view)
     //--------------------------------------------------------------------------
     {
-#ifndef LEGION_SPY
-      view->add_nested_valid_ref(did);
-      AutoLock f_lock(fill_view_lock);
-      value_fill_view_cache.emplace_back(view);
-      if (value_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
-        FillView* oldest = value_fill_view_cache.back();
-        value_fill_view_cache.pop_back();
-        if (oldest->remove_nested_valid_ref(did))
-          delete oldest;
+        view->add_nested_valid_ref(did);
+        AutoLock f_lock(fill_view_lock);
+        value_fill_view_cache.emplace_back(view);
+        if (value_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+        {
+          FillView* oldest = value_fill_view_cache.back();
+          value_fill_view_cache.pop_back();
+          if (oldest->remove_nested_valid_ref(did))
+            delete oldest;
+        }
       }
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -10108,18 +10070,19 @@ namespace Legion {
         DistributedID future_did, FillView* view)
     //--------------------------------------------------------------------------
     {
-#ifndef LEGION_SPY
-      view->add_nested_valid_ref(did);
-      AutoLock f_lock(fill_view_lock);
-      future_fill_view_cache.emplace_front(std::make_pair(view, future_did));
-      if (future_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
-        FillView* oldest = future_fill_view_cache.back().first;
-        future_fill_view_cache.pop_back();
-        if (oldest->remove_nested_valid_ref(did))
-          delete oldest;
+        view->add_nested_valid_ref(did);
+        AutoLock f_lock(fill_view_lock);
+        future_fill_view_cache.emplace_front(std::make_pair(view, future_did));
+        if (future_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+        {
+          FillView* oldest = future_fill_view_cache.back().first;
+          future_fill_view_cache.pop_back();
+          if (oldest->remove_nested_valid_ref(did))
+            delete oldest;
+        }
       }
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -10130,46 +10093,50 @@ namespace Legion {
       // Two versions of this method depending on whether we are doing
       // Legion Spy or not, Legion Spy wants to know exactly which op
       // made each fill view so we can't cache them
-#ifndef LEGION_SPY
-      // See if we can find this in the cache first
-      AutoLock f_lock(fill_view_lock);
-      for (std::list<FillView*>::iterator it = value_fill_view_cache.begin();
-           it != value_fill_view_cache.end(); it++)
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
-        // Safe to do this since we know we're only comparing against other
-        // fill views that were also made with eager values
-        if (!(*it)->matches(value, value_size))
-          continue;
-        // Record a reference on it and then return
-        FillView* result = (*it);
-        // Move it back to the front of the list
-        value_fill_view_cache.erase(it);
-        value_fill_view_cache.emplace_front(result);
-        result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-        return result;
+        // See if we can find this in the cache first
+        AutoLock f_lock(fill_view_lock);
+        for (std::list<FillView*>::iterator it = value_fill_view_cache.begin();
+             it != value_fill_view_cache.end(); it++)
+        {
+          // Safe to do this since we know we're only comparing against other
+          // fill views that were also made with eager values
+          if (!(*it)->matches(value, value_size))
+            continue;
+          // Record a reference on it and then return
+          FillView* result = (*it);
+          // Move it back to the front of the list
+          value_fill_view_cache.erase(it);
+          value_fill_view_cache.emplace_front(result);
+          result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+          return result;
+        }
+        // At this point we have to make it since we couldn't find it
+        FillView* fill_view = new FillView(
+            runtime->get_available_distributed_id(), op->get_unique_op_id(),
+            value, value_size, true /*register now*/);
+        fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+        // Add it to the cache since we're not doing Legion Spy
+        fill_view->add_nested_valid_ref(did);
+        value_fill_view_cache.emplace_front(fill_view);
+        if (value_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+        {
+          FillView* oldest = value_fill_view_cache.back();
+          value_fill_view_cache.pop_back();
+          if (oldest->remove_nested_valid_ref(did))
+            delete oldest;
+        }
+        return fill_view;
       }
-#endif
-      // At this point we have to make it since we couldn't find it
-      FillView* fill_view = new FillView(
-          runtime->get_available_distributed_id(),
-#ifdef LEGION_SPY
-          op->get_unique_op_id(),
-#endif
-          value, value_size, true /*register now*/);
-      fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-#ifndef LEGION_SPY
-      // Add it to the cache since we're not doing Legion Spy
-      fill_view->add_nested_valid_ref(did);
-      value_fill_view_cache.emplace_front(fill_view);
-      if (value_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+      else
       {
-        FillView* oldest = value_fill_view_cache.back();
-        value_fill_view_cache.pop_back();
-        if (oldest->remove_nested_valid_ref(did))
-          delete oldest;
+        FillView* fill_view = new FillView(
+            runtime->get_available_distributed_id(), op->get_unique_op_id(),
+            value, value_size, true /*register now*/);
+        fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+        return fill_view;
       }
-#endif
-      return fill_view;
     }
 
     //--------------------------------------------------------------------------
@@ -10182,49 +10149,54 @@ namespace Legion {
       // Two versions of this method depending on whether we are doing
       // Legion Spy or not, Legion Spy wants to know exactly which op
       // made each fill view so we can't cache them
-#ifndef LEGION_SPY
-      const DistributedID future_did = future.impl->did;
-      // See if we can find this in the cache first
-      AutoLock f_lock(fill_view_lock);
-      for (std::list<std::pair<FillView*, DistributedID> >::iterator it =
-               future_fill_view_cache.begin();
-           it != future_fill_view_cache.end(); it++)
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
-        if (it->second != future_did)
-          continue;
-        // Record a reference on it and then return
-        FillView* result = it->first;
-        // Move it back to the front of the list
-        future_fill_view_cache.erase(it);
+        const DistributedID future_did = future.impl->did;
+        // See if we can find this in the cache first
+        AutoLock f_lock(fill_view_lock);
+        for (std::list<std::pair<FillView*, DistributedID> >::iterator it =
+                 future_fill_view_cache.begin();
+             it != future_fill_view_cache.end(); it++)
+        {
+          if (it->second != future_did)
+            continue;
+          // Record a reference on it and then return
+          FillView* result = it->first;
+          // Move it back to the front of the list
+          future_fill_view_cache.erase(it);
+          future_fill_view_cache.emplace_front(
+              std::make_pair(result, future_did));
+          result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+          return result;
+        }
+        // We're going to need to set the value for this view
+        set_view = true;
+        FillView* fill_view = new FillView(
+            runtime->get_available_distributed_id(), op->get_unique_op_id(),
+            true /*register now*/);
+        fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+        // Add it to the cache since we're not doing Legion Spy
+        fill_view->add_nested_valid_ref(did);
         future_fill_view_cache.emplace_front(
-            std::make_pair(result, future_did));
-        result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-        return result;
+            std::make_pair(fill_view, future_did));
+        if (future_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+        {
+          FillView* oldest = future_fill_view_cache.back().first;
+          future_fill_view_cache.pop_back();
+          if (oldest->remove_nested_valid_ref(did))
+            delete oldest;
+        }
+        return fill_view;
       }
-#endif
-      // We're going to need to set the value for this view
-      set_view = true;
-      FillView* fill_view = new FillView(
-          runtime->get_available_distributed_id(),
-#ifdef LEGION_SPY
-          op->get_unique_op_id(),
-#endif
-          true /*register now*/);
-      fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-#ifndef LEGION_SPY
-      // Add it to the cache since we're not doing Legion Spy
-      fill_view->add_nested_valid_ref(did);
-      future_fill_view_cache.emplace_front(
-          std::make_pair(fill_view, future_did));
-      if (future_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+      else
       {
-        FillView* oldest = future_fill_view_cache.back().first;
-        future_fill_view_cache.pop_back();
-        if (oldest->remove_nested_valid_ref(did))
-          delete oldest;
+        set_view = true;
+        FillView* fill_view = new FillView(
+            runtime->get_available_distributed_id(), op->get_unique_op_id(),
+            true /*register now*/);
+        fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+        return fill_view;
       }
-#endif
-      return fill_view;
     }
 
     //--------------------------------------------------------------------------
@@ -10234,25 +10206,26 @@ namespace Legion {
       // Two versions of this method depending on whether we are doing
       // Legion Spy or not, Legion Spy wants to know exactly which op
       // made each fill view so we can't cache them
-#ifndef LEGION_SPY
-      // See if we can find this in the cache first
-      AutoLock f_lock(fill_view_lock);
-      for (std::list<FillView*>::iterator it = value_fill_view_cache.begin();
-           it != value_fill_view_cache.end(); it++)
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
-        // Safe to do this since we know we're only comparing against other
-        // fill views that were also made with eager values
-        if (!(*it)->matches(value, value_size))
-          continue;
-        // Record a reference on it and then return
-        FillView* result = (*it);
-        // Move it back to the front of the list
-        value_fill_view_cache.erase(it);
-        value_fill_view_cache.emplace_front(result);
-        result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-        return result;
+        // See if we can find this in the cache first
+        AutoLock f_lock(fill_view_lock);
+        for (std::list<FillView*>::iterator it = value_fill_view_cache.begin();
+             it != value_fill_view_cache.end(); it++)
+        {
+          // Safe to do this since we know we're only comparing against other
+          // fill views that were also made with eager values
+          if (!(*it)->matches(value, value_size))
+            continue;
+          // Record a reference on it and then return
+          FillView* result = (*it);
+          // Move it back to the front of the list
+          value_fill_view_cache.erase(it);
+          value_fill_view_cache.emplace_front(result);
+          result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+          return result;
+        }
       }
-#endif
       return nullptr;
     }
 
@@ -10264,26 +10237,27 @@ namespace Legion {
       // Two versions of this method depending on whether we are doing
       // Legion Spy or not, Legion Spy wants to know exactly which op
       // made each fill view so we can't cache them
-#ifndef LEGION_SPY
-      const DistributedID future_did = future.impl->did;
-      // See if we can find this in the cache first
-      AutoLock f_lock(fill_view_lock);
-      for (std::list<std::pair<FillView*, DistributedID> >::iterator it =
-               future_fill_view_cache.begin();
-           it != future_fill_view_cache.end(); it++)
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
-        if (it->second != future_did)
-          continue;
-        // Record a reference on it and then return
-        FillView* result = it->first;
-        // Move it back to the front of the list
-        future_fill_view_cache.erase(it);
-        future_fill_view_cache.emplace_front(
-            std::make_pair(result, future_did));
-        result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-        return result;
+        const DistributedID future_did = future.impl->did;
+        // See if we can find this in the cache first
+        AutoLock f_lock(fill_view_lock);
+        for (std::list<std::pair<FillView*, DistributedID> >::iterator it =
+                 future_fill_view_cache.begin();
+             it != future_fill_view_cache.end(); it++)
+        {
+          if (it->second != future_did)
+            continue;
+          // Record a reference on it and then return
+          FillView* result = it->first;
+          // Move it back to the front of the list
+          future_fill_view_cache.erase(it);
+          future_fill_view_cache.emplace_front(
+              std::make_pair(result, future_did));
+          result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+          return result;
+        }
       }
-#endif
       return nullptr;
     }
 
@@ -10350,13 +10324,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       LgEvent unique_event;
+      // If we're profiling then each of these needs a unique event
       if (runtime->profiler != nullptr)
-      {
-        // If we're profiling then each of these needs a unique event
-        const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-        unique.trigger();
-        unique_event = LgEvent(unique);
-      }
+        Runtime::rename_event(unique_event);
       MemoryManager* manager = runtime->find_memory_manager(memory);
       RtEvent use_event;
       PhysicalInstance instance = manager->create_task_local_instance(
@@ -10637,13 +10607,14 @@ namespace Legion {
         // Now that we know the last registration has taken place we
         // can mark that we are done executing
         task_executed = true;
-#ifdef LEGION_SPY
-        completion_events.insert(
-            completion_events.end(),
-            cummulative_child_completion_events.begin(),
-            cummulative_child_completion_events.end());
-        cummulative_child_completion_events.clear();
-#endif
+        if (spy_logging_level > LIGHT_SPY_LOGGING)
+        {
+          completion_events.insert(
+              completion_events.end(),
+              cummulative_child_completion_events.begin(),
+              cummulative_child_completion_events.end());
+          cummulative_child_completion_events.clear();
+        }
         if (!reorder_buffer.empty())
         {
           for (std::deque<ReorderBufferEntry>::const_iterator it =
@@ -10796,8 +10767,7 @@ namespace Legion {
     bool InnerContext::inline_child_task(TaskOp* child)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_inline_task(child->get_unique_id());
+      LegionSpy::log_inline_task(child->get_unique_id());
       // Check to see if the child is predicated
       // If it is wait for it to resolve
       if (child->is_predicated_op())
@@ -11065,7 +11035,6 @@ namespace Legion {
       return reorder_buffer.front().operation;
     }
 
-#ifdef LEGION_SPY
     //--------------------------------------------------------------------------
     void InnerContext::register_implicit_replay_dependence(Operation* op)
     //--------------------------------------------------------------------------
@@ -11074,7 +11043,6 @@ namespace Legion {
           get_unique_id(), current_fence_uid, 0 /*idx*/, op->get_unique_op_id(),
           0 /*idx*/, LEGION_TRUE_DEPENDENCE);
     }
-#endif
 
     //--------------------------------------------------------------------------
     IndexSpace InnerContext::instantiate_subspace(
@@ -11133,11 +11101,10 @@ namespace Legion {
         runtime->create_node(
             pid, parent_node, color_node, partition_color, complete, provenance,
             initialized, mapping);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_index_partition(
-              parent.get_id(), pid.get_id(), -1 /*unknown*/, complete,
-              partition_color, runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_index_partition(
+            parent.get_id(), pid.get_id(), -1 /*unknown*/, complete,
+            partition_color, runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -11156,11 +11123,10 @@ namespace Legion {
         runtime->create_node(
             pid, parent_node, color_node, partition_color, disjoint, complete,
             provenance, initialized, mapping);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_index_partition(
-              parent.get_id(), pid.get_id(), disjoint ? 1 : 0, complete,
-              partition_color, runtime->address_space,
-              (provenance == nullptr) ? std::string_view() : provenance->human);
+        LegionSpy::log_index_partition(
+            parent.get_id(), pid.get_id(), disjoint ? 1 : 0, complete,
+            partition_color, runtime->address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       register_index_partition_creation(pid);
       return parent_notified;

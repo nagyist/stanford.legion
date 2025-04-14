@@ -31,16 +31,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FillView::FillView(
-        DistributedID did,
-#ifdef LEGION_SPY
-        UniqueID op_uid,
-#endif
-        bool register_now, CollectiveMapping* map)
+        DistributedID did, UniqueID op_uid, bool register_now,
+        CollectiveMapping* map)
       : DeferredView(encode_fill_did(did), register_now, map),
-#ifdef LEGION_SPY
-        fill_op_uid(op_uid),
-#endif
-        value(nullptr), value_size(0),
+        fill_op_uid(op_uid), value(nullptr), value_size(0),
         collective_first_active((map != nullptr) && map->contains(local_space))
     //--------------------------------------------------------------------------
     {
@@ -55,16 +49,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FillView::FillView(
-        DistributedID did,
-#ifdef LEGION_SPY
-        UniqueID op_uid,
-#endif
-        const void* val, size_t size, bool register_now, CollectiveMapping* map)
+        DistributedID did, UniqueID op_uid, const void* val, size_t size,
+        bool register_now, CollectiveMapping* map)
       : DeferredView(encode_fill_did(did), register_now, map),
-#ifdef LEGION_SPY
-        fill_op_uid(op_uid),
-#endif
-        value(malloc(size)), value_size(size),
+        fill_op_uid(op_uid), value(malloc(size)), value_size(size),
         collective_first_active((map != nullptr) && map->contains(local_space))
     //--------------------------------------------------------------------------
     {
@@ -109,9 +97,7 @@ namespace Legion {
       {
         RezCheck z(rez);
         rez.serialize(did);
-#ifdef LEGION_SPY
         rez.serialize(fill_op_uid);
-#endif
         AutoLock v_lock(view_lock);
         size_t size = value_size.load();
         rez.serialize<size_t>(size);
@@ -142,10 +128,8 @@ namespace Legion {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
-#ifdef LEGION_SPY
       UniqueID op_uid;
       derez.deserialize(op_uid);
-#endif
       size_t value_size;
       derez.deserialize(value_size);
 
@@ -155,21 +139,12 @@ namespace Legion {
       if (value_size > 0)
       {
         const void* value = derez.get_current_pointer();
-        view = new (location) FillView(
-            did,
-#ifdef LEGION_SPY
-            op_uid,
-#endif
-            value, value_size, false /*register now*/);
+        view = new (location)
+            FillView(did, op_uid, value, value_size, false /*register now*/);
         derez.advance_pointer(value_size);
       }
       else
-        view = new (location) FillView(
-            did,
-#ifdef LEGION_SPY
-            op_uid,
-#endif
-            false /*register now*/);
+        view = new (location) FillView(did, op_uid, false /*register now*/);
       view->register_with_runtime();
     }
 
@@ -317,9 +292,7 @@ namespace Legion {
       // the fill from this fill view
       ApEvent result = fill_expr->issue_fill(
           op, trace_info, dst_fields, value.load(), value_size.load(),
-#ifdef LEGION_SPY
           fill_op_uid, manager->field_space_node->handle, manager->tree_id,
-#endif
           precondition, pred_guard, manager->get_unique_event(),
           collective_kind, fill_restricted);
       if (trace_info.recording)

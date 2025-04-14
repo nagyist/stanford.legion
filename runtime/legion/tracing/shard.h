@@ -111,21 +111,17 @@ namespace Legion {
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           ApEvent precondition, PredEvent guard_event, LgEvent src_unique,
           LgEvent dst_unique, int priority, CollectiveKind collective,
           bool record_effect);
       virtual void record_issue_fill(
           const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
           const std::vector<CopySrcDstField>& fields, const void* fill_value,
-          size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          ApEvent precondition, PredEvent guard_event, LgEvent unique_event,
-          int priority, CollectiveKind collective, bool record_effect);
+          size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+          RegionTreeID tree_id, ApEvent precondition, PredEvent guard_event,
+          LgEvent unique_event, int priority, CollectiveKind collective,
+          bool record_effect);
       virtual void record_issue_across(
           const TraceLocalID& tlid, ApEvent& lhs,
           ApEvent collective_precondition, ApEvent copy_precondition,

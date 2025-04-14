@@ -45,14 +45,13 @@ namespace Legion {
       RtEvent added;
       if (!domain.dense())
         added = is->add_sparsity_map_references(domain, total_points);
-#ifdef LEGION_SPY
       index_space = req.region.get_index_space();
-#endif
       FieldSpaceNode* fs = runtime->get_node(req.region.get_field_space());
       std::vector<unsigned> field_indexes(req.instance_fields.size());
       fs->get_field_indexes(req.instance_fields, field_indexes);
       instances.resize(field_indexes.size());
-      if ((runtime->profiler != nullptr) || runtime->legion_spy_enabled)
+      if ((runtime->profiler != nullptr) ||
+          (spy_logging_level > NO_SPY_LOGGING))
         instance_events.resize(field_indexes.size());
       // For each of the fields in the region requirement
       // (importantly in the order they will be copied)
@@ -97,9 +96,7 @@ namespace Legion {
       rez.serialize<size_t>(instance_events.size());
       for (unsigned idx = 0; idx < instance_events.size(); idx++)
         rez.serialize(instance_events[idx]);
-#ifdef LEGION_SPY
       rez.serialize(index_space);
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -118,9 +115,7 @@ namespace Legion {
       instance_events.resize(num_events);
       for (unsigned idx = 0; idx < num_events; idx++)
         derez.deserialize(instance_events[idx]);
-#ifdef LEGION_SPY
       derez.deserialize(index_space);
-#endif
     }
 
     /////////////////////////////////////////////////////////////

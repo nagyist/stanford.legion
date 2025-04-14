@@ -205,9 +205,8 @@ namespace Legion {
       legion_assert(must_epoch == nullptr);
       track_parent = true;
       context_index = index;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_child_operation_index(
-            parent_ctx->get_unique_id(), context_index, unique_op_id);
+      LegionSpy::log_child_operation_index(
+          parent_ctx->get_unique_id(), context_index, unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -309,7 +308,8 @@ namespace Legion {
         const InstanceSet& targets, bool postmapping /*=false*/) const
     //--------------------------------------------------------------------------
     {
-      if (!runtime->legion_spy_enabled && (runtime->profiler == nullptr))
+      if ((spy_logging_level == NO_SPY_LOGGING) &&
+          (runtime->profiler == nullptr))
         return;
       FieldSpaceNode* node =
           (req.handle_type != LEGION_PARTITION_PROJECTION) ?
@@ -326,7 +326,7 @@ namespace Legion {
             manager->is_virtual_manager() ?
                 LgEvent::NO_LG_EVENT :
                 manager->as_physical_manager()->get_unique_event();
-        if (runtime->legion_spy_enabled)
+        if (spy_logging_level > NO_SPY_LOGGING)
         {
           for (std::vector<FieldID>::const_iterator it = valid_fields.begin();
                it != valid_fields.end(); it++)
@@ -350,7 +350,7 @@ namespace Legion {
         unsigned index, const RegionRequirement& req) const
     //--------------------------------------------------------------------------
     {
-      if (!runtime->legion_spy_enabled)
+      if (spy_logging_level == NO_SPY_LOGGING)
         return;
       for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
            it != req.privilege_fields.end(); it++)
@@ -385,8 +385,7 @@ namespace Legion {
       if (provenance != nullptr)
       {
         provenance->add_reference();
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_operation_provenance(unique_op_id, prov->human);
+        LegionSpy::log_operation_provenance(unique_op_id, prov->human);
       }
       if (implicit_profiler != nullptr)
         implicit_profiler->register_operation(this);
@@ -1110,21 +1109,22 @@ namespace Legion {
       ApEvent effects_done;
       if (!completion_effects.empty())
         effects_done = Runtime::merge_events(nullptr, completion_effects);
-#ifdef LEGION_SPY
-      // Operations with regions and tasks do their own logging
-      const OpKind op_kind = get_operation_kind();
-      if ((op_kind != TASK_OP_KIND) && (op_kind != MAP_OP_KIND) &&
-          (op_kind != ACQUIRE_OP_KIND) && (op_kind != RELEASE_OP_KIND) &&
-          (op_kind != DEPENDENT_PARTITION_OP_KIND) &&
-          (op_kind != ATTACH_OP_KIND) && (op_kind != DETACH_OP_KIND))
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        legion_assert(!completion_set);
-        if (!completion_event.pending.exists())
-          completion_event.pending = Runtime::create_ap_user_event(nullptr);
-        LegionSpy::log_operation_events(
-            unique_op_id, effects_done, completion_event.pending);
+        // Operations with regions and tasks do their own logging
+        const OpKind op_kind = get_operation_kind();
+        if ((op_kind != TASK_OP_KIND) && (op_kind != MAP_OP_KIND) &&
+            (op_kind != ACQUIRE_OP_KIND) && (op_kind != RELEASE_OP_KIND) &&
+            (op_kind != DEPENDENT_PARTITION_OP_KIND) &&
+            (op_kind != ATTACH_OP_KIND) && (op_kind != DETACH_OP_KIND))
+        {
+          legion_assert(!completion_set);
+          if (!completion_event.pending.exists())
+            completion_event.pending = Runtime::create_ap_user_event(nullptr);
+          LegionSpy::log_operation_events(
+              unique_op_id, effects_done, completion_event.pending);
+        }
       }
-#endif
       return effects_done;
     }
 

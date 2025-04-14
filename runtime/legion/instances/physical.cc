@@ -93,7 +93,8 @@ namespace Legion {
           LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space, inst.id,
           memory->memory.id);
 #endif
-      if (runtime->legion_spy_enabled && (kind != UNBOUND_INSTANCE_KIND))
+      if ((kind != UNBOUND_INSTANCE_KIND) &&
+          (spy_logging_level > NO_SPY_LOGGING))
       {
         legion_assert(unique_event.exists());
         LegionSpy::log_physical_instance(
@@ -154,6 +155,8 @@ namespace Legion {
         const std::vector<LogicalRegion>& regions) const
     //--------------------------------------------------------------------------
     {
+      if (spy_logging_level == NO_SPY_LOGGING)
+        return;
       const LgEvent inst_event = get_unique_event();
       const LayoutConstraints* constraints = layout->constraints;
       LegionSpy::log_physical_instance_creator(inst_event, creator_id, proc.id);
@@ -509,21 +512,22 @@ namespace Legion {
         {
           // We don't prune these when doing detailed legion spy so that we
           // can check that there are no use-after-delete errors
-#ifndef LEGION_SPY
-          // Go through and prune out any events that have triggered
-          for (std::set<ApEvent>::iterator it = gc_events.begin();
-               it != gc_events.end();
-               /*nothing*/)
+          if (spy_logging_level <= LIGHT_SPY_LOGGING)
           {
-            if (it->has_triggered_faultignorant())
+            // Go through and prune out any events that have triggered
+            for (std::set<ApEvent>::iterator it = gc_events.begin();
+                 it != gc_events.end();
+                 /*nothing*/)
             {
-              std::set<ApEvent>::iterator to_delete = it++;
-              gc_events.erase(to_delete);
+              if (it->has_triggered_faultignorant())
+              {
+                std::set<ApEvent>::iterator to_delete = it++;
+                gc_events.erase(to_delete);
+              }
+              else
+                it++;
             }
-            else
-              it++;
           }
-#endif
           added_gc_events = 0;
         }
       }
@@ -2312,18 +2316,15 @@ namespace Legion {
       // Release the i_lock since we're done with the atomic updates
       i_lock->release();
 #endif
-#ifdef LEGION_SPY
-      if (!deferred_deletion.exists())
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        const Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        rename.trigger();
-        deferred_deletion = RtEvent(rename);
+        if (!deferred_deletion.exists())
+          Runtime::rename_event(deferred_deletion);
+        for (std::set<ApEvent>::const_iterator it = gc_events.begin();
+             it != gc_events.end(); it++)
+          LegionSpy::log_event_dependence(*it, deferred_deletion);
+        LegionSpy::log_instance_deletion(unique_event, deferred_deletion);
       }
-      for (std::set<ApEvent>::const_iterator it = gc_events.begin();
-           it != gc_events.end(); it++)
-        LegionSpy::log_event_dependence(*it, deferred_deletion);
-      LegionSpy::log_instance_deletion(unique_event, deferred_deletion);
-#endif
       // Once the deletion is actually done then we can tell the memory
       // manager that the deletion is finished and it is safe to remove
       // this manager for its list of current instances
@@ -2507,14 +2508,10 @@ namespace Legion {
 
         Runtime::trigger_event(instance_ready, ready);
 
-        if (runtime->legion_spy_enabled)
-        {
-          LegionSpy::log_physical_instance(
-              unique_event, instance.id, memory_manager->memory.id,
-              instance_domain->expr_id, field_space_node->handle, tree_id,
-              redop);
-          layout->log_instance_layout(unique_event);
-        }
+        LegionSpy::log_physical_instance(
+            unique_event, instance.id, memory_manager->memory.id,
+            instance_domain->expr_id, field_space_node->handle, tree_id, redop);
+        layout->log_instance_layout(unique_event);
 
         if (is_owner() && has_remote_instances())
           broadcast_manager_update();

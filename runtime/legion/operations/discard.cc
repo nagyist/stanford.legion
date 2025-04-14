@@ -102,21 +102,12 @@ namespace Legion {
       if (runtime->safe_model)
         verify_requirement(requirement);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_discard_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_discard_operation(
+          parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
     void DiscardOp::trigger_prepipeline_stage(void)
-    //--------------------------------------------------------------------------
-    {
-      if (runtime->legion_spy_enabled)
-        log_requirement();
-    }
-
-    //--------------------------------------------------------------------------
-    void DiscardOp::log_requirement(void)
     //--------------------------------------------------------------------------
     {
       LegionSpy::log_logical_requirement(

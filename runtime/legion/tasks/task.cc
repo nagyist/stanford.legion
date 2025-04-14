@@ -393,7 +393,7 @@ namespace Legion {
       must_epoch_index = index;
       must_epoch_task = true;
       concurrent_task = true;
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         const TaskKind kind = get_task_kind();
         if (kind == INDEX_TASK_KIND)
@@ -1082,8 +1082,7 @@ namespace Legion {
       {
         arrive_barriers.emplace_back(*it);
         runtime->phase_barrier_arrive(*it, 1 /*count*/, arrive_pre);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
+        LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
       }
     }
 
@@ -1521,6 +1520,8 @@ namespace Legion {
         UniqueID uid, unsigned idx, const RegionRequirement& req)
     //--------------------------------------------------------------------------
     {
+      if (spy_logging_level == NO_SPY_LOGGING)
+        return;
       const bool reg = (req.handle_type == LEGION_SINGULAR_PROJECTION) ||
                        (req.handle_type == LEGION_REGION_PROJECTION);
       const bool proj = (req.handle_type == LEGION_REGION_PROJECTION) ||
@@ -1566,8 +1567,7 @@ namespace Legion {
         const size_t name_size = strlen(name) + 1;  // for \0
         semantic_infos[LEGION_NAME_SEMANTIC_TAG] =
             SemanticInfo(name, name_size, false /*mutable*/);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_task_name(task_id, name);
+        LegionSpy::log_task_name(task_id, name);
         // Also set the initial name to be safe
         memcpy(initial_name, name, name_size);
         // Register this task with the profiler if necessary

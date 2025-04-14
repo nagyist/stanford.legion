@@ -214,12 +214,9 @@ namespace Legion {
           PhysicalTemplate& tpl, unsigned lhs, IndexSpaceExpression* expr,
           const TraceLocalID& op_key,
           const std::vector<CopySrcDstField>& fields, const void* fill_value,
-          size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          unsigned precondition_idx, LgEvent unique_event, int priority,
-          CollectiveKind collective, bool record_effect);
+          size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+          RegionTreeID tree_id, unsigned precondition_idx, LgEvent unique_event,
+          int priority, CollectiveKind collective, bool record_effect);
       virtual ~IssueFill(void);
       virtual void execute(
           std::vector<ApEvent>& events,
@@ -237,11 +234,9 @@ namespace Legion {
       std::vector<CopySrcDstField> fields;
       void* fill_value;
       size_t fill_size;
-#ifdef LEGION_SPY
       UniqueID fill_uid;
       FieldSpace handle;
       RegionTreeID tree_id;
-#endif
       unsigned precondition_idx;
       LgEvent unique_event;
       int priority;
@@ -265,9 +260,7 @@ namespace Legion {
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           unsigned precondition_idx, LgEvent src_unique, LgEvent dst_unique,
           int priority, CollectiveKind collective, bool record_effect);
       virtual ~IssueCopy(void);
@@ -287,10 +280,8 @@ namespace Legion {
       std::vector<CopySrcDstField> src_fields;
       std::vector<CopySrcDstField> dst_fields;
       std::vector<Reservation> reservations;
-#ifdef LEGION_SPY
       RegionTreeID src_tree_id;
       RegionTreeID dst_tree_id;
-#endif
       unsigned precondition_idx;
       LgEvent src_unique, dst_unique;
       int priority;

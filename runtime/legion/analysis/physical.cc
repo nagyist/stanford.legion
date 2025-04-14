@@ -99,10 +99,8 @@ namespace Legion {
     {
       if (!precondition.exists() || precondition.has_triggered())
       {
-#ifdef LEGION_SPY_EQUIVALENCE_SETS
         LegionSpy::log_equivalence_set_use(
             set->did, op->get_unique_op_id(), index);
-#endif
         if (set->set_expr == analysis_expr)
           set->analyze(
               *this, analysis_expr, true /*covers*/, mask, deferral_events,

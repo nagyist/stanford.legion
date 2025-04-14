@@ -126,8 +126,7 @@ namespace Legion {
       }
       legion_assert(thunk == nullptr);
       thunk = new ByFieldThunk(pid);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -179,8 +178,7 @@ namespace Legion {
       }
       legion_assert(thunk == nullptr);
       thunk = new ByImageThunk(pid, projection.get_index_partition());
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -233,8 +231,7 @@ namespace Legion {
       }
       legion_assert(thunk == nullptr);
       thunk = new ByImageRangeThunk(pid, projection.get_index_partition());
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -288,8 +285,7 @@ namespace Legion {
       }
       legion_assert(thunk == nullptr);
       thunk = new ByPreimageThunk(pid, proj);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -345,8 +341,7 @@ namespace Legion {
       }
       legion_assert(thunk == nullptr);
       thunk = new ByPreimageRangeThunk(pid, proj);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -397,8 +392,7 @@ namespace Legion {
       }
       legion_assert(thunk == nullptr);
       thunk = new AssociationThunk(domain.get_index_space(), range);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -470,8 +464,7 @@ namespace Legion {
       // operation or a single operation
       select_partition_projection();
       // Do thise now that we've picked our region requirement
-      if (runtime->legion_spy_enabled)
-        log_requirement();
+      log_requirement();
       analyze_region_requirements(is_index_space ? launch_space : nullptr);
       // Record this dependent partition op with the context so that it
       // can track implicit dependences on it for later operations
@@ -564,24 +557,16 @@ namespace Legion {
             this, 0 /*idx*/, requirement, index_domain, projection_points,
             nullptr /*no pointwise*/, parent_ctx->get_total_shards(),
             false /*is replaying*/);
-        // No need to check the validity of the points, we know they are good
-        if (runtime->legion_spy_enabled)
-        {
-          for (std::vector<PointDepPartOp*>::const_iterator it = points.begin();
-               it != points.end(); it++)
-            (*it)->log_requirement();
-        }
         // Launch the points
         for (std::vector<PointDepPartOp*>::const_iterator it = points.begin();
              it != points.end(); it++)
         {
+          (*it)->log_requirement();
           map_applied_conditions.insert((*it)->get_mapped_event());
           (*it)->launch();
         }
-#ifdef LEGION_SPY
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         // We are mapped when all our points are mapped
         finalize_mapping();
       }
@@ -628,9 +613,7 @@ namespace Legion {
       Runtime::trigger_event(
           part_done, done_event, trace_info, map_applied_conditions);
       record_completion_effect(part_done);
-#ifdef LEGION_SPY
       LegionSpy::log_operation_events(unique_op_id, done_event, part_done);
-#endif
       // Once we are done running these routines, we can mark
       // that the handles have all been completed
       finalize_mapping();
@@ -1460,8 +1443,7 @@ namespace Legion {
       }
       version_info = owner->version_info;
       parent_req_index = owner->parent_req_index;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_index_point(own->get_unique_op_id(), unique_op_id, p);
+      LegionSpy::log_index_point(own->get_unique_op_id(), unique_op_id, p);
     }
 
     //--------------------------------------------------------------------------
@@ -1957,8 +1939,7 @@ namespace Legion {
       // operation or a single operation
       select_partition_projection();
       // Do thise now that we've picked our region requirement
-      if (runtime->legion_spy_enabled)
-        log_requirement();
+      log_requirement();
       if (is_index_space)
       {
         ReplicateContext* repl_ctx =
@@ -2031,11 +2012,9 @@ namespace Legion {
         // If it's empty we're done, otherwise we go back on the queue
         if (!local_space.exists())
         {
-#ifdef LEGION_SPY
           // Still have to do this for legion spy
           LegionSpy::log_operation_events(
               unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
           // We have no local points, so we're done mapping
           finalize_mapping();
           RtEvent ready;

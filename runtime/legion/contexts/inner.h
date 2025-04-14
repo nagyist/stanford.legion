@@ -1077,9 +1077,7 @@ namespace Legion {
       // a debugger to find the earliest operation that hasn't mapped yet
       // which is especially useful when debugging scheduler hangs
       Operation* get_earliest(void) const;
-#ifdef LEGION_SPY
       void register_implicit_replay_dependence(Operation* op);
-#endif
     public:
       const ContextID tree_context;
       const bool full_inner_context;
@@ -1158,14 +1156,13 @@ namespace Legion {
       // task like a garbage collector that need to be inserted
       // into the stream of operations from the task
       std::vector<Operation*> unordered_ops;
-#ifdef LEGION_SPY
+    protected:
       // Some help for Legion Spy for validating fences
       std::deque<UniqueID> ops_since_last_fence;
       std::set<ApEvent> previous_completion_events;
       // And for verifying the cummulativity property of task
       // (e.g. that they are not complete until all their children are)
       std::vector<ApEvent> cummulative_child_completion_events;
-#endif
     protected:  // Queues for fusing together small meta-tasks
       mutable LocalLock prepipeline_lock;
       std::deque<std::pair<Operation*, GenerationID> > prepipeline_queue;
@@ -1227,9 +1224,7 @@ namespace Legion {
       // Whether we have an outstanding commit task in flight
       bool outstanding_commit_task;
     protected:
-#ifdef LEGION_SPY
       UniqueID current_fence_uid;
-#endif
       FenceOp* current_mapping_fence;
       GenerationID current_mapping_fence_gen;
       uint64_t current_mapping_fence_index;

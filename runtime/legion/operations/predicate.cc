@@ -68,8 +68,7 @@ namespace Legion {
         predication_state = PENDING_PREDICATE_STATE;
         predicate = p.impl;
         predicate->add_reference();
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_predicate_use(unique_op_id, predicate->creator_uid);
+        LegionSpy::log_predicate_use(unique_op_id, predicate->creator_uid);
       }
     }
 

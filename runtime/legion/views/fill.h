@@ -62,19 +62,12 @@ namespace Legion {
     public:
       // Don't know the fill value yet, will be set later
       FillView(
-          DistributedID did,
-#ifdef LEGION_SPY
-          UniqueID fill_op_uid,
-#endif
-          bool register_now, CollectiveMapping* mapping = nullptr);
+          DistributedID did, UniqueID fill_op_uid, bool register_now,
+          CollectiveMapping* mapping = nullptr);
       // Already know the fill value
       FillView(
-          DistributedID did,
-#ifdef LEGION_SPY
-          UniqueID fill_op_uid,
-#endif
-          const void* value, size_t size, bool register_now,
-          CollectiveMapping* mapping = nullptr);
+          DistributedID did, UniqueID fill_op_uid, const void* value,
+          size_t size, bool register_now, CollectiveMapping* mapping = nullptr);
       FillView(const FillView& rhs) = delete;
       virtual ~FillView(void);
     public:
@@ -107,10 +100,8 @@ namespace Legion {
     public:
       static void handle_send_fill_view(Deserializer& derez);
       static void handle_send_fill_view_value(Deserializer& derez);
-#ifdef LEGION_SPY
     public:
       const UniqueID fill_op_uid;
-#endif
     protected:
       std::atomic<void*> value;
       std::atomic<size_t> value_size;

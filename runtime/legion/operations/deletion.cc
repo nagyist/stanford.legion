@@ -60,9 +60,8 @@ namespace Legion {
       kind = INDEX_SPACE_DELETION;
       index_space = handle;
       sub_partitions.swap(subs);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_deletion_operation(
-            parent_ctx->get_unique_id(), unique_op_id, unordered);
+      LegionSpy::log_deletion_operation(
+          parent_ctx->get_unique_id(), unique_op_id, unordered);
     }
 
     //--------------------------------------------------------------------------
@@ -76,9 +75,8 @@ namespace Legion {
       kind = INDEX_PARTITION_DELETION;
       index_part = handle;
       sub_partitions.swap(subs);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_deletion_operation(
-            parent_ctx->get_unique_id(), unique_op_id, unordered);
+      LegionSpy::log_deletion_operation(
+          parent_ctx->get_unique_id(), unique_op_id, unordered);
     }
 
     //--------------------------------------------------------------------------
@@ -90,9 +88,8 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       kind = FIELD_SPACE_DELETION;
       field_space = handle;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_deletion_operation(
-            parent_ctx->get_unique_id(), unique_op_id, unordered);
+      LegionSpy::log_deletion_operation(
+          parent_ctx->get_unique_id(), unique_op_id, unordered);
     }
 
     //--------------------------------------------------------------------------
@@ -122,9 +119,8 @@ namespace Legion {
       const std::vector<FieldID> field_vec(1, fid);
       runtime->free_field_indexes(
           handle, field_vec, get_mapped_event(), non_owner_shard);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_deletion_operation(
-            parent_ctx->get_unique_id(), unique_op_id, unordered);
+      LegionSpy::log_deletion_operation(
+          parent_ctx->get_unique_id(), unique_op_id, unordered);
     }
 
     //--------------------------------------------------------------------------
@@ -154,9 +150,8 @@ namespace Legion {
       const std::vector<FieldID> field_vec(to_free.begin(), to_free.end());
       runtime->free_field_indexes(
           handle, field_vec, get_mapped_event(), non_owner_shard);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_deletion_operation(
-            parent_ctx->get_unique_id(), unique_op_id, unordered);
+      LegionSpy::log_deletion_operation(
+          parent_ctx->get_unique_id(), unique_op_id, unordered);
     }
 
     //--------------------------------------------------------------------------
@@ -168,9 +163,8 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       kind = LOGICAL_REGION_DELETION;
       logical_region = handle;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_deletion_operation(
-            parent_ctx->get_unique_id(), unique_op_id, unordered);
+      LegionSpy::log_deletion_operation(
+          parent_ctx->get_unique_id(), unique_op_id, unordered);
     }
 
     //--------------------------------------------------------------------------
@@ -285,14 +279,15 @@ namespace Legion {
       for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
         runtime->invalidate_region_tree_context(
             ctx, deletion_requirements[idx], (kind == FIELD_DELETION));
-      if (runtime->legion_spy_enabled)
-        log_deletion_requirements();
+      log_deletion_requirements();
     }
 
     //--------------------------------------------------------------------------
     void DeletionOp::log_deletion_requirements(void)
     //--------------------------------------------------------------------------
     {
+      if (spy_logging_level == NO_SPY_LOGGING)
+        return;
       for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
       {
         const RegionRequirement& req = deletion_requirements[idx];
@@ -763,11 +758,9 @@ namespace Legion {
           if (it->first->remove_base_gc_ref(FIELD_ALLOCATOR_REF))
             delete it->first;
       }
-#ifdef LEGION_SPY
       // Still have to do this for legion spy
       LegionSpy::log_operation_events(
           unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
       // commit once all the shards are done
       if (!applied.empty())
         commit_operation(true /*deactivate*/, Runtime::merge_events(applied));

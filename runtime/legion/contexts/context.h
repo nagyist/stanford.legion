@@ -613,8 +613,8 @@ namespace Legion {
     public:
       const bool inline_task;
       const bool implicit_task;
-#ifdef LEGION_SPY
     public:
+      // Needed for Legion Spy
       // See comment in PhysicalRegionImpl::unmap_region
       // to understand what these members are for
       inline ApEvent get_tracing_replay_event(void) const
@@ -623,7 +623,6 @@ namespace Legion {
       }
     protected:
       ApEvent tracing_replay_event;
-#endif
     };
 
   }  // namespace Internal

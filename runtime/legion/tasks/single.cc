@@ -293,11 +293,9 @@ namespace Legion {
     void SingleTask::shard_off(RtEvent mapped_precondition)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       // Still need this to record that this operation is done for LegionSpy
       LegionSpy::log_operation_events(
           unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
       // Do the stuff to record that this is mapped and executed
       complete_mapping(mapped_precondition);
       complete_execution();
@@ -1195,9 +1193,7 @@ namespace Legion {
     void SingleTask::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       std::map<Memory, PoolBounds> pool_bounds;
       tpl->get_mapper_output(
           this, selected_variant, task_priority, perform_postmap,
@@ -1914,9 +1910,8 @@ namespace Legion {
       CollectiveMapping* mapping =
           new CollectiveMapping(spaces, runtime->legion_collective_radix);
       const DistributedID manager_did = runtime->get_available_distributed_id();
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_replication(
-            get_unique_id(), manager_did, !var_impl->is_leaf());
+      LegionSpy::log_replication(
+          get_unique_id(), manager_did, !var_impl->is_leaf());
       legion_assert(shard_manager == nullptr);
       std::vector<ShardID> local_shards;
       for (ShardID idx = 0; idx < output.target_processors.size(); idx++)
@@ -2781,14 +2776,11 @@ namespace Legion {
       std::set<ApEvent> wait_on_events;
       if (execution_fence_event.exists())
         wait_on_events.insert(execution_fence_event);
-#ifdef LEGION_SPY
       // TODO: teach legion spy how to check the inner task optimization
       // for now we'll just turn it off whenever we are going to be
       // validating the runtime analysis
-      const bool do_inner_task_optimization = false;
-#else
-      const bool do_inner_task_optimization = variant->is_inner();
-#endif
+      const bool do_inner_task_optimization =
+          (spy_logging_level > LIGHT_SPY_LOGGING) ? false : variant->is_inner();
       // Get the event to wait on unless we are
       // doing the inner task optimization
       if (!do_inner_task_optimization)
@@ -3001,10 +2993,9 @@ namespace Legion {
       // up before we're done executing this function so we can't touch
       // any member variables after we launch it
       const RtEvent misspeculation_precondition = RtEvent(false_guard);
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         LegionSpy::log_variant_decision(unique_op_id, selected_variant);
-#ifdef LEGION_SPY
         LegionSpy::log_operation_events(
             unique_op_id, start_condition, single_task_termination);
         // Chain the start event into the unmap events so Legion Spy can see
@@ -3012,7 +3003,6 @@ namespace Legion {
         for (unsigned idx = 0; idx < unmap_events.size(); idx++)
           if (unmap_events[idx].exists())
             LegionSpy::log_event_dependence(start_condition, unmap_events[idx]);
-#endif
         LegionSpy::log_task_priority(unique_op_id, task_priority);
         for (unsigned idx = 0; idx < futures.size(); idx++)
         {

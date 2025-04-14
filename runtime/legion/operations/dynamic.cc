@@ -47,7 +47,7 @@ namespace Legion {
       const ReductionOp* redop = Runtime::get_reduction_op(collective.redop);
       future.impl->set_future_result_size(
           redop->sizeof_rhs, runtime->address_space);
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         LegionSpy::log_dynamic_collective(ctx->get_unique_id(), unique_op_id);
         DomainPoint empty_point;
@@ -61,9 +61,7 @@ namespace Legion {
     void DynamicCollectiveOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       trigger_mapping();
     }
 

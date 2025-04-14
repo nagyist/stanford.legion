@@ -4391,12 +4391,22 @@ namespace Legion {
      * -------------
      *  Profiling
      * -------------
-     * -lg:spy      Enable light-weight logging for Legion Spy which
-     *              is valuable for understanding properties of an
-     *              application such as the shapes of region trees
-     *              and the kinds of tasks/operations that are created.
-     *              Checking of the runtime with Legion Spy will still
-     *              require the runtime to be compiled with -DLEGION_SPY.
+     * -lg:spy <int> Enable Legion Spy logging for off-load postprocessing
+     *              by the Legion Spy script. Legion Spy is valuable for
+     *              understanding properties of an application such as the
+     *              shapes of region trees and the kinds of tasks/operations
+     *              that are created. Formal verification of the Legion
+     *              runtime can also be performed. Different logging levels
+     *              are required for different properites.
+     *              Level 0: No logging.
+     *              Level 1: Light-weight logging sufficient for generating
+     *                       pictures of execution graphs and region trees
+     *              Level 2: Heavy-weight logging needed for formal
+     *                       verification of the runtime itself but will
+     *                       not require any Legion Spy emulation.
+     *              Level 3: Logging of equivalence sets for analysis of
+     *                       how well the runtime heurisitics for
+     *                       dependence analysis are working.
      * -lg:prof <int> Specify the number of nodes on which to enable
      *              profiling information to be collected.  By default
      *              all nodes are disabled. Zero will disable all

@@ -120,8 +120,7 @@ namespace Legion {
             << "Illegal nested must epoch launch which has a concurrent "
             << "ancesstor (must epoch or concurrent index task). Nested "
             << "concurrency is not currently supported.";
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_must_epoch_operation(ctx->get_unique_id(), unique_op_id);
+      LegionSpy::log_must_epoch_operation(ctx->get_unique_id(), unique_op_id);
       return result_map;
     }
 
@@ -314,7 +313,7 @@ namespace Legion {
     void MustEpochOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         for (std::vector<IndividualTask*>::const_iterator it =
                  indiv_tasks.begin();
@@ -1992,8 +1991,7 @@ namespace Legion {
       {
         const ShardID shard =
             sharding_function->find_owner((*it)->index_point, shard_domain);
-        if (runtime->legion_spy_enabled)
-          LegionSpy::log_owner_shard((*it)->get_unique_id(), shard);
+        LegionSpy::log_owner_shard((*it)->get_unique_id(), shard);
         // If it is not our shard then we don't own it
         if (shard != repl_ctx->owner_shard->shard_id)
           continue;

@@ -164,7 +164,7 @@ namespace Legion {
         Operation* creator, unsigned index, bool merge)
     //--------------------------------------------------------------------------
     {
-      if (!runtime->legion_spy_enabled)
+      if (spy_logging_level == NO_SPY_LOGGING)
         return;
       LegionSpy::log_close_operation(
           parent_ctx->get_unique_id(), unique_op_id, merge);
@@ -320,8 +320,7 @@ namespace Legion {
       node->column_source->get_field_set(
           close_mask, parent_ctx, requirement.privilege_fields);
       // Do our logging
-      if (runtime->legion_spy_enabled)
-        perform_logging(create_op, creator_req_idx, true /*merge close*/);
+      perform_logging(create_op, creator_req_idx, true /*merge close*/);
     }
 
     //--------------------------------------------------------------------------
@@ -355,8 +354,7 @@ namespace Legion {
       parent_idx = idx;
       target_instances = targets;
       localize_region_requirement(requirement);
-      if (runtime->legion_spy_enabled)
-        perform_logging(ctx->owner_task, idx, false /*merge close*/);
+      perform_logging(ctx->owner_task, idx, false /*merge close*/);
     }
 
     //--------------------------------------------------------------------------

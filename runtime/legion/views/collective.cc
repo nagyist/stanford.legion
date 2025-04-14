@@ -1155,9 +1155,7 @@ namespace Legion {
           source_manager->compute_copy_offsets(copy_mask, src_fields);
           const ApEvent copy_post = it->second->issue_copy(
               op, local_info, local_fields, src_fields, no_reservations,
-#ifdef LEGION_SPY
               source_manager->tree_id, local_manager->tree_id,
-#endif
               Runtime::merge_events(
                   &local_info, src_pre, dst_pre, precondition),
               predicate_guard, source_manager->get_unique_event(), local_unique,
@@ -2076,7 +2074,7 @@ namespace Legion {
       rez.serialize<size_t>(fields.size());
       for (unsigned idx = 0; idx < fields.size(); idx++)
         rez.serialize(fields[idx]);
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         // Pack the instance points for these instances so we can check to
         // see if we already fetched them on the remote node
@@ -2138,7 +2136,7 @@ namespace Legion {
         if (ready.exists() && !ready.has_triggered())
           ready_events.insert(ready);
       }
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         // Legion Spy is a bit dumb currently and needs to have logged every
         // instance on every node where it might be used currently, so check
@@ -3077,11 +3075,9 @@ namespace Legion {
       // Issue the copy
       const ApEvent copy_post = copy_expression->issue_copy(
           op, trace_info, dst_fields, src_fields, reservations,
-#ifdef LEGION_SPY
-          local_manager->tree_id, dst_inst.tid,
-#endif
-          precondition, predicate_guard, local_manager->get_unique_event(),
-          dst_unique_event, collective, false /*copy restricted*/);
+          local_manager->tree_id, dst_inst.tid, precondition, predicate_guard,
+          local_manager->get_unique_event(), dst_unique_event, collective,
+          false /*copy restricted*/);
       // Record the user
       if (copy_post.exists())
         local_view->add_copy_user(
@@ -3240,11 +3236,9 @@ namespace Legion {
       const std::vector<Reservation> no_reservations;
       const ApEvent copy_post = copy_expression->issue_copy(
           op, local_info, local_fields, src_fields, no_reservations,
-#ifdef LEGION_SPY
-          src_inst.tid, local_manager->tree_id,
-#endif
-          local_pre, predicate_guard, src_unique_event,
-          local_manager->get_unique_event(), collective_kind, copy_restricted);
+          src_inst.tid, local_manager->tree_id, local_pre, predicate_guard,
+          src_unique_event, local_manager->get_unique_event(), collective_kind,
+          copy_restricted);
       if (local_info.recording)
       {
         const UniqueInst dst_inst(local_view);
@@ -3481,10 +3475,7 @@ namespace Legion {
           }
           const ApEvent dst_post = copy_expression->issue_copy(
               op, inst_info, local_fields[it->second], local_fields[it->first],
-              no_reservations,
-#ifdef LEGION_SPY
-              local_manager->tree_id, dst_manager->tree_id,
-#endif
+              no_reservations, local_manager->tree_id, dst_manager->tree_id,
               dst_pre, predicate_guard, local_manager->get_unique_event(),
               dst_manager->get_unique_event(), collective_kind,
               false /*copy restricted*/);
@@ -3560,10 +3551,8 @@ namespace Legion {
           }
           const ApEvent dst_post = copy_expression->issue_copy(
               op, inst_info, dst_fields, src_fields, no_reservations,
-#ifdef LEGION_SPY
-              src_manager->tree_id, dst_manager->tree_id,
-#endif
-              dst_pre, predicate_guard, src_manager->get_unique_event(),
+              src_manager->tree_id, dst_manager->tree_id, dst_pre,
+              predicate_guard, src_manager->get_unique_event(),
               dst_manager->get_unique_event(), collective_kind,
               false /*copy restricted*/);
           if (dst_post.exists())
@@ -4245,12 +4234,9 @@ namespace Legion {
         dst_view->find_field_reservations(copy_mask, local_reservations);
         const ApEvent reduce_done = copy_expression->issue_copy(
             op, inst_info, local_fields, src_fields, local_reservations,
-#ifdef LEGION_SPY
-            src_inst.tid, dst_manager->tree_id,
-#endif
-            reduce_pre, predicate_guard, src_unique_event,
-            dst_manager->get_unique_event(), COLLECTIVE_REDUCECAST,
-            copy_restricted);
+            src_inst.tid, dst_manager->tree_id, reduce_pre, predicate_guard,
+            src_unique_event, dst_manager->get_unique_event(),
+            COLLECTIVE_REDUCECAST, copy_restricted);
         if (reduce_done.exists())
         {
           local_done_events.emplace_back(reduce_done);

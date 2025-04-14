@@ -2980,14 +2980,8 @@ namespace Legion {
       if (rhs_.size() == 0)
         rhs_.insert(fence_completion_id);
 
-#ifndef LEGION_DISABLE_EVENT_PRUNING
       if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
-      {
-        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(rename, lhs);
-        lhs = rename;
-      }
-#endif
+        Runtime::rename_event(lhs);
 
       insert_instruction(new MergeEvent(*this, convert_event(lhs), rhs_, tlid));
     }
@@ -3012,27 +3006,19 @@ namespace Legion {
       if (rhs_.size() == 0)
         rhs_.insert(fence_completion_id);
 
-#ifndef LEGION_DISABLE_EVENT_PRUNING
-      if (!lhs.exists())
-      {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        rename.trigger();
-        lhs = ApEvent(rename);
-      }
-      else
+      if (lhs.exists())
       {
         // Check for reuse
         for (unsigned idx = 0; idx < rhs.size(); idx++)
         {
           if (lhs != rhs[idx])
             continue;
-          Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-          rename.trigger(lhs);
-          lhs = ApEvent(rename);
+          Runtime::rename_event(lhs);
           break;
         }
       }
-#endif
+      else
+        Runtime::rename_event(lhs);
 
       insert_instruction(new MergeEvent(*this, convert_event(lhs), rhs_, tlid));
     }
@@ -3100,21 +3086,14 @@ namespace Legion {
         const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
         const std::vector<CopySrcDstField>& src_fields,
         const std::vector<CopySrcDstField>& dst_fields,
-        const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
-        RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
-        LgEvent dst_unique, int priority, CollectiveKind collective,
-        bool record_effect)
+        const std::vector<Reservation>& reservations, RegionTreeID src_tree_id,
+        RegionTreeID dst_tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent src_unique, LgEvent dst_unique, int priority,
+        CollectiveKind collective, bool record_effect)
     //--------------------------------------------------------------------------
     {
       if (!lhs.exists())
-      {
-        Realm::UserEvent rename(Realm::UserEvent::create_user_event());
-        rename.trigger();
-        lhs = ApEvent(rename);
-      }
+        Runtime::rename_event(lhs);
 
       AutoLock tpl_lock(template_lock);
       legion_assert(is_recording());
@@ -3123,30 +3102,22 @@ namespace Legion {
       unsigned lhs_ = convert_event(lhs);
       insert_instruction(new IssueCopy(
           *this, lhs_, expr, tlid, src_fields, dst_fields, reservations,
-#ifdef LEGION_SPY
-          src_tree_id, dst_tree_id,
-#endif
-          rhs_, src_unique, dst_unique, priority, collective, record_effect));
+          src_tree_id, dst_tree_id, rhs_, src_unique, dst_unique, priority,
+          collective, record_effect));
     }
 
     //--------------------------------------------------------------------------
     void PhysicalTemplate::record_issue_fill(
         const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
         const std::vector<CopySrcDstField>& fields, const void* fill_value,
-        size_t fill_size,
-#ifdef LEGION_SPY
-        UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-        ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-        int priority, CollectiveKind collective, bool record_effect)
+        size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+        RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+        LgEvent unique_event, int priority, CollectiveKind collective,
+        bool record_effect)
     //--------------------------------------------------------------------------
     {
       if (!lhs.exists())
-      {
-        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(rename);
-        lhs = rename;
-      }
+        Runtime::rename_event(lhs);
 
       AutoLock tpl_lock(template_lock);
       legion_assert(is_recording());
@@ -3154,11 +3125,9 @@ namespace Legion {
       const unsigned rhs_ = find_event(precondition, tpl_lock);
       unsigned lhs_ = convert_event(lhs);
       insert_instruction(new IssueFill(
-          *this, lhs_, expr, tlid, fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-          fill_uid, handle, tree_id,
-#endif
-          rhs_, unique_event, priority, collective, record_effect));
+          *this, lhs_, expr, tlid, fields, fill_value, fill_size, fill_uid,
+          handle, tree_id, rhs_, unique_event, priority, collective,
+          record_effect));
     }
 
     //--------------------------------------------------------------------------
@@ -3169,11 +3138,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!lhs.exists())
-      {
-        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
-        Runtime::trigger_event_untraced(rename);
-        lhs = rename;
-      }
+        Runtime::rename_event(lhs);
 
       AutoLock tpl_lock(template_lock);
       legion_assert(is_recording());

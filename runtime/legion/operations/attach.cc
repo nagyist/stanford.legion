@@ -162,9 +162,8 @@ namespace Legion {
           launcher.collective, ctx->get_next_blocking_index()));
       // Restore privileges back to write-discard
       requirement.privilege = LEGION_WRITE_DISCARD;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_attach_operation(
-            parent_ctx->get_unique_id(), unique_op_id, restricted);
+      LegionSpy::log_attach_operation(
+          parent_ctx->get_unique_id(), unique_op_id, restricted);
       return region;
     }
 
@@ -221,8 +220,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       create_external_instance();
-      if (runtime->legion_spy_enabled)
-        log_requirement();
+      log_requirement();
     }
 
     //--------------------------------------------------------------------------
@@ -294,11 +292,7 @@ namespace Legion {
       Runtime::trigger_event(
           attach_post, attach_event, trace_info, map_applied_conditions);
       record_completion_effect(attach_post);
-#ifdef LEGION_SPY
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_operation_events(
-            unique_op_id, attach_event, attach_post);
-#endif
+      LegionSpy::log_operation_events(unique_op_id, attach_event, attach_post);
       // This operation is ready once the instance is attached
       region.impl->set_reference(external_instances[0]);
       // Once we have created the instance, then we are done
@@ -409,11 +403,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Realm::ProfilingRequestSet requests;
-      if ((runtime->profiler != NULL) || runtime->legion_spy_enabled)
+      if ((runtime->profiler != NULL) || (spy_logging_level > NO_SPY_LOGGING))
       {
-        const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
-        unique.trigger();
-        unique_event = LgEvent(unique);
+        Runtime::rename_event(unique_event);
         if (runtime->profiler != NULL)
           runtime->profiler->add_inst_request(requests, this, unique_event);
       }
@@ -591,13 +583,10 @@ namespace Legion {
             this, ctx, launcher, index_point, indexes[idx]);
         result->set_region(idx, region);
       }
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_attach_operation(
-            parent_ctx->get_unique_id(), unique_op_id, false /*restricted*/);
-        if (launch_space != nullptr)
-          log_launch_space(launch_space->handle);
-      }
+      LegionSpy::log_attach_operation(
+          parent_ctx->get_unique_id(), unique_op_id, false /*restricted*/);
+      if (launch_space != nullptr)
+        log_launch_space(launch_space->handle);
       resources = ExternalResources(result);
       return resources;
     }
@@ -635,8 +624,7 @@ namespace Legion {
             0 /*start*/, spaces.size(), spaces);
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
-      if (runtime->legion_spy_enabled)
-        log_requirement();
+      log_requirement();
       analyze_region_requirements(launch_space);
     }
 
@@ -737,11 +725,8 @@ namespace Legion {
     void IndexAttachOp::trigger_complete(ApEvent effects)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_operation_events(
-            unique_op_id, ApEvent::NO_AP_EVENT, effects);
-#endif
+      LegionSpy::log_operation_events(
+          unique_op_id, ApEvent::NO_AP_EVENT, effects);
       complete_operation(effects);
     }
 
@@ -1075,12 +1060,9 @@ namespace Legion {
           false /*collective*/, ctx->get_next_blocking_index()));
       // Restore privileges back to write-discard
       requirement.privilege = LEGION_WRITE_DISCARD;
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_index_point(
-            owner->get_unique_op_id(), unique_op_id, point);
-        log_requirement();
-      }
+      LegionSpy::log_index_point(
+          owner->get_unique_op_id(), unique_op_id, point);
+      log_requirement();
       return region.impl;
     }
 
@@ -1125,9 +1107,8 @@ namespace Legion {
         std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_collective_rendezvous(
-            unique_op_id, requirement_index, analysis_index);
+      LegionSpy::log_collective_rendezvous(
+          unique_op_id, requirement_index, analysis_index);
       return owner->convert_collective_views(
           requirement_index, analysis_index, region, targets, physical_ctx,
           analysis_mapping, first_local, target_views, collective_arrivals);
@@ -1872,8 +1853,7 @@ namespace Legion {
             local_start, local_size, spaces, false /*can use identity*/);
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
-      if (runtime->legion_spy_enabled)
-        log_requirement();
+      log_requirement();
       analyze_region_requirements(launch_space, sharding_function);
       // Always perform a collective rendezvous for these points
       create_collective_rendezvous(requirement.parent.get_tree_id(), 0);

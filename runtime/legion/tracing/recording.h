@@ -75,9 +75,7 @@ namespace Legion {
       DistributedID view_did;
       // Logical owner space for the view
       AddressSpaceID analysis_space;
-#ifdef LEGION_SPY
       RegionTreeID tid;
-#endif
     };
 
     /**
@@ -140,9 +138,7 @@ namespace Legion {
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, int priority, CollectiveKind collective,
           bool record_effect) = 0;
@@ -172,12 +168,10 @@ namespace Legion {
       virtual void record_issue_fill(
           const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
           const std::vector<CopySrcDstField>& fields, const void* fill_value,
-          size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-          int priority, CollectiveKind collective, bool record_effect) = 0;
+          size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+          RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+          LgEvent unique_event, int priority, CollectiveKind collective,
+          bool record_effect) = 0;
       virtual void record_fill_inst(
           ApEvent lhs, IndexSpaceExpression* expr, const UniqueInst& dst_inst,
           const FieldMask& fill_mask, std::set<RtEvent>& applied_events,
@@ -284,9 +278,7 @@ namespace Legion {
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, int priority, CollectiveKind collective,
           bool record_effect);
@@ -315,12 +307,10 @@ namespace Legion {
       virtual void record_issue_fill(
           const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
           const std::vector<CopySrcDstField>& fields, const void* fill_value,
-          size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-          int priority, CollectiveKind collective, bool record_effect);
+          size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+          RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+          LgEvent unique_event, int priority, CollectiveKind collective,
+          bool record_effect);
       virtual void record_fill_inst(
           ApEvent lhs, IndexSpaceExpression* expr, const UniqueInst& dst_inst,
           const FieldMask& fill_mask, std::set<RtEvent>& applied_events,
@@ -524,9 +514,7 @@ namespace Legion {
           const std::vector<CopySrcDstField>& src_fields,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& reservations,
-#ifdef LEGION_SPY
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
-#endif
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, int priority, CollectiveKind collective,
           bool record_effect) const
@@ -534,30 +522,22 @@ namespace Legion {
         sanity_check();
         rec->record_issue_copy(
             tlid, result, expr, src_fields, dst_fields, reservations,
-#ifdef LEGION_SPY
-            src_tree_id, dst_tree_id,
-#endif
-            precondition, pred_guard, src_unique, dst_unique, priority,
-            collective, record_effect);
+            src_tree_id, dst_tree_id, precondition, pred_guard, src_unique,
+            dst_unique, priority, collective, record_effect);
       }
       inline void record_issue_fill(
           ApEvent& result, IndexSpaceExpression* expr,
           const std::vector<CopySrcDstField>& fields, const void* fill_value,
-          size_t fill_size,
-#ifdef LEGION_SPY
-          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
-#endif
-          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
-          int priority, CollectiveKind collective, bool record_effect) const
+          size_t fill_size, UniqueID fill_uid, FieldSpace handle,
+          RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
+          LgEvent unique_event, int priority, CollectiveKind collective,
+          bool record_effect) const
       {
         sanity_check();
         rec->record_issue_fill(
-            tlid, result, expr, fields, fill_value, fill_size,
-#ifdef LEGION_SPY
-            fill_uid, handle, tree_id,
-#endif
-            precondition, pred_guard, unique_event, priority, collective,
-            record_effect);
+            tlid, result, expr, fields, fill_value, fill_size, fill_uid, handle,
+            tree_id, precondition, pred_guard, unique_event, priority,
+            collective, record_effect);
       }
       inline void record_issue_across(
           ApEvent& result, ApEvent collective_precondition,

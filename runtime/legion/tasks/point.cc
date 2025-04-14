@@ -725,9 +725,8 @@ namespace Legion {
         std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_collective_rendezvous(
-            unique_op_id, requirement_index, analysis_index);
+      LegionSpy::log_collective_rendezvous(
+          unique_op_id, requirement_index, analysis_index);
       return slice_owner->convert_collective_views(
           requirement_index, analysis_index, region, targets, physical_ctx,
           analysis_mapping, first_local, target_views, collective_arrivals);
@@ -831,15 +830,12 @@ namespace Legion {
                   pointwise_mapping_dependences.begin(),
                   pointwise_mapping_dependences.end());
             }
-            if (runtime->legion_spy_enabled)
-            {
-              // We know we only need a dependence on the previous point but
-              // Legion Spy is stupid, so log everything we have a
-              // precondition on even if it is transitively implied
-              for (unsigned idx2 = 0; idx2 < idx; idx2++)
-                LegionSpy::log_intra_space_dependence(
-                    unique_op_id, dependences[idx2]);
-            }
+            // We know we only need a dependence on the previous point but
+            // Legion Spy is stupid, so log everything we have a
+            // precondition on even if it is transitively implied
+            for (unsigned idx2 = 0; idx2 < idx; idx2++)
+              LegionSpy::log_intra_space_dependence(
+                  unique_op_id, dependences[idx2]);
           }
           return;
         }
@@ -898,12 +894,9 @@ namespace Legion {
     {
       update_no_access_regions();
       // Log our requirements that we computed
-      if (runtime->legion_spy_enabled)
-      {
-        UniqueID our_uid = get_unique_id();
-        for (unsigned idx = 0; idx < logical_regions.size(); idx++)
-          log_requirement(our_uid, idx, logical_regions[idx]);
-      }
+      UniqueID our_uid = get_unique_id();
+      for (unsigned idx = 0; idx < logical_regions.size(); idx++)
+        log_requirement(our_uid, idx, logical_regions[idx]);
     }
 
   }  // namespace Internal

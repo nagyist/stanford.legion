@@ -395,18 +395,19 @@ namespace Legion {
       for (unsigned idx = 0; idx < grants.size(); idx++)
         grants[idx].impl->register_operation(get_completion_event());
       wait_barriers = launcher.wait_barriers;
-#ifdef LEGION_SPY
-      for (std::vector<PhaseBarrier>::const_iterator it =
-               launcher.arrive_barriers.begin();
-           it != launcher.arrive_barriers.end(); it++)
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        arrive_barriers.emplace_back(*it);
-        LegionSpy::log_event_dependence(
-            it->phase_barrier, arrive_barriers.back().phase_barrier);
+        for (std::vector<PhaseBarrier>::const_iterator it =
+                 launcher.arrive_barriers.begin();
+             it != launcher.arrive_barriers.end(); it++)
+        {
+          arrive_barriers.emplace_back(*it);
+          LegionSpy::log_event_dependence(
+              it->phase_barrier, arrive_barriers.back().phase_barrier);
+        }
       }
-#else
-      arrive_barriers = launcher.arrive_barriers;
-#endif
+      else
+        arrive_barriers = launcher.arrive_barriers;
       wait_barriers = launcher.wait_barriers;
       gather_is_range = launcher.src_indirect_is_range;
       scatter_is_range = launcher.dst_indirect_is_range;
@@ -437,13 +438,10 @@ namespace Legion {
       sharding_space = launcher.sharding_space;
       if (runtime->safe_model)
         perform_type_checking();
-      if (runtime->legion_spy_enabled)
-      {
-        const unsigned copy_kind = (src_indirect_requirements.empty() ? 0 : 1) +
-                                   (dst_indirect_requirements.empty() ? 0 : 2);
-        LegionSpy::log_copy_operation(
-            parent_ctx->get_unique_id(), unique_op_id, copy_kind, false, false);
-      }
+      const unsigned copy_kind = (src_indirect_requirements.empty() ? 0 : 1) +
+                                 (dst_indirect_requirements.empty() ? 0 : 2);
+      LegionSpy::log_copy_operation(
+          parent_ctx->get_unique_id(), unique_op_id, copy_kind, false, false);
     }
 
     //--------------------------------------------------------------------------
@@ -762,6 +760,8 @@ namespace Legion {
     void CopyOp::log_copy_requirements(void) const
     //--------------------------------------------------------------------------
     {
+      if (spy_logging_level == NO_SPY_LOGGING)
+        return;
       for (unsigned idx = 0; idx < src_requirements.size(); idx++)
       {
         const RegionRequirement& req = src_requirements[idx];
@@ -826,8 +826,7 @@ namespace Legion {
     {
       // Initialize the privilege and mapping paths for all of the
       // region requirements that we have
-      if (runtime->legion_spy_enabled)
-        log_copy_requirements();
+      log_copy_requirements();
     }
 
     //--------------------------------------------------------------------------
@@ -1527,9 +1526,7 @@ namespace Legion {
         for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
              it != arrive_barriers.end(); it++)
         {
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_arrival(
-                unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
           runtime->phase_barrier_arrive(
               it->phase_barrier, 1 /*count*/, complete);
         }
@@ -1796,9 +1793,7 @@ namespace Legion {
     void CopyOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       complete_mapping();
     }
 
@@ -2189,10 +2184,8 @@ namespace Legion {
         CopyAcrossUnstructured* across = copy_expr->create_across_unstructured(
             reservations, false /*preimages*/, false /*shadow indirections*/);
         across->add_reference();
-#ifdef LEGION_SPY
         across->src_tree_id = src_req.region.get_tree_id();
         across->dst_tree_id = dst_req.region.get_tree_id();
-#endif
         // Fill in the source fields
         across->initialize_source_fields(src_req, src_targets, trace_info);
         // Fill in the destination fields
@@ -2793,15 +2786,12 @@ namespace Legion {
           src_indirect_requirements.size(), dst_indirect_requirements.size()));
       collective_src_indirect_points = launcher.collective_src_indirect_points;
       collective_dst_indirect_points = launcher.collective_dst_indirect_points;
-      if (runtime->legion_spy_enabled)
-      {
-        const unsigned copy_kind = (src_indirect_requirements.empty() ? 0 : 1) +
-                                   (dst_indirect_requirements.empty() ? 0 : 2);
-        LegionSpy::log_copy_operation(
-            parent_ctx->get_unique_id(), unique_op_id, copy_kind,
-            collective_src_indirect_points, collective_dst_indirect_points);
-        log_launch_space(launch_space->handle);
-      }
+      const unsigned copy_kind = (src_indirect_requirements.empty() ? 0 : 1) +
+                                 (dst_indirect_requirements.empty() ? 0 : 2);
+      LegionSpy::log_copy_operation(
+          parent_ctx->get_unique_id(), unique_op_id, copy_kind,
+          collective_src_indirect_points, collective_dst_indirect_points);
+      log_launch_space(launch_space->handle);
       if (runtime->check_privileges)
         perform_type_checking();
     }
@@ -2892,14 +2882,15 @@ namespace Legion {
           }
         }
       }
-      if (runtime->legion_spy_enabled)
-        log_index_copy_requirements();
+      log_index_copy_requirements();
     }
 
     //--------------------------------------------------------------------------
     void IndexCopyOp::log_index_copy_requirements(void)
     //--------------------------------------------------------------------------
     {
+      if (spy_logging_level == NO_SPY_LOGGING)
+        return;
       for (unsigned idx = 0; idx < src_requirements.size(); idx++)
       {
         const RegionRequirement& req = src_requirements[idx];
@@ -3104,9 +3095,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(is_replaying());
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       // Enumerate the points
       enumerate_points();
       // Then call replay analysis on all of them
@@ -3216,12 +3205,9 @@ namespace Legion {
               parent_ctx->get_total_shards(), is_replaying());
         }
       }
-      if (runtime->legion_spy_enabled)
-      {
-        for (std::vector<PointCopyOp*>::const_iterator it = temp_points.begin();
-             it != temp_points.end(); it++)
-          (*it)->log_copy_requirements();
-      }
+      for (std::vector<PointCopyOp*>::const_iterator it = temp_points.begin();
+           it != temp_points.end(); it++)
+        (*it)->log_copy_requirements();
       // Need the lock to avoid racing with the pointwise dependence analysis
       AutoLock o_lock(op_lock);
       legion_assert(points.empty());
@@ -3677,8 +3663,7 @@ namespace Legion {
           src_requirements.size() + dst_requirements.size() +
           src_indirect_requirements.size() + dst_indirect_requirements.size());
 
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_index_point(owner->get_unique_op_id(), unique_op_id, p);
+      LegionSpy::log_index_point(owner->get_unique_op_id(), unique_op_id, p);
     }
 
     //--------------------------------------------------------------------------
@@ -3927,15 +3912,12 @@ namespace Legion {
             const RtEvent pre = owner->find_intra_space_dependence(prev);
             if (pre.exists())
               pointwise_mapping_dependences.emplace_back(pre);
-            if (runtime->legion_spy_enabled)
-            {
-              // We know we only need a dependence on the previous point but
-              // Legion Spy is stupid, so log everything we have a
-              // precondition on even if it is transitively implied
-              for (unsigned idx2 = 0; idx2 < idx; idx2++)
-                LegionSpy::log_intra_space_dependence(
-                    unique_op_id, dependences[idx2]);
-            }
+            // We know we only need a dependence on the previous point but
+            // Legion Spy is stupid, so log everything we have a
+            // precondition on even if it is transitively implied
+            for (unsigned idx2 = 0; idx2 < idx; idx2++)
+              LegionSpy::log_intra_space_dependence(
+                  unique_op_id, dependences[idx2]);
           }
           return;
         }
@@ -4167,16 +4149,13 @@ namespace Legion {
         legion_assert((tpl != nullptr) && tpl->is_recording());
         tpl->record_owner_shard(trace_local_id, owner_shard);
       }
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
+      LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
       // If we own it we go on the queue, otherwise we complete early
       if (owner_shard != repl_ctx->owner_shard->shard_id)
       {
-#ifdef LEGION_SPY
         // Still have to do this for legion spy
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         // We don't own it, so we can pretend like we
         // mapped and executed this copy already
         complete_mapping();
@@ -4194,15 +4173,12 @@ namespace Legion {
       ReplicateContext* repl_ctx =
           legion_safe_cast<ReplicateContext*>(parent_ctx);
       const ShardID owner_shard = tpl->find_owner_shard(trace_local_id);
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
+      LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
       if (owner_shard != repl_ctx->owner_shard->shard_id)
       {
-#ifdef LEGION_SPY
         LegionSpy::log_replay_operation(unique_op_id);
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         complete_mapping();
         complete_execution();
       }
@@ -4431,11 +4407,9 @@ namespace Legion {
             }
           }
         }
-#ifdef LEGION_SPY
         // Still have to do this for legion spy
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         // We have no local points, so we can just trigger
         complete_mapping();
         if (!done_events.empty())
@@ -4491,11 +4465,9 @@ namespace Legion {
       // If it's empty we're done, otherwise we do the replay
       if (!local_space.exists())
       {
-#ifdef LEGION_SPY
         LegionSpy::log_replay_operation(unique_op_id);
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         // We have no local points, so we can just trigger
         complete_mapping();
         complete_execution();

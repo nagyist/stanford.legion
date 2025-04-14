@@ -521,7 +521,6 @@ namespace Legion {
       legion_assert(termination_event.exists());
       // trigger the termination event conditional upon the ready event
       Runtime::trigger_event_untraced(termination_event, ready_event);
-#ifdef LEGION_SPY
       // This is a really mind-bending corner case so be prepared
       // If we're doing a trace replay and we actually end up replaying a
       // physical template, we need to make it look to Legion Spy like the
@@ -544,11 +543,14 @@ namespace Legion {
       //    because operations can't be replayed before they are launched
       // There we can see this is trivially safe, but we need to create this
       // explicit event relationship for Legion Spy here to keep it happy
-      const ApEvent tracing_replay_event = context->get_tracing_replay_event();
-      if (tracing_replay_event.exists())
-        LegionSpy::log_event_dependence(
-            termination_event, tracing_replay_event);
-#endif
+      if (spy_logging_level > LIGHT_SPY_LOGGING)
+      {
+        const ApEvent tracing_replay_event =
+            context->get_tracing_replay_event();
+        if (tracing_replay_event.exists())
+          LegionSpy::log_event_dependence(
+              termination_event, tracing_replay_event);
+      }
       termination_event = ApUserEvent::NO_AP_USER_EVENT;
       mapped = false;
       valid = false;

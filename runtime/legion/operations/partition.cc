@@ -45,8 +45,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       legion_assert(thunk == nullptr);
       thunk = new EqualPartitionThunk(pid, granularity);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -60,8 +59,7 @@ namespace Legion {
       thunk = new WeightPartitionThunk(pid, granularity);
       // Also save this locally for analysis
       populate_sources(weights, pid, true /*needs all futures*/);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -73,8 +71,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       legion_assert(thunk == nullptr);
       thunk = new UnionPartitionThunk(pid, h1, h2);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -86,8 +83,7 @@ namespace Legion {
       initialize_operation(ctx, prov);
       legion_assert(thunk == nullptr);
       thunk = new IntersectionPartitionThunk(pid, h1, h2);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -99,8 +95,7 @@ namespace Legion {
       initialize_operation(ctx, prov);
       legion_assert(thunk == nullptr);
       thunk = new IntersectionWithRegionThunk(pid, part, dominates);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -112,8 +107,7 @@ namespace Legion {
       initialize_operation(ctx, prov);
       legion_assert(thunk == nullptr);
       thunk = new DifferencePartitionThunk(pid, h1, h2);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -127,8 +121,7 @@ namespace Legion {
       legion_assert(thunk == nullptr);
       thunk = new RestrictedPartitionThunk(
           pid, transform, transform_size, extent, extent_size);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -142,9 +135,7 @@ namespace Legion {
       thunk = new FutureMapThunk(pid, fm, perform_intersections);
       // Also save this locally for analysis
       populate_sources(fm, pid, false /*needs all futures*/);
-
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -157,8 +148,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       legion_assert(thunk == nullptr);
       thunk = new CrossProductThunk(base, source, part_color, shard, mapping);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -170,8 +160,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       legion_assert(thunk == nullptr);
       thunk = new ComputePendingSpace(target, true /*union*/, handles);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -183,8 +172,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       legion_assert(thunk == nullptr);
       thunk = new ComputePendingSpace(target, true /*union*/, handle);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -196,8 +184,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       legion_assert(thunk == nullptr);
       thunk = new ComputePendingSpace(target, false /*union*/, handles);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -209,8 +196,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       legion_assert(thunk == nullptr);
       thunk = new ComputePendingSpace(target, false /*union*/, handle);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------
@@ -222,8 +208,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       legion_assert(thunk == nullptr);
       thunk = new ComputePendingDifference(target, initial, handles);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
+      perform_logging();
     }
 
     //--------------------------------------------------------------------------

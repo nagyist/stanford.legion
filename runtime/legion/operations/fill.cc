@@ -148,13 +148,9 @@ namespace Legion {
       index_point = launcher.point;
       index_domain = Domain(index_point, index_point);
       sharding_space = launcher.sharding_space;
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_fill_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
-        if (future.impl != nullptr)
-          LegionSpy::log_future_use(unique_op_id, future.impl->did);
-      }
+      LegionSpy::log_fill_operation(parent_ctx->get_unique_id(), unique_op_id);
+      if (future.impl != nullptr)
+        LegionSpy::log_future_use(unique_op_id, future.impl->did);
     }
 
     //--------------------------------------------------------------------------
@@ -355,8 +351,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // First compute the parent index
-      if (runtime->legion_spy_enabled)
-        log_fill_requirement();
+      log_fill_requirement();
     }
 
     //--------------------------------------------------------------------------
@@ -471,9 +466,7 @@ namespace Legion {
                  arrive_barriers.begin();
              it != arrive_barriers.end(); it++)
         {
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_arrival(
-                unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
           runtime->phase_barrier_arrive(
               it->phase_barrier, 1 /*count*/, complete);
         }
@@ -518,9 +511,7 @@ namespace Legion {
     void FillOp::trigger_replay(void)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       complete_mapping(finalize_complete_mapping(RtEvent::NO_RT_EVENT));
     }
 
@@ -646,14 +637,10 @@ namespace Legion {
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
-      if (runtime->legion_spy_enabled)
-      {
-        LegionSpy::log_fill_operation(
-            parent_ctx->get_unique_id(), unique_op_id);
-        if (future.impl != nullptr)
-          LegionSpy::log_future_use(unique_op_id, future.impl->did);
-        log_launch_space(launch_space->handle);
-      }
+      LegionSpy::log_fill_operation(parent_ctx->get_unique_id(), unique_op_id);
+      if (future.impl != nullptr)
+        LegionSpy::log_future_use(unique_op_id, future.impl->did);
+      log_launch_space(launch_space->handle);
     }
 
     //--------------------------------------------------------------------------
@@ -697,14 +684,15 @@ namespace Legion {
         requirement.handle_type = LEGION_REGION_PROJECTION;
         requirement.projection = 0;
       }
-      if (runtime->legion_spy_enabled)
-        log_index_fill_requirement();
+      log_index_fill_requirement();
     }
 
     //--------------------------------------------------------------------------
     void IndexFillOp::log_index_fill_requirement(void)
     //--------------------------------------------------------------------------
     {
+      if (spy_logging_level == NO_SPY_LOGGING)
+        return;
       const bool reg =
           (requirement.handle_type == LEGION_SINGULAR_PROJECTION) ||
           (requirement.handle_type == LEGION_REGION_PROJECTION);
@@ -806,9 +794,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(is_replaying());
-#ifdef LEGION_SPY
       LegionSpy::log_replay_operation(unique_op_id);
-#endif
       // Enumerate the points
       enumerate_points();
       // Then call replay analysis on all of them
@@ -859,7 +845,7 @@ namespace Legion {
               nullptr :
               &pointwise_dependences.begin()->second,
           parent_ctx->get_total_shards(), is_replaying());
-      if (runtime->legion_spy_enabled)
+      if (spy_logging_level > NO_SPY_LOGGING)
       {
         for (std::vector<PointFillOp*>::const_iterator it = temp_points.begin();
              it != temp_points.end(); it++)
@@ -1023,8 +1009,7 @@ namespace Legion {
       true_guard = owner->true_guard;
       false_guard = owner->false_guard;
       version_info = owner->version_info;
-      if (runtime->legion_spy_enabled)
-        LegionSpy::log_index_point(owner->get_unique_op_id(), unique_op_id, p);
+      LegionSpy::log_index_point(owner->get_unique_op_id(), unique_op_id, p);
     }
 
     //--------------------------------------------------------------------------
@@ -1542,11 +1527,9 @@ namespace Legion {
       // If it's empty we're done, otherwise we go back on the queue
       if (!local_space.exists())
       {
-#ifdef LEGION_SPY
         // Still have to do this for legion spy
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         // We have no local points, so we can just trigger
         // Still do the view initialization to rendezvous with collectives
         const RtEvent view_ready = initialize_fill_view();
@@ -1614,11 +1597,9 @@ namespace Legion {
       // If it's empty we're done, otherwise we do the replay
       if (!local_space.exists())
       {
-#ifdef LEGION_SPY
         LegionSpy::log_replay_operation(unique_op_id);
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
-#endif
         // We have no local points, so we can just trigger
         complete_mapping();
         complete_execution();

@@ -253,7 +253,7 @@ namespace Legion {
           "GC Index Space %lld %d %lld",
           LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space, handle.did);
 #endif
-      if (is_owner() && runtime->legion_spy_enabled)
+      if (is_owner())
         LegionSpy::log_index_space_expr(handle.get_id(), this->expr_id);
     }
 
@@ -2197,10 +2197,9 @@ namespace Legion {
                  it != children.end(); it++)
               runtime->send_index_partition_child_replication(*it, rez);
           }
-          if (runtime->legion_spy_enabled)
-            LegionSpy::log_index_subspace(
-                handle.get_id(), is.get_id(), runtime->address_space,
-                result->get_domain_point_color());
+          LegionSpy::log_index_subspace(
+              handle.get_id(), is.get_id(), runtime->address_space,
+              result->get_domain_point_color());
           if (implicit_profiler != nullptr)
             implicit_profiler->register_index_subspace(
                 handle.get_id(), is.get_id(), result->get_domain_point_color());

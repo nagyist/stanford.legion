@@ -265,10 +265,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const std::pair<Operation*, GenerationID> key(op, gen);
-#ifdef LEGION_SPY
-      current_uids[key] = op->get_unique_op_id();
-      num_regions[key] = op->get_region_count();
-#endif
       if (recording)
       {
         // Recording
@@ -311,7 +307,7 @@ namespace Legion {
         // Add a mapping reference since ops will be registering dependences
         op->add_mapping_reference(gen);
         operations.emplace_back(OpInfo(op));
-        frontiers.insert(key);
+        frontiers.emplace(std::make_pair(key, op->get_unique_op_id()));
         // First make any close operations needed for this operation and
         // register their dependences
         for (ctx::vector<CloseInfo>::const_iterator cit = info.closes.begin();
@@ -329,10 +325,6 @@ namespace Legion {
               close_op, close_gen);
           close_op->add_mapping_reference(close_gen);
           operations.emplace_back(OpInfo(close_op));
-#ifdef LEGION_SPY
-          current_uids[close_key] = close_op->get_unique_op_id();
-          num_regions[close_key] = close_op->get_region_count();
-#endif
           close_op->begin_dependence_analysis();
           close_op->trigger_dependence_analysis();
           replay_operation_dependences(close_op, cit->dependences);
@@ -400,35 +392,31 @@ namespace Legion {
         std::pair<Operation*, GenerationID> target = std::make_pair(
             operations[it->operation_idx].op,
             operations[it->operation_idx].gen);
-        std::set<std::pair<Operation*, GenerationID>>::iterator finder =
-            frontiers.find(target);
+        std::map<std::pair<Operation*, GenerationID>, UniqueID>::iterator
+            finder = frontiers.find(target);
         if (finder != frontiers.end())
         {
-          finder->first->remove_mapping_reference(finder->second);
+          finder->first.first->remove_mapping_reference(finder->first.second);
           frontiers.erase(finder);
         }
         if ((it->prev_idx == -1) || (it->next_idx == -1))
         {
           op->register_dependence(target.first, target.second);
-#ifdef LEGION_SPY
           LegionSpy::log_mapping_dependence(
               op->get_context()->get_unique_id(),
-              get_current_uid_by_index(it->operation_idx),
+              operations[it->operation_idx].unique_id,
               (it->prev_idx == -1) ? 0 : it->prev_idx, op->get_unique_op_id(),
               (it->next_idx == -1) ? 0 : it->next_idx, LEGION_TRUE_DEPENDENCE);
-#endif
         }
         else
         {
           op->register_region_dependence(
               it->next_idx, target.first, target.second, it->prev_idx,
               it->dtype, it->dependent_mask);
-#ifdef LEGION_SPY
           LegionSpy::log_mapping_dependence(
               op->get_context()->get_unique_id(),
-              get_current_uid_by_index(it->operation_idx), it->prev_idx,
+              operations[it->operation_idx].unique_id, it->prev_idx,
               op->get_unique_op_id(), it->next_idx, it->dtype);
-#endif
         }
       }
     }
@@ -453,12 +441,10 @@ namespace Legion {
           const OpInfo& info = operations[it->context_index];
           it->context_index = info.context_index;
           it->unique_id = info.unique_id;
-#ifdef LEGION_SPY
           LegionSpy::log_mapping_dependence(
               op->get_context()->get_unique_id(), info.unique_id,
               it->region_index, op->get_unique_op_id(), cit->first,
               LEGION_TRUE_DEPENDENCE, true /*pointwise*/);
-#endif
         }
       }
       op->replay_pointwise_dependences(copy);
@@ -764,21 +750,16 @@ namespace Legion {
         trace_fence = nullptr;
         // Register for this fence on every one of the operations in
         // the trace and then clear out the operations data structure
-        for (std::set<std::pair<Operation*, GenerationID>>::iterator it =
-                 frontiers.begin();
+        for (std::map<std::pair<Operation*, GenerationID>, UniqueID>::iterator
+                 it = frontiers.begin();
              it != frontiers.end(); ++it)
         {
-          const std::pair<Operation*, GenerationID>& target = *it;
+          const std::pair<Operation*, GenerationID>& target = it->first;
           legion_assert(!target.first->is_internal_op());
           op->register_dependence(target.first, target.second);
-#ifdef LEGION_SPY
-          for (unsigned req_idx = 0; req_idx < num_regions[target]; req_idx++)
-          {
-            LegionSpy::log_mapping_dependence(
-                op->get_context()->get_unique_id(), current_uids[target],
-                req_idx, op->get_unique_op_id(), 0, LEGION_TRUE_DEPENDENCE);
-          }
-#endif
+          LegionSpy::log_mapping_dependence(
+              op->get_context()->get_unique_id(), it->second, 0 /*idx*/,
+              op->get_unique_op_id(), 0, LEGION_TRUE_DEPENDENCE);
           // Remove any mapping references that we hold
           target.first->remove_mapping_reference(target.second);
         }
@@ -799,18 +780,14 @@ namespace Legion {
                it != operations.end(); it++)
             it->op->remove_mapping_reference(it->gen);
           // Remove mapping fences on the frontiers which haven't been removed
-          for (std::set<std::pair<Operation*, GenerationID>>::const_iterator
-                   it = frontiers.begin();
+          for (std::map<std::pair<Operation*, GenerationID>, UniqueID>::
+                   const_iterator it = frontiers.begin();
                it != frontiers.end(); it++)
-            it->first->remove_mapping_reference(it->second);
+            it->first.first->remove_mapping_reference(it->second);
         }
       }
       operations.clear();
       frontiers.clear();
-#ifdef LEGION_SPY
-      current_uids.clear();
-      num_regions.clear();
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -845,21 +822,6 @@ namespace Legion {
            it != concurrent_exchange_colors.end(); it++)
         colors.emplace_back(it->first);
     }
-
-#ifdef LEGION_SPY
-    //--------------------------------------------------------------------------
-    UniqueID LogicalTrace::get_current_uid_by_index(unsigned op_idx) const
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(op_idx < operations.size());
-      const std::pair<Operation*, GenerationID> key =
-          std::make_pair(operations[op_idx].op, operations[op_idx].gen);
-      std::map<std::pair<Operation*, GenerationID>, UniqueID>::const_iterator
-          finder = current_uids.find(key);
-      legion_assert(finder != current_uids.end());
-      return finder->second;
-    }
-#endif
 
     //--------------------------------------------------------------------------
     void LogicalTrace::translate_dependence_records(
