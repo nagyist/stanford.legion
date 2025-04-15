@@ -320,13 +320,10 @@ namespace Legion {
         const std::set<RtEvent>& events)
     //--------------------------------------------------------------------------
     {
-      if (spy_logging_level <= LIGHT_SPY_LOGGING)
-      {
-        if (events.empty())
-          return RtEvent::NO_RT_EVENT;
-        if (events.size() == 1)
-          return *(events.begin());
-      }
+      if (events.empty())
+        return RtEvent::NO_RT_EVENT;
+      if (events.size() == 1)
+        return *(events.begin());
       // Fuck C++
       const std::set<RtEvent>* legion_events = &events;
       const std::set<Realm::Event>* realm_events;
@@ -350,13 +347,10 @@ namespace Legion {
         const std::vector<RtEvent>& events)
     //--------------------------------------------------------------------------
     {
-      if (spy_logging_level <= LIGHT_SPY_LOGGING)
-      {
-        if (events.empty())
-          return RtEvent::NO_RT_EVENT;
-        if (events.size() == 1)
-          return events.front();
-      }
+      if (events.empty())
+        return RtEvent::NO_RT_EVENT;
+      if (events.size() == 1)
+        return events.front();
       // Fuck C++
       const std::vector<RtEvent>* legion_events = &events;
       const std::vector<Realm::Event>* realm_events;

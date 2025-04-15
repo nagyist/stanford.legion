@@ -162,13 +162,17 @@ namespace Legion {
       if (rhs_.size() == 0)
         rhs_.insert(fence_completion_id);
 
-      // If the lhs event wasn't made on this node then we need to rename it
-      // because we need all events to go back to a node where we know that
-      // we have a shard that can answer queries about it
-      const AddressSpaceID event_space = find_event_space(lhs);
-      if ((event_space != runtime->address_space) || !lhs.exists() ||
-          (rhs.find(lhs) != rhs.end()))
+      if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
         Runtime::rename_event(lhs);
+      else if (find_event_space(lhs) != runtime->address_space)
+      {
+        // If the lhs event wasn't made on this node then we need to rename it
+        // because we need all events to go back to a node where we know that
+        // we have a shard that can answer queries about it
+        const ApEvent previous = lhs;
+        Runtime::rename_event(lhs);
+        LegionSpy::log_event_dependence(previous, lhs);
+      }
       insert_instruction(new MergeEvent(*this, convert_event(lhs), rhs_, tlid));
     }
 
@@ -241,12 +245,18 @@ namespace Legion {
       if (rhs_.size() == 0)
         rhs_.insert(fence_completion_id);
 
-      // If the lhs event wasn't made on this node then we need to rename it
-      // because we need all events to go back to a node where we know that
-      // we have a shard that can answer queries about it
-      const AddressSpaceID event_space = find_event_space(lhs);
-      if ((event_space != runtime->address_space) || !lhs.exists())
+      if (!lhs.exists())
         Runtime::rename_event(lhs);
+      else if (find_event_space(lhs) != runtime->address_space)
+      {
+        // If the lhs event wasn't made on this node then we need to rename it
+        // because we need all events to go back to a node where we know that
+        // we have a shard that can answer queries about it
+        // Need to make this relationship explicit to Legion Spy
+        const ApEvent previous = lhs;
+        Runtime::rename_event(lhs);
+        LegionSpy::log_event_dependence(previous, lhs);
+      }
       else
       {
         for (unsigned idx = 0; idx < rhs.size(); idx++)
