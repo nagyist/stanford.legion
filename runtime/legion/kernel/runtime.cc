@@ -257,6 +257,45 @@ namespace Legion {
           true /*check context*/, true /*preregistered*/);
     }
 
+    //--------------------------------------------------------------------------
+    PendingRegistrationCallback::PendingRegistrationCallback(
+        RegistrationCallback call, bool dedup, size_t tag)
+      : withoutargs(call), dedup_tag(tag), deduplicate(dedup), has_args(false)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    PendingRegistrationCallback::PendingRegistrationCallback(
+        RegistrationWithArgsCallback call, const UntypedBuffer& buf, bool dedup,
+        size_t tag)
+      : withargs(call), buffer(buf), dedup_tag(tag), deduplicate(dedup),
+        has_args(true)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    PendingRegistrationCallback::PendingRegistrationCallback(
+        PendingRegistrationCallback&& rhs)
+      : withargs(nullptr), dedup_tag(rhs.dedup_tag),
+        deduplicate(rhs.deduplicate), has_args(rhs.has_args)
+    //--------------------------------------------------------------------------
+    {
+      if (has_args)
+        withargs = std::move(rhs.withargs);
+      else
+        withoutargs = std::move(rhs.withoutargs);
+    }
+
+    //--------------------------------------------------------------------------
+    PendingRegistrationCallback::~PendingRegistrationCallback(void)
+    //--------------------------------------------------------------------------
+    {
+      if (has_args)
+        withargs.~RegistrationWithArgsCallback();
+      else
+        withoutargs.~RegistrationCallback();
+    }
+
     /////////////////////////////////////////////////////////////
     // Legion Runtime
     /////////////////////////////////////////////////////////////
@@ -16198,7 +16237,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ std::vector<Runtime::PendingRegistrationCallback>&
+    /*static*/ std::vector<PendingRegistrationCallback>&
         Runtime::get_pending_registration_callbacks(void)
     //--------------------------------------------------------------------------
     {

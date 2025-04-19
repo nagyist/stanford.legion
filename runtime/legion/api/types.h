@@ -18,6 +18,7 @@
 
 #include <limits>
 #include <optional>
+#include <functional>
 
 #include "realm.h"
 #include "realm/id.h"

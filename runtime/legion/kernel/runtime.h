@@ -98,6 +98,32 @@ namespace Legion {
       char* logical_task_name;  // optional semantic info to attach to the task
     };
 
+    struct PendingRegistrationCallback {
+    public:
+      PendingRegistrationCallback(
+          RegistrationCallback call, bool dedup, size_t tag);
+      PendingRegistrationCallback(
+          RegistrationWithArgsCallback call, const UntypedBuffer& buf,
+          bool dedup, size_t tag);
+      PendingRegistrationCallback(const PendingRegistrationCallback&) = delete;
+      PendingRegistrationCallback(PendingRegistrationCallback&& rhs);
+      ~PendingRegistrationCallback(void);
+    public:
+      PendingRegistrationCallback& operator=(
+          const PendingRegistrationCallback&) = delete;
+      PendingRegistrationCallback& operator=(PendingRegistrationCallback&&) =
+          delete;
+    public:
+      union {
+        RegistrationCallback withoutargs;
+        RegistrationWithArgsCallback withargs;
+      };
+      UntypedBuffer buffer;
+      size_t dedup_tag;
+      bool deduplicate;
+      bool has_args;
+    };
+
     /**
      * \class Runtime
      * This is the actual implementation of the Legion runtime functionality
@@ -345,39 +371,6 @@ namespace Legion {
           size_t buffer_size, bool withargs, bool deduplicate,
           size_t dedup_tag);
 #endif
-      struct PendingRegistrationCallback {
-      public:
-        PendingRegistrationCallback(
-            RegistrationCallback call, bool dedup, size_t tag)
-          : withoutargs(call), dedup_tag(tag), deduplicate(dedup),
-            has_args(false)
-        { }
-        PendingRegistrationCallback(
-            RegistrationWithArgsCallback call, const UntypedBuffer& buf,
-            bool dedup, size_t tag)
-          : withargs(call), buffer(buf), dedup_tag(tag), deduplicate(dedup),
-            has_args(true)
-        { }
-        PendingRegistrationCallback(const PendingRegistrationCallback& rhs)
-          : buffer(rhs.buffer), dedup_tag(rhs.dedup_tag),
-            deduplicate(rhs.deduplicate), has_args(rhs.has_args)
-        {
-          if (has_args)
-            withargs = rhs.withargs;
-          else
-            withoutargs = rhs.withoutargs;
-        }
-        ~PendingRegistrationCallback(void) { }
-      public:
-        union {
-          RegistrationCallback withoutargs;
-          RegistrationWithArgsCallback withargs;
-        };
-        UntypedBuffer buffer;
-        size_t dedup_tag;
-        bool deduplicate;
-        bool has_args;
-      };
       RtEvent perform_registration_callback(
           const PendingRegistrationCallback& callback, bool global,
           bool preregistered);
