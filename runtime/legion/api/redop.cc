@@ -32,24 +32,6 @@ namespace Legion {
   /*static*/ const __half MinReduction<__half>::identity = __half(2e10);
 #endif
 
-  /*static*/ const float SumReduction<float>::identity = 0.f;
-  /*static*/ const float DiffReduction<float>::identity = 0.f;
-  /*static*/ const float ProdReduction<float>::identity = 1.f;
-  /*static*/ const float DivReduction<float>::identity = 1.f;
-  /*static*/ const float MaxReduction<float>::identity =
-      std::numeric_limits<float>::min();
-  /*static*/ const float MinReduction<float>::identity =
-      std::numeric_limits<float>::max();
-
-  /*static*/ const double SumReduction<double>::identity = 0.0;
-  /*static*/ const double DiffReduction<double>::identity = 0.0;
-  /*static*/ const double ProdReduction<double>::identity = 1.0;
-  /*static*/ const double DivReduction<double>::identity = 1.0;
-  /*static*/ const double MaxReduction<double>::identity =
-      std::numeric_limits<double>::min();
-  /*static*/ const double MinReduction<double>::identity =
-      std::numeric_limits<double>::max();
-
 #ifdef LEGION_REDOP_COMPLEX
 #ifdef LEGION_REDOP_HALF
   /*static*/ const complex<__half> SumReduction<complex<__half> >::identity =
@@ -71,7 +53,7 @@ namespace Legion {
       complex<float>(1.f, 0.f);
 
   /*static*/ const complex<double> SumReduction<complex<double> >::identity =
-      complex<double>(0.f, 0.f);
+      complex<double>(0.0, 0.0);
 #endif
 
 #define REGISTER_BUILTIN_REDOP(id, type)                                   \

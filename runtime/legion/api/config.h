@@ -20,7 +20,7 @@
 #include "legion_defines.h"
 
 #ifndef LEGION_USE_PYTHON_CFFI
-#include <limits.h>
+#include <limits>
 #endif  // LEGION_USE_PYTHON_CFFI
 
 // Define a prefix for annotating functions for CUDA compilation

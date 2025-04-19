@@ -46,7 +46,7 @@ namespace Legion {
     typedef bool LHS;
     typedef bool RHS;
 
-    static const bool identity = false;
+    static constexpr bool identity = false;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_BOOL;
 
     template<bool EXCLUSIVE>
@@ -61,7 +61,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = 0;
+    static constexpr int8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_INT8;
 
     template<bool EXCLUSIVE>
@@ -76,7 +76,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = 0;
+    static constexpr int16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_INT16;
 
     template<bool EXCLUSIVE>
@@ -91,7 +91,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = 0;
+    static constexpr int32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_INT32;
 
     template<bool EXCLUSIVE>
@@ -106,7 +106,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = 0;
+    static constexpr int64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_INT64;
 
     template<bool EXCLUSIVE>
@@ -121,7 +121,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = 0;
+    static constexpr uint8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_UINT8;
 
     template<bool EXCLUSIVE>
@@ -136,7 +136,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = 0;
+    static constexpr uint16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_UINT16;
 
     template<bool EXCLUSIVE>
@@ -151,7 +151,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = 0;
+    static constexpr uint32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_UINT32;
 
     template<bool EXCLUSIVE>
@@ -166,7 +166,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = 0;
+    static constexpr uint64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_UINT64;
 
     template<bool EXCLUSIVE>
@@ -198,7 +198,7 @@ namespace Legion {
     typedef float LHS;
     typedef float RHS;
 
-    static const float identity;
+    static constexpr float identity = 0.f;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_FLOAT32;
 
     template<bool EXCLUSIVE>
@@ -213,7 +213,7 @@ namespace Legion {
     typedef double LHS;
     typedef double RHS;
 
-    static const double identity;
+    static constexpr double identity = 0.0;
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_FLOAT64;
 
     template<bool EXCLUSIVE>
@@ -287,7 +287,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = 0;
+    static constexpr int8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_INT8;
 
     template<bool EXCLUSIVE>
@@ -302,7 +302,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = 0;
+    static constexpr int16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_INT16;
 
     template<bool EXCLUSIVE>
@@ -317,7 +317,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = 0;
+    static constexpr int32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_INT32;
 
     template<bool EXCLUSIVE>
@@ -332,7 +332,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = 0;
+    static constexpr int64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_INT64;
 
     template<bool EXCLUSIVE>
@@ -347,7 +347,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = 0;
+    static constexpr uint8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_UINT8;
 
     template<bool EXCLUSIVE>
@@ -362,7 +362,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = 0;
+    static constexpr uint16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_UINT16;
 
     template<bool EXCLUSIVE>
@@ -377,7 +377,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = 0;
+    static constexpr uint32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_UINT32;
 
     template<bool EXCLUSIVE>
@@ -392,7 +392,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = 0;
+    static constexpr uint64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_UINT64;
 
     template<bool EXCLUSIVE>
@@ -424,7 +424,7 @@ namespace Legion {
     typedef float LHS;
     typedef float RHS;
 
-    static const float identity;
+    static constexpr float identity = 0.f;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_FLOAT32;
 
     template<bool EXCLUSIVE>
@@ -439,7 +439,7 @@ namespace Legion {
     typedef double LHS;
     typedef double RHS;
 
-    static const double identity;
+    static constexpr double identity = 0.0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_FLOAT64;
 
     template<bool EXCLUSIVE>
@@ -494,7 +494,7 @@ namespace Legion {
     typedef bool LHS;
     typedef bool RHS;
 
-    static const bool identity = true;
+    static constexpr bool identity = true;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_BOOL;
 
     template<bool EXCLUSIVE>
@@ -509,7 +509,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = 1;
+    static constexpr int8_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_INT8;
 
     template<bool EXCLUSIVE>
@@ -524,7 +524,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = 1;
+    static constexpr int16_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_INT16;
 
     template<bool EXCLUSIVE>
@@ -539,7 +539,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = 1;
+    static constexpr int32_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_INT32;
 
     template<bool EXCLUSIVE>
@@ -554,7 +554,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = 1;
+    static constexpr int64_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_INT64;
 
     template<bool EXCLUSIVE>
@@ -569,7 +569,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = 1;
+    static constexpr uint8_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_UINT8;
 
     template<bool EXCLUSIVE>
@@ -584,7 +584,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = 1;
+    static constexpr uint16_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_UINT16;
 
     template<bool EXCLUSIVE>
@@ -599,7 +599,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = 1;
+    static constexpr uint32_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_UINT32;
 
     template<bool EXCLUSIVE>
@@ -614,7 +614,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = 1;
+    static constexpr uint64_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_UINT64;
 
     template<bool EXCLUSIVE>
@@ -646,7 +646,7 @@ namespace Legion {
     typedef float LHS;
     typedef float RHS;
 
-    static const float identity;
+    static constexpr float identity = 1.f;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_FLOAT32;
 
     template<bool EXCLUSIVE>
@@ -661,7 +661,7 @@ namespace Legion {
     typedef double LHS;
     typedef double RHS;
 
-    static const double identity;
+    static constexpr double identity = 1.0;
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_FLOAT64;
 
     template<bool EXCLUSIVE>
@@ -716,7 +716,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = 1;
+    static constexpr int8_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_INT8;
 
     template<bool EXCLUSIVE>
@@ -731,7 +731,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = 1;
+    static constexpr int16_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_INT16;
 
     template<bool EXCLUSIVE>
@@ -746,7 +746,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = 1;
+    static constexpr int32_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_INT32;
 
     template<bool EXCLUSIVE>
@@ -761,7 +761,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = 1;
+    static constexpr int64_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_INT64;
 
     template<bool EXCLUSIVE>
@@ -776,7 +776,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = 1;
+    static constexpr uint8_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_UINT8;
 
     template<bool EXCLUSIVE>
@@ -791,7 +791,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = 1;
+    static constexpr uint16_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_UINT16;
 
     template<bool EXCLUSIVE>
@@ -806,7 +806,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = 1;
+    static constexpr uint32_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_UINT32;
 
     template<bool EXCLUSIVE>
@@ -821,7 +821,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = 1;
+    static constexpr uint64_t identity = 1;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_UINT64;
 
     template<bool EXCLUSIVE>
@@ -853,7 +853,7 @@ namespace Legion {
     typedef float LHS;
     typedef float RHS;
 
-    static const float identity;
+    static constexpr float identity = 1.f;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_FLOAT32;
 
     template<bool EXCLUSIVE>
@@ -868,7 +868,7 @@ namespace Legion {
     typedef double LHS;
     typedef double RHS;
 
-    static const double identity;
+    static constexpr double identity = 1.0;
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_FLOAT64;
 
     template<bool EXCLUSIVE>
@@ -923,7 +923,7 @@ namespace Legion {
     typedef bool LHS;
     typedef bool RHS;
 
-    static const bool identity = false;
+    static constexpr bool identity = false;
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_BOOL;
 
     template<bool EXCLUSIVE>
@@ -938,7 +938,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = std::numeric_limits<int8_t>::min();
+    static constexpr int8_t identity = std::numeric_limits<int8_t>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_INT8;
 
     template<bool EXCLUSIVE>
@@ -953,7 +953,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = std::numeric_limits<int16_t>::min();
+    static constexpr int16_t identity = std::numeric_limits<int16_t>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_INT16;
 
     template<bool EXCLUSIVE>
@@ -968,7 +968,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = std::numeric_limits<int32_t>::min();
+    static constexpr int32_t identity = std::numeric_limits<int32_t>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_INT32;
 
     template<bool EXCLUSIVE>
@@ -983,7 +983,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = std::numeric_limits<int64_t>::min();
+    static constexpr int64_t identity = std::numeric_limits<int64_t>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_INT64;
 
     template<bool EXCLUSIVE>
@@ -998,7 +998,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = 0;
+    static constexpr uint8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_UINT8;
 
     template<bool EXCLUSIVE>
@@ -1013,7 +1013,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = 0;
+    static constexpr uint16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_UINT16;
 
     template<bool EXCLUSIVE>
@@ -1028,7 +1028,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = 0;
+    static constexpr uint32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_UINT32;
 
     template<bool EXCLUSIVE>
@@ -1043,7 +1043,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = 0;
+    static constexpr uint64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_UINT64;
 
     template<bool EXCLUSIVE>
@@ -1075,7 +1075,7 @@ namespace Legion {
     typedef float LHS;
     typedef float RHS;
 
-    static const float identity;
+    static constexpr float identity = std::numeric_limits<float>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_FLOAT32;
 
     template<bool EXCLUSIVE>
@@ -1090,7 +1090,7 @@ namespace Legion {
     typedef double LHS;
     typedef double RHS;
 
-    static const double identity;
+    static constexpr double identity = std::numeric_limits<double>::min();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_FLOAT64;
 
     template<bool EXCLUSIVE>
@@ -1111,7 +1111,7 @@ namespace Legion {
     typedef bool LHS;
     typedef bool RHS;
 
-    static const bool identity = true;
+    static constexpr bool identity = true;
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_BOOL;
 
     template<bool EXCLUSIVE>
@@ -1126,7 +1126,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = std::numeric_limits<int8_t>::max();
+    static constexpr int8_t identity = std::numeric_limits<int8_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_INT8;
 
     template<bool EXCLUSIVE>
@@ -1141,7 +1141,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = std::numeric_limits<int16_t>::max();
+    static constexpr int16_t identity = std::numeric_limits<int16_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_INT16;
 
     template<bool EXCLUSIVE>
@@ -1156,7 +1156,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = std::numeric_limits<int32_t>::max();
+    static constexpr int32_t identity = std::numeric_limits<int32_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_INT32;
 
     template<bool EXCLUSIVE>
@@ -1171,7 +1171,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = std::numeric_limits<int64_t>::max();
+    static constexpr int64_t identity = std::numeric_limits<int64_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_INT64;
 
     template<bool EXCLUSIVE>
@@ -1186,7 +1186,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = std::numeric_limits<uint8_t>::max();
+    static constexpr uint8_t identity = std::numeric_limits<uint8_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_UINT8;
 
     template<bool EXCLUSIVE>
@@ -1201,7 +1201,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = std::numeric_limits<uint16_t>::max();
+    static constexpr uint16_t identity = std::numeric_limits<uint16_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_UINT16;
 
     template<bool EXCLUSIVE>
@@ -1216,7 +1216,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = std::numeric_limits<uint32_t>::max();
+    static constexpr uint32_t identity = std::numeric_limits<uint32_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_UINT32;
 
     template<bool EXCLUSIVE>
@@ -1231,7 +1231,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = std::numeric_limits<uint64_t>::max();
+    static constexpr uint64_t identity = std::numeric_limits<uint64_t>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_UINT64;
 
     template<bool EXCLUSIVE>
@@ -1263,7 +1263,7 @@ namespace Legion {
     typedef float LHS;
     typedef float RHS;
 
-    static const float identity;
+    static constexpr float identity = std::numeric_limits<float>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_FLOAT32;
 
     template<bool EXCLUSIVE>
@@ -1278,7 +1278,7 @@ namespace Legion {
     typedef double LHS;
     typedef double RHS;
 
-    static const double identity;
+    static constexpr double identity = std::numeric_limits<double>::max();
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_FLOAT64;
 
     template<bool EXCLUSIVE>
@@ -1299,7 +1299,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = 0;
+    static constexpr int8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_INT8;
 
     template<bool EXCLUSIVE>
@@ -1314,7 +1314,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = 0;
+    static constexpr int16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_INT16;
 
     template<bool EXCLUSIVE>
@@ -1329,7 +1329,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = 0;
+    static constexpr int32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_INT32;
 
     template<bool EXCLUSIVE>
@@ -1344,7 +1344,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = 0;
+    static constexpr int64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_INT64;
 
     template<bool EXCLUSIVE>
@@ -1359,7 +1359,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = 0;
+    static constexpr uint8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_UINT8;
 
     template<bool EXCLUSIVE>
@@ -1374,7 +1374,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = 0;
+    static constexpr uint16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_UINT16;
 
     template<bool EXCLUSIVE>
@@ -1389,7 +1389,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = 0;
+    static constexpr uint32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_UINT32;
 
     template<bool EXCLUSIVE>
@@ -1404,7 +1404,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = 0;
+    static constexpr uint64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_OR_UINT64;
 
     template<bool EXCLUSIVE>
@@ -1425,7 +1425,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = (int8_t)0xFF;
+    static constexpr int8_t identity = (int8_t)0xFF;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_INT8;
 
     template<bool EXCLUSIVE>
@@ -1440,7 +1440,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = (int16_t)0xFFFF;
+    static constexpr int16_t identity = (int16_t)0xFFFF;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_INT16;
 
     template<bool EXCLUSIVE>
@@ -1455,7 +1455,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = 0xFFFF;
+    static constexpr int32_t identity = 0xFFFF;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_INT32;
 
     template<bool EXCLUSIVE>
@@ -1470,7 +1470,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = 0xFFFFFFFFL;
+    static constexpr int64_t identity = 0xFFFFFFFFL;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_INT64;
 
     template<bool EXCLUSIVE>
@@ -1485,7 +1485,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = 0xFFU;
+    static constexpr uint8_t identity = 0xFFU;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_UINT8;
 
     template<bool EXCLUSIVE>
@@ -1500,7 +1500,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = 0xFFFFU;
+    static constexpr uint16_t identity = 0xFFFFU;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_UINT16;
 
     template<bool EXCLUSIVE>
@@ -1515,7 +1515,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = 0xFFFFFFFFU;
+    static constexpr uint32_t identity = 0xFFFFFFFFU;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_UINT32;
 
     template<bool EXCLUSIVE>
@@ -1530,7 +1530,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = 0xFFFFFFFFUL;
+    static constexpr uint64_t identity = 0xFFFFFFFFUL;
     static constexpr int REDOP_ID = LEGION_REDOP_AND_UINT64;
 
     template<bool EXCLUSIVE>
@@ -1551,7 +1551,7 @@ namespace Legion {
     typedef bool LHS;
     typedef bool RHS;
 
-    static const bool identity = false;
+    static constexpr bool identity = false;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_BOOL;
 
     template<bool EXCLUSIVE>
@@ -1566,7 +1566,7 @@ namespace Legion {
     typedef int8_t LHS;
     typedef int8_t RHS;
 
-    static const int8_t identity = 0;
+    static constexpr int8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_INT8;
 
     template<bool EXCLUSIVE>
@@ -1581,7 +1581,7 @@ namespace Legion {
     typedef int16_t LHS;
     typedef int16_t RHS;
 
-    static const int16_t identity = 0;
+    static constexpr int16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_INT16;
 
     template<bool EXCLUSIVE>
@@ -1596,7 +1596,7 @@ namespace Legion {
     typedef int32_t LHS;
     typedef int32_t RHS;
 
-    static const int32_t identity = 0;
+    static constexpr int32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_INT32;
 
     template<bool EXCLUSIVE>
@@ -1611,7 +1611,7 @@ namespace Legion {
     typedef int64_t LHS;
     typedef int64_t RHS;
 
-    static const int64_t identity = 0;
+    static constexpr int64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_INT64;
 
     template<bool EXCLUSIVE>
@@ -1626,7 +1626,7 @@ namespace Legion {
     typedef uint8_t LHS;
     typedef uint8_t RHS;
 
-    static const uint8_t identity = 0;
+    static constexpr uint8_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_UINT8;
 
     template<bool EXCLUSIVE>
@@ -1641,7 +1641,7 @@ namespace Legion {
     typedef uint16_t LHS;
     typedef uint16_t RHS;
 
-    static const uint16_t identity = 0;
+    static constexpr uint16_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_UINT16;
 
     template<bool EXCLUSIVE>
@@ -1656,7 +1656,7 @@ namespace Legion {
     typedef uint32_t LHS;
     typedef uint32_t RHS;
 
-    static const uint32_t identity = 0;
+    static constexpr uint32_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_UINT32;
 
     template<bool EXCLUSIVE>
@@ -1671,7 +1671,7 @@ namespace Legion {
     typedef uint64_t LHS;
     typedef uint64_t RHS;
 
-    static const uint64_t identity = 0;
+    static constexpr uint64_t identity = 0;
     static constexpr int REDOP_ID = LEGION_REDOP_XOR_UINT64;
 
     template<bool EXCLUSIVE>
