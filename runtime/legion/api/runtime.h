@@ -2243,11 +2243,11 @@ namespace Legion {
      *                   information for this operation
      * @return a new future map with the coordinate space transformed
      */
-    typedef DomainPoint (*PointTransformFnptr)(
-        const DomainPoint& point, const Domain& domain, const Domain& range);
+    using PointTransformFunc = std::function<DomainPoint(
+        const DomainPoint&, const Domain&, const Domain&)>;
     FutureMap transform_future_map(
         Context ctx, const FutureMap& fm, IndexSpace new_domain,
-        PointTransformFnptr fnptr, const char* provenance = nullptr);
+        PointTransformFunc func, const char* provenance = nullptr);
     /**
      * Apply a transform to a FutureMap. All points that access the
      * FutureMap will be transformed by the 'transform' function before

@@ -357,10 +357,6 @@ namespace Legion {
           bool implicit = false) = 0;
       virtual FutureMap transform_future_map(
           const FutureMap& fm, IndexSpace new_domain,
-          TransformFutureMapImpl::PointTransformFnptr fnptr,
-          Provenance* provenance) = 0;
-      virtual FutureMap transform_future_map(
-          const FutureMap& fm, IndexSpace new_domain,
           PointTransformFunctor* functor, bool own_functor,
           Provenance* provenance) = 0;
       virtual PhysicalRegion map_region(

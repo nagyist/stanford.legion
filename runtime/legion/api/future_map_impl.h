@@ -112,11 +112,6 @@ namespace Legion {
      */
     class TransformFutureMapImpl : public FutureMapImpl {
     public:
-      typedef DomainPoint (*PointTransformFnptr)(
-          const DomainPoint& point, const Domain& domain, const Domain& range);
-      TransformFutureMapImpl(
-          FutureMapImpl* previous, IndexSpaceNode* domain,
-          PointTransformFnptr fnptr, Provenance* provenance);
       TransformFutureMapImpl(
           FutureMapImpl* previous, IndexSpaceNode* domain,
           PointTransformFunctor* functor, bool own_functor,
@@ -143,13 +138,8 @@ namespace Legion {
           RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
     public:
       FutureMapImpl* const previous;
+      PointTransformFunctor* const functor;
       const bool own_functor;
-      const bool is_functor;
-    protected:
-      union {
-        PointTransformFnptr fnptr;
-        PointTransformFunctor* functor;
-      } transform;
     };
 
     /**

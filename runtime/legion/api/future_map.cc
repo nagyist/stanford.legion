@@ -678,32 +678,16 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     TransformFutureMapImpl::TransformFutureMapImpl(
-        FutureMapImpl* prev, IndexSpaceNode* domain, PointTransformFnptr fnptr,
-        Provenance* prov)
-      : FutureMapImpl(
-            prev->context, prev->op, prev->blocking_index, prev->op_gen,
-            prev->op_depth, prev->op_uid, domain,
-            runtime->get_available_distributed_id(), prov, prev->context_index),
-        previous(prev), own_functor(false), is_functor(false)
-    //--------------------------------------------------------------------------
-    {
-      prev->add_nested_gc_ref(did);
-      transform.fnptr = fnptr;
-    }
-
-    //--------------------------------------------------------------------------
-    TransformFutureMapImpl::TransformFutureMapImpl(
         FutureMapImpl* prev, IndexSpaceNode* domain,
-        PointTransformFunctor* functor, bool own_func, Provenance* prov)
+        PointTransformFunctor* func, bool own_func, Provenance* prov)
       : FutureMapImpl(
             prev->context, prev->op, prev->blocking_index, prev->op_gen,
             prev->op_depth, prev->op_uid, domain,
             runtime->get_available_distributed_id(), prov, prev->context_index),
-        previous(prev), own_functor(own_func), is_functor(true)
+        previous(prev), functor(func), own_functor(own_func)
     //--------------------------------------------------------------------------
     {
       prev->add_nested_gc_ref(did);
-      transform.functor = functor;
     }
 
     //--------------------------------------------------------------------------
@@ -713,7 +697,7 @@ namespace Legion {
       if (previous->remove_nested_gc_ref(did))
         delete previous;
       if (own_functor)
-        delete transform.functor;
+        delete functor;
     }
 
     //--------------------------------------------------------------------------
@@ -731,20 +715,10 @@ namespace Legion {
       legion_assert(future_map_domain->contains_point(point));
       Domain domain = future_map_domain->get_tight_domain();
       Domain range = previous->future_map_domain->get_tight_domain();
-      if (is_functor)
-      {
-        const DomainPoint transformed =
-            transform.functor->transform_point(point, domain, range);
-        legion_assert(previous->future_map_domain->contains_point(transformed));
-        return previous->get_future(transformed, internal_only, wait_on);
-      }
-      else
-      {
-        const DomainPoint transformed =
-            (*transform.fnptr)(point, domain, range);
-        legion_assert(previous->future_map_domain->contains_point(transformed));
-        return previous->get_future(transformed, internal_only, wait_on);
-      }
+      const DomainPoint transformed =
+          functor->transform_point(point, domain, range);
+      legion_assert(previous->future_map_domain->contains_point(transformed));
+      return previous->get_future(transformed, internal_only, wait_on);
     }
 
     //--------------------------------------------------------------------------
@@ -756,33 +730,15 @@ namespace Legion {
       previous->get_all_futures(previous_futures);
       Domain domain = future_map_domain->get_tight_domain();
       Domain range = previous->future_map_domain->get_tight_domain();
-      if (is_functor)
+      for (Domain::DomainPointIterator itr(domain); itr; itr++)
       {
-        for (Domain::DomainPointIterator itr(domain); itr; itr++)
-        {
-          const DomainPoint transformed =
-              transform.functor->transform_point(itr.p, domain, range);
-          legion_assert(
-              previous->future_map_domain->contains_point(transformed));
-          std::map<DomainPoint, FutureImpl*>::const_iterator finder =
-              previous_futures.find(transformed);
-          legion_assert(finder != previous_futures.end());
-          futures[itr.p] = finder->second;
-        }
-      }
-      else
-      {
-        for (Domain::DomainPointIterator itr(domain); itr; itr++)
-        {
-          const DomainPoint transformed =
-              (*transform.fnptr)(itr.p, domain, range);
-          legion_assert(
-              previous->future_map_domain->contains_point(transformed));
-          std::map<DomainPoint, FutureImpl*>::const_iterator finder =
-              previous_futures.find(transformed);
-          legion_assert(finder != previous_futures.end());
-          futures[itr.p] = finder->second;
-        }
+        const DomainPoint transformed =
+            functor->transform_point(itr.p, domain, range);
+        legion_assert(previous->future_map_domain->contains_point(transformed));
+        std::map<DomainPoint, FutureImpl*>::const_iterator finder =
+            previous_futures.find(transformed);
+        legion_assert(finder != previous_futures.end());
+        futures[itr.p] = finder->second;
       }
     }
 
@@ -802,20 +758,10 @@ namespace Legion {
       legion_assert(future_map_domain->contains_point(point));
       Domain domain = future_map_domain->get_tight_domain();
       Domain range = previous->future_map_domain->get_tight_domain();
-      if (is_functor)
-      {
-        const DomainPoint transformed =
-            transform.functor->transform_point(point, domain, range);
-        legion_assert(previous->future_map_domain->contains_point(transformed));
-        return previous->find_local_future(transformed);
-      }
-      else
-      {
-        const DomainPoint transformed =
-            (*transform.fnptr)(point, domain, range);
-        legion_assert(previous->future_map_domain->contains_point(transformed));
-        return previous->find_local_future(transformed);
-      }
+      const DomainPoint transformed =
+          functor->transform_point(point, domain, range);
+      legion_assert(previous->future_map_domain->contains_point(transformed));
+      return previous->find_local_future(transformed);
     }
 
     //--------------------------------------------------------------------------
@@ -827,45 +773,26 @@ namespace Legion {
       previous->get_shard_local_futures(shard, previous_futures);
       Domain domain = future_map_domain->get_tight_domain();
       Domain range = previous->future_map_domain->get_tight_domain();
-      if (is_functor)
+      if (functor->is_invertible())
       {
-        if (transform.functor->is_invertible())
+        for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
+                 previous_futures.begin();
+             it != previous_futures.end(); it++)
         {
-          for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-                   previous_futures.begin();
-               it != previous_futures.end(); it++)
-          {
-            const DomainPoint inverted =
-                transform.functor->invert_point(it->first, domain, range);
-            legion_assert(future_map_domain->contains_point(inverted));
-            futures[inverted] = it->second;
-          }
-        }
-        else
-        {
-          // Not invertible so do it the hard way by enumerating all
-          // the points and seeing which ones we find
-          for (Domain::DomainPointIterator itr(domain); itr; itr++)
-          {
-            const DomainPoint transformed =
-                transform.functor->transform_point(itr.p, domain, range);
-            legion_assert(
-                previous->future_map_domain->contains_point(transformed));
-            std::map<DomainPoint, FutureImpl*>::const_iterator finder =
-                previous_futures.find(transformed);
-            if (finder != previous_futures.end())
-              futures[itr.p] = finder->second;
-          }
+          const DomainPoint inverted =
+              functor->invert_point(it->first, domain, range);
+          legion_assert(future_map_domain->contains_point(inverted));
+          futures[inverted] = it->second;
         }
       }
       else
       {
-        // No easy way to invert a function pointer, so we iterate all
-        // the points and just take the ones that we find
+        // Not invertible so do it the hard way by enumerating all
+        // the points and seeing which ones we find
         for (Domain::DomainPointIterator itr(domain); itr; itr++)
         {
           const DomainPoint transformed =
-              (*transform.fnptr)(itr.p, domain, range);
+              functor->transform_point(itr.p, domain, range);
           legion_assert(
               previous->future_map_domain->contains_point(transformed));
           std::map<DomainPoint, FutureImpl*>::const_iterator finder =
@@ -884,22 +811,11 @@ namespace Legion {
       legion_assert(future_map_domain->contains_point(point));
       const Domain domain = future_map_domain->get_tight_domain();
       const Domain range = previous->future_map_domain->get_tight_domain();
-      if (is_functor)
-      {
-        const DomainPoint transformed =
-            transform.functor->transform_point(point, domain, range);
-        legion_assert(previous->future_map_domain->contains_point(transformed));
-        return previous->find_pointwise_dependence(
-            transformed, context_depth, to_trigger);
-      }
-      else
-      {
-        const DomainPoint transformed =
-            (*transform.fnptr)(point, domain, range);
-        legion_assert(previous->future_map_domain->contains_point(transformed));
-        return previous->find_pointwise_dependence(
-            transformed, context_depth, to_trigger);
-      }
+      const DomainPoint transformed =
+          functor->transform_point(point, domain, range);
+      legion_assert(previous->future_map_domain->contains_point(transformed));
+      return previous->find_pointwise_dependence(
+          transformed, context_depth, to_trigger);
     }
 
     /////////////////////////////////////////////////////////////

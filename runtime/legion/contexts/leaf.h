@@ -263,10 +263,6 @@ namespace Legion {
           bool collective = false, ShardingID sid = 0, bool implicit = false);
       virtual FutureMap transform_future_map(
           const FutureMap& fm, IndexSpace new_domain,
-          TransformFutureMapImpl::PointTransformFnptr fnptr,
-          Provenance* provenance);
-      virtual FutureMap transform_future_map(
-          const FutureMap& fm, IndexSpace new_domain,
           PointTransformFunctor* functor, bool own_functor,
           Provenance* provenance);
       virtual PhysicalRegion map_region(

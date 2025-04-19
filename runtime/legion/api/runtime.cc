@@ -2258,12 +2258,28 @@ namespace Legion {
   //--------------------------------------------------------------------------
   FutureMap Runtime::transform_future_map(
       Context ctx, const FutureMap& fm, IndexSpace new_domain,
-      PointTransformFnptr fnptr, const char* prov)
+      PointTransformFunc func, const char* prov)
   //--------------------------------------------------------------------------
   {
     AutoCall<Internal::RUNTIME_TRANSFORM_FUTURE_MAP_CALL> call(
         prov, ctx, __func__);
-    return ctx->transform_future_map(fm, new_domain, fnptr, call);
+    class PointTransformWrapper : public PointTransformFunctor {
+    public:
+      PointTransformWrapper(PointTransformFunc f) : func(f) { }
+      virtual ~PointTransformWrapper(void) { }
+    public:
+      virtual bool is_invertible(void) const override { return false; }
+      virtual DomainPoint transform_point(
+          const DomainPoint& point, const Domain& domain,
+          const Domain& range) override
+      {
+        return func(point, domain, range);
+      }
+    public:
+      const PointTransformFunc func;
+    };
+    return ctx->transform_future_map(
+        fm, new_domain, new PointTransformWrapper(func), true /*own*/, call);
   }
 
   //--------------------------------------------------------------------------

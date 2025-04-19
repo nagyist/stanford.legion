@@ -5721,20 +5721,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureMap InnerContext::transform_future_map(
         const FutureMap& fm, IndexSpace new_domain,
-        TransformFutureMapImpl::PointTransformFnptr fnptr,
-        Provenance* provenance)
-    //--------------------------------------------------------------------------
-    {
-      if (fm.impl == nullptr)
-        return fm;
-      IndexSpaceNode* new_node = runtime->get_node(new_domain);
-      return FutureMap(
-          new TransformFutureMapImpl(fm.impl, new_node, fnptr, provenance));
-    }
-
-    //--------------------------------------------------------------------------
-    FutureMap InnerContext::transform_future_map(
-        const FutureMap& fm, IndexSpace new_domain,
         PointTransformFunctor* functor, bool own_func, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
