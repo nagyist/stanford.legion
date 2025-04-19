@@ -20,7 +20,7 @@
 #include "legion_defines.h"
 
 #ifndef LEGION_USE_PYTHON_CFFI
-#include <limits>
+#include <limits.h>
 #endif  // LEGION_USE_PYTHON_CFFI
 
 // Define a prefix for annotating functions for CUDA compilation
@@ -48,7 +48,7 @@
 //==========================================================================
 
 #ifndef LEGION_AUTO_GENERATE_ID
-#define LEGION_AUTO_GENERATE_ID std::numeric_limits<unsigned>::max()
+#define LEGION_AUTO_GENERATE_ID UINT_MAX
 #else
 #error \
     "legion.h requires the ability to define the macro 'LEGION_AUTO_GENERATE_ID' but it has already been defined"
@@ -62,7 +62,7 @@
 #endif
 
 #ifndef LEGION_GC_MIN_PRIORITY
-#define LEGION_GC_MIN_PRIORITY std::numeric_limits<int>::min()
+#define LEGION_GC_MIN_PRIORITY INT_MIN
 #else
 #error \
     "legion.h requires the ability to define the macro 'LEGION_GC_MIN_PRIORITY' but it has already been defined"
@@ -76,7 +76,7 @@
 #endif
 
 #ifndef LEGION_GC_MAX_PRIORITY
-#define LEGION_GC_MAX_PRIORITY (std::numeric_limits<int>::max() - 1)
+#define LEGION_GC_MAX_PRIORITY (INT_MAX - 1)
 #else
 #error \
     "legion.h requires the ability to define the macro 'LEGION_GC_MAX_PRIORITY' but it has already been defined"
@@ -97,7 +97,7 @@
 #endif
 
 #ifndef LEGION_GC_EAGER_PRIORITY
-#define LEGION_GC_EAGER_PRIORITY std::numeric_limits<int>::max()
+#define LEGION_GC_EAGER_PRIORITY INT_MAX
 #else
 #error \
     "legion.h requires the ability to define the macro 'LEGION_GC_EAGER_PRIORITY' but it has already been defined"

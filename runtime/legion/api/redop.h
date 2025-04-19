@@ -18,6 +18,7 @@
 
 #include <atomic>
 #include <cstring>
+#include <limits>
 
 #include "legion/api/config.h"
 
