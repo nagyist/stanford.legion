@@ -331,12 +331,13 @@ namespace Legion {
       SerdezOpTable;
   typedef std::map<Realm::ReductionOpID, Realm::ReductionOpUntyped*>
       ReductionOpTable;
-  // using SerdezInitFnptr = std::function<void(const
-  // ReductionOp*,void*&,size_t&)>; using SerdezFoldFnptr =
-  // std::function<void(const ReductionOp*,void*&,size_t&,const void*)>;
   typedef void (*SerdezInitFnptr)(const ReductionOp*, void*&, size_t&);
   typedef void (*SerdezFoldFnptr)(
       const ReductionOp*, void*&, size_t&, const void*);
+  using SerdezInitFunc =
+      std::function<void(const ReductionOp*, void*&, size_t&)>;
+  using SerdezFoldFunc =
+      std::function<void(const ReductionOp*, void*&, size_t&, const void*)>;
   typedef std::map<Realm::ReductionOpID, SerdezRedopFns> SerdezRedopTable;
 
   typedef void (*RegistrationCallbackFnptr)(
@@ -351,10 +352,6 @@ namespace Legion {
       LogicalRegion parent, const DomainPoint&, Runtime* rt);
   typedef LogicalRegion (*PartitionProjectionFnptr)(
       LogicalPartition parent, const DomainPoint&, Runtime* rt);
-  typedef bool (*PredicateFnptr)(
-      const void*, size_t, const std::vector<Future> futures);
-  typedef void (*RealmFnptr)(
-      const void*, size_t, const void*, size_t, Processor);
 
   // Forward declarations for the mapping namespace
   namespace Mapping {

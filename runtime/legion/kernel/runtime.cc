@@ -16032,20 +16032,19 @@ namespace Legion {
     //  legion_redop.cu cannot include runtime.h
     //--------------------------------------------------------------------------
     void runtime_register_reduction_op(
-        ReductionOpID redop_id, ReductionOp* redop, SerdezInitFnptr init_fnptr,
-        SerdezFoldFnptr fold_fnptr, bool permit_duplicates,
-        bool has_lock = false)
+        ReductionOpID redop_id, ReductionOp* redop, SerdezInitFunc init_func,
+        SerdezFoldFunc fold_func, bool permit_duplicates, bool has_lock = false)
     //--------------------------------------------------------------------------
     {
       Runtime::register_reduction_op(
-          redop_id, redop, init_fnptr, fold_fnptr, permit_duplicates, has_lock);
+          redop_id, redop, init_func, fold_func, permit_duplicates, has_lock);
     }
 #endif
 
     //--------------------------------------------------------------------------
     /*static*/ void Runtime::register_reduction_op(
-        ReductionOpID redop_id, ReductionOp* redop, SerdezInitFnptr init_fnptr,
-        SerdezFoldFnptr fold_fnptr, bool permit_duplicates,
+        ReductionOpID redop_id, ReductionOp* redop, SerdezInitFunc init_func,
+        SerdezFoldFunc fold_func, bool permit_duplicates,
         bool has_lock /*= false*/)
     //--------------------------------------------------------------------------
     {
@@ -16079,26 +16078,26 @@ namespace Legion {
               "%d has already been used in the reduction table",
               redop_id)
         red_table[redop_id] = redop;
-        if ((init_fnptr != nullptr) || (fold_fnptr != nullptr))
+        if ((init_func != nullptr) || (fold_func != nullptr))
         {
-          legion_assert((init_fnptr != nullptr) && (fold_fnptr != nullptr));
+          legion_assert((init_func != nullptr) && (fold_func != nullptr));
           SerdezRedopTable& serdez_red_table =
               Runtime::get_serdez_redop_table(true /*safe*/);
           SerdezRedopFns& fns = serdez_red_table[redop_id];
-          fns.init_fn = init_fnptr;
-          fns.fold_fn = fold_fnptr;
+          fns.init_fn = init_func;
+          fns.fold_fn = fold_func;
         }
       }
       else
         runtime->register_reduction(
-            redop_id, redop, init_fnptr, fold_fnptr, permit_duplicates,
+            redop_id, redop, init_func, fold_func, permit_duplicates,
             false /*preregistered*/);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::register_reduction(
-        ReductionOpID redop_id, ReductionOp* redop, SerdezInitFnptr init_fnptr,
-        SerdezFoldFnptr fold_fnptr, bool permit_duplicates, bool preregistered)
+        ReductionOpID redop_id, ReductionOp* redop, SerdezInitFunc init_func,
+        SerdezFoldFunc fold_func, bool permit_duplicates, bool preregistered)
     //--------------------------------------------------------------------------
     {
       if (!preregistered && !inside_registration_callback)
@@ -16115,7 +16114,7 @@ namespace Legion {
       realm.register_reduction(redop_id, redop);
       AutoLock r_lock(redop_lock);
       Runtime::register_reduction_op(
-          redop_id, redop, init_fnptr, fold_fnptr, permit_duplicates,
+          redop_id, redop, init_func, fold_func, permit_duplicates,
           true /*has locks*/);
     }
 

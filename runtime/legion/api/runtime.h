@@ -4149,8 +4149,8 @@ namespace Legion {
      */
     static void register_reduction_op(
         ReductionOpID redop_id, ReductionOp* op,
-        SerdezInitFnptr init_fnptr = nullptr,
-        SerdezFoldFnptr fold_fnptr = nullptr, bool permit_duplicates = false);
+        SerdezInitFunc init_fnptr = nullptr,
+        SerdezFoldFunc fold_fnptr = nullptr, bool permit_duplicates = false);
 
     /**
      * Return a pointer to a given reduction operation object.

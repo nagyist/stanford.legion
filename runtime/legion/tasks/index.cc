@@ -3553,7 +3553,7 @@ namespace Legion {
                   serdez_redop_state_size);
             }
             else
-              (*(serdez_redop_fns->fold_fn))(
+              serdez_redop_fns->fold_fn(
                   reduction_op, serdez_redop_state, serdez_redop_state_size,
                   it->second.first);
           }
@@ -3565,7 +3565,7 @@ namespace Legion {
                it != remote_buffers.end(); it++)
           {
             legion_assert(it->first != serdez_redop_collective->local_shard);
-            (*(serdez_redop_fns->fold_fn))(
+            serdez_redop_fns->fold_fn(
                 reduction_op, serdez_redop_state, serdez_redop_state_size,
                 it->second.first);
           }

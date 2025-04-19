@@ -149,7 +149,7 @@ namespace Legion {
         return;
       size_t src_size = 0;
       const void* source = impl->find_runtime_buffer(parent_ctx, src_size);
-      (*(serdez_redop_fns->fold_fn))(
+      serdez_redop_fns->fold_fn(
           redop, serdez_redop_buffer, future_result_size, source);
       LegionSpy::log_future_use(unique_op_id, impl->did);
     }
@@ -652,7 +652,7 @@ namespace Legion {
             memcpy(serdez_redop_buffer, it->second.first, future_result_size);
           }
           else
-            (*(serdez_redop_fns->fold_fn))(
+            serdez_redop_fns->fold_fn(
                 redop, serdez_redop_buffer, future_result_size,
                 it->second.first);
         }
@@ -664,7 +664,7 @@ namespace Legion {
              it != remote_buffers.end(); it++)
         {
           legion_assert(it->first != serdez_redop_collective->local_shard);
-          (*(serdez_redop_fns->fold_fn))(
+          serdez_redop_fns->fold_fn(
               redop, serdez_redop_buffer, future_result_size, it->second.first);
         }
       }

@@ -3772,12 +3772,12 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   /*static*/ void Runtime::register_reduction_op(
-      ReductionOpID redop_id, ReductionOp* redop, SerdezInitFnptr init_fnptr,
-      SerdezFoldFnptr fold_fnptr, bool permit_duplicates)
+      ReductionOpID redop_id, ReductionOp* redop, SerdezInitFunc init_func,
+      SerdezFoldFunc fold_func, bool permit_duplicates)
   //--------------------------------------------------------------------------
   {
     Internal::Runtime::register_reduction_op(
-        redop_id, redop, init_fnptr, fold_fnptr, permit_duplicates);
+        redop_id, redop, init_func, fold_func, permit_duplicates);
   }
 
   //--------------------------------------------------------------------------

@@ -26,8 +26,8 @@ namespace Legion {
    */
   struct SerdezRedopFns {
   public:
-    SerdezInitFnptr init_fn;
-    SerdezFoldFnptr fold_fn;
+    SerdezInitFunc init_fn;
+    SerdezFoldFunc fold_fn;
   };
 
   /**

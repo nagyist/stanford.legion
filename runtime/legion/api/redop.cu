@@ -77,8 +77,8 @@ namespace Legion {
     // This is defined in runtime.h, but we can't include that here due
     //  to nvcc's inability to handle some constructs
     extern void runtime_register_reduction_op(
-        ReductionOpID redop_id, ReductionOp* redop, SerdezInitFnptr init_fnptr,
-        SerdezFoldFnptr fold_fnptr, bool permit_duplicates,
+        ReductionOpID redop_id, ReductionOp* redop, SerdezInitFunc init_func,
+        SerdezFoldFunc fold_func, bool permit_duplicates,
         bool has_lock = false);
 
 #ifdef LEGION_USE_CUDA

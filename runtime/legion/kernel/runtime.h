@@ -777,9 +777,8 @@ namespace Legion {
       static ConcurrentColoringFunctor* get_concurrent_functor(ConcurrentID id);
     public:
       void register_reduction(
-          ReductionOpID redop_id, ReductionOp* redop,
-          SerdezInitFnptr init_fnptr, SerdezFoldFnptr fold_fnptr,
-          bool permit_duplicates, bool preregistered);
+          ReductionOpID redop_id, ReductionOp* redop, SerdezInitFunc init_func,
+          SerdezFoldFunc fold_func, bool permit_duplicates, bool preregistered);
       void register_serdez(
           CustomSerdezID serdez_id, SerdezOp* serdez_op, bool permit_duplicates,
           bool preregistered);
@@ -2439,9 +2438,9 @@ namespace Legion {
       static SerdezOpTable& get_serdez_table(bool safe);
       static SerdezRedopTable& get_serdez_redop_table(bool safe);
       static void register_reduction_op(
-          ReductionOpID redop_id, ReductionOp* redop,
-          SerdezInitFnptr init_fnptr, SerdezFoldFnptr fold_fnptr,
-          bool permit_duplicates, bool has_lock = false);
+          ReductionOpID redop_id, ReductionOp* redop, SerdezInitFunc init_func,
+          SerdezFoldFunc fold_func, bool permit_duplicates,
+          bool has_lock = false);
       static void register_serdez_op(
           CustomSerdezID serdez_id, SerdezOp* serdez_op, bool permit_duplicates,
           bool has_lock = false);

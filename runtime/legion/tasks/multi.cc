@@ -635,9 +635,9 @@ namespace Legion {
           AutoLock o_lock(op_lock);
           // See if we're the first one to get here
           if (serdez_redop_state == nullptr)
-            (*(serdez_redop_fns->init_fn))(
+            serdez_redop_fns->init_fn(
                 reduction_op, serdez_redop_state, serdez_redop_state_size);
-          (*(serdez_redop_fns->fold_fn))(
+          serdez_redop_fns->fold_fn(
               reduction_op, serdez_redop_state, serdez_redop_state_size,
               instance->get_data());
         }
