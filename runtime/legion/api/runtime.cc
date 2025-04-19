@@ -3806,7 +3806,7 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   /*static*/ void Runtime::add_registration_callback(
-      RegistrationCallbackFnptr callback, bool dedup, size_t dedup_tag)
+      RegistrationCallback callback, bool dedup, size_t dedup_tag)
   //--------------------------------------------------------------------------
   {
     Internal::Runtime::add_registration_callback(callback, dedup, dedup_tag);
@@ -3814,7 +3814,7 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   /*static*/ void Runtime::add_registration_callback(
-      RegistrationWithArgsCallbackFnptr callback, const UntypedBuffer& buffer,
+      RegistrationWithArgsCallback callback, const UntypedBuffer& buffer,
       bool dedup, size_t dedup_tag)
   //--------------------------------------------------------------------------
   {
@@ -3824,7 +3824,7 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   void Runtime::perform_registration_callback(
-      RegistrationCallbackFnptr callback, bool global, bool deduplicate,
+      RegistrationCallback callback, bool global, bool deduplicate,
       size_t dedup_tag)
   //--------------------------------------------------------------------------
   {
@@ -3834,7 +3834,7 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   void Runtime::perform_registration_callback(
-      RegistrationWithArgsCallbackFnptr callback, const UntypedBuffer& buffer,
+      RegistrationWithArgsCallback callback, const UntypedBuffer& buffer,
       bool global, bool deduplicate, size_t dedup_tag)
   //--------------------------------------------------------------------------
   {
@@ -3844,7 +3844,7 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   /*static*/ void Runtime::set_registration_callback(
-      RegistrationCallbackFnptr callback)
+      RegistrationCallback callback)
   //--------------------------------------------------------------------------
   {
     Internal::Runtime::add_registration_callback(callback, true /*dedup*/, 0);

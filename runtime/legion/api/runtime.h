@@ -4668,10 +4668,9 @@ namespace Legion {
      *              callbacks with the same function pointer
      */
     static void add_registration_callback(
-        RegistrationCallbackFnptr callback, bool dedup = true,
-        size_t dedup_tag = 0);
+        RegistrationCallback callback, bool dedup = true, size_t dedup_tag = 0);
     static void add_registration_callback(
-        RegistrationWithArgsCallbackFnptr callback, const UntypedBuffer& buffer,
+        RegistrationWithArgsCallback callback, const UntypedBuffer& buffer,
         bool dedup = true, size_t dedup_tag = 0);
 
     /**
@@ -4699,10 +4698,10 @@ namespace Legion {
      *              callbacks with the same function pointer
      */
     static void perform_registration_callback(
-        RegistrationCallbackFnptr callback, bool global,
-        bool deduplicate = true, size_t dedup_tag = 0);
+        RegistrationCallback callback, bool global, bool deduplicate = true,
+        size_t dedup_tag = 0);
     static void perform_registration_callback(
-        RegistrationWithArgsCallbackFnptr callback, const UntypedBuffer& buffer,
+        RegistrationWithArgsCallback callback, const UntypedBuffer& buffer,
         bool global, bool deduplicate = true, size_t dedup_tag = 0);
 
     /**
@@ -4719,7 +4718,7 @@ namespace Legion {
     LEGION_DEPRECATED(
         "Legion now supports multiple registration callbacks "
         "added via the add_registration_callback method.")
-    static void set_registration_callback(RegistrationCallbackFnptr callback);
+    static void set_registration_callback(RegistrationCallback callback);
 
     /**
      * This method can be used to retrieve the default arguments passed into

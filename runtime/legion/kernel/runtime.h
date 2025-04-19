@@ -345,9 +345,42 @@ namespace Legion {
           size_t buffer_size, bool withargs, bool deduplicate,
           size_t dedup_tag);
 #endif
+      struct PendingRegistrationCallback {
+      public:
+        PendingRegistrationCallback(
+            RegistrationCallback call, bool dedup, size_t tag)
+          : withoutargs(call), dedup_tag(tag), deduplicate(dedup),
+            has_args(false)
+        { }
+        PendingRegistrationCallback(
+            RegistrationWithArgsCallback call, const UntypedBuffer& buf,
+            bool dedup, size_t tag)
+          : withargs(call), buffer(buf), dedup_tag(tag), deduplicate(dedup),
+            has_args(true)
+        { }
+        PendingRegistrationCallback(const PendingRegistrationCallback& rhs)
+          : buffer(rhs.buffer), dedup_tag(rhs.dedup_tag),
+            deduplicate(rhs.deduplicate), has_args(rhs.has_args)
+        {
+          if (has_args)
+            withargs = rhs.withargs;
+          else
+            withoutargs = rhs.withoutargs;
+        }
+        ~PendingRegistrationCallback(void) { }
+      public:
+        union {
+          RegistrationCallback withoutargs;
+          RegistrationWithArgsCallback withargs;
+        };
+        UntypedBuffer buffer;
+        size_t dedup_tag;
+        bool deduplicate;
+        bool has_args;
+      };
       RtEvent perform_registration_callback(
-          void* callback, const void* buffer, size_t size, bool withargs,
-          bool global, bool preregistered, bool deduplicate, size_t dedup_tag);
+          const PendingRegistrationCallback& callback, bool global,
+          bool preregistered);
       void broadcast_startup_barrier(RtBarrier startup_barrier);
       void finalize_runtime(std::vector<RtEvent>& shutdown_events);
       ApEvent launch_mapper_task(
@@ -2399,17 +2432,16 @@ namespace Legion {
       static const SerdezRedopFns* get_serdez_redop_fns(
           ReductionOpID redop_id, bool has_lock = false);
       static void add_registration_callback(
-          RegistrationCallbackFnptr callback, bool dedup, size_t dedup_tag);
+          RegistrationCallback callback, bool dedup, size_t dedup_tag);
       static void add_registration_callback(
-          RegistrationWithArgsCallbackFnptr callback,
-          const UntypedBuffer& buffer, bool dedup, size_t dedup_tag);
+          RegistrationWithArgsCallback callback, const UntypedBuffer& buffer,
+          bool dedup, size_t dedup_tag);
       static void perform_dynamic_registration_callback(
-          RegistrationCallbackFnptr callback, bool global, bool deduplicate,
+          RegistrationCallback callback, bool global, bool deduplicate,
           size_t dedup_tag);
       static void perform_dynamic_registration_callback(
-          RegistrationWithArgsCallbackFnptr callback,
-          const UntypedBuffer& buffer, bool global, bool deduplicate,
-          size_t dedup_tag);
+          RegistrationWithArgsCallback callback, const UntypedBuffer& buffer,
+          bool global, bool deduplicate, size_t dedup_tag);
       static ReductionOpTable& get_reduction_table(bool safe);
       static SerdezOpTable& get_serdez_table(bool safe);
       static SerdezRedopTable& get_serdez_redop_table(bool safe);
@@ -2431,17 +2463,7 @@ namespace Legion {
       static std::map<ConcurrentID, ConcurrentColoringFunctor*>&
           get_pending_concurrent_table(void);
       static std::vector<LegionHandshake>& get_pending_handshake_table(void);
-      struct RegistrationCallback {
-        union {
-          RegistrationCallbackFnptr withoutargs;
-          RegistrationWithArgsCallbackFnptr withargs;
-        } callback;
-        UntypedBuffer buffer;
-        size_t dedup_tag;
-        bool deduplicate;
-        bool has_args;
-      };
-      static std::vector<RegistrationCallback>&
+      static std::vector<PendingRegistrationCallback>&
           get_pending_registration_callbacks(void);
       static TaskID& get_current_static_task_id(void);
       static TaskID generate_static_task_id(void);
@@ -2469,7 +2491,6 @@ namespace Legion {
       // Static member variables
       static TaskID legion_main_id;
       static MapperID legion_main_mapper_id;
-      static std::vector<RegistrationCallbackFnptr> registration_callbacks;
       static bool legion_main_set;
       static bool runtime_initialized;
       static bool runtime_cmdline_parsed;
