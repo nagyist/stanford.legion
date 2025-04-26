@@ -20,7 +20,7 @@
 #include <zlib.h>
 // Need this to know which version of Legion Prof we're using
 static constexpr unsigned LEGION_PROF_VERSION =
-#include "legion/legion_profiling_version.h"
+#include "legion/tools/profiler_version.h"
     ;
 // pr_fopen expects filename to be a std::string
 #define pr_fopen(filename, mode) gzopen(filename.c_str(), mode)
