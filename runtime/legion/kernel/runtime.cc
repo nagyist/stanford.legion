@@ -17100,6 +17100,8 @@ namespace Legion {
             FutureInstance::handle_free_external(args);
             break;
           }
+        case LG_YIELD_TASK_ID:
+          break;  // nothing to do here
 #ifdef LEGION_MALLOC_INSTANCES
         case LG_MALLOC_INSTANCE_TASK_ID:
           {
