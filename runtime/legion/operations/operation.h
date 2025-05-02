@@ -168,6 +168,7 @@ namespace Legion {
       inline Provenance* get_provenance(void) const { return provenance; }
     public:
       uint64_t get_context_index(void) const;
+      std::optional<uint64_t> get_context_index(GenerationID gen) const;
       void set_context_index(uint64_t index);
     public:
       // Be careful using this call as it is only valid when the operation

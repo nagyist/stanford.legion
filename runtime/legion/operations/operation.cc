@@ -199,6 +199,21 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    std::optional<uint64_t> Operation::get_context_index(GenerationID g) const
+    //--------------------------------------------------------------------------
+    {
+      if (g < gen.load())
+        return std::optional<uint64_t>();
+      AutoLock o_lock(op_lock, 1, false /*exclusive*/);
+      // Make sure we didn't lose the race
+      if (g < gen.load())
+        return std::optional<uint64_t>();
+      legion_assert(g == gen.load());
+      legion_assert(track_parent);
+      return std::optional<uint64_t>(context_index);
+    }
+
+    //--------------------------------------------------------------------------
     void Operation::set_context_index(uint64_t index)
     //--------------------------------------------------------------------------
     {

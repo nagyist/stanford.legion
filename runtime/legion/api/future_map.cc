@@ -154,8 +154,7 @@ namespace Legion {
         context(ctx), op(o), op_gen(o->get_generation()),
         op_depth(o->get_context()->get_depth()), op_uid(o->get_unique_op_id()),
         blocking_index(o->get_context()->get_next_blocking_index()),
-        provenance(prov), future_map_domain(domain),
-        context_index(o->get_context_index())
+        provenance(prov), future_map_domain(domain)
     //--------------------------------------------------------------------------
     {
       legion_assert(future_map_domain != nullptr);
@@ -179,7 +178,7 @@ namespace Legion {
             mapping),
         context(ctx), op(nullptr), op_gen(0), op_depth(0), op_uid(0),
         blocking_index(blocking), provenance(prov), future_map_domain(d),
-        context_index(index)
+        remote_context_index(index)
     //--------------------------------------------------------------------------
     {
       legion_assert(future_map_domain != nullptr);
@@ -197,12 +196,11 @@ namespace Legion {
     FutureMapImpl::FutureMapImpl(
         TaskContext* ctx, Operation* o, uint64_t index, GenerationID gen,
         int depth, UniqueID uid, IndexSpaceNode* domain, DistributedID did,
-        Provenance* prov, const std::optional<uint64_t>& ctx_index)
+        Provenance* prov)
       : DistributedCollectable(
             LEGION_DISTRIBUTED_HELP_ENCODE(did, FUTURE_MAP_DC)),
         context(ctx), op(o), op_gen(gen), op_depth(depth), op_uid(uid),
-        blocking_index(index), provenance(prov), future_map_domain(domain),
-        context_index(ctx_index)
+        blocking_index(index), provenance(prov), future_map_domain(domain)
     //--------------------------------------------------------------------------
     {
       legion_assert(future_map_domain != nullptr);
@@ -247,6 +245,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return future_map_domain->get_tight_domain();
+    }
+
+    //--------------------------------------------------------------------------
+    std::optional<uint64_t> FutureMapImpl::get_context_index(void) const
+    //--------------------------------------------------------------------------
+    {
+      if (!is_owner())
+        return remote_context_index;
+      if (op != nullptr)
+        return op->get_context_index(op_gen);
+      else
+        return std::optional<uint64_t>();
     }
 
     //--------------------------------------------------------------------------
@@ -392,7 +402,7 @@ namespace Legion {
         rez.serialize<bool>(true);  // can create
         rez.serialize(future_map_domain->handle);
         rez.serialize(blocking_index);
-        rez.serialize(context_index);
+        rez.serialize(get_context_index());
         if (provenance != nullptr)
           provenance->serialize(rez);
         else
@@ -539,6 +549,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(context_depth >= op_depth);
+      const std::optional<uint64_t> context_index = get_context_index();
       if (!context_index || (context_depth != op_depth))
       {
         if (to_trigger.exists())
@@ -683,7 +694,7 @@ namespace Legion {
       : FutureMapImpl(
             prev->context, prev->op, prev->blocking_index, prev->op_gen,
             prev->op_depth, prev->op_uid, domain,
-            runtime->get_available_distributed_id(), prov, prev->context_index),
+            runtime->get_available_distributed_id(), prov),
         previous(prev), functor(func), own_functor(own_func)
     //--------------------------------------------------------------------------
     {
@@ -1086,6 +1097,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(context_depth >= op_depth);
+      const std::optional<uint64_t> context_index = get_context_index();
       if (!context_index || (context_depth != op_depth))
       {
         if (to_trigger.exists())
