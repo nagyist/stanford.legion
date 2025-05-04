@@ -858,6 +858,7 @@ list(APPEND LEGION_SRC
   legion/api/constraints.h                legion/api/constraints.cc
   legion/api/data.h                       legion/api/data.cc
   legion/api/data.inl                     legion/api/data_impl.h
+  legion/api/exception.h                  legion/api/exception.cc
   legion/api/functors.h                   legion/api/functors.cc
   legion/api/functors_impl.h
   legion/api/future.h                     legion/api/future.cc
@@ -908,7 +909,6 @@ list(APPEND LEGION_SRC
   legion/instances/physical.inl
   legion/instances/virtual.h              legion/instances/virtual.cc 
   legion/kernel/allocation.h
-  legion/kernel/exception.h               legion/kernel/exception.cc
   legion/kernel/garbage_collection.h      legion/kernel/garbage_collection.cc
   legion/kernel/metatask.h
   legion/kernel/runtime.h                 legion/kernel/runtime.cc

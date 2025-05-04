@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
+#include "legion/api/exception.h"
 #include "legion/api/requirements.h"
-#include "legion/kernel/exception.h"
 #include "legion/utilities/privileges.h"
 
 namespace Legion {
@@ -51,8 +51,11 @@ namespace Legion {
     if (privilege == LEGION_WRITE_PRIV)
       privilege = LEGION_WRITE_DISCARD;
     if (IS_REDUCE(*this))  // Shouldn't use this constructor for reductions
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Use a different RegionRequirement constructor for reductions";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Use a different RegionRequirement constructor for reductions";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -74,8 +77,11 @@ namespace Legion {
     if (privilege == LEGION_WRITE_PRIV)
       privilege = LEGION_WRITE_DISCARD;
     if (IS_REDUCE(*this))  // Shouldn't use this constructor for reductions
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Use a different RegionRequirement constructor for reductions";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Use a different RegionRequirement constructor for reductions";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -97,8 +103,11 @@ namespace Legion {
     if (privilege == LEGION_WRITE_PRIV)
       privilege = LEGION_WRITE_DISCARD;
     if (IS_REDUCE(*this))  // Shouldn't use this constructor for reductions
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Use a different RegionRequirement constructor for reductions";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Use a different RegionRequirement constructor for reductions";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -117,8 +126,11 @@ namespace Legion {
     privilege_fields = priv_fields;
     instance_fields = inst_fields;
     if (redop == 0)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Zero is a reserved ReductionOpID and cannot be used";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Zero is a reserved ReductionOpID and cannot be used";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -138,8 +150,11 @@ namespace Legion {
     privilege_fields = priv_fields;
     instance_fields = inst_fields;
     if (redop == 0)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Zero is a reserved ReductionOpID and cannot be used";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Zero is a reserved ReductionOpID and cannot be used";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -159,8 +174,11 @@ namespace Legion {
     privilege_fields = priv_fields;
     instance_fields = inst_fields;
     if (redop == 0)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Zero is a reserved ReductionOpID and cannot be used";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Zero is a reserved ReductionOpID and cannot be used";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -177,8 +195,11 @@ namespace Legion {
     if (privilege == LEGION_WRITE_PRIV)
       privilege = LEGION_WRITE_DISCARD;
     if (IS_REDUCE(*this))  // Shouldn't use this constructor for reductions
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Use a different RegionRequirement constructor for reductions";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Use a different RegionRequirement constructor for reductions";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -196,8 +217,11 @@ namespace Legion {
     if (privilege == LEGION_WRITE_PRIV)
       privilege = LEGION_WRITE_DISCARD;
     if (IS_REDUCE(*this))  // Shouldn't use this constructor for reductions
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Use a different RegionRequirement constructor for reductions";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Use a different RegionRequirement constructor for reductions";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -215,8 +239,11 @@ namespace Legion {
     if (privilege == LEGION_WRITE_PRIV)
       privilege = LEGION_WRITE_DISCARD;
     if (IS_REDUCE(*this))  // Shouldn't use this constructor for reductions
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Use a different RegionRequirement constructor for reductions";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Use a different RegionRequirement constructor for reductions";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -231,8 +258,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (redop == 0)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Zero is a reserved ReductionOpID and cannot be used";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Zero is a reserved ReductionOpID and cannot be used";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -248,8 +278,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (redop == 0)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Zero is a reserved ReductionOpID and cannot be used";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Zero is a reserved ReductionOpID and cannot be used";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -265,8 +298,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (redop == 0)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Zero is a reserved ReductionOpID and cannot be used";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Zero is a reserved ReductionOpID and cannot be used";
+      error.raise();
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -600,11 +636,14 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << dim
-            << " for output region requirement. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
+              << "Unsupported dimension " << dim
+              << " for output region requirement. This probably means you need "
+              << "to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     for (std::set<FieldID>::const_iterator it = fields.begin();
          it != fields.end(); ++it)

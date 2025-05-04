@@ -326,6 +326,7 @@ namespace Legion {
             count_finder->second += count;
         }
         else
+        {
           // If you ever hit this then heaven help you
           // The user has done something really out there and
           // is using the same instance with different sets of
@@ -335,13 +336,15 @@ namespace Legion {
           // work in this case so the arrival counts will need
           // to look something like:
           //   std::map<InstanceView*,op::map<size_t,FieldMask> >
-          Exception(FATAL_EXCEPTION)
-              << "Something requested a very strange pattern for collective "
-              << "instance rendezvous with different points asking to "
-              << "rendezvous with different field sets on the same "
-              << "physical instance. This isn't currently supported. "
-              << "Please report your use case to the Legion "
-              << "developer's mailing list.";
+          Fatal fatal;
+          fatal << "Something requested a very strange pattern for collective "
+                << "instance rendezvous with different points asking to "
+                << "rendezvous with different field sets on the same "
+                << "physical instance. This isn't currently supported. "
+                << "Please report your use case to the Legion "
+                << "developer's mailing list.";
+          fatal.raise();
+        }
       }
       else  // No need to update counts since empty implies only one
       {

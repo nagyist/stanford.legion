@@ -546,23 +546,28 @@ namespace Legion {
       {
         if (output.target_procs.empty())
         {
-          Exception(WARNING_EXCEPTION, this)
-              << "Empty output target_procs from call to 'map_task' "
-              << "by mapper " << *mapper << " for " << *this
-              << ". Adding the 'target_proc' " << this->target_proc
-              << " as the default.";
+          Warning warning;
+          warning << "Empty output target_procs from call to 'map_task' "
+                  << "by mapper " << *mapper << " for " << *this
+                  << ". Adding the 'target_proc' " << this->target_proc
+                  << " as the default.";
+          warning.raise();
           output.target_procs.emplace_back(this->target_proc);
         }
         else if (output.target_procs.size() > 1)
         {
           if (concurrent_task)
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Mapper " << *mapper
                 << " provided multiple target processors as output "
                 << "from 'map_task' for " << *this << " which was launched "
                 << "in a concurrent index space task launch. Mappers are only "
                 << "permitted to specify a single target processor for mapping "
                 << "tasks in concurrent index space task launches.";
+            error.raise();
+          }
         }
         if (runtime->safe_mapper)
           validate_target_processors(output.target_procs);
@@ -574,19 +579,22 @@ namespace Legion {
       {
         if (output.target_procs.size() > 1)
         {
-          Exception(WARNING_EXCEPTION, this)
-              << "Ignoring spurious additional target processors "
-              << "requested in 'map_task' for " << *this << " by mapper "
-              << *mapper << " because task is part of a must epoch launch.";
+          Warning warning;
+          warning << "Ignoring spurious additional target processors "
+                  << "requested in 'map_task' for " << *this << " by mapper "
+                  << *mapper << " because task is part of a must epoch launch.";
+          warning.raise();
         }
         if (!output.target_procs.empty() &&
             (output.target_procs[0] != this->target_proc))
         {
-          Exception(WARNING_EXCEPTION, this)
-              << "Ignoring processor request of " << output.target_procs.front()
-              << " for " << *this << " by mapper " << *mapper
-              << " because task has already been mapped to processor "
-              << this->target_proc << " as part of a must epoch launch.";
+          Warning warning;
+          warning << "Ignoring processor request of "
+                  << output.target_procs.front() << " for " << *this
+                  << " by mapper " << *mapper
+                  << " because task has already been mapped to processor "
+                  << this->target_proc << " as part of a must epoch launch.";
+          warning.raise();
         }
         // Only one valid choice in this case, ignore everything else
         target_processors.emplace_back(this->target_proc);
@@ -605,17 +613,20 @@ namespace Legion {
           if (!future_memories[idx].exists())
             continue;
           if (future_memories[idx].address_space() != target_space)
-            Exception(MAPPER_EXCEPTION, this)
-                << "Invalid mapper output from invocation of 'map_task' on "
-                   "mapper "
-                << *mapper << "when mapping " << *this
-                << ". Mapper attempted to map future " << idx << " to memory "
-                << future_memories[idx] << " in address space "
-                << future_memories[idx].address_space()
-                << " which is not the same as address space " << target_space
-                << " of the target processor " << this->target_proc
-                << ". Mapped futures must be in the same "
-                << "address space as the target processor for task mappings.";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'map_task' on "
+                     "mapper "
+                  << *mapper << "when mapping " << *this
+                  << ". Mapper attempted to map future " << idx << " to memory "
+                  << future_memories[idx] << " in address space "
+                  << future_memories[idx].address_space()
+                  << " which is not the same as address space " << target_space
+                  << " of the target processor " << this->target_proc
+                  << ". Mapped futures must be in the same "
+                  << "address space as the target processor for task mappings.";
+            error.raise();
+          }
           // Request the future memories be created
           // Safe to block here indefinitely waiting for unbounded pools
           futures[idx].impl->request_application_instance(
@@ -688,11 +699,12 @@ namespace Legion {
               }
             default:
               {
-                Exception(WARNING_EXCEPTION, this)
-                    << "Mapper " << *mapper << " requested a profiling "
-                    << "measurement of type " << *it
-                    << " which is not applicable to " << *this
-                    << " and will be ignored.";
+                Warning warning;
+                warning << "Mapper " << *mapper << " requested a profiling "
+                        << "measurement of type " << *it
+                        << " which is not applicable to " << *this
+                        << " and will be ignored.";
+                warning.raise();
               }
           }
         }
@@ -720,18 +732,26 @@ namespace Legion {
         variant_impl = runtime->find_variant_impl(
             task_id, output.chosen_variant, true /*can fail*/);
       else  // TODO: invoke a generator if one exists
-        Exception(MAPPER_EXCEPTION, this)
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error
             << "Invalid mapper output from invocation of 'map_task' on mapper "
             << *mapper << ". Mapper specified an invalid task variant "
             << "of ID 0 for " << *this << ", but Legion does not yet "
             << "support task generators.";
+        error.raise();
+      }
       if (variant_impl == nullptr)
+      {
         // If we couldn't find or make a variant that is bad
-        Exception(MAPPER_EXCEPTION, this)
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error
             << "Invalid mapper output from invocation of 'map_task' on mapper "
             << *mapper << ". Mapper failed to specify a valid "
             << "task variant or generator capable of create a variant "
             << "implementation of " << *this << ".";
+        error.raise();
+      }
       // Record the future output size
       if (!elide_future_return)
       {
@@ -840,15 +860,25 @@ namespace Legion {
             missing_fields, &acquired_instances, unacquired,
             runtime->safe_mapper);
         if (bad_tree > 0)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_task' on "
-                 "mappper "
-              << *mapper << ". Mapper specified an instance from region tree "
-              << bad_tree << " for use with region requirement " << idx
-              << " of " << *this << " whose region is from region tree "
-              << regions[idx].region.get_tree_id() << ".";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_task' on "
+                   "mappper "
+                << *mapper << ". Mapper specified an instance from region tree "
+                << bad_tree << " for use with region requirement " << idx
+                << " of " << *this << " whose region is from region tree "
+                << regions[idx].region.get_tree_id() << ".";
+          error.raise();
+        }
         if (!missing_fields.empty())
         {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_task' on "
+                   "mapper "
+                << *mapper << ". Mapper failed to specify an instance for "
+                << missing_fields.size() << " fields of region requirement "
+                << idx << " of " << *this << ". The missing fields are: ";
+          bool first = true;
           for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
                it != missing_fields.end(); it++)
           {
@@ -859,17 +889,13 @@ namespace Legion {
                     LEGION_NAME_SEMANTIC_TAG, name, name_size,
                     true /*can fail*/, false))
               name = "(no name)";
-            log_legion.error(
-                "Missing instance for field %s (FieldID: %d)",
-                static_cast<const char*>(name), *it);
+            if (first)
+              first = false;
+            else
+              error << ", ";
+            error << static_cast<const char*>(name) << " (FieldID: " << *it
+                  << ")";
           }
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_task' on "
-                 "mapper "
-              << *mapper << ". Mapper failed to specify an instance for "
-              << missing_fields.size() << " fields of region requirement "
-              << idx << " of " << *this
-              << ". The missing fields are listed above.";
         }
         if (!unacquired.empty())
         {
@@ -878,7 +904,9 @@ namespace Legion {
                it != unacquired.end(); it++)
           {
             if (acquired_instances.find(*it) == acquired_instances.end())
-              Exception(MAPPER_EXCEPTION, this)
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error
                   << "Invalid mapper output from 'map_task' invocation on "
                      "mapper "
                   << *mapper
@@ -891,29 +919,38 @@ namespace Legion {
                   << "this. Please update the mapper to abide by proper "
                      "mapping "
                   << "conventions.";
+              error.raise();
+            }
           }
           // Event if we did successfully acquire them, still issue the warning
-          Exception(WARNING_EXCEPTION, this)
-              << "Mapper " << *mapper << " failed to acquire instances "
-              << "for region requirement " << idx << " of " << *this
-              << "in 'map_task' call. You may experience undefined "
-              << "behavior as a consequence.";
+          Warning warning;
+          warning << "Mapper " << *mapper << " failed to acquire instances "
+                  << "for region requirement " << idx << " of " << *this
+                  << "in 'map_task' call. You may experience undefined "
+                  << "behavior as a consequence.";
+          warning.raise();
         }
         // See if they want a virtual mapping
         if (composite_idx >= 0)
         {
           // Everything better be all virtual or all real
           if (result.size() > 1)
-            Exception(MAPPER_EXCEPTION, this)
-                << "Invalid mapper output from invocation of 'map_task' on "
-                   "mapper "
-                << *mapper << ". Mapper specified mixed virtual and concrete "
-                << "instances for region requirement " << idx << " of " << *this
-                << ". Only full concrete instances or a single virtual "
-                   "instance "
-                << "is supported.";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'map_task' on "
+                     "mapper "
+                  << *mapper << ". Mapper specified mixed virtual and concrete "
+                  << "instances for region requirement " << idx << " of "
+                  << *this
+                  << ". Only full concrete instances or a single virtual "
+                     "instance "
+                  << "is supported.";
+            error.raise();
+          }
           if (!IS_EXCLUSIVE(regions[idx]))
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'map_task' on "
                    "mapper "
                 << *mapper
@@ -921,6 +958,8 @@ namespace Legion {
                 << "requirement " << idx << " of " << *this
                 << " which has a relaxed coherence mode. Virtual mappings are "
                 << "only permitted for exclusive coherence.";
+            error.raise();
+          }
           virtual_mapped[idx] = true;
         }
         log_mapping_decision(idx, regions[idx], physical_instances[idx]);
@@ -936,16 +975,19 @@ namespace Legion {
           {
             PhysicalManager* manager = result[idx2].get_physical_manager();
             if (!manager->meets_regions(regions_to_check))
+            {
               // Doesn't satisfy the region requirement
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Invalid mapper output from invocation of 'map_task' on "
-                     "mapper "
-                  << *mapper
-                  << ". Mapper specified instance that does not meet "
-                  << "region requirement " << idx << " for " << *this
-                  << ". The index space for the instance has insufficient "
-                     "space "
-                  << "for the requested logical region.";
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Invalid mapper output from invocation of 'map_task' on "
+                       "mapper "
+                    << *mapper
+                    << ". Mapper specified instance that does not meet "
+                    << "region requirement " << idx << " for " << *this
+                    << ". The index space for the instance has insufficient "
+                       "space "
+                    << "for the requested logical region.";
+              error.raise();
+            }
           }
           if (!regions[idx].is_no_access() &&
               !variant_impl->is_no_access_region(idx))
@@ -954,14 +996,18 @@ namespace Legion {
             {
               const Memory mem = result[idx2].get_memory();
               if (visible_memories.find(mem) == visible_memories.end())
+              {
                 // Not visible from all target processors
-                Exception(MAPPER_EXCEPTION, this)
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error
                     << "Invalid mapper output from invocation of 'map_task' on "
                        "mapper "
                     << *mapper << ". Mapper selected an instance for region "
                     << "requirement " << idx << " in memory " << mem
                     << " which is not visible from the target processors for "
                     << *this << ".";
+                error.raise();
+              }
             }
           }
           // If this is a reduction region requirement make sure all the
@@ -972,14 +1018,20 @@ namespace Legion {
             {
               PhysicalManager* manager = result[idx2].get_physical_manager();
               if (!manager->is_reduction_manager())
-                Exception(MAPPER_EXCEPTION, this)
+              {
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error
                     << "Invalid mapper output from invocation of 'map_task' "
                     << "on mapper " << *mapper << ". Mapper failed to choose a "
                     << "specialized reduction instance for region requirement "
                     << idx << " of " << *this
                     << " which has reduction privileges.";
+                error.raise();
+              }
               else if (manager->redop != regions[idx].redop)
-                Exception(MAPPER_EXCEPTION, this)
+              {
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error
                     << "Invalid mapper output from invocation of 'map_task' on "
                        "mapper "
                     << *mapper
@@ -989,19 +1041,25 @@ namespace Legion {
                     << " which has reduction privileges on a different "
                        "reduction "
                     << "operator " << regions[idx].redop << ".";
+                error.raise();
+              }
             }
           }
           else
           {
             for (unsigned idx2 = 0; idx2 < result.size(); idx2++)
               if (result[idx2].get_manager()->is_reduction_manager())
-                Exception(MAPPER_EXCEPTION, this)
+              {
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error
                     << "Invalid mapper output from invocation of 'map_task' on "
                        "mapper "
                     << *mapper
                     << ". Mapper selected illegal specialized reduction "
                     << "instance for region requirement " << idx << " of "
                     << *this << " which does not have reduction privileges.";
+                error.raise();
+              }
           }
         }
       }
@@ -1016,12 +1074,15 @@ namespace Legion {
             Memory target = output.output_targets[idx];
             if (!target.exists() ||
                 visible_memories.find(target) == visible_memories.end())
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Invalid mapper output from invocation of 'map_task' on "
-                     "mapper "
-                  << *mapper << ". Mapper selected invalid target memory "
-                  << target << " for output region requirement " << idx
-                  << " of " << *this << ".";
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Invalid mapper output from invocation of 'map_task' on "
+                       "mapper "
+                    << *mapper << ". Mapper selected invalid target memory "
+                    << target << " for output region requirement " << idx
+                    << " of " << *this << ".";
+              error.raise();
+            }
           }
         }
         const size_t output_offset = regions.size();
@@ -1060,11 +1121,15 @@ namespace Legion {
           if ((*it >= regions.size()) || !IS_READ_ONLY(regions[*it]))
           {
             if (*it < regions.size())
-              Exception(WARNING_EXCEPTION, this)
-                  << "Ignoring request by mapper " << *mapper
-                  << " to not track valid instances for region requirement "
-                  << *it << " of " << *this << " because region requirement "
-                  << "does not have read-only privileges.";
+            {
+              Warning warning;
+              warning << "Ignoring request by mapper " << *mapper
+                      << " to not track valid instances for region requirement "
+                      << *it << " of " << *this
+                      << " because region requirement "
+                      << "does not have read-only privileges.";
+              warning.raise();
+            }
           }
           else
             untracked_valid_regions.emplace_back(*it);
@@ -1091,19 +1156,22 @@ namespace Legion {
           constraints.ordering_constraint.ordering;
       if (ordering.empty())
       {
-        Exception(MAPPER_EXCEPTION, this)
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error
             << "An ordering constraint must be specified for each output "
             << "region, but the mapper did not specify any ordering constraint "
             << "for output region " << index << " of " << *this << ".";
+        error.raise();
       }
       else if (static_cast<int>(ordering.size()) != req.region.get_dim() + 1)
       {
-        Exception(MAPPER_EXCEPTION, this)
-            << "The mapper chose an ordering constraint with "
-            << (ordering.size() - 1) << " dimensions for output region "
-            << index << " of " << *this << ", but the region has "
-            << req.region.get_dim()
-            << " dimensions. Make sure you specify a correct ordering.";
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "The mapper chose an ordering constraint with "
+              << (ordering.size() - 1) << " dimensions for output region "
+              << index << " of " << *this << ", but the region has "
+              << req.region.get_dim()
+              << " dimensions. Make sure you specify a correct ordering.";
+        error.raise();
       }
       // TODO: For now we only allow SOA layout with either the C order
       // or the Fotran order for output instances.
@@ -1120,13 +1188,14 @@ namespace Legion {
       // of fields that share a manager.
       else if (ordering.back() != LEGION_DIM_F)
       {
-        Exception(FATAL_EXCEPTION, this)
-            << "Legion currently supports only the SOA layout for output "
-               "regions, "
-            << "but output region " << index << " of " << *this
-            << " is mapped to a "
-            << "non-SOA layout. Please update the mapper to use SOA layout "
-            << "for all output regions.";
+        Fatal fatal;
+        fatal << "Legion currently supports only the SOA layout for output "
+                 "regions, "
+              << "but output region " << index << " of " << *this
+              << " is mapped to a "
+              << "non-SOA layout. Please update the mapper to use SOA layout "
+              << "for all output regions.";
+        fatal.raise();
       }
       std::map<FieldID, std::pair<EqualityKind, size_t> > alignments;
       std::map<FieldID, off_t> offsets;
@@ -1224,7 +1293,9 @@ namespace Legion {
             get_unique_id(), coordinates, it->second,
             nullptr /*safe_for_unbounded_pools*/);
         if (pool == nullptr)
-          Exception(RESOURCE_EXCEPTION, this)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
               << "Failed to reserve a dynamic memory pool of "
               << it->second.size << " bytes for " << *this << " in "
               << manager->get_name()
@@ -1233,6 +1304,8 @@ namespace Legion {
               << "kind of memory when you configure Realm which may "
                  "necessitate "
               << "finding a bigger machine.";
+          error.raise();
+        }
         leaf_memory_pools.emplace(std::make_pair(it->first, pool));
       }
       // Make sure to propagate any future sizes that we know about here
@@ -1400,34 +1473,48 @@ namespace Legion {
       // are counting by frames or by outstanding tasks.
       if ((context_configuration.min_tasks_to_schedule == 0) &&
           (context_configuration.min_frames_to_schedule == 0))
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from call 'configure_context' "
-            << "on mapper " << *mapper
-            << ". One of 'min_tasks_to_schedule' and "
-            << "'min_frames_to_schedule' must be non-zero for " << *this << ".";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from call 'configure_context' "
+              << "on mapper " << *mapper
+              << ". One of 'min_tasks_to_schedule' and "
+              << "'min_frames_to_schedule' must be non-zero for " << *this
+              << ".";
+        error.raise();
+      }
       // Hysteresis percentage is an unsigned so can't be less than 0
       if (context_configuration.hysteresis_percentage > 100)
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from call 'configure_context' "
-            << "on mapper " << *mapper << ". The 'hysteresis_percentage' "
-            << context_configuration.hysteresis_percentage << " is not "
-            << "a value between 0 and 100 for " << *this << ".";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from call 'configure_context' "
+              << "on mapper " << *mapper << ". The 'hysteresis_percentage' "
+              << context_configuration.hysteresis_percentage << " is not "
+              << "a value between 0 and 100 for " << *this << ".";
+        error.raise();
+      }
       if (context_configuration.meta_task_vector_width == 0)
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from call 'configure context' "
-            << "on mapper " << *this << " for " << *this << ". The "
-            << "'meta_task_vector_width' must be a non-zero value.";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from call 'configure context' "
+              << "on mapper " << *this << " for " << *this << ". The "
+              << "'meta_task_vector_width' must be a non-zero value.";
+        error.raise();
+      }
       if (context_configuration.max_templates_per_trace == 0)
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from call 'configure context' "
-            << "on mapper " << *mapper << " for " << *this << ". The "
-            << "'max_templates_per_trace' must be a non-zero value.";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from call 'configure context' "
+              << "on mapper " << *mapper << " for " << *this << ". The "
+              << "'max_templates_per_trace' must be a non-zero value.";
+        error.raise();
+      }
       if (context_configuration.auto_tracing_enabled && runtime->no_tracing)
       {
-        Exception(WARNING_EXCEPTION, this)
-            << "Waring disabling automatic tracing requested by mapper "
-            << *mapper << " for " << *this << " because tracing was "
-            << "disabled on the command line.";
+        Warning warning;
+        warning << "Waring disabling automatic tracing requested by mapper "
+                << *mapper << " for " << *this << " because tracing was "
+                << "disabled on the command line.";
+        warning.raise();
         context_configuration.auto_tracing_enabled = false;
       }
       // If we're counting by frames set min_tasks_to_schedule to zero
@@ -1459,25 +1546,35 @@ namespace Legion {
       {
         const Processor& proc = processors[idx];
         if (!proc.exists())
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper " << *mapper << " requested an "
-              << "illegal NO_PROC for a target processor when mapping " << *this
-              << ".";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper " << *mapper
+                << " requested an "
+                << "illegal NO_PROC for a target processor when mapping "
+                << *this << ".";
+          error.raise();
+        }
         else if (proc.kind() != kind)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper " << *mapper << " requested "
-              << proc.kind() << " processor " << proc << " when mapping "
-              << *this << ", but the target processor " << this->target_proc
-              << " is a " << this->target_proc.kind()
-              << "processor. Only one kind of processor is permitted.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper " << *mapper << " requested "
+                << proc.kind() << " processor " << proc << " when mapping "
+                << *this << ", but the target processor " << this->target_proc
+                << " is a " << this->target_proc.kind()
+                << "processor. Only one kind of processor is permitted.";
+          error.raise();
+        }
         if (proc.address_space() != space)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper " << *mapper
-              << " requested processor " << proc
-              << " which is in address space " << proc.address_space()
-              << " when mapping " << *this << " but the target processor "
-              << this->target_proc << " is in address space " << space
-              << ". All target processors must be in the same address space.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper " << *mapper
+                << " requested processor " << proc
+                << " which is in address space " << proc.address_space()
+                << " when mapping " << *this << " but the target processor "
+                << this->target_proc << " is in address space " << space
+                << ". All target processors must be in the same address space.";
+          error.raise();
+        }
       }
     }
 
@@ -1566,7 +1663,8 @@ namespace Legion {
       // that decides whether we're going to try to replicate this task
       if (is_recording())
       {
-        Exception(WARNING_EXCEPTION, this)
+        Warning warning;
+        warning
             << "Unsupported request to replicate " << *this << " during "
             << "trace capture by " << *mapper
             << ". Legion does not currently support "
@@ -1574,6 +1672,7 @@ namespace Legion {
             << "You can request support for this feature by emailing the "
             << "the Legion developers list or opening a github issue. The "
             << "mapper call to replicate_task is being elided.";
+        warning.raise();
         replicate = false;
         return false;
       }
@@ -1590,7 +1689,8 @@ namespace Legion {
       }
       else if (output.target_processors.size() == 1)
       {
-        Exception(WARNING_EXCEPTION, this)
+        Warning warning;
+        warning
             << "Mapper " << *mapper << " requested to replicate " << *this
             << " but only reqeuested one shard to be made. Since one shard "
                "does "
@@ -1598,6 +1698,7 @@ namespace Legion {
             << "request and the task will be mapped like normal. If the "
             << "mapper intended to not perform replication it should return "
             << "an empty vector of target processors for 'replicate_task'.";
+        warning.raise();
         replicate = false;
         return false;
       }
@@ -1607,48 +1708,66 @@ namespace Legion {
         var_impl = runtime->find_variant_impl(
             task_id, output.chosen_variant, true /*can_fail*/);
         if (var_impl == nullptr)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'replicate_task' "
-              << "on mapper " << *mapper << ". Mapper selected an invalid task "
-              << "variant " << output.chosen_variant << " for " << *this
-              << " that was chosen to be replicated.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'replicate_task' "
+                << "on mapper " << *mapper
+                << ". Mapper selected an invalid task "
+                << "variant " << output.chosen_variant << " for " << *this
+                << " that was chosen to be replicated.";
+          error.raise();
+        }
         // Check that the chosen variant is replicable
         if (!var_impl->is_replicable())
-          Exception(WARNING_EXCEPTION, this)
+        {
+          Warning warning;
+          warning
               << "Invalid mapper output from invocation of 'replicate_task' "
               << "on mapper " << *mapper
               << ". Mapper failed to pick an valid task variant "
               << output.chosen_variant << " for " << *this
               << "that was chosen to be replicated. Task variants selected for "
               << "replication must be marked as replicable variants.";
+          warning.raise();
+        }
       }
       else
       {
         output.chosen_variant = 0;
         if (output.leaf_variants.size() != output.target_processors.size())
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'replicate_task' "
-              << "on mapper " << *mapper
-              << ". Mapper provided %zd leaf variants for "
-              << output.leaf_variants.size() << " target processors for "
-              << *this << ". The same number of leaf variants must be provided "
-              << "as target processors.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'replicate_task' "
+                << "on mapper " << *mapper
+                << ". Mapper provided %zd leaf variants for "
+                << output.leaf_variants.size() << " target processors for "
+                << *this
+                << ". The same number of leaf variants must be provided "
+                << "as target processors.";
+          error.raise();
+        }
         for (unsigned idx = 0; idx < output.leaf_variants.size(); idx++)
         {
           VariantImpl* impl = runtime->find_variant_impl(
               task_id, output.leaf_variants[idx], true /*can_fail*/);
           if (impl == nullptr)
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'replicate_task' "
                 << "on mapper " << *mapper
                 << ". Mapper selected an invalid leaf task variant "
                 << output.leaf_variants[idx] << " for " << *this
                 << " that was chosen to be replicated.";
+            error.raise();
+          }
           if (var_impl == nullptr)
             var_impl = impl;
           // Check that the chosen variant is a leaf
           if (!impl->is_leaf())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'replicate_task' "
                    "on mapper "
                 << *mapper << ". Mapper failed to pick an valid task variant "
@@ -1656,9 +1775,13 @@ namespace Legion {
                 << " that was chosen to be replicated. All variants provided "
                    "in the "
                 << "leaf_variants must be leaf task variants.";
+            error.raise();
+          }
           // Check that the chosen variant is replicable
           if (!impl->is_replicable())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'replicate_task' "
                    "on mapper "
                 << *mapper << ". Mapper failed to pick an valid task variant "
@@ -1666,6 +1789,8 @@ namespace Legion {
                 << " that was chosen to be replicated. Task variants selected "
                    "for "
                 << "replication must be marked as replicable variants.";
+            error.raise();
+          }
         }
       }
       if (runtime->safe_mapper)
@@ -1675,19 +1800,25 @@ namespace Legion {
         for (unsigned idx = 0; idx < output.target_processors.size(); idx++)
         {
           if (!output.target_processors[idx].exists())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'replicate_task' "
                 << "on mapper " << *mapper
                 << ". Mapper specified a NO_PROC in the "
                 << "vector of target processors when replicating " << *this
                 << ". All processors in target_processors must exist.";
+            error.raise();
+          }
           else if (
               !has_local && (runtime->address_space ==
                              output.target_processors[idx].address_space()))
             has_local = true;
         }
         if (!has_local)
-          Exception(MAPPER_EXCEPTION, this)
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error
               << "Invalid mapper output from invocation of 'replicate_task' "
               << "on mapper " << *mapper << ". Mapper did not provide a local "
               << "processor when replicating " << *this
@@ -1697,6 +1828,8 @@ namespace Legion {
               << "of 'map_task' which would require this anyway even if the "
                  "task "
               << "were not replicated.";
+          error.raise();
+        }
         // Check that the chosen variant works with all the targets processors
         if (output.leaf_variants.empty())
         {
@@ -1706,15 +1839,19 @@ namespace Legion {
           {
             for (unsigned idx = 0; idx < output.target_processors.size(); idx++)
               if (!constraint.can_use(output.target_processors[idx].kind()))
-                Exception(MAPPER_EXCEPTION, this)
-                    << "Invalid mapper output from invocation of "
-                       "'replicate_task' "
-                    << "on mapper " << *mapper << ". Mapper specified "
-                    << output.target_processors[idx].kind() << " processor "
-                    << output.target_processors[idx] << " which cannot be used "
-                    << "with variant " << output.chosen_variant << " when "
-                    << "replicating " << *this << " as the variant does "
-                    << "not support that kind of processor.";
+              {
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error << "Invalid mapper output from invocation of "
+                         "'replicate_task' "
+                      << "on mapper " << *mapper << ". Mapper specified "
+                      << output.target_processors[idx].kind() << " processor "
+                      << output.target_processors[idx]
+                      << " which cannot be used "
+                      << "with variant " << output.chosen_variant << " when "
+                      << "replicating " << *this << " as the variant does "
+                      << "not support that kind of processor.";
+                error.raise();
+              }
           }
         }
         else
@@ -1727,7 +1864,9 @@ namespace Legion {
                 impl->execution_constraints.processor_constraint;
             if (constraint.is_valid() &&
                 !constraint.can_use(output.target_processors[idx].kind()))
-              Exception(MAPPER_EXCEPTION, this)
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error
                   << "Invalid mapper output from invocation of "
                      "'replicate_task' "
                   << "on mapper " << *mapper << ". Mapper specified "
@@ -1736,6 +1875,8 @@ namespace Legion {
                   << " which cannot be used with variant "
                   << output.leaf_variants[idx] << " when replicating " << *this
                   << " as the variant does not support that kind of processor.";
+              error.raise();
+            }
           }
         }
         // If the chosen variant is not a leaf check that processors are unique
@@ -1747,22 +1888,27 @@ namespace Legion {
           std::sort(sorted_procs.begin(), sorted_procs.end());
           for (unsigned idx = 1; idx < sorted_procs.size(); idx++)
             if (sorted_procs[idx - 1] == sorted_procs[idx])
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Invalid mapper output from invocation of "
-                     "'replicate_task' "
-                  << "on mapper " << *mapper
-                  << ". Mapper provided duplicate target "
-                  << "processors for non-leaf task variant "
-                  << output.chosen_variant << " when replicating " << *this
-                  << ". In order to control "
-                  << "replicate a task all the target processors must be "
-                     "unique.";
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Invalid mapper output from invocation of "
+                       "'replicate_task' "
+                    << "on mapper " << *mapper
+                    << ". Mapper provided duplicate target "
+                    << "processors for non-leaf task variant "
+                    << output.chosen_variant << " when replicating " << *this
+                    << ". In order to control "
+                    << "replicate a task all the target processors must be "
+                       "unique.";
+              error.raise();
+            }
         }
         // Check that shard points match the size target processors if not empty
         if (!output.shard_points.empty())
         {
           if (!output.shard_domain.exists())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'replicate_task' "
                 << "on mapper " << *mapper
                 << ". Mapper provided shard_points without "
@@ -1771,8 +1917,12 @@ namespace Legion {
                 << ". A shard domain must also be provided in conjunction with "
                    "a "
                 << "set of shard points.";
+            error.raise();
+          }
           if (output.shard_points.size() != output.target_processors.size())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'replicate_task' "
                 << "on mapper " << *mapper << ". Mapper provided "
                 << output.shard_points.size() << " shard_points which does not "
@@ -1780,25 +1930,32 @@ namespace Legion {
                 << " target processors specified when replicating " << *this
                 << ". If shard_points are provided they must exactly match the "
                 << "number of target processors.";
+            error.raise();
+          }
           std::vector<DomainPoint> sorted_points = output.shard_points;
           std::sort(sorted_points.begin(), sorted_points.end());
           for (unsigned idx = 1; idx < sorted_points.size(); idx++)
             if (sorted_points[idx - 1] == sorted_points[idx])
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Invalid mapper output from invocation of "
-                     "'replicate_task' "
-                  << "on mapper " << *mapper
-                  << ". Mapper provided duplicate shard "
-                  << "points when replicating " << *this
-                  << ". In order to control "
-                  << "replicate a task all the target processors must be "
-                     "unique.";
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Invalid mapper output from invocation of "
+                       "'replicate_task' "
+                    << "on mapper " << *mapper
+                    << ". Mapper provided duplicate shard "
+                    << "points when replicating " << *this
+                    << ". In order to control "
+                    << "replicate a task all the target processors must be "
+                       "unique.";
+              error.raise();
+            }
         }
         // Check that shard domain volume matches number of points if not empty
         if (output.shard_domain.exists())
         {
           if (output.shard_points.empty())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'replicate_task' "
                 << "on mapper " << *mapper
                 << ". Mapper provided shard_domain without "
@@ -1807,8 +1964,12 @@ namespace Legion {
                 << ". The shard_points data structure must also be populated "
                    "in "
                 << "conjunction with a shard_domain.";
+            error.raise();
+          }
           if (output.shard_points.size() != output.shard_domain.get_volume())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'replicate_task' "
                 << "on mapper " << *mapper << ". Mapper provided "
                 << output.shard_points.size() << " shard_points for "
@@ -1816,18 +1977,23 @@ namespace Legion {
                 << " points when replicating " << *this << ". The number of "
                 << "shard_points must exactly match the volume of the "
                    "shard_domain.";
+            error.raise();
+          }
           for (unsigned idx = 0; idx < output.shard_points.size(); idx++)
             if (!output.shard_domain.contains(output.shard_points[idx]))
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Invalid mapper output from invocation of "
-                     "'replicate_task' "
-                  << "on mapper " << *mapper
-                  << ". Mapper provided a point in shard_points "
-                  << "that is not contained in the shard_domain when "
-                     "replicating "
-                  << *this
-                  << ". Each point in shard_points must exist in the "
-                     "shard_domain.";
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Invalid mapper output from invocation of "
+                       "'replicate_task' "
+                    << "on mapper " << *mapper
+                    << ". Mapper provided a point in shard_points "
+                    << "that is not contained in the shard_domain when "
+                       "replicating "
+                    << *this
+                    << ". Each point in shard_points must exist in the "
+                       "shard_domain.";
+              error.raise();
+            }
         }
       }
       // Start building the data structures needed to make the ShardManager
@@ -1847,22 +2013,28 @@ namespace Legion {
           if (isomorphic_points && (output.shard_points[idx][0] != idx))
             isomorphic_points = false;
           if (output.shard_points[idx].get_dim() != dim)
-            Exception(MAPPER_EXCEPTION, this)
-                << "Mapper " << *mapper
-                << " specified shard points with different "
-                << "dimensionalities of " << dim << " and "
-                << output.shard_points[idx].get_dim()
-                << " for 'replicate_task' call for " << *this
-                << ". All shard points must have the same dimenstionality.";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Mapper " << *mapper
+                  << " specified shard points with different "
+                  << "dimensionalities of " << dim << " and "
+                  << output.shard_points[idx].get_dim()
+                  << " for 'replicate_task' call for " << *this
+                  << ". All shard points must have the same dimenstionality.";
+            error.raise();
+          }
           std::pair<std::map<DomainPoint, ShardID>::iterator, bool> result =
               shard_mapping.insert(std::pair<DomainPoint, ShardID>(
                   output.shard_points[idx], idx));
           if (!result.second)
-            Exception(MAPPER_EXCEPTION, this)
-                << "Mapper " << *mapper << " specified duplicate shard point "
-                << "names for shards " << result.first->second << " and " << idx
-                << " in 'replicate_task' mapper call for " << *this
-                << ". Each shard point must be given a unique name.";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Mapper " << *mapper << " specified duplicate shard point "
+                  << "names for shards " << result.first->second << " and "
+                  << idx << " in 'replicate_task' mapper call for " << *this
+                  << ". Each shard point must be given a unique name.";
+            error.raise();
+          }
         }
         for (std::map<DomainPoint, ShardID>::const_iterator it =
                  shard_mapping.begin();
@@ -1873,7 +2045,9 @@ namespace Legion {
         }
         const int domain_dim = output.shard_domain.get_dim();
         if ((domain_dim > 0) && (domain_dim != dim))
-          Exception(MAPPER_EXCEPTION, this)
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error
               << "Mapper " << *mapper
               << " specified a 'shard_domain' output with dimensionality "
               << domain_dim << " different than the " << dim
@@ -1881,6 +2055,8 @@ namespace Legion {
                  "for "
               << *this << ". The dimensionality of 'shard_domain' must "
               << "match the dimensionality of the 'shard_points'.";
+          error.raise();
+        }
       }
       else
       {
@@ -2195,29 +2371,32 @@ namespace Legion {
         RegionRequirement& req = regions[idx];
         if (req.is_restricted())
         {
-          Exception(WARNING_EXCEPTION, this)
-              << "Mapper " << *mapper << " requested post mapping "
-              << "instances be created for region requirement " << idx << "of "
-              << *this << ", but this region requirement "
-              << "is restricted. The request is being ignored.";
+          Warning warning;
+          warning << "Mapper " << *mapper << " requested post mapping "
+                  << "instances be created for region requirement " << idx
+                  << "of " << *this << ", but this region requirement "
+                  << "is restricted. The request is being ignored.";
+          warning.raise();
           continue;
         }
         if (IS_NO_ACCESS(req))
         {
-          Exception(WARNING_EXCEPTION, this)
-              << "Mapper " << *mapper << " requested post mapping "
-              << "instances be created for region requirement " << idx
-              << "of task " << *this << ", but this region requirement "
-              << "has NO_ACCESS privileges. The request is being ignored.";
+          Warning warning;
+          warning << "Mapper " << *mapper << " requested post mapping "
+                  << "instances be created for region requirement " << idx
+                  << "of task " << *this << ", but this region requirement "
+                  << "has NO_ACCESS privileges. The request is being ignored.";
+          warning.raise();
           continue;
         }
         if (IS_REDUCE(req))
         {
-          Exception(WARNING_EXCEPTION, this)
-              << "Mapper " << *mapper << "requested post mapping "
-              << "instances be created for region requirement " << idx << "of "
-              << *this << ", but this region requirement "
-              << "has REDUCE privileges. The request is being ignored.";
+          Warning warning;
+          warning << "Mapper " << *mapper << "requested post mapping "
+                  << "instances be created for region requirement " << idx
+                  << "of " << *this << ", but this region requirement "
+                  << "has REDUCE privileges. The request is being ignored.";
+          warning.raise();
           continue;
         }
         // Convert the post-mapping
@@ -2229,13 +2408,17 @@ namespace Legion {
             !runtime->safe_mapper ? nullptr : &acquired_instances, unacquired,
             runtime->safe_mapper);
         if (bad_tree > 0)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from 'postmap_task' invocation on "
-                 "mapper "
-              << *mapper << ". Mapper provided an instance from region tree "
-              << bad_tree << " for use in satisfying region requirement " << idx
-              << " of " << *this << " whose region is from region tree "
-              << regions[idx].region.get_tree_id() << ".";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from 'postmap_task' invocation on "
+                   "mapper "
+                << *mapper << ". Mapper provided an instance from region tree "
+                << bad_tree << " for use in satisfying region requirement "
+                << idx << " of " << *this
+                << " whose region is from region tree "
+                << regions[idx].region.get_tree_id() << ".";
+          error.raise();
+        }
         if (!unacquired.empty())
         {
           for (std::vector<PhysicalManager*>::const_iterator uit =
@@ -2243,30 +2426,36 @@ namespace Legion {
                uit != unacquired.end(); uit++)
           {
             if (acquired_instances.find(*uit) == acquired_instances.end())
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Invalid mapper output from 'postmap_task' "
-                  << "invocation on mapper " << *mapper << ". Mapper selected "
-                  << "physical instance for region requirement " << idx
-                  << " of " << *this << " which has already "
-                  << "been collected. If the mapper had properly "
-                  << "acquired this instance as part of the mapper "
-                  << "call it would have detected this. Please update the "
-                  << "mapper to abide by proper mapping conventions.";
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Invalid mapper output from 'postmap_task' "
+                    << "invocation on mapper " << *mapper
+                    << ". Mapper selected "
+                    << "physical instance for region requirement " << idx
+                    << " of " << *this << " which has already "
+                    << "been collected. If the mapper had properly "
+                    << "acquired this instance as part of the mapper "
+                    << "call it would have detected this. Please update the "
+                    << "mapper to abide by proper mapping conventions.";
+              error.raise();
+            }
           }
           // If we did successfully acquire them, still issue the warning
-          Exception(WARNING_EXCEPTION, this)
-              << "Mapper " << *mapper << " failed to acquires instances "
-              << "for region requirement " << idx << " of " << *this
-              << "in 'postmap_task' call. You may experience "
-              << "undefined behavior as a consequence.";
+          Warning warning;
+          warning << "Mapper " << *mapper << " failed to acquires instances "
+                  << "for region requirement " << idx << " of " << *this
+                  << "in 'postmap_task' call. You may experience "
+                  << "undefined behavior as a consequence.";
+          warning.raise();
         }
         if (had_composite)
         {
-          Exception(WARNING_EXCEPTION, this)
-              << "Mapper " << *mapper << " requested a virtual "
-              << "instance be created for region requirement " << idx << " of "
-              << *this << " for a post mapping. The "
-              << "request is being ignored.";
+          Warning warning;
+          warning << "Mapper " << *mapper << " requested a virtual "
+                  << "instance be created for region requirement " << idx
+                  << " of " << *this << " for a post mapping. The "
+                  << "request is being ignored.";
+          warning.raise();
           continue;
         }
         if (runtime->safe_mapper)
@@ -2276,11 +2465,15 @@ namespace Legion {
           {
             PhysicalManager* manager = result[check_idx].get_physical_manager();
             if (!manager->meets_regions(regions_to_check))
-              Exception(MAPPER_EXCEPTION, this)
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error
                   << "Invalid mapper output from invocation of 'postmap_task' "
                   << "on mapper " << *mapper << ". Mapper specified an "
                   << "instance region requirement " << idx << " of " << *this
                   << " that does not meet the logical region requirement.";
+              error.raise();
+            }
           }
         }
         log_mapping_decision(idx, regions[idx], result, true /*postmapping*/);
@@ -2316,16 +2509,16 @@ namespace Legion {
       if (future_return_size && (*future_return_size < instance->size))
       {
         Provenance* provenance = get_provenance();
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
         if (provenance != nullptr)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "Task " << *this << " used a task variant "
-              << "with a maximum return size of " << *future_return_size
-              << " but returned a result of " << instance->size << " bytes.";
+          error << "Task " << *this << " used a task variant "
+                << "with a maximum return size of " << *future_return_size
+                << " but returned a result of " << instance->size << " bytes.";
         else
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "Task " << *this << " used a task variant with a maximum "
-              << "return size of " << *future_return_size
-              << " but returned a result of " << instance->size << " bytes.";
+          error << "Task " << *this << " used a task variant with a maximum "
+                << "return size of " << *future_return_size
+                << " but returned a result of " << instance->size << " bytes.";
+        error.raise();
       }
     }
 
@@ -2355,10 +2548,13 @@ namespace Legion {
         query.only_kind(it->first);
         query.best_affinity_to(target_proc);
         if (query.count() == 0)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Unable to find a visible " << it->first
-              << " memory from processor " << target_proc << " for " << *this
-              << " for creating dynamic memory pool from static constraint.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Unable to find a visible " << it->first
+                << " memory from processor " << target_proc << " for " << *this
+                << " for creating dynamic memory pool from static constraint.";
+          error.raise();
+        }
         const Memory target = query.first();
         // Check to see if we also got a dynamic memory pool bound, if we
         // did then it needs to tighten what already existed
@@ -2374,7 +2570,9 @@ namespace Legion {
               const PoolBounds& static_bounds = it->second;
               const PoolBounds& dynamic_bounds = finder->second;
               if (static_bounds.size < dynamic_bounds.size)
-                Exception(MAPPER_EXCEPTION, this)
+              {
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error
                     << "Mapper " << *mapper << "dynamically requested "
                     << dynamic_bounds.size << " bytes for pool in "
                     << manager->get_name() << " memory for " << *this
@@ -2385,8 +2583,12 @@ namespace Legion {
                        "further "
                     << "refinements of the upper bounds provided by the chosen "
                     << "task variant.";
+                error.raise();
+              }
               else if (static_bounds.alignment < dynamic_bounds.alignment)
-                Exception(MAPPER_EXCEPTION, this)
+              {
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error
                     << "Mapper " << *mapper << " dynamically requested a "
                     << "minimum alignment of " << dynamic_bounds.alignment
                     << " bytes for pool in " << manager->get_name()
@@ -2397,9 +2599,13 @@ namespace Legion {
                     << " bytes. Dynamically requested "
                     << "memory allocations must be further refinements of the "
                     << "alignments provided by the chosen task variant.";
+                error.raise();
+              }
             }
             else
-              Exception(MAPPER_EXCEPTION, this)
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error
                   << "Mapper " << *mapper
                   << " dynamically requested an unbounded pool in "
                   << manager->get_name() << " memory for " << *this
@@ -2408,13 +2614,17 @@ namespace Legion {
                   << " bytes. Dynamically requested memory allocations must be "
                      "further refinements of the upper bounds provided by the "
                      "chosen task variant.";
+              error.raise();
+            }
           }
           else if (!finder->second.is_bounded())
           {
             // Else if the static variant had no bounds we know that the
             // dynamic one is at least as tight as the static one
             if (runtime->runtime_warnings)
-              Exception(WARNING_EXCEPTION, this)
+            {
+              Warning warning;
+              warning
                   << "Selected variant " << variant->get_name() << " of "
                   << *this << " was registered with an unbound memory pool for "
                   << it->first << " memory and mapper " << *mapper
@@ -2423,6 +2633,8 @@ namespace Legion {
                   << "users to avoid using them except for extenuating "
                   << "circumstances when the amount of dynamic memory required "
                   << "by a task is truly unbounded.";
+              warning.raise();
+            }
           }
         }
         else
@@ -2433,20 +2645,25 @@ namespace Legion {
           if (it->second.scope == LEGION_STRICT_UNBOUNDED_POOL)
           {
             if (concurrent_task)
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Mapper " << *mapper << " selected variant "
-                  << variant->get_name() << " which statically mandates a "
-                  << "strict unbounded memory pool in " << it->first
-                  << " memory for concurrent task " << *this
-                  << ". Strict unbounded "
-                  << "memory pools are not permitted to be used when "
-                  << "mapping concurrent index space tasks because they "
-                  << "can lead to deadlocks. Instead you should use either "
-                  << "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
-                  << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope or pick a "
-                  << "different task variant for mapping this task.";
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Mapper " << *mapper << " selected variant "
+                    << variant->get_name() << " which statically mandates a "
+                    << "strict unbounded memory pool in " << it->first
+                    << " memory for concurrent task " << *this
+                    << ". Strict unbounded "
+                    << "memory pools are not permitted to be used when "
+                    << "mapping concurrent index space tasks because they "
+                    << "can lead to deadlocks. Instead you should use either "
+                    << "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
+                    << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope or pick a "
+                    << "different task variant for mapping this task.";
+              error.raise();
+            }
             else if (!check_collective_regions.empty())
-              Exception(MAPPER_EXCEPTION, this)
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error
                   << "Mapper " << *mapper << " selected variant "
                   << variant->get_name() << " which statically mandates a "
                   << "strict unbounded memory pool in " << it->first
@@ -2461,9 +2678,13 @@ namespace Legion {
                   << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope or pick a "
                   << "different task variant for mapping this task or "
                   << "opt not to perform collective mapping of any regions.";
+              error.raise();
+            }
           }
           if (!it->second.is_bounded() && runtime->runtime_warnings)
-            Exception(WARNING_EXCEPTION, this)
+          {
+            Warning warning;
+            warning
                 << "Selected variant " << variant->get_name() << " of task "
                 << *this << " was registered with an unbound memory pool for "
                 << it->first << " memory and mapper " << *mapper
@@ -2472,6 +2693,8 @@ namespace Legion {
                 << "users to avoid using them except for extenuating "
                 << "circumstances when the amount of dynamic memory required "
                 << "by a task is truly unbounded.";
+            warning.raise();
+          }
           dynamic_pool_bounds.emplace(std::make_pair(target, it->second));
         }
       }
@@ -2497,10 +2720,13 @@ namespace Legion {
           // tasks to make deferred buffers on memories that are "remote"
           // from where they are executing
           if (it->first.address_space() != target_proc.address_space())
-            Exception(MAPPER_EXCEPTION, this)
-                << manager->get_name() << " memory " << it->first
-                << " is not visible from the target processor of " << *this
-                << " for creating dynamic memory pool.";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << manager->get_name() << " memory " << it->first
+                  << " is not visible from the target processor of " << *this
+                  << " for creating dynamic memory pool.";
+            error.raise();
+          }
           unbounded_pools.emplace_back(manager);
           uint64_t lamport_clock =
               manager->order_collective_unbounded_pools(this);
@@ -2551,10 +2777,13 @@ namespace Legion {
         // to make deferred buffers on memories that are "remote" from where
         // they are executing
         if (it->first.address_space() != target_proc.address_space())
-          Exception(MAPPER_EXCEPTION, this)
-              << manager->get_name() << " memory " << it->first
-              << " is not visible from the target processor of " << *this
-              << " for creating dynamic memory pool.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << manager->get_name() << " memory " << it->first
+                << " is not visible from the target processor of " << *this
+                << " for creating dynamic memory pool.";
+          error.raise();
+        }
         if (it->second.is_bounded())
         {
           // Check to see if acquired a memory pool for this already
@@ -2577,19 +2806,24 @@ namespace Legion {
           if (it->second.scope == LEGION_STRICT_UNBOUNDED_POOL)
           {
             if (concurrent_task)
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Mapper " << *mapper << " dynamically requested a "
-                  << "strict unbounded memory pool in " << manager->get_name()
-                  << " memory for concurrent task " << *this
-                  << ". Strict unbounded "
-                  << "memory pools are not permitted to be used when "
-                  << "mapping concurrent index space tasks because they "
-                  << "can lead to deadlocks. Instead you should use either "
-                  << "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
-                  << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope when specifying "
-                  << "the kind of unbound memory pool for this task.";
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Mapper " << *mapper << " dynamically requested a "
+                    << "strict unbounded memory pool in " << manager->get_name()
+                    << " memory for concurrent task " << *this
+                    << ". Strict unbounded "
+                    << "memory pools are not permitted to be used when "
+                    << "mapping concurrent index space tasks because they "
+                    << "can lead to deadlocks. Instead you should use either "
+                    << "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
+                    << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope when specifying "
+                    << "the kind of unbound memory pool for this task.";
+              error.raise();
+            }
             else if (!check_collective_regions.empty())
-              Exception(MAPPER_EXCEPTION, this)
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error
                   << "Mapper " << *mapper << " dynamically requested a "
                   << "strict unbounded memory pool in " << manager->get_name()
                   << " memory for task " << *this << " while also requesting a "
@@ -2603,10 +2837,14 @@ namespace Legion {
                   << "memory pools for this task or alternatively choosen not "
                   << "to perform collective mapping of any region "
                      "requirements.";
+              error.raise();
+            }
             if (runtime->runtime_warnings &&
                 (variant->leaf_pool_bounds.find(it->first.kind()) ==
                  variant->leaf_pool_bounds.end()))
-              Exception(WARNING_EXCEPTION, this)
+            {
+              Warning warning;
+              warning
                   << "Mapper " << *mapper
                   << " requested an unbound memory pool in "
                   << manager->get_name() << " memory for leaf task " << *this
@@ -2617,6 +2855,8 @@ namespace Legion {
                      "the "
                   << "amount of dynamic memory required by a task is truly "
                      "unbounded.";
+              warning.raise();
+            }
           }
           // If this is our first unbounded allocation then we need to
           // wait for it to safe for us to do it
@@ -2685,7 +2925,9 @@ namespace Legion {
               get_unique_id(), coordinates, it->second, &try_again);
         } while (try_again.exists());
         if (pool == nullptr)
-          Exception(RESOURCE_EXCEPTION, this)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
               << "Failed to reserve a dynamic memory pool of "
               << it->second.size << " bytes for leaf task " << *this << " in "
               << manager->get_name() << " memory. You are actually out "
@@ -2695,6 +2937,8 @@ namespace Legion {
               << "finding out that you're out of memory this way you should "
               << "instead use the 'MapperRuntime::acquire_pool' call to make "
               << "sure that memory can be reserved for all pools in advance.";
+          error.raise();
+        }
         leaf_memory_pools.emplace(std::make_pair(it->first, pool));
         // Keep track of all our unbounded pools
         if (!it->second.is_bounded())

@@ -62,8 +62,11 @@ namespace Legion {
                 0)
     {
       if (ctx != Internal::implicit_context)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
-            << "Invalid task context passed to runtime call " << func;
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid task context passed to runtime call " << func;
+        error.raise();
+      }
     }
     // C string versions
     inline AutoCall(const char* prov)
@@ -86,8 +89,11 @@ namespace Legion {
                 0)
     {
       if (ctx != Internal::implicit_context)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
-            << "Invalid task context passed to runtime call " << func;
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid task context passed to runtime call " << func;
+        error.raise();
+      }
     }
     // std::string versions
     inline AutoCall(const std::string& prov)
@@ -110,8 +116,11 @@ namespace Legion {
                 0)
     {
       if (ctx != Internal::implicit_context)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
-            << "Invalid task context passed to runtime call " << func;
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid task context passed to runtime call " << func;
+        error.raise();
+      }
     }
     inline ~AutoCall(void)
     {
@@ -179,11 +188,14 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-              << "Unsupported dimension " << domain.get_dim()
-              << " for Runtime::create_index_space. "
-              << "This probably means you need to build Legion with support "
-                 "for more dimensions.";
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error
+                << "Unsupported dimension " << domain.get_dim()
+                << " for Runtime::create_index_space. This probably means you "
+                << "need to build Legion with support for more dimensions.";
+            error.raise();
+          }
       }
     }
     return ctx->create_index_space(domain, take_ownership, type_tag, call);
@@ -210,11 +222,14 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-              << "Unsupported dimension " << dimensions
-              << " for Runtime::create_index_space. "
-              << "This probably means you need to build Legion with support "
-                 "for more dimensions.";
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error
+                << "Unsupported dimension " << dimensions
+                << " for Runtime::create_index_space. This probably means you "
+                << "need to build Legion with support for more dimensions.";
+            error.raise();
+          }
       }
     }
     return ctx->create_index_space(future, type_tag, call);
@@ -523,11 +538,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << bf.get_dim()
-            << " for Runtime::create_partition_by_blockify. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << bf.get_dim() << " for "
+                << "Runtime::create_partition_by_blockify. This probably means "
+                << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return IndexPartition::NO_PART;
   }
@@ -552,11 +569,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << bf.get_dim()
-            << " for Runtime::create_partition_by_blockify. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << bf.get_dim() << " for "
+                << "Runtime::create_partition_by_blockify. This probably means "
+                << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return IndexPartition::NO_PART;
   }
@@ -726,11 +745,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::create_index_space_union. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << color.get_dim() << " for "
+                << "Runtime::create_index_space_union. This probably means you "
+                << "need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return IndexSpace::NO_SPACE;
   }
@@ -768,11 +789,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::create_index_space_union. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << color.get_dim() << " for "
+                << "Runtime::create_index_space_union. This probably means you "
+                << "need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return IndexSpace::NO_SPACE;
   }
@@ -810,11 +833,14 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::create_index_space_intersection. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << color.get_dim() << " for "
+                << "Runtime::create_index_space_intersection. This probably "
+                   "means "
+                << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return IndexSpace::NO_SPACE;
   }
@@ -852,11 +878,14 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::create_index_space_intersection. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << color.get_dim() << " for "
+                << "Runtime::create_index_space_intersection. This probably "
+                   "means "
+                << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return IndexSpace::NO_SPACE;
   }
@@ -896,11 +925,14 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::create_index_space_difference. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
+              << "Unsupported dimension " << color.get_dim() << " for "
+              << "Runtime::create_index_space_difference. This probably means "
+              << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return IndexSpace::NO_SPACE;
   }
@@ -1013,11 +1045,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::get_index_subspace. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << color.get_dim() << " for "
+                << "Runtime::get_index_subspace. This probably means you need "
+                << "to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return IndexSpace::NO_SPACE;
   }
@@ -1048,11 +1082,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::get_index_subspace. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << color.get_dim() << " for "
+                << "Runtime::get_index_subspace. This probably means you need "
+                << "to build Legion with support for ore dimensions.";
+          error.raise();
+        }
     }
     return IndexSpace::NO_SPACE;
   }
@@ -1083,11 +1119,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::has_index_subspace. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << color.get_dim() << " for "
+                << "Runtime::has_index_subspace. This probably means you need "
+                << "to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return false;
   }
@@ -1108,11 +1146,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << color.get_dim()
-            << " for Runtime::has_index_subspace. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << color.get_dim() << " for "
+                << "Runtime::has_index_subspace. This probably means you need "
+                << "to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return false;
   }
@@ -1163,11 +1203,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << dim
-            << " for Runtime::get_index_space_domain. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << dim << " for "
+                << "Runtime::get_index_space_domain. This probably means you "
+                << "need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return Domain::NO_DOMAIN;
   }
@@ -1193,11 +1235,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << dim
-            << " for Runtime::get_index_space_domain. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << dim << " for "
+                << "Runtime::get_index_space_domain. This probably means you "
+                << "need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return Domain::NO_DOMAIN;
   }
@@ -1526,8 +1570,11 @@ namespace Legion {
     // Don't check against implicit_context here because this method might
     // be called from OpenMP processors which don't have implicit_context set
     if (ctx == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Invalid task context passed to Runtime::safe_cast";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Invalid task context passed to Runtime::safe_cast";
+      error.raise();
+    }
     Internal::AutoProvenance prov;
     const unsigned long long start =
         ctx->begin_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov) ?
@@ -1551,11 +1598,13 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << point.get_dim()
-            << " for Runtime::safe_cast. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Unsupported dimension " << point.get_dim() << " for "
+                << "Runtime::safe_cast. This probably means you need to build "
+                << "Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     ctx->end_runtime_call(
         Internal::RUNTIME_SAFE_CAST_CALL, prov, start,
@@ -1872,11 +1921,14 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << c.get_dim()
-            << " for Runtime::get_logical_subregion_by_color. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
+              << "Unsupported dimension " << c.get_dim() << " for "
+              << "Runtime::get_logical_subregion_by_color. This probably means "
+              << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return LogicalRegion::NO_REGION;
   }
@@ -1909,11 +1961,14 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << c.get_dim()
-            << " for Runtime::get_logical_subregion_by_color. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
+              << "Unsupported dimension " << c.get_dim() << " for "
+              << "Runtime::get_logical_subregion_by_color. This probably means "
+              << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return LogicalRegion::NO_REGION;
   }
@@ -1947,11 +2002,14 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << c.get_dim()
-            << " for Runtime::has_logical_subregion_by_color. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
+              << "Unsupported dimension " << c.get_dim() << " for "
+              << "Runtime::has_logical_subregion_by_color. This probably means "
+              << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return false;
   }
@@ -1974,11 +2032,14 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
-            << "Unsupported dimension " << c.get_dim()
-            << " for Runtime::has_logical_subregion_by_color. "
-            << "This probably means you need to build Legion with support for "
-               "more dimensions.";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
+              << "Unsupported dimension " << c.get_dim() << " for "
+              << "Runtime::has_logical_subregion_by_color. This probably means "
+              << "you need to build Legion with support for more dimensions.";
+          error.raise();
+        }
     }
     return false;
   }
@@ -3039,8 +3100,11 @@ namespace Legion {
   {
     // Cannot use auto-call here for profiling
     if (ctx != Internal::implicit_context)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Invalid task context passed to Runtime::begin_mapper_call";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Invalid task context passed to Runtime::begin_mapper_call";
+      error.raise();
+    }
     if (target.exists())
       return runtime->begin_mapper_call(id, target, ctx->owner_task);
     else
@@ -3871,9 +3935,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (!Internal::Runtime::runtime_started)
-      Internal::Exception(Internal::STARTUP_EXCEPTION)
-          << "Illegal call to 'Runtime::get_input_args' before the runtime is "
-             "started";
+    {
+      Error error(LEGION_STARTUP_EXCEPTION);
+      error << "Illegal call to 'Runtime::get_input_args' before the "
+            << "runtime is started";
+      error.raise();
+    }
     return Internal::runtime->input_args;
   }
 
@@ -3889,9 +3956,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (!Internal::Runtime::runtime_started)
-      Internal::Exception(Internal::STARTUP_EXCEPTION)
-          << "Illegal call to 'Runtime::get_runtime' before the runtime is "
-             "started";
+    {
+      Error error(LEGION_STARTUP_EXCEPTION);
+      error << "Illegal call to 'Runtime::get_runtime' before the "
+            << "runtime is started";
+      error.raise();
+    }
     return Internal::runtime->external;
   }
 
@@ -4095,8 +4165,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (!I_know_what_I_am_doing)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "User does not know what they are doing asking for a shard ID";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "User does not know what they are doing asking for a shard ID";
+      error.raise();
+    }
     const Task* task = get_local_task(ctx);
     return task->get_shard_id();
   }
@@ -4106,9 +4179,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (!I_know_what_I_am_doing)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "User does not know what they are doing asking for the number of "
-             "shards";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "User does not know what they are doing asking for the "
+            << "number of shards";
+      error.raise();
+    }
     const Task* task = get_local_task(ctx);
     return task->get_total_shards();
   }

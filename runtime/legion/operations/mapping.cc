@@ -560,15 +560,26 @@ namespace Legion {
           missing_fields, &acquired_instances, unacquired,
           runtime->safe_mapper);
       if (bad_tree > 0)
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from invocation of 'map_inline' on "
-               "mapper "
-            << *mapper << ". Mapper selected instance from region tree "
-            << bad_tree << " to satisfy a region requirement for " << *this
-            << " whose region tree is " << requirement.region.get_tree_id()
-            << ".";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'map_inline' on "
+                 "mapper "
+              << *mapper << ". Mapper selected instance from region tree "
+              << bad_tree << " to satisfy a region requirement for " << *this
+              << " whose region tree is " << requirement.region.get_tree_id()
+              << ".";
+        error.raise();
+      }
       if (!missing_fields.empty())
       {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'map_inline' on "
+                 "mapper "
+              << *mapper
+              << ". Mapper failed to specify a physical instance for "
+              << missing_fields.size() << " fields of the region "
+              << "requirement for " << *this << ". The missing fields are: ";
+        bool first = true;
         for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
              it != missing_fields.end(); it++)
         {
@@ -578,17 +589,13 @@ namespace Legion {
                   requirement.region.get_field_space(), *it,
                   LEGION_NAME_SEMANTIC_TAG, name, name_size, true, false))
             name = "(no name)";
-          log_legion.error(
-              "Missing instance for field %s (FieldID: %d)",
-              static_cast<const char*>(name), *it);
+          if (first)
+            first = false;
+          else
+            error << ", ";
+          error << static_cast<const char*>(name) << "(FieldID: " << *it << ")";
         }
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from invocation of 'map_inline' on "
-               "mapper "
-            << *mapper << ". Mapper failed to specify a physical instance for "
-            << missing_fields.size() << " fields of the region "
-            << "requirement for " << *this
-            << ". The missing fields are listed above.";
+        error.raise();
       }
       if (!unacquired.empty())
       {
@@ -597,7 +604,9 @@ namespace Legion {
              it != unacquired.end(); it++)
         {
           if (acquired_instances.find(*it) == acquired_instances.end())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from 'map_inline' invocation on "
                    "mapper "
                 << *mapper << ". Mapper selected physical instance for "
@@ -607,26 +616,35 @@ namespace Legion {
                 << "it would have detected this. Please update the mapper to "
                    "abide "
                 << "by proper mapping conventions.";
+            error.raise();
+          }
         }
         // If we did successfully acquire them, still issue the warning
-        Exception(WARNING_EXCEPTION, this)
-            << "Mapper " << *mapper << "failed to acquire instance for "
-            << *this << "in 'map_inline' call. You may experience undefined "
-            << "behavior as a consequence.";
+        Warning warning;
+        warning << "Mapper " << *mapper << "failed to acquire instance for "
+                << *this
+                << "in 'map_inline' call. You may experience undefined "
+                << "behavior as a consequence.";
+        warning.raise();
       }
       if (virtual_index >= 0)
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from invocation of 'map_inline' on "
-               "mapper "
-            << *mapper << ". Mapper requested creation of a "
-            << "virtual mapping for " << *this << ". Inline mapping operations "
-            << "are not permitted to do perform virtual mappings.";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'map_inline' on "
+                 "mapper "
+              << *mapper << ". Mapper requested creation of a "
+              << "virtual mapping for " << *this
+              << ". Inline mapping operations "
+              << "are not permitted to do perform virtual mappings.";
+        error.raise();
+      }
       if (!output.track_valid_region && !IS_READ_ONLY(requirement))
       {
-        Exception(WARNING_EXCEPTION, this)
-            << "Ignoring request by mapper " << *mapper
-            << " to not track valid instances for " << *this << " because "
-            << "the region requirement does not have read-only privileges.";
+        Warning warning;
+        warning << "Ignoring request by mapper " << *mapper
+                << " to not track valid instances for " << *this << " because "
+                << "the region requirement does not have read-only privileges.";
+        warning.raise();
         output.track_valid_region = true;
       }
       // If we are doing unsafe mapping, then we can return
@@ -643,12 +661,16 @@ namespace Legion {
         {
           const Memory mem = chosen_instances[idx].get_memory();
           if (visible_memories.find(mem) == visible_memories.end())
-            Exception(MAPPER_EXCEPTION, this)
-                << "Invalid mapper output from invocation of 'map_inline' on "
-                   "mapper "
-                << *mapper << ". Mapper selected a physical "
-                << "instance in memory " << mem
-                << " which is not visible from processor " << exec_proc << ".";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'map_inline' on "
+                     "mapper "
+                  << *mapper << ". Mapper selected a physical "
+                  << "instance in memory " << mem
+                  << " which is not visible from processor " << exec_proc
+                  << ".";
+            error.raise();
+          }
         }
       }
       // Iterate over the instances and make sure they are all valid
@@ -658,11 +680,14 @@ namespace Legion {
       {
         PhysicalManager* manager = chosen_instances[idx].get_physical_manager();
         if (!manager->meets_regions(regions_to_check))
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_inline' on "
-                 "mapper "
-              << *mapper << ". Mapper specified an instance that "
-              << "does not meet the logical region requirement.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_inline' on "
+                   "mapper "
+                << *mapper << ". Mapper specified an instance that "
+                << "does not meet the logical region requirement.";
+          error.raise();
+        }
       }
       // If this is a reduction region requirement, make sure all the
       // chosen instances are specialized reduction instances
@@ -670,26 +695,32 @@ namespace Legion {
       {
         for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
           if (!chosen_instances[idx].get_manager()->is_reduction_manager())
-            Exception(MAPPER_EXCEPTION, this)
-                << "Invalid mapper output from invocation of 'map_inline' on "
-                   "mapper "
-                << *mapper << ". Mapper failed to select "
-                << "specialized reduction instances for region requirement "
-                   "with "
-                << "reduction-only privileges for " << *this << ".";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'map_inline' on "
+                     "mapper "
+                  << *mapper << ". Mapper failed to select "
+                  << "specialized reduction instances for region requirement "
+                     "with "
+                  << "reduction-only privileges for " << *this << ".";
+            error.raise();
+          }
       }
       else
       {
         for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
         {
           if (chosen_instances[idx].get_manager()->is_reduction_manager())
-            Exception(MAPPER_EXCEPTION, this)
-                << "Invalid mapper output from invocation of 'map_inline' on "
-                   "mapper "
-                << *mapper << ". Mapper selected an illegal "
-                << "specialized reduction instance for region requirement "
-                   "without "
-                << "reduction privileges for " << *this << ".";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'map_inline' on "
+                     "mapper "
+                  << *mapper << ". Mapper selected an illegal "
+                  << "specialized reduction instance for region requirement "
+                     "without "
+                  << "reduction privileges for " << *this << ".";
+            error.raise();
+          }
         }
       }
       if (layout_constraint_id > 0)
@@ -703,11 +734,14 @@ namespace Legion {
               chosen_instances[idx].get_physical_manager();
           const LayoutConstraint* conflict_constraint = nullptr;
           if (manager->conflicts(constraints, &conflict_constraint))
-            Exception(MAPPER_EXCEPTION, this)
-                << "Invalid mapper output. Mapper " << *mapper
-                << " selected instance for " << *this
-                << " which failed to satisfy the corresponding layout "
-                   "constraints.";
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output. Mapper " << *mapper
+                  << " selected instance for " << *this
+                  << " which failed to satisfy the corresponding layout "
+                     "constraints.";
+            error.raise();
+          }
         }
         // See if there is a padding constraint to get reservations for
         if (constraints->padding_constraint.delta.get_dim() > 0)

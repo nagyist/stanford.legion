@@ -129,10 +129,13 @@ namespace Legion {
         memcpy(value, launcher.argument.get_ptr(), value_size);
       }
       else
-        Exception(INTERFACE_EXCEPTION, this)
-            << "No fill value found for " << *this << ". All fill operations "
-            << "must be given a non-empty argument or a future to use as a "
-            << "fill value.";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "No fill value found for " << *this << ". All fill operations "
+              << "must be given a non-empty argument or a future to use as a "
+              << "fill value.";
+        error.raise();
+      }
       grants = launcher.grants;
       wait_barriers = launcher.wait_barriers;
       arrive_barriers = launcher.arrive_barriers;
@@ -621,10 +624,13 @@ namespace Legion {
         memcpy(value, launcher.argument.get_ptr(), value_size);
       }
       else
-        Exception(INTERFACE_EXCEPTION, this)
-            << "No fill value found for " << *this << ". All fill operations "
-            << "must be given a non-empty argument or a future to use as a "
-            << "fill value.";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "No fill value found for " << *this << ". All fill operations "
+              << "must be given a non-empty argument or a future to use as a "
+              << "fill value.";
+        error.raise();
+      }
       grants = launcher.grants;
       wait_barriers = launcher.wait_barriers;
       arrive_barriers = launcher.arrive_barriers;

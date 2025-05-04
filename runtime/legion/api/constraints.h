@@ -25,21 +25,23 @@
 
 // clang-format off
 #define LEGION_EXECUTION_CONSTRAINT_KINDS(__op__)                         \
-  __op__(ISA_CONSTRAINT, "ISA") __op__(PROCESSOR_CONSTRAINT, "Processor") \
-  __op__(RESOURCE_CONSTRAINT, "Resource")                                 \
-  __op__(LAUNCH_CONSTRAINT, "Launch")                                     \
-  __op__(COLOCATION_CONSTRAINT, "Co-Location")
+  __op__(LEGION_ISA_CONSTRAINT, "ISA")                                    \
+  __op__(LEGION_PROCESSOR_CONSTRAINT, "Processor")                        \
+  __op__(LEGION_RESOURCE_CONSTRAINT, "Resource")                          \
+  __op__(LEGION_LAUNCH_CONSTRAINT, "Launch")                              \
+  __op__(LEGION_COLOCATION_CONSTRAINT, "Co-Location")
 
 #define LEGION_LAYOUT_CONSTRAINT_KINDS(__op__)                            \
-  __op__(SPECIALIZED_CONSTRAINT, "Specialized")                           \
-  __op__(MEMORY CONSTRAINT, "Memory") __op__(FIELD_CONSTRAINT, "Field")   \
-  __op__(ORDERING_CONSTRAINT, "Ordering")                                 \
-  __op__(TILING_CONSTRAINT, "Tiling")                                     \
-  __op__(DIMENSION_CONSTRAINT, "Dimension")                               \
-  __op__(ALIGNMENT_CONSTRAINT, "Alignment")                               \
-  __op__(OFFSET_CONSTRAINT, "Offset")                                     \
-  __op__(POINTER_CONSTRAINT, "Pointer")                                   \
-  __op__(PADDING_CONSTRAINT, "Padding")
+  __op__(LEGION_SPECIALIZED_CONSTRAINT, "Specialized")                    \
+  __op__(LEGION_MEMORY_CONSTRAINT, "Memory")                              \
+  __op__(LEGION_FIELD_CONSTRAINT, "Field")                                \
+  __op__(LEGION_ORDERING_CONSTRAINT, "Ordering")                          \
+  __op__(LEGION_TILING_CONSTRAINT, "Tiling")                              \
+  __op__(LEGION_DIMENSION_CONSTRAINT, "Dimension")                        \
+  __op__(LEGION_ALIGNMENT_CONSTRAINT, "Alignment")                        \
+  __op__(LEGION_OFFSET_CONSTRAINT, "Offset")                              \
+  __op__(LEGION_POINTER_CONSTRAINT, "Pointer")                            \
+  __op__(LEGION_PADDING_CONSTRAINT, "Padding")
 // clang-format on
 
 namespace Legion {
@@ -920,6 +922,33 @@ namespace Legion {
   public:
     std::multimap<unsigned, LayoutConstraintID> layouts;
   };
+
+  inline std::ostream& operator<<(
+      std::ostream& os, ExecutionConstraintKind kind)
+  {
+#define CONSTRAINT_NAMES(name, desc) \
+  case name:                         \
+    return os << desc;
+    switch (kind)
+    {
+      LEGION_EXECUTION_CONSTRAINT_KINDS(CONSTRAINT_NAMES)
+    }
+#undef CONSTRAINT_NAMES
+    std::abort();
+  }
+
+  inline std::ostream& operator<<(std::ostream& os, LayoutConstraintKind kind)
+  {
+#define CONSTRAINT_NAMES(name, desc) \
+  case name:                         \
+    return os << desc;
+    switch (kind)
+    {
+      LEGION_LAYOUT_CONSTRAINT_KINDS(CONSTRAINT_NAMES)
+    }
+#undef CONSTRAINT_NAMES
+    std::abort();
+  }
 
 }  // namespace Legion
 

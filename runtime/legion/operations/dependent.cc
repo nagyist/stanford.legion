@@ -98,21 +98,27 @@ namespace Legion {
         const size_t coord_size =
             runtime->get_coordinate_size(color_space, false /*range*/);
         if (field_size != coord_size)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "The field size for partition-by-field operation does not "
-              << "match the size of the coordinate type of the color space "
-              << "of the resulting partition. Field " << fid << " has size "
-              << field_size << " bytes but the coordinates "
-              << "of color space " << color_space << " of partition " << pid
-              << " are " << coord_size << " bytes for " << *this << ".";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "The field size for partition-by-field operation does not "
+                << "match the size of the coordinate type of the color space "
+                << "of the resulting partition. Field " << fid << " has size "
+                << field_size << " bytes but the coordinates "
+                << "of color space " << color_space << " of partition " << pid
+                << " are " << coord_size << " bytes for " << *this << ".";
+          error.raise();
+        }
         const CustomSerdezID serdez =
             runtime->get_field_serdez(handle.get_field_space(), fid);
         if (serdez != 0)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "Serdez fields are not permitted to be used for any "
-              << "dependent partitioning calls. Field " << fid
-              << " has serdez function " << serdez << " and was passed "
-              << "to partition-by-field " << *this << ".";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Serdez fields are not permitted to be used for any "
+                << "dependent partitioning calls. Field " << fid
+                << " has serdez function " << serdez << " and was passed "
+                << "to partition-by-field " << *this << ".";
+          error.raise();
+        }
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -151,20 +157,27 @@ namespace Legion {
         const size_t coord_size =
             runtime->get_coordinate_size(handle, false /*range*/);
         if (field_size != coord_size)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "The field size for partition-by-image operation does not "
-              << "match the size of the coordinate types of the projection "
-              << "partition. Field " << fid << "  has size " << field_size
-              << " bytes but the coordinates of the projection partition "
-              << pid << " are " << coord_size << " bytes for " << *this << ".";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "The field size for partition-by-image operation does not "
+                << "match the size of the coordinate types of the projection "
+                << "partition. Field " << fid << "  has size " << field_size
+                << " bytes but the coordinates of the projection partition "
+                << pid << " are " << coord_size << " bytes for " << *this
+                << ".";
+          error.raise();
+        }
         const CustomSerdezID serdez =
             runtime->get_field_serdez(projection.get_field_space(), fid);
         if (serdez != 0)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "Serdez fields are not permitted to be used for any "
-              << "dependent partitioning calls. Field " << fid
-              << " has serdez function " << serdez
-              << " and was passed to partition-by-image " << *this << ".";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Serdez fields are not permitted to be used for any "
+                << "dependent partitioning calls. Field " << fid
+                << " has serdez function " << serdez
+                << " and was passed to partition-by-image " << *this << ".";
+          error.raise();
+        }
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -203,21 +216,29 @@ namespace Legion {
         const size_t coord_size =
             runtime->get_coordinate_size(handle, true /*range*/);
         if (field_size != coord_size)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
               << "The field size for partition-by-image-range operation does "
               << "not match the size of the coordinate types of the projection "
               << "partition. Field " << fid << " has size " << field_size
               << " bytes but the coordinates of the projection partition "
               << pid << "  are " << coord_size << " bytes for dependent "
               << "partition " << *this << ".";
+          error.raise();
+        }
         const CustomSerdezID serdez =
             runtime->get_field_serdez(projection.get_field_space(), fid);
         if (serdez != 0)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "Serdez fields are not permitted to be used for any "
-              << "dependent partitioning calls. Field " << fid
-              << " has serdez function " << serdez
-              << " and was passed to partition-by-image-range " << *this << ".";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Serdez fields are not permitted to be used for any "
+                << "dependent partitioning calls. Field " << fid
+                << " has serdez function " << serdez
+                << " and was passed to partition-by-image-range " << *this
+                << ".";
+          error.raise();
+        }
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -257,21 +278,28 @@ namespace Legion {
         const size_t coord_size =
             runtime->get_coordinate_size(proj_parent, false /*range*/);
         if (field_size != coord_size)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
               << "The field size for partition-by-preimage operation does not "
               << "match the size of the coordinate types of the projection "
               << "partition. Field " << fid << " has size " << field_size
               << " bytes but the coordinates of the projection partition "
               << proj << " are " << coord_size << " bytes for dependent "
               << "partition " << *this << ".";
+          error.raise();
+        }
         const CustomSerdezID serdez =
             runtime->get_field_serdez(handle.get_field_space(), fid);
         if (serdez != 0)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "Serdez fields are not permitted to be used for any "
-              << "dependent partitioning calls. Field " << fid
-              << " has serdez function " << serdez
-              << " and was passed to partition-by-preimage " << *this << ".";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Serdez fields are not permitted to be used for any "
+                << "dependent partitioning calls. Field " << fid
+                << " has serdez function " << serdez
+                << " and was passed to partition-by-preimage " << *this << ".";
+          error.raise();
+        }
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -311,7 +339,9 @@ namespace Legion {
         const size_t coord_size =
             runtime->get_coordinate_size(proj_parent, true /*range*/);
         if (field_size != coord_size)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
               << "The field size for partition-by-preimage-range operation "
                  "does "
               << "not match the size of the coordinate types of the projection "
@@ -319,15 +349,20 @@ namespace Legion {
               << " bytes but the coordinates of the projection partition "
               << proj << " are " << coord_size << " bytes for dependent "
               << "partition " << *this << ".";
+          error.raise();
+        }
         const CustomSerdezID serdez =
             runtime->get_field_serdez(handle.get_field_space(), fid);
         if (serdez != 0)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "Serdez fields are not permitted to be used for any "
-              << "dependent partitioning calls. Field " << fid
-              << " has serdez function " << serdez
-              << " and was passed to partition-by-preimage-range " << *this
-              << ".";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Serdez fields are not permitted to be used for any "
+                << "dependent partitioning calls. Field " << fid
+                << " has serdez function " << serdez
+                << " and was passed to partition-by-preimage-range " << *this
+                << ".";
+          error.raise();
+        }
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -365,20 +400,27 @@ namespace Legion {
         const size_t coord_size =
             runtime->get_coordinate_size(range, false /*range*/);
         if (field_size != coord_size)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
               << "The field size for create-by-association operation does not "
               << "match the size of the range index space. Field " << fid
               << " has size " << field_size << " bytes but the coordinates of "
               << "the range index space " << range << " are " << coord_size
               << " bytes for create-by-association " << *this << ".";
+          error.raise();
+        }
         const CustomSerdezID serdez =
             runtime->get_field_serdez(domain.get_field_space(), fid);
         if (serdez != 0)
-          Exception(DYNAMIC_TYPE_EXCEPTION, this)
-              << "Serdez fields are not permitted to be used for any "
-              << "dependent partitioning calls. Field " << fid
-              << " has serdez function " << serdez
-              << " and was passed to create-by-association " << *this << ".";
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Serdez fields are not permitted to be used for any "
+                << "dependent partitioning calls. Field " << fid
+                << " has serdez function " << serdez
+                << " and was passed to create-by-association " << *this << ".";
+          error.raise();
+        }
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -510,11 +552,14 @@ namespace Legion {
         // if the partition operation is an image or image-range
         if (runtime->safe_mapper && !partition_node->is_complete(false) &&
             !thunk->safe_projection(partition_node->handle))
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of "
-              << "'select_partition_projection' on mapper " << *mapper
-              << ".Mapper selected a logical "
-              << "partition that is not complete for " << *this << ".";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of "
+                << "'select_partition_projection' on mapper " << *mapper
+                << ".Mapper selected a logical "
+                << "partition that is not complete for " << *this << ".";
+          error.raise();
+        }
         // Update the region requirement and other information
         requirement.partition = output.chosen_partition;
         requirement.handle_type = LEGION_PARTITION_PROJECTION;
@@ -777,13 +822,16 @@ namespace Legion {
           missing_fields, &acquired_instances, unacquired,
           runtime->safe_mapper);
       if (bad_tree > 0)
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from invocation of 'map_partition' on "
-               "mapper "
-            << *mapper << ". Mapper selected instance from region tree "
-            << bad_tree << " to satisfy a region requirement for " << *this
-            << " whose logical region is from region tree "
-            << requirement.region.get_tree_id() << ".";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'map_partition' on "
+                 "mapper "
+              << *mapper << ". Mapper selected instance from region tree "
+              << bad_tree << " to satisfy a region requirement for " << *this
+              << " whose logical region is from region tree "
+              << requirement.region.get_tree_id() << ".";
+        error.raise();
+      }
       if (!missing_fields.empty())
       {
         for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
@@ -799,13 +847,14 @@ namespace Legion {
               "Missing instance for field %s (FieldID: %d)",
               static_cast<const char*>(name), *it);
         }
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from invocation of 'map_partition' on "
-               "mapper "
-            << *mapper << ". Mapper failed to specify a physical "
-            << "instance for " << missing_fields.size()
-            << " fields of the region requirement for " << *this
-            << ". This missing fields are listed above.";
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'map_partition' on "
+                 "mapper "
+              << *mapper << ". Mapper failed to specify a physical "
+              << "instance for " << missing_fields.size()
+              << " fields of the region requirement for " << *this
+              << ". This missing fields are listed above.";
+        error.raise();
       }
       if (!unacquired.empty())
       {
@@ -814,7 +863,9 @@ namespace Legion {
              it != unacquired.end(); it++)
         {
           if (acquired_instances.find(*it) == acquired_instances.end())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from 'map_partition' invocation on "
                    "mapper "
                 << *mapper << ". Mapper selected physical instance for "
@@ -823,19 +874,26 @@ namespace Legion {
                    "of the "
                 << "mapper call it would have detected this. Please update the "
                 << "mapper to abide by proper mapping conventions.";
+            error.raise();
+          }
         }
         // If we did successfully acquire them, still issue the warning
-        Exception(WARNING_EXCEPTION)
-            << "Mapper " << *mapper << " faield to acquire instance for "
-            << *this << "in 'map_partition' call. You may experience undefined "
-            << "behavior as a consequence.";
+        Warning warning;
+        warning << "Mapper " << *mapper << " faield to acquire instance for "
+                << *this
+                << "in 'map_partition' call. You may experience undefined "
+                << "behavior as a consequence.";
+        warning.raise();
       }
       if (virtual_index >= 0)
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from invocation of 'map_partition' on "
-               "mapper "
-            << *mapper << ". Mapper requested creation of a virtual "
-            << "mapping for " << *this << ".";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'map_partition' on "
+                 "mapper "
+              << *mapper << ". Mapper requested creation of a virtual "
+              << "mapping for " << *this << ".";
+        error.raise();
+      }
       // If we are doing unsafe mapping, then we can return
       if (!runtime->safe_mapper)
         return output.track_valid_region;
@@ -846,18 +904,26 @@ namespace Legion {
       {
         PhysicalManager* manager = mapped_instances[idx].get_physical_manager();
         if (!manager->meets_regions(regions_to_check))
-          Exception(MAPPER_EXCEPTION, this)
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error
               << "Invalid mapper output from invocation of 'map_partition' on "
                  "mapper "
               << *mapper << ". Mapper specified an instance that "
               << "does not meet the logical region requirement for " << *this
               << ". ";
+          error.raise();
+        }
         if (manager->is_reduction_manager())
-          Exception(MAPPER_EXCEPTION, this)
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error
               << "Invalid mapper output from invocation of 'map_partition' on "
                  "mapper "
               << *mapper << ". Mapper selected an illegal specialized "
               << "reduction instance for " << *this << ".";
+          error.raise();
+        }
         // This is a temporary check to guarantee that instances for
         // dependent partitioning operations are in memories that
         // Realm supports for now. In the future this should be fixed
@@ -871,7 +937,8 @@ namespace Legion {
             (mem_kind != Memory::SOCKET_MEM) &&
             (mem_kind != Memory::Z_COPY_MEM))
         {
-          Exception(MAPPER_EXCEPTION, this)
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error
               << "Invalid mapper output from invocation of 'map_partition' on "
                  "mapper "
               << *mapper << " for " << *this << ". Mapper specified"
@@ -879,6 +946,7 @@ namespace Legion {
               << " which is not supported for dependent partition operations "
               << "currently (see Legion issue #516). Please pick an "
               << "instance in a CPU-visible memory for now.";
+          error.raise();
         }
       }
       return output.track_valid_region;

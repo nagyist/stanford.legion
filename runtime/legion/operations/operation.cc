@@ -552,152 +552,209 @@ namespace Legion {
       // Check the sanity of the privileges
       // Make sure that none of the unused-bits are used
       if (req.privilege & ~(LEGION_DISCARD_OUTPUT_MASK | LEGION_WRITE_DISCARD))
-        Exception(INTERFACE_EXCEPTION, this)
-            << "Region requirement " << index << " of " << *this
-            << " has an improperly formed privilege mode " << std::hex
-            << req.privilege << std::dec << ".";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Region requirement " << index << " of " << *this
+              << " has an improperly formed privilege mode " << std::hex
+              << req.privilege << std::dec << ".";
+        error.raise();
+      }
       if (IS_REDUCE(req))
       {
         // Must have a non-zero reduction operator
         if (req.redop == 0)
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Region requirement " << index << " of " << *this
-              << " must have a non-zero reduction operator "
-              << "when requesting reduction privileges.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Region requirement " << index << " of " << *this
+                << " must have a non-zero reduction operator "
+                << "when requesting reduction privileges.";
+          error.raise();
+        }
         // No discards allowed
         if (IS_WRITE_DISCARD(req))
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Region requirement " << index << " of " << *this
-              << " requested illegal discard-input modifier "
-              << "with reduction privileges. Reduction privileges are not "
-              << "permitted to specify any kind of discard modifier.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Region requirement " << index << " of " << *this
+                << " requested illegal discard-input modifier "
+                << "with reduction privileges. Reduction privileges are not "
+                << "permitted to specify any kind of discard modifier.";
+          error.raise();
+        }
         if (IS_READ_DISCARD(req))
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Region requirement " << index << " of " << *this
-              << " requested illegal discard-output modifier "
-              << "with reduction privileges. Reduction privileges are not "
-              << "permitted to specify any kind of discard modifier.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Region requirement " << index << " of " << *this
+                << " requested illegal discard-output modifier "
+                << "with reduction privileges. Reduction privileges are not "
+                << "permitted to specify any kind of discard modifier.";
+          error.raise();
+        }
       }
       else
       {
         // Make sure reduction operator is zero
         if (req.redop != 0)
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Region requirement " << index << " of " << *this
-              << " must not specify a reduction operator when "
-              << "using non-reduction privileges.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Region requirement " << index << " of " << *this
+                << " must not specify a reduction operator when "
+                << "using non-reduction privileges.";
+          error.raise();
+        }
         // Make sure no input discards on read-only privileges
         if (IS_READ_ONLY(req) && IS_WRITE_DISCARD(req))
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Region requirement " << index << " of " << *this
-              << " requested illegal discard-input modifier "
-              << "with read-only privileges. This is guaranteed to result in "
-                 "the "
-              << "use of uninitialized data and is therefore illegal.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Region requirement " << index << " of " << *this
+                << " requested illegal discard-input modifier "
+                << "with read-only privileges. This is guaranteed to result in "
+                   "the "
+                << "use of uninitialized data and is therefore illegal.";
+          error.raise();
+        }
       }
       // Make sure that none of the unused bits are set for coherence
       if (req.prop & ~LEGION_COLLECTIVE_RELAXED)
-        Exception(INTERFACE_EXCEPTION, this)
-            << "Region requirement " << index << " of " << *this
-            << " has an improperly formed coherence mode " << std::hex
-            << req.prop << std::dec << ".";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Region requirement " << index << " of " << *this
+              << " has an improperly formed coherence mode " << std::hex
+              << req.prop << std::dec << ".";
+        error.raise();
+      }
       if (req.privilege_fields.empty())
-        Exception(WARNING_EXCEPTION, this)
-            << "Region requirement " << index << " of " << *this
-            << " does not contain any privilege fields. "
-            << "Did you forget them?";
+      {
+        Warning warning;
+        warning << "Region requirement " << index << " of " << *this
+                << " does not contain any privilege fields. "
+                << "Did you forget them?";
+        warning.raise();
+      }
       // Check that the handle names are all sound
       if (!req.parent.exists())
-        Exception(INTERFACE_EXCEPTION, this)
-            << "The 'parent' region of region requirement " << index << " of "
-            << *this
-            << ") does not exist. The 'parent' region must always be set on "
-               "every region requirement.";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "The 'parent' region of region requirement " << index << " of "
+              << *this
+              << ") does not exist. The 'parent' region must always be set on "
+                 "every region requirement.";
+        error.raise();
+      }
       if (!req.parent.valid())
-        Exception(INTERFACE_EXCEPTION, this)
-            << "The 'parent' region of region requirement " << index << " of "
-            << *this
-            << " is not well-formed. This likely means it was corrupted by "
-               "application code.";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "The 'parent' region of region requirement " << index << " of "
+              << *this
+              << " is not well-formed. This likely means it was corrupted by "
+                 "application code.";
+        error.raise();
+      }
       if ((req.handle_type != LEGION_SINGULAR_PROJECTION) &&
           (req.handle_type != LEGION_REGION_PROJECTION) &&
           (req.handle_type != LEGION_PARTITION_PROJECTION))
-        Exception(INTERFACE_EXCEPTION, this)
-            << "Invalid value of 'handle_type' " << req.handle_type
-            << " for region requirement " << index << " of " << *this
-            << ". The 'handle_type' of the region "
-            << "requirement must be one of LEGION_SINGULAR_PROJECTION, "
-            << "LEGION_REGION_PROJECTION, or LEGION_PARTITION_PROJECTION.";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid value of 'handle_type' " << req.handle_type
+              << " for region requirement " << index << " of " << *this
+              << ". The 'handle_type' of the region "
+              << "requirement must be one of LEGION_SINGULAR_PROJECTION, "
+              << "LEGION_REGION_PROJECTION, or LEGION_PARTITION_PROJECTION.";
+        error.raise();
+      }
       if (req.handle_type == LEGION_PARTITION_PROJECTION)
       {
         if (!req.partition.exists())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "The 'partition' of region requirement " << index << " of "
-              << *this
-              << " does not exist. The 'partition' must always be set when "
-              << "'handle_type' is LEGION_SINGULAR_PROJECTION or "
-              << "LEGION_REGION_PROJECTION.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "The 'partition' of region requirement " << index << " of "
+                << *this
+                << " does not exist. The 'partition' must always be set when "
+                << "'handle_type' is LEGION_SINGULAR_PROJECTION or "
+                << "LEGION_REGION_PROJECTION.";
+          error.raise();
+        }
         if (!req.partition.valid())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "The 'partition' of region requirement " << index << " of "
-              << *this
-              << " is not well-formed. This likely means it was corrupted "
-              << "by application code.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "The 'partition' of region requirement " << index << " of "
+                << *this
+                << " is not well-formed. This likely means it was corrupted "
+                << "by application code.";
+          error.raise();
+        }
         // Check that partition  is in the same region tree
         if (req.partition.get_tree_id() != req.parent.get_tree_id())
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Partition " << req.partition
-              << " is not from the same region tree (tree="
-              << req.partition.get_tree_id()
-              << ") as the 'parent' region (tree=" << req.parent.get_tree_id()
-              << ") for region requirement " << index << " of " << *this
-              << ". The partition for a projection region requirement "
-              << "must always be from the same tree as the 'parent' region.";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Partition " << req.partition
+                << " is not from the same region tree (tree="
+                << req.partition.get_tree_id()
+                << ") as the 'parent' region (tree=" << req.parent.get_tree_id()
+                << ") for region requirement " << index << " of " << *this
+                << ". The partition for a projection region requirement "
+                << "must always be from the same tree as the 'parent' region.";
+          error.raise();
+        }
         // Check to see if the partition is a below in parent in the tree
         if (!runtime->has_partition_path(
                 req.parent.index_space, req.partition.index_partition))
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Partition " << req.partition
-              << " does not have parent region " << req.parent
-              << " as an ancestor in the region tree for region requirement "
-              << index << " of " << *this << "). The partition must always "
-              << "have the 'parent' region as an ancestor for privileges.";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Partition " << req.partition
+                << " does not have parent region " << req.parent
+                << " as an ancestor in the region tree for region requirement "
+                << index << " of " << *this << "). The partition must always "
+                << "have the 'parent' region as an ancestor for privileges.";
+          error.raise();
+        }
       }
       else
       {
         if (!req.region.exists())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "The 'region' of region requirement " << index << " of "
-              << *this
-              << " does not exist. The 'region' must always be set when "
-              << "'handle_type' is LEGION_SINGULAR_PROJECTION "
-              << "or LEGION_REGION_PROJECTION.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "The 'region' of region requirement " << index << " of "
+                << *this
+                << " does not exist. The 'region' must always be set when "
+                << "'handle_type' is LEGION_SINGULAR_PROJECTION "
+                << "or LEGION_REGION_PROJECTION.";
+          error.raise();
+        }
         if (!req.region.valid())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "The 'region' of region requirement " << index << " of "
-              << *this
-              << " is not well-formed. This likely means it was corrupted "
-              << "by application code.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "The 'region' of region requirement " << index << " of "
+                << *this
+                << " is not well-formed. This likely means it was corrupted "
+                << "by application code.";
+          error.raise();
+        }
         // Check that the region is in the same region tree
         if (req.region.get_tree_id() != req.parent.get_tree_id())
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Region " << req.region
-              << " is not from the same region tree (tree="
-              << req.region.get_tree_id()
-              << ") as the 'parent' region (tree=" << req.parent.get_tree_id()
-              << ") for region requirement " << index << " of " << *this
-              << ". The region for a region requirement "
-              << "must always be from the same tree as the 'parent' region.";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Region " << req.region
+                << " is not from the same region tree (tree="
+                << req.region.get_tree_id()
+                << ") as the 'parent' region (tree=" << req.parent.get_tree_id()
+                << ") for region requirement " << index << " of " << *this
+                << ". The region for a region requirement "
+                << "must always be from the same tree as the 'parent' region.";
+          error.raise();
+        }
         // Check to see if the partition is a below in parent in the tree
         if (!runtime->has_index_path(
                 req.parent.index_space, req.region.index_space))
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Region " << req.region << " does not have parent region "
-              << req.parent
-              << " as an ancestor in the region tree for region requirement "
-              << index << " of " << *this
-              << ". The region must always have the "
-              << "'parent' region as an ancestor for privileges.";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Region " << req.region << " does not have parent region "
+                << req.parent
+                << " as an ancestor in the region tree for region requirement "
+                << index << " of " << *this
+                << ". The region must always have the "
+                << "'parent' region as an ancestor for privileges.";
+          error.raise();
+        }
       }
       // Check the projection properties of the requirement
       if (req.handle_type != LEGION_SINGULAR_PROJECTION)
@@ -707,44 +764,57 @@ namespace Legion {
           ProjectionFunction* function = runtime->find_projection_function(
               req.projection, true /*can fail*/);
           if (function == nullptr)
-            Exception(INTERFACE_EXCEPTION, this)
-                << "Unable to find projection function " << req.projection
-                << " for region requirement " << index << " of " << *this
-                << ". This means a projection function was not registered "
-                << "with that projection function ID.";
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Unable to find projection function " << req.projection
+                  << " for region requirement " << index << " of " << *this
+                  << ". This means a projection function was not registered "
+                  << "with that projection function ID.";
+            error.raise();
+          }
         }
         else
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Detected a projection region requirement for region "
-              << "requirement " << index << " of " << *this << ". Projection "
-              << "region requirements are not supported for this kind of "
-                 "operation.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Detected a projection region requirement for region "
+                << "requirement " << index << " of " << *this << ". Projection "
+                << "region requirements are not supported for this kind of "
+                   "operation.";
+          error.raise();
+        }
       }
       // Check that all the fields are contained in the field space
       FieldSpaceNode* fs = runtime->get_node(req.parent.get_field_space());
       for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
            it != req.privilege_fields.end(); it++)
         if (!fs->has_field(*it))
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Field " << *it
-              << " in privilege fields of region requirement " << index
-              << " of " << *this << " is not contained with field space "
-              << fs->handle << " of the parent region requirement. All "
-              << "privilege fields must be contained within the parent "
-              << "region's field space.";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Field " << *it
+                << " in privilege fields of region requirement " << index
+                << " of " << *this << " is not contained with field space "
+                << fs->handle << " of the parent region requirement. All "
+                << "privilege fields must be contained within the parent "
+                << "region's field space.";
+          error.raise();
+        }
       // Check that the instance fields are unique and represented by privilege
       std::vector<FieldID> instance_fields(req.instance_fields);
       std::sort(instance_fields.begin(), instance_fields.end());
       for (unsigned idx = 0; idx < instance_fields.size(); idx++)
       {
         if ((idx > 0) && (instance_fields[idx - 1] == instance_fields[idx]))
-          Exception(INTERFACE_EXCEPTION, this)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error
               << "Duplicate field " << instance_fields[idx]
               << " found in the 'instance_fields' of region requirement "
               << index << " of " << *this
               << ". Each field in the 'privilege_fields' should be represented "
               << "exactly once in the 'instance_fields' of the region "
                  "requirement.";
+          error.raise();
+        }
         if (req.privilege_fields.find(instance_fields[idx]) ==
             req.privilege_fields.end())
         {
@@ -755,7 +825,8 @@ namespace Legion {
                   name_size, true /*can fail*/, false /*wait until*/))
           {
             std::string_view field_name((const char*)name, name_size);
-            Exception(INTERFACE_EXCEPTION, this)
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error
                 << "Field " << field_name
                 << " in 'instance_fields' of region requirement " << index
                 << " of " << *this
@@ -763,9 +834,12 @@ namespace Legion {
                 << "Each field in the 'instance_fields' must also be contained "
                    "in "
                 << "the 'privilege_fields' of the region requirement.";
+            error.raise();
           }
           else
-            Exception(INTERFACE_EXCEPTION, this)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error
                 << "Field " << instance_fields[idx]
                 << " in 'instance_fields' of region requirement " << index
                 << " of " << *this
@@ -773,6 +847,8 @@ namespace Legion {
                 << "Each field in the 'instance_fields' must also be contained "
                    "in the "
                 << "'privilege_fields' of the region requirement.";
+            error.raise();
+          }
         }
       }
     }
@@ -909,23 +985,32 @@ namespace Legion {
       const RegionRequirement& req = get_requirement(index);
       // Read-only or reduction usage of uninitialized data is always an error
       if (IS_READ_ONLY(req))
-        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-            << "Region requirement " << index << " of " << *this
-            << " is using uninitialized data for field(s) " << field_string
-            << " of logical region " << req.region
-            << " with read-only privileges.";
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Region requirement " << index << " of " << *this
+              << " is using uninitialized data for field(s) " << field_string
+              << " of logical region " << req.region
+              << " with read-only privileges.";
+        error.raise();
+      }
       else if (IS_REDUCE(req))
-        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-            << "Region requirement " << index << " of " << *this
-            << "is using uninitialized data for field(s) " << field_string
-            << " of logical region " << req.region
-            << " with reduction privileges.";
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Region requirement " << index << " of " << *this
+              << "is using uninitialized data for field(s) " << field_string
+              << " of logical region " << req.region
+              << " with reduction privileges.";
+        error.raise();
+      }
       // Read-write usage is just a warning
       else if ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0)
-        Exception(WARNING_EXCEPTION, this)
-            << "Region requirement " << index << " of " << *this
-            << " is using uninitialized data for fields(s) " << field_string
-            << " of " << req.region << ".";
+      {
+        Warning warning;
+        warning << "Region requirement " << index << " of " << *this
+                << " is using uninitialized data for fields(s) " << field_string
+                << " of " << req.region << ".";
+        warning.raise();
+      }
       Runtime::trigger_event(reported);
     }
 
@@ -1035,11 +1120,14 @@ namespace Legion {
           default:
             {
               if (warn_if_not_copy)
-                Exception(WARNING_EXCEPTION, this)
-                    << "Mapper " << *mapper
-                    << "requested a profiling measurement of type " << *it
-                    << "which is not applicable to operation " << *this
-                    << "and therefore it will be ignored";
+              {
+                Warning warning;
+                warning << "Mapper " << *mapper
+                        << "requested a profiling measurement of type " << *it
+                        << "which is not applicable to operation " << *this
+                        << "and therefore it will be ignored";
+                warning.raise();
+              }
             }
         }
       }
@@ -1832,9 +1920,12 @@ namespace Legion {
         }
         // Ignore any instances which are not in the original set of sources
         if (!found)
-          Exception(WARNING_EXCEPTION, this)
-              << "Ignoring invalid instance output from mapper " << *mapper
-              << " by select source call for " << *this << ".";
+        {
+          Warning warning;
+          warning << "Ignoring invalid instance output from mapper " << *mapper
+                  << " by select source call for " << *this << ".";
+          warning.raise();
+        }
       }
     }
 

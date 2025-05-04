@@ -669,20 +669,26 @@ namespace Legion {
       mapper->invoke_select_task_options(this, options, prioritize);
       options_selected = true;
       if (options.initial_proc.kind() == Processor::UTIL_PROC)
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output. Mapper " << *mapper << " requested that "
-            << *this << " initially be assigned to a "
-            << "utility processor in 'select_task_options.' Only application "
-            << "processor kinds are permitted to be the target processor for "
-               "tasks.";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output. Mapper " << *mapper
+              << " requested that " << *this << " initially be assigned to a "
+              << "utility processor in 'select_task_options.' Only application "
+              << "processor kinds are permitted to be the target processor for "
+                 "tasks.";
+        error.raise();
+      }
       target_proc = options.initial_proc;
       if (local_function && !runtime->is_local(target_proc))
-        Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output. Mapper " << *mapper
-            << "requested that local function " << *this
-            << " be assigned to processor " << target_proc << " which is "
-            << "not local to address space " << runtime->address_space
-            << ". Local function tasks must be assigned to local processors.";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output. Mapper " << *mapper
+              << "requested that local function " << *this
+              << " be assigned to processor " << target_proc << " which is "
+              << "not local to address space " << runtime->address_space
+              << ". Local function tasks must be assigned to local processors.";
+        error.raise();
+      }
       stealable = options.stealable;
       map_origin = options.map_locally;
       request_valid_instances = options.valid_instances;
@@ -692,12 +698,15 @@ namespace Legion {
         if (parent_ctx->is_priority_mutable())
           parent_ctx->set_current_priority(options.parent_priority);
         else
-          Exception(WARNING_EXCEPTION, this)
-              << "Mapper " << *mapper
-              << " requested change of priority for parent "
-              << *(parent_ctx->owner_task) << " when launching " << *this
-              << " but the parent "
-              << "context does not support parent task priority mutation";
+        {
+          Warning warning;
+          warning << "Mapper " << *mapper
+                  << " requested change of priority for parent "
+                  << *(parent_ctx->owner_task) << " when launching " << *this
+                  << " but the parent "
+                  << "context does not support parent task priority mutation";
+          warning.raise();
+        }
       }
       if (is_index_space)
       {
@@ -715,11 +724,15 @@ namespace Legion {
             if (!IS_WRITE(req))
               check_collective_regions.emplace_back(*it);
             else if (!IS_COLLECTIVE(req))
-              Exception(WARNING_EXCEPTION, this)
+            {
+              Warning warning;
+              warning
                   << "Ignoring request by mapper " << *mapper
                   << " to check for collective usage for region requirement "
                   << *it << " of " << *this << " because region requirement "
                   << "has writing privileges.";
+              warning.raise();
+            }
           }
         }
         for (unsigned idx = 0; idx < regions.size(); idx++)
@@ -755,32 +768,41 @@ namespace Legion {
       {
         // Replication of concurrent index space task launches are illegal
         if (concurrent_task)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Mapper " << *mapper << " request to replicate " << *this
-              << " that is a concurrent index space task launch in "
-              << "'select_task_options'. It is illegal to replicate the "
-              << "point tasks of a concurrent index space task launch.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << *mapper << " request to replicate " << *this
+                << " that is a concurrent index space task launch in "
+                << "'select_task_options'. It is illegal to replicate the "
+                << "point tasks of a concurrent index space task launch.";
+          error.raise();
+        }
         // Replication of must epoch tasks are not allowed
         if (must_epoch_task)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Mapper " << *mapper << " requested to replicate must epoch "
-              << *this
-              << ". Replication of must epoch tasks are not supported.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << *mapper << " requested to replicate must epoch "
+                << *this
+                << ". Replication of must epoch tasks are not supported.";
+          error.raise();
+        }
         // Replication of origin-mapped tasks is not supported
         if (map_origin)
         {
-          Exception(WARNING_EXCEPTION, this)
+          Warning warning;
+          warning
               << "Mapper " << *mapper
               << " requested to both replicate and origin map " << *this
               << " in 'select_task_options'. Replication of origin-"
               << "mapped tasks is not currently supported and the request to "
               << "replicate the task will be ignored.";
+          warning.raise();
           options.replicate = false;
         }
         // Output regions are not currently supported
         if (!output_regions.empty())
         {
-          Exception(WARNING_EXCEPTION, this)
+          Warning warning;
+          warning
               << "Mapper " << *mapper << " requested to replicate " << *this
               << " with output regions in 'select_task_options'. Legion does "
               << "not currently support replication of tasks with output "
@@ -788,6 +810,7 @@ namespace Legion {
               << "feature by emailing the the Legion developers list or "
               << "opening a github issue. The mapper call to replicate_task "
               << "is being elided.";
+          warning.raise();
           options.replicate = false;
         }
         // We allow replication of tasks with reduction privileges, but
@@ -800,7 +823,8 @@ namespace Legion {
         {
           if (!IS_REDUCE(logical_regions[idx]))
             continue;
-          Exception(WARNING_EXCEPTION, this)
+          Warning warning;
+          warning
               << "Mapper " << *mapper << " requested to replicate " << *this
               << " with reduction privilege on region requirement " << idx
               << " in 'select_task_options'. Legion does not currently support "
@@ -808,6 +832,7 @@ namespace Legion {
               << "You can request support for this feature by emailing the "
               << "Legion developers list or opening a github issue. The mapper "
               << "call to replicate_task is being elided.";
+          warning.raise();
           options.replicate = false;
           break;
         }
@@ -816,13 +841,19 @@ namespace Legion {
       if (options.inline_task)
       {
         if (concurrent_task)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Mapper " << *mapper << " requested to inline concurrent "
-              << *this << ". Inlining of concurrent tasks are not supported.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << *mapper << " requested to inline concurrent "
+                << *this << ". Inlining of concurrent tasks are not supported.";
+          error.raise();
+        }
         if (must_epoch_task)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Mapper " << *mapper << " requested to inline must epoch "
-              << *this << ". Inlining of must epoch tasks are not supported.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << *mapper << " requested to inline must epoch "
+                << *this << ". Inlining of must epoch tasks are not supported.";
+          error.raise();
+        }
         return true;
       }
       else
@@ -1108,17 +1139,23 @@ namespace Legion {
       // Check the concurrent constraints
       if (impl->is_concurrent() && !concurrent_task && !must_epoch_task &&
           is_index_space && (index_domain.get_volume() > 1))
-        Exception(MAPPER_EXCEPTION, this)
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error
             << "Mapper " << *local_mapper << " has mapped " << *this
             << " to a concurrent task variant " << impl->get_name()
             << " but this task was not launched in a concurrent index space "
             << "task launch or must epoch launch. Concurrent task variants can "
             << "only be used in concurrent index space task launches or must "
             << "epoch launches.";
+        error.raise();
+      }
       else if (
           concurrent_task && !must_epoch_task && !impl->is_concurrent() &&
           is_index_space && (index_domain.get_volume() > 1))
-        Exception(WARNING_EXCEPTION, this)
+      {
+        Warning warning;
+        warning
             << "Mapper " << *local_mapper
             << " selected non-concurrent task variant " << impl->get_name()
             << " for " << *this
@@ -1128,6 +1165,8 @@ namespace Legion {
             << "intend to use concurrent task variants. Also note this warning "
             << "may turn into an error if any of the point tasks of this index "
             << "task selected a concurrent variant.";
+        warning.raise();
+      }
       // Check the layout constraints first
       const TaskLayoutConstraintSet& layout_constraints =
           impl->get_layout_constraints();
@@ -1275,14 +1314,15 @@ namespace Legion {
         {
           if (local_mapper == nullptr)
             local_mapper = runtime->find_mapper(current_proc, map_id);
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper "
-              << local_mapper->get_mapper_name() << "selected variant " << *impl
-              << " for " << *this
-              << ", but instance selected for region requirement " << it->first
-              << " fails to satisfy the corresponding "
-              << conflict_constraint->get_constraint_kind()
-              << " layout constraint.";
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper "
+                << local_mapper->get_mapper_name() << "selected variant "
+                << *impl << " for " << *this
+                << ", but instance selected for region requirement "
+                << it->first << " fails to satisfy the corresponding "
+                << conflict_constraint->get_constraint_kind()
+                << " layout constraint.";
+          error.raise();
         }
       }
       // Now we can test against the execution constraints
@@ -1297,12 +1337,13 @@ namespace Legion {
         {
           if (local_mapper == nullptr)
             local_mapper = runtime->find_mapper(current_proc, map_id);
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper "
-              << local_mapper->get_mapper_name() << " selected variant "
-              << *impl << " for " << *this
-              << ". However, this variant does not permit running on " << kind
-              << " processors.";
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper "
+                << local_mapper->get_mapper_name() << " selected variant "
+                << *impl << " for " << *this
+                << ". However, this variant does not permit running on " << kind
+                << " processors.";
+          error.raise();
         }
       }
       // Then check the colocation constraints
@@ -1371,14 +1412,18 @@ namespace Legion {
                 continue;
               InstanceManager* man = ref.get_manager();
               if (man->is_virtual_manager())
-                Exception(MAPPER_EXCEPTION, this)
-                    << "Invalid mapper output. Mapper " << *local_mapper
-                    << " selected a virtual instance for region requirement "
-                    << idx << " of " << *this << ", but also selected variant "
-                    << *impl << " which contains a colocation constraint for "
-                    << "this region requirement. It is illegal to request a "
-                    << "virtual mapping for a region requirement with a "
-                    << "colocation constraint.";
+              {
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error << "Invalid mapper output. Mapper " << *local_mapper
+                      << " selected a virtual instance for region requirement "
+                      << idx << " of " << *this
+                      << ", but also selected variant " << *impl
+                      << " which contains a colocation constraint for "
+                      << "this region requirement. It is illegal to request a "
+                      << "virtual mapping for a region requirement with a "
+                      << "colocation constraint.";
+                error.raise();
+              }
               PhysicalManager* manager = man->as_physical_manager();
               int index = overlap.find_first_set();
               while (index >= 0)
@@ -1398,17 +1443,20 @@ namespace Legion {
             // check to make sure that all these region requirements have
             // the same region tree ID.
             if (req.region.get_tree_id() != tree_id)
-              Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-                  << "Invalid location constraint. Location constraint "
-                  << "specified on region requirements "
-                  << *(con_it->indexes.begin()) << " and " << *iit
-                  << " of variant " << *impl << " of " << *this
-                  << ", but region requirements contain regions that "
-                  << "from different region trees (" << tree_id << " and "
-                  << req.region.get_tree_id()
-                  << "). Colocation constraints must always "
-                  << "be specified on region requirements with regions "
-                  << "from the same region tree.";
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error << "Invalid location constraint. Location constraint "
+                    << "specified on region requirements "
+                    << *(con_it->indexes.begin()) << " and " << *iit
+                    << " of variant " << *impl << " of " << *this
+                    << ", but region requirements contain regions that "
+                    << "from different region trees (" << tree_id << " and "
+                    << req.region.get_tree_id()
+                    << "). Colocation constraints must always "
+                    << "be specified on region requirements with regions "
+                    << "from the same region tree.";
+              error.raise();
+            }
             const InstanceSet& insts = physical_instances[*iit];
             if (local_mapper == nullptr)
               local_mapper = runtime->find_mapper(current_proc, map_id);
@@ -1417,7 +1465,9 @@ namespace Legion {
               const InstanceRef& ref = insts[idx];
               InstanceManager* man = ref.get_manager();
               if (man->is_virtual_manager())
-                Exception(MAPPER_EXCEPTION, this)
+              {
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error
                     << "Invalid mapper output. Mapper "
                     << local_mapper->get_mapper_name()
                     << " selected a virtual instance for region requirement "
@@ -1427,6 +1477,8 @@ namespace Legion {
                     << "region requirement. It is illegal to request a virtual "
                     << "mapping for a region requirement with a colocation "
                        "constraint.";
+                error.raise();
+              }
               PhysicalManager* manager = man->as_physical_manager();
               const FieldMask& inst_mask = ref.get_valid_fields();
               std::vector<FieldID> field_names;
@@ -1442,19 +1494,23 @@ namespace Legion {
                 {
                   if (finder->second.first->get_instance() !=
                       manager->get_instance())
-                    Exception(MAPPER_EXCEPTION, this)
-                        << "Invalid mapper output. Mapper "
-                        << local_mapper->get_mapper_name()
-                        << " selected variant " << *impl << " for " << *this
-                        << ". However, this variant requires that field "
-                        << field_names[name_index] << " of region requirements "
-                        << *iit << " be co-located with prior requirement "
-                        << finder->second.second
-                        << " but it is not. Requirement " << *iit
-                        << " mapped to instance " << manager->get_instance()
-                        << " while prior requirement " << finder->second.second
-                        << " mapped to instance "
-                        << finder->second.first->get_instance() << ".";
+                  {
+                    Error error(LEGION_MAPPER_EXCEPTION);
+                    error << "Invalid mapper output. Mapper "
+                          << local_mapper->get_mapper_name()
+                          << " selected variant " << *impl << " for " << *this
+                          << ". However, this variant requires that field "
+                          << field_names[name_index]
+                          << " of region requirements " << *iit
+                          << " be co-located with prior requirement "
+                          << finder->second.second
+                          << " but it is not. Requirement " << *iit
+                          << " mapped to instance " << manager->get_instance()
+                          << " while prior requirement "
+                          << finder->second.second << " mapped to instance "
+                          << finder->second.first->get_instance() << ".";
+                    error.raise();
+                  }
                 }
                 else
                 {

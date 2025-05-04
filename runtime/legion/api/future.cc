@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
+#include "legion/api/exception.h"
 #include "legion/contexts/inner.h"
-#include "legion/kernel/exception.h"
 #include "legion/api/future_impl.h"
 #include "legion/operations/allreduce.h"
 #include "legion/utilities/provenance.h"
@@ -133,8 +133,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (impl == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Illegal invocation of Future::get_buffer on an null future";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal invocation of Future::get_buffer on an null future";
+      error.raise();
+    }
     if (Internal::implicit_context == nullptr)
       return impl->get_buffer(
           Processor::NO_PROC, memory, extent_in_bytes, check_size,
@@ -152,8 +155,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (impl == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Illegal invocation of Future::get_memories on an null future";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal invocation of Future::get_memories on an null future";
+      error.raise();
+    }
     impl->get_memories(memories, silence_warnings, warning_string);
   }
 
@@ -162,8 +168,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (impl == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error
           << "Illegal invocation of Future::get_untyped_size on an null future";
+      error.raise();
+    }
     return impl->get_untyped_size();
   }
 
@@ -172,8 +182,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (impl == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Illegal invocation of Future::get_metadata on an null future";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal invocation of Future::get_metadata on an null future";
+      error.raise();
+    }
     return impl->get_metadata(size);
   }
 
@@ -184,8 +197,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (impl == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Illegal invocation of Future::get_instance on an null future";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal invocation of Future::get_instance on an null future";
+      error.raise();
+    }
     return impl->get_instance(
         memkind, field_size, check_field_size, silence_warnings,
         warning_string);
@@ -244,9 +260,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (Internal::implicit_context == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Creating a Future from a buffer is only permitted to be "
-          << "performed inside of Legion tasks.";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Creating a Future from a buffer is only permitted to be "
+            << "performed inside of Legion tasks.";
+      error.raise();
+    }
     return Internal::implicit_context->from_value(
         value, value_size, owned, nullptr /*provenance*/,
         false /*shard local*/);
@@ -259,9 +278,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (Internal::implicit_context == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Creating a Future from a buffer is only permitted to be "
-          << "performed inside of Legion tasks.";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Creating a Future from a buffer is only permitted to be "
+            << "performed inside of Legion tasks.";
+      error.raise();
+    }
     Internal::AutoProvenance provenance(prov);
     return Internal::implicit_context->from_value(
         value, value_size, owned, provenance, shard_local);
@@ -276,9 +298,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (Internal::implicit_context == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Creating a Future from a buffer is only permitted to be "
-          << "performed inside of Legion tasks.";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Creating a Future from a buffer is only permitted to be "
+            << "performed inside of Legion tasks.";
+      error.raise();
+    }
     Internal::AutoProvenance provenance(prov);
     return Internal::implicit_context->from_value(
         buffer, size, owned, resource, freefunc, provenance, shard_local);

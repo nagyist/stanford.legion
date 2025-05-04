@@ -569,52 +569,172 @@ typedef enum legion_error_t {
 typedef legion_error_t LegionErrorType;
 
 namespace Legion {
-  namespace Internal {
 
-    enum ExceptionType {
-      APPLICATION_EXCEPTION,
-      INTERFACE_EXCEPTION,
-      DYNAMIC_TYPE_EXCEPTION,
-      PROGRAMMING_MODEL_EXCEPTION,
-      MAPPER_EXCEPTION,
-      RESOURCE_EXCEPTION,
-      STARTUP_EXCEPTION,
-      FATAL_EXCEPTION,
-      WARNING_EXCEPTION,
-    };
+  enum ExceptionType {
+    LEGION_APPLICATION_EXCEPTION,
+    LEGION_INTERFACE_EXCEPTION,
+    LEGION_DYNAMIC_TYPE_EXCEPTION,
+    LEGION_PROGRAMMING_MODEL_EXCEPTION,
+    LEGION_MAPPER_EXCEPTION,
+    LEGION_RESOURCE_EXCEPTION,
+    LEGION_STARTUP_EXCEPTION,
+    LEGION_FATAL_EXCEPTION,
+    LEGION_WARNING_EXCEPTION,
+  };
 
-    /**
-     * \class Exception
-     * Currently this class is only used for reporting of warnings and errors
-     * but the intention is for it to become the basis of raising exceptions
-     * and having them propagate up the task tree to either be handled or
-     * to prune out tasks all the way to the root of the task tree.
-     * Ultimately we want this to be the basis for better error handling
-     * so we don't just exit processes but clean up and tear down the
-     * runtime elegantly even when things go wrong.
-     */
-    class Exception : public Realm::LoggerMessage {
-    public:
-      Exception(ExceptionType type, const Operation* op = nullptr);
-      Exception(const Exception& rhs) = delete;
-      Exception(Exception&& rhs) = delete;
-      ~Exception(void);
-    public:
-      Exception& operator=(const Exception& rhs) = delete;
-      Exception& operator=(Exception&& rhs) = delete;
-      using Realm::LoggerMessage::operator<<;
-      Exception& operator<<(Memory memory);
-      Exception& operator<<(Processor processor);
-      Exception& operator<<(Memory::Kind kind);
-      Exception& operator<<(Processor::Kind kind);
-      Exception& operator<<(PhysicalInstance inst);
-      Exception& operator<<(LayoutConstraintKind kind);
-    public:
-      const Operation* const op;
-      const ExceptionType type;
-    };
+  /**
+   * \class Exception
+   * This class allows for users to package up any kind of data and
+   * for raising an exception. It implements the std::streambuf
+   * interface so that you can make input/output streams for accessing
+   * it. You can also get access to the underlying buffer of data for
+   * interpreting the data directly in case you serialized up data directly
+   * (useful if you've done something like pickled a python exception).
+   * DO NOT THROW THIS LIKE A C++ EXCEPTION OR YOUR PROGRAM WILL CRASH.
+   */
+  class Exception : public std::streambuf {
+  public:
+    Exception(ExceptionType type);
+    Exception(const Exception& rhs) = delete;
+    Exception(Exception&& rhs);
+    ~Exception(void);
+  public:
+    Exception& operator=(const Exception& rhs) = delete;
+    Exception& operator=(Exception&& rhs) = delete;
+  public:
+    void clear(void);  // Will invalidate any streams
+    void record_backtrace(const Realm::Backtrace& backtrace);
+  public:
+    size_t size(void) const;
+    const char* data(void) const;
+    // Can convert implicitly to a std::stringview
+    inline operator std::string_view(void) const
+    {
+      return std::string_view(data(), size());
+    }
+  protected:
+    virtual int_type overflow(int_type c) override;
+  public:
+    const ExceptionType type;
+  private:
+    static constexpr size_t STACK_SIZE = 128;
+    static_assert(sizeof(char) == sizeof(uint8_t));
+    char stack_buffer[STACK_SIZE];
+    char* heap_buffer;
+    size_t heap_size;
+  };
 
-  }  // namespace Internal
+  /**
+   * \class Error
+   * This is a wrapper class for an exception that helps build an
+   * error exception via a std::ostream.
+   */
+  class Error {
+  public:
+    Error(ExceptionType type = LEGION_APPLICATION_EXCEPTION);
+    Error(const Error& rhs) = delete;
+    Error(Error&& rhs) = delete;
+    ~Error(void);
+  public:
+    Error& operator=(const Error& rhs) = delete;
+    Error& operator=(Error&& rhs) = delete;
+  public:
+    template<typename T>
+    inline Error& operator<<(T&& value)
+    {
+      stream << std::forward<T>(value);
+      return *this;
+    }
+    [[noreturn]] void raise(void);
+  public:
+    Realm::Backtrace backtrace;
+    Exception exception;
+    std::ostream stream;
+  private:
+    bool raised;
+  };
+
+  /**
+   * \class Fatal
+   * This is a wrapper class for an exception that helps build a
+   * fatal exception via a std::ostream
+   */
+  class Fatal {
+  public:
+    Fatal(void);
+    Fatal(const Fatal& rhs) = delete;
+    Fatal(Fatal&& rhs) = delete;
+    ~Fatal(void);
+  public:
+    Fatal& operator=(const Fatal& rhs) = delete;
+    Fatal& operator=(Fatal&& rhs) = delete;
+  public:
+    template<typename T>
+    inline Fatal& operator<<(T&& value)
+    {
+      stream << std::forward<T>(value);
+      return *this;
+    }
+    [[noreturn]] void raise(void);
+  public:
+    Realm::Backtrace backtrace;
+    Exception exception;
+    std::ostream stream;
+  private:
+    bool raised;
+  };
+
+  /**
+   * \class Warning
+   * This is a wrapper class for an exception that helps build a
+   * warning exception via a std::ostream
+   */
+  class Warning {
+  public:
+    Warning(void);
+    Warning(const Warning& rhs) = delete;
+    Warning(Warning&& rhs) = delete;
+    ~Warning(void) = default;
+  public:
+    Warning& operator=(const Warning& rhs) = delete;
+    Warning& operator=(Warning&& rhs) = delete;
+  public:
+    template<typename T>
+    inline Warning& operator<<(T&& value)
+    {
+      stream << std::forward<T>(value);
+      return *this;
+    }
+    void raise(void);
+  public:
+    Realm::Backtrace backtrace;
+    Exception exception;
+    std::ostream stream;
+    bool active;
+  };
+
+  /**
+   * \class ExceptionHandler
+   * Both applications and mappers can register exception handlers
+   * with Legion to aid in modifying or rewriting error messages.
+   * In the case of exceptions that are not warnings the exception
+   * will always be raised and can only be handled by
+   */
+  class ExceptionHandler {
+  public:
+    // Check to see if this warning can be handled. If not then the
+    // runtime will report the warning immediately. Oterhwise the
+    // warning will be ignored. The handler can modify the data
+    // in the exeception.
+    virtual bool handle_warning(Exception& exception) { return false; }
+    // Check to see if the exception can be handled by this handler.
+    // If not then the exception will continue to propagate. If it
+    // can be handled then this exception will be recorded for when
+    // the application task elects to pop the stack of exception handlers
+    // to see what has been recorded.
+    virtual bool handle_exception(Exception& exception) { return false; }
+  };
+
 }  // namespace Legion
 
 #endif  // __LEGION_EXCEPTION_H__

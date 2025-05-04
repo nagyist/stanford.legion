@@ -150,17 +150,24 @@ namespace Legion {
         src_requirements[idx].flags |= LEGION_NO_ACCESS_FLAG;
         if (src_requirements[idx].privilege_fields.size() !=
             src_requirements[idx].instance_fields.size())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Missing instance fields for source region requirement " << idx
-              << "of " << *this << ". The 'instance_fields' member of source "
-              << "region requirements must contain exactly the same set of "
-              << "fields as the 'privilege_fields' for copy operations.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Missing instance fields for source region requirement "
+                << idx << "of " << *this
+                << ". The 'instance_fields' member of source "
+                << "region requirements must contain exactly the same set of "
+                << "fields as the 'privilege_fields' for copy operations.";
+          error.raise();
+        }
         if (!IS_READ_ONLY(src_requirements[idx]))
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Source region requirement " << idx << " of " << *this
-              << "does not have read-only privileges. All "
-              << "source region requirements for copy operations must be "
-                 "read-only.";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Source region requirement " << idx << " of " << *this
+                << "does not have read-only privileges. All "
+                << "source region requirements for copy operations must be "
+                   "read-only.";
+          error.raise();
+        }
         if (runtime->safe_model)
           verify_requirement(src_requirements[idx], idx, this->is_index_space);
         src_parent_indexes[idx] =
@@ -179,15 +186,19 @@ namespace Legion {
           dst_requirements[idx].privilege |= LEGION_DISCARD_MASK;
         if (dst_requirements[idx].privilege_fields.size() !=
             dst_requirements[idx].instance_fields.size())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Missing instance fields for destination region requirement "
-              << idx << "of " << *this
-              << ". The 'instance_fields' member of destination region "
-              << "requirements must contain exactly the same set of "
-              << "fields as the 'privilege_fields' for copy operations.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Missing instance fields for destination region requirement "
+                << idx << "of " << *this
+                << ". The 'instance_fields' member of destination region "
+                << "requirements must contain exactly the same set of "
+                << "fields as the 'privilege_fields' for copy operations.";
+        }
         if (src_requirements[idx].instance_fields.size() !=
             dst_requirements[idx].instance_fields.size())
-          Exception(INTERFACE_EXCEPTION, this)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error
               << "The 'instance_fields' member of the source and destination "
                  "region requirements at index"
               << idx << " do no have the same size ("
@@ -198,12 +209,17 @@ namespace Legion {
                  "number of "
               << "fields for the copy operation to know how to zip the fields "
                  "together.";
+          error.raise();
+        }
         if (!HAS_WRITE(dst_requirements[idx]))
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Destination region requirement " << idx << " of " << *this
-              << "is not writing or reducing. All destination "
-              << "region requirements for copy operations must either be "
-                 "writing or reducing.";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Destination region requirement " << idx << " of " << *this
+                << "is not writing or reducing. All destination "
+                << "region requirements for copy operations must either be "
+                   "writing or reducing.";
+          error.raise();
+        }
         if ((dst_requirements[idx].privilege == LEGION_READ_WRITE) &&
             (launcher.src_indirect_requirements.size() <= idx) &&
             (launcher.dst_indirect_requirements.size() <= idx) &&
@@ -249,18 +265,25 @@ namespace Legion {
             parent_ctx->find_parent_region_index(this, dst_requirements[idx]);
       }
       if (src_requirements.size() != dst_requirements.size())
-        Exception(INTERFACE_EXCEPTION, this)
-            << "Number of our source requirements (" << src_requirements.size()
-            << ") does not match the number of destination requirements ("
-            << dst_requirements.size() << ") for " << *this << ".";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Number of our source requirements ("
+              << src_requirements.size()
+              << ") does not match the number of destination requirements ("
+              << dst_requirements.size() << ") for " << *this << ".";
+        error.raise();
+      }
       if (!launcher.src_indirect_requirements.empty())
       {
         const size_t gather_size = launcher.src_indirect_requirements.size();
         if (gather_size != src_requirements.size())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Number of source indirect requirements (" << gather_size
-              << ") does not match the number of source requirements ("
-              << src_requirements.size() << ") for " << *this << ".";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Number of source indirect requirements (" << gather_size
+                << ") does not match the number of source requirements ("
+                << src_requirements.size() << ") for " << *this << ".";
+          error.raise();
+        }
         src_indirect_requirements.resize(gather_size);
         gather_parent_indexes.resize(gather_size);
         src_indirect_records.resize(gather_size);
@@ -270,17 +293,24 @@ namespace Legion {
           req = launcher.src_indirect_requirements[idx];
           req.flags |= LEGION_NO_ACCESS_FLAG;
           if (req.privilege_fields.size() != 1)
-            Exception(INTERFACE_EXCEPTION, this)
-                << "Source indirect region requirement " << idx << " for "
-                << *this << " has " << req.privilege_fields.size()
-                << " fields, but indirection region requirements must always "
-                   "have exactly one field.";
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Source indirect region requirement " << idx << " for "
+                  << *this << " has " << req.privilege_fields.size()
+                  << " fields, but indirection region requirements must always "
+                     "have exactly one field.";
+            error.raise();
+          }
           if (!IS_READ_ONLY(req))
-            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error
                 << "Source indirect region requirement " << idx << " for "
                 << *this << " does not have read-only privileges. All source "
                 << "indirect region requirements for copy operations must have "
                    "read-only privileges.";
+            error.raise();
+          }
           if (runtime->safe_model)
             verify_requirement(
                 src_indirect_requirements[idx],
@@ -290,12 +320,15 @@ namespace Legion {
               this, src_indirect_requirements[idx]);
         }
         if (launcher.src_indirect_is_range.size() != gather_size)
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Invalid 'src_indirect_is_range' "
-              << "size in launcher. The number of entries "
-              << launcher.src_indirect_is_range.size()
-              << " does not match the number of 'src_indirect_requirments' "
-              << gather_size << " for " << *this << ".";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Invalid 'src_indirect_is_range' "
+                << "size in launcher. The number of entries "
+                << launcher.src_indirect_is_range.size()
+                << " does not match the number of 'src_indirect_requirments' "
+                << gather_size << " for " << *this << ".";
+          error.raise();
+        }
         for (unsigned idx = 0; idx < gather_size; idx++)
         {
           if (!launcher.src_indirect_is_range[idx])
@@ -308,12 +341,16 @@ namespace Legion {
               launcher.dst_indirect_is_range[idx])
             continue;
           if (!IS_REDUCE(dst_requirements[idx]))
-            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error
                 << "Invalid privileges for destination region requirement "
                 << idx << " for " << *this << ". Destination "
                 << "region requirements must use reduction privileges when "
                 << "there is a range-based source indirection field and there "
                 << "is no corresponding range indirection on the destination.";
+            error.raise();
+          }
         }
         possible_src_indirect_out_of_range =
             launcher.possible_src_indirect_out_of_range;
@@ -322,10 +359,14 @@ namespace Legion {
       {
         const size_t scatter_size = launcher.dst_indirect_requirements.size();
         if (scatter_size != dst_requirements.size())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Number of destination indirect requirements (" << scatter_size
-              << ") does not match the number of destination requirements ("
-              << src_requirements.size() << ") for " << *this << ".";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Number of destination indirect requirements ("
+                << scatter_size
+                << ") does not match the number of destination requirements ("
+                << src_requirements.size() << ") for " << *this << ".";
+          error.raise();
+        }
         dst_indirect_requirements.resize(scatter_size);
         scatter_parent_indexes.resize(scatter_size);
         dst_indirect_records.resize(scatter_size);
@@ -335,18 +376,24 @@ namespace Legion {
           req = launcher.dst_indirect_requirements[idx];
           req.flags |= LEGION_NO_ACCESS_FLAG;
           if (req.privilege_fields.size() != 1)
-            Exception(INTERFACE_EXCEPTION, this)
-                << "Destination indirect region requirement " << idx << " for "
-                << *this << " has " << req.privilege_fields.size()
-                << " fields, but indirection region "
-                << "requirements must always have exactly one field.";
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Destination indirect region requirement " << idx
+                  << " for " << *this << " has " << req.privilege_fields.size()
+                  << " fields, but indirection region "
+                  << "requirements must always have exactly one field.";
+            error.raise();
+          }
           if (!IS_READ_ONLY(req))
-            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-                << "Destination indirect region requirement " << idx << " for "
-                << *this << " does not have "
-                << "read-only privileges. All destination indirect region "
-                   "requirements for copy "
-                << "operations must have read-only privileges.";
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Destination indirect region requirement " << idx
+                  << " for " << *this << " does not have "
+                  << "read-only privileges. All destination indirect region "
+                     "requirements for copy "
+                  << "operations must have read-only privileges.";
+            error.raise();
+          }
           if (runtime->safe_model)
             verify_requirement(
                 dst_indirect_requirements[idx],
@@ -357,12 +404,15 @@ namespace Legion {
               this, dst_indirect_requirements[idx]);
         }
         if (launcher.src_indirect_is_range.size() != scatter_size)
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Invalid 'dst_indirect_is_range' "
-              << "size in launcher. The number of entries "
-              << launcher.src_indirect_is_range.size()
-              << " does not match the number of 'dst_indirect_requirments' "
-              << scatter_size << " for " << *this << ".";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Invalid 'dst_indirect_is_range' "
+                << "size in launcher. The number of entries "
+                << launcher.src_indirect_is_range.size()
+                << " does not match the number of 'dst_indirect_requirments' "
+                << scatter_size << " for " << *this << ".";
+          error.raise();
+        }
         if (!src_indirect_requirements.empty())
         {
           // Full indirections need to have the same index space
@@ -375,13 +425,16 @@ namespace Legion {
             const IndexSpace dst_space =
                 dst_indirect_requirements[idx].region.get_index_space();
             if (src_space != dst_space)
-              Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-                  << "Mismatch between source indirect and destination "
-                     "indirect "
-                  << "index spaces for requirement " << idx << " for " << *this
-                  << ". Currently full-indirection copies must "
-                  << "specify the index space for both indirection "
-                     "requirements.";
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error << "Mismatch between source indirect and destination "
+                       "indirect "
+                    << "index spaces for requirement " << idx << " for "
+                    << *this << ". Currently full-indirection copies must "
+                    << "specify the index space for both indirection "
+                       "requirements.";
+              error.raise();
+            }
           }
         }
         possible_dst_indirect_out_of_range =
@@ -466,25 +519,31 @@ namespace Legion {
           const size_t dst_size =
               runtime->get_field_size(dst_space, dst_fields[fidx]);
           if (src_size != dst_size)
-            Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                << "Different field sizes are not permitted for "
-                   "region-to-region "
-                << "copy operations. Fields " << src_fields[fidx] << " and "
-                << dst_fields[fidx] << " of region requirement " << idx
-                << " have different sizes (" << src_size << " bytes and "
-                << dst_size << " bytes respectively) in " << *this << ".";
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "Different field sizes are not permitted for "
+                     "region-to-region "
+                  << "copy operations. Fields " << src_fields[fidx] << " and "
+                  << dst_fields[fidx] << " of region requirement " << idx
+                  << " have different sizes (" << src_size << " bytes and "
+                  << dst_size << " bytes respectively) in " << *this << ".";
+            error.raise();
+          }
           const CustomSerdezID src_serdez =
               runtime->get_field_serdez(src_space, src_fields[fidx]);
           const CustomSerdezID dst_serdez =
               runtime->get_field_serdez(dst_space, dst_fields[fidx]);
           if (src_serdez != dst_serdez)
-            Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                << "Fields with different serdez modes are not permitted for "
-                << "region-to-region copy operations. Fields "
-                << src_fields[fidx] << " and " << dst_fields[fidx]
-                << " of region requirement " << idx
-                << " have different serdez modes (" << src_serdez << " and "
-                << dst_serdez << " respectively) in " << *this << ".";
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "Fields with different serdez modes are not permitted for "
+                  << "region-to-region copy operations. Fields "
+                  << src_fields[fidx] << " and " << dst_fields[fidx]
+                  << " of region requirement " << idx
+                  << " have different serdez modes (" << src_serdez << " and "
+                  << dst_serdez << " respectively) in " << *this << ".";
+            error.raise();
+          }
         }
         if (idx < src_indirect_requirements.size())
         {
@@ -499,22 +558,28 @@ namespace Legion {
           const size_t coord_size =
               runtime->get_coordinate_size(src_space, false /*range*/);
           if (idx_size != coord_size)
-            Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                << "The source indirect field for a copy operation has the "
-                << "incorrect size for the source region coordinate space. "
-                << "Field " << fid << " of source indirect region requirement "
-                << idx << " is " << idx_size
-                << " bytes but the coordinate types of the "
-                << "source space is " << coord_size << " bytes for " << *this
-                << ".";
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "The source indirect field for a copy operation has the "
+                  << "incorrect size for the source region coordinate space. "
+                  << "Field " << fid
+                  << " of source indirect region requirement " << idx << " is "
+                  << idx_size << " bytes but the coordinate types of the "
+                  << "source space is " << coord_size << " bytes for " << *this
+                  << ".";
+            error.raise();
+          }
           const CustomSerdezID idx_serdez = runtime->get_field_serdez(
               src_idx_req.parent.get_field_space(), fid);
           if (idx_serdez != 0)
-            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-                << "Serdez fields are not permitted to be used as "
-                << "indirection fields for copy operations. Field " << fid
-                << "of source indirect region requirement " << idx << " in "
-                << *this << "has serdez function " << idx_serdez << ".";
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Serdez fields are not permitted to be used as "
+                  << "indirection fields for copy operations. Field " << fid
+                  << "of source indirect region requirement " << idx << " in "
+                  << *this << "has serdez function " << idx_serdez << ".";
+            error.raise();
+          }
         }
         if (idx >= dst_indirect_requirements.size())
         {
@@ -529,14 +594,17 @@ namespace Legion {
             if (!runtime->check_types(
                     src_space.get_type_tag(), dst_space.get_type_tag(),
                     diff_dims))
-              Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                  << "Copy index space mismatch at index " << idx
-                  << " of cross-region " << *this
-                  << ". The index spaces of the source and destination "
-                     "requirements "
-                  << "have incompatible types because they have different "
-                  << (diff_dims ? "numbers of dimensions." :
-                                  "coordinate_types.");
+            {
+              Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+              error << "Copy index space mismatch at index " << idx
+                    << " of cross-region " << *this
+                    << ". The index spaces of the source and destination "
+                       "requirements "
+                    << "have incompatible types because they have different "
+                    << (diff_dims ? "numbers of dimensions." :
+                                    "coordinate_types.");
+              error.raise();
+            }
           }
           else
           {
@@ -549,16 +617,19 @@ namespace Legion {
             if (!runtime->check_types(
                     src_indirect_space.get_type_tag(), dst_space.get_type_tag(),
                     diff_dims))
-              Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                  << "Copy index space mismatch at index " << idx
-                  << " of cross-region " << *this
-                  << ".  The index spaces of the source indirect requirement "
-                     "and "
-                  << "the destination requirement have incompatible types "
-                     "because "
-                  << "they have different "
-                  << (diff_dims ? "numbers of dimensions." :
-                                  "coordinate types.");
+            {
+              Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+              error << "Copy index space mismatch at index " << idx
+                    << " of cross-region " << *this
+                    << ".  The index spaces of the source indirect requirement "
+                       "and "
+                    << "the destination requirement have incompatible types "
+                       "because "
+                    << "they have different "
+                    << (diff_dims ? "numbers of dimensions." :
+                                    "coordinate types.");
+              error.raise();
+            }
           }
         }
         else
@@ -574,25 +645,32 @@ namespace Legion {
           const size_t coord_size =
               runtime->get_coordinate_size(dst_space, false /*range*/);
           if (idx_size != coord_size)
-            Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                << "The destination indirect field for a copy operation has "
-                   "the "
-                << "incorrect size for the destination region coordinate "
-                   "space. "
-                << "Field " << fid
-                << " of destination indirect region requirement " << idx
-                << " is " << idx_size << " bytes but the coordinate types of "
-                << "the destination space is " << coord_size << " bytes for "
-                << *this << ".";
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "The destination indirect field for a copy operation has "
+                     "the "
+                  << "incorrect size for the destination region coordinate "
+                     "space. "
+                  << "Field " << fid
+                  << " of destination indirect region requirement " << idx
+                  << " is " << idx_size << " bytes but the coordinate types of "
+                  << "the destination space is " << coord_size << " bytes for "
+                  << *this << ".";
+            error.raise();
+          }
           const CustomSerdezID idx_serdez = runtime->get_field_serdez(
               dst_idx_req.parent.get_field_space(), fid);
           if (idx_serdez != 0)
-            Exception(DYNAMIC_TYPE_EXCEPTION, this)
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error
                 << "Serdez fields are not permitted to be used as indirection "
                 << "fields for copy operations. Field " << fid
                 << " of destination indirect region requirement " << idx
                 << " in " << *this << " has serdez function " << idx_serdez
                 << ".";
+            error.raise();
+          }
           if (idx >= src_indirect_requirements.size())
           {
             // Scatter copy
@@ -606,7 +684,9 @@ namespace Legion {
             if (!runtime->check_types(
                     src_space.get_type_tag(), dst_indirect_space.get_type_tag(),
                     diff_dims))
-              Exception(DYNAMIC_TYPE_EXCEPTION, this)
+            {
+              Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+              error
                   << "Copy index space mismatch at index " << idx
                   << " of cross-region " << *this
                   << ". The index spaces of the source requirement and the "
@@ -614,6 +694,8 @@ namespace Legion {
                   << "because they have different "
                   << (diff_dims ? "numbers of dimensions." :
                                   "coordinate types.");
+              error.raise();
+            }
           }
           else
           {
@@ -628,15 +710,18 @@ namespace Legion {
             if (!runtime->check_types(
                     src_indirect_space.get_type_tag(),
                     dst_indirect_space.get_type_tag(), diff_dims))
-              Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                  << "Copy index space mismatch at index " << idx
-                  << " of cross-region " << *this
-                  << ". The index spaces of the source indirect requirement "
-                     "and "
-                  << "the destination indirect requirement have incompatible "
-                  << "types because they have different "
-                  << (diff_dims ? "numbers of dimensions." :
-                                  "coordinate types.");
+            {
+              Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+              error << "Copy index space mismatch at index " << idx
+                    << " of cross-region " << *this
+                    << ". The index spaces of the source indirect requirement "
+                       "and "
+                    << "the destination indirect requirement have incompatible "
+                    << "types because they have different "
+                    << (diff_dims ? "numbers of dimensions." :
+                                    "coordinate types.");
+              error.raise();
+            }
           }
         }
       }
@@ -1231,23 +1316,23 @@ namespace Legion {
                   (kind != Memory::REGDMA_MEM) &&
                   (kind != Memory::SOCKET_MEM) && (kind != Memory::Z_COPY_MEM))
               {
-                Exception(MAPPER_EXCEPTION, this)
-                    << "Invalid mapper output from invocation of 'map_copy' on "
-                       "mapper "
-                    << *mapper << " for " << *this
-                    << ". Mapper requested that Legion perform preimage "
-                       "optimization on "
-                    << "the source indirection instances but mapped at least "
-                       "one of "
-                    << "the source indirection instances to a " << kind
-                    << " which is not a host-visible memory. Realm only "
-                       "supports preimage "
-                    << "computations on host-visibile memories (see Legion "
-                       "issue #516 for "
-                    << "more details). For now, please ensure that all "
-                       "indirection instances "
-                    << "are in host-visible memory when requesting the "
-                    << "preimage optimization for copy operations.";
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error << "Invalid mapper output from invocation of "
+                      << "'map_copy' on mapper " << *mapper << " for " << *this
+                      << ". Mapper requested that Legion perform preimage "
+                         "optimization on "
+                      << "the source indirection instances but mapped at least "
+                         "one of "
+                      << "the source indirection instances to a " << kind
+                      << " which is not a host-visible memory. Realm only "
+                         "supports preimage "
+                      << "computations on host-visibile memories (see Legion "
+                         "issue #516 for "
+                      << "more details). For now, please ensure that all "
+                         "indirection instances "
+                      << "are in host-visible memory when requesting the "
+                      << "preimage optimization for copy operations.";
+                error.raise();
               }
             }
           }
@@ -1293,10 +1378,10 @@ namespace Legion {
                   (kind != Memory::REGDMA_MEM) &&
                   (kind != Memory::SOCKET_MEM) && (kind != Memory::Z_COPY_MEM))
               {
-                Exception(MAPPER_EXCEPTION, this)
-                    << "Invalid mapper output from invocation of 'map_copy' on "
-                       "mapper "
-                    << *mapper << " for " << *this
+                Error error(LEGION_MAPPER_EXCEPTION);
+                error
+                    << "Invalid mapper output from invocation of "
+                    << "'map_copy' on mapper " << *mapper << " for " << *this
                     << ". Mapper requested that Legion perform preimage "
                        "optimization on "
                     << "the destination indirection instances but mapped at "
@@ -1311,6 +1396,7 @@ namespace Legion {
                     << "indirection instances are in host-visible memory when "
                     << "requesting the preimage optimization for copy "
                        "operations.";
+                error.raise();
               }
             }
           }
@@ -1607,13 +1693,16 @@ namespace Legion {
         return;
       if (!runtime->are_disjoint(
               req1.region.get_index_space(), req2.region.get_index_space()))
-        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-            << "Found aliasing region requirements for " << *this << " between "
-            << get_requirement_offset(idx1) << " of "
-            << get_requirement_name(idx1) << " region requirement and "
-            << get_requirement_offset(idx2) << " of "
-            << get_requirement_name(idx2) << ". Aliased region "
-            << "region requirements can lead to races are not permitted.";
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Found aliasing region requirements for " << *this
+              << " between " << get_requirement_offset(idx1) << " of "
+              << get_requirement_name(idx1) << " region requirement and "
+              << get_requirement_offset(idx2) << " of "
+              << get_requirement_name(idx2) << ". Aliased region "
+              << "region requirements can lead to races are not permitted.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1909,7 +1998,9 @@ namespace Legion {
           req, output, targets, bad_tree, missing_fields, &acquired_instances,
           unacquired, runtime->safe_mapper);
       if (bad_tree > 0)
-        Exception(MAPPER_EXCEPTION, this)
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error
             << "Invalid mapper output from invocation of 'map_copy' on mapper "
             << *mapper << ". Mapper selected an instance from "
             << "region tree " << bad_tree << " to satisfy "
@@ -1918,6 +2009,8 @@ namespace Legion {
             << " but the logical region for this requirement is from region "
                "tree "
             << req.region.get_tree_id() << ".";
+        error.raise();
+      }
       if (!missing_fields.empty())
       {
         for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
@@ -1933,13 +2026,15 @@ namespace Legion {
               "Missing instance for field %s (FieldID: %d)",
               static_cast<const char*>(name), *it);
         }
-        Exception(MAPPER_EXCEPTION, this)
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error
             << "Invalid mapper output from invocation of 'map_copy' on mapper "
             << *mapper << ". Mapper failed to specify a physical "
             << "instance for " << missing_fields.size() << " fields of the "
             << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
             << "of explicit region-to-region " << *this
             << ". The missing fields are listed above.";
+        error.raise();
       }
       if (!unacquired.empty())
       {
@@ -1948,7 +2043,9 @@ namespace Legion {
              it != unacquired.end(); it++)
         {
           if (acquired_instances.find(*it) == acquired_instances.end())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from 'map_copy' invocation on mapper "
                 << *mapper << ". Mapper selected physical instance for "
                 << get_req_type_name<REQ_TYPE>() << " region requirement "
@@ -1959,40 +2056,53 @@ namespace Legion {
                 << "as part of the mapper call it would have detected this. "
                    "Please "
                 << "update the mapper to abide by proper mapping conventions.";
+            error.raise();
+          }
         }
         // If we did successfully acquire them, still issue the warning
-        Exception(MAPPER_EXCEPTION, this)
-            << "Mapper " << *mapper << " failed to acquire instances for "
-            << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
-            << " of explicit region-to-region " << *this
-            << " in 'map_copy' call. "
-            << "You may experience undefined behavior as a consequence.";
+        Warning warning;
+        warning << "Mapper " << *mapper << " failed to acquire instances for "
+                << get_req_type_name<REQ_TYPE>() << " region requirement "
+                << ridx << " of explicit region-to-region " << *this
+                << " in 'map_copy' call. "
+                << "You may experience undefined behavior as a consequence.";
+        warning.raise();
       }
       if (composite_idx >= 0)
       {
         // Destination is not allowed to have composite instances
         if (REQ_TYPE != SRC_REQ)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_copy' on "
-                 "mapper "
-              << *mapper << ". Mapper requested the creation of a "
-              << "virtual instance for " << get_req_type_name<REQ_TYPE>()
-              << " region requiremnt " << ridx
-              << ". Only source region requirements are permitted to be "
-                 "virtual "
-              << "instances for explicit region-to-region " << *this << ".";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_copy' on "
+                   "mapper "
+                << *mapper << ". Mapper requested the creation of a "
+                << "virtual instance for " << get_req_type_name<REQ_TYPE>()
+                << " region requiremnt " << ridx
+                << ". Only source region requirements are permitted to be "
+                   "virtual "
+                << "instances for explicit region-to-region " << *this << ".";
+          error.raise();
+        }
         if (is_reduce)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_copy' on "
-                 "mapper "
-              << *mapper << ". Mapper requested the creation of a "
-              << "virtual instance for the " << get_req_type_name<REQ_TYPE>()
-              << " requirement " << ridx << " of an explicit region-to-region "
-              << "reduction for " << *this << ". Only real physical instances "
-              << "are permitted to be sources of explicit region-to-region "
-                 "reductions.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_copy' on "
+                   "mapper "
+                << *mapper << ". Mapper requested the creation of a "
+                << "virtual instance for the " << get_req_type_name<REQ_TYPE>()
+                << " requirement " << ridx
+                << " of an explicit region-to-region "
+                << "reduction for " << *this
+                << ". Only real physical instances "
+                << "are permitted to be sources of explicit region-to-region "
+                   "reductions.";
+          error.raise();
+        }
         if (ridx < src_indirect_requirements.size())
-          Exception(MAPPER_EXCEPTION, this)
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error
               << "Invalid mapper output from invocation of 'map_copy' on "
                  "mapper "
               << *mapper << ". Mapper requested the creation of a "
@@ -2002,16 +2112,21 @@ namespace Legion {
               << "requirements are permitted to be virtual instances for "
                  "explicit "
               << "region-to-region " << *this << ".";
+          error.raise();
+        }
         if (ridx < dst_indirect_requirements.size())
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_copy' on "
-                 "mapper "
-              << *mapper << ". Mapper requested the creation of a "
-              << "virtual instance for " << get_req_type_name<REQ_TYPE>()
-              << " region requiremnt " << ridx
-              << ". Only source region requirements without destination "
-              << "indirection requirements are permitted to be virtual "
-              << "instances for explicit region-to-region " << *this << ".";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_copy' on "
+                   "mapper "
+                << *mapper << ". Mapper requested the creation of a "
+                << "virtual instance for " << get_req_type_name<REQ_TYPE>()
+                << " region requiremnt " << ridx
+                << ". Only source region requirements without destination "
+                << "indirection requirements are permitted to be virtual "
+                << "instances for explicit region-to-region " << *this << ".";
+          error.raise();
+        }
       }
       if (!runtime->safe_mapper)
         return composite_idx;
@@ -2024,13 +2139,16 @@ namespace Legion {
           continue;
         PhysicalManager* manager = man->as_physical_manager();
         if (!manager->meets_regions(regions_to_check))
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_copy' on "
-                 "mapper "
-              << *mapper << ". Mapper specified an instance for "
-              << get_req_type_name<REQ_TYPE>()
-              << " region requirement at index " << ridx << " of " << *this
-              << " that does not meet the logical region requirement.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_copy' on "
+                   "mapper "
+                << *mapper << ". Mapper specified an instance for "
+                << get_req_type_name<REQ_TYPE>()
+                << " region requirement at index " << ridx << " of " << *this
+                << " that does not meet the logical region requirement.";
+          error.raise();
+        }
       }
       // Make sure all the destinations are real instances, this has
       // to be true for all kinds of explicit copies including reductions
@@ -2039,13 +2157,16 @@ namespace Legion {
         if ((REQ_TYPE == SRC_REQ) && (int(idx) == composite_idx))
           continue;
         if (!targets[idx].get_manager()->is_physical_manager())
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_copy' on "
-                 "mapper "
-              << *mapper << ". Mapper specified an illegal "
-              << "specialized instance as the target for "
-              << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
-              << " of " << *this << ".";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_copy' on "
+                   "mapper "
+                << *mapper << ". Mapper specified an illegal "
+                << "specialized instance as the target for "
+                << get_req_type_name<REQ_TYPE>() << " region requirement "
+                << ridx << " of " << *this << ".";
+          error.raise();
+        }
       }
       return composite_idx;
     }
@@ -3505,17 +3626,20 @@ namespace Legion {
                   finder->second, interfering,
                   (rit->first == rit->second) ? (*pit)->index_point :
                                                 DomainPoint()))
-            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-                << "Index " << *this
-                << " has interfering region requirments between "
-                << get_requirement_name(rit->first) << " requirement "
-                << get_requirement_offset(rit->first) << " of point "
-                << interfering << " and " << get_requirement_name(rit->second)
-                << " requirement " << get_requirement_offset(rit->second)
-                << " of point " << (*pit)->index_point
-                << ". Interfering region requirements are not permitted for "
-                   "index "
-                << "copy operations.";
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Index " << *this
+                  << " has interfering region requirments between "
+                  << get_requirement_name(rit->first) << " requirement "
+                  << get_requirement_offset(rit->first) << " of point "
+                  << interfering << " and " << get_requirement_name(rit->second)
+                  << " requirement " << get_requirement_offset(rit->second)
+                  << " of point " << (*pit)->index_point
+                  << ". Interfering region requirements are not permitted for "
+                     "index "
+                  << "copy operations.";
+            error.raise();
+          }
         }
       }
     }
@@ -3777,11 +3901,14 @@ namespace Legion {
             const IndexSpace dst_space =
                 dst_indirect_requirements[idx].region.get_index_space();
             if (src_space != dst_space)
-              Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-                  << "Mismatch between source indirect and destination "
-                     "indirect "
-                  << "index spaces for requirement " << idx << " for " << *this
-                  << ".";
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error << "Mismatch between source indirect and destination "
+                       "indirect "
+                    << "index spaces for requirement " << idx << " for "
+                    << *this << ".";
+              error.raise();
+            }
           }
         }
       }

@@ -17,7 +17,7 @@
 #define __LEGION_CORE_RUNTIME_H__
 
 #include "legion/kernel/metatask.h"
-#include "legion/kernel/exception.h"
+#include "legion/api/exception.h"
 #include "legion/api/interop_impl.h"
 #include "legion/api/registrars.h"
 #include "legion/api/runtime.h"
@@ -2479,6 +2479,10 @@ namespace Legion {
       static void report_warning_message(
           int code, const char* file_name, const int line_number,
           const char* message);
+      static void raise_warning(
+          Exception&& exception, const Realm::Backtrace& backtrace);
+      [[noreturn]] static void raise_exception(
+          Exception&& exception, const Realm::Backtrace& backtrace);
     public:
       // Static member variables
       static TaskID legion_main_id;

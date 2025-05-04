@@ -2560,14 +2560,17 @@ namespace Legion {
           if (node->has_interfering_point(
                   finder->second, interfering,
                   (rit->first == rit->second) ? *itr : DomainPoint()))
-            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-                << "Index " << *this
-                << " has interfering region requirements between "
-                << "region requirements " << rit->first << " of point task "
-                << interfering << " and " << rit->second << " of point task "
-                << *itr
-                << ". Interfering region requirements are not permitted for "
-                   "index tasks.";
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Index " << *this
+                  << " has interfering region requirements between "
+                  << "region requirements " << rit->first << " of point task "
+                  << interfering << " and " << rit->second << " of point task "
+                  << *itr
+                  << ". Interfering region requirements are not permitted for "
+                     "index tasks.";
+            error.raise();
+          }
         }
       }
     }

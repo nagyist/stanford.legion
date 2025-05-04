@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "legion/kernel/exception.h"
+#include "legion/api/exception.h"
 #include "legion/kernel/runtime.h"
 #include "legion/api/future_impl.h"
 #include "legion/api/mapping.h"

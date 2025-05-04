@@ -16391,6 +16391,94 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    /*static*/ void Runtime::raise_warning(
+        Exception&& exception, const Realm::Backtrace& backtrace)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(exception.type == LEGION_WARNING_EXCEPTION);
+      if (runtime != nullptr)
+      {
+        if (runtime->warnings_are_errors)
+          raise_exception(std::move(exception), backtrace);
+        if (runtime->warnings_backtrace)
+          exception.record_backtrace(backtrace);
+      }
+#if 0
+      if (runtime == nullptr)
+      {
+        // Runtime has either not started or been shutdown already
+        // Report the warning and then we're done
+
+      }
+      else if (implicit_context != nullptr)
+      {
+        // We're in an application task (maybe an external task)
+        // Have the context check for a handler to modify or suppress
+        // the warning message
+
+
+      }
+      else if (implicit_operation != nullptr)
+      {
+
+      }
+      else
+      {
+        // Just report the warning message
+
+      }
+#endif
+      log_legion.warning() << std::string_view(exception);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ [[noreturn]] void Runtime::raise_exception(
+        Exception&& exception, const Realm::Backtrace& backtrace)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(
+          (exception.type != LEGION_WARNING_EXCEPTION) ||
+          ((runtime != nullptr) && runtime->warnings_are_errors));
+#if 0
+      if (runtime == nullptr)
+      {
+        // Runtime has either not started or been shutdown already
+        // Report the error and then throw an exception because we 
+        // can't recover from this
+
+      }
+      if (implicit_context != nullptr)
+      {
+        // We're in an application task (maybe an external task)
+        // Report the exception back to the context
+
+      }
+      if (implicit_operation != nullptr)
+      {
+        // See if this operation has an exception handler that we can
+        // use to modify the text of the exception
+
+      }
+      if (Processor::get_executing_processor().exists())
+      {
+        // We're in a meta-task but we can't throw an exception for this
+        // one since we know it won't be handled. Report the exception
+        // and then abort so we can know to fix this.
+
+      }
+#endif
+      // If you get here you've called into Legion from an external thread
+      // while it is running. The only optional here is to shutdown Legion
+      // safely and then abort because we can't recover from this
+      exception.record_backtrace(backtrace);
+      if (exception.type == LEGION_FATAL_EXCEPTION)
+        log_legion.fatal() << std::string_view(exception);
+      else
+        log_legion.error() << std::string_view(exception);
+      std::abort();
+    }
+
+    //--------------------------------------------------------------------------
     /*static*/ void Runtime::shutdown_runtime_task(
         const void* args, size_t arglen, const void* userdata, size_t userlen,
         Processor p)

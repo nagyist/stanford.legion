@@ -349,11 +349,14 @@ namespace Legion {
         return;
       if (!runtime->are_disjoint(
               req1.region.get_index_space(), req2.region.get_index_space()))
-        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-            << "Found aliasing region requirements " << idx1 << " and " << idx2
-            << " of " << *this
-            << ". Individual task launches are not permitted "
-            << " to have interfering region requirements.";
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Found aliasing region requirements " << idx1 << " and "
+              << idx2 << " of " << *this
+              << ". Individual task launches are not permitted "
+              << " to have interfering region requirements.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------

@@ -136,11 +136,15 @@ namespace Legion {
         const RegionRequirement& region_req =
             restricted_region.impl->get_requirement();
         if (region_req.privilege_fields != launcher.fields)
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
               << "The privilege fields for " << *this
               << "do not match the fields for the PhysicalRegion object being "
               << "used for establishing restricted coherence. "
               << "The field sets must match exactly.";
+          error.raise();
+        }
       }
       parent_region = launcher.parent_region;
       fields = launcher.fields;

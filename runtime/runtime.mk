@@ -1146,6 +1146,7 @@ LEGION_SRC 	+= $(LG_RT_DIR)/legion/analysis/acquire.cc \
 		    $(LG_RT_DIR)/legion/api/argument_map.cc \
 		    $(LG_RT_DIR)/legion/api/constraints.cc \
 		    $(LG_RT_DIR)/legion/api/data.cc \
+		    $(LG_RT_DIR)/legion/api/exception.cc \
 		    $(LG_RT_DIR)/legion/api/functors.cc \
 		    $(LG_RT_DIR)/legion/api/future.cc \
 		    $(LG_RT_DIR)/legion/api/future_map.cc \
@@ -1173,7 +1174,6 @@ LEGION_SRC 	+= $(LG_RT_DIR)/legion/analysis/acquire.cc \
 		    $(LG_RT_DIR)/legion/instances/layout.cc \
 		    $(LG_RT_DIR)/legion/instances/physical.cc \
 		    $(LG_RT_DIR)/legion/instances/virtual.cc \
-		    $(LG_RT_DIR)/legion/kernel/exception.cc \
 		    $(LG_RT_DIR)/legion/kernel/garbage_collection.cc \
 		    $(LG_RT_DIR)/legion/kernel/runtime.cc \
 		    $(LG_RT_DIR)/legion/managers/mapper.cc \

@@ -258,11 +258,14 @@ namespace Legion {
             const Domain* domain = static_cast<const Domain*>(
                 impl->find_runtime_buffer(parent_ctx, future_size));
             if (future_size != sizeof(Domain))
-              Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                  << "Future for index space creation by " << *this
-                  << " does not have the same size as sizeof(Domain) (e.g. "
-                  << sizeof(Domain) << " bytes). The type of futures for "
-                  << "index space domains must be a Domain.";
+            {
+              Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+              error << "Future for index space creation by " << *this
+                    << " does not have the same size as sizeof(Domain) (e.g. "
+                    << sizeof(Domain) << " bytes). The type of futures for "
+                    << "index space domains must be a Domain.";
+              error.raise();
+            }
             if (owner &&
                 index_space_node->set_domain(
                     *domain, ApEvent::NO_AP_EVENT, true /*take ownership*/))
@@ -278,13 +281,17 @@ namespace Legion {
               const size_t* field_size = static_cast<const size_t*>(
                   impl->find_runtime_buffer(parent_ctx, future_size));
               if (future_size != sizeof(size_t))
-                Exception(DYNAMIC_TYPE_EXCEPTION, this)
+              {
+                Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+                error
                     << "Size of future passed into dynamic field allocation "
                        "for "
                     << "field " << fields[idx] << " is " << future_size
                     << " bytes which not the same as sizeof(size_t) ("
                     << sizeof(size_t) << " bytes). Futures passed into field "
                     << "allocation calls must contain data of the type size_t.";
+                error.raise();
+              }
               if (owner)
               {
                 field_space_node->update_field_size(

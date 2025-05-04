@@ -309,14 +309,15 @@ namespace Legion {
         {
           Processor exec_proc = parent_ctx->get_executing_processor();
           MapperManager* mapper = runtime->find_mapper(exec_proc, mapper_id);
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper " << *mapper
-              << " specified an upper bound of " << serdez_upper_bound
-              << " bytes for future map all reduce with serdez redop "
-              << redop_id
-              << ". However, the actual size of the reduced value is "
-              << future_result_size
-              << " bytes which exceeds the specified upper bound.";
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper " << *mapper
+                << " specified an upper bound of " << serdez_upper_bound
+                << " bytes for future map all reduce with serdez redop "
+                << redop_id
+                << ". However, the actual size of the reduced value is "
+                << future_result_size
+                << " bytes which exceeds the specified upper bound.";
+          error.raise();
         }
         done = finalize_serdez_targets();
       }
@@ -351,13 +352,16 @@ namespace Legion {
                /*nothing*/)
           {
             if (!it->exists())
-              Exception(MAPPER_EXCEPTION, this)
-                  << "Invalid mapper output. Mapper " << *mapper
-                  << " requested future map reduction future be mapped to a "
-                  << "NO_MEMORY for " << *this
-                  << " which is illegal. All requests for mapping output "
-                     "futures "
-                  << "must be mapped to actual memories.";
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Invalid mapper output. Mapper " << *mapper
+                    << " requested future map reduction future be mapped to a "
+                    << "NO_MEMORY for " << *this
+                    << " which is illegal. All requests for mapping output "
+                       "futures "
+                    << "must be mapped to actual memories.";
+              error.raise();
+            }
             if (unique_memories.find(*it) == unique_memories.end())
             {
               unique_memories.insert(*it);
@@ -368,12 +372,15 @@ namespace Legion {
           }
         }
         else if (!output.destination_memories.front().exists())
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper " << *mapper
-              << " requested future map reduction future be mapped to a "
-              << "NO_MEMORY for future map " << *this
-              << " which is illegal. All requests for mapping output futures "
-              << "must be mapped to actual memories.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper " << *mapper
+                << " requested future map reduction future be mapped to a "
+                << "NO_MEMORY for future map " << *this
+                << " which is illegal. All requests for mapping output futures "
+                << "must be mapped to actual memories.";
+          error.raise();
+        }
         target_memories.swap(output.destination_memories);
       }
       else
@@ -386,12 +393,15 @@ namespace Legion {
       if (is_recording())
       {
         if (future_result_size == SIZE_MAX)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper " << *mapper
-              << " did not specify an upper bound on serdez future " << *this
-              << " being traced. All serdez future reductions being captured "
-              << "in traces must provide an upper bound on the size of the "
-              << "future result.";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper " << *mapper
+                << " did not specify an upper bound on serdez future " << *this
+                << " being traced. All serdez future reductions being captured "
+                << "in traces must provide an upper bound on the size of the "
+                << "future result.";
+          error.raise();
+        }
         const TraceInfo trace_info(this);
         const TraceLocalID tlid = get_trace_local_id();
         trace_info.record_future_allreduce(

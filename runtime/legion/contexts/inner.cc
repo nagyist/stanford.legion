@@ -2080,15 +2080,18 @@ namespace Legion {
           return it->first;
       }
       if (!found_parent)
-        Exception(PROGRAMMING_MODEL_EXCEPTION, op)
-            << "Unable to find a 'parent' region " << req.parent
-            << " in any of the region requirements of parent task "
-            << get_task_name() << " (UID: " << get_unique_id()
-            << ") to serve as the origin "
-            << "of privileges for region requirement " << index << " of "
-            << op->get_logging_name() << " (UID: " << op->get_unique_op_id()
-            << "). All region requirements have to derive their privileges "
-            << "from one region requirement of the parent task.";
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Unable to find a 'parent' region " << req.parent
+              << " in any of the region requirements of parent task "
+              << get_task_name() << " (UID: " << get_unique_id()
+              << ") to serve as the origin "
+              << "of privileges for region requirement " << index << " of "
+              << op->get_logging_name() << " (UID: " << op->get_unique_op_id()
+              << "). All region requirements have to derive their privileges "
+              << "from one region requirement of the parent task.";
+        error.raise();
+      }
       // Method of last resort, check to see if we made all the fields
       // if we did, then we can make a new requirement for all the fields
       for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
@@ -2102,33 +2105,33 @@ namespace Legion {
           FieldSpaceNode* node = runtime->get_node(fs);
           const void* name = nullptr;
           size_t name_size = 0;
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
           if (node->retrieve_semantic_information(
                   *it, LEGION_NAME_SEMANTIC_TAG, name, name_size,
                   true /*can fail*/, false /*wait until*/))
           {
             std::string_view field_name((const char*)name, name_size);
-            Exception(PROGRAMMING_MODEL_EXCEPTION, op)
-                << "Unable to find privileges for field " << field_name
-                << " of region requirement " << index << " of "
-                << op->get_logging_name() << " (UID: " << op->get_unique_op_id()
-                << ") in parent task " << get_task_name()
-                << " (UID: " << get_unique_id() << "). "
-                << "All fields must derive their region requirements from "
-                << "one of the region requirements of the parent task or "
-                << "from the creation of a region or allocation of a field "
-                << "(without a corresponding deletion) in the parent task.";
+            error << "Unable to find privileges for field " << field_name
+                  << " of region requirement " << index << " of "
+                  << op->get_logging_name()
+                  << " (UID: " << op->get_unique_op_id() << ") in parent task "
+                  << get_task_name() << " (UID: " << get_unique_id() << "). "
+                  << "All fields must derive their region requirements from "
+                  << "one of the region requirements of the parent task or "
+                  << "from the creation of a region or allocation of a field "
+                  << "(without a corresponding deletion) in the parent task.";
           }
           else
-            Exception(PROGRAMMING_MODEL_EXCEPTION, op)
-                << "Unable to find privileges for field " << *it
-                << " of region requirement " << index << " of "
-                << op->get_logging_name() << " (UID: " << op->get_unique_op_id()
-                << ") in parent task " << get_task_name()
-                << " (UID: " << get_unique_id() << "). "
-                << "All fields must derive their region requirements from "
-                << "one of the region requirements of the parent task or "
-                << "from the creation of a region or allocation of a field "
-                << "(without a corresponding deletion) in the parent task.";
+            error << "Unable to find privileges for field " << *it
+                  << " of region requirement " << index << " of "
+                  << op->get_logging_name()
+                  << " (UID: " << op->get_unique_op_id() << ") in parent task "
+                  << get_task_name() << " (UID: " << get_unique_id() << "). "
+                  << "All fields must derive their region requirements from "
+                  << "one of the region requirements of the parent task or "
+                  << "from the creation of a region or allocation of a field "
+                  << "(without a corresponding deletion) in the parent task.";
+          error.raise();
         }
       }
       // If we get here then we can make a new requirement

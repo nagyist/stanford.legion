@@ -15,9 +15,9 @@
 
 #include "legion/analysis/projection.h"
 #include "legion/api/data.h"
+#include "legion/api/exception.h"
 #include "legion/api/functors_impl.h"
 #include "legion/api/mapping.h"
-#include "legion/kernel/exception.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/index.h"
 #include "legion/nodes/region.h"
@@ -94,18 +94,21 @@ namespace Legion {
             return project(upper_bound, point, must->launch_domain);
           }
         default:
-          Internal::Exception(Internal::INTERFACE_EXCEPTION)
-              << "Unknown mappable type passed to projection "
-              << "functor! You must override the default "
-              << "implementations of the non-deprecated 'project' methods!";
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Unknown mappable type passed to projection "
+                  << "functor! You must override the default "
+                  << "implementations of the non-deprecated 'project' methods!";
+            error.raise();
+          }
       }
     }
     else
     {
-      Internal::Exception(Internal::WARNING_EXCEPTION)
-          << "There are new methods for projection functors that must be "
-             "overriden. "
-          << "Calling deprecated methods for now!";
+      Warning warning;
+      warning << "There are new methods for projection functors that must be "
+              << "overriden. Calling deprecated methods for now!";
+      warning.raise();
       switch (mappable->get_mappable_type())
       {
         case LEGION_TASK_MAPPABLE:
@@ -113,10 +116,13 @@ namespace Legion {
               0 /*dummy ctx*/, const_cast<Task*>(mappable->as_task()), index,
               upper_bound, point);
         default:
-          Internal::Exception(Internal::INTERFACE_EXCEPTION)
-              << "Unknown mappable type passed to projection "
-              << "functor! You must override the default "
-              << "implementations of the non-deprecated 'project' methods!";
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Unknown mappable type passed to projection "
+                  << "functor! You must override the default "
+                  << "implementations of the non-deprecated 'project' methods!";
+            error.raise();
+          }
       }
     }
     return LogicalRegion::NO_REGION;
@@ -166,18 +172,21 @@ namespace Legion {
             return project(upper_bound, point, must->launch_domain);
           }
         default:
-          Internal::Exception(Internal::INTERFACE_EXCEPTION)
-              << "Unknown mappable type passed to projection "
-              << "functor! You must override the default "
-              << "implementations of the non-deprecated 'project' methods!";
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Unknown mappable type passed to projection "
+                  << "functor! You must override the default "
+                  << "implementations of the non-deprecated 'project' methods!";
+            error.raise();
+          }
       }
     }
     else
     {
-      Internal::Exception(Internal::WARNING_EXCEPTION)
-          << "There are new methods for projection functors that must be "
-             "overriden. "
-          << "Calling deprecated methods for now!";
+      Warning warning;
+      warning << "There are new methods for projection functors that must be "
+              << "overriden. Calling deprecated methods for now!";
+      warning.raise();
       switch (mappable->get_mappable_type())
       {
         case LEGION_TASK_MAPPABLE:
@@ -185,10 +194,13 @@ namespace Legion {
               0 /*dummy ctx*/, const_cast<Task*>(mappable->as_task()), index,
               upper_bound, point);
         default:
-          Internal::Exception(Internal::INTERFACE_EXCEPTION)
-              << "Unknown mappable type passed to projection "
-              << "functor! You must override the default "
-              << "implementations of the non-deprecated 'project' methods!";
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Unknown mappable type passed to projection "
+                  << "functor! You must override the default "
+                  << "implementations of the non-deprecated 'project' methods!";
+            error.raise();
+          }
       }
     }
     return LogicalRegion::NO_REGION;
@@ -203,9 +215,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     // Must be override by derived classes
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Missing override of ProjectionFunctor::project";
-    return LogicalRegion::NO_REGION;
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Missing override of ProjectionFunctor::project";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -215,9 +227,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     // Must be override by derived classes
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Missing override of ProjectionFunctor::project";
-    return LogicalRegion::NO_REGION;
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Missing override of ProjectionFunctor::project";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -244,9 +256,10 @@ namespace Legion {
       const DomainPoint& point)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Invocation of deprecated projection functor without an override";
-    return LogicalRegion::NO_REGION;
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Invocation of deprecated projection functor without an "
+          << "override";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -255,9 +268,10 @@ namespace Legion {
       const DomainPoint& point)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Invocation of deprecated projection functor without an override";
-    return LogicalRegion::NO_REGION;
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Invocation of deprecated projection functor without an "
+          << "override";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -267,8 +281,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     // Must be override by derived classes
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Missing override of ProjectionFunctor::invert";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Missing override of ProjectionFunctor::invert";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -278,8 +293,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     // Must be override by derived classes
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Missing override of ProjectionFunctor::invert";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Missing override of ProjectionFunctor::invert";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -336,10 +352,10 @@ namespace Legion {
       const size_t total_shards)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Invocation of 'ShardingFunctor::shard' method "
-        << "without a user-provided override";
-    return 0;
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Invocation of 'ShardingFunctor::shard' method "
+          << "without a user-provided override";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -348,10 +364,10 @@ namespace Legion {
       const std::vector<DomainPoint>& shard_points, const Domain& shard_domain)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Invocation of 'ShardingFunctor::shard_points' method "
-        << "without a user-provided override";
-    return DomainPoint();
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Invocation of 'ShardingFunctor::shard_points' method "
+          << "without a user-provided override";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -360,9 +376,10 @@ namespace Legion {
       const size_t total_shards, std::vector<DomainPoint>& points)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Invocation of 'ShardingFunctor::invert' method "
-        << "without a user-provided override";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Invocation of 'ShardingFunctor::invert' method "
+          << "without a user-provided override";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
@@ -373,9 +390,10 @@ namespace Legion {
       std::vector<DomainPoint>& index_points)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Invocation of 'ShardingFunctor::invert_points' method "
-        << "without a user-provided override";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Invocation of 'ShardingFunctor::invert_points' method "
+          << "without a user-provided override";
+    error.raise();
   }
 
   /////////////////////////////////////////////////////////////

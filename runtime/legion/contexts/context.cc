@@ -334,10 +334,13 @@ namespace Legion {
         OutputRegion& output_region = output_regions[idx];
         FieldID unbound_field = 0;
         if (!output_region.impl->is_complete(unbound_field))
-          Exception(PROGRAMMING_MODEL_EXCEPTION, owner_task)
-              << "Task " << *owner_task << " did not return any instance "
-              << "for field " << unbound_field << "of output requirement "
-              << idx << ".";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Task " << *owner_task << " did not return any instance "
+                << "for field " << unbound_field << "of output requirement "
+                << idx << ".";
+          error.raise();
+        }
         output_region.impl->finalize(safe_effects);
       }
       // Clear this to remove references in output region data structures
@@ -591,10 +594,13 @@ namespace Legion {
         finalize_output_regions(safe_effects);
       }
       if (!user_profiling_ranges.empty())
-        Exception(PROGRAMMING_MODEL_EXCEPTION, owner_task)
-            << "Detected mismatched profiling range calls, missing "
-            << user_profiling_ranges.size() << " stop calls at the end of "
-            << *owner_task << ".";
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Detected mismatched profiling range calls, missing "
+              << user_profiling_ranges.size() << " stop calls at the end of "
+              << *owner_task << ".";
+        error.raise();
+      }
       // See if we need to pull the data in from a callback in the case
       // where we are going to be doing a reduction immediately, if we
       // are then we're going to overwrite 'owned' so save it to callback_owned
@@ -970,18 +976,24 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (prov == nullptr)
-        Exception(PROGRAMMING_MODEL_EXCEPTION, owner_task)
-            << "Missing provenance string for application profiling range in "
-            << *owner_task << ".";
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Missing provenance string for application profiling range in "
+              << *owner_task << ".";
+        error.raise();
+      }
       if (implicit_profiler != nullptr)
       {
         Provenance* provenance =
             runtime->find_or_create_provenance(prov, strlen(prov));
         if (user_profiling_ranges.empty())
-          Exception(PROGRAMMING_MODEL_EXCEPTION, owner_task)
-              << "Detected mismatched profiling range calls, received a stop "
-              << "call without a corresponding start call in task "
-              << *owner_task << ".";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Detected mismatched profiling range calls, received a stop "
+                << "call without a corresponding start call in task "
+                << *owner_task << ".";
+          error.raise();
+        }
         const long long stop = Realm::Clock::current_time_in_nanoseconds();
         implicit_profiler->record_application_range(
             provenance->pid, user_profiling_ranges.back(), stop);
@@ -998,9 +1010,12 @@ namespace Legion {
       std::map<LocalVariableID, std::pair<void*, void (*)(void*)> >::
           const_iterator finder = task_local_variables.find(id);
       if (finder == task_local_variables.end())
-        Exception(INTERFACE_EXCEPTION, owner_task)
-            << "Unable to find task local variable " << id << " in "
-            << *owner_task << ".";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Unable to find task local variable " << id << " in "
+              << *owner_task << ".";
+        error.raise();
+      }
       return finder->second.first;
     }
 
@@ -1222,12 +1237,15 @@ namespace Legion {
       VariantImpl* variant_impl = runtime->find_variant_impl(
           child->task_id, output.chosen_variant, true /*can fail*/);
       if (variant_impl == nullptr)
-        Exception(MAPPER_EXCEPTION, owner_task)
-            << "Invalid mapper output from invoction of "
-            << "'select_task_variant' by mapper " << *child_mapper
-            << ". Mapper selected an invalid variant ID "
-            << output.chosen_variant << " for inlining of task " << *child
-            << ".";
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invoction of "
+              << "'select_task_variant' by mapper " << *child_mapper
+              << ". Mapper selected an invalid variant ID "
+              << output.chosen_variant << " for inlining of task " << *child
+              << ".";
+        error.raise();
+      }
       if (runtime->safe_mapper)
         child->validate_variant_selection(
             child_mapper, variant_impl, executing_processor.kind(),

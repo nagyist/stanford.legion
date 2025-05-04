@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
+#include "legion/api/exception.h"
 #include "legion/api/physical_region_impl.h"
 #include "legion/contexts/inner.h"
-#include "legion/kernel/exception.h"
 #include "legion/kernel/runtime.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/detach.h"
@@ -179,8 +179,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (impl == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Illegal request to create an accessor on null physical region";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal request to create an accessor on null physical region";
+      error.raise();
+    }
     return impl->get_instance_info(
         mode, fid, field_size, realm_is, type_tag, warning_string,
         silence_warnings, generic_accessor, check_field_size, redop);
@@ -194,9 +197,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (impl == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Illegal request to create a padded accessor on null physical "
-             "region";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal request to create a padded accessor on null physical "
+               "region";
+      error.raise();
+    }
     return impl->get_padding_info(
         fid, field_size, inner, outer, warning_string, silence_warnings,
         generic_accessor, check_field_size);
@@ -283,18 +289,20 @@ namespace Legion {
   /*static*/ void PhysicalRegion::fail_nondense_rect(void)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Illegal request for non-dense rectangle pointer. Use the "
-        << "version of 'ptr' for a rectangle that also returns strides.";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Illegal request for non-dense rectangle pointer. Use the "
+          << "version of 'ptr' for a rectangle that also returns strides.";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
   /*static*/ void PhysicalRegion::fail_rect_piece(void)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Illegal request for pointer of a rectangle not contained "
-        << "within the bounds of any piece in the instance.";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Illegal request for pointer of a rectangle not contained "
+          << "within the bounds of any piece in the instance.";
+    error.raise();
   }
 
   /////////////////////////////////////////////////////////////

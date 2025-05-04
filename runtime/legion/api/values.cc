@@ -14,9 +14,9 @@
  */
 
 #include "legion/api/values.h"
+#include "legion/api/exception.h"
 #include "legion/api/runtime.h"
 #include "legion/contexts/context.h"
-#include "legion/kernel/exception.h"
 
 namespace Legion {
 
@@ -111,10 +111,13 @@ namespace Legion {
       finder.only_kind(kind);
     }
     if (finder.count() == 0)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Unable to find associated " << kind << " memory kind for "
-          << exec_proc << " when performed an (Untyped)Deferred"
-          << (value ? "Value" : "Buffer") << " creation";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Unable to find associated " << kind << " memory kind for "
+            << exec_proc << " when performed an (Untyped)Deferred"
+            << (value ? "Value" : "Buffer") << " creation";
+      error.raise();
+    }
     return finder.first();
   }
 
@@ -146,9 +149,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (Internal::implicit_context == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Illegal request to create a DeferredBuffer, DeferredValue, "
-          << "or a DeferredReduction outside of a Legion task.";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal request to create a DeferredBuffer, DeferredValue, "
+            << "or a DeferredReduction outside of a Legion task.";
+      error.raise();
+    }
     return Internal::implicit_context->create_task_local_instance(
         memory, layout);
   }
@@ -159,9 +165,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (Internal::implicit_context == nullptr)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Illegal request to destroy a DeferredBuffer, DeferredValue, "
-          << "or a DeferredReduction outside of a Legion task.";
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal request to destroy a DeferredBuffer, DeferredValue, "
+            << "or a DeferredReduction outside of a Legion task.";
+      error.raise();
+    }
     // Don't trust events passed in by users to be safe from poison
     if (precondition.exists())
       return Internal::implicit_context->destroy_task_local_instance(
@@ -185,32 +194,32 @@ namespace Legion {
       const char* accessor_kind, bool buffer)
   //--------------------------------------------------------------------------
   {
-    if (buffer)
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Incompatible " << accessor_kind << " for (Untyped)DeferredBuffer";
-    else
-      Internal::Exception(Internal::INTERFACE_EXCEPTION)
-          << "Incompatible " << accessor_kind << " for (Untyped)DeferredValue";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Incompatible " << accessor_kind << " for "
+          << (buffer ? "(Untyped)DeferredBuffer" : "(Untyped)DeferredValue");
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
   /*static*/ void UntypedDeferredValue::report_nondense_domain(void)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "DeferredBuffer only supporst dense domains. Make sure your "
-        << "domain for a DeferredBuffer does not have a sparsity map.";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "DeferredBuffer only supporst dense domains. Make sure your "
+          << "domain for a DeferredBuffer does not have a sparsity map.";
+    error.raise();
   }
 
   //--------------------------------------------------------------------------
   /*static*/ void UntypedDeferredValue::report_nondense_rect(void)
   //--------------------------------------------------------------------------
   {
-    Internal::Exception(Internal::INTERFACE_EXCEPTION)
-        << "Illegal request for point of non-dense rectangle in a "
-        << "DeferredBuffer. Make sure that you only ask for rectangles "
-        << "that are dense in the layout of the deferred buffer or use "
-        << "the version that passes back strides.";
+    Error error(LEGION_INTERFACE_EXCEPTION);
+    error << "Illegal request for point of non-dense rectangle in a "
+          << "DeferredBuffer. Make sure that you only ask for rectangles "
+          << "that are dense in the layout of the deferred buffer or use "
+          << "the version that passes back strides.";
+    error.raise();
   }
 
 }  // namespace Legion

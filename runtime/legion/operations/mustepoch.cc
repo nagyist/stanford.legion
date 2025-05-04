@@ -116,10 +116,13 @@ namespace Legion {
       tag = launcher.mapping_tag;
       parent_task = ctx->get_task();
       if (ctx->is_concurrent_context())
-        Exception(FATAL_EXCEPTION, this)
-            << "Illegal nested must epoch launch which has a concurrent "
-            << "ancesstor (must epoch or concurrent index task). Nested "
-            << "concurrency is not currently supported.";
+      {
+        Fatal fatal;
+        fatal << "Illegal nested must epoch launch which has a concurrent "
+              << "ancesstor (must epoch or concurrent index task). Nested "
+              << "concurrency is not currently supported.";
+        fatal.raise();
+      }
       LegionSpy::log_must_epoch_operation(ctx->get_unique_id(), unique_op_id);
       return result_map;
     }
@@ -481,22 +484,28 @@ namespace Legion {
           Processor proc = output.task_processors[idx];
           SingleTask* task = single_tasks[idx];
           if (!proc.exists())
-            Exception(MAPPER_EXCEPTION, this)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'map_must_epoch' "
                    "on mapper "
                 << *mapper << ". Mapper failed to specify "
                 << "a valid processor for " << *this << " at index " << idx
                 << ".";
+            error.raise();
+          }
           if (target_procs.find(proc) != target_procs.end())
           {
             SingleTask* other = target_procs[proc];
-            Exception(MAPPER_EXCEPTION, this)
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
                 << "Invalid mapper output from invocation of 'map_must_epoch' "
                    "on mapper "
                 << *mapper << ". Mapper requests both tasks " << *other
                 << " and " << *task << " be mapped to the same "
                 << "processor (" << proc
                 << ") which is illegal in a must epoch launch.";
+            error.raise();
           }
           target_procs[proc] = task;
           task->target_proc = proc;
@@ -928,10 +937,12 @@ namespace Legion {
         {
           TaskOp* src_task = find_task_by_index(src_index);
           TaskOp* dst_task = find_task_by_index(dst_index);
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
               << "Detected dependence between two tasks " << *src_task
               << " and " << *dst_task << ". Non-simulataneous dependences "
               << "between two tasks in a must-epoch launch are not permitted.";
+          error.raise();
         }
       }
     }
@@ -1050,15 +1061,16 @@ namespace Legion {
       {
         TaskOp* src_task = find_task_by_index(src_index);
         TaskOp* dst_task = find_task_by_index(dst_index);
-        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-            << "Detected dependence between region " << src_idx << " of "
-            << *src_task << " and " << dst_idx << " of " << *dst_task
-            << " of type "
-            << ((dtype == LEGION_TRUE_DEPENDENCE) ? "TRUE DEPENDENCE" :
-                (dtype == LEGION_ANTI_DEPENDENCE) ? "ANTI DEPENDENCE" :
-                                                    "ATOMIC DEPENDENCE")
-            << ". Non-simultaneous dependences between two tasks in a "
-            << "must epoch_launch are not permitted.";
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Detected dependence between region " << src_idx << " of "
+              << *src_task << " and " << dst_idx << " of " << *dst_task
+              << " of type "
+              << ((dtype == LEGION_TRUE_DEPENDENCE) ? "TRUE DEPENDENCE" :
+                  (dtype == LEGION_ANTI_DEPENDENCE) ? "ANTI DEPENDENCE" :
+                                                      "ATOMIC DEPENDENCE")
+              << ". Non-simultaneous dependences between two tasks in a "
+              << "must epoch_launch are not permitted.";
+        error.raise();
       }
       else if (dtype == LEGION_SIMULTANEOUS_DEPENDENCE)
       {
@@ -2271,9 +2283,12 @@ namespace Legion {
         sharding_collective->contribute(this->sharding_functor);
         if (sharding_collective->is_target() &&
             !sharding_collective->validate(this->sharding_functor))
-          Exception(MAPPER_EXCEPTION, this)
-              << "Mapper " << *mapper << " chose different sharding "
-              << "functions for must epoch launch in " << *parent_ctx;
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << *mapper << " chose different sharding "
+                << "functions for must epoch launch in " << *parent_ctx;
+          error.raise();
+        }
       }
       ReplFutureMapImpl* impl =
           legion_safe_cast<ReplFutureMapImpl*>(result_map.impl);

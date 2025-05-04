@@ -188,11 +188,15 @@ namespace Legion {
       if (instance != nullptr)
       {
         if (output.size > return_type_size)
-          Exception(MAPPER_EXCEPTION, this)
-              << "Mapper " << *mapper << " returned tunable value of size "
-              << output.size << " for selection of tunable value " << tunable_id
-              << " but the upper bound size set by the launcher was only "
-              << return_type_size << ".";
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << *mapper << " returned tunable value of size "
+                << output.size << " for selection of tunable value "
+                << tunable_id
+                << " but the upper bound size set by the launcher was only "
+                << return_type_size << ".";
+          error.raise();
+        }
         // Copy the result into the instance
         FutureInstance* local = new FutureInstance(
             output.value, output.size, true /*external*/,

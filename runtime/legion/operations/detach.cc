@@ -171,9 +171,12 @@ namespace Legion {
       // references when we are done mapping
       PhysicalManager* manager = reference.get_physical_manager();
       if (!manager->is_external_instance())
-        Exception(INTERFACE_EXCEPTION, this)
-            << "Illegal " << *this << ". Detach was performed on an region "
-            << "that had not previously been attached.";
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal " << *this << ". Detach was performed on an region "
+              << "that had not previously been attached.";
+        error.raise();
+      }
       legion_assert(!manager->is_reduction_manager());
       manager->add_base_valid_ref(MAPPING_ACQUIRE_REF);
       const PhysicalTraceInfo trace_info(this, 0 /*idx*/);

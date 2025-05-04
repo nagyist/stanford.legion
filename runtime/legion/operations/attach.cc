@@ -71,18 +71,22 @@ namespace Legion {
           std::map<FieldID, const char*>::const_iterator finder =
               launcher.field_files.find(*it);
           if (finder == launcher.field_files.end())
-            Exception(INTERFACE_EXCEPTION, this)
-                << "Unable to find field file name for field " << *it
-                << " of HDF5 file " << *this
-                << ". Every field in an HDF5 attach must have a "
-                << "corresponding field file specified field_files.";
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Unable to find field file name for field " << *it
+                  << " of HDF5 file " << *this
+                  << ". Every field in an HDF5 attach must have a "
+                  << "corresponding field file specified field_files.";
+            error.raise();
+          }
           hdf5_field_files.emplace_back(std::string(finder->second));
         }
 #else
-        Exception(INTERFACE_EXCEPTION, this)
-            << "Invalid attach HDF5 file " << *this
-            << ". Legion must be built with HDF5 support to attach regions "
-            << "to HDF5 files";
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid attach HDF5 file " << *this
+              << ". Legion must be built with HDF5 support to attach regions "
+              << "to HDF5 files";
+        error.raise();
 #endif
       }
       if (launcher.external_resource != nullptr)
@@ -119,9 +123,10 @@ namespace Legion {
                   layout_constraint_set.pointer_constraint;
               if ((memory != pointer.memory) && pointer.memory.exists())
               {
-                Exception(WARNING_EXCEPTION, this)
-                    << "WARNING: " << pointer.memory.kind() << " memory "
-                    << pointer.memory << " in pointer constraint for " << *this
+                Warning warning;
+                warning
+                    << pointer.memory.kind() << " memory " << pointer.memory
+                    << " in pointer constraint for " << *this
                     << " differs from the Realm-suggested " << memory.kind()
                     << " memory " << memory << " for the "
                     << "external instance. Legion is going to use the more "
@@ -134,13 +139,18 @@ namespace Legion {
                     << "memory. To silence this warning you can pass in a "
                        "NO_MEMORY "
                     << "to the pointer constraint.";
+                warning.raise();
               }
               if (!layout_constraint_set.pointer_constraint.is_valid)
-                Exception(INTERFACE_EXCEPTION, this)
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error
                     << "External array " << *this
                     << " issued with no pointer constraint. All external array "
                     << "attach operations must have a pointer constraint "
                     << "specified in the launcher.";
+                error.raise();
+              }
               break;
             }
           default:
@@ -426,9 +436,13 @@ namespace Legion {
                   field_set, sizes, hdf5_field_files,
                   layout_constraint_set.ordering_constraint);
       if (!external_resource->satisfies(*ilg))
-        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
             << "External resources provided to attach operation " << *this
             << " are insufficient to support the specified layout constraint.";
+        error.raise();
+      }
       footprint = ilg->bytes_used;
       const ApEvent ready_event(PhysicalInstance::create_external_instance(
           result, external_resource->suggested_memory(), *ilg,
@@ -819,11 +833,14 @@ namespace Legion {
         DomainPoint interfering;
         if (node->has_interfering_point(
                 domains, interfering, (*it)->get_index_point()))
-          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Index " << *this << " has interfering region requirements "
-              << "between point " << (*it)->get_index_point() << " and point "
-              << interfering << ". All regions specified for an index attach "
-              << "operation must have non-interfering regions.";
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Index " << *this << " has interfering region requirements "
+                << "between point " << (*it)->get_index_point() << " and point "
+                << interfering << ". All regions specified for an index attach "
+                << "operation must have non-interfering regions.";
+          error.raise();
+        }
       }
     }
 
@@ -957,11 +974,15 @@ namespace Legion {
               launcher.field_files.find(*it);
           if ((finder == launcher.field_files.end()) ||
               (index >= finder->second.size()))
-            Exception(INTERFACE_EXCEPTION, this)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error
                 << "Unable to find field file name for field " << *it << " of "
                 << "HDF5 file " << *this
                 << ". Every field in an HDF5 attach must have a corresponding "
                 << "field file specified field_files.";
+            error.raise();
+          }
           hdf5_field_files.emplace_back(std::string(finder->second[index]));
         }
       }
@@ -969,11 +990,14 @@ namespace Legion {
       if (!launcher.external_resources.empty())
       {
         if (index >= launcher.external_resources.size())
-          Exception(INTERFACE_EXCEPTION, this)
-              << "Insufficient 'external_resource' provided by index " << *this
-              << " launch. Launcher has " << launcher.handles.size()
-              << " logical regions but only "
-              << launcher.external_resources.size() << " external resources.";
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Insufficient 'external_resource' provided by index "
+                << *this << " launch. Launcher has " << launcher.handles.size()
+                << " logical regions but only "
+                << launcher.external_resources.size() << " external resources.";
+          error.raise();
+        }
         external_resource = launcher.external_resources[index]->clone();
       }
       else
@@ -985,11 +1009,14 @@ namespace Legion {
           case LEGION_EXTERNAL_POSIX_FILE:
             {
               if (index >= launcher.file_names.size())
-                Exception(INTERFACE_EXCEPTION, this)
-                    << "Insufficient 'file_names' provided by index " << *this
-                    << ". Launcher has " << launcher.handles.size()
-                    << " logical regions but only "
-                    << launcher.file_names.size() << " POSIX file names.";
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Insufficient 'file_names' provided by index " << *this
+                      << ". Launcher has " << launcher.handles.size()
+                      << " logical regions but only "
+                      << launcher.file_names.size() << " POSIX file names.";
+                error.raise();
+              }
               external_resource = new Realm::ExternalFileResource(
                   std::string(launcher.file_names[index]), launcher.mode);
               break;
@@ -997,17 +1024,21 @@ namespace Legion {
           case LEGION_EXTERNAL_HDF5_FILE:
             {
               if (index >= launcher.file_names.size())
-                Exception(INTERFACE_EXCEPTION, this)
-                    << "Insufficient 'file_names' provided by index " << *this
-                    << ". Launcher has " << launcher.handles.size()
-                    << " logical regions but only "
-                    << launcher.file_names.size() << " HDF5 file names.";
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Insufficient 'file_names' provided by index " << *this
+                      << ". Launcher has " << launcher.handles.size()
+                      << " logical regions but only "
+                      << launcher.file_names.size() << " HDF5 file names.";
+                error.raise();
+              }
 #ifndef LEGION_USE_HDF5
-              Exception(INTERFACE_EXCEPTION, this)
-                  << "Invalid HDF5 file " << *this
-                  << ". Legion must be built with HDF5 support to attach "
-                     "regions "
-                  << "to HDF5 files";
+              Error error(LEGION_INTERFACE_EXCEPTION);
+              error << "Invalid HDF5 file " << *this
+                    << ". Legion must be built with HDF5 support to attach "
+                       "regions "
+                    << "to HDF5 files";
+              error.raise();
 #else
               external_resource = new Realm::ExternalHDF5Resource(
                   launcher.file_names[index], launcher.mode);
@@ -1017,17 +1048,22 @@ namespace Legion {
           case LEGION_EXTERNAL_INSTANCE:
             {
               if (index >= launcher.pointers.size())
-                Exception(INTERFACE_EXCEPTION, this)
-                    << "Insufficient 'pointers' provided by index " << *this
-                    << ". Launcher has " << launcher.handles.size()
-                    << " logical regions but only " << launcher.pointers.size()
-                    << " pointers names.";
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Insufficient 'pointers' provided by index " << *this
+                      << ". Launcher has " << launcher.handles.size()
+                      << " logical regions but only "
+                      << launcher.pointers.size() << " pointers names.";
+                error.raise();
+              }
               const PointerConstraint& pointer = launcher.pointers[index];
               external_resource = new Realm::ExternalMemoryResource(
                   pointer.ptr, launcher.footprint[index], false /*read only*/);
               const Memory memory = external_resource->suggested_memory();
               if ((memory != pointer.memory) && pointer.memory.exists())
-                Exception(WARNING_EXCEPTION, this)
+              {
+                Warning warning;
+                warning
                     << "WARNING: " << pointer.memory.kind() << " memory "
                     << pointer.memory << " in pointer constraint for " << *this
                     << "differs from the Realm-suggested " << memory.kind()
@@ -1039,6 +1075,8 @@ namespace Legion {
                     << "instance being in the originally specified memory. To "
                     << "silence this warning you can pass in a NO_MEMORY to "
                     << "the pointer constraint.";
+                warning.raise();
+              }
               break;
             }
           default:

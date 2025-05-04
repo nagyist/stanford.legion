@@ -15,7 +15,7 @@
 
 #include "legion/managers/mapper.h"
 #include "legion/analysis/versioning.h"
-#include "legion/kernel/exception.h"
+#include "legion/api/exception.h"
 #include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
 #include "legion/api/redop.h"

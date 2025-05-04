@@ -16,7 +16,7 @@
 #ifndef __LEGION_CONTEXT_H__
 #define __LEGION_CONTEXT_H__
 
-#include "legion/kernel/exception.h"
+#include "legion/api/exception.h"
 #include "legion/kernel/garbage_collection.h"
 #include "legion/kernel/metatask.h"
 #include "legion/kernel/runtime.h"
