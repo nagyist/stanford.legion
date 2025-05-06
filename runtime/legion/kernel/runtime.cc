@@ -394,7 +394,6 @@ namespace Legion {
                   (LEGION_MAX_APPLICATION_LAYOUT_ID % runtime_stride)))),
         unique_is_expr_id((unique == 0) ? runtime_stride : unique),
         unique_top_level_task_id((unique == 0) ? runtime_stride : unique),
-        unique_provenance_id((unique == 0) ? runtime_stride : unique),
         unique_implicit_top_level_task_id(0),
         unique_indirections_id((unique == 0) ? runtime_stride : unique),
         unique_task_id(get_current_static_task_id() + unique),
@@ -628,13 +627,11 @@ namespace Legion {
         delete it->second;
       }
       memory_managers.clear();
-      for (std::map<size_t, std::vector<Provenance*> >::const_iterator pit =
+      for (std::unordered_map<size_t, Provenance*>::const_iterator it =
                provenances.begin();
-           pit != provenances.end(); pit++)
-        for (std::vector<Provenance*>::const_iterator it = pit->second.begin();
-             it != pit->second.end(); it++)
-          if ((*it)->remove_reference())
-            delete (*it);
+           it != provenances.end(); it++)
+        if (it->second->remove_reference())
+          delete it->second;
       provenances.clear();
     }
 
@@ -14126,53 +14123,37 @@ namespace Legion {
     {
       if ((prov == nullptr) || (size == 0))
         return nullptr;
+      const std::string_view view(prov, size);
+      // Compute the hash
+      const size_t hash = std::hash<std::string_view>{}(view);
       // Check to see if we can find it in read-only mode first
       {
         AutoLock prov_lock(provenance_lock, 1, false /*exclusive*/);
-        std::map<size_t, std::vector<Provenance*> >::const_iterator finder =
-            provenances.find(size);
+        std::unordered_map<size_t, Provenance*>::const_iterator finder =
+            provenances.find(hash);
         if (finder != provenances.end())
         {
-          for (std::vector<Provenance*>::const_iterator it =
-                   finder->second.begin();
-               it != finder->second.end(); it++)
-          {
-            if ((*it)->full.compare(0, size, prov) != 0)
-              continue;
-            (*it)->add_reference();
-            return (*it);
-          }
+          finder->second->add_reference();
+          return finder->second;
         }
       }
       // Retake the lock in exclusive mode
       AutoLock prov_lock(provenance_lock);
       // Check to make sure we didn't lose the race
-      std::map<size_t, std::vector<Provenance*> >::iterator finder =
-          provenances.find(size);
+      std::unordered_map<size_t, Provenance*>::const_iterator finder =
+          provenances.find(hash);
       if (finder != provenances.end())
       {
-        for (std::vector<Provenance*>::const_iterator it =
-                 finder->second.begin();
-             it != finder->second.end(); it++)
-        {
-          if ((*it)->full.compare(0, size, prov) != 0)
-            continue;
-          (*it)->add_reference();
-          return (*it);
-        }
+        finder->second->add_reference();
+        return finder->second;
       }
-      else
-        finder = provenances
-                     .emplace(std::make_pair(size, std::vector<Provenance*>()))
-                     .first;
       // Generate a new provenance object
-      Provenance* result = new Provenance(unique_provenance_id, prov, size);
+      Provenance* result = new Provenance(hash, prov, size);
       result->add_reference(2);  // one for ourself and one for the caller
-      finder->second.emplace_back(result);
+      provenances.emplace(std::make_pair(hash, result));
       // If we have a profiler, then record this provenance
       if (profiler != nullptr)
-        profiler->record_provenance(unique_provenance_id, prov, size);
-      unique_provenance_id += runtime_stride;
+        profiler->record_provenance(hash, prov, size);
       return result;
     }
 

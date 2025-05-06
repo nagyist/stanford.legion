@@ -1021,7 +1021,8 @@ namespace Legion {
       derez.deserialize(initialized);
       unsigned depth;
       derez.deserialize(depth);
-      AutoProvenance provenance(Provenance::deserialize(derez));
+      AutoProvenance provenance(
+          Provenance::deserialize(derez), true /*has ref*/);
       size_t num_spaces;
       derez.deserialize(num_spaces);
       CollectiveMapping* mapping = nullptr;
@@ -3320,7 +3321,8 @@ namespace Legion {
       CollectiveMapping* mapping = nullptr;
       if (num_spaces > 0)
         mapping = new CollectiveMapping(derez, num_spaces);
-      AutoProvenance provenance(Provenance::deserialize(derez));
+      AutoProvenance provenance(
+          Provenance::deserialize(derez), true /*has ref*/);
       IndexSpaceNode* parent_node = runtime->get_node(parent);
       IndexSpaceNode* color_space_node = runtime->get_node(color_space);
       legion_assert(parent_node != nullptr);

@@ -1019,7 +1019,7 @@ namespace Legion {
       }
       else
         version_infos.resize(logical_regions.size());
-      set_provenance(Provenance::deserialize(derez));
+      set_provenance(Provenance::deserialize(derez), true /*has ref*/);
       // Set our parent task for the user
       parent_task = parent_ctx->get_task();
       // Have to do this before resolving speculation in case

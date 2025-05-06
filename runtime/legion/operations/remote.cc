@@ -44,7 +44,7 @@ namespace Legion {
         profiling_reports(0)
     //--------------------------------------------------------------------------
     {
-      set_provenance(nullptr);
+      set_provenance(nullptr, false /*has ref*/);
     }
 
     //--------------------------------------------------------------------------
@@ -103,7 +103,7 @@ namespace Legion {
     {
       derez.deserialize(unique_op_id);
       parent_ctx = InnerContext::unpack_inner_context(derez);
-      set_provenance(Provenance::deserialize(derez));
+      set_provenance(Provenance::deserialize(derez), true /*has ref*/);
       derez.deserialize<bool>(tracing);
     }
 

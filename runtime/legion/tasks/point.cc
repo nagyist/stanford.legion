@@ -368,7 +368,7 @@ namespace Legion {
         derez.deserialize(concurrent_postcondition);
       }
       set_current_proc(current);
-      set_provenance(slice_owner->get_provenance());
+      set_provenance(slice_owner->get_provenance(), false /*has ref*/);
       if (is_origin_mapped())
       {
         // We're not going to get a callback from the context if we're a leaf

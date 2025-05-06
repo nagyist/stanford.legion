@@ -108,9 +108,8 @@ namespace Legion {
       if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       derez.deserialize(region);
+      // Reference comes back from deserialize
       provenance = Provenance::deserialize(derez);
-      if (provenance != nullptr)
-        provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
@@ -203,9 +202,8 @@ namespace Legion {
         delete provenance;
       derez.deserialize(space);
       derez.deserialize(fid);
+      // Reference comes back from deserialize
       provenance = Provenance::deserialize(derez);
-      if (provenance != nullptr)
-        provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
@@ -298,9 +296,8 @@ namespace Legion {
       if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       derez.deserialize(space);
+      // Reference comes back from deserialize
       provenance = Provenance::deserialize(derez);
-      if (provenance != nullptr)
-        provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
@@ -397,9 +394,8 @@ namespace Legion {
         delete provenance;
       derez.deserialize(space);
       derez.deserialize<bool>(recurse);
+      // Reference comes back from deserialize
       provenance = Provenance::deserialize(derez);
-      if (provenance != nullptr)
-        provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
@@ -498,9 +494,8 @@ namespace Legion {
         delete provenance;
       derez.deserialize(partition);
       derez.deserialize<bool>(recurse);
+      // Reference comes back from deserialize
       provenance = Provenance::deserialize(derez);
-      if (provenance != nullptr)
-        provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------

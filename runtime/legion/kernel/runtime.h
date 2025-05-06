@@ -2041,7 +2041,6 @@ namespace Legion {
       std::atomic<unsigned long long> unique_constraint_id;
       std::atomic<unsigned long long> unique_is_expr_id;
       std::atomic<uint64_t> unique_top_level_task_id;
-      uint64_t unique_provenance_id;
       uint64_t unique_implicit_top_level_task_id;
       std::atomic<unsigned> unique_indirections_id;
       std::atomic<unsigned> unique_task_id;
@@ -2095,7 +2094,7 @@ namespace Legion {
       std::unordered_map<uint64_t /*hash*/, CanonicalSet> canonical_expressions;
     private:
       mutable LocalLock provenance_lock;
-      std::map<size_t, std::vector<Provenance*> > provenances;
+      std::unordered_map<size_t, Provenance*> provenances;
     protected:
       mutable LocalLock library_lock;
       struct LibraryMapperIDs {

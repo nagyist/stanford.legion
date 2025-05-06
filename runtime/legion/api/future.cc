@@ -2142,7 +2142,8 @@ namespace Legion {
               new CollectiveMapping(derez, collective_spaces);
       if (collective_mapping != nullptr)
         collective_mapping->add_reference();
-      AutoProvenance provenance(Provenance::deserialize(derez));
+      AutoProvenance provenance(
+          Provenance::deserialize(derez), true /*has ref*/);
       RtEvent dummy;
       Future result(runtime->find_or_create_future(
           future_did, ctx_did, coordinate, provenance, true /*has global ref*/,

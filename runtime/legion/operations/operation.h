@@ -207,7 +207,7 @@ namespace Legion {
       // along with the number of regions this task has
       void initialize_operation(
           InnerContext* ctx, Provenance* provenance = nullptr);
-      void set_provenance(Provenance* provenance);
+      void set_provenance(Provenance* provenance, bool has_ref);
     public:
       RtEvent execute_prepipeline_stage(
           GenerationID gen, bool from_logical_analysis);

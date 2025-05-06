@@ -73,9 +73,9 @@ namespace Legion {
                   nullptr :
                   runtime->find_or_create_provenance(prov.c_str(), prov.size()))
       { }
-      AutoProvenance(Provenance* prov) : provenance(prov)
+      AutoProvenance(Provenance* prov, bool has_ref) : provenance(prov)
       {
-        if (provenance != nullptr)
+        if ((provenance != nullptr) && !has_ref)
           provenance->add_reference();
       }
       AutoProvenance(AutoProvenance&& rhs) = delete;

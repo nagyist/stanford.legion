@@ -545,7 +545,7 @@ namespace Legion {
       }
       // Unpack the provenance before unpacking any point tasks so
       // that they can pick it up as well
-      set_provenance(Provenance::deserialize(derez));
+      set_provenance(Provenance::deserialize(derez), true /*has ref*/);
       for (unsigned idx = 0; idx < num_points; idx++)
       {
         PointTask* point = runtime->get_operation<PointTask>();

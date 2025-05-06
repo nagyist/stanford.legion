@@ -438,7 +438,8 @@ namespace Legion {
       derez.deserialize(coordinate);
       std::optional<uint64_t> index;
       derez.deserialize(index);
-      AutoProvenance provenance(Provenance::deserialize(derez));
+      AutoProvenance provenance(
+          Provenance::deserialize(derez), true /*has ref*/);
       FutureMap result(runtime->find_or_create_future_map(
           future_map_did, ctx, coordinate, future_map_domain, provenance,
           index));

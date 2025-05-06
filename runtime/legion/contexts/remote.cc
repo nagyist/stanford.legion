@@ -672,9 +672,8 @@ namespace Legion {
       }
       derez.deserialize(parent_context_did);
       context_coordinates.deserialize(derez);
+      // Reference comes back from deserialize
       provenance = Provenance::deserialize(derez);
-      if (provenance != nullptr)
-        provenance->add_reference();
       derez.deserialize(remote_uid);
       // Unpack any local fields that we have
       unpack_local_field_update(derez);
@@ -737,9 +736,8 @@ namespace Legion {
       {
         FieldSpace handle;
         derez.deserialize(handle);
-        Provenance* provenance = Provenance::deserialize(derez);
-        if (provenance != nullptr)
-          provenance->add_reference();
+        // Reference comes back from deserialize
+        Provenance* local_provenance = Provenance::deserialize(derez);
         size_t num_local;
         derez.deserialize(num_local);
         std::vector<FieldID> fields(num_local);
@@ -763,9 +761,10 @@ namespace Legion {
           }
         }
         runtime->update_local_fields(
-            handle, fields, field_sizes, serdez_ids, indexes, provenance);
-        if ((provenance != nullptr) && provenance->remove_reference())
-          delete provenance;
+            handle, fields, field_sizes, serdez_ids, indexes, local_provenance);
+        if ((local_provenance != nullptr) &&
+            local_provenance->remove_reference())
+          delete local_provenance;
       }
     }
 

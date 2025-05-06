@@ -1528,7 +1528,7 @@ namespace Legion {
       derez.deserialize(did);
       RtEvent initialized;
       derez.deserialize(initialized);
-      AutoProvenance prov(Provenance::deserialize(derez));
+      AutoProvenance prov(Provenance::deserialize(derez), true /*has ref*/);
       size_t num_spaces;
       derez.deserialize(num_spaces);
       CollectiveMapping* mapping = nullptr;

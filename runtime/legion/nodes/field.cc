@@ -250,9 +250,8 @@ namespace Legion {
       derez.deserialize(idx);
       derez.deserialize<bool>(collective);
       derez.deserialize<bool>(local);
+      // Reference passed back from deserialize
       provenance = Provenance::deserialize(derez);
-      if (provenance != nullptr)
-        provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
@@ -2562,7 +2561,8 @@ namespace Legion {
       derez.deserialize(serdez_id);
       ApEvent sizes_ready;
       derez.deserialize(sizes_ready);
-      AutoProvenance provenance(Provenance::deserialize(derez));
+      AutoProvenance provenance(
+          Provenance::deserialize(derez), true /*has ref*/);
       size_t num_fields;
       derez.deserialize(num_fields);
       std::vector<FieldID> fids(num_fields);
@@ -2668,7 +2668,8 @@ namespace Legion {
       derez.deserialize(done_event);
       CustomSerdezID serdez_id;
       derez.deserialize(serdez_id);
-      AutoProvenance provenance(Provenance::deserialize(derez));
+      AutoProvenance provenance(
+          Provenance::deserialize(derez), true /*has ref*/);
       size_t num_fields;
       derez.deserialize(num_fields);
       std::vector<FieldID> fields(num_fields);
@@ -3139,7 +3140,8 @@ namespace Legion {
       derez.deserialize(handle);
       RtEvent initialized;
       derez.deserialize(initialized);
-      AutoProvenance provenance(Provenance::deserialize(derez));
+      AutoProvenance provenance(
+          Provenance::deserialize(derez), true /*has ref*/);
       size_t num_spaces;
       derez.deserialize(num_spaces);
       CollectiveMapping* mapping = nullptr;

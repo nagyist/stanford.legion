@@ -407,12 +407,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Operation::set_provenance(Provenance* prov)
+    void Operation::set_provenance(Provenance* prov, bool has_ref)
     //--------------------------------------------------------------------------
     {
       legion_assert(provenance == nullptr);
       provenance = prov;
-      if (provenance != nullptr)
+      if ((provenance != nullptr) && !has_ref)
         provenance->add_reference();
     }
 
