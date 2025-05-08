@@ -1185,35 +1185,40 @@ namespace Legion {
       if (result == LogicalRegion::NO_REGION)
         return;
       if (result.get_tree_id() != upper_bound.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion of tree ID %lld for region requirement %d "
-            "of task %s (UID %lld) which is different from the upper "
-            "bound node of tree ID %lld",
-            projection_id, result.get_tree_id(), idx, task->get_task_name(),
-            task->get_unique_id(), upper_bound.get_tree_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Projection functor " << projection_id << " produced an "
+              << "invalid logical subregion of tree ID " << result.get_tree_id()
+              << " for region requirement " << idx << " of " << *task
+              << " which is different from the upper bound node of tree ID "
+              << upper_bound.get_tree_id() << ".";
+        error.raise();
+      }
       if (runtime->safe_model)
       {
         if (!runtime->is_subregion(result, upper_bound))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid "
-              "logical subregion which is not a subregion of the "
-              "upper bound region for region requirement %d of "
-              "task %s (UID %lld)",
-              projection_id, idx, task->get_task_name(), task->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
+              << "Projection functor " << projection_id << " produced "
+              << "an invalid logical subregion which is not a subregion of the "
+              << "upper bound region for region requirement " << idx << " of "
+              << *task << ".";
+          error.raise();
+        }
         const unsigned projection_depth =
             runtime->get_projection_depth(result, upper_bound);
         if (projection_depth > functor->get_depth())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid "
-              "logical subregion which has projection depth %d which "
-              "is different from stated projection depth of the functor "
-              "which is %d for region requirement %d of task %s (ID %lld)",
-              projection_id, projection_depth, functor->get_depth(), idx,
-              task->get_task_name(), task->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Projection functor " << projection_id << " produced an "
+                << "invalid logical subregion which has projection depth "
+                << projection_depth << " which is different from stated "
+                << "projection depth of the functor which is "
+                << functor->get_depth() << " for region requirement " << idx
+                << " of " << *task << ".";
+          error.raise();
+        }
       }
     }
 
@@ -1227,35 +1232,39 @@ namespace Legion {
       if (result == LogicalRegion::NO_REGION)
         return;
       if (result.get_tree_id() != upper_bound.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion of tree ID %lld for region requirement %d "
-            "of task %s (UID %lld) which is different from the upper "
-            "bound node of tree ID %lld",
-            projection_id, result.get_tree_id(), idx, task->get_task_name(),
-            task->get_unique_id(), upper_bound.get_tree_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Projection functor " << projection_id << " produced an "
+              << "invalid logical subregion of tree ID " << result.get_tree_id()
+              << " for region requirement " << idx << " of " << *task
+              << " which is different from the upper bound node of tree ID "
+              << upper_bound.get_tree_id() << ".";
+        error.raise();
+      }
       if (runtime->safe_model)
       {
         if (!runtime->is_subregion(result, upper_bound))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid "
-              "logical subregion which is not a subregion of the "
-              "upper bound region for region requirement %d of "
-              "task %s (UID %lld)",
-              projection_id, idx, task->get_task_name(), task->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Projection functor " << projection_id << " produced an "
+                << "invalid logical subregion which is not a subregion of the "
+                << "upper bound region for region requirement " << idx << " of "
+                << *task << ".";
+          error.raise();
+        }
         const unsigned projection_depth =
             runtime->get_projection_depth(result, upper_bound);
         if (projection_depth > functor->get_depth())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid "
-              "logical subregion which has projection depth %d which "
-              "is different from stated projection depth of the functor "
-              "which is %d for region requirement %d of task %s (ID %lld)",
-              projection_id, projection_depth, functor->get_depth(), idx,
-              task->get_task_name(), task->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Projection functor " << projection_id << " produced an "
+                << "invalid logical subregion which has projection depth "
+                << projection_depth << " which is different from stated "
+                << "projection depth of the functor which is "
+                << functor->get_depth() << " for region requirement " << idx
+                << " of " << *task << ".";
+          error.raise();
+        }
       }
     }
 
@@ -1269,36 +1278,39 @@ namespace Legion {
       if (result == LogicalRegion::NO_REGION)
         return;
       if (result.get_tree_id() != upper_bound.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion of tree ID %lld for region requirement %d "
-            "of operation %s (UID %lld) which is different from the upper "
-            "bound node of tree ID %lld",
-            projection_id, result.get_tree_id(), idx, op->get_logging_name(),
-            op->get_unique_op_id(), upper_bound.get_tree_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Projection functor " << projection_id << " produced an "
+              << "invalid logical subregion of tree ID " << result.get_tree_id()
+              << " for region requirement " << idx << " of " << *op
+              << " which is different from the upper bound node of tree ID "
+              << upper_bound.get_tree_id() << ".";
+        error.raise();
+      }
       if (runtime->safe_model)
       {
         if (!runtime->is_subregion(result, upper_bound))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid "
-              "logical subregion which is not a subregion of the "
-              "upper bound region for region requirement %d of "
-              "operation %s (UID %lld)",
-              projection_id, idx, op->get_logging_name(),
-              op->get_unique_op_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Projection functor " << projection_id << " produced an "
+                << "invalid logical subregion which is not a subregion of the "
+                << "upper bound region for region requirement " << idx << " of "
+                << *op << ".";
+          error.raise();
+        }
         const unsigned projection_depth =
             runtime->get_projection_depth(result, upper_bound);
         if (projection_depth > functor->get_depth())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid "
-              "logical subregion which has projection depth %d which "
-              "is different from stated projection depth of the functor "
-              "which is %d for region requirement %d of operation %s (ID %lld)",
-              projection_id, projection_depth, functor->get_depth(), idx,
-              op->get_logging_name(), op->get_unique_op_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Projection functor " << projection_id << " produced an "
+                << "invalid logical subregion which has projection depth "
+                << projection_depth << " which is different from stated "
+                << "projection depth of the functor which is "
+                << functor->get_depth() << " for region requirement " << idx
+                << " of " << *op << ".";
+          error.raise();
+        }
       }
     }
 
@@ -1312,36 +1324,39 @@ namespace Legion {
       if (result == LogicalRegion::NO_REGION)
         return;
       if (result.get_tree_id() != upper_bound.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid "
-            "logical subregion of tree ID %lld for region requirement %d "
-            "of operation %s (UID %lld) which is different from the upper "
-            "bound node of tree ID %lld",
-            projection_id, result.get_tree_id(), idx, op->get_logging_name(),
-            op->get_unique_op_id(), upper_bound.get_tree_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Projection functor " << projection_id << " produced an "
+              << "invalid logical subregion of tree ID " << result.get_tree_id()
+              << " for region requirement " << idx << " of " << *op
+              << " which is different from the upper bound node of tree ID "
+              << upper_bound.get_tree_id() << ".";
+        error.raise();
+      }
       if (runtime->safe_model)
       {
         if (!runtime->is_subregion(result, upper_bound))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid "
-              "logical subregion which is not a subregion of the "
-              "upper bound region for region requirement %d of "
-              "operation %s (UID %lld)",
-              projection_id, idx, op->get_logging_name(),
-              op->get_unique_op_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Projection functor " << projection_id << " produced an "
+                << "invalid logical subregion which is not a subregion of the "
+                << "upper bound region for region requirement " << idx << " of "
+                << *op << ".";
+          error.raise();
+        }
         const unsigned projection_depth =
             runtime->get_projection_depth(result, upper_bound);
         if (projection_depth > functor->get_depth())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PROJECTION_RESULT,
-              "Projection functor %d produced an invalid "
-              "logical subregion which has projection depth %d which "
-              "is different from stated projection depth of the functor "
-              "which is %d for region requirement %d of operation %s (ID %lld)",
-              projection_id, projection_depth, functor->get_depth(), idx,
-              op->get_logging_name(), op->get_unique_op_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Projection functor " << projection_id << " produced an "
+                << "invalid logical subregion which has projection depth "
+                << projection_depth << " which is different from stated "
+                << "projection depth of the functor which is "
+                << functor->get_depth() << " for region requirement " << idx
+                << " of " << *op << ".";
+          error.raise();
+        }
       }
     }
 
@@ -1354,14 +1369,15 @@ namespace Legion {
     {
       const Operation* op = point->as_operation();
       if (!allow_empty && points.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an empty inversion result "
-            "while inverting region requirement %d of %s (UID %lld). "
-            "Empty inversions are never legal because the point that "
-            "produced the region must always be included.",
-            projection_id, index, op->get_logging_name(),
-            op->get_unique_op_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Projection functor " << projection_id << " produced an "
+              << "empty inversion result while inverting region requirement "
+              << index << " of " << *op << ". Empty inversions are never legal "
+              << "because the point that produced the region must always be "
+              << "included.";
+        error.raise();
+      }
       if (runtime->safe_model)
       {
         std::set<DomainPoint> unique_points;
@@ -1369,23 +1385,25 @@ namespace Legion {
              it != points.end(); it++)
         {
           if (!launch_domain.contains(*it))
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_PROJECTION_RESULT,
-                "Projection functor %d produced an invalid inversion result "
-                "that contains points not in the launch domain for region "
-                "requirement %d of %s (UID %lld). Only points in the launch "
-                "domain can appear in the result.",
-                projection_id, index, op->get_logging_name(),
-                op->get_unique_op_id())
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Projection functor " << projection_id << " produced "
+                  << "an invalid inversion result that contains points not in "
+                  << "the launch domain for region requirement " << index
+                  << " of " << *op << ". Only points in the launch "
+                  << "domain can appear in the result.";
+            error.raise();
+          }
           if (!unique_points.insert(*it).second)
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_PROJECTION_RESULT,
-                "Projection functor %d produced an invalid inversion result "
-                "containing duplicate points for region requirement %d of "
-                "%s (UID %lld). Each point is only permitted to "
-                "appear once in an inversion.",
-                projection_id, index, op->get_logging_name(),
-                op->get_unique_op_id())
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Projection functor " << projection_id << " produced "
+                  << "an invalid inversion result containing duplicate points "
+                  << "for region requirement " << index << " of " << *op
+                  << ". Each point is only permitted to appear once in an "
+                  << "inversion.";
+            error.raise();
+          }
         }
       }
     }
@@ -1398,13 +1416,16 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!allow_empty && points.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an empty inversion result "
-            "while inverting region requirement %d of %s (UID %lld)."
-            "Empty inversions are never legal because the point copy "
-            "that produced the region must always be included.",
-            projection_id, index, Operation::get_string_rep(op_kind), uid)
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Projection functor " << projection_id << " produced an "
+              << "empty inversion result while inverting region requirement "
+              << index << " of " << Operation::get_string_rep(op_kind)
+              << " (UID: " << uid << "). Empty inversions are never legal "
+              << "because the point copy that produced the region must always "
+              << "be included.";
+        error.raise();
+      }
       if (runtime->safe_model)
       {
         std::set<DomainPoint> unique_points;
@@ -1412,21 +1433,28 @@ namespace Legion {
              it != points.end(); it++)
         {
           if (!launch_domain.contains(*it))
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_PROJECTION_RESULT,
-                "Projection functor %d produced an invalid inversion result "
-                "that contains points not in the launch domain for region "
-                "requirement %d of %s (UID %lld). Only points in the launch "
-                "domain can appear in the result.",
-                projection_id, index, Operation::get_string_rep(op_kind), uid)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Projection functor " << projection_id << " produced "
+                  << "an invalid inversion result that contains points not in "
+                  << "the launch domain for region requirement " << index
+                  << " of " << Operation::get_string_rep(op_kind)
+                  << "(UID: " << uid
+                  << "). Only points in the launch domain can appear "
+                  << "in the result.";
+            error.raise();
+          }
           if (!unique_points.insert(*it).second)
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_PROJECTION_RESULT,
-                "Projection functor %d produced an invalid inversion result "
-                "containing duplicate points for region requirement %d of "
-                "%s (UID %lld). Each point is only permitted to "
-                "appear once in an inversion.",
-                projection_id, index, Operation::get_string_rep(op_kind), uid)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Projection functor " << projection_id << " produced "
+                  << "an invalid inversion result containing duplicate points "
+                  << "for region requirement " << index << " of "
+                  << Operation::get_string_rep(op_kind) << " (UID: " << uid
+                  << "). Each point is only permitted to appear once in an "
+                  << "inversion.";
+            error.raise();
+          }
         }
       }
     }
@@ -1447,13 +1475,12 @@ namespace Legion {
             return;
         }
         const Operation* op = point->as_operation();
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid inversion result "
-            "that does not contain the original point for region requirement "
-            "%d of %s (UID %lld).",
-            projection_id, index, op->get_logging_name(),
-            op->get_unique_op_id())
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Projection functor " << projection_id << " produced an "
+              << "invalid inversion result that does not contain the original "
+              << "point for region requirement " << index << " of " << *op
+              << ".";
+        error.raise();
       }
     }
 
@@ -1471,12 +1498,12 @@ namespace Legion {
           if ((*it) == index_point)
             return;
         }
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_RESULT,
-            "Projection functor %d produced an invalid inversion result "
-            "that does not contain the original point for region requirement "
-            "%d of %s (UID %lld).",
-            projection_id, index, Operation::get_string_rep(op_kind), uid)
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Projection functor " << projection_id << " produced an "
+              << "invalid inversion result that does not contain the original "
+              << "point for region requirement " << index << " of "
+              << Operation::get_string_rep(op_kind) << " (UID: " << uid << ").";
+        error.raise();
       }
     }
 
@@ -1793,21 +1820,25 @@ namespace Legion {
         if (manager->isomorphic_points)
         {
           if (result.get_dim() != 1)
-            REPORT_LEGION_ERROR(
-                ERROR_ILLEGAL_SHARDING_FUNCTOR_OUTPUT,
-                "Illegal output from sharding functor %d. "
-                "Shards must be contained in the set of "
-                "'shard_points' for control replicated task.",
-                sharding_id)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Illegal output from sharding functor " << sharding_id
+                  << ". Shards must be contained in the set of "
+                  << "'shard_points' for control replicated task.";
+            error.raise();
+          }
           const coord_t shard = result[0];
           if (!skip_checks &&
               ((shard < 0) || (manager->total_shards <= size_t(shard))))
-            REPORT_LEGION_ERROR(
-                ERROR_ILLEGAL_SHARDING_FUNCTOR_OUTPUT,
-                "Illegal output shard %lld from sharding "
-                "functor %d. Shards for this index space "
-                "launch must be between 0 and %zd (exclusive).",
-                shard, sharding_id, manager->total_shards)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Illegal output shard " << shard << " from sharding "
+                  << "functor " << sharding_id
+                  << ". Shards for this index space "
+                  << "launch must be between 0 and " << manager->total_shards
+                  << " (exclusive).";
+            error.raise();
+          }
           return result[0];
         }
         else
@@ -1816,12 +1847,13 @@ namespace Legion {
               manager->sorted_points.begin(), manager->sorted_points.end(),
               result);
           if (finder == manager->sorted_points.end())
-            REPORT_LEGION_ERROR(
-                ERROR_ILLEGAL_SHARDING_FUNCTOR_OUTPUT,
-                "Illegal output from sharding functor %d. "
-                "Shards must be contained in the set of "
-                "'shard_points' for control replicated task.",
-                sharding_id)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Illegal output from sharding functor " << sharding_id
+                  << ". Shards must be contained in the set of "
+                  << "'shard_points' for control replicated task.";
+            error.raise();
+          }
           const unsigned offset =
               std::distance(manager->sorted_points.begin(), finder);
           legion_assert(offset < manager->shard_lookup.size());
@@ -1833,12 +1865,14 @@ namespace Legion {
         const ShardID shard =
             functor->shard(point, sharding_space, manager->total_shards);
         if (!skip_checks && (manager->total_shards <= shard))
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_SHARDING_FUNCTOR_OUTPUT,
-              "Illegal output shard %d from sharding "
-              "functor %d. Shards for this index space "
-              "launch must be between 0 and %zd (exclusive).",
-              shard, sharding_id, manager->total_shards)
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Illegal output shard " << shard << " from sharding "
+                << "functor " << sharding_id << ". Shards for this index space "
+                << "launch must be between 0 and " << manager->total_shards
+                << " (exclusive).";
+          error.raise();
+        }
         return shard;
       }
     }

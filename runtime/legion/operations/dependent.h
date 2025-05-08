@@ -611,6 +611,15 @@ namespace Legion {
       PartitionKind part_kind;
     };
 
+    //--------------------------------------------------------------------------
+    inline std::ostream& operator<<(
+        std::ostream& os, const DependentPartitionOp& op)
+    //--------------------------------------------------------------------------
+    {
+      os << op.get_logging_name() << " (UID: " << op.get_unique_op_id() << ")";
+      return os;
+    }
+
   }  // namespace Internal
 }  // namespace Legion
 

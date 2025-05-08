@@ -348,6 +348,14 @@ namespace Legion {
           UniqueID uid, unsigned idx, const RegionRequirement& req);
     };
 
+    //--------------------------------------------------------------------------
+    inline std::ostream& operator<<(std::ostream& os, const TaskOp& op)
+    //--------------------------------------------------------------------------
+    {
+      os << op.get_task_name() << " (UID: " << op.get_unique_op_id() << ")";
+      return os;
+    }
+
     /**
      * \class TaskImpl
      * This class is used for storing all the meta-data associated

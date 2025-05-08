@@ -619,7 +619,7 @@ namespace Legion {
     inline std::ostream& operator<<(std::ostream& os, const Operation& op)
     //--------------------------------------------------------------------------
     {
-      os << op.get_logging_name() << "(UID: " << op.get_unique_op_id() << ")";
+      os << op.get_logging_name() << " (UID: " << op.get_unique_op_id() << ")";
       return os;
     }
 

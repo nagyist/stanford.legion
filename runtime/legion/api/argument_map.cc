@@ -226,12 +226,14 @@ namespace Legion {
       {
         const unsigned point_dim = point.get_dim();
         if (point_dim != dimensionality)
-          REPORT_LEGION_ERROR(
-              ERROR_ARGUMENT_MAP_DIMENSIONALITY,
-              "Mismatch in dimensionality in 'has_point' on ArgumentMap "
-              "with %d dimensions and point with %d dimensions. ArgumentMaps "
-              "must always contain points of the same dimensionality.",
-              dimensionality, point_dim)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Mismatch in dimensionality in 'has_point' on ArgumentMap "
+                << "with " << dimensionality << " dimensions and point with "
+                << point_dim << " dimensions. ArgumentMaps must always contain "
+                << "points of the same dimensionality.";
+          error.raise();
+        }
       }
       if ((point_set != nullptr) && !update_point_set &&
           point_set->contains_point(point))
@@ -250,12 +252,14 @@ namespace Legion {
       {
         const unsigned point_dim = point.get_dim();
         if (point_dim != dimensionality)
-          REPORT_LEGION_ERROR(
-              ERROR_ARGUMENT_MAP_DIMENSIONALITY,
-              "Mismatch in dimensionality in 'set_point' on ArgumentMap "
-              "with %d dimensions and point with %d dimensions. ArgumentMaps "
-              "must always contain points of the same dimensionality.",
-              dimensionality, point_dim)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Mismatch in dimensionality in 'set_point' on ArgumentMap "
+                << "with " << dimensionality << " dimensions and point with "
+                << point_dim << " dimensions. ArgumentMaps must always contain "
+                << "points of the same dimensionality.";
+          error.raise();
+        }
       }
       else
       {
@@ -311,12 +315,14 @@ namespace Legion {
       {
         const unsigned point_dim = point.get_dim();
         if (point_dim != dimensionality)
-          REPORT_LEGION_ERROR(
-              ERROR_ARGUMENT_MAP_DIMENSIONALITY,
-              "Mismatch in dimensionality in 'set_point' on ArgumentMap "
-              "with %d dimensions and point with %d dimensions. ArgumentMaps "
-              "must always contain points of the same dimensionality.",
-              dimensionality, point_dim)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Mismatch in dimensionality in 'set_point' on ArgumentMap "
+                << "with " << dimensionality << " dimensions and point with "
+                << point_dim << " dimensions. ArgumentMaps must always contain "
+                << "points of the same dimensionality.";
+          error.raise();
+        }
       }
       else
       {
@@ -365,12 +371,14 @@ namespace Legion {
       {
         const unsigned point_dim = point.get_dim();
         if (point_dim != dimensionality)
-          REPORT_LEGION_ERROR(
-              ERROR_ARGUMENT_MAP_DIMENSIONALITY,
-              "Mismatch in dimensionality in 'remove_point' on ArgumentMap "
-              "with %d dimensions and point with %d dimensions. ArgumentMaps "
-              "must always contain points of the same dimensionality.",
-              dimensionality, point_dim)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Mismatch in dimensionality in 'remove_point' on "
+                << "ArgumentMap with " << dimensionality << " dimensions and "
+                << "point with " << point_dim << " dimensions. ArgumentMaps "
+                << "must always contain points of the same dimensionality.";
+          error.raise();
+        }
       }
       else
       {
@@ -412,12 +420,14 @@ namespace Legion {
       {
         const unsigned point_dim = point.get_dim();
         if (point_dim != dimensionality)
-          REPORT_LEGION_ERROR(
-              ERROR_ARGUMENT_MAP_DIMENSIONALITY,
-              "Mismatch in dimensionality in 'get_point' on ArgumentMap "
-              "with %d dimensions and point with %d dimensions. ArgumentMaps "
-              "must always contain points of the same dimensionality.",
-              dimensionality, point_dim)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Mismatch in dimensionality in 'get_point' on ArgumentMap "
+                << "with " << dimensionality << " dimensions and point with "
+                << point_dim << " dimensions. ArgumentMaps must always contain "
+                << "points of the same dimensionality.";
+          error.raise();
+        }
       }
       if ((point_set != nullptr) && !update_point_set &&
           !point_set->contains_point(point))

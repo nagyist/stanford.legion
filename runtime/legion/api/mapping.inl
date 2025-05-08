@@ -19,6 +19,63 @@
 #include "legion/api/mapping.h"
 
 namespace Legion {
+
+  //--------------------------------------------------------------------------
+  inline std::ostream& operator<<(std::ostream& os, const Copy& copy)
+  //--------------------------------------------------------------------------
+  {
+    os << "Copy (UID: " << copy.get_unique_id() << ")";
+    return os;
+  }
+
+  //--------------------------------------------------------------------------
+  inline std::ostream& operator<<(std::ostream& os, const InlineMapping& map)
+  //--------------------------------------------------------------------------
+  {
+    os << "Inline Mapping (UID: " << map.get_unique_id() << ")";
+    return os;
+  }
+
+  //--------------------------------------------------------------------------
+  inline std::ostream& operator<<(std::ostream& os, const Acquire& acquire)
+  //--------------------------------------------------------------------------
+  {
+    os << "Acquire (UID: " << acquire.get_unique_id() << ")";
+    return os;
+  }
+
+  //--------------------------------------------------------------------------
+  inline std::ostream& operator<<(std::ostream& os, const Release& release)
+  //--------------------------------------------------------------------------
+  {
+    os << "Release (UID: " << release.get_unique_id() << ")";
+    return os;
+  }
+
+  //--------------------------------------------------------------------------
+  inline std::ostream& operator<<(std::ostream& os, const Fill& fill)
+  //--------------------------------------------------------------------------
+  {
+    os << "Fill (UID: " << fill.get_unique_id() << ")";
+    return os;
+  }
+
+  //--------------------------------------------------------------------------
+  inline std::ostream& operator<<(std::ostream& os, const Partition& part)
+  //--------------------------------------------------------------------------
+  {
+    os << "Partition (UID: " << part.get_unique_id() << ")";
+    return os;
+  }
+
+  //--------------------------------------------------------------------------
+  inline std::ostream& operator<<(std::ostream& os, const Task& task)
+  //--------------------------------------------------------------------------
+  {
+    os << task.get_task_name() << " (UID: " << task.get_unique_id() << ")";
+    return os;
+  }
+
   namespace Mapping {
 
     //--------------------------------------------------------------------------
