@@ -1143,7 +1143,7 @@ namespace Legion {
           std::map<std::pair<size_t, size_t>, BarrierArrival*>::const_iterator
               finder = collective_barriers.find(it->first);
           legion_assert(finder != collective_barriers.end());
-          finder->second->set_managed_barrier(it->second);
+          finder->second->set_collective_barrier(it->second);
         }
         pending_collectives.clear();
       }
