@@ -21,7 +21,9 @@
 #include "legion/api/sync.h"
 #include "legion/kernel/garbage_collection.h"
 #include "legion/kernel/metatask.h"
+#include "legion/operations/operation.h"
 #include "legion/utilities/coordinates.h"
+#include "legion/utilities/provenance.h"
 
 namespace Legion {
 
@@ -315,6 +317,22 @@ namespace Legion {
       std::atomic<bool> empty;
       std::atomic<bool> sampled;
     };
+
+    //--------------------------------------------------------------------------
+    inline std::ostream& operator<<(std::ostream& os, const FutureImpl& f)
+    //--------------------------------------------------------------------------
+    {
+      if (f.provenance != nullptr)
+        os << "future from " << f.provenance->human;
+      else if (f.producer_op != nullptr)
+        os << "future from " << f.producer_op->get_logging_name()
+           << " (UID: " << f.producer_uid << ")";
+      else if (f.producer_uid > 0)
+        os << "future from unknown op (UID: " << f.producer_uid << ")";
+      else
+        os << "external future";
+      return os;
+    }
 
     /**
      * \class FutureInstance

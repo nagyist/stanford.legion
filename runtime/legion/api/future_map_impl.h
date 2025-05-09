@@ -18,7 +18,9 @@
 
 #include "legion/api/future_map.h"
 #include "legion/kernel/garbage_collection.h"
+#include "legion/operations/operation.h"
 #include "legion/utilities/collectives.h"
+#include "legion/utilities/provenance.h"
 
 namespace Legion {
   namespace Internal {
@@ -108,6 +110,22 @@ namespace Legion {
       mutable LocalLock future_map_lock;
       std::map<DomainPoint, FutureImpl*> futures;
     };
+
+    //--------------------------------------------------------------------------
+    inline std::ostream& operator<<(std::ostream& os, const FutureMapImpl& fm)
+    //--------------------------------------------------------------------------
+    {
+      if (fm.provenance != nullptr)
+        os << "future map from " << fm.provenance->human;
+      else if (fm.op != nullptr)
+        os << "future map from " << fm.op->get_logging_name()
+           << " (UID: " << fm.op_uid << ")";
+      else if (fm.op_uid > 0)
+        os << "future map from unknown op (UID: " << fm.op_uid << ")";
+      else
+        os << "external future map";
+      return os;
+    }
 
     /**
      * \class TransformFutureMapImpl

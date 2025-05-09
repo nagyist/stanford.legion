@@ -473,15 +473,17 @@ namespace Legion {
           (implicit_context != nullptr))
       {
         if (!implicit_context->is_leaf_context())
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_WAITING_FUTURE_NONLEAF,
-              "Waiting on a future in non-leaf task %s "
-              "(UID %lld) is a violation of Legion's deferred execution model "
-              "best practices. You may notice a severe performance "
-              "degradation. Warning string: %s",
-              implicit_context->get_task_name(),
-              implicit_context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning
+              << "Waiting on a future in non-leaf task "
+              << *implicit_context->owner_task << " is a violation of "
+              << "Legion's deferred execution model best practices. You may "
+              << "notice a severe performance degradation.";
+          if (warning_string != nullptr)
+            warning << " Warning string: " << warning_string;
+          warning.raise();
+        }
       }
       mark_sampled();
       // We only need to wait for the commit opertion for this future if we're
@@ -520,16 +522,11 @@ namespace Legion {
       {
         if (memkind != Memory::SYSTEM_MEM)
         {
-          const char* mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-              REALM_MEMORY_KINDS(MEM_NAMES)
-#undef MEM_NAMES
-          };
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_FUTURE_MEMORY_KIND,
-              "Unable to find a %s memory associated with processor " IDFMT
-              " in which to create a future buffer.",
-              mem_names[memkind], proc.id)
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Unable to find a " << memkind << " memory associated with "
+                << proc.kind() << " processor " << proc
+                << " in which to create a future buffer.";
+          error.raise();
         }
         else
           memory = runtime->runtime_system_memory;
@@ -559,28 +556,30 @@ namespace Legion {
         if (check_extent)
         {
           if (empty.load())
-            REPORT_LEGION_ERROR(
-                ERROR_REQUEST_FOR_EMPTY_FUTURE,
-                "Accessing empty future! (UID %lld)",
-                (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "Accessing empty " << *this << ".";
+            error.raise();
+          }
           else if (instance == nullptr)
           {
             if ((*extent_in_bytes) != 0)
-              REPORT_LEGION_ERROR(
-                  ERROR_FUTURE_SIZE_MISMATCH,
-                  "Future size mismatch! Expected type of 0 bytes but "
-                  "requested type is %zd bytes. (UID %lld)",
-                  *extent_in_bytes,
-                  (producer_op == nullptr) ? 0 :
-                                             producer_op->get_unique_op_id())
+            {
+              Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+              error << "Future size mismatch! Expected type of 0 bytes but "
+                    << "requested type is " << *extent_in_bytes << " bytes "
+                    << "from " << *this << ".";
+              error.raise();
+            }
           }
           else if (future_size != *extent_in_bytes)
-            REPORT_LEGION_ERROR(
-                ERROR_FUTURE_SIZE_MISMATCH,
-                "Future size mismatch! Expected type of %zd bytes but "
-                "requested type is %zd bytes. (UID %lld)",
-                future_size, *extent_in_bytes,
-                (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "Future size mismatch! Expected type of " << future_size
+                  << " bytes but requested type is " << *extent_in_bytes
+                  << " bytes from " << *this << ".";
+            error.raise();
+          }
         }
         else
           (*extent_in_bytes) = future_size;
@@ -629,16 +628,11 @@ namespace Legion {
       {
         if (memkind != Memory::SYSTEM_MEM)
         {
-          const char* mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-              REALM_MEMORY_KINDS(MEM_NAMES)
-#undef MEM_NAMES
-          };
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_FUTURE_MEMORY_KIND,
-              "Unable to find a %s memory associated with processor " IDFMT
-              " in which to create a future buffer.",
-              mem_names[memkind], proc.id)
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Unable to find a " << memkind << " memory associated with "
+                << proc.kind() << " processor " << proc
+                << " in which to create a future buffer for " << *this << ".";
+          error.raise();
         }
         else
           memory = runtime->runtime_system_memory;
@@ -651,23 +645,27 @@ namespace Legion {
       FutureInstance* instance = find_or_create_instance(
           memory, inst_ready, silence_warnings, warning_string);
       if (empty.load())
-        REPORT_LEGION_ERROR(
-            ERROR_REQUEST_FOR_EMPTY_FUTURE,
-            "Accessing empty future when making an accessor! (UID %lld)",
-            (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Accessing empty " << *this << " when making an accessor.";
+        error.raise();
+      }
       else if ((instance == nullptr) || (instance->size == 0))
-        REPORT_LEGION_ERROR(
-            ERROR_FUTURE_SIZE_MISMATCH,
-            "Future size mismatch! Expected non-empty future for making an "
-            "accessor but future has a payload of 0 bytes. (UID %lld)",
-            (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Future size mismatch! Expected non-empty future for "
+              << "making an accessor for " << *this << " but future has a "
+              << "payload of 0 bytes.";
+        error.raise();
+      }
       if (check_extent && (future_size != extent_in_bytes))
-        REPORT_LEGION_ERROR(
-            ERROR_FUTURE_SIZE_MISMATCH,
-            "Future size mismatch! Expected type of %zd bytes but "
-            "requested type is %zd bytes. (UID %lld)",
-            future_size, extent_in_bytes,
-            (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Future size mismatch! Expected type of " << future_size
+              << " bytes for " << *this << " but requested type is "
+              << extent_in_bytes << " bytes.";
+        error.raise();
+      }
       PhysicalInstance result;
       {
         bool dummy_owner = true;
@@ -697,10 +695,11 @@ namespace Legion {
         const char* accessor_kind, PhysicalInstance instance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ACCESSOR_COMPATIBILITY_CHECK,
-          "Unable to create Realm %s for future instance %llx in task %s",
-          accessor_kind, instance.id, implicit_context->get_task_name())
+      Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+      error << "Unable to create Realm " << accessor_kind
+            << " for future instance " << instance << " of " << *this << " in "
+            << *implicit_context->owner_task << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -746,19 +745,11 @@ namespace Legion {
       if (!can_fail && ((safe_for_unbounded_pools == nullptr) ||
                         !safe_for_unbounded_pools->exists()))
       {
-        const char* mem_names[] = {
-#define MEM_NAMES(name, desc) #name,
-            REALM_MEMORY_KINDS(MEM_NAMES)
-#undef MEM_NAMES
-        };
-        REPORT_LEGION_ERROR(
-            ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "Failed to allocate future for task %s (UID %lld) "
-            "in parent task %s (UID %lld) because %s memory " IDFMT " is full.",
-            task->get_task_name(), task->get_unique_id(),
-            task->get_context()->get_task_name(),
-            task->get_context()->get_unique_id(), mem_names[target.kind()],
-            target.id)
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Failed to allocate instance of " << *this << " for " << *task
+              << " because " << target.kind() << " memory " << target
+              << " is full.";
+        error.raise();
       }
       return false;
     }
@@ -932,14 +923,13 @@ namespace Legion {
           op->get_unique_op_id(), coordinates, known_upper_bound_size,
           nullptr /*safe_for_unbounded_pools*/);
       if (instance == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "Failed to allocate future for %s (UID %lld) in parent task %s "
-            "(UID %lld) because %s memory " IDFMT " is full.",
-            op->get_logging_name(), op->get_unique_op_id(),
-            op->get_context()->get_task_name(),
-            op->get_context()->get_unique_id(), manager->get_name(),
-            runtime->runtime_system_memory.id)
+      {
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Failed to allocate instance of " << *this << " for " << *op
+              << " because " << manager->get_name() << " memory "
+              << runtime->runtime_system_memory << " is full.";
+        error.raise();
+      }
       // Retake the lock and see if we lost the race making the instance
       AutoLock f_lock(future_lock);
       if (empty.load())
@@ -1195,14 +1185,17 @@ namespace Legion {
         {
           TaskContext* context = producer_op->get_context();
           if (!context->is_leaf_context())
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_BLOCKING_EMPTY,
-                "Performing a blocking is_empty test on a "
-                "in non-leaf task %s (UID %lld) is a violation of Legion's "
-                "deferred execution model best practices. You may notice a "
-                "severe performance degradation. Warning string: %s",
-                context->get_task_name(), context->get_unique_id(),
-                (warning_string == nullptr) ? "" : warning_string)
+          {
+            Warning warning;
+            warning
+                << "Performing a blocking is_empty test on a future "
+                << "in non-leaf " << *context << " is a violation of Legion's "
+                << "deferred execution model best practices. You may notice a "
+                << "severe performance degradation.";
+            if (warning_string != nullptr)
+              warning << " Warning string: " << warning_string;
+            warning.raise();
+          }
         }
         if (block && (context != nullptr) && (implicit_context == context))
           context->record_blocking_call(coordinate.context_index);
@@ -1236,13 +1229,17 @@ namespace Legion {
     {
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_FUTURE_SET,
-            "Duplicate future set! This can be either a runtime bug or a "
-            "user error. If you have a must epoch launch in this program "
-            "please check that all of the point tasks that it creates have "
-            "unique index points. If your program has no must epoch launches "
-            "then this is likely a runtime bug.")
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Duplicate future set! This can be either a runtime bug or a "
+            << "user error. If you have a must epoch launch in this program "
+            << "please check that all of the point tasks that it creates have "
+            << "unique index points. If your program has no must epoch "
+               "launches "
+            << "then this is likely a runtime bug.";
+        error.raise();
+      }
       legion_assert(instances.empty());
       legion_assert(metadata == nullptr);
       if (instance != nullptr)
@@ -1265,13 +1262,17 @@ namespace Legion {
     {
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_FUTURE_SET,
-            "Duplicate future set! This can be either a runtime bug or a "
-            "user error. If you have a must epoch launch in this program "
-            "please check that all of the point tasks that it creates have "
-            "unique index points. If your program has no must epoch launches "
-            "then this is likely a runtime bug.")
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Duplicate future set! This can be either a runtime bug or a "
+            << "user error. If you have a must epoch launch in this program "
+            << "please check that all of the point tasks that it creates have "
+            << "unique index points. If your program has no must epoch "
+               "launches "
+            << "then this is likely a runtime bug.";
+        error.raise();
+      }
       legion_assert(instances.empty());
       legion_assert(!insts.empty());
       legion_assert(metadata == nullptr);
@@ -1297,13 +1298,17 @@ namespace Legion {
       legion_assert(proc.kind() != Processor::UTIL_PROC);
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_FUTURE_SET,
-            "Duplicate future set! This can be either a runtime bug or a "
-            "user error. If you have a must epoch launch in this program "
-            "please check that all of the point tasks that it creates have "
-            "unique index points. If your program has no must epoch launches "
-            "then this is likely a runtime bug.")
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Duplicate future set! This can be either a runtime bug or a "
+            << "user error. If you have a must epoch launch in this program "
+            << "please check that all of the point tasks that it creates have "
+            << "unique index points. If your program has no must epoch "
+               "launches "
+            << "then this is likely a runtime bug.";
+        error.raise();
+      }
       callback_functor = functor;
       own_callback_functor = own;
       callback_proc = proc;
@@ -1330,13 +1335,17 @@ namespace Legion {
       }
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_FUTURE_SET,
-            "Duplicate future set! This can be either a runtime bug or a "
-            "user error. If you have a must epoch launch in this program "
-            "please check that all of the point tasks that it creates have "
-            "unique index points. If your program has no must epoch launches "
-            "then this is likely a runtime bug.")
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Duplicate future set! This can be either a runtime bug or a "
+            << "user error. If you have a must epoch launch in this program "
+            << "please check that all of the point tasks that it creates have "
+            << "unique index points. If your program has no must epoch "
+               "launches "
+            << "then this is likely a runtime bug.";
+        error.raise();
+      }
       legion_assert(instances.empty());
       legion_assert(metadata == nullptr);
       future_size = size;
@@ -1363,13 +1372,17 @@ namespace Legion {
       ApEvent complete = previous->get_complete_event();
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_FUTURE_SET,
-            "Duplicate future set! This can be either a runtime bug or a "
-            "user error. If you have a must epoch launch in this program "
-            "please check that all of the point tasks that it creates have "
-            "unique index points. If your program has no must epoch launches "
-            "then this is likely a runtime bug.")
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Duplicate future set! This can be either a runtime bug or a "
+            << "user error. If you have a must epoch launch in this program "
+            << "please check that all of the point tasks that it creates have "
+            << "unique index points. If your program has no must epoch "
+               "launches "
+            << "then this is likely a runtime bug.";
+        error.raise();
+      }
       legion_assert(instances.empty());
       legion_assert(metadata == nullptr);
       if (size > 0)
@@ -1575,12 +1588,15 @@ namespace Legion {
         // being able to do this in a sane way, we need to make an external
         // instance for this using malloc
         if (target != runtime->runtime_system_memory)
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Request for Legion to allocate a future instance in a "
-              "non-system memory by external code. All requests for "
-              "future instances by external code are required to ask "
-              "for the data in the system memory.")
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Request for Legion to allocate a future instance in "
+                << target.kind() << " memory " << target
+                << " by external code. "
+                << "All requests for future instances by external code are "
+                << "required to ask for the data in the system memory.";
+          error.raise();
+        }
         instance = new FutureInstance(
             malloc(known_upper_bound_size), known_upper_bound_size,
             true /*external*/, true /*own allocation*/);
@@ -1626,13 +1642,13 @@ namespace Legion {
       FutureInstance* instance = manager->create_future_instance(
           op->get_unique_op_id(), coordinates, size, safe_for_unbounded_pools);
       if (instance == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "Failed to allocate future of %zd bytes for %s (UID %lld) "
-            "in parent task %s (UID %lld) because %s memory " IDFMT " is full.",
-            size, op->get_logging_name(), op->get_unique_op_id(),
-            op->get_context()->get_task_name(),
-            op->get_context()->get_unique_id(), manager->get_name(), memory.id)
+      {
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Failed to allocate instance of " << *this << " of " << size
+              << " bytes for " << *op << " because " << manager->get_name()
+              << " memory " << memory << " is full.";
+        error.raise();
+      }
       return instance;
     }
 
@@ -2200,20 +2216,13 @@ namespace Legion {
           }
           if (!contained)
           {
-            Provenance* provenance = consumer_op->get_provenance();
-            REPORT_LEGION_ERROR(
-                ERROR_ILLEGAL_FUTURE_USE,
-                "Illegal use of future produced in context %s (UID %lld) "
-                "but consumed in context %s (UID %lld) by operation %s "
-                "(UID %lld) launched from %.*s. Futures are only permitted "
-                "to be used in the task sub-tree rooted by the context "
-                "that produced the future.",
-                context->get_task_name(), context->get_unique_id(),
-                consumer_context->get_task_name(),
-                consumer_context->get_unique_id(),
-                consumer_op->get_logging_name(),
-                consumer_op->get_unique_op_id(),
-                int(provenance->human.length()), provenance->human.data())
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Illegal use of " << *this << " produced in context "
+                  << *context << " but consumed in context "
+                  << *consumer_context << " by operation " << *consumer_op
+                  << ". Futures are only permitted to be used in the task "
+                  << "sub-tree rooted by the context that produced the future.";
+            error.raise();
           }
         }
       }

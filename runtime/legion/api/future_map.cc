@@ -267,11 +267,13 @@ namespace Legion {
       if (runtime->safe_model)
       {
         if (!future_map_domain->contains_point(point))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_FUTURE_MAP_POINT,
-              "Invalid request for a point not contained in the "
-              "domain of a future map in task %s (UID %lld).",
-              context->get_task_name(), context->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Invalid request for a point " << point
+                << " which is not contained in the domain of a " << *this
+                << " in " << *context << ".";
+          error.raise();
+        }
       }
       if (!is_owner())
       {
@@ -361,14 +363,16 @@ namespace Legion {
       legion_assert(implicit_context == context);
       if (runtime->runtime_warnings && !silence_warnings &&
           (context != nullptr) && !context->is_leaf_context())
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_WAITING_ALL_FUTURES,
-            "Waiting for all futures in a future map in "
-            "non-leaf task %s (UID %lld) is a violation of Legion's deferred "
-            "execution model best practices. You may notice a severe "
-            "performance degredation. Warning string: %s",
-            context->get_task_name(), context->get_unique_id(),
-            (warning_string == nullptr) ? "" : warning_string)
+      {
+        Warning warning;
+        warning << "Waiting for all futures of " << *this << " in non-leaf "
+                << *context << " is a violation of Legion's "
+                << "deferred execution model best practices. You may notice a "
+                << "severe performance degredation.";
+        if (warning_string != nullptr)
+          warning << " Warning string: " << warning_string;
+        warning.raise();
+      }
       context->record_blocking_call(blocking_index);
       if (op != nullptr)
         context->wait_on_future_map(this, op->get_commit_event(op_gen));
