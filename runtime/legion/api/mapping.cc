@@ -148,15 +148,16 @@ namespace Legion {
       if (ctx != Internal::implicit_mapper_call)
       {
         static RUNTIME_CALL_DESCRIPTIONS(runtime_call_names);
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_CONTENT,
-            "Invalid mapper context passed to mapper runtime "
-            "call %s by mapper %s inside of mapper call %s. Mapper "
-            "contexts are only valid for the mapper call to which "
-            "they are passed. They cannot be stored beyond the "
-            "lifetime of the mapper call.",
-            runtime_call_names[kind], ctx->get_mapper_name(),
-            ctx->get_mapper_call_name())
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error
+            << "Invalid mapper context passed to mapper runtime call "
+            << runtime_call_names[kind] << " by mapper "
+            << ctx->get_mapper_name() << " inside of mapper call "
+            << ctx->get_mapper_call_name()
+            << ". Mapper contexts are only valid for the mapper call to which "
+            << "they are passed. They cannot be stored beyond the "
+            << "lifetime of the mapper call.";
+        error.raise();
       }
       if (ctx->manager->profile_mapper)
         start_time = Realm::Clock::current_time_in_nanoseconds();
@@ -892,12 +893,14 @@ namespace Legion {
       Internal::VariantImpl* impl =
           runtime->find_variant_impl(task_id, vid, true /*can fail*/);
       if (impl == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
-            "Invalid mapper request: mapper %s requested execution "
-            "constraints for variant %d in mapper call %s, but "
-            "that variant does not exist.",
-            ctx->get_mapper_name(), vid, ctx->get_mapper_call_name())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper request: mapper " << ctx->get_mapper_name()
+              << " requested execution constraints for variant " << vid
+              << " in mapper call " << ctx->get_mapper_call_name() << " , but "
+              << "that variant does not exist.";
+        error.raise();
+      }
       return impl->get_execution_constraints();
     }
 
@@ -911,12 +914,14 @@ namespace Legion {
       Internal::VariantImpl* impl =
           runtime->find_variant_impl(task_id, vid, true /*can fail*/);
       if (impl == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
-            "Invalid mapper request: mapper %s requested task layout "
-            "constraints for variant %d in mapper call %s, but "
-            "that variant does not exist.",
-            ctx->get_mapper_name(), vid, ctx->get_mapper_call_name())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper request: mapper " << ctx->get_mapper_name()
+              << " requested task layout constraints for variant " << vid
+              << " in mapper call " << ctx->get_mapper_call_name() << ", but "
+              << "that variant does not exist.";
+        error.raise();
+      }
       return impl->get_layout_constraints();
     }
 
@@ -929,12 +934,14 @@ namespace Legion {
       Internal::LayoutConstraints* constraints =
           runtime->find_layout_constraints(layout_id, true /*can fail*/);
       if (constraints == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
-            "Invalid mapper request: mapper %s requested layout "
-            "constraints for layout ID %ld in mapper call %s, but "
-            "that layout constraint ID is invalid.",
-            ctx->get_mapper_name(), layout_id, ctx->get_mapper_call_name())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper request: mapper " << ctx->get_mapper_name()
+              << " requested layout constraints for layout ID " << layout_id
+              << " in mapper call " << ctx->get_mapper_call_name() << ", but "
+              << "that layout constraint ID is invalid.";
+        error.raise();
+      }
       return *constraints;
     }
 
@@ -971,13 +978,15 @@ namespace Legion {
       Internal::LayoutConstraints* c2 =
           runtime->find_layout_constraints(set2, true /*can fail*/);
       if ((c1 == nullptr) || (c2 == nullptr))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
-            "Invalid mapper request: mapper %s passed layout ID %ld "
-            "to conflict test in mapper call %s, but that layout ID "
-            "is invalid.",
-            ctx->get_mapper_name(), (c1 == nullptr) ? set1 : set2,
-            ctx->get_mapper_call_name())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper request: mapper " << ctx->get_mapper_name()
+              << " passed layout ID " << ((c1 == nullptr) ? set1 : set2)
+              << " to conflict test in mapper call "
+              << ctx->get_mapper_call_name()
+              << ", but that layout ID is invalid.";
+        error.raise();
+      }
       const bool result = c1->conflicts(
           c2, 0 /*dont care about dimensions*/, conflict_constraint);
       return result;
@@ -995,13 +1004,15 @@ namespace Legion {
       Internal::LayoutConstraints* c2 =
           runtime->find_layout_constraints(target, true /*can fail*/);
       if ((c1 == nullptr) || (c2 == nullptr))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
-            "Invalid mapper request: mapper %s passed layout ID %ld "
-            "to entailment test in mapper call %s, but that layout "
-            "ID is invalid.",
-            ctx->get_mapper_name(), (c1 == nullptr) ? source : target,
-            ctx->get_mapper_call_name())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper request: mapper " << ctx->get_mapper_name()
+              << " passed layout ID " << ((c1 == nullptr) ? source : target)
+              << " to entailment test in mapper call "
+              << ctx->get_mapper_call_name()
+              << ", but that layout ID is invalid.";
+        error.raise();
+      }
       const bool result =
           c1->entails(c2, 0 /*don't care about dimensions*/, failed_constraint);
       return result;
@@ -1310,13 +1321,15 @@ namespace Legion {
         {
           RegionTreeID other_id = regions[idx].get_tree_id();
           if (other_id != tree_id)
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
-                "Invalid region arguments passed to %s in "
-                "mapper call %s of mapper %s. All region arguments "
-                "must be from the same region tree (%lld != %lld).",
-                call_name, ctx->get_mapper_call_name(), ctx->get_mapper_name(),
-                tree_id, other_id)
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid region arguments passed to " << call_name
+                  << " in mapper call " << ctx->get_mapper_call_name()
+                  << " of mapper " << ctx->get_mapper_name() << ". All region "
+                  << "arguments must be from the same region tree (" << tree_id
+                  << " != " << other_id << ").";
+            error.raise();
+          }
         }
         else
           tree_id = regions[idx].get_tree_id();
@@ -1339,12 +1352,13 @@ namespace Legion {
       check_region_consistency(ctx, "create_physical_instance", regions);
       if (ctx->operation == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring request to create_physical_instance in unsupported "
-            "mapper call %s in mapper %s. Physical instances can only be "
-            "created in mapper calls associated with a Mappable operation.",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring request to create_physical_instance in "
+                << "unsupported mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name() << ". Physical "
+                << "instances can only be created in mapper calls associated "
+                << "with a Mappable operation.";
+        warning.raise();
         return false;
       }
       legion_assert(ctx->acquired_instances != nullptr);
@@ -1384,12 +1398,13 @@ namespace Legion {
       check_region_consistency(ctx, "create_physical_instance", regions);
       if (ctx->operation == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring request to create_physical_instance in unsupported "
-            "mapper call %s in mapper %s. Physical instances can only be "
-            "created in mapper calls associated with a Mappable operation.",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning
+            << "Ignoring request to create_physical_instance in unsupported"
+            << " mapper call " << ctx->get_mapper_call_name() << " in mapper "
+            << ctx->get_mapper_name() << ". Physical instances can only be "
+            << "created in mapper calls associated with a Mappable operation.";
+        warning.raise();
         return false;
       }
       legion_assert(ctx->acquired_instances != nullptr);
@@ -1434,14 +1449,15 @@ namespace Legion {
           ctx, "find_or_create_physical_instance", regions);
       if (ctx->operation == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring request to find_or_create_physical_instance in "
-            "unsupported mapper call %s in mapper %s. Physical instances "
-            "can only be created in mapper calls associated with a "
-            "Mappable operation. Legion will still attempt the find "
-            "part of this call.",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring request to find_or_create_physical_instance in "
+                << "unsupported mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name()
+                << ". Physical instances"
+                << " can only be created in mapper calls associated with a "
+                << "Mappable operation. Legion will still attempt the find "
+                << "part of this call.";
+        warning.raise();
         return find_physical_instance(
             ctx, target_memory, constraints, regions, result, acquire,
             tight_region_bounds);
@@ -1487,14 +1503,15 @@ namespace Legion {
           ctx, "find_or_create_physical_instance", regions);
       if (ctx->operation == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring request to find_or_create_physical_instance in "
-            "unsupported mapper call %s in mapper %s. Physical instances "
-            "can only be created in mapper calls associated with a "
-            "Mappable operation. Legion will still attempt the find "
-            "part of this call.",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring request to find_or_create_physical_instance in "
+                << "unsupported mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name()
+                << ". Physical instances "
+                << "can only be created in mapper calls associated with a "
+                << "Mappable operation. Legion will still attempt the find "
+                << "part of this call.";
+        warning.raise();
         return find_physical_instance(
             ctx, target_memory, layout_id, regions, result, acquire,
             tight_region_bounds);
@@ -1538,11 +1555,11 @@ namespace Legion {
       check_region_consistency(ctx, "find_physical_instance", regions);
       if (acquire && (ctx->acquired_instances == nullptr))
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request to find_physical_instance "
-            "in unsupported mapper call %s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request to find_physical_instance "
+                << "in unsupported mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name() << ".";
+        warning.raise();
         acquire = false;
       }
       AutoMapperCall call(
@@ -1567,11 +1584,11 @@ namespace Legion {
       check_region_consistency(ctx, "find_physical_instance", regions);
       if (acquire && (ctx->acquired_instances == nullptr))
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request to find_physical_instance "
-            "in unsupported mapper call %s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request to find_physical_instance "
+                << "in unsupported mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name() << ".";
+        warning.raise();
         acquire = false;
       }
       AutoMapperCall call(
@@ -1599,11 +1616,11 @@ namespace Legion {
       check_region_consistency(ctx, "find_physical_instances", regions);
       if (acquire && (ctx->acquired_instances == nullptr))
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request to find_physical_instances "
-            "in unsupported mapper call %s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request to find_physical_instances "
+                << "in unsupported mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name() << ".";
+        warning.raise();
         acquire = false;
       }
       AutoMapperCall call(
@@ -1632,11 +1649,11 @@ namespace Legion {
       check_region_consistency(ctx, "find_physical_instances", regions);
       if (acquire && (ctx->acquired_instances == nullptr))
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request to find_physical_instances "
-            "in unsupported mapper call %s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request to find_physical_instances "
+                << "in unsupported mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name() << ".";
+        warning.raise();
         acquire = false;
       }
       AutoMapperCall call(
@@ -1674,11 +1691,13 @@ namespace Legion {
           ready.wait();
       }
       else
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_EXTERNAL_GARBAGE_PRIORITY,
-            "Ignoring request for mapper %s to set garbage collection "
-            "priority on an external instance",
-            ctx->get_mapper_name())
+      {
+        Warning warning;
+        warning
+            << "Ignoring request for mapper " << ctx->get_mapper_name()
+            << " to set garbage collection priority on an external instance.";
+        warning.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1688,11 +1707,11 @@ namespace Legion {
     {
       if (ctx->acquired_instances == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request in unsupported mapper call "
-            "%s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request in unsupported mapper call "
+                << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return false;
       }
       Internal::InstanceManager* man = instance.impl;
@@ -1721,11 +1740,11 @@ namespace Legion {
     {
       if (ctx->acquired_instances == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request in unsupported mapper call "
-            "%s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request in unsupported mapper call "
+                << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return false;
       }
       // Quick fast path
@@ -1743,11 +1762,11 @@ namespace Legion {
     {
       if (ctx->acquired_instances == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request in unsupported mapper call "
-            "%s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request in unsupported mapper call "
+                << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return false;
       }
       // Quick fast path
@@ -1793,11 +1812,11 @@ namespace Legion {
     {
       if (ctx->acquired_instances == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request in unsupported mapper call "
-            "%s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request in unsupported mapper call "
+                << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return false;
       }
       AutoMapperCall call(ctx, Internal::MAPPER_ACQUIRE_INSTANCES_CALL);
@@ -1822,11 +1841,11 @@ namespace Legion {
     {
       if (ctx->acquired_instances == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire request in unsupported mapper call "
-            "%s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire request in unsupported mapper call "
+                << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return false;
       }
       AutoMapperCall call(
@@ -1859,11 +1878,11 @@ namespace Legion {
     {
       if (ctx->acquired_instances == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_RELEASE_REQUEST,
-            "Ignoring release request in unsupported mapper call "
-            "%s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring release request in unsupported mapper call "
+                << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return;
       }
       AutoMapperCall call(ctx, Internal::MAPPER_RELEASE_INSTANCE_CALL);
@@ -1877,11 +1896,11 @@ namespace Legion {
     {
       if (ctx->acquired_instances == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_RELEASE_REQUEST,
-            "Ignoring release request in unsupported mapper call "
-            "%s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring release request in unsupported mapper call "
+                << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return;
       }
       AutoMapperCall call(ctx, Internal::MAPPER_RELEASE_INSTANCES_CALL);
@@ -1897,11 +1916,11 @@ namespace Legion {
     {
       if (ctx->acquired_instances == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_RELEASE_REQUEST,
-            "Ignoring release request in unsupported mapper call "
-            "%s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring release request in unsupported mapper call "
+                << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return;
       }
       AutoMapperCall call(ctx, Internal::MAPPER_RELEASE_INSTANCES_CALL);
@@ -2025,12 +2044,14 @@ namespace Legion {
       check_region_consistency(ctx, "redistrict_instance", regions);
       if (ctx->operation == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring request to redistrict_instance in unsupported mapper "
-            "call %s in mapper %s. Physical instances can only be redistricted "
-            "in mapper calls associated with a Mappable operation.",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring request to redistrict_instance in unsupported "
+                << "mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name()
+                << ". Physical instances can only be "
+                << "redistricted in mapper calls associated with a Mappable "
+                << "operation.";
+        warning.raise();
         return false;
       }
       legion_assert(ctx->acquired_instances != nullptr);
@@ -2060,12 +2081,14 @@ namespace Legion {
       check_region_consistency(ctx, "redistrict_instance", regions);
       if (ctx->operation == nullptr)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring request to redistrict_instance in unsupported mapper "
-            "call %s in mapper %s. Physical instances can only be redistricted "
-            "in mapper calls associated with a Mappable operation.",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring request to redistrict_instance in unsupported "
+                << "mapper call " << ctx->get_mapper_call_name()
+                << " in mapper " << ctx->get_mapper_name()
+                << ". Physical instances can only be "
+                << "redistricted in mapper calls associated with a Mappable "
+                << "operation.";
+        warning.raise();
         return false;
       }
       legion_assert(ctx->acquired_instances != nullptr);
@@ -2091,11 +2114,11 @@ namespace Legion {
         return false;
       if (ctx->kind != Internal::MAP_TASK_CALL)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire future request in unsupported mapper "
-            "call %s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire future request in unsupported mapper "
+                << "call " << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return false;
       }
       // Important: do this before pausing the mapper call
@@ -2126,11 +2149,11 @@ namespace Legion {
       // Only support this in map-task calls
       if (ctx->kind != Internal::MAP_TASK_CALL)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring acquire pool request in unsupported mapper "
-            "call %s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring acquire pool request in unsupported mapper "
+                << "call " << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return false;
       }
       // Important: do this before pausing the mapper call
@@ -2159,11 +2182,11 @@ namespace Legion {
       // Only support this in map-task calls
       if (ctx->kind != Internal::MAP_TASK_CALL)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
-            "Ignoring release pool request in unsupported mapper "
-            "call %s in mapper %s",
-            ctx->get_mapper_call_name(), ctx->get_mapper_name());
+        Warning warning;
+        warning << "Ignoring release pool request in unsupported mapper "
+                << "call " << ctx->get_mapper_call_name() << " in mapper "
+                << ctx->get_mapper_name() << ".";
+        warning.raise();
         return;
       }
       AutoMapperCall call(ctx, Internal::MAPPER_RELEASE_POOL_CALL);
@@ -2284,11 +2307,12 @@ namespace Legion {
         if (none_exists && it->exists())
           none_exists = false;
         if (sources[0].get_type_tag() != it->get_type_tag())
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in 'union_index_spaces' "
-              "performed in mapper %s",
-              ctx->get_mapper_name())
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Dynamic type mismatch in 'union_index_spaces' "
+                << "performed in mapper " << ctx->get_mapper_name() << ".";
+          error.raise();
+        }
       }
       if (none_exists)
         return IndexSpace::NO_SPACE;
@@ -2320,11 +2344,12 @@ namespace Legion {
         if (none_exists && it->exists())
           none_exists = false;
         if (sources[0].get_type_tag() != it->get_type_tag())
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in 'intersect_index_spaces' "
-              "performed in mapper %s",
-              ctx->get_mapper_name())
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Dynamic type mismatch in 'intersect_index_spaces' "
+                << "performed in mapper " << ctx->get_mapper_name() << ".";
+          error.raise();
+        }
       }
       if (none_exists)
         return IndexSpace::NO_SPACE;
@@ -2350,11 +2375,12 @@ namespace Legion {
         return IndexSpace::NO_SPACE;
       AutoMapperCall call(ctx, Internal::MAPPER_SUBTRACT_INDEX_SPACES_CALL);
       if (right.exists() && left.get_type_tag() != right.get_type_tag())
-        REPORT_LEGION_ERROR(
-            ERROR_DYNAMIC_TYPE_MISMATCH,
-            "Dynamic type mismatch in 'create_difference_spaces' "
-            "performed in mapper %s",
-            ctx->get_mapper_name())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Dynamic type mismatch in 'create_difference_spaces' "
+              << "performed in mapper " << ctx->get_mapper_name() << ".";
+        error.raise();
+      }
       const IndexSpace result(
           runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), left.get_type_tag());
@@ -2388,11 +2414,12 @@ namespace Legion {
         return false;
       AutoMapperCall call(ctx, Internal::MAPPER_INDEX_SPACES_OVERLAP_CALL);
       if (one.get_type_tag() != two.get_type_tag())
-        REPORT_LEGION_ERROR(
-            ERROR_DYNAMIC_TYPE_MISMATCH,
-            "Dynamic type mismatch in 'index_spaces_overlap' "
-            "performed in mapper %s",
-            ctx->get_mapper_name())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Dynamic type mismatch in 'index_spaces_overlap' "
+              << "performed in mapper " << ctx->get_mapper_name() << ".";
+        error.raise();
+      }
       Internal::IndexSpaceNode* n1 = runtime->get_node(one);
       Internal::IndexSpaceNode* n2 = runtime->get_node(two);
       Internal::IndexSpaceExpression* overlap =
@@ -2411,11 +2438,12 @@ namespace Legion {
         return false;
       AutoMapperCall call(ctx, Internal::MAPPER_INDEX_SPACE_DOMINATES_CALL);
       if (left.get_type_tag() != right.get_type_tag())
-        REPORT_LEGION_ERROR(
-            ERROR_DYNAMIC_TYPE_MISMATCH,
-            "Dynamic type mismatch in 'index_spaces_dominates' "
-            "performed in mapper %s",
-            ctx->get_mapper_name())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Dynamic type mismatch in 'index_spaces_dominates' "
+              << "performed in mapper " << ctx->get_mapper_name() << ".";
+        error.raise();
+      }
       Internal::IndexSpaceNode* n1 = runtime->get_node(left);
       Internal::IndexSpaceNode* n2 = runtime->get_node(right);
       Internal::IndexSpaceExpression* difference =

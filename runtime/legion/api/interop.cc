@@ -228,10 +228,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (implicit_fevent.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_HANDSHAKE,
-            "Detected an illegal handshake calling 'ext_handoff_to_legion' "
-            "from inside of a Legion task.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Detected an illegal handshake calling "
+              << "'ext_handoff_to_legion' from inside of a Legion task.";
+        error.raise();
+      }
       // We need to detect the case where we are about to trigger the last
       // external barrier generation and update the legion side with new
       // barriers before we do that
@@ -262,10 +264,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (implicit_fevent.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_HANDSHAKE,
-            "Detected an illegal handshake calling 'ext_wait_on_legion' "
-            "from inside of a Legion task.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Detected an illegal handshake calling 'ext_wait_on_legion' "
+              << "from inside of a Legion task.";
+        error.raise();
+      }
       // Wait for ext to be ready to run
       // Note we use the external wait to be sure
       // we don't get drafted by the Realm runtime
@@ -279,10 +283,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!implicit_fevent.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_HANDSHAKE,
-            "Detected an illegal handshake calling 'legion_handoff_to_ext' "
-            "while not inside of a Legion task.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Detected an illegal handshake calling "
+              << "'legion_handoff_to_ext' hile not inside of a Legion task.";
+        error.raise();
+      }
       if (split)
       {
         Runtime::advance_barrier(legion_arrive_barrier);
@@ -300,10 +306,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!implicit_fevent.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_HANDSHAKE,
-            "Detected an illegal handshake calling 'legion_wait_on_ext' "
-            "while not inside of a Legion task.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Detected an illegal handshake calling 'legion_wait_on_ext' "
+              << "while not inside of a Legion task.";
+        error.raise();
+      }
       // Wait for Legion to be ready to run
       // No need to avoid being drafted by the
       // Realm runtime here
@@ -339,10 +347,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!implicit_fevent.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_HANDSHAKE,
-            "Detected an illegal handshake calling 'advance_legion_handshake ' "
-            "while not inside of a Legion task.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "Detected an illegal handshake calling "
+            << "'advance_legion_handshake ' while not inside of a Legion task.";
+        error.raise();
+      }
       legion_wait_barrier = legion_next_barrier;
       Runtime::advance_barrier(legion_next_barrier);
       if (split)  // already in split mode execution
