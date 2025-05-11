@@ -21,13 +21,34 @@
 namespace Legion {
 
   //--------------------------------------------------------------------------
+  inline Serializer::Serializer(void)
+    : total_bytes(STATIC_SIZE), buffer(nullptr), index(0)
+  //--------------------------------------------------------------------------
+  {
+#ifdef LEGION_DEBUG
+    context_bytes = 0;
+#endif
+  }
+
+  //--------------------------------------------------------------------------
+  inline Serializer::~Serializer(void)
+  //--------------------------------------------------------------------------
+  {
+    if (buffer != nullptr)
+      Internal::legion_free(buffer, total_bytes);
+  }
+
+  //--------------------------------------------------------------------------
   template<typename T>
   inline void Serializer::serialize(const T& element)
   //--------------------------------------------------------------------------
   {
     static_assert(std::is_trivially_copyable<T>::value);
     while ((index + sizeof(T)) > total_bytes) resize();
-    memcpy(buffer + index, (const void*)&element, sizeof(T));
+    if (buffer != nullptr)
+      std::memcpy(buffer + index, (const void*)&element, sizeof(T));
+    else
+      std::memcpy(static_buffer + index, (const void*)&element, sizeof(T));
     index += sizeof(T);
 #ifdef LEGION_DEBUG
     context_bytes += sizeof(T);
@@ -41,6 +62,49 @@ namespace Legion {
   {
     const uint32_t flag = element ? 1 : 0;
     serialize<uint32_t>(flag);
+  }
+
+  //--------------------------------------------------------------------------
+  template<typename T, typename A>
+  inline void Serializer::serialize(const std::vector<T, A>& vector)
+  //--------------------------------------------------------------------------
+  {
+    serialize<size_t>(vector.size());
+    if (!vector.empty())
+    {
+      if constexpr (!std::is_trivially_copyable_v<T>)
+      {
+        for (unsigned idx = 0; idx < vector.size(); idx++)
+          serialize(vector[idx]);
+      }
+      else
+        serialize(&vector.front(), vector.size() * sizeof(T));
+    }
+  }
+
+  //--------------------------------------------------------------------------
+  template<typename T, typename C, typename A>
+  inline void Serializer::serialize(const std::set<T, C, A>& set)
+  //--------------------------------------------------------------------------
+  {
+    serialize<size_t>(set.size());
+    for (typename std::set<T, C, A>::const_iterator it = set.begin();
+         it != set.end(); it++)
+      serialize(*it);
+  }
+
+  //--------------------------------------------------------------------------
+  template<typename T1, typename T2, typename C, typename A>
+  inline void Serializer::serialize(const std::map<T1, T2, C, A>& map)
+  //--------------------------------------------------------------------------
+  {
+    serialize<size_t>(map.size());
+    for (typename std::map<T1, T2, C, A>::const_iterator it = map.begin();
+         it != map.end(); it++)
+    {
+      serialize(it->first);
+      serialize(it->second);
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -198,7 +262,10 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     while ((index + bytes) > total_bytes) resize();
-    memcpy(buffer + index, src, bytes);
+    if (buffer != nullptr)
+      std::memcpy(buffer + index, src, bytes);
+    else
+      std::memcpy(static_buffer + index, src, bytes);
     index += bytes;
 #ifdef LEGION_DEBUG
     context_bytes += bytes;
@@ -211,7 +278,10 @@ namespace Legion {
   {
 #ifdef LEGION_DEBUG
     while ((index + sizeof(context_bytes)) > total_bytes) resize();
-    memcpy(buffer + index, &context_bytes, sizeof(context_bytes));
+    if (buffer != nullptr)
+      std::memcpy(buffer + index, &context_bytes, sizeof(context_bytes));
+    else
+      std::memcpy(static_buffer + index, &context_bytes, sizeof(context_bytes));
     index += sizeof(context_bytes);
     context_bytes = 0;
 #endif
@@ -224,7 +294,10 @@ namespace Legion {
 #ifdef LEGION_DEBUG
     // Save the size into the buffer
     while ((index + sizeof(context_bytes)) > total_bytes) resize();
-    memcpy(buffer + index, &context_bytes, sizeof(context_bytes));
+    if (buffer != nullptr)
+      std::memcpy(buffer + index, &context_bytes, sizeof(context_bytes));
+    else
+      std::memcpy(static_buffer + index, &context_bytes, sizeof(context_bytes));
     index += sizeof(context_bytes);
     context_bytes = 0;
 #endif
@@ -260,7 +333,12 @@ namespace Legion {
     // Double the buffer size
     total_bytes *= 2;
     legion_assert(total_bytes != 0);  // this would cause deallocation
-    uint8_t* next = (uint8_t*)realloc(buffer, total_bytes);
+    uint8_t* next =
+        ((buffer == nullptr) ?
+             Internal::legion_malloc<uint8_t, Internal::TASK_LOCAL_LIFETIME>(
+                 total_bytes, alignof(size_t)) :
+             Internal::legion_realloc<uint8_t, Internal::TASK_LOCAL_LIFETIME>(
+                 buffer, total_bytes / 2, total_bytes));
     legion_assert(next != nullptr);
     buffer = next;
   }
@@ -273,7 +351,7 @@ namespace Legion {
     static_assert(std::is_trivially_copyable<T>::value);
     // Check to make sure we don't read past the end
     legion_assert((index + sizeof(T)) <= total_bytes);
-    memcpy(&element, buffer + index, sizeof(T));
+    std::memcpy(&element, buffer + index, sizeof(T));
     index += sizeof(T);
 #ifdef LEGION_DEBUG
     context_bytes += sizeof(T);
@@ -288,6 +366,55 @@ namespace Legion {
     uint32_t flag;
     deserialize<uint32_t>(flag);
     element = (flag != 0);
+  }
+
+  //--------------------------------------------------------------------------
+  template<typename T, typename A>
+  inline void Deserializer::deserialize(std::vector<T, A>& vector)
+  //--------------------------------------------------------------------------
+  {
+    size_t size;
+    deserialize<size_t>(size);
+    vector.resize(size);
+    if (size > 0)
+    {
+      if constexpr (!std::is_trivially_copyable_v<T>)
+      {
+        for (unsigned idx = 0; idx < size; idx++) deserialize(vector[idx]);
+      }
+      else
+        deserialize(&vector.front(), size * sizeof(T));
+    }
+  }
+
+  //--------------------------------------------------------------------------
+  template<typename T, typename C, typename A>
+  inline void Deserializer::deserialize(std::set<T, C, A>& set)
+  //--------------------------------------------------------------------------
+  {
+    size_t size;
+    deserialize<size_t>(size);
+    for (unsigned idx = 0; idx < size; idx++)
+    {
+      T elem;
+      deserialize(elem);
+      set.insert(elem);
+    }
+  }
+
+  //--------------------------------------------------------------------------
+  template<typename T1, typename T2, typename C, typename A>
+  inline void Deserializer::deserialize(std::map<T1, T2, C, A>& map)
+  //--------------------------------------------------------------------------
+  {
+    size_t size;
+    deserialize<size_t>(size);
+    for (unsigned idx = 0; idx < size; idx++)
+    {
+      T1 key;
+      deserialize(key);
+      deserialize(map[key]);
+    }
   }
 
   //--------------------------------------------------------------------------
@@ -453,7 +580,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     legion_assert((index + bytes) <= total_bytes);
-    memcpy(dst, buffer + index, bytes);
+    std::memcpy(dst, buffer + index, bytes);
     index += bytes;
 #ifdef LEGION_DEBUG
     context_bytes += bytes;
@@ -467,7 +594,7 @@ namespace Legion {
 #ifdef LEGION_DEBUG
     // Save our enclosing context on the stack
     decltype(context_bytes) sent_context = 0;
-    memcpy(&sent_context, buffer + index, sizeof(sent_context));
+    std::memcpy(&sent_context, buffer + index, sizeof(sent_context));
     index += sizeof(context_bytes);
     // Check to make sure that they match
     legion_assert(sent_context == context_bytes);
@@ -482,7 +609,7 @@ namespace Legion {
 #ifdef LEGION_DEBUG
     // Read the send context size out of the buffer
     decltype(context_bytes) sent_context = 0;
-    memcpy(&sent_context, buffer + index, sizeof(sent_context));
+    std::memcpy(&sent_context, buffer + index, sizeof(sent_context));
     index += sizeof(context_bytes);
     // Check to make sure that they match
     legion_assert(sent_context == context_bytes);

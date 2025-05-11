@@ -17,6 +17,7 @@
 #define __LEGION_SERDEZ_H__
 
 #include "legion/api/geometry.h"
+#include "legion/kernel/allocation.h"
 #include "legion/utilities/bitmask.h"
 
 namespace Legion {
@@ -25,22 +26,26 @@ namespace Legion {
   // Serializer
   /////////////////////////////////////////////////////////////
   class Serializer {
+  private:
+    static constexpr size_t STATIC_SIZE = 2048;  // one page
+    static_assert(STATIC_SIZE > 0);
   public:
-    Serializer(size_t base_bytes = 4096)
-      : total_bytes(base_bytes), buffer((uint8_t*)malloc(base_bytes)), index(0)
-#ifdef LEGION_DEBUG
-        ,
-        context_bytes(0)
-#endif
-    { }
+    Serializer(void);
     Serializer(const Serializer& rhs) = delete;
   public:
-    ~Serializer(void) { free(buffer); }
+    ~Serializer(void);
   public:
     Serializer& operator=(const Serializer& rhs) = delete;
   public:
     template<typename T>
     inline void serialize(const T& element);
+    // help for serializing STL data structures
+    template<typename T, typename A>
+    inline void serialize(const std::vector<T, A>& vector);
+    template<typename T, typename C, typename A>
+    inline void serialize(const std::set<T, C, A>& set);
+    template<typename T1, typename T2, typename C, typename A>
+    inline void serialize(const std::map<T1, T2, C, A>& map);
     // we need special serializers for bit masks
     template<typename T, unsigned int MAX, unsigned SHIFT, unsigned MASK>
     inline void serialize(const Internal::BitMask<T, MAX, SHIFT, MASK>& mask);
@@ -83,7 +88,10 @@ namespace Legion {
     inline void end_context(void);
   public:
     inline size_t get_index(void) const { return index; }
-    inline const void* get_buffer(void) const { return buffer; }
+    inline const void* get_buffer(void) const
+    {
+      return (buffer == nullptr) ? static_buffer : buffer;
+    }
     inline size_t get_buffer_size(void) const { return total_bytes; }
     inline size_t get_used_bytes(void) const { return index; }
     inline void* reserve_bytes(size_t size);
@@ -92,6 +100,7 @@ namespace Legion {
     inline void resize(void);
   private:
     size_t total_bytes;
+    uint8_t static_buffer[STATIC_SIZE];
     uint8_t* buffer;
     size_t index;
 #ifdef LEGION_DEBUG
@@ -129,6 +138,13 @@ namespace Legion {
   public:
     template<typename T>
     inline void deserialize(T& element);
+    // help for serializing STL data structures
+    template<typename T, typename A>
+    inline void deserialize(std::vector<T, A>& vector);
+    template<typename T, typename C, typename A>
+    inline void deserialize(std::set<T, C, A>& set);
+    template<typename T1, typename T2, typename C, typename A>
+    inline void deserialize(std::map<T1, T2, C, A>& map);
     // We need specialized deserializers for bit masks
     template<typename T, unsigned int MAX, unsigned SHIFT, unsigned MASK>
     inline void deserialize(Internal::BitMask<T, MAX, SHIFT, MASK>& mask);
