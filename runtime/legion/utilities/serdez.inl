@@ -331,16 +331,25 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     // Double the buffer size
+    if (total_bytes == STATIC_SIZE)
+    {
+      uint8_t* next =
+          Internal::legion_malloc<uint8_t, Internal::TASK_LOCAL_LIFETIME>(
+              2 * total_bytes, alignof(size_t));
+      legion_assert(next != nullptr);
+      std::memcpy(next, static_buffer, total_bytes);
+      buffer = next;
+    }
+    else
+    {
+      legion_assert(total_bytes > STATIC_SIZE);
+      uint8_t* next =
+          Internal::legion_realloc<uint8_t, Internal::TASK_LOCAL_LIFETIME>(
+              buffer, total_bytes, 2 * total_bytes);
+      legion_assert(next != nullptr);
+      buffer = next;
+    }
     total_bytes *= 2;
-    legion_assert(total_bytes != 0);  // this would cause deallocation
-    uint8_t* next =
-        ((buffer == nullptr) ?
-             Internal::legion_malloc<uint8_t, Internal::TASK_LOCAL_LIFETIME>(
-                 total_bytes, alignof(size_t)) :
-             Internal::legion_realloc<uint8_t, Internal::TASK_LOCAL_LIFETIME>(
-                 buffer, total_bytes / 2, total_bytes));
-    legion_assert(next != nullptr);
-    buffer = next;
   }
 
   //--------------------------------------------------------------------------
