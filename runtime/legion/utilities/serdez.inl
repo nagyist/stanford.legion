@@ -308,7 +308,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     while ((index + bytes) > total_bytes) resize();
-    void* result = buffer + index;
+    void* result = ((buffer != nullptr) ? buffer : static_buffer) + index;
     index += bytes;
 #ifdef LEGION_DEBUG
     context_bytes += bytes;
