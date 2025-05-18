@@ -215,14 +215,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!is_valid_output_region())
-        REPORT_LEGION_ERROR(
-            ERROR_LOGICAL_REGION_FROM_INVALID_OUTPUT_REGION,
-            "Logical region cannot be retrieved from output region %u of task "
-            "%s "
-            "(UID: %lld) whose index space is yet to be determined.",
-            index, context->owner_task->get_task_name(),
-            context->owner_task->get_unique_op_id());
-
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Logical region cannot be retrieved from output region "
+              << index << " of " << *context << " whose index space "
+              << "is yet to be determined.";
+        error.raise();
+      }
       return req.region;
     }
 
@@ -240,15 +239,12 @@ namespace Legion {
       if (type_tag == req.type_tag)
         return;
 
-      REPORT_LEGION_ERROR(
-          ERROR_INVALID_OUTPUT_REGION_RETURN,
-          "The deferred buffer passed to output region %u of task %s (UID: "
-          "%lld) "
-          "is incompatible with the output region. Make sure the deferred "
-          "buffer "
-          "has the right dimension and the coordinate type.",
-          index, context->owner_task->get_task_name(),
-          context->owner_task->get_unique_op_id());
+      Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+      error << "The deferred buffer passed to output region " << index << " of "
+            << *context << " is incompatible with the "
+            << "output region. Make sure the deferred buffer "
+            << "has the right dimension and coordinate type.";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -260,14 +256,14 @@ namespace Legion {
       if (field_size == impl_field_size)
         return;
 
-      REPORT_LEGION_ERROR(
-          ERROR_INVALID_OUTPUT_REGION_RETURN,
-          "The deferred buffer passed to field %u of output region %u of task "
-          "%s "
-          "(UID: %lld) has elements of %zd bytes each, but the field size is "
-          "%zd bytes. Make sure you pass a buffer of the right element type.",
-          field_id, index, context->owner_task->get_task_name(),
-          context->owner_task->get_unique_op_id(), field_size, impl_field_size);
+      Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+      error << "The deferred buffer passed to field " << field_id
+            << " of output region " << index << " of " << *context
+            << " has elements of " << field_size
+            << " bytes each, but the field "
+            << "size is " << impl_field_size << " bytes. Make sure you pass a "
+            << "buffer of the right element type.";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -318,12 +314,10 @@ namespace Legion {
           req.instance_fields.begin(), req.instance_fields.end(), field_id);
       if (finder == req.instance_fields.end())
       {
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_OUTPUT_REGION_FIELD,
-            "Field %u does not exist in output region %u of task %s "
-            "(UID: %lld).",
-            field_id, index, context->owner_task->get_task_name(),
-            context->owner_task->get_unique_op_id());
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Field " << field_id << " does not exist in output region "
+              << index << " of " << *context << ".";
+        error.raise();
       }
       return region->column_source->get_field_size(field_id);
     }
@@ -336,20 +330,21 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (req.privilege_fields.find(field_id) == req.privilege_fields.end())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_OUTPUT_FIELD,
-            "Output region %u of task %s (UID: %lld) does not have privilege "
-            "on field %u.",
-            index, context->owner_task->get_task_name(),
-            context->owner_task->get_unique_op_id(), field_id);
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Output region " << index << " of " << *context
+              << " does not have privilege on field " << field_id << ".";
+        error.raise();
+      }
       if (returned_instances.find(field_id) != returned_instances.end())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_OUTPUT_SIZE,
-            "Data has already been set to field %u of output region %u of "
-            "task %s (UID: %lld). You can return data for each field of an "
-            "output region only once.",
-            field_id, index, context->owner_task->get_task_name(),
-            context->owner_task->get_unique_op_id());
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Data has already been set to field " << field_id
+              << " of output region " << index << " of " << *context
+              << ". You can only return data for each field of an output "
+              << "region once.";
+        error.raise();
+      }
       PhysicalManager* manager = get_manager(field_id);
       const LayoutConstraints* manager_cons = manager->layout->constraints;
       if (check_constraints && (constraints != nullptr))
@@ -384,24 +379,27 @@ namespace Legion {
           has_conflict = constraints->conflicts(*manager_cons);
 
         if (has_conflict)
-          REPORT_LEGION_FATAL(
-              LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-              "The returned instance for field %u of output region %u of "
-              "task %s (UID: %lld) does not satisfy the layout constraints "
-              "chosen by the mapper. This is an illegal usage right now. "
-              "In the future, the runtime will copy this returned instance "
-              "into a fresh one with the correct layout.",
-              field_id, index, context->owner_task->get_task_name(),
-              context->owner_task->get_unique_op_id());
+        {
+          Fatal fatal;
+          fatal
+              << "The returned instance for field " << field_id
+              << " of output region " << index << " of " << *context
+              << " does not satisfy the layout constraints "
+              << "chosen by the mapper. This is an illegal usage right now. "
+              << "In the future, the runtime will copy this returned instance "
+              << "into a fresh one with the correct layout.";
+          fatal.raise();
+        }
       }
       else if (check_constraints)
       {
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-            "Currently the constraint checks need to be turned off to pass "
-            "naked instances to output regions. In the future, layout "
-            "constraints will be inferred from the instances and used for "
-            "the checks.");
+        Fatal fatal;
+        fatal
+            << "Currently the constraint checks need to be turned off to "
+            << "pass naked instances to output regions. In the future, layout "
+            << "constraints will be inferred from the instances and used for "
+            << "the checks.";
+        fatal.raise();
       }
       if (extents.dim == 0)
       {
@@ -450,41 +448,42 @@ namespace Legion {
       }
       else if (new_extents != extents)
       {
-        std::stringstream ss;
-        ss << "Output region " << index << " of task "
-           << context->owner_task->get_task_name()
-           << " (UID: " << context->owner_task->get_unique_op_id()
-           << ") has already been initialized to extents " << extents
-           << ", but the new output has extents " << new_extents
-           << ". You must return data having the same extents to all the "
-              "fields in the same output region.";
-        REPORT_LEGION_ERROR(ERROR_INVALID_OUTPUT_SIZE, "%s", ss.str().c_str());
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Output region " << index << " of " << *context
+              << " has already been initialized to extents " << extents
+              << ", but the new output has extents " << new_extents
+              << ". You must return data having the same extents to all the "
+              << "fields in the same output region.";
+        error.raise();
       }
       if (instance.exists() &&
           (instance.get_location() != manager->get_memory()))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_OUTPUT_SIZE,
-            "Field %u of output region %u of task %s (UID: %lld) is requested "
-            "to have an instance on memory " IDFMT
-            ", but the returned instance"
-            " is allocated on memory " IDFMT ".",
-            field_id, index, context->owner_task->get_task_name(),
-            context->owner_task->get_unique_op_id(), manager->get_memory().id,
-            instance.get_location().id);
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Field " << field_id << " of output region " << index << " of "
+              << *context << " is requested "
+              << "to have an instance in " << manager->get_memory().kind()
+              << " memory " << manager->get_memory()
+              << ", but the returned instance is allocated in "
+              << instance.get_location().kind() << " memory "
+              << instance.get_location() << ".";
+        error.raise();
+      }
       if (grouped_fields && !returned_instances.empty())
       {
         // Make sure that all the fields have the same instance
         if (instance != returned_instances.begin()->second)
-          REPORT_LEGION_ERROR(
-              ERROR_DUPLICATE_RETURN_REQUESTS,
-              "Instance passed to field %u of output region %u of task %s "
-              "(UID: %lld) is not the same as previous instance returned "
-              "for this output region requirement. The layout constraints "
-              "for this output region suggested that the fields need to "
-              "be grouped into one instance and therefore they must all "
-              "be in the same instance.",
-              field_id, index, context->get_task_name(),
-              context->get_unique_id());
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Instance passed to field " << field_id
+                << " of output region " << index << " of " << *context
+                << " is not the same as previous instance returned "
+                << "for this output region requirement. The layout constraints "
+                << "for this output region suggested that the fields need to "
+                << "be grouped into one instance and therefore they must all "
+                << "be in the same instance.";
+          error.raise();
+        }
       }
       returned_instances.emplace(std::make_pair(field_id, instance));
     }
@@ -671,12 +670,10 @@ namespace Legion {
           req.instance_fields.begin(), req.instance_fields.end(), field_id);
       if (finder == req.instance_fields.end())
       {
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_OUTPUT_REGION_FIELD,
-            "Field %u does not exist in output region %u of task %s "
-            "(UID: %lld).",
-            field_id, index, context->owner_task->get_task_name(),
-            context->owner_task->get_unique_op_id());
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Field " << field_id << " does not exist in output region "
+              << index << " of " << *context << ".";
+        error.raise();
       }
       return managers[std::distance(req.instance_fields.begin(), finder)];
     }
