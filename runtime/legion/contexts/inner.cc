@@ -11059,7 +11059,7 @@ namespace Legion {
           rez.serialize(partition_color);
           rez.serialize(notified_event);
         }
-        rez.serialize(parent_owner);
+        rez.dispatch(parent_owner);
         parent_notified = notified_event;
       }
       if ((part_kind == LEGION_COMPUTE_KIND) ||
