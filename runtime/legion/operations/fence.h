@@ -42,13 +42,15 @@ namespace Legion {
       struct DeferTimingMeasurementArgs
         : public LgTaskArgs<DeferTimingMeasurementArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_TIMING_MEASUREMENT_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_TIMING_MEASUREMENT_TASK_ID;
       public:
+        DeferTimingMeasurementArgs(void) = default;
         DeferTimingMeasurementArgs(FenceOp* o)
           : LgTaskArgs<DeferTimingMeasurementArgs>(o->get_unique_op_id()), op(o)
         { }
+        void execute(void) const;
       public:
-        FenceOp* const op;
+        FenceOp* op;
       };
     public:
       FenceOp(void);
@@ -89,7 +91,6 @@ namespace Legion {
       virtual const VersionInfo& get_version_info(unsigned idx) const;
     public:
       virtual void perform_measurement(void);
-      static void handle_deferred_measurement(const void* args);
     protected:
       FenceKind fence_kind;
       std::set<RtEvent> map_applied_conditions;

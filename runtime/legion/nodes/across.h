@@ -90,23 +90,25 @@ namespace Legion {
     public:
       struct DeferCopyAcrossArgs : public LgTaskArgs<DeferCopyAcrossArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_COPY_ACROSS_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_COPY_ACROSS_TASK_ID;
       public:
+        DeferCopyAcrossArgs(void) = default;
         DeferCopyAcrossArgs(
             CopyAcrossExecutor* e, Operation* o, PredEvent guard,
             ApEvent copy_pre, ApEvent src_pre, ApEvent dst_pre, bool replay,
             bool recurrent, unsigned stage);
+        void execute(void) const;
       public:
-        CopyAcrossExecutor* const executor;
-        Operation* const op;
-        const PredEvent guard;
-        const ApEvent copy_precondition;
-        const ApEvent src_indirect_precondition;
-        const ApEvent dst_indirect_precondition;
-        const ApUserEvent done_event;
-        const unsigned stage;
-        const bool replay;
-        const bool recurrent_replay;
+        CopyAcrossExecutor* executor;
+        Operation* op;
+        PredEvent guard;
+        ApEvent copy_precondition;
+        ApEvent src_indirect_precondition;
+        ApEvent dst_indirect_precondition;
+        ApUserEvent done_event;
+        unsigned stage;
+        bool replay;
+        bool recurrent_replay;
       };
     public:
       CopyAcrossExecutor(

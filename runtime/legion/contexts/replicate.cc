@@ -1252,7 +1252,7 @@ namespace Legion {
                  const_iterator sit = eq_sets.begin();
              sit != eq_sets.end(); sit++)
         {
-          Serializer rez;
+          ReplCreatedRegions rez;
           rez.serialize(shard_manager->did);
           rez.serialize(sit->first);
           rez.serialize<size_t>(sit->second.size());
@@ -1284,7 +1284,7 @@ namespace Legion {
         if (source_shard != owner_shard->shard_id)
         {
           // Pack it up and send it to the source shard
-          Serializer rez;
+          ReplCreatedRegions rez;
           rez.serialize(shard_manager->did);
           rez.serialize(source_shard);
           rez.serialize<size_t>(created_nodes.size());
@@ -7597,7 +7597,7 @@ namespace Legion {
         const RtUserEvent to_trigger = Runtime::create_rt_user_event();
         CollectiveResult* result = new CollectiveResult(instances);
         result->add_reference();
-        Serializer rez;
+        ReplFindCollectiveView rez;
         rez.serialize(shard_manager->did);
         rez.serialize(tid_shard);
         rez.serialize(tid);
@@ -9420,7 +9420,7 @@ namespace Legion {
            sit != remote_shard_rects.end(); sit++)
       {
         const RtUserEvent ready = Runtime::create_rt_user_event();
-        Serializer rez;
+        ReplComputeEquivalenceSets rez;
         rez.serialize(shard_manager->did);
         rez.serialize(sit->first);
         rez.serialize(targets.size());
@@ -9475,7 +9475,7 @@ namespace Legion {
            sit != remote_shard_rects.end(); sit++)
       {
         const RtUserEvent ready = Runtime::create_rt_user_event();
-        Serializer rez;
+        ReplOutputEquivalenceSet rez;
         rez.serialize(shard_manager->did);
         rez.serialize(sit->first);
         rez.serialize(source);
@@ -9566,7 +9566,7 @@ namespace Legion {
               continue;
           }
           const RtUserEvent refined_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          ReplRefineEquivalenceSets rez;
           rez.serialize(shard_manager->did);
           rez.serialize(sit->first);
           rez.serialize(req_index);
@@ -9643,7 +9643,7 @@ namespace Legion {
                 continue;
             }
             const RtUserEvent ready_event = Runtime::create_rt_user_event();
-            Serializer rez;
+            ReplFindTraceSets rez;
             rez.serialize(shard_manager->did);
             rez.serialize(it->first);
             rez.serialize(req_index);
@@ -9686,7 +9686,7 @@ namespace Legion {
       derez.deserialize(target_lock);
       RtUserEvent done;
       derez.deserialize(done);
-      Serializer rez;
+      RemoteContextFindTraceLocalResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(target);
@@ -9702,7 +9702,7 @@ namespace Legion {
         }
         rez.serialize(done);
       }
-      runtime->send_remote_context_find_trace_local_sets_response(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
@@ -10141,12 +10141,11 @@ namespace Legion {
     { }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ConsensusMatchBase::handle_consensus_match(const void* args)
+    void ConsensusMatchBase::ConsensusMatchArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const ConsensusMatchArgs* margs = (const ConsensusMatchArgs*)args;
-      margs->base->complete_exchange();
-      delete margs->base;
+      base->complete_exchange();
+      delete base;
     }
 
     /////////////////////////////////////////////////////////////

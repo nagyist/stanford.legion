@@ -241,12 +241,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardCollective::handle_deferred_collective(
-        const void* args)
+    void ShardCollective::DeferCollectiveArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferCollectiveArgs* dargs = (const DeferCollectiveArgs*)args;
-      dargs->collective->perform_collective_async();
+      collective->perform_collective_async();
     }
 
     //--------------------------------------------------------------------------
@@ -382,14 +380,14 @@ namespace Legion {
         if (target_index >= int(manager->total_shards))
           break;
         ShardID target = convert_to_shard(target_index, origin);
-        Serializer rez;
+        ShardCollectiveMessage rez(message);
         {
           rez.serialize(manager->did);
           rez.serialize(target);
           rez.serialize(collective_index);
           pack_collective(rez);
         }
-        manager->send_collective_message(message, target, rez);
+        manager->send_collective_message(target, rez);
       }
     }
 
@@ -564,7 +562,7 @@ namespace Legion {
       const int target_index = (local_index - 1) / shard_collective_radix;
       // Then convert back to the target
       ShardID next = convert_to_shard(target_index, target);
-      Serializer rez;
+      ShardCollectiveMessage rez(get_message_kind());
       {
         rez.serialize(manager->did);
         rez.serialize(next);
@@ -572,8 +570,7 @@ namespace Legion {
         AutoLock c_lock(collective_lock, 1, false /*exclusive*/);
         pack_collective(rez);
       }
-      const MessageKind message = get_message_kind();
-      manager->send_collective_message(message, next, rez);
+      manager->send_collective_message(next, rez);
     }
 
     //--------------------------------------------------------------------------
@@ -857,9 +854,9 @@ namespace Legion {
                 participants->at(
                     local_index + shard_collective_participating_shards);
         legion_assert(target < manager->total_shards);
-        Serializer rez;
+        ShardCollectiveMessage rez(message);
         construct_message(target, -1 /*stage*/, rez);
-        manager->send_collective_message(message, target, rez);
+        manager->send_collective_message(target, rez);
       }
       else
       {
@@ -869,9 +866,9 @@ namespace Legion {
                 local_shard % shard_collective_participating_shards :
                 participants->at(
                     local_index % shard_collective_participating_shards);
-        Serializer rez;
+        ShardCollectiveMessage rez(message);
         construct_message(target, -1 /*stage*/, rez);
-        manager->send_collective_message(message, target, rez);
+        manager->send_collective_message(target, rez);
       }
     }
 
@@ -949,9 +946,9 @@ namespace Legion {
                     participants->at(
                         local_index ^
                         (r << (stage * shard_collective_log_radix)));
-            Serializer rez;
+            ShardCollectiveMessage rez(message);
             construct_message(target, stage, rez);
-            manager->send_collective_message(message, target, rez);
+            manager->send_collective_message(target, rez);
           }
         }
         else
@@ -964,9 +961,9 @@ namespace Legion {
                     participants->at(
                         local_index ^
                         (r << (stage * shard_collective_log_radix)));
-            Serializer rez;
+            ShardCollectiveMessage rez(message);
             construct_message(target, stage, rez);
-            manager->send_collective_message(message, target, rez);
+            manager->send_collective_message(target, rez);
           }
         }
         sent_previous_stage = true;

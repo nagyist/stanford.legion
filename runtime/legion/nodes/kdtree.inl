@@ -1443,7 +1443,7 @@ namespace Legion {
               {
                 // Create an event for when this is triggered
                 const RtUserEvent recorded = Runtime::create_rt_user_event();
-                Serializer rez;
+                ComputeEquivalenceSetsPending rez;
                 {
                   RezCheck z(rez);
                   rez.serialize(set->did);
@@ -1457,7 +1457,7 @@ namespace Legion {
                   }
                   rez.serialize(recorded);
                 }
-                runtime->send_compute_equivalence_sets_pending(sit->first, rez);
+                rez.dispatch(sit->first);
                 // Save this event as a postcondition for any pending creations
                 legion_assert(pending_set_creations != nullptr);
                 for (shrt::map<RtUserEvent, FieldMask>::const_iterator it =

@@ -229,40 +229,45 @@ namespace Legion {
       void trigger_task_commit(bool local, RtEvent precondition);
     public:
       void send_collective_message(
-          MessageKind message, ShardID target, Serializer& rez);
+          ShardID target, const ShardCollectiveMessage& message);
       void handle_collective_message(Deserializer& derez);
     public:
-      void send_rendezvous_message(ShardID target, Serializer& rez);
+      void send_rendezvous_message(
+          ShardID target, const ReplicateRendezvousMessage& rez);
       void handle_rendezvous_message(Deserializer& derez);
     public:
-      void send_compute_equivalence_sets(ShardID target, Serializer& rez);
+      void send_compute_equivalence_sets(
+          ShardID target, const ReplComputeEquivalenceSets& rez);
       void handle_compute_equivalence_sets(Deserializer& derez);
       void handle_equivalence_set_notification(Deserializer& derez);
     public:
-      void send_output_equivalence_set(ShardID target, Serializer& rez);
+      void send_output_equivalence_set(
+          ShardID target, const ReplOutputEquivalenceSet& rez);
       void handle_output_equivalence_set(Deserializer& derez);
     public:
-      void send_refine_equivalence_sets(ShardID target, Serializer& rez);
+      void send_refine_equivalence_sets(
+          ShardID target, const ReplRefineEquivalenceSets& rez);
       void handle_refine_equivalence_sets(Deserializer& derez);
     public:
       void broadcast_resource_update(
-          ShardTask* source, Serializer& rez,
+          ShardTask* source, const Serializer& rez,
           std::set<RtEvent>& applied_events);
     public:
       void broadcast_created_region_contexts(
-          ShardTask* source, Serializer& rez,
+          ShardTask* source, const Serializer& rez,
           std::set<RtEvent>& applied_events);
       void send_created_region_contexts(
-          ShardID target, Serializer& rez, std::set<RtEvent>& applied_events);
+          ShardID target, ReplCreatedRegions& rez,
+          std::set<RtEvent>& applied_events);
       void handle_created_region_contexts(
           Deserializer& derez, std::set<RtEvent>& applied_events);
     public:
       bool has_empty_shard_subtree(
           AddressSpaceID space, ShardingFunction* sharding,
           IndexSpaceNode* full_space, IndexSpace sharding_space);
-    protected:
+    public:
       void broadcast_message(
-          ShardTask* source, Serializer& rez, BroadcastMessageKind kind,
+          ShardTask* source, const Serializer& rez, BroadcastMessageKind kind,
           std::set<RtEvent>& applied_events);
       void handle_broadcast(Deserializer& derez);
     public:
@@ -286,45 +291,17 @@ namespace Legion {
           ShardedPhysicalTemplate* physical_template,
           AddressSpaceID template_source, unsigned frontier, ApBarrier result,
           RtUserEvent done_event);
-      void send_trace_update(ShardID target, Serializer& rez);
+      void send_trace_update(ShardID target, const ReplTraceUpdateMessage& rez);
       void handle_trace_update(Deserializer& derez, AddressSpaceID source);
-      void send_find_trace_local_sets(ShardID target, Serializer& rez);
+      void send_find_trace_local_sets(
+          ShardID target, const ReplFindTraceSets& rez);
       void handle_find_trace_local_sets(
           Deserializer& derez, AddressSpaceID source);
     public:
       ShardID find_collective_owner(RegionTreeID tid) const;
-      void send_find_or_create_collective_view(ShardID target, Serializer& rez);
+      void send_find_or_create_collective_view(
+          ShardID target, const ReplFindCollectiveView& rez);
       void handle_find_or_create_collective_view(Deserializer& derez);
-    public:
-      static void handle_distribution(Deserializer& derez);
-      static void handle_collective_versioning(Deserializer& derez);
-      static void handle_collective_mapping(Deserializer& derez);
-      static void handle_virtual_rendezvous(Deserializer& derez);
-      static void handle_startup_complete(Deserializer& derez);
-      static void handle_post_mapped(Deserializer& derez);
-      static void handle_trigger_complete(Deserializer& derez);
-      static void handle_trigger_commit(Deserializer& derez);
-      static void process_collective_message(Deserializer& derez);
-      static void process_rendezvous_message(Deserializer& derez);
-      static void process_compute_equivalence_sets(Deserializer& derez);
-      static void process_output_equivalence_set(Deserializer& derez);
-      static void process_refine_equivalence_sets(Deserializer& derez);
-      static void process_equivalence_set_notification(Deserializer& derez);
-      static void handle_broadcast_update(Deserializer& derez);
-      static void handle_created_regions(Deserializer& derez);
-      static void handle_trace_event_request(
-          Deserializer& derez, AddressSpaceID request_source);
-      static void handle_trace_event_response(Deserializer& derez);
-      static void handle_trace_event_trigger(Deserializer& derez);
-      static void handle_trace_frontier_request(
-          Deserializer& derez, AddressSpaceID request_source);
-      static void handle_trace_frontier_response(Deserializer& derez);
-      static void process_trace_update(
-          Deserializer& derez, AddressSpaceID source);
-      static void process_find_trace_local_sets(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_find_collective_view(Deserializer& derez);
-      static void handle_pointwise_dependence(Deserializer& derez);
     public:
       ShardingFunction* find_sharding_function(
           ShardingID sid, bool skip_check = false);
@@ -486,8 +463,6 @@ namespace Legion {
       void process_implicit_rendezvous(Deserializer& derez);
       RtUserEvent set_shard_manager(
           ShardManager* manager, TopLevelContext* context);
-    public:
-      static void handle_remote_rendezvous(Deserializer& derez);
     public:
       const TaskID task_id;
       const MapperID mapper_id;

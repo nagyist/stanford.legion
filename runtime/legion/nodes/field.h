@@ -79,51 +79,57 @@ namespace Legion {
       };
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
-        static const LgTaskID TASK_ID =
+        static constexpr LgTaskID TASK_ID =
             LG_FIELD_SPACE_SEMANTIC_INFO_REQ_TASK_ID;
       public:
+        SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             FieldSpaceNode* proxy, SemanticTag t, AddressSpaceID src)
           : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
             proxy_this(proxy), tag(t), source(src)
         { }
+        void execute(void) const;
       public:
-        FieldSpaceNode* const proxy_this;
-        const SemanticTag tag;
-        const AddressSpaceID source;
+        FieldSpaceNode* proxy_this;
+        SemanticTag tag;
+        AddressSpaceID source;
       };
       struct SemanticFieldRequestArgs
         : public LgTaskArgs<SemanticFieldRequestArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_FIELD_SEMANTIC_INFO_REQ_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_FIELD_SEMANTIC_INFO_REQ_TASK_ID;
       public:
+        SemanticFieldRequestArgs(void) = default;
         SemanticFieldRequestArgs(
             FieldSpaceNode* proxy, FieldID f, SemanticTag t, AddressSpaceID src)
           : LgTaskArgs<SemanticFieldRequestArgs>(implicit_provenance),
             proxy_this(proxy), fid(f), tag(t), source(src)
         { }
+        void execute(void) const;
       public:
-        FieldSpaceNode* const proxy_this;
-        const FieldID fid;
-        const SemanticTag tag;
-        const AddressSpaceID source;
+        FieldSpaceNode* proxy_this;
+        FieldID fid;
+        SemanticTag tag;
+        AddressSpaceID source;
       };
       struct DeferRequestFieldInfoArgs
         : public LgTaskArgs<DeferRequestFieldInfoArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_FIELD_INFOS_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_FIELD_INFOS_TASK_ID;
       public:
+        DeferRequestFieldInfoArgs(void) = default;
         DeferRequestFieldInfoArgs(
             const FieldSpaceNode* n, std::map<FieldID, FieldInfo>* c,
             AddressSpaceID src, RtUserEvent t)
           : LgTaskArgs<DeferRequestFieldInfoArgs>(implicit_provenance),
             proxy_this(n), copy(c), source(src), to_trigger(t)
         { }
+        void execute(void) const;
       public:
-        const FieldSpaceNode* const proxy_this;
-        std::map<FieldID, FieldInfo>* const copy;
-        const AddressSpaceID source;
-        const RtUserEvent to_trigger;
+        const FieldSpaceNode* proxy_this;
+        std::map<FieldID, FieldInfo>* copy;
+        AddressSpaceID source;
+        RtUserEvent to_trigger;
       };
     public:
       FieldSpaceNode(
@@ -166,14 +172,6 @@ namespace Legion {
       void process_semantic_field_request(
           FieldID fid, SemanticTag tag, AddressSpaceID source, bool can_fail,
           bool wait_until, RtUserEvent ready);
-      static void handle_semantic_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_field_semantic_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_semantic_info(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_field_semantic_info(
-          Deserializer& derez, AddressSpaceID source);
     public:
       RtEvent create_allocator(
           AddressSpaceID source,
@@ -271,9 +269,6 @@ namespace Legion {
           const std::vector<unsigned>& mask_index_map, LgEvent unique_event,
           RegionNode* node, const std::vector<CustomSerdezID>& serdez,
           DistributedID did, CollectiveMapping* collective_mapping = nullptr);
-      static void handle_external_create_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_external_create_response(Deserializer& derez);
     public:
       LayoutDescription* find_layout_description(
           const FieldMask& field_mask, unsigned num_dims,
@@ -288,38 +283,6 @@ namespace Legion {
       LayoutDescription* register_layout_description(LayoutDescription* desc);
     public:
       void send_node(AddressSpaceID target);
-      static void handle_node_creation(
-          Deserializer& derez, AddressSpaceID target);
-    public:
-      static void handle_node_request(Deserializer& derez);
-      static void handle_node_return(Deserializer& derez);
-      static void handle_allocator_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_allocator_response(Deserializer& derez);
-      static void handle_allocator_invalidation(Deserializer& derez);
-      static void handle_allocator_flush(Deserializer& derez);
-      static void handle_allocator_free(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_infos_request(Deserializer& derez);
-      static void handle_infos_response(Deserializer& derez);
-    public:
-      static void handle_remote_instance_creation(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_remote_reduction_creation(
-          Deserializer& derez, AddressSpaceID source);
-    public:
-      static void handle_alloc_request(Deserializer& derez);
-      static void handle_field_free(Deserializer& derez, AddressSpaceID source);
-      static void handle_field_free_indexes(Deserializer& derez);
-      static void handle_layout_invalidation(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_local_alloc_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_local_alloc_response(Deserializer& derez);
-      static void handle_local_free(Deserializer& derez);
-      static void handle_field_size_update(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_defer_infos_request(const void* args);
     public:
       // Help with debug printing
       char* to_string(const FieldMask& mask, TaskContext* ctx) const;
@@ -328,10 +291,11 @@ namespace Legion {
       // when calling these methods
       int allocate_index(RtEvent& ready_event, bool initializing = false);
       void free_index(unsigned index, RtEvent free_event);
+    public:
       void invalidate_layouts(
           unsigned index, std::set<RtEvent>& applied, AddressSpaceID source,
           bool need_lock = true);
-    protected:
+    public:
       RtEvent request_field_infos_copy(
           std::map<FieldID, FieldInfo>* copy, AddressSpaceID source,
           RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) const;

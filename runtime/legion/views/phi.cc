@@ -136,7 +136,7 @@ namespace Legion {
     {
       legion_assert(is_owner());
       legion_assert(collective_mapping == nullptr);
-      Serializer rez;
+      PhiViewMessage rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -161,7 +161,7 @@ namespace Legion {
           rez.serialize(it->second);
         }
       }
-      runtime->send_phi_view(target, rez);
+      rez.dispatch(target);
       update_remote_instances(target);
     }
 
@@ -208,7 +208,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhiView::handle_send_phi_view(Deserializer& derez)
+    /*static*/ void PhiViewMessage::handle(Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -258,7 +258,7 @@ namespace Legion {
       if (!ready_events.empty())
       {
         RtEvent wait_on = Runtime::merge_events(ready_events);
-        DeferPhiViewRegistrationArgs args(view);
+        PhiView::DeferPhiViewRegistrationArgs args(view);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, wait_on);
       }
@@ -271,13 +271,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhiView::handle_deferred_view_registration(const void* args)
+    void PhiView::DeferPhiViewRegistrationArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferPhiViewRegistrationArgs* pargs =
-          (const DeferPhiViewRegistrationArgs*)args;
-      pargs->view->add_initial_references(true /*unpack references*/);
-      pargs->view->register_with_runtime();
+      view->add_initial_references(true /*unpack references*/);
+      view->register_with_runtime();
     }
 
   }  // namespace Internal

@@ -58,9 +58,6 @@ namespace Legion {
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
     public:
-      static void handle_remote_releases(
-          Deserializer& derez, AddressSpaceID previous);
-    public:
       const ApEvent precondition;
       ReleaseAnalysis* const target_analysis;
     public:

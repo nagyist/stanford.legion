@@ -135,13 +135,15 @@ namespace Legion {
       struct DeferDeletionCommitArgs
         : public LgTaskArgs<DeferDeletionCommitArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_DELETION_COMMIT_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_DELETION_COMMIT_TASK_ID;
       public:
+        DeferDeletionCommitArgs(void) = default;
         DeferDeletionCommitArgs(ReplDeletionOp* o)
           : LgTaskArgs(o->get_unique_op_id()), op(o)
         { }
+        void execute(void) const;
       public:
-        ReplDeletionOp* const op;
+        ReplDeletionOp* op;
       };
     public:
       ReplDeletionOp(void);
@@ -171,8 +173,6 @@ namespace Legion {
           std::map<std::pair<FieldSpace, FieldID>, ReplDeletionOp*>&
               field_deletions,
           std::map<LogicalRegion, ReplDeletionOp*>& logical_region_deletions);
-    public:
-      static void handle_defer_commit(const void* args);
     protected:
       RtBarrier ready_barrier;
       RtBarrier mapping_barrier;

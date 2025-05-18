@@ -108,7 +108,6 @@ namespace Legion {
           bool exclusive);
       void find_field_reservations(
           const FieldMask& mask, std::vector<Reservation>& results);
-    protected:
       RtEvent find_field_reservations(
           const FieldMask& mask, std::vector<Reservation>* results,
           AddressSpaceID source,
@@ -143,6 +142,7 @@ namespace Legion {
           std::vector<RtEvent>& registered_events,
           std::set<RtEvent>& applied_events,
           const PhysicalTraceInfo& trace_info, const bool symbolic);
+    public:
       void process_collective_user_registration(
           const size_t op_ctx_index, const unsigned index,
           const IndexSpaceID match_space, const AddressSpaceID origin,
@@ -150,18 +150,6 @@ namespace Legion {
           CollectiveMapping* analysis_mapping, ApEvent remote_term_event,
           ApUserEvent remote_ready_event, RtUserEvent remote_registered,
           std::set<RtEvent>& applied_events);
-    public:
-      static void handle_view_find_copy_pre_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_view_add_copy_user(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_view_find_last_users_request(
-          Deserializer& derz, AddressSpaceID source);
-      static void handle_view_find_last_users_response(Deserializer& derez);
-      static void handle_collective_user_registration(Deserializer& derez);
-    public:
-      static void handle_atomic_reservation_request(Deserializer& derez);
-      static void handle_atomic_reservation_response(Deserializer& derez);
     public:
       PhysicalManager* const manager;
       // This is the owner space for the purpose of logical analysis

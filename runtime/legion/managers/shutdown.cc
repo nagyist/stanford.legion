@@ -60,12 +60,12 @@ namespace Legion {
       {
         // Set the number of needed_responses
         needed_responses = targets.size();
-        Serializer rez;
+        ShutdownNotification rez;
         rez.serialize(this);
         rez.serialize(phase);
         for (std::vector<AddressSpaceID>::const_iterator it = targets.begin();
              it != targets.end(); it++)
-          runtime->send_shutdown_notification(*it, rez);
+          rez.dispatch(*it);
         return false;
       }
       else  // no messages means we can finalize right now
@@ -155,7 +155,7 @@ namespace Legion {
       {
         legion_assert(owner != nullptr);
         // Send the message back
-        Serializer rez;
+        ShutdownResponse rez;
         rez.serialize(owner);
         rez.serialize(return_code);
         rez.serialize<bool>(result);
@@ -163,7 +163,7 @@ namespace Legion {
         for (std::set<RtEvent>::const_iterator it = wait_for.begin();
              it != wait_for.end(); it++)
           rez.serialize(*it);
-        runtime->send_shutdown_response(source, rez);
+        rez.dispatch(source);
       }
       else
       {
@@ -180,152 +180,27 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_remote_tracing_update(
-        Deserializer& derez, AddressSpaceID source)
+    void ShutdownManager::RetryShutdownArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      RemoteTraceRecorder::handle_remote_update(derez, source);
+      runtime->initiate_runtime_shutdown(runtime->address_space, phase);
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_remote_tracing_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      RemoteTraceRecorder::handle_remote_response(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_free_external_allocation(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      FutureInstance::handle_free_external(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_notify_collected_instances(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      MemoryManager::handle_notify_collected_instances(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_create_memory_pool_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      MemoryManager::handle_create_memory_pool_request(derez, source);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_create_memory_pool_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      MemoryManager::handle_create_memory_pool_response(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_create_future_instance_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Memory memory;
-      derez.deserialize(memory);
-      std::atomic<FutureInstance*>* target;
-      derez.deserialize(target);
-      RtUserEvent done;
-      derez.deserialize(done);
-      UniqueID uid;
-      derez.deserialize(uid);
-      TaskTreeCoordinates coordinates;
-      coordinates.deserialize(derez);
-      size_t size;
-      derez.deserialize(size);
-      RtEvent* remote_safe_for_unbounded_pools;
-      derez.deserialize(remote_safe_for_unbounded_pools);
-
-      MemoryManager* manager = find_memory_manager(memory);
-      RtEvent safe_for_unbounded_pools;
-      FutureInstance* result = manager->create_future_instance(
-          uid, coordinates, size,
-          (remote_safe_for_unbounded_pools == nullptr) ?
-              nullptr :
-              &safe_for_unbounded_pools);
-      if ((result != nullptr) ||
-          ((remote_safe_for_unbounded_pools != nullptr) &&
-           safe_for_unbounded_pools.exists()))
-      {
-        Serializer rez;
-        {
-          RezCheck z(rez);
-          rez.serialize(target);
-          if (result != nullptr)
-            result->pack_instance(
-                rez, ApEvent::NO_AP_EVENT, true /*pack ownership*/,
-                false /*allow by value*/);
-          else
-            FutureInstance::pack_null(rez);
-          rez.serialize(remote_safe_for_unbounded_pools);
-          if (remote_safe_for_unbounded_pools != nullptr)
-            rez.serialize(safe_for_unbounded_pools);
-          rez.serialize(done);
-        }
-        send_create_future_instance_response(source, rez);
-        delete result;
-      }
-      else
-        Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_create_future_instance_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      std::atomic<FutureInstance*>* target;
-      derez.deserialize(target);
-      target->store(FutureInstance::unpack_instance(derez));
-      RtEvent* safe_for_unbounded_pools;
-      derez.deserialize(safe_for_unbounded_pools);
-      if (safe_for_unbounded_pools != nullptr)
-        derez.deserialize(*safe_for_unbounded_pools);
-      RtUserEvent done;
-      derez.deserialize(done);
-      Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_free_future_instance(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Memory memory;
-      derez.deserialize(memory);
-      PhysicalInstance instance;
-      derez.deserialize(instance);
-      size_t size;
-      derez.deserialize(size);
-      RtEvent free_event;
-      derez.deserialize(free_event);
-      MemoryManager* manager = find_memory_manager(memory);
-      manager->free_future_instance(instance, size, free_event);
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ void ShutdownManager::handle_shutdown_notification(
+    /*static*/ void ShutdownNotification::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       ShutdownManager* owner;
       derez.deserialize(owner);
-      ShutdownPhase phase;
+      ShutdownManager::ShutdownPhase phase;
       derez.deserialize(phase);
       runtime->initiate_runtime_shutdown(source, phase, owner);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShutdownManager::handle_shutdown_response(
-        Deserializer& derez)
+    /*static*/ void ShutdownResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       ShutdownManager* shutdown_manager;

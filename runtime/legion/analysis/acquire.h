@@ -17,6 +17,7 @@
 #define __LEGION_ACQUIRE_ANALYSIS_H__
 
 #include "legion/analysis/registration.h"
+#include "legion/managers/message.h"
 
 namespace Legion {
   namespace Internal {

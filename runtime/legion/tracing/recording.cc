@@ -144,7 +144,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -154,7 +154,7 @@ namespace Legion {
           rez.serialize(op_kind);
           tlid.serialize(rez);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied_events.insert(applied);
       }
       else
@@ -170,7 +170,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent ready = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -178,7 +178,7 @@ namespace Legion {
           rez.serialize(&term_event);
           rez.serialize(ready);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         // Wait for the result to be set
         ready.wait();
       }
@@ -194,7 +194,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -203,7 +203,7 @@ namespace Legion {
           rez.serialize(&lhs);
           tlid.serialize(rez);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         // Need this to be done before returning because we need to ensure
         // that this event is recorded before anyone tries to trigger it
         done.wait();
@@ -221,7 +221,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -231,7 +231,7 @@ namespace Legion {
           rez.serialize(rhs);
           tlid.serialize(rez);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied_events.insert(applied);
       }
       else
@@ -295,7 +295,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -309,7 +309,7 @@ namespace Legion {
                it != rhs.end(); it++)
             rez.serialize(*it);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         // Wait to see if lhs changes
         done.wait();
       }
@@ -325,7 +325,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -339,7 +339,7 @@ namespace Legion {
                it != rhs.end(); it++)
             rez.serialize(*it);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         // Wait to see if lhs changes
         done.wait();
       }
@@ -355,7 +355,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -367,7 +367,7 @@ namespace Legion {
           rez.serialize(e2);
           tlid.serialize(rez);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         // Wait to see if lhs changes
         done.wait();
       }
@@ -394,7 +394,7 @@ namespace Legion {
       {
         ShardID owner = 0;
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -404,7 +404,7 @@ namespace Legion {
           rez.serialize(total_arrivals);
           rez.serialize(&owner);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         done.wait();
         return owner;
       }
@@ -422,7 +422,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -433,7 +433,7 @@ namespace Legion {
           rez.serialize(arrivals);
           rez.serialize(owner_shard);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied.insert(done);
       }
       else
@@ -455,7 +455,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -485,7 +485,7 @@ namespace Legion {
           rez.serialize(collective);
           rez.serialize<bool>(copy_restricted);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         // Wait to see if lhs changes
         done.wait();
       }
@@ -509,7 +509,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -528,7 +528,7 @@ namespace Legion {
           rez.serialize(dst_mask);
           rez.serialize(redop);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied.insert(done);
       }
       else
@@ -585,7 +585,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -610,7 +610,7 @@ namespace Legion {
           rez.serialize(collective);
           rez.serialize<bool>(fill_restricted);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         // Wait to see if lhs changes
         done.wait();
       }
@@ -631,7 +631,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -643,7 +643,7 @@ namespace Legion {
           rez.serialize(inst_mask);
           rez.serialize<bool>(reduction_initialization);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied_events.insert(done);
       }
       else
@@ -663,7 +663,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -677,7 +677,7 @@ namespace Legion {
           rez.serialize(user_mask);
           rez.serialize<bool>(update_validity);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied_events.insert(applied);
       }
       else
@@ -694,7 +694,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -704,7 +704,7 @@ namespace Legion {
           rez.serialize(&lhs);
           rez.serialize(lhs);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         // wait to see if lhs changes
         done.wait();
       }
@@ -722,7 +722,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -755,7 +755,7 @@ namespace Legion {
           rez.serialize<bool>(is_leaf);
           rez.serialize<bool>(has_return_size);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied_events.insert(applied);
       }
       else
@@ -773,7 +773,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -782,7 +782,7 @@ namespace Legion {
           tlid.serialize(rez);
           rez.serialize(pre);
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied_events.insert(applied);
       }
       else
@@ -799,7 +799,7 @@ namespace Legion {
       if (runtime->address_space != origin_space)
       {
         RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteTraceUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_tpl);
@@ -815,7 +815,7 @@ namespace Legion {
             rez.serialize<bool>(it->second);
           }
         }
-        runtime->send_remote_trace_update(origin_space, rez);
+        rez.dispatch(origin_space);
         applied_events.insert(done);
       }
       else
@@ -900,7 +900,7 @@ namespace Legion {
             ApUserEvent result;
             tpl->request_term_event(result);
             legion_assert(result.exists());
-            Serializer rez;
+            RemoteTraceResponse rez;
             {
               RezCheck z2(rez);
               rez.serialize(REMOTE_TRACE_REQUEST_TERM_EVENT);
@@ -908,7 +908,7 @@ namespace Legion {
               rez.serialize(result);
               rez.serialize(ready);
             }
-            runtime->send_remote_trace_response(source, rez);
+            rez.dispatch(source);
             break;
           }
         case REMOTE_TRACE_CREATE_USER_EVENT:
@@ -922,7 +922,7 @@ namespace Legion {
             ApUserEvent result;
             tpl->record_create_ap_user_event(result, tlid);
             legion_assert(result.exists());
-            Serializer rez;
+            RemoteTraceResponse rez;
             {
               RezCheck z2(rez);
               rez.serialize(REMOTE_TRACE_CREATE_USER_EVENT);
@@ -930,7 +930,7 @@ namespace Legion {
               rez.serialize(result);
               rez.serialize(applied);
             }
-            runtime->send_remote_trace_response(source, rez);
+            rez.dispatch(source);
             break;
           }
         case REMOTE_TRACE_TRIGGER_EVENT:
@@ -988,7 +988,7 @@ namespace Legion {
             }
             if (lhs != lhs_copy)
             {
-              Serializer rez;
+              RemoteTraceResponse rez;
               {
                 RezCheck z2(rez);
                 rez.serialize(REMOTE_TRACE_MERGE_EVENTS);
@@ -996,7 +996,7 @@ namespace Legion {
                 rez.serialize(lhs);
                 rez.serialize(done);
               }
-              runtime->send_remote_trace_response(source, rez);
+              rez.dispatch(source);
             }
             else  // didn't change so just trigger
               Runtime::trigger_event(done);
@@ -1018,7 +1018,7 @@ namespace Legion {
             tpl->record_merge_events(lhs_copy, e1, e2, tlid);
             if (lhs != lhs_copy)
             {
-              Serializer rez;
+              RemoteTraceResponse rez;
               {
                 RezCheck z2(rez);
                 rez.serialize(REMOTE_TRACE_MERGE_PRED_EVENTS);
@@ -1026,7 +1026,7 @@ namespace Legion {
                 rez.serialize(lhs);
                 rez.serialize(done);
               }
-              runtime->send_remote_trace_response(source, rez);
+              rez.dispatch(source);
             }
             else  // didn't change so just trigger
               Runtime::trigger_event(done);
@@ -1083,7 +1083,7 @@ namespace Legion {
                 dst_unique, priority, collective, copy_restricted);
             if (lhs != lhs_copy)
             {
-              Serializer rez;
+              RemoteTraceResponse rez;
               {
                 RezCheck z2(rez);
                 rez.serialize(REMOTE_TRACE_ISSUE_COPY);
@@ -1091,7 +1091,7 @@ namespace Legion {
                 rez.serialize(lhs);
                 rez.serialize(done);
               }
-              runtime->send_remote_trace_response(source, rez);
+              rez.dispatch(source);
             }
             else  // lhs was unchanged
               Runtime::trigger_event(done);
@@ -1179,7 +1179,7 @@ namespace Legion {
                 priority, collective, fill_restricted);
             if (lhs != lhs_copy)
             {
-              Serializer rez;
+              RemoteTraceResponse rez;
               {
                 RezCheck z2(rez);
                 rez.serialize(REMOTE_TRACE_ISSUE_FILL);
@@ -1187,7 +1187,7 @@ namespace Legion {
                 rez.serialize(lhs);
                 rez.serialize(done);
               }
-              runtime->send_remote_trace_response(source, rez);
+              rez.dispatch(source);
             }
             else  // lhs was unchanged
               Runtime::trigger_event(done);
@@ -1260,7 +1260,7 @@ namespace Legion {
             tpl->record_set_op_sync_event(lhs, tlid);
             if (lhs != lhs_copy)
             {
-              Serializer rez;
+              RemoteTraceResponse rez;
               {
                 RezCheck z2(rez);
                 rez.serialize(REMOTE_TRACE_SET_OP_SYNC);
@@ -1268,7 +1268,7 @@ namespace Legion {
                 rez.serialize(lhs);
                 rez.serialize(done);
               }
-              runtime->send_remote_trace_response(source, rez);
+              rez.dispatch(source);
             }
             else  // lhs didn't change
               Runtime::trigger_event(done);
@@ -1385,7 +1385,7 @@ namespace Legion {
             derez.deserialize(target);
             ApBarrier bar;
             ShardID owner = tpl->record_barrier_creation(bar, arrivals);
-            Serializer rez;
+            RemoteTraceResponse rez;
             {
               RezCheck z2(rez);
               rez.serialize(REMOTE_TRACE_RECORD_BARRIER);
@@ -1395,7 +1395,7 @@ namespace Legion {
               rez.serialize(owner);
               rez.serialize(done_event);
             }
-            runtime->send_remote_trace_response(source, rez);
+            rez.dispatch(source);
             break;
           }
         case REMOTE_TRACE_BARRIER_ARRIVAL:
@@ -1422,6 +1422,14 @@ namespace Legion {
         default:
           std::abort();
       }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void RemoteTraceUpdate::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      RemoteTraceRecorder::handle_remote_update(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -1484,6 +1492,14 @@ namespace Legion {
         default:
           std::abort();
       }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void RemoteTraceResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      RemoteTraceRecorder::handle_remote_response(derez);
     }
 
     //--------------------------------------------------------------------------

@@ -389,17 +389,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void VersionManager::handle_finalize_output_eq_set(
-        const void* args)
+    void VersionManager::FinalizeOutputEquivalenceSetArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const FinalizeOutputEquivalenceSetArgs* fargs =
-          (const FinalizeOutputEquivalenceSetArgs*)args;
-      RtEvent done = fargs->proxy_this->finalize_output_equivalence_set(
-          fargs->set, fargs->context, fargs->parent_req_index);
-      Runtime::trigger_event(fargs->done_event, done);
-      if (fargs->set->remove_base_gc_ref(META_TASK_REF))
-        delete fargs->set;
+      RtEvent done = proxy_this->finalize_output_equivalence_set(
+          set, context, parent_req_index);
+      Runtime::trigger_event(done_event, done);
+      if (set->remove_base_gc_ref(META_TASK_REF))
+        delete set;
     }
 
   }  // namespace Internal

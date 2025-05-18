@@ -386,7 +386,7 @@ namespace Legion {
           // subscribe to its updates for this barrier
           RtEvent subscribed = Runtime::create_rt_user_event();
           ShardManager* manager = repl_ctx->shard_manager;
-          Serializer rez;
+          ReplTraceUpdateMessage rez;
           rez.serialize(manager->did);
           rez.serialize(owner_shard);
           rez.serialize(template_index);
@@ -643,7 +643,7 @@ namespace Legion {
             ShardManager* manager = repl_ctx->shard_manager;
             if (!PhysicalTemplate::are_read_only_users(inst_users))
             {
-              Serializer rez;
+              ReplTraceUpdateMessage rez;
               rez.serialize(manager->did);
               rez.serialize(source_shard);
               rez.serialize(template_index);
@@ -881,36 +881,33 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardedPhysicalTemplate::handle_deferred_trace_update(
-        const void* args)
+    void ShardedPhysicalTemplate::DeferTraceUpdateArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferTraceUpdateArgs* dargs = (const DeferTraceUpdateArgs*)args;
       std::set<RtEvent> applied;
-      Deserializer derez(dargs->buffer, dargs->buffer_size);
-      switch (dargs->kind)
+      Deserializer derez(buffer, buffer_size);
+      switch (kind)
       {
         case UPDATE_MUTATED_INST:
           {
-            if (dargs->target->handle_update_mutated_inst(
-                    dargs->inst, dargs->expr, derez, applied, dargs->done,
-                    dargs))
+            if (target->handle_update_mutated_inst(
+                    inst, expr, derez, applied, done, this))
               return;
             break;
           }
         default:
           std::abort();  // should never get here
       }
-      legion_assert(dargs->done.exists());
+      legion_assert(done.exists());
       if (!applied.empty())
-        Runtime::trigger_event(dargs->done, Runtime::merge_events(applied));
+        Runtime::trigger_event(done, Runtime::merge_events(applied));
       else
-        Runtime::trigger_event(dargs->done);
-      if (dargs->deferral_event.exists())
-        Runtime::trigger_event(dargs->deferral_event);
-      if (dargs->expr->remove_base_expression_reference(META_TASK_REF))
-        delete dargs->expr;
-      free(dargs->buffer);
+        Runtime::trigger_event(done);
+      if (deferral_event.exists())
+        Runtime::trigger_event(deferral_event);
+      if (expr->remove_base_expression_reference(META_TASK_REF))
+        delete expr;
+      free(buffer);
     }
 
     //--------------------------------------------------------------------------
@@ -1038,7 +1035,7 @@ namespace Legion {
                    const_iterator nit = notifications.begin();
                nit != notifications.end(); nit++)
           {
-            Serializer rez;
+            ReplTraceUpdateMessage rez;
             rez.serialize(manager->did);
             rez.serialize(nit->first);
             rez.serialize(template_index);
@@ -1200,7 +1197,7 @@ namespace Legion {
       {
         if (nit->first != local_shard)
         {
-          Serializer rez;
+          ReplTraceUpdateMessage rez;
           rez.serialize(manager->did);
           rez.serialize(nit->first);
           rez.serialize(template_index);
@@ -1380,7 +1377,7 @@ namespace Legion {
       {
         RtUserEvent done = Runtime::create_rt_user_event();
         ShardManager* manager = repl_ctx->shard_manager;
-        Serializer rez;
+        ReplTraceUpdateMessage rez;
         rez.serialize(manager->did);
         rez.serialize(target_shard);
         rez.serialize(template_index);
@@ -1604,7 +1601,7 @@ namespace Legion {
         {
           const RtUserEvent done = Runtime::create_rt_user_event();
           const AddressSpaceID target = manager->get_shard_space(sit->first);
-          Serializer rez;
+          ReplTraceUpdateMessage rez;
           rez.serialize(manager->did);
           rez.serialize(sit->first);
           rez.serialize(template_index);

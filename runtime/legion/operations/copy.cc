@@ -1573,32 +1573,29 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CopyOp::handle_deferred_across(const void* args)
+    void CopyOp::DeferredCopyAcross::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferredCopyAcross* dargs = (const DeferredCopyAcross*)args;
       std::set<RtEvent> applied_conditions;
-      dargs->copy->perform_copy_across(
-          dargs->index, dargs->init_precondition, dargs->src_ready,
-          dargs->dst_ready, dargs->gather_ready, dargs->scatter_ready,
-          dargs->local_precondition, dargs->local_postcondition,
-          dargs->collective_precondition, dargs->collective_postcondition,
-          dargs->guard, *dargs->src_targets, *dargs->dst_targets,
-          dargs->gather_targets, dargs->scatter_targets, *dargs,
-          applied_conditions, dargs->compute_preimages,
-          dargs->shadow_indirections);
+      copy->perform_copy_across(
+          index, init_precondition, src_ready, dst_ready, gather_ready,
+          scatter_ready, local_precondition, local_postcondition,
+          collective_precondition, collective_postcondition, guard,
+          *src_targets, *dst_targets, gather_targets, scatter_targets,
+          *trace_info, applied_conditions, compute_preimages,
+          shadow_indirections);
       if (!applied_conditions.empty())
         Runtime::trigger_event(
-            dargs->applied, Runtime::merge_events(applied_conditions));
+            applied, Runtime::merge_events(applied_conditions));
       else
-        Runtime::trigger_event(dargs->applied);
-      delete dargs->src_targets;
-      delete dargs->dst_targets;
-      if (dargs->gather_targets != nullptr)
-        delete dargs->gather_targets;
-      if (dargs->scatter_targets != nullptr)
-        delete dargs->scatter_targets;
-      dargs->remove_recorder_reference();
+        Runtime::trigger_event(applied);
+      delete trace_info;
+      delete src_targets;
+      delete dst_targets;
+      if (gather_targets != nullptr)
+        delete gather_targets;
+      if (scatter_targets != nullptr)
+        delete scatter_targets;
     }
 
     //--------------------------------------------------------------------------

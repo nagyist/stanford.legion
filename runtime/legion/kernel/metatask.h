@@ -266,20 +266,43 @@ namespace Legion {
     template<typename T>
     struct LgTaskArgs {
     public:
+      LgTaskArgs(void) = default;
       LgTaskArgs(::legion_unique_id_t uid)
-        : provenance(uid),
+        : lg_task_id(T::TASK_ID),
 #ifdef LEGION_DEBUG_CALLERS
           lg_call_id(implicit_task_kind),
 #endif
-          lg_task_id(T::TASK_ID)
-      { }
+          provenance(uid)
+      {
+        static_assert(std::is_trivially_copyable_v<T>);
+      }
     public:
-      // In this order for alignment reasons
-      const ::legion_unique_id_t provenance;
+      // Make sure this is first so we can read it out
+      LgTaskID lg_task_id;
 #ifdef LEGION_DEBUG_CALLERS
-      const LgTaskID lg_call_id;
+      LgTaskID lg_call_id;
 #endif
-      const LgTaskID lg_task_id;
+      ::legion_unique_id_t provenance;
+    public:
+      static void handle(const void* data, size_t size)
+      {
+        legion_assert(sizeof(T) == size);
+        // Technically this is not quite correct because the alignment
+        // of the data in the struct might not be the same depending on
+        // how Realm allocates it, but it hasn't caused any issues yet
+        // and is higher performance so we do it like this for now.
+        // If it ever breaks we'll need to copy onto the stack which
+        // is fine since we know all arguments are trivially copyable
+        const T* args = static_cast<const T*>(data);
+        legion_assert(args->lg_task_id == T::TASK_ID);
+        // If you ever change this here then make sure you also update
+        // the message handler as well
+#ifdef LEGION_DEBUG_CALLERS
+        implicit_task_caller = args->lg_call_id;
+#endif
+        implicit_provenance = args->provenance;
+        args->execute();
+      }
     };
 
   }  // namespace Internal

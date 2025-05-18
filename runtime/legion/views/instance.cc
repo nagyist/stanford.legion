@@ -38,7 +38,7 @@ namespace Legion {
     { }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InstanceView::handle_view_register_user(
+    /*static*/ void ViewRegisterUser::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {

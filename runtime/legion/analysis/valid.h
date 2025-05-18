@@ -53,9 +53,6 @@ namespace Legion {
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
     public:
-      static void handle_remote_request_instances(
-          Deserializer& derez, AddressSpaceID previous);
-    public:
       const ReductionOpID redop;
       ValidInstAnalysis* const target_analysis;
     };
@@ -100,9 +97,6 @@ namespace Legion {
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
     public:
-      static void handle_remote_request_invalid(
-          Deserializer& derez, AddressSpaceID previous);
-    public:
       const op::FieldMaskMap<LogicalView> valid_instances;
       InvalidInstAnalysis* const target_analysis;
     };
@@ -145,9 +139,6 @@ namespace Legion {
       virtual RtEvent perform_updates(
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
-    public:
-      static void handle_remote_request_antivalid(
-          Deserializer& derez, AddressSpaceID previous);
     public:
       const op::FieldMaskMap<LogicalView> antivalid_instances;
       AntivalidInstAnalysis* const target_analysis;

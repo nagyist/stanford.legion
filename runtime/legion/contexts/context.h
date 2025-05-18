@@ -44,9 +44,12 @@ namespace Legion {
       // This is a no-op task for yield operations
       struct YieldArgs : public LgTaskArgs<YieldArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_YIELD_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_YIELD_TASK_ID;
+        static constexpr bool IS_APPLICATION_TASK = true;
       public:
+        YieldArgs(void) = default;
         YieldArgs(UniqueID uid) : LgTaskArgs<YieldArgs>(uid) { }
+        inline void execute(void) const { /*nothing to do*/ }
       };
     public:
       TaskContext(

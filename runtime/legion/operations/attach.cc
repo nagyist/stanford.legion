@@ -362,7 +362,7 @@ namespace Legion {
       if ((resource == LEGION_EXTERNAL_INSTANCE) &&
           (result.address_space() != runtime->address_space))
       {
-        Serializer rez;
+        ExternalCreateRequest rez;
         std::atomic<DistributedID> remote_did(0);
         const RtUserEvent wait_for = Runtime::create_rt_user_event();
         {
@@ -387,7 +387,7 @@ namespace Legion {
           rez.serialize(&remote_did);
           rez.serialize(wait_for);
         }
-        runtime->send_external_create_request(result.address_space(), rez);
+        rez.dispatch(result.address_space());
         // Wait for the response to come back
         wait_for.wait();
         // Now we can request the physical manager
@@ -1731,7 +1731,7 @@ namespace Legion {
             mapping = mapping->clone_with(owner_space);
             // We're the ones to send the message to the owner
             const RtUserEvent wait_for = Runtime::create_rt_user_event();
-            Serializer rez;
+            ExternalCreateRequest rez;
             {
               RezCheck z(rez);
               rez.serialize(node->column_source->handle);
@@ -1754,7 +1754,7 @@ namespace Legion {
               rez.serialize(&manager_did);
               rez.serialize(wait_for);
             }
-            runtime->send_external_create_request(owner_space, rez);
+            rez.dispatch(owner_space);
             // Wait for the response to come back
             wait_for.wait();
             legion_assert(manager_did.load() > 0);

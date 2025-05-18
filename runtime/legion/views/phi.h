@@ -40,14 +40,17 @@ namespace Legion {
       struct DeferPhiViewRegistrationArgs
         : public LgTaskArgs<DeferPhiViewRegistrationArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PHI_VIEW_REGISTRATION_TASK_ID;
+        static constexpr LgTaskID TASK_ID =
+            LG_DEFER_PHI_VIEW_REGISTRATION_TASK_ID;
       public:
+        DeferPhiViewRegistrationArgs(void) = default;
         DeferPhiViewRegistrationArgs(PhiView* v)
           : LgTaskArgs<DeferPhiViewRegistrationArgs>(implicit_provenance),
             view(v)
         { }
+        void execute(void) const;
       public:
-        PhiView* const view;
+        PhiView* view;
       };
     public:
       PhiView(
@@ -73,8 +76,6 @@ namespace Legion {
           EquivalenceSet* tracign_eq, CopyAcrossHelper* helper);
     public:
       void add_initial_references(bool unpack_references);
-      static void handle_send_phi_view(Deserializer& derez);
-      static void handle_deferred_view_registration(const void* args);
     public:
       const PredEvent true_guard;
       const PredEvent false_guard;

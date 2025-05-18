@@ -374,19 +374,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void Operation::handle_deferred_release(const void* args)
+    void Operation::DeferReleaseAcquiredArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferReleaseAcquiredArgs* dargs =
-          (const DeferReleaseAcquiredArgs*)args;
       for (std::vector<std::pair<PhysicalManager*, unsigned> >::const_iterator
-               it = dargs->instances->begin();
-           it != dargs->instances->end(); it++)
+               it = instances->begin();
+           it != instances->end(); it++)
       {
         if (it->first->remove_base_valid_ref(MAPPING_ACQUIRE_REF, it->second))
           delete it->first;
       }
-      delete dargs->instances;
+      delete instances;
     }
 
     //--------------------------------------------------------------------------

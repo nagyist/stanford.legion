@@ -61,7 +61,7 @@ namespace Legion {
     void MaterializedView::send_view(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      MaterializedViewMessage rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -69,13 +69,13 @@ namespace Legion {
         rez.serialize(owner_space);
         rez.serialize(logical_owner);
       }
-      runtime->send_materialized_view(target, rez);
+      rez.dispatch(target);
       update_remote_instances(target);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MaterializedView::handle_send_materialized_view(
-        Deserializer& derez)
+    /*static*/ void MaterializedViewMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -93,22 +93,20 @@ namespace Legion {
       if (man_ready.exists() && !man_ready.has_triggered())
       {
         // Defer this until the manager is ready
-        DeferMaterializedViewArgs args(did, manager, logical_owner);
+        MaterializedView::DeferMaterializedViewArgs args(
+            did, manager, logical_owner);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_RESPONSE_PRIORITY, man_ready);
       }
       else
-        create_remote_view(did, manager, logical_owner);
+        MaterializedView::create_remote_view(did, manager, logical_owner);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MaterializedView::handle_defer_materialized_view(
-        const void* args)
+    void MaterializedView::DeferMaterializedViewArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferMaterializedViewArgs* dargs =
-          (const DeferMaterializedViewArgs*)args;
-      create_remote_view(dargs->did, dargs->manager, dargs->logical_owner);
+      create_remote_view(did, manager, logical_owner);
     }
 
     //--------------------------------------------------------------------------

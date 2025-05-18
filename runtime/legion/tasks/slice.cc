@@ -122,18 +122,17 @@ namespace Legion {
       if (points.size() == 1)
         return;
       const AddressSpaceID target_space =
-          runtime->find_address_space(points[0]->target_proc);
+          points[0]->target_proc.address_space();
       for (unsigned idx = 1; idx < points.size(); idx++)
       {
-        if (target_space !=
-            runtime->find_address_space(points[idx]->target_proc))
+        if (target_space != points[idx]->target_proc.address_space())
           REPORT_LEGION_ERROR(
               ERROR_INVALID_MAPPER_OUTPUT,
               "Invalid mapper output: two different points in one "
               "slice of %s (UID %lld) mapped to processors in two"
               "different address spaces (%d and %d) which is illegal.",
               get_task_name(), get_unique_id(), target_space,
-              runtime->find_address_space(points[idx]->target_proc))
+              points[idx]->target_proc.address_space())
       }
     }
 
@@ -311,7 +310,7 @@ namespace Legion {
       std::vector<Color> concurrent_colors;
       if (to_send.size() == points.size())
       {
-        Serializer rez;
+        TaskMessage rez;
         bool deactivate;
         {
           RezCheck z(rez);
@@ -319,24 +318,21 @@ namespace Legion {
           rez.serialize(SLICE_TASK_KIND);
           deactivate = pack_task(rez, target.address_space());
         }
-        MessageManager* manager = runtime->find_messenger(target);
-        manager->send_message(TASK_MESSAGE, rez, others.empty());
+        rez.dispatch(target.address_space());
         return deactivate;
       }
       else
       {
         // This is the nasty case where we need to pack this slice and
         // then only send a subset of the points to the remote node
-        Serializer rez;
+        TaskMessage rez;
         {
           RezCheck z(rez);
           rez.serialize(target);
           rez.serialize(SLICE_TASK_KIND);
           pack_slice_task(rez, target.address_space(), to_send);
         }
-        MessageManager* manager = runtime->find_messenger(target);
-        // Send the message and flush if the others are empty
-        manager->send_message(TASK_MESSAGE, rez, others.empty());
+        rez.dispatch(target.address_space());
         // Now take the lock and remove the sent points and see if
         // we need to trigger anything downstream because we won't
         // have these points completing anymore
@@ -393,7 +389,7 @@ namespace Legion {
         legion_assert(finder != concurrent_groups.end());
         if (is_remote())
         {
-          Serializer rez;
+          SliceConcurrentRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(index_owner);
@@ -404,7 +400,7 @@ namespace Legion {
             rez.serialize(finder->second.variant);
             rez.serialize(finder->second.poisoned);
           }
-          runtime->send_slice_concurrent_allreduce_request(orig_proc, rez);
+          rez.dispatch(orig_proc.address_space());
         }
         else
           index_owner->concurrent_allreduce(
@@ -945,9 +941,9 @@ namespace Legion {
       if (is_remote())
       {
         // Send back the message saying that this slice is complete
-        Serializer rez;
+        SliceRemoteComplete rez;
         pack_remote_complete(rez, effects);
-        runtime->send_slice_remote_complete(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
       }
       else
       {
@@ -971,9 +967,9 @@ namespace Legion {
         commit_precondition = Runtime::merge_events(commit_preconditions);
       if (is_remote())
       {
-        Serializer rez;
+        SliceRemoteCommit rez;
         pack_remote_commit(rez, commit_precondition);
-        runtime->send_slice_remote_commit(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
       }
       else
       {
@@ -1022,14 +1018,14 @@ namespace Legion {
       // Only need to send something back if we're not origin mapped
       else if (!is_origin_mapped())
       {
-        Serializer rez;
+        SliceRemoteMapped rez;
         rez.serialize(index_owner);
         {
           RezCheck z(rez);
           rez.serialize(point->index_point);
           rez.serialize(child_mapped);
         }
-        runtime->send_slice_remote_mapped(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
       }
       if (done_mapping)
       {
@@ -1151,7 +1147,7 @@ namespace Legion {
       {
         const RtUserEvent applied = Runtime::create_rt_user_event();
         // Send a message back to the owner with the output region extents
-        Serializer rez;
+        SliceRemoteOutputExtents rez;
         {
           RezCheck z(rez);
           rez.serialize(index_owner);
@@ -1169,7 +1165,7 @@ namespace Legion {
           }
           rez.serialize(applied);
         }
-        runtime->send_slice_remote_output_extents(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
         AutoLock o_lock(op_lock);
         legion_assert(num_uncompleted_points.load() > 0);
         commit_preconditions.insert(applied);
@@ -1179,7 +1175,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_remote_output_extents(Deserializer& derez)
+    /*static*/ void SliceRemoteOutputExtents::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1187,10 +1184,11 @@ namespace Legion {
       derez.deserialize(index_owner);
       size_t num_regions;
       derez.deserialize(num_regions);
-      std::vector<OutputExtentMap> output_region_extents(num_regions);
+      std::vector<MultiTask::OutputExtentMap> output_region_extents(
+          num_regions);
       for (unsigned idx1 = 0; idx1 < num_regions; idx1++)
       {
-        OutputExtentMap& extents = output_region_extents[idx1];
+        MultiTask::OutputExtentMap& extents = output_region_extents[idx1];
         size_t num_extents;
         derez.deserialize(num_extents);
         for (unsigned idx2 = 0; idx2 < num_extents; idx2++)
@@ -1217,14 +1215,14 @@ namespace Legion {
         // Send a message back to the index owner about the equivalence
         // sets for the output regions being registered
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        SliceRemoteOutputRegistration rez;
         {
           RezCheck z(rez);
           rez.serialize(index_owner);
           rez.serialize(registered);
           rez.serialize(applied);
         }
-        runtime->send_slice_remote_output_registration(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
         applied_events.insert(applied);
       }
       else
@@ -1232,8 +1230,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_remote_output_registration(
-        Deserializer& derez)
+    /*static*/ void SliceRemoteOutputRegistration::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1281,7 +1279,7 @@ namespace Legion {
     {
       legion_assert(is_remote());
       legion_assert(concurrent_task);
-      Serializer rez;
+      SliceConcurrentMapped rez;
       {
         RezCheck z(rez);
         rez.serialize(index_owner);
@@ -1314,7 +1312,7 @@ namespace Legion {
           }
         }
       }
-      runtime->send_slice_rendezvous_concurrent_mapped(orig_proc, rez);
+      rez.dispatch(orig_proc.address_space());
     }
 
     //--------------------------------------------------------------------------
@@ -1345,7 +1343,7 @@ namespace Legion {
       else
         return index_owner->collective_lamport_allreduce(
             lamport_clock, 1 /*points*/, need_result);
-      Serializer rez;
+      SliceCollectiveRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(index_owner);
@@ -1370,7 +1368,7 @@ namespace Legion {
           rez.serialize(&collective_lamport_clock);
         }
       }
-      runtime->send_slice_collective_allreduce_request(orig_proc, rez);
+      rez.dispatch(orig_proc.address_space());
       if (need_result)
         collective_lamport_clock_ready.wait();
       return collective_lamport_clock;
@@ -1404,7 +1402,7 @@ namespace Legion {
       {
         if (is_remote())
         {
-          Serializer rez;
+          SliceConcurrentRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(index_owner);
@@ -1415,7 +1413,7 @@ namespace Legion {
             rez.serialize(finder->second.variant);
             rez.serialize(finder->second.poisoned);
           }
-          runtime->send_slice_concurrent_allreduce_request(orig_proc, rez);
+          rez.dispatch(orig_proc.address_space());
         }
         else
           index_owner->concurrent_allreduce(
@@ -1450,8 +1448,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_rendezvous_concurrent_mapped(
-        Deserializer& derez)
+    /*static*/ void SliceConcurrentMapped::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1461,7 +1459,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_collective_allreduce_request(
+    /*static*/ void SliceCollectiveRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1483,22 +1481,22 @@ namespace Legion {
       {
         uint64_t* target;
         derez.deserialize(target);
-        Serializer rez;
+        SliceCollectiveResponse rez;
         {
           RezCheck z2(rez);
           rez.serialize(target);
           rez.serialize(result);
           rez.serialize(done);
         }
-        runtime->send_slice_collective_allreduce_response(source, rez);
+        rez.dispatch(source);
       }
       else
         Runtime::trigger_event(done);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_collective_allreduce_response(
-        Deserializer& derez)
+    /*static*/ void SliceCollectiveResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1511,7 +1509,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_concurrent_allreduce_request(
+    /*static*/ void SliceConcurrentRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1535,8 +1533,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_concurrent_allreduce_response(
-        Deserializer& derez)
+    /*static*/ void SliceConcurrentResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1654,16 +1652,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_slice_return(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      RtUserEvent ready_event;
-      derez.deserialize(ready_event);
-      Runtime::trigger_event(ready_event);
-    }
-
-    //--------------------------------------------------------------------------
     void SliceTask::receive_resources(
         uint64_t return_index, std::map<LogicalRegion, unsigned>& created_regs,
         std::vector<DeletedRegion>& deleted_regs,
@@ -1776,14 +1764,14 @@ namespace Legion {
 #endif
         const RtUserEvent temp_event = Runtime::create_rt_user_event();
         // Send the message to the owner to go find it
-        Serializer rez;
+        SliceFindIntraDependence rez;
         {
           RezCheck z(rez);
           rez.serialize(index_owner);
           rez.serialize(point);
           rez.serialize(temp_event);
         }
-        runtime->send_slice_find_intra_space_dependence(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
         // Save this is for ourselves
         point_mapped_events[point] = temp_event;
         return temp_event;
@@ -1857,7 +1845,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(is_remote());
-      Serializer rez;
+      SliceRemoteVersioningCollective rez;
       {
         RezCheck z(rez);
         rez.serialize(index_owner);
@@ -1892,7 +1880,7 @@ namespace Legion {
           commit_preconditions.insert(done_event);
         }
       }
-      runtime->send_slice_remote_versioning_rendezvous(orig_proc, rez);
+      rez.dispatch(orig_proc.address_space());
     }
 
     //--------------------------------------------------------------------------
@@ -1925,7 +1913,7 @@ namespace Legion {
       legion_assert(is_remote());
       legion_assert(source == runtime->address_space);
       // Send this back to the owner node
-      Serializer rez;
+      SliceRemoteCollective rez;
       {
         RezCheck z(rez);
         rez.serialize(index_owner);
@@ -1942,11 +1930,11 @@ namespace Legion {
           rez.serialize(it->second);
         }
       }
-      runtime->send_slice_remote_rendezvous(orig_proc, rez);
+      rez.dispatch(orig_proc.address_space());
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_collective_rendezvous(
+    /*static*/ void SliceRemoteCollective::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1958,7 +1946,7 @@ namespace Legion {
       derez.deserialize(analysis_index);
       LogicalRegion region;
       derez.deserialize(region);
-      RendezvousResult* result;
+      SliceTask::RendezvousResult* result;
       derez.deserialize(result);
       size_t num_insts;
       derez.deserialize(num_insts);
@@ -1974,8 +1962,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_collective_versioning_rendezvous(
-        Deserializer& derez)
+    /*static*/ void SliceRemoteVersioningCollective::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

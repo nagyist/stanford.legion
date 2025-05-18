@@ -374,13 +374,13 @@ namespace Legion {
         // We're not going to get a callback from the context if we're a leaf
         if (!is_leaf())
         {
-          Serializer rez;
+          IndividualRemoteMapped rez;
           {
             RezCheck z2(rez);
             rez.serialize<SingleTask*>(orig_task);
             rez.serialize(get_mapped_event());
           }
-          runtime->send_individual_remote_mapped(orig_proc, rez);
+          rez.dispatch(orig_proc.address_space());
         }
         else
           complete_mapping();
@@ -668,13 +668,13 @@ namespace Legion {
       legion_assert(single_task_termination.exists());
       legion_assert(region_preconditions.empty());
       const AddressSpaceID target_space =
-          runtime->find_address_space(target_processors.front());
+          target_processors.front().address_space();
       // Check to see if we're replaying this locally or remotely
       if (target_space != runtime->address_space)
       {
         // This is the remote case, pack it up and ship it over
         // Update our target_proc so that the sending code is correct
-        Serializer rez;
+        RemoteTaskReplay rez;
         {
           RezCheck z(rez);
           rez.serialize(instance_ready_event);
@@ -682,7 +682,7 @@ namespace Legion {
           rez.serialize(SLICE_TASK_KIND);
           slice_owner->pack_task(rez, target_space);
         }
-        runtime->send_remote_task_replay(target_space, rez);
+        rez.dispatch(target_space);
       }
       else
       {

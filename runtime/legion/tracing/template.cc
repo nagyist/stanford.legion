@@ -3639,30 +3639,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalTemplate::handle_replay_slice(const void* args)
+    void PhysicalTemplate::ReplaySliceArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const ReplaySliceArgs* pargs = (const ReplaySliceArgs*)args;
-      pargs->tpl->execute_slice(pargs->slice_index, pargs->recurrent_replay);
+      tpl->execute_slice(slice_index, recurrent_replay);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalTemplate::handle_transitive_reduction(
-        const void* args)
+    void PhysicalTemplate::TransitiveReductionArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const TransitiveReductionArgs* targs =
-          (const TransitiveReductionArgs*)args;
-      targs->tpl->transitive_reduction(targs->state, true /*deferred*/);
+      tpl->transitive_reduction(state, true /*deferred*/);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalTemplate::handle_delete_template(const void* args)
+    void PhysicalTemplate::DeleteTemplateArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeleteTemplateArgs* pargs = (const DeleteTemplateArgs*)args;
-      pargs->tpl->check_finalize_transitive_reduction();
-      delete pargs->tpl;
+      tpl->check_finalize_transitive_reduction();
+      delete tpl;
     }
 
     //--------------------------------------------------------------------------

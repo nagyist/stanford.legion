@@ -34,14 +34,17 @@ namespace Legion {
     private:
       struct CopyFillDeletion : public LgTaskArgs<CopyFillDeletion> {
       public:
-        static const LgTaskID TASK_ID = LG_COPY_FILL_DELETION_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_COPY_FILL_DELETION_TASK_ID;
       public:
+        CopyFillDeletion(void) = default;
         CopyFillDeletion(CopyFillGuard* g, UniqueID uid, RtUserEvent r)
           : LgTaskArgs<CopyFillDeletion>(uid), guard(g), released(r)
         { }
       public:
-        CopyFillGuard* const guard;
-        const RtUserEvent released;
+        void execute(void) const;
+      public:
+        CopyFillGuard* guard;
+        RtUserEvent released;
       };
     public:
 #ifndef NON_AGGRESSIVE_AGGREGATORS
@@ -61,7 +64,7 @@ namespace Legion {
       bool record_guard_set(EquivalenceSet* set, bool read_only_guard);
       bool release_guards(
           std::set<RtEvent>& applied, bool force_deferral = false);
-      static void handle_deletion(const void* args);
+      static void handle_deletion(CopyFillDeletion& args);
     private:
       void release_guarded_sets(std::set<RtEvent>& released);
     public:
@@ -92,45 +95,36 @@ namespace Legion {
       : public CopyFillGuard,
         public Heapify<CopyFillAggregator, OPERATION_LIFETIME> {
     public:
-      struct CopyFillAggregation : public LgTaskArgs<CopyFillAggregation>,
-                                   public PhysicalTraceInfo {
+      struct CopyFillAggregation : public LgTaskArgs<CopyFillAggregation> {
       public:
-        static const LgTaskID TASK_ID = LG_COPY_FILL_AGGREGATION_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_COPY_FILL_AGGREGATION_TASK_ID;
       public:
+        CopyFillAggregation(void) = default;
         CopyFillAggregation(
             CopyFillAggregator* a, const PhysicalTraceInfo& i, ApEvent p,
             const bool manage_dst, const bool restricted, UniqueID uid, int s,
             std::map<InstanceView*, std::vector<ApEvent> >* dsts)
-          : LgTaskArgs<CopyFillAggregation>(uid), PhysicalTraceInfo(i),
+          : LgTaskArgs<CopyFillAggregation>(uid),
             dst_events(
                 (dsts == nullptr) ?
                     nullptr :
                     new std::map<InstanceView*, std::vector<ApEvent> >()),
-            aggregator(a), pre(p), stage(s), manage_dst_events(manage_dst),
-            restricted_output(restricted)
-        // This is kind of scary, Realm is about to make a copy of this
-        // without our knowledge, but we need to preserve the correctness
-        // of reference counting on PhysicalTraceRecorders, so just add
-        // an extra reference here that we will remove when we're handled.
+            aggregator(a), info(new PhysicalTraceInfo(i)), pre(p), stage(s),
+            manage_dst_events(manage_dst), restricted_output(restricted)
         {
-          if (rec != nullptr)
-            rec->add_recorder_reference();
           if (dsts != nullptr)
             dst_events->swap(*dsts);
         }
       public:
-        inline void remove_recorder_reference(void) const
-        {
-          if ((rec != nullptr) && rec->remove_recorder_reference())
-            delete rec;
-        }
+        void execute(void) const;
       public:
-        std::map<InstanceView*, std::vector<ApEvent> >* const dst_events;
-        CopyFillAggregator* const aggregator;
-        const ApEvent pre;
-        const int stage;
-        const bool manage_dst_events;
-        const bool restricted_output;
+        std::map<InstanceView*, std::vector<ApEvent> >* dst_events;
+        CopyFillAggregator* aggregator;
+        PhysicalTraceInfo* info;
+        ApEvent pre;
+        int stage;
+        bool manage_dst_events;
+        bool restricted_output;
       };
     public:
       typedef op::map<InstanceView*, op::FieldMaskMap<IndexSpaceExpression> >

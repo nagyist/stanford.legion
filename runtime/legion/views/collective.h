@@ -177,7 +177,7 @@ namespace Legion {
       void find_instances_nearest_memory(
           Memory memory, std::vector<PhysicalManager*>& instances,
           bool bandwidth);
-    protected:
+    public:
       void process_remote_instances_response(
           AddressSpaceID source, const std::vector<IndividualView*>& view);
       void record_remote_instances(const std::vector<IndividualView*>& view);
@@ -201,6 +201,14 @@ namespace Legion {
       virtual void notify_instance_deletion(PhysicalManager* manager);
       virtual void add_subscriber_reference(PhysicalManager* manager);
       virtual bool remove_subscriber_reference(PhysicalManager* manager);
+    public:
+      void process_register_user_request(
+          const size_t op_ctx_index, const unsigned index,
+          const IndexSpaceID match_space, RtEvent registered, RtEvent applied);
+      void process_register_user_response(
+          const size_t op_ctx_index, const unsigned index,
+          const IndexSpaceID match_space, const RtEvent registered,
+          const RtEvent applied);
     protected:
       ApEvent register_collective_user(
           const RegionUsage& usage, const FieldMask& user_mask,
@@ -211,13 +219,6 @@ namespace Legion {
           std::vector<RtEvent>& regsitered_events,
           std::set<RtEvent>& applied_events,
           const PhysicalTraceInfo& trace_info, const bool symbolic);
-      void process_register_user_request(
-          const size_t op_ctx_index, const unsigned index,
-          const IndexSpaceID match_space, RtEvent registered, RtEvent applied);
-      void process_register_user_response(
-          const size_t op_ctx_index, const unsigned index,
-          const IndexSpaceID match_space, const RtEvent registered,
-          const RtEvent applied);
       void finalize_collective_user(
           const RegionUsage& usage, const FieldMask& user_mask,
           IndexSpaceNode* expr, const UniqueID op_id, const size_t op_ctx_index,
@@ -269,7 +270,7 @@ namespace Legion {
           unsigned root_index, const std::vector<float>& adjacency_matrix,
           std::vector<unsigned>& previous,
           std::map<Memory, unsigned>& first_in_memory) const;
-    protected:
+    public:
       void make_valid(bool need_lock);
       bool make_invalid(bool need_lock);
       bool perform_invalidate_request(uint64_t generation, bool need_lock);
@@ -277,44 +278,14 @@ namespace Legion {
           uint64_t generation, uint64_t sent, uint64_t received, bool failed,
           bool need_lock);
     public:
-      static void handle_register_user_request(Deserializer& derez);
-      static void handle_register_user_response(Deserializer& derez);
-      static void handle_remote_instances_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_remote_instances_response(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_nearest_instances_request(Deserializer& derez);
-      static void handle_nearest_instances_response(Deserializer& derez);
       static void process_nearest_instances(
           std::atomic<size_t>* target, std::vector<DistributedID>* instances,
           size_t best, const std::vector<DistributedID>& results,
           bool bandwidth);
-      static void handle_remote_analysis_registration(Deserializer& derez);
-      static void handle_collective_view_deletion(Deserializer& derez);
       static void unpack_fields(
           std::vector<CopySrcDstField>& fields, Deserializer& derez,
           std::set<RtEvent>& ready_events, CollectiveView* view,
           RtEvent view_ready);
-      static void handle_distribute_fill(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_distribute_point(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_distribute_broadcast(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_distribute_reducecast(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_distribute_hourglass(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_distribute_pointwise(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_fuse_gather(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_make_valid(Deserializer& derez);
-      static void handle_make_invalid(Deserializer& derez);
-      static void handle_invalidate_request(Deserializer& derez);
-      static void handle_invalidate_response(Deserializer& derez);
-      static void handle_add_remote_reference(Deserializer& derez);
-      static void handle_remove_remote_reference(Deserializer& derez);
       static bool has_multiple_local_memories(
           const std::vector<IndividualView*>& local_views);
     public:

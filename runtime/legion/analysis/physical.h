@@ -36,81 +36,94 @@ namespace Legion {
       struct DeferPerformTraversalArgs
         : public LgTaskArgs<DeferPerformTraversalArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PERFORM_TRAVERSAL_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_PERFORM_TRAVERSAL_TASK_ID;
       public:
+        DeferPerformTraversalArgs(void) = default;
         DeferPerformTraversalArgs(
             PhysicalAnalysis* ana, const VersionInfo& info);
+        void execute(void) const;
       public:
-        PhysicalAnalysis* const analysis;
-        const VersionInfo* const version_info;
+        PhysicalAnalysis* analysis;
+        const VersionInfo* version_info;
         RtUserEvent done_event;
       };
       struct DeferPerformAnalysisArgs
         : public LgTaskArgs<DeferPerformAnalysisArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PERFORM_ANALYSIS_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_PERFORM_ANALYSIS_TASK_ID;
       public:
+        DeferPerformAnalysisArgs(void) = default;
         DeferPerformAnalysisArgs(
             PhysicalAnalysis* ana, EquivalenceSet* set, const FieldMask& mask,
             RtUserEvent done, bool already_deferred = true);
+        void execute(void) const;
       public:
-        PhysicalAnalysis* const analysis;
-        EquivalenceSet* const set;
-        HeapifyBox<FieldMask, OPERATION_LIFETIME>* const mask;
-        const RtUserEvent done_event;
-        const bool already_deferred;
+        PhysicalAnalysis* analysis;
+        EquivalenceSet* set;
+        HeapifyBox<FieldMask, OPERATION_LIFETIME>* mask;
+        RtUserEvent done_event;
+        bool already_deferred;
       };
       struct DeferPerformRemoteArgs
         : public LgTaskArgs<DeferPerformRemoteArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PERFORM_REMOTE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_PERFORM_REMOTE_TASK_ID;
       public:
+        DeferPerformRemoteArgs(void) = default;
         DeferPerformRemoteArgs(PhysicalAnalysis* ana);
+        void execute(void) const;
       public:
-        PhysicalAnalysis* const analysis;
-        const RtUserEvent done_event;
+        PhysicalAnalysis* analysis;
+        RtUserEvent done_event;
       };
       struct DeferPerformUpdateArgs
         : public LgTaskArgs<DeferPerformUpdateArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PERFORM_UPDATE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_PERFORM_UPDATE_TASK_ID;
       public:
+        DeferPerformUpdateArgs(void) = default;
         DeferPerformUpdateArgs(PhysicalAnalysis* ana);
+        void execute(void) const;
       public:
-        PhysicalAnalysis* const analysis;
-        const RtUserEvent done_event;
+        PhysicalAnalysis* analysis;
+        RtUserEvent done_event;
       };
       struct DeferPerformRegistrationArgs
         : public LgTaskArgs<DeferPerformRegistrationArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PERFORM_REGISTRATION_TASK_ID;
+        static constexpr LgTaskID TASK_ID =
+            LG_DEFER_PERFORM_REGISTRATION_TASK_ID;
       public:
+        DeferPerformRegistrationArgs(void) = default;
         DeferPerformRegistrationArgs(
             PhysicalAnalysis* ana, const RegionUsage& use,
             const PhysicalTraceInfo& trace_info, ApEvent init_precondition,
             ApEvent termination, bool symbolic);
+        void execute(void) const;
       public:
-        PhysicalAnalysis* const analysis;
-        const RegionUsage usage;
+        PhysicalAnalysis* analysis;
+        RegionUsage usage;
         const PhysicalTraceInfo* trace_info;
-        const ApEvent precondition;
-        const ApEvent termination;
-        const ApUserEvent instances_ready;
-        const RtUserEvent done_event;
-        const bool symbolic;
+        ApEvent precondition;
+        ApEvent termination;
+        ApUserEvent instances_ready;
+        RtUserEvent done_event;
+        bool symbolic;
       };
       struct DeferPerformOutputArgs
         : public LgTaskArgs<DeferPerformOutputArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PERFORM_OUTPUT_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_PERFORM_OUTPUT_TASK_ID;
       public:
+        DeferPerformOutputArgs(void) = default;
         DeferPerformOutputArgs(
             PhysicalAnalysis* ana, bool track,
             const PhysicalTraceInfo& trace_info);
+        void execute(void) const;
       public:
-        PhysicalAnalysis* const analysis;
+        PhysicalAnalysis* analysis;
         const PhysicalTraceInfo* trace_info;
-        const ApUserEvent effects_event;
+        ApUserEvent effects_event;
       };
     public:
       // Local physical analysis
@@ -211,14 +224,6 @@ namespace Legion {
       // Lock must be held from caller
       void record_instance(LogicalView* view, const FieldMask& mask);
       inline void record_restriction(void) { restricted = true; }
-    public:
-      static void handle_remote_instances(Deserializer& derez);
-      static void handle_deferred_traversal(const void* args);
-      static void handle_deferred_analysis(const void* args);
-      static void handle_deferred_remote(const void* args);
-      static void handle_deferred_update(const void* args);
-      static void handle_deferred_registration(const void* args);
-      static void handle_deferred_output(const void* args);
     public:
       const AddressSpaceID previous;
       const AddressSpaceID original_source;

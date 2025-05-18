@@ -125,8 +125,6 @@ namespace Legion {
       void forward_completion_effects(void);
       void pack_remote_complete(Serializer& rez, ApEvent slice_effects);
       void pack_remote_commit(Serializer& rez, RtEvent applied_condition);
-    public:
-      static void handle_slice_return(Deserializer& derez);
     public:  // Privilege tracker methods
       virtual void receive_resources(
           uint64_t return_index,
@@ -172,18 +170,6 @@ namespace Legion {
           unsigned requirement_index, unsigned analysis_index,
           LogicalRegion region, RendezvousResult* result, AddressSpaceID source,
           const op::vector<std::pair<DistributedID, FieldMask> >& insts);
-      static void handle_collective_rendezvous(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_collective_versioning_rendezvous(Deserializer& derez);
-      static void handle_rendezvous_concurrent_mapped(Deserializer& derez);
-      static void handle_collective_allreduce_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_collective_allreduce_response(Deserializer& derez);
-      static void handle_concurrent_allreduce_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_concurrent_allreduce_response(Deserializer& derez);
-      static void handle_remote_output_extents(Deserializer& derez);
-      static void handle_remote_output_registration(Deserializer& derez);
     protected:
       friend class IndexTask;
       friend class PointTask;

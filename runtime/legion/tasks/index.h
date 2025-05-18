@@ -89,9 +89,10 @@ namespace Legion {
       virtual void deactivate(bool free = true);
     public:
       virtual void prepare_map_must_epoch(void);
-    protected:
+    public:
       void record_output_extents(std::vector<OutputExtentMap>& output_extents);
       virtual void record_output_registered(RtEvent registered);
+    protected:
       Domain compute_global_output_ranges(
           IndexSpaceNode* parent, IndexPartNode* part,
           const OutputExtentMap& output_sizes,
@@ -206,12 +207,6 @@ namespace Legion {
       virtual void finish_check_point_requirements(
           std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >&
               domain_points);
-    public:
-      static void process_slice_mapped(
-          Deserializer& derez, AddressSpaceID source);
-      static void process_slice_complete(Deserializer& derez);
-      static void process_slice_commit(Deserializer& derez);
-      static void process_slice_find_intra_dependence(Deserializer& derez);
     protected:
       friend class SliceTask;
       Future reduction_future;

@@ -59,14 +59,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceExpression::handle_tighten_index_space(
-        const void* args)
+    void IndexSpaceExpression::TightenIndexSpaceArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const TightenIndexSpaceArgs* targs = (const TightenIndexSpaceArgs*)args;
-      targs->proxy_this->tighten_index_space();
-      if (targs->proxy_dc->remove_base_resource_ref(META_TASK_REF))
-        delete targs->proxy_this;
+      proxy_this->tighten_index_space();
+      if (proxy_dc->remove_base_resource_ref(META_TASK_REF))
+        delete proxy_this;
     }
 
     //--------------------------------------------------------------------------

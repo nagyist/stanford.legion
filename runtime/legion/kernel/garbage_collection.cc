@@ -230,7 +230,7 @@ namespace Legion {
       // Send the message to the downgrade owner to try to acquire the reference
       std::atomic<bool> result(false);
       const RtUserEvent ready = Runtime::create_rt_user_event();
-      Serializer rez;
+      DistributedGlobalAcquireRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -240,7 +240,7 @@ namespace Legion {
         rez.serialize(&result);
         rez.serialize(ready);
       }
-      runtime->send_did_acquire_global_request(current_owner, rez);
+      rez.dispatch(current_owner);
       ready.wait();
       if (result.load())
       {
@@ -297,8 +297,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void DistributedCollectable::handle_global_acquire_request(
-        Deserializer& derez)
+    /*static*/ void DistributedGlobalAcquireRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -325,7 +325,7 @@ namespace Legion {
           // Successfully acquired (packed) a global reference
           if (source != dc->local_space)
           {
-            Serializer rez;
+            DistributedGlobalAcquireResponse rez;
             {
               RezCheck z2(rez);
               rez.serialize(remote);
@@ -333,7 +333,7 @@ namespace Legion {
               rez.serialize(result);
               rez.serialize(ready);
             }
-            runtime->send_did_acquire_global_response(source, rez);
+            rez.dispatch(source);
           }
           else
           {
@@ -345,7 +345,7 @@ namespace Legion {
         else if (current_owner != dc->local_space)
         {
           // Not the owner anymore, so forward and keep chasing
-          Serializer rez;
+          DistributedGlobalAcquireRequest rez;
           {
             RezCheck z2(rez);
             rez.serialize(did);
@@ -355,7 +355,7 @@ namespace Legion {
             rez.serialize(result);
             rez.serialize(ready);
           }
-          runtime->send_did_acquire_global_request(current_owner, rez);
+          rez.dispatch(current_owner);
         }
         else
           // Failed so trigger the event
@@ -369,8 +369,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void DistributedCollectable::handle_global_acquire_response(
-        Deserializer& derez)
+    /*static*/ void DistributedGlobalAcquireResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -575,10 +575,10 @@ namespace Legion {
         legion_assert(
             (current_state == VALID_REF_STATE) ||
             (current_state == GLOBAL_REF_STATE));
-        Serializer rez;
+        DistributedDowngradeUpdate rez;
         rez.serialize(did);
         rez.serialize(current_state);
-        runtime->send_did_downgrade_update(remote_inst, rez);
+        rez.dispatch(remote_inst);
         downgrade_owner = remote_inst;
       }
       else if (remaining_responses > 0)
@@ -620,18 +620,18 @@ namespace Legion {
       RtUserEvent registered_event;
       if (!has_global_reference)
         registered_event = Runtime::create_rt_user_event();
-      Serializer rez;
+      DistributedRemoteRegistration rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
         rez.serialize(registered_event);
       }
-      runtime->send_did_remote_registration(owner_space, rez);
+      rez.dispatch(owner_space);
       return registered_event;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void DistributedCollectable::handle_did_remote_registration(
+    /*static*/ void DistributedRemoteRegistration::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -687,9 +687,9 @@ namespace Legion {
           // you can't even check whether it is safe to downgrade this
           // node or not since we're not the downgrade owner so we have
           // to notify the downgrade owner about the unpacked references
-          Serializer rez;
+          DistributedDowngradeRestart rez;
           rez.serialize(did);
-          runtime->send_did_downgrade_restart(downgrade_owner, rez);
+          rez.dispatch(downgrade_owner);
         }
       }
     }
@@ -775,27 +775,27 @@ namespace Legion {
                 owner_space, local_space, children);
           if (!children.empty())
           {
-            Serializer rez;
+            DistributedDowngradeSuccess rez;
             rez.serialize(did);
             rez.serialize(downgrade);
             for (std::vector<AddressSpaceID>::const_iterator it =
                      children.begin();
                  it != children.end(); it++)
-              runtime->send_did_downgrade_success(*it, rez);
+              rez.dispatch(*it);
           }
         }
         if (!remote_instances.empty())
         {
-          Serializer rez;
+          DistributedDowngradeSuccess rez;
           rez.serialize(did);
           rez.serialize(downgrade);
           struct {
             void apply(AddressSpaceID space)
             {
               if (space != owner)
-                runtime->send_did_downgrade_success(space, *rez);
+                rez->dispatch(space);
             }
-            Serializer* rez;
+            DistributedDowngradeSuccess* rez;
             AddressSpaceID owner;
           } downgrade_functor;
           downgrade_functor.rez = &rez;
@@ -807,10 +807,10 @@ namespace Legion {
       {
         // If we're the owner then we have to send it to the owner_space
         // to get all the remote instances
-        Serializer rez;
+        DistributedDowngradeSuccess rez;
         rez.serialize(did);
         rez.serialize(downgrade);
-        runtime->send_did_downgrade_success(owner_space, rez);
+        rez.dispatch(owner_space);
       }
     }
 
@@ -880,7 +880,7 @@ namespace Legion {
                   owner_space, local_space, children);
             if (!children.empty())
             {
-              Serializer rez;
+              DistributedDowngradeRequest rez;
               {
                 RezCheck z(rez);
                 rez.serialize(did);
@@ -896,13 +896,13 @@ namespace Legion {
               for (std::vector<AddressSpaceID>::const_iterator it =
                        children.begin();
                    it != children.end(); it++)
-                runtime->send_did_downgrade_request(*it, rez);
+                rez.dispatch(*it);
               remaining_responses += children.size();
             }
           }
           if (!remote_instances.empty())
           {
-            Serializer rez;
+            DistributedDowngradeRequest rez;
             {
               RezCheck z(rez);
               rez.serialize(did);
@@ -919,11 +919,11 @@ namespace Legion {
               void apply(AddressSpaceID space)
               {
                 if (space != owner)
-                  runtime->send_did_downgrade_request(space, *rez);
+                  rez->dispatch(space);
                 else
                   skipped++;
               }
-              Serializer* rez;
+              DistributedDowngradeRequest* rez;
               AddressSpaceID owner;
               unsigned skipped;
             } downgrade_functor;
@@ -943,14 +943,14 @@ namespace Legion {
               (current_state == VALID_REF_STATE));
           // If we're the owner then we have to send it to the owner_space
           // to get all the remote instances
-          Serializer rez;
+          DistributedDowngradeRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(current_state);
             rez.serialize(owner);
           }
-          runtime->send_did_downgrade_request(owner_space, rez);
+          rez.dispatch(owner_space);
           remaining_responses++;
         }
         // Initialize the downgrade state
@@ -965,7 +965,7 @@ namespace Legion {
             // Mark that we're in the pending downgrade state
             accumulate_local_references();
             const AddressSpaceID target = get_downgrade_target(owner);
-            Serializer rez;
+            DistributedDowngradeResponse rez;
             {
               RezCheck z(rez);
               rez.serialize(did);
@@ -973,7 +973,7 @@ namespace Legion {
               rez.serialize(total_sent_references);
               rez.serialize(total_received_references);
             }
-            runtime->send_did_downgrade_response(target, rez);
+            rez.dispatch(target);
             record_pending_downgrade();
           }
           else
@@ -991,7 +991,7 @@ namespace Legion {
       else if (local_space != owner)
       {
         const AddressSpaceID target = get_downgrade_target(owner);
-        Serializer rez;
+        DistributedDowngradeResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -999,7 +999,7 @@ namespace Legion {
           rez.serialize<uint64_t>(0);  // sent global references
           rez.serialize<uint64_t>(0);  // received global references
         }
-        runtime->send_did_downgrade_response(target, rez);
+        rez.dispatch(target);
       }
     }
 
@@ -1027,10 +1027,10 @@ namespace Legion {
       if (new_owner != local_space)
       {
         downgrade_owner = new_owner;
-        Serializer rez;
+        DistributedDowngradeUpdate rez;
         rez.serialize(did);
         rez.serialize(current_state);
-        runtime->send_did_downgrade_update(new_owner, rez);
+        rez.dispatch(new_owner);
       }
       else
         check_for_downgrade(new_owner);
@@ -1056,14 +1056,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void DistributedCollectable::handle_downgrade_request(
+    /*static*/ void DistributedDowngradeRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
-      State to_check;
+      DistributedCollectable::State to_check;
       derez.deserialize(to_check);
       AddressSpaceID downgrade_owner;
       derez.deserialize(downgrade_owner);
@@ -1160,10 +1160,10 @@ namespace Legion {
             {
               // Update the new owner responsible for checking for downgrades
               downgrade_owner = notready_owner;
-              Serializer rez;
+              DistributedDowngradeUpdate rez;
               rez.serialize(did);
               rez.serialize(current_state);
-              runtime->send_did_downgrade_update(notready_owner, rez);
+              rez.dispatch(notready_owner);
             }
             // else: we used to do this, but the polling aspect of continuing
             // to check for downgrades can cause priority inversions in the
@@ -1190,7 +1190,7 @@ namespace Legion {
           // nodes so we need to check again to see if it is still safe to
           // perform the downgrade on this node or not atomically with
           // accumulating our sent and received references
-          Serializer rez;
+          DistributedDowngradeResponse rez;
           if (can_downgrade())
           {
             RezCheck z(rez);
@@ -1209,15 +1209,15 @@ namespace Legion {
             rez.serialize<uint64_t>(0);  // sent global references
             rez.serialize<uint64_t>(0);  // received global references
           }
-          runtime->send_did_downgrade_response(target, rez);
+          rez.dispatch(target);
         }
       }
       return false;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void DistributedCollectable::handle_downgrade_response(
-        Deserializer& derez)
+    /*static*/ void DistributedDowngradeResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1249,13 +1249,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void DistributedCollectable::handle_downgrade_success(
-        Deserializer& derez)
+    /*static*/ void DistributedDowngradeSuccess::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
       derez.deserialize(did);
-      State to_downgrade;
+      DistributedCollectable::State to_downgrade;
       derez.deserialize(to_downgrade);
 
       // These can race with checks for downgrades from other states and
@@ -1290,13 +1290,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void DistributedCollectable::handle_downgrade_update(
-        Deserializer& derez)
+    /*static*/ void DistributedDowngradeUpdate::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
       derez.deserialize(did);
-      State state;
+      DistributedCollectable::State state;
       derez.deserialize(state);
 
       // It's possible for this to race with the creation and registration
@@ -1307,7 +1307,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void DistributedCollectable::handle_downgrade_restart(
+    /*static*/ void DistributedDowngradeRestart::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1545,7 +1545,7 @@ namespace Legion {
       // Send the message to the downgrade owner to try to acquire the reference
       std::atomic<bool> result(false);
       const RtUserEvent ready = Runtime::create_rt_user_event();
-      Serializer rez;
+      DistributedValidAcquireRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -1555,7 +1555,7 @@ namespace Legion {
         rez.serialize(&result);
         rez.serialize(ready);
       }
-      runtime->send_did_acquire_valid_request(current_owner, rez);
+      rez.dispatch(current_owner);
       ready.wait();
       if (result.load())
       {
@@ -1612,8 +1612,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ValidDistributedCollectable::handle_valid_acquire_request(
-        Deserializer& derez)
+    /*static*/ void DistributedValidAcquireRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1641,7 +1641,7 @@ namespace Legion {
           if (source != dc->local_space)
           {
             // Successfully acquired (packed) a valid reference
-            Serializer rez;
+            DistributedValidAcquireResponse rez;
             {
               RezCheck z2(rez);
               rez.serialize(remote);
@@ -1649,7 +1649,7 @@ namespace Legion {
               rez.serialize(result);
               rez.serialize(ready);
             }
-            runtime->send_did_acquire_valid_response(source, rez);
+            rez.dispatch(source);
           }
           else
           {
@@ -1661,7 +1661,7 @@ namespace Legion {
         else if (current_owner != dc->local_space)
         {
           // Not the owner anymore, so forward and keep chasing
-          Serializer rez;
+          DistributedValidAcquireRequest rez;
           {
             RezCheck z2(rez);
             rez.serialize(did);
@@ -1671,7 +1671,7 @@ namespace Legion {
             rez.serialize(result);
             rez.serialize(ready);
           }
-          runtime->send_did_acquire_valid_request(current_owner, rez);
+          rez.dispatch(current_owner);
         }
         else
           // Failed so trigger the event
@@ -1685,8 +1685,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ValidDistributedCollectable::handle_valid_acquire_response(
-        Deserializer& derez)
+    /*static*/ void DistributedValidAcquireResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1744,9 +1744,9 @@ namespace Legion {
           // you can't even check whether it is safe to downgrade this
           // node or not since we're not the downgrade owner so we have
           // to notify the downgrade owner about the unpacked references
-          Serializer rez;
+          DistributedDowngradeRestart rez;
           rez.serialize(did);
-          runtime->send_did_downgrade_restart(downgrade_owner, rez);
+          rez.dispatch(downgrade_owner);
         }
       }
     }

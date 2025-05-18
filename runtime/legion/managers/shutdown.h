@@ -37,13 +37,15 @@ namespace Legion {
     public:
       struct RetryShutdownArgs : public LgTaskArgs<RetryShutdownArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_RETRY_SHUTDOWN_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_RETRY_SHUTDOWN_TASK_ID;
       public:
+        RetryShutdownArgs(void);
         RetryShutdownArgs(ShutdownPhase p)
           : LgTaskArgs<RetryShutdownArgs>(0), phase(p)
         { }
+        void execute(void) const;
       public:
-        const ShutdownPhase phase;
+        ShutdownPhase phase;
       };
     public:
       ShutdownManager(
@@ -59,10 +61,6 @@ namespace Legion {
           int code, bool success, const std::set<RtEvent>& to_add);
     protected:
       void finalize(void);
-    public:
-      static void handle_shutdown_notification(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_shutdown_response(Deserializer& derez);
     public:
       void record_outstanding_tasks(void);
       void record_recent_message(void);

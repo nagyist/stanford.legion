@@ -113,7 +113,7 @@ namespace Legion {
         legion_assert(!rit->second.empty());
         const AddressSpaceID target = rit->first;
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteFilterAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
@@ -152,14 +152,14 @@ namespace Legion {
             rez.serialize<size_t>(0);
           rez.serialize(applied);
         }
-        runtime->send_equivalence_set_remote_filters(target, rez);
+        rez.dispatch(target);
         applied_events.insert(applied);
       }
       return RtEvent::NO_RT_EVENT;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FilterAnalysis::handle_remote_filters(
+    /*static*/ void RemoteFilterAnalysis::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {

@@ -383,16 +383,18 @@ namespace Legion {
       struct DeferMustEpochReturnResourcesArgs
         : public LgTaskArgs<DeferMustEpochReturnResourcesArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_MUST_EPOCH_RETURN_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_MUST_EPOCH_RETURN_TASK_ID;
       public:
+        DeferMustEpochReturnResourcesArgs(void) = default;
         DeferMustEpochReturnResourcesArgs(ReplMustEpochOp* o)
           : LgTaskArgs<DeferMustEpochReturnResourcesArgs>(
                 o->get_unique_op_id()),
             op(o), done(Runtime::create_rt_user_event())
         { }
+        void execute(void) const;
       public:
-        ReplMustEpochOp* const op;
-        const RtUserEvent done;
+        ReplMustEpochOp* op;
+        RtUserEvent done;
       };
     public:
       ReplMustEpochOp(void);
@@ -435,7 +437,6 @@ namespace Legion {
       Domain get_shard_domain(void) const;
     public:
       bool has_return_resources(void) const;
-      static void handle_defer_return_resources(const void* args);
     protected:
       ShardingID sharding_functor;
       ShardingFunction* sharding_function;

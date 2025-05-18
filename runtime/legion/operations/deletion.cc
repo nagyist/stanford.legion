@@ -769,12 +769,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ReplDeletionOp::handle_defer_commit(const void* args)
+    void ReplDeletionOp::DeferDeletionCommitArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferDeletionCommitArgs* dargs =
-          (const DeferDeletionCommitArgs*)args;
-      dargs->op->trigger_commit();
+      op->trigger_commit();
     }
 
     //--------------------------------------------------------------------------

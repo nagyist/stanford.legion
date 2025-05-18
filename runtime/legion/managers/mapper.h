@@ -40,34 +40,38 @@ namespace Legion {
       };
       struct DeferMessageArgs : public LgTaskArgs<DeferMessageArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_MAPPER_MESSAGE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_MAPPER_MESSAGE_TASK_ID;
       public:
+        DeferMessageArgs(void) = default;
         DeferMessageArgs(
             MapperManager* man, Processor p, unsigned k, void* m, size_t s,
             bool b)
           : LgTaskArgs<DeferMessageArgs>(implicit_provenance), manager(man),
             sender(p), kind(k), message(m), size(s), broadcast(b)
         { }
+        void execute(void) const;
       public:
-        MapperManager* const manager;
-        const Processor sender;
-        const unsigned kind;
-        void* const message;
-        const size_t size;
-        const bool broadcast;
+        MapperManager* manager;
+        Processor sender;
+        unsigned kind;
+        void* message;
+        size_t size;
+        bool broadcast;
       };
       struct DeferInstanceCollectionArgs
         : public LgTaskArgs<DeferInstanceCollectionArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_MAPPER_COLLECTION_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_MAPPER_COLLECTION_TASK_ID;
       public:
+        DeferInstanceCollectionArgs(void) = default;
         DeferInstanceCollectionArgs(MapperManager* man, PhysicalManager* inst)
           : LgTaskArgs<DeferInstanceCollectionArgs>(implicit_provenance),
             manager(man), instance(inst)
         { }
+        void execute(void) const;
       public:
-        MapperManager* const manager;
-        PhysicalManager* const instance;
+        MapperManager* manager;
+        PhysicalManager* instance;
       };
     public:
       MapperManager(
@@ -258,9 +262,6 @@ namespace Legion {
           const MappingCallInfo* info, Memory memory, RuntimeCallKind kind) = 0;
     public:
       static const char* get_mapper_call_name(MappingCallKind kind);
-    public:
-      static void handle_deferred_message(const void* args);
-      static void handle_deferred_collection(const void* args);
     public:
       // For stealing
       void process_advertisement(Processor advertiser);

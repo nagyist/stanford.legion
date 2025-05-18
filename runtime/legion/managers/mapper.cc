@@ -809,30 +809,27 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MapperManager::handle_deferred_message(const void* args)
+    void MapperManager::DeferMessageArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferMessageArgs* margs = (const DeferMessageArgs*)args;
       Mapper::MapperMessage message;
-      message.sender = margs->sender;
-      message.kind = margs->kind;
-      message.message = margs->message;
-      message.size = margs->size;
-      message.broadcast = margs->broadcast;
-      margs->manager->invoke_handle_message(&message);
+      message.sender = sender;
+      message.kind = kind;
+      message.message = this->message;
+      message.size = size;
+      message.broadcast = broadcast;
+      manager->invoke_handle_message(&message);
       // Then free up the allocated memory
-      free(margs->message);
+      free(this->message);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MapperManager::handle_deferred_collection(const void* args)
+    void MapperManager::DeferInstanceCollectionArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferInstanceCollectionArgs* dargs =
-          (const DeferInstanceCollectionArgs*)args;
-      dargs->manager->notify_instance_deletion(dargs->instance);
-      if (dargs->instance->remove_base_resource_ref(MAPPER_REF))
-        delete dargs->instance;
+      manager->notify_instance_deletion(instance);
+      if (instance->remove_base_resource_ref(MAPPER_REF))
+        delete instance;
     }
 
     //--------------------------------------------------------------------------

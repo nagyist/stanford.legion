@@ -43,8 +43,9 @@ namespace Legion {
     public:
       struct DeferTraceUpdateArgs : public LgTaskArgs<DeferTraceUpdateArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_TRACE_UPDATE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_TRACE_UPDATE_TASK_ID;
       public:
+        DeferTraceUpdateArgs(void) = default;
         DeferTraceUpdateArgs(
             ShardedPhysicalTemplate* target, UpdateKind kind, RtUserEvent done,
             const UniqueInst& inst, Deserializer& derez,
@@ -53,15 +54,16 @@ namespace Legion {
         DeferTraceUpdateArgs(
             const DeferTraceUpdateArgs& args, RtUserEvent deferral,
             IndexSpaceExpression* expr);
+        void execute(void) const;
       public:
-        ShardedPhysicalTemplate* const target;
-        const UpdateKind kind;
-        const RtUserEvent done;
-        const UniqueInst inst;
-        IndexSpaceExpression* const expr;
-        const size_t buffer_size;
-        void* const buffer;
-        const RtUserEvent deferral_event;
+        ShardedPhysicalTemplate* target;
+        UpdateKind kind;
+        RtUserEvent done;
+        UniqueInst inst;
+        IndexSpaceExpression* expr;
+        size_t buffer_size;
+        void* buffer;
+        RtUserEvent deferral_event;
       };
     public:
       ShardedPhysicalTemplate(
@@ -146,7 +148,6 @@ namespace Legion {
       ApBarrier find_trace_shard_frontier(ApEvent event, ShardID remote_shard);
       void record_trace_shard_frontier(unsigned frontier, ApBarrier result);
       void handle_trace_update(Deserializer& derez, AddressSpaceID source);
-      static void handle_deferred_trace_update(const void* args);
       bool record_shard_event_trigger(
           ApUserEvent lhs, ApEvent rhs, const TraceLocalID& tlid);
     protected:

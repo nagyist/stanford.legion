@@ -306,9 +306,7 @@ namespace Legion {
         InputArgs args, AddressSpaceID unique, Memory system,
         const std::set<Processor>& locals,
         const std::set<Processor>& local_utilities,
-        const std::set<AddressSpaceID>& address_spaces,
-        const std::map<Processor, AddressSpaceID>& processor_spaces,
-        bool default_mapper)
+        const std::set<AddressSpaceID>& address_spaces, bool default_mapper)
       : external(new Legion::Runtime(this)),
         mapper_runtime(new Legion::Mapping::MapperRuntime(this)), machine(m),
         runtime_system_memory(system), address_space(unique),
@@ -376,7 +374,6 @@ namespace Legion {
         outstanding_top_level_tasks(initialize_outstanding_top_level_tasks(
             address_space, total_address_spaces, legion_collective_radix)),
         local_procs(locals), local_utils(local_utilities),
-        proc_spaces(processor_spaces),
         unique_index_tree_id((unique == 0) ? runtime_stride : unique),
         unique_field_id(
             LEGION_MAX_APPLICATION_FIELD_ID +
@@ -788,7 +785,14 @@ namespace Legion {
           prof_procs.size() > 1 ? ProcessorGroup::create_group(prof_procs) :
                                   prof_procs.front();
       LG_TASK_DESCRIPTIONS(lg_task_descriptions);
-      LG_MESSAGE_DESCRIPTIONS(lg_message_descriptions);
+      const char* lg_message_descriptions[LAST_SEND_KIND] = {
+#define CTRL_REPL_MESSAGE_NAMES(kind, name) name,
+          LEGION_SHARD_COLLECTIVE_ACTIVE_MESSAGES(CTRL_REPL_MESSAGE_NAMES)
+#undef CTRL_REPL_MESSAGE_NAMES
+#define MESSAGE_NAMES(kind, type, name, resp) name,
+              LEGION_ACTIVE_MESSAGES(MESSAGE_NAMES)
+#undef MESSAGE_NAMES
+      };
       static_assert(
           (LG_MESSAGE_ID + 1) == LG_LAST_TASK_ID,
           "LG_MESSAGE_ID must always be the last meta-task ID");
@@ -1156,7 +1160,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const RtUserEvent done_event = Runtime::create_rt_user_event();
-      Serializer rez;
+      RegistrationCallbackMessage rez;
       {
         RezCheck z(rez);
         const size_t dso_size = dso->dso_name.size() + 1;
@@ -1174,8 +1178,7 @@ namespace Legion {
         rez.serialize(global_done_event);
         rez.serialize(done_event);
       }
-      find_messenger(target)->send_message(
-          SEND_REGISTRATION_CALLBACK, rez, true /*flush*/);
+      rez.dispatch(target);
       applied_events.insert(done_event);
     }
 #endif  // LEGION_USE_LIBDL
@@ -1452,6 +1455,21 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void Runtime::MapperTaskArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      runtime->process_mapper_task_result(this);
+      // Now indicate that we are done with the future
+      if (future->remove_base_gc_ref(META_TASK_REF))
+        delete future;
+      // We can also deactivate the enclosing context
+      if (ctx->remove_nested_gc_ref(RUNTIME_REF))
+        delete ctx;
+      // Finally tell the runtime we have one less top level task
+      runtime->decrement_outstanding_top_level_tasks();
+    }
+
+    //--------------------------------------------------------------------------
     void Runtime::process_mapper_task_result(const MapperTaskArgs* args)
     //--------------------------------------------------------------------------
     {
@@ -1486,13 +1504,13 @@ namespace Legion {
         if (!total_sharding_collective)
         {
           node->pack_valid_ref();
-          Serializer rez;
+          SharedOwnershipMessage rez;
           {
             RezCheck z(rez);
             rez.serialize<int>(0);
             rez.serialize(handle);
           }
-          send_shared_ownership(node->owner_space, rez);
+          rez.serialize(node->owner_space);
         }
         node->remove_base_valid_ref(APPLICATION_REF);
       }
@@ -1519,13 +1537,13 @@ namespace Legion {
         if (!total_sharding_collective)
         {
           node->pack_valid_ref();
-          Serializer rez;
+          SharedOwnershipMessage rez;
           {
             RezCheck z(rez);
             rez.serialize<int>(1);
             rez.serialize(handle);
           }
-          send_shared_ownership(node->owner_space, rez);
+          rez.dispatch(node->owner_space);
         }
         node->remove_base_valid_ref(APPLICATION_REF);
       }
@@ -1552,13 +1570,13 @@ namespace Legion {
         if (!total_sharding_collective)
         {
           node->pack_global_ref();
-          Serializer rez;
+          SharedOwnershipMessage rez;
           {
             RezCheck z(rez);
             rez.serialize<int>(2);
             rez.serialize(handle);
           }
-          send_shared_ownership(node->owner_space, rez);
+          rez.dispatch(node->owner_space);
         }
         node->remove_base_gc_ref(APPLICATION_REF);
       }
@@ -1586,13 +1604,13 @@ namespace Legion {
         if (!total_sharding_collective)
         {
           node->pack_global_ref();
-          Serializer rez;
+          SharedOwnershipMessage rez;
           {
             RezCheck z(rez);
             rez.serialize<int>(3);
             rez.serialize(handle);
           }
-          send_shared_ownership(node->owner_space, rez);
+          rez.dispatch(node->owner_space);
         }
         node->remove_base_gc_ref(APPLICATION_REF);
       }
@@ -1697,7 +1715,7 @@ namespace Legion {
         // Include the null terminator in length
         const size_t string_length = strlen(name) + 1;
         // Send the request to node 0 for the result
-        Serializer rez;
+        TraceLibraryRequest rez;
         {
           RezCheck z(rez);
           rez.serialize<size_t>(string_length);
@@ -1705,7 +1723,7 @@ namespace Legion {
           rez.serialize<size_t>(count);
           rez.serialize(request_event);
         }
-        send_library_trace_request(0 /*target*/, rez);
+        rez.dispatch(0 /*target*/);
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
@@ -1979,7 +1997,7 @@ namespace Legion {
         // Include the null terminator in length
         const size_t string_length = strlen(name) + 1;
         // Send the request to node 0 for the result
-        Serializer rez;
+        MapperLibraryRequest rez;
         {
           RezCheck z(rez);
           rez.serialize<size_t>(string_length);
@@ -1987,7 +2005,7 @@ namespace Legion {
           rez.serialize<size_t>(cnt);
           rez.serialize(request_event);
         }
-        send_library_mapper_request(0 /*target*/, rez);
+        rez.dispatch(0 /*target*/);
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
@@ -2241,7 +2259,7 @@ namespace Legion {
         // Include the null terminator in length
         const size_t string_length = strlen(name) + 1;
         // Send the request to node 0 for the result
-        Serializer rez;
+        ProjectionLibraryRequest rez;
         {
           RezCheck z(rez);
           rez.serialize<size_t>(string_length);
@@ -2249,7 +2267,7 @@ namespace Legion {
           rez.serialize<size_t>(cnt);
           rez.serialize(request_event);
         }
-        send_library_projection_request(0 /*target*/, rez);
+        rez.dispatch(0 /*target*/);
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
@@ -2500,7 +2518,7 @@ namespace Legion {
         // Include the null terminator in length
         const size_t string_length = strlen(name) + 1;
         // Send the request to node 0 for the result
-        Serializer rez;
+        ShardingLibraryRequest rez;
         {
           RezCheck z(rez);
           rez.serialize<size_t>(string_length);
@@ -2508,7 +2526,7 @@ namespace Legion {
           rez.serialize<size_t>(cnt);
           rez.serialize(request_event);
         }
-        send_library_sharding_request(0 /*target*/, rez);
+        rez.dispatch(0 /*target*/);
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
@@ -2761,7 +2779,7 @@ namespace Legion {
         // Include the null terminator in length
         const size_t string_length = strlen(name) + 1;
         // Send the request to node 0 for the result
-        Serializer rez;
+        ConcurrentLibraryRequest rez;
         {
           RezCheck z(rez);
           rez.serialize<size_t>(string_length);
@@ -2769,7 +2787,7 @@ namespace Legion {
           rez.serialize<size_t>(cnt);
           rez.serialize(request_event);
         }
-        send_library_concurrent_request(0 /*target*/, rez);
+        rez.dispatch(0 /*target*/);
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
@@ -3239,7 +3257,7 @@ namespace Legion {
         // Include the null terminator in length
         const size_t string_length = strlen(name) + 1;
         // Send the request to node 0 for the result
-        Serializer rez;
+        TaskLibraryRequest rez;
         {
           RezCheck z(rez);
           rez.serialize<size_t>(string_length);
@@ -3247,7 +3265,7 @@ namespace Legion {
           rez.serialize<size_t>(cnt);
           rez.serialize(request_event);
         }
-        send_library_task_request(0 /*target*/, rez);
+        rez.dispatch(0 /*target*/);
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
@@ -3465,7 +3483,7 @@ namespace Legion {
         // Include the null terminator in length
         const size_t string_length = strlen(name) + 1;
         // Send the request to node 0 for the result
-        Serializer rez;
+        RedopLibraryRequest rez;
         {
           RezCheck z(rez);
           rez.serialize<size_t>(string_length);
@@ -3473,7 +3491,7 @@ namespace Legion {
           rez.serialize<size_t>(count);
           rez.serialize(request_event);
         }
-        send_library_redop_request(0 /*target*/, rez);
+        rez.dispatch(0 /*target*/);
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
@@ -3586,7 +3604,7 @@ namespace Legion {
         // Include the null terminator in length
         const size_t string_length = strlen(name) + 1;
         // Send the request to node 0 for the result
-        Serializer rez;
+        SerdezLibraryRequest rez;
         {
           RezCheck z(rez);
           rez.serialize<size_t>(string_length);
@@ -3594,7 +3612,7 @@ namespace Legion {
           rez.serialize<size_t>(count);
           rez.serialize(request_event);
         }
-        send_library_serdez_request(0 /*target*/, rez);
+        rez.dispatch(0 /*target*/);
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
@@ -3626,15 +3644,6 @@ namespace Legion {
       // Really do need to create it (and put it in the map)
       MemoryManager* result = new MemoryManager(mem);
       memory_managers[mem] = result;
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
-    AddressSpaceID Runtime::find_address_space(Memory handle) const
-    //--------------------------------------------------------------------------
-    {
-      // Just use the standard translation for now
-      AddressSpaceID result = handle.address_space();
       return result;
     }
 
@@ -3677,11 +3686,12 @@ namespace Legion {
       {
         [[maybe_unused]] bool found = false;
         // Find a processor on which to send the task
-        for (std::map<Processor, AddressSpaceID>::const_iterator it =
-                 proc_spaces.begin();
-             it != proc_spaces.end(); it++)
+        // TODO: refine search once Realm supports queries on specifc spaces
+        Machine::ProcessorQuery all_procs(machine);
+        for (Machine::ProcessorQuery::iterator it = all_procs.begin();
+             it != all_procs.end(); it++)
         {
-          if (it->second != sid)
+          if (it->address_space() != sid)
             continue;
           found = true;
           Serializer rez;
@@ -3691,7 +3701,7 @@ namespace Legion {
             rez.serialize(utility_group);
           }
           const Realm::ProfilingRequestSet empty_requests;
-          it->first.spawn(
+          it->spawn(
               LG_ENDPOINT_TASK_ID, rez.get_buffer(), rez.get_used_bytes(),
               empty_requests);
           break;
@@ -3705,29 +3715,6 @@ namespace Legion {
       result = message_managers[sid].load();
       legion_assert(result != nullptr);
       return result;
-    }
-
-    //--------------------------------------------------------------------------
-    MessageManager* Runtime::find_messenger(Processor target)
-    //--------------------------------------------------------------------------
-    {
-      return find_messenger(find_address_space(target));
-    }
-
-    //--------------------------------------------------------------------------
-    AddressSpaceID Runtime::find_address_space(Processor target) const
-    //--------------------------------------------------------------------------
-    {
-      std::map<Processor, AddressSpaceID>::const_iterator finder =
-          proc_spaces.find(target);
-      if (finder != proc_spaces.end())
-        return finder->second;
-      // If we get here then this better be a processor group
-      legion_assert(target.kind() == Processor::PROC_GROUP);
-      AutoLock m_lock(message_manager_lock, 1, false /*exclusive*/);
-      finder = endpoint_spaces.find(target);
-      legion_assert(finder != endpoint_spaces.end());
-      return finder->second;
     }
 
     //--------------------------------------------------------------------------
@@ -3760,8 +3747,6 @@ namespace Legion {
         AutoLock m_lock(message_manager_lock);
         message_managers[remote_space].store(new MessageManager(
             remote_space, max_message_size, remote_utility_group));
-        // Also update the endpoint spaces
-        endpoint_spaces[remote_utility_group] = remote_space;
         std::map<AddressSpaceID, RtUserEvent>::iterator finder =
             pending_endpoint_requests.find(remote_space);
         legion_assert(finder != pending_endpoint_requests.end());
@@ -3789,7 +3774,7 @@ namespace Legion {
       }
       else
       {
-        Serializer rez;
+        MapperMessage rez;
         {
           RezCheck z(rez);
           rez.serialize(target);
@@ -3799,7 +3784,7 @@ namespace Legion {
           rez.serialize(message_size);
           rez.serialize(message, message_size);
         }
-        send_mapper_message(find_address_space(target), rez);
+        rez.dispatch(target.address_space());
       }
     }
 
@@ -3821,7 +3806,7 @@ namespace Legion {
         if (offset >= total_nodes)
           break;
         AddressSpaceID target = (init + offset) % total_nodes;
-        Serializer rez;
+        MapperBroadcast rez;
         {
           RezCheck z(rez);
           rez.serialize(map_id);
@@ -3832,7 +3817,7 @@ namespace Legion {
           rez.serialize(message_size);
           rez.serialize(message, message_size);
         }
-        send_mapper_broadcast(target, rez);
+        rez.dispatch(target);
       }
       // Then send it to all our local mappers, set will deduplicate
       std::set<MapperManager*> managers;
@@ -3851,23 +3836,6 @@ namespace Legion {
       for (std::set<MapperManager*>::const_iterator it = managers.begin();
            it != managers.end(); it++)
         (*it)->invoke_handle_message(&message_args);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_message(
-        MessageKind message, AddressSpaceID target, Serializer& rez, bool flush,
-        bool response)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(message, rez, flush, response);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_startup_barrier(AddressSpaceID target, Serializer& rez)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(
-          SEND_STARTUP_BARRIER, rez, true /*flush*/);
     }
 
     //--------------------------------------------------------------------------
@@ -3890,17 +3858,16 @@ namespace Legion {
       }
       else
       {
-        MessageManager* manager = find_messenger(target);
-        Serializer rez;
+        TaskMessage rez;
         bool deactivate_task;
-        const AddressSpaceID target_addr = find_address_space(target);
+        const AddressSpaceID target_addr = target.address_space();
         {
           RezCheck z(rez);
           rez.serialize(target);
           rez.serialize(task->get_task_kind());
           deactivate_task = task->pack_task(rez, target_addr);
         }
-        manager->send_message(TASK_MESSAGE, rez, true /*flush*/);
+        rez.dispatch(target_addr);
         if (deactivate_task)
           task->deactivate();
       }
@@ -3912,17 +3879,16 @@ namespace Legion {
     {
       const Processor target = task->target_proc;
       legion_assert(!is_local(target));
-      MessageManager* manager = find_messenger(target);
-      Serializer rez;
+      TaskMessage rez;
       bool deactivate_task;
-      const AddressSpaceID target_addr = find_address_space(target);
+      const AddressSpaceID target_addr = target.address_space();
       {
         RezCheck z(rez);
         rez.serialize(target);
         rez.serialize(task->get_task_kind());
         deactivate_task = task->pack_task(rez, target_addr);
       }
-      manager->send_message(TASK_MESSAGE, rez, true /*flush*/);
+      rez.dispatch(target_addr);
       if (deactivate_task)
         task->deactivate();
     }
@@ -3977,8 +3943,7 @@ namespace Legion {
         if (finder == proc_managers.end())
         {
           // Need to send remotely
-          MessageManager* manager = find_messenger(target);
-          Serializer rez;
+          StealTaskMessage rez;
           {
             RezCheck z(rez);
             rez.serialize(target);
@@ -3988,7 +3953,7 @@ namespace Legion {
             for (; it != targets.upper_bound(target); it++)
               rez.serialize(it->second);
           }
-          manager->send_message(STEAL_MESSAGE, rez, true /*flush*/);
+          rez.dispatch(target.address_space());
         }
         else
         {
@@ -4008,7 +3973,7 @@ namespace Legion {
         const std::set<Processor>& targets, MapperID map_id, Processor source)
     //--------------------------------------------------------------------------
     {
-      std::set<MessageManager*> already_sent;
+      std::set<AddressSpaceID> already_sent;
       for (std::set<Processor>::const_iterator it = targets.begin();
            it != targets.end(); it++)
       {
@@ -4022,21 +3987,1011 @@ namespace Legion {
         else
         {
           // otherwise remote, check to see if we already sent it
-          MessageManager* messenger = find_messenger(*it);
-          if (already_sent.find(messenger) != already_sent.end())
+          const AddressSpaceID target = it->address_space();
+          if (already_sent.find(target) != already_sent.end())
             continue;
-          Serializer rez;
+          AdvertiseTaskMessage rez;
           {
             RezCheck z(rez);
             rez.serialize(source);
             rez.serialize(map_id);
           }
-          messenger->send_message(ADVERTISEMENT_MESSAGE, rez, true /*flush*/);
-          already_sent.insert(messenger);
+          rez.dispatch(target);
+          already_sent.insert(target);
         }
       }
     }
 
+    //--------------------------------------------------------------------------
+    /*static*/ void MapperMessage::handle(Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Processor target;
+      derez.deserialize(target);
+      MapperID map_id;
+      derez.deserialize(map_id);
+      Processor source;
+      derez.deserialize(source);
+      unsigned message_kind;
+      derez.deserialize(message_kind);
+      size_t message_size;
+      derez.deserialize(message_size);
+      const void* message = derez.get_current_pointer();
+      derez.advance_pointer(message_size);
+      runtime->process_mapper_message(
+          target, map_id, source, message, message_size, message_kind);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void MapperBroadcast::handle(Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      MapperID map_id;
+      derez.deserialize(map_id);
+      Processor source;
+      derez.deserialize(source);
+      unsigned message_kind;
+      derez.deserialize(message_kind);
+      int radix;
+      derez.deserialize(radix);
+      int index;
+      derez.deserialize(index);
+      size_t message_size;
+      derez.deserialize(message_size);
+      const void* message = derez.get_current_pointer();
+      derez.advance_pointer(message_size);
+      runtime->process_mapper_broadcast(
+          map_id, source, message, message_size, message_kind, radix, index);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_steal(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Processor target;
+      derez.deserialize(target);
+      Processor thief;
+      derez.deserialize(thief);
+      int num_mappers;
+      derez.deserialize(num_mappers);
+      std::vector<MapperID> thieves(num_mappers);
+      for (int idx = 0; idx < num_mappers; idx++)
+        derez.deserialize(thieves[idx]);
+      legion_assert(proc_managers.find(target) != proc_managers.end());
+      proc_managers[target]->process_steal_request(thief, thieves);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void StealTaskMessage::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_steal(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_advertisement(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Processor source;
+      derez.deserialize(source);
+      MapperID map_id;
+      derez.deserialize(map_id);
+      // Just advertise it to all the managers
+      for (std::map<Processor, ProcessorManager*>::const_iterator it =
+               proc_managers.begin();
+           it != proc_managers.end(); it++)
+      {
+        it->second->process_advertisement(source, map_id);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void AdvertiseTaskMessage::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_advertisement(derez);
+    }
+
+#ifdef LEGION_USE_LIBDL
+    //--------------------------------------------------------------------------
+    void Runtime::handle_registration_callback(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(implicit_context == nullptr);
+      legion_assert(runtime != nullptr);
+      DerezCheck z(derez);
+      size_t dso_size;
+      derez.deserialize(dso_size);
+      const std::string dso_name((const char*)derez.get_current_pointer());
+      derez.advance_pointer(dso_size);
+      size_t sym_size;
+      derez.deserialize(sym_size);
+      const std::string sym_name((const char*)derez.get_current_pointer());
+      derez.advance_pointer(sym_size);
+      size_t buffer_size;
+      derez.deserialize(buffer_size);
+      const void* buffer = derez.get_current_pointer();
+      if (buffer_size > 0)
+        derez.advance_pointer(buffer_size);
+      bool withargs;
+      derez.deserialize<bool>(withargs);
+      bool deduplicate;
+      derez.deserialize(deduplicate);
+      size_t dedup_tag;
+      derez.deserialize(dedup_tag);
+      RtEvent global_done_event;
+      derez.deserialize(global_done_event);
+      RtUserEvent done_event;
+      derez.deserialize(done_event);
+
+      // Converting the DSO reference could call dlopen and might block
+      // us if the constructor for that shared object requests its own
+      // global registration callback, so register our guards first
+      const RegistrationKey key(dedup_tag, dso_name, sym_name);
+      if (deduplicate)
+      {
+        AutoLock c_lock(callback_lock);
+        // First see if the local case has already been done in which case
+        // we know that we are done also when it is done
+        std::map<RegistrationKey, RtEvent>::const_iterator finder =
+            global_local_done.find(key);
+        if (finder != global_local_done.end())
+        {
+          Runtime::trigger_event(done_event, finder->second);
+          return;
+        }
+        // No one has attempted a global registration callback here yet
+        // Record that we are pending and put in a guard for all the
+        // of the global registrations being done
+        if (global_callbacks_done.find(key) == global_callbacks_done.end())
+          global_callbacks_done[key] = global_done_event;
+        pending_remote_callbacks[key].insert(done_event);
+      }
+
+      // Now we can do the translation of ourselves to get the function pointer
+      Realm::DSOReferenceImplementation dso(dso_name, sym_name);
+      legion_assert(callback_translator.can_translate(
+          typeid(Realm::DSOReferenceImplementation),
+          typeid(Realm::FunctionPointerImplementation)));
+      Realm::FunctionPointerImplementation* impl =
+          static_cast<Realm::FunctionPointerImplementation*>(
+              callback_translator.translate(
+                  &dso, typeid(Realm::FunctionPointerImplementation)));
+      legion_assert(impl != nullptr);
+      void* callback = impl->get_impl<void*>();
+      RtEvent precondition;
+      // Now take the lock and see if we need to perform anything
+      if (deduplicate)
+      {
+        AutoLock c_lock(callback_lock);
+        std::map<RegistrationKey, std::set<RtUserEvent> >::iterator finder =
+            pending_remote_callbacks.find(key);
+        // If someone already handled everything then we are done
+        if (finder != pending_remote_callbacks.end())
+        {
+          // We should still be in there
+          legion_assert(
+              finder->second.find(done_event) != finder->second.end());
+          finder->second.erase(done_event);
+          if (finder->second.empty())
+            pending_remote_callbacks.erase(finder);
+          // Now see if anyone else has done the local registration
+          std::map<void*, RtEvent>::const_iterator finder =
+              local_callbacks_done.find(callback);
+          if (finder != local_callbacks_done.end())
+          {
+            legion_assert(finder->second.exists());
+            precondition = finder->second;
+          }
+          else
+          {
+            local_callbacks_done[callback] = done_event;
+            global_local_done[key] = done_event;
+          }
+        }
+        else  // We were already handled so nothing to do
+          done_event = RtUserEvent::NO_RT_USER_EVENT;
+      }
+      if (!deduplicate || done_event.exists())
+      {
+        // This is the signal that we need to do the callback
+        if (!precondition.exists())
+        {
+          inside_registration_callback = GLOBAL_REGISTRATION_CALLBACK;
+          if (withargs)
+          {
+            RegistrationWithArgsCallbackFnptr callbackwithargs =
+                (RegistrationWithArgsCallbackFnptr)callback;
+            RegistrationCallbackArgs args{
+                machine, external, local_procs,
+                UntypedBuffer(buffer, buffer_size)};
+            (*callbackwithargs)(args);
+          }
+          else
+          {
+            RegistrationCallbackFnptr callbackwithoutargs =
+                (RegistrationCallbackFnptr)callback;
+            (*callbackwithoutargs)(machine, external, local_procs);
+          }
+          inside_registration_callback = NO_REGISTRATION_CALLBACK;
+        }
+        if (done_event.exists())
+          Runtime::trigger_event(done_event, precondition);
+      }
+      // Delete our resources that we allocated
+      delete impl;
+    }
+#endif  // LEGION_USE_LIBDL
+
+    //--------------------------------------------------------------------------
+    /*static*/ void RegistrationCallbackMessage::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+#ifdef LEGION_USE_LIBDL
+      runtime->handle_registration_callback(derez);
+#else
+      std::abort();
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ConstraintRelease::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      LayoutConstraintID layout_id;
+      derez.deserialize(layout_id);
+      runtime->release_layout(layout_id);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_mapper_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      MapperID result = generate_library_mapper_ids(name, count);
+      MapperLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void MapperLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_mapper_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_mapper_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      MapperID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibraryMapperIDs>::iterator finder =
+            library_mapper_ids.find(library_name);
+        legion_assert(finder != library_mapper_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void MapperLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_mapper_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_trace_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      TraceID result = generate_library_trace_ids(name, count);
+      TraceLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void TraceLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_trace_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_trace_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      TraceID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibraryTraceIDs>::iterator finder =
+            library_trace_ids.find(library_name);
+        legion_assert(finder != library_trace_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void TraceLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_trace_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_projection_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      ProjectionID result = generate_library_projection_ids(name, count);
+      ProjectionLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ProjectionLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_projection_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_projection_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ProjectionID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibraryProjectionIDs>::iterator finder =
+            library_projection_ids.find(library_name);
+        legion_assert(finder != library_projection_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ProjectionLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_projection_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_sharding_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      ShardingID result = generate_library_sharding_ids(name, count);
+      ShardingLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ShardingLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_sharding_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_sharding_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ShardingID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibraryShardingIDs>::iterator finder =
+            library_sharding_ids.find(library_name);
+        legion_assert(finder != library_sharding_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ShardingLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_sharding_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_concurrent_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      ConcurrentID result = generate_library_concurrent_ids(name, count);
+      ConcurrentLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ConcurrentLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_concurrent_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_concurrent_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ConcurrentID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibraryConcurrentIDs>::iterator finder =
+            library_concurrent_ids.find(library_name);
+        legion_assert(finder != library_concurrent_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ConcurrentLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_concurrent_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_task_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      TaskID result = generate_library_task_ids(name, count);
+      TaskLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void TaskLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_task_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_task_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      TaskID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibraryTaskIDs>::iterator finder =
+            library_task_ids.find(library_name);
+        legion_assert(finder != library_task_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void TaskLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_task_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_redop_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      ReductionOpID result = generate_library_reduction_ids(name, count);
+      RedopLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void RedopLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_redop_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_redop_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ReductionOpID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibraryRedopIDs>::iterator finder =
+            library_redop_ids.find(library_name);
+        legion_assert(finder != library_redop_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void RedopLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_redop_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_serdez_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      CustomSerdezID result = generate_library_serdez_ids(name, count);
+      SerdezLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void SerdezLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_serdez_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_serdez_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      CustomSerdezID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibrarySerdezIDs>::iterator finder =
+            library_serdez_ids.find(library_name);
+        legion_assert(finder != library_serdez_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void SerdezLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_serdez_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void IndexSpaceDestruction::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      IndexSpace handle;
+      derez.deserialize(handle);
+      RtUserEvent done;
+      derez.deserialize(done);
+      legion_assert(done.exists());
+      std::set<RtEvent> applied;
+      runtime->destroy_index_space(handle, source, applied);
+      if (!applied.empty())
+        Runtime::trigger_event(done, Runtime::merge_events(applied));
+      else
+        Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void IndexPartitionDestruction::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      IndexPartition handle;
+      derez.deserialize(handle);
+      RtUserEvent done;
+      derez.deserialize(done);
+      legion_assert(done.exists());
+      std::set<RtEvent> applied;
+      runtime->destroy_index_partition(handle, applied);
+      if (!applied.empty())
+        Runtime::trigger_event(done, Runtime::merge_events(applied));
+      else
+        Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void FieldSpaceDestruction::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      FieldSpace handle;
+      derez.deserialize(handle);
+      RtUserEvent done;
+      derez.deserialize(done);
+      legion_assert(done.exists());
+      std::set<RtEvent> applied;
+      runtime->destroy_field_space(handle, applied);
+      if (!applied.empty())
+        Runtime::trigger_event(done, Runtime::merge_events(applied));
+      else
+        Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void LogicalRegionDestruction::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      LogicalRegion handle;
+      derez.deserialize(handle);
+      RtUserEvent done;
+      derez.deserialize(done);
+      std::set<RtEvent> applied;
+      runtime->destroy_logical_region(handle, applied);
+      if (done.exists())
+      {
+        if (!applied.empty())
+          Runtime::trigger_event(done, Runtime::merge_events(applied));
+        else
+          Runtime::trigger_event(done);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void DistributedIDRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      std::atomic<DistributedID>* target;
+      derez.deserialize(target);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const DistributedID did = runtime->get_available_distributed_id();
+      DistributedIDResponse rez;
+      rez.serialize(did);
+      rez.serialize(target);
+      rez.serialize(done);
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void DistributedIDResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DistributedID did;
+      derez.deserialize(did);
+      std::atomic<DistributedID>* target;
+      derez.deserialize(target);
+      target->store(did);
+      RtUserEvent done;
+      derez.deserialize(done);
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void TopLevelTaskComplete::handle(Deserializer&, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->decrement_outstanding_top_level_tasks();
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void StartupBarrierMessage::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      RtBarrier startup_barrier;
+      derez.deserialize(startup_barrier);
+      runtime->broadcast_startup_barrier(startup_barrier);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void SharedOwnershipMessage::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      int kind;
+      derez.deserialize(kind);
+      switch (kind)
+      {
+        case 0:
+          {
+            IndexSpace handle;
+            derez.deserialize(handle);
+            runtime->create_shared_ownership(handle, false, true);
+            break;
+          }
+        case 1:
+          {
+            IndexPartition handle;
+            derez.deserialize(handle);
+            runtime->create_shared_ownership(handle, false, true);
+            break;
+          }
+        case 2:
+          {
+            FieldSpace handle;
+            derez.deserialize(handle);
+            runtime->create_shared_ownership(handle, false, true);
+            break;
+          }
+        case 3:
+          {
+            LogicalRegion handle;
+            derez.deserialize(handle);
+            runtime->create_shared_ownership(handle, false, true);
+            break;
+          }
+        default:
+          std::abort();
+      }
+    }
+
+#if 0
     //--------------------------------------------------------------------------
     void Runtime::send_remote_task_replay(
         AddressSpaceID target, Serializer& rez)
@@ -4475,87 +5430,6 @@ namespace Legion {
     {
       find_messenger(target)->send_message(
           SEND_TOP_LEVEL_REGION_RETURN, rez, true /*flush*/, true /*response*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_index_space_destruction(
-        IndexSpace handle, AddressSpaceID target, std::set<RtEvent>& applied)
-    //--------------------------------------------------------------------------
-    {
-      Serializer rez;
-      {
-        RezCheck z(rez);
-        rez.serialize(handle);
-        const RtUserEvent done = create_rt_user_event();
-        rez.serialize(done);
-        applied.insert(done);
-      }
-      // Put this message on the same virtual channel as the unregister
-      // messages for distributed collectables to make sure that they
-      // are properly ordered
-      find_messenger(target)->send_message(
-          INDEX_SPACE_DESTRUCTION_MESSAGE, rez, true /*flush*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_index_partition_destruction(
-        IndexPartition handle, AddressSpaceID target,
-        std::set<RtEvent>& applied)
-    //--------------------------------------------------------------------------
-    {
-      Serializer rez;
-      {
-        RezCheck z(rez);
-        rez.serialize(handle);
-        const RtUserEvent done = create_rt_user_event();
-        rez.serialize(done);
-        applied.insert(done);
-      }
-      // Put this message on the same virtual channel as the unregister
-      // messages for distributed collectables to make sure that they
-      // are properly ordered
-      find_messenger(target)->send_message(
-          INDEX_PARTITION_DESTRUCTION_MESSAGE, rez, true /*flush*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_field_space_destruction(
-        FieldSpace handle, AddressSpaceID target, std::set<RtEvent>& applied)
-    //--------------------------------------------------------------------------
-    {
-      Serializer rez;
-      {
-        RezCheck z(rez);
-        rez.serialize(handle);
-        const RtUserEvent done = create_rt_user_event();
-        rez.serialize(done);
-        applied.insert(done);
-      }
-      // Put this message on the same virtual channel as the unregister
-      // messages for distributed collectables to make sure that they
-      // are properly ordered
-      find_messenger(target)->send_message(
-          FIELD_SPACE_DESTRUCTION_MESSAGE, rez, true /*flush*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_logical_region_destruction(
-        LogicalRegion handle, AddressSpaceID target, std::set<RtEvent>& applied)
-    //--------------------------------------------------------------------------
-    {
-      Serializer rez;
-      {
-        RezCheck z(rez);
-        rez.serialize(handle);
-        const RtUserEvent done = create_rt_user_event();
-        rez.serialize(done);
-        applied.insert(done);
-      }
-      // Put this message on the same virtual channel as the unregister
-      // messages for distributed collectables to make sure that they
-      // are properly ordered
-      find_messenger(target)->send_message(
-          LOGICAL_REGION_DESTRUCTION_MESSAGE, rez, true /*flush*/);
     }
 
     //--------------------------------------------------------------------------
@@ -5868,26 +6742,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::send_equivalence_set_migration(
-        AddressSpaceID target, Serializer& rez)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(
-          SEND_EQUIVALENCE_SET_MIGRATION, rez, true /*flush*/,
-          true /*response*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_equivalence_set_owner_update(
-        AddressSpaceID target, Serializer& rez)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(
-          SEND_EQUIVALENCE_SET_OWNER_UPDATE, rez, true /*flush*/,
-          true /*response*/);
-    }
-
-    //--------------------------------------------------------------------------
     void Runtime::send_equivalence_set_clone_request(
         AddressSpaceID target, Serializer& rez)
     //--------------------------------------------------------------------------
@@ -5962,30 +6816,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::send_equivalence_set_remote_acquires(
-        AddressSpaceID target, Serializer& rez)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(
-          SEND_EQUIVALENCE_SET_REMOTE_ACQUIRES, rez, true /*flush*/);
-    }
-
-    //--------------------------------------------------------------------------
     void Runtime::send_equivalence_set_remote_releases(
         AddressSpaceID target, Serializer& rez)
     //--------------------------------------------------------------------------
     {
       find_messenger(target)->send_message(
           SEND_EQUIVALENCE_SET_REMOTE_RELEASES, rez, true /*flush*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_equivalence_set_remote_copies_across(
-        AddressSpaceID target, Serializer& rez)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(
-          SEND_EQUIVALENCE_SET_REMOTE_COPIES_ACROSS, rez, true /*flush*/);
     }
 
     //--------------------------------------------------------------------------
@@ -6614,174 +7450,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       TaskOp::process_unpack_task(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_steal(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Processor target;
-      derez.deserialize(target);
-      Processor thief;
-      derez.deserialize(thief);
-      int num_mappers;
-      derez.deserialize(num_mappers);
-      std::vector<MapperID> thieves(num_mappers);
-      for (int idx = 0; idx < num_mappers; idx++)
-        derez.deserialize(thieves[idx]);
-      legion_assert(proc_managers.find(target) != proc_managers.end());
-      proc_managers[target]->process_steal_request(thief, thieves);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_advertisement(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Processor source;
-      derez.deserialize(source);
-      MapperID map_id;
-      derez.deserialize(map_id);
-      // Just advertise it to all the managers
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
-      {
-        it->second->process_advertisement(source, map_id);
-      }
-    }
-
-#ifdef LEGION_USE_LIBDL
-    //--------------------------------------------------------------------------
-    void Runtime::handle_registration_callback(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(implicit_context == nullptr);
-      legion_assert(runtime != nullptr);
-      DerezCheck z(derez);
-      size_t dso_size;
-      derez.deserialize(dso_size);
-      const std::string dso_name((const char*)derez.get_current_pointer());
-      derez.advance_pointer(dso_size);
-      size_t sym_size;
-      derez.deserialize(sym_size);
-      const std::string sym_name((const char*)derez.get_current_pointer());
-      derez.advance_pointer(sym_size);
-      size_t buffer_size;
-      derez.deserialize(buffer_size);
-      const void* buffer = derez.get_current_pointer();
-      if (buffer_size > 0)
-        derez.advance_pointer(buffer_size);
-      bool withargs;
-      derez.deserialize<bool>(withargs);
-      bool deduplicate;
-      derez.deserialize(deduplicate);
-      size_t dedup_tag;
-      derez.deserialize(dedup_tag);
-      RtEvent global_done_event;
-      derez.deserialize(global_done_event);
-      RtUserEvent done_event;
-      derez.deserialize(done_event);
-
-      // Converting the DSO reference could call dlopen and might block
-      // us if the constructor for that shared object requests its own
-      // global registration callback, so register our guards first
-      const RegistrationKey key(dedup_tag, dso_name, sym_name);
-      if (deduplicate)
-      {
-        AutoLock c_lock(callback_lock);
-        // First see if the local case has already been done in which case
-        // we know that we are done also when it is done
-        std::map<RegistrationKey, RtEvent>::const_iterator finder =
-            global_local_done.find(key);
-        if (finder != global_local_done.end())
-        {
-          Runtime::trigger_event(done_event, finder->second);
-          return;
-        }
-        // No one has attempted a global registration callback here yet
-        // Record that we are pending and put in a guard for all the
-        // of the global registrations being done
-        if (global_callbacks_done.find(key) == global_callbacks_done.end())
-          global_callbacks_done[key] = global_done_event;
-        pending_remote_callbacks[key].insert(done_event);
-      }
-
-      // Now we can do the translation of ourselves to get the function pointer
-      Realm::DSOReferenceImplementation dso(dso_name, sym_name);
-      legion_assert(callback_translator.can_translate(
-          typeid(Realm::DSOReferenceImplementation),
-          typeid(Realm::FunctionPointerImplementation)));
-      Realm::FunctionPointerImplementation* impl =
-          static_cast<Realm::FunctionPointerImplementation*>(
-              callback_translator.translate(
-                  &dso, typeid(Realm::FunctionPointerImplementation)));
-      legion_assert(impl != nullptr);
-      void* callback = impl->get_impl<void*>();
-      RtEvent precondition;
-      // Now take the lock and see if we need to perform anything
-      if (deduplicate)
-      {
-        AutoLock c_lock(callback_lock);
-        std::map<RegistrationKey, std::set<RtUserEvent> >::iterator finder =
-            pending_remote_callbacks.find(key);
-        // If someone already handled everything then we are done
-        if (finder != pending_remote_callbacks.end())
-        {
-          // We should still be in there
-          legion_assert(
-              finder->second.find(done_event) != finder->second.end());
-          finder->second.erase(done_event);
-          if (finder->second.empty())
-            pending_remote_callbacks.erase(finder);
-          // Now see if anyone else has done the local registration
-          std::map<void*, RtEvent>::const_iterator finder =
-              local_callbacks_done.find(callback);
-          if (finder != local_callbacks_done.end())
-          {
-            legion_assert(finder->second.exists());
-            precondition = finder->second;
-          }
-          else
-          {
-            local_callbacks_done[callback] = done_event;
-            global_local_done[key] = done_event;
-          }
-        }
-        else  // We were already handled so nothing to do
-          done_event = RtUserEvent::NO_RT_USER_EVENT;
-      }
-      if (!deduplicate || done_event.exists())
-      {
-        // This is the signal that we need to do the callback
-        if (!precondition.exists())
-        {
-          inside_registration_callback = GLOBAL_REGISTRATION_CALLBACK;
-          if (withargs)
-          {
-            RegistrationWithArgsCallbackFnptr callbackwithargs =
-                (RegistrationWithArgsCallbackFnptr)callback;
-            RegistrationCallbackArgs args{
-                machine, external, local_procs,
-                UntypedBuffer(buffer, buffer_size)};
-            (*callbackwithargs)(args);
-          }
-          else
-          {
-            RegistrationCallbackFnptr callbackwithoutargs =
-                (RegistrationCallbackFnptr)callback;
-            (*callbackwithoutargs)(machine, external, local_procs);
-          }
-          inside_registration_callback = NO_REGISTRATION_CALLBACK;
-        }
-        if (done_event.exists())
-          Runtime::trigger_event(done_event, precondition);
-      }
-      // Delete our resources that we allocated
-      delete impl;
-    }
-#endif  // LEGION_USE_LIBDL
+    } 
 
     //--------------------------------------------------------------------------
     void Runtime::handle_remote_task_replay(Deserializer& derez)
@@ -7165,82 +7834,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       RegionNode::handle_top_level_return(derez, source);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_index_space_destruction(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      IndexSpace handle;
-      derez.deserialize(handle);
-      RtUserEvent done;
-      derez.deserialize(done);
-      legion_assert(done.exists());
-      std::set<RtEvent> applied;
-      destroy_index_space(handle, source, applied);
-      if (!applied.empty())
-        Runtime::trigger_event(done, Runtime::merge_events(applied));
-      else
-        Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_index_partition_destruction(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      IndexPartition handle;
-      derez.deserialize(handle);
-      RtUserEvent done;
-      derez.deserialize(done);
-      legion_assert(done.exists());
-      std::set<RtEvent> applied;
-      destroy_index_partition(handle, applied);
-      if (!applied.empty())
-        Runtime::trigger_event(done, Runtime::merge_events(applied));
-      else
-        Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_field_space_destruction(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      FieldSpace handle;
-      derez.deserialize(handle);
-      RtUserEvent done;
-      derez.deserialize(done);
-      legion_assert(done.exists());
-      std::set<RtEvent> applied;
-      destroy_field_space(handle, applied);
-      if (!applied.empty())
-        Runtime::trigger_event(done, Runtime::merge_events(applied));
-      else
-        Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_logical_region_destruction(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      LogicalRegion handle;
-      derez.deserialize(handle);
-      RtUserEvent done;
-      derez.deserialize(done);
-      std::set<RtEvent> applied;
-      destroy_logical_region(handle, applied);
-      if (done.exists())
-      {
-        if (!applied.empty())
-          Runtime::trigger_event(done, Runtime::merge_events(applied));
-        else
-          Runtime::trigger_event(done);
-      }
-    }
+    } 
 
     //--------------------------------------------------------------------------
     void Runtime::handle_individual_remote_future_size(Deserializer& derez)
@@ -8037,51 +8631,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndividualView::handle_view_find_last_users_response(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_mapper_message(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Processor target;
-      derez.deserialize(target);
-      MapperID map_id;
-      derez.deserialize(map_id);
-      Processor source;
-      derez.deserialize(source);
-      unsigned message_kind;
-      derez.deserialize(message_kind);
-      size_t message_size;
-      derez.deserialize(message_size);
-      const void* message = derez.get_current_pointer();
-      derez.advance_pointer(message_size);
-      process_mapper_message(
-          target, map_id, source, message, message_size, message_kind);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_mapper_broadcast(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      MapperID map_id;
-      derez.deserialize(map_id);
-      Processor source;
-      derez.deserialize(source);
-      unsigned message_kind;
-      derez.deserialize(message_kind);
-      int radix;
-      derez.deserialize(radix);
-      int index;
-      derez.deserialize(index);
-      size_t message_size;
-      derez.deserialize(message_size);
-      const void* message = derez.get_current_pointer();
-      derez.advance_pointer(message_size);
-      process_mapper_broadcast(
-          map_id, source, message, message_size, message_kind, radix, index);
-    }
+    } 
 
     //--------------------------------------------------------------------------
     void Runtime::handle_task_impl_semantic_request(
@@ -8500,31 +9050,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       EquivalenceSet::handle_filter_invalidations(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_instance_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Memory target_memory;
-      derez.deserialize(target_memory);
-      MemoryManager* manager = find_memory_manager(target_memory);
-      manager->process_instance_request(derez, source);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_instance_response(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Memory target_memory;
-      derez.deserialize(target_memory);
-      MemoryManager* manager = find_memory_manager(target_memory);
-      manager->process_instance_response(derez, source);
-    }
+    } 
 
     //--------------------------------------------------------------------------
     void Runtime::handle_external_create_request(
@@ -8539,47 +9065,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldSpaceNode::handle_external_create_response(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_external_attach(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Memory target_memory;
-      derez.deserialize(target_memory);
-      DistributedID did;
-      derez.deserialize(did);
-      RtEvent manager_ready;
-      PhysicalManager* manager =
-          find_or_request_instance_manager(did, manager_ready);
-      RtUserEvent done_event;
-      derez.deserialize(done_event);
-      MemoryManager* memory_manager = find_memory_manager(target_memory);
-      if (manager_ready.exists() && !manager_ready.has_triggered())
-        manager_ready.wait();
-      RtEvent local_done = memory_manager->attach_external_instance(manager);
-      Runtime::trigger_event(done_event, local_done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_external_detach(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      Memory target_memory;
-      derez.deserialize(target_memory);
-      DistributedID did;
-      derez.deserialize(did);
-      RtEvent manager_ready;
-      PhysicalManager* manager =
-          find_or_request_instance_manager(did, manager_ready);
-      MemoryManager* memory_manager = find_memory_manager(target_memory);
-      if (manager_ready.exists() && !manager_ready.has_triggered())
-        manager_ready.wait();
-      memory_manager->detach_external_instance(manager);
-      manager->unpack_valid_ref();
-    }
+    } 
 
     //--------------------------------------------------------------------------
     void Runtime::handle_gc_priority_update(
@@ -8690,17 +9176,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       LayoutConstraints::process_response(derez, source);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_constraint_release(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      LayoutConstraintID layout_id;
-      derez.deserialize(layout_id);
-      release_layout(layout_id);
-    }
+    } 
 
     //--------------------------------------------------------------------------
     void Runtime::handle_top_level_task_complete(Deserializer& derez)
@@ -8779,447 +9255,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ShardManager::process_rendezvous_message(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_mapper_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      size_t count;
-      derez.deserialize(count);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      MapperID result = generate_library_mapper_ids(name, count);
-      Serializer rez;
-      {
-        RezCheck z2(rez);
-        rez.serialize(string_length);
-        rez.serialize(name, string_length);
-        rez.serialize(result);
-        rez.serialize(done);
-      }
-      send_library_mapper_response(source, rez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_mapper_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      MapperID result;
-      derez.deserialize(result);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const std::string library_name(name);
-      {
-        AutoLock l_lock(library_lock);
-        std::map<std::string, LibraryMapperIDs>::iterator finder =
-            library_mapper_ids.find(library_name);
-        legion_assert(finder != library_mapper_ids.end());
-        legion_assert(!finder->second.result_set);
-        legion_assert(finder->second.ready == done);
-        finder->second.result = result;
-        finder->second.result_set = true;
-      }
-      Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_trace_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      size_t count;
-      derez.deserialize(count);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      TraceID result = generate_library_trace_ids(name, count);
-      Serializer rez;
-      {
-        RezCheck z2(rez);
-        rez.serialize(string_length);
-        rez.serialize(name, string_length);
-        rez.serialize(result);
-        rez.serialize(done);
-      }
-      send_library_trace_response(source, rez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_trace_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      TraceID result;
-      derez.deserialize(result);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const std::string library_name(name);
-      {
-        AutoLock l_lock(library_lock);
-        std::map<std::string, LibraryTraceIDs>::iterator finder =
-            library_trace_ids.find(library_name);
-        legion_assert(finder != library_trace_ids.end());
-        legion_assert(!finder->second.result_set);
-        legion_assert(finder->second.ready == done);
-        finder->second.result = result;
-        finder->second.result_set = true;
-      }
-      Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_projection_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      size_t count;
-      derez.deserialize(count);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      ProjectionID result = generate_library_projection_ids(name, count);
-      Serializer rez;
-      {
-        RezCheck z2(rez);
-        rez.serialize(string_length);
-        rez.serialize(name, string_length);
-        rez.serialize(result);
-        rez.serialize(done);
-      }
-      send_library_projection_response(source, rez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_projection_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      ProjectionID result;
-      derez.deserialize(result);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const std::string library_name(name);
-      {
-        AutoLock l_lock(library_lock);
-        std::map<std::string, LibraryProjectionIDs>::iterator finder =
-            library_projection_ids.find(library_name);
-        legion_assert(finder != library_projection_ids.end());
-        legion_assert(!finder->second.result_set);
-        legion_assert(finder->second.ready == done);
-        finder->second.result = result;
-        finder->second.result_set = true;
-      }
-      Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_sharding_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      size_t count;
-      derez.deserialize(count);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      ShardingID result = generate_library_sharding_ids(name, count);
-      Serializer rez;
-      {
-        RezCheck z2(rez);
-        rez.serialize(string_length);
-        rez.serialize(name, string_length);
-        rez.serialize(result);
-        rez.serialize(done);
-      }
-      send_library_sharding_response(source, rez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_sharding_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      ShardingID result;
-      derez.deserialize(result);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const std::string library_name(name);
-      {
-        AutoLock l_lock(library_lock);
-        std::map<std::string, LibraryShardingIDs>::iterator finder =
-            library_sharding_ids.find(library_name);
-        legion_assert(finder != library_sharding_ids.end());
-        legion_assert(!finder->second.result_set);
-        legion_assert(finder->second.ready == done);
-        finder->second.result = result;
-        finder->second.result_set = true;
-      }
-      Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_concurrent_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      size_t count;
-      derez.deserialize(count);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      ConcurrentID result = generate_library_concurrent_ids(name, count);
-      Serializer rez;
-      {
-        RezCheck z2(rez);
-        rez.serialize(string_length);
-        rez.serialize(name, string_length);
-        rez.serialize(result);
-        rez.serialize(done);
-      }
-      send_library_concurrent_response(source, rez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_concurrent_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      ConcurrentID result;
-      derez.deserialize(result);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const std::string library_name(name);
-      {
-        AutoLock l_lock(library_lock);
-        std::map<std::string, LibraryConcurrentIDs>::iterator finder =
-            library_concurrent_ids.find(library_name);
-        legion_assert(finder != library_concurrent_ids.end());
-        legion_assert(!finder->second.result_set);
-        legion_assert(finder->second.ready == done);
-        finder->second.result = result;
-        finder->second.result_set = true;
-      }
-      Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_task_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      size_t count;
-      derez.deserialize(count);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      TaskID result = generate_library_task_ids(name, count);
-      Serializer rez;
-      {
-        RezCheck z2(rez);
-        rez.serialize(string_length);
-        rez.serialize(name, string_length);
-        rez.serialize(result);
-        rez.serialize(done);
-      }
-      send_library_task_response(source, rez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_task_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      TaskID result;
-      derez.deserialize(result);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const std::string library_name(name);
-      {
-        AutoLock l_lock(library_lock);
-        std::map<std::string, LibraryTaskIDs>::iterator finder =
-            library_task_ids.find(library_name);
-        legion_assert(finder != library_task_ids.end());
-        legion_assert(!finder->second.result_set);
-        legion_assert(finder->second.ready == done);
-        finder->second.result = result;
-        finder->second.result_set = true;
-      }
-      Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_redop_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      size_t count;
-      derez.deserialize(count);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      ReductionOpID result = generate_library_reduction_ids(name, count);
-      Serializer rez;
-      {
-        RezCheck z2(rez);
-        rez.serialize(string_length);
-        rez.serialize(name, string_length);
-        rez.serialize(result);
-        rez.serialize(done);
-      }
-      send_library_redop_response(source, rez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_redop_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      ReductionOpID result;
-      derez.deserialize(result);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const std::string library_name(name);
-      {
-        AutoLock l_lock(library_lock);
-        std::map<std::string, LibraryRedopIDs>::iterator finder =
-            library_redop_ids.find(library_name);
-        legion_assert(finder != library_redop_ids.end());
-        legion_assert(!finder->second.result_set);
-        legion_assert(finder->second.ready == done);
-        finder->second.result = result;
-        finder->second.result_set = true;
-      }
-      Runtime::trigger_event(done);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_serdez_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      size_t count;
-      derez.deserialize(count);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      CustomSerdezID result = generate_library_serdez_ids(name, count);
-      Serializer rez;
-      {
-        RezCheck z2(rez);
-        rez.serialize(string_length);
-        rez.serialize(name, string_length);
-        rez.serialize(result);
-        rez.serialize(done);
-      }
-      send_library_serdez_response(source, rez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_library_serdez_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DerezCheck z(derez);
-      size_t string_length;
-      derez.deserialize(string_length);
-      const char* name = (const char*)derez.get_current_pointer();
-      derez.advance_pointer(string_length);
-      CustomSerdezID result;
-      derez.deserialize(result);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const std::string library_name(name);
-      {
-        AutoLock l_lock(library_lock);
-        std::map<std::string, LibrarySerdezIDs>::iterator finder =
-            library_serdez_ids.find(library_name);
-        legion_assert(finder != library_serdez_ids.end());
-        legion_assert(!finder->second.result_set);
-        legion_assert(finder->second.ready == done);
-        finder->second.result = result;
-        finder->second.result_set = true;
-      }
-      Runtime::trigger_event(done);
-    }
+    } 
 
     //--------------------------------------------------------------------------
     void Runtime::handle_remote_op_report_uninitialized(Deserializer& derez)
@@ -9256,6 +9292,51 @@ namespace Legion {
     {
       ShutdownManager::handle_shutdown_response(derez);
     }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_tracing_update(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      RemoteTraceRecorder::handle_remote_update(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_tracing_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteTraceRecorder::handle_remote_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_free_external_allocation(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      FutureInstance::handle_free_external(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_notify_collected_instances(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager::handle_notify_collected_instances(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_create_memory_pool_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager::handle_create_memory_pool_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_create_memory_pool_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager::handle_create_memory_pool_response(derez);
+    }
+#endif
 
     //--------------------------------------------------------------------------
     bool Runtime::create_physical_instance(
@@ -9455,31 +9536,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::process_schedule_request(Processor proc)
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(local_procs.find(proc) != local_procs.end());
-      ProcessorManager* manager = proc_managers[proc];
-      manager->perform_scheduling();
-#ifdef LEGION_TRACE_ALLOCATION
-      unsigned long long trace_count = allocation_tracing_count.fetch_add(1);
-      if ((trace_count % LEGION_TRACE_ALLOCATION_FREQUENCY) == 0)
-        dump_allocation_info();
-#endif
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::process_message_task(const void* args, size_t arglen)
-    //--------------------------------------------------------------------------
-    {
-      const char* buffer = (const char*)args;
-      AddressSpaceID sender = *((const AddressSpaceID*)buffer);
-      buffer += sizeof(sender);
-      arglen -= sizeof(sender);
-      find_messenger(sender)->receive_message(buffer, arglen);
-    }
-
-    //--------------------------------------------------------------------------
     void Runtime::activate_context(InnerContext* context)
     //--------------------------------------------------------------------------
     {
@@ -9638,49 +9694,14 @@ namespace Legion {
     {
       std::atomic<DistributedID> result(0);
       const RtUserEvent done = Runtime::create_rt_user_event();
-      Serializer rez;
+      DistributedIDRequest rez;
       rez.serialize(&result);
       rez.serialize(done);
-      find_messenger(target)->send_message(
-          SEND_REMOTE_DISTRIBUTED_ID_REQUEST, rez, true /*flush*/);
+      rez.dispatch(target);
       if (!done.has_triggered())
         done.wait();
       legion_assert(result.load() != 0);
       return result.load();
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_remote_distributed_id_request(
-        Deserializer& derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      std::atomic<DistributedID>* target;
-      derez.deserialize(target);
-      RtUserEvent done;
-      derez.deserialize(done);
-
-      const DistributedID did = get_available_distributed_id();
-      Serializer rez;
-      rez.serialize(did);
-      rez.serialize(target);
-      rez.serialize(done);
-      find_messenger(source)->send_message(
-          SEND_REMOTE_DISTRIBUTED_ID_RESPONSE, rez, true /*flush*/,
-          true /*response*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_remote_distributed_id_response(Deserializer& derez)
-    //--------------------------------------------------------------------------
-    {
-      DistributedID did;
-      derez.deserialize(did);
-      std::atomic<DistributedID>* target;
-      derez.deserialize(target);
-      target->store(did);
-      RtUserEvent done;
-      derez.deserialize(done);
-      Runtime::trigger_event(done);
     }
 
     //--------------------------------------------------------------------------
@@ -9889,23 +9910,22 @@ namespace Legion {
       DistributedCollectable* dc = nullptr;
       if (LogicalView::is_materialized_did(did))
         dc = find_or_request_distributed_collectable<
-            MaterializedView, SEND_VIEW_REQUEST>(did, ready);
+            MaterializedView, ViewRequestMessage>(did, ready);
       else if (LogicalView::is_reduction_did(did))
         dc = find_or_request_distributed_collectable<
-            ReductionView, SEND_VIEW_REQUEST>(did, ready);
+            ReductionView, ViewRequestMessage>(did, ready);
       else if (LogicalView::is_fill_did(did))
         dc = find_or_request_distributed_collectable<
-            FillView, SEND_VIEW_REQUEST>(did, ready);
+            FillView, ViewRequestMessage>(did, ready);
       else if (LogicalView::is_replicated_did(did))
         dc = find_or_request_distributed_collectable<
-            ReplicatedView, SEND_VIEW_REQUEST>(did, ready);
+            ReplicatedView, ViewRequestMessage>(did, ready);
       else if (LogicalView::is_allreduce_did(did))
         dc = find_or_request_distributed_collectable<
-            AllreduceView, SEND_VIEW_REQUEST>(did, ready);
+            AllreduceView, ViewRequestMessage>(did, ready);
       else if (LogicalView::is_phi_did(did))
-        dc =
-            find_or_request_distributed_collectable<PhiView, SEND_VIEW_REQUEST>(
-                did, ready);
+        dc = find_or_request_distributed_collectable<
+            PhiView, ViewRequestMessage>(did, ready);
       else
         std::abort();
       // Have to static cast since the memory might not have been initialized
@@ -9920,7 +9940,7 @@ namespace Legion {
       DistributedCollectable* dc = nullptr;
       if (InstanceManager::is_physical_did(did))
         dc = find_or_request_distributed_collectable<
-            PhysicalManager, SEND_MANAGER_REQUEST>(did, ready);
+            PhysicalManager, ManagerRequestMessage>(did, ready);
       else
         std::abort();
       // Have to static cast since the memory might not have been initialized
@@ -9934,7 +9954,7 @@ namespace Legion {
     {
       legion_assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == EQUIVALENCE_SET_DC);
       DistributedCollectable* dc = find_or_request_distributed_collectable<
-          EquivalenceSet, SEND_EQUIVALENCE_SET_REQUEST>(did, ready);
+          EquivalenceSet, EquivalenceSetRequest>(did, ready);
       // Have to static cast since the memory might not have been initialized
       return static_cast<EquivalenceSet*>(dc);
     }
@@ -9946,7 +9966,7 @@ namespace Legion {
       legion_assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == INNER_CONTEXT_DC);
       RtEvent ready;
       DistributedCollectable* dc = find_or_request_distributed_collectable<
-          RemoteContext, SEND_REMOTE_CONTEXT_REQUEST>(did, ready);
+          RemoteContext, RemoteContextRequest>(did, ready);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       return static_cast<InnerContext*>(dc);
@@ -9973,7 +9993,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, MessageKind MK>
+    template<typename T, typename AM>
     DistributedCollectable* Runtime::find_or_request_distributed_collectable(
         DistributedID to_find, RtEvent& ready)
     //--------------------------------------------------------------------------
@@ -10017,13 +10037,13 @@ namespace Legion {
       legion_assert(
           target != address_space);  // shouldn't be sending to ourself
       // Now send the message
-      Serializer rez;
+      AM rez;
       {
         RezCheck z(rez);
         rez.serialize(to_find);
         rez.serialize(address_space);
       }
-      find_messenger(target)->send_message(MK, rez, true /*flush*/);
+      rez.dispatch(target);
       return result;
     }
 
@@ -10232,9 +10252,8 @@ namespace Legion {
           // Send a message to the next node down the tree to remove our
           // guard reference that we have there
           AddressSpaceID parent = (address_space - 1) / legion_collective_radix;
-          Serializer rez;
-          find_messenger(parent)->send_message(
-              SEND_TOP_LEVEL_TASK_COMPLETE, rez, true /*flush*/);
+          TopLevelTaskComplete rez;
+          rez.dispatch(parent);
         }
         else  // We're the owner node so start the quiesence algorithm
           issue_runtime_shutdown_attempt();
@@ -10569,6 +10588,22 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    /*static*/ void Runtime::send_index_space_destruction(
+        IndexSpace handle, AddressSpaceID target, std::set<RtEvent>& applied)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceDestruction rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(handle);
+        const RtUserEvent done = create_rt_user_event();
+        rez.serialize(done);
+        applied.insert(done);
+      }
+      rez.dispatch(target);
+    }
+
+    //--------------------------------------------------------------------------
     void Runtime::destroy_index_partition(
         IndexPartition handle, std::set<RtEvent>& applied,
         const CollectiveMapping* mapping)
@@ -10605,6 +10640,23 @@ namespace Legion {
         else
           send_index_partition_destruction(handle, owner_space, applied);
       }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::send_index_partition_destruction(
+        IndexPartition handle, AddressSpaceID target,
+        std::set<RtEvent>& applied)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartitionDestruction rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(handle);
+        const RtUserEvent done = create_rt_user_event();
+        rez.serialize(done);
+        applied.insert(done);
+      }
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -10883,6 +10935,22 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    /*static*/ void Runtime::send_field_space_destruction(
+        FieldSpace handle, AddressSpaceID target, std::set<RtEvent>& applied)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceDestruction rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(handle);
+        const RtUserEvent done = create_rt_user_event();
+        rez.serialize(done);
+        applied.insert(done);
+      }
+      rez.dispatch(target);
+    }
+
+    //--------------------------------------------------------------------------
     RtEvent Runtime::allocate_field(
         FieldSpace handle, size_t field_size, FieldID fid,
         CustomSerdezID serdez_id, Provenance* provenance,
@@ -11082,6 +11150,22 @@ namespace Legion {
         else
           send_logical_region_destruction(handle, owner_space, applied);
       }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::send_logical_region_destruction(
+        LogicalRegion handle, AddressSpaceID target, std::set<RtEvent>& applied)
+    //--------------------------------------------------------------------------
+    {
+      LogicalRegionDestruction rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(handle);
+        const RtUserEvent done = create_rt_user_event();
+        rez.serialize(done);
+        applied.insert(done);
+      }
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -11779,11 +11863,11 @@ namespace Legion {
         {
           RtUserEvent done = Runtime::create_rt_user_event();
           index_space_requests[space] = done;
-          Serializer rez;
+          IndexSpaceRequest rez;
           rez.serialize(space);
           rez.serialize(done);
           rez.serialize(address_space);
-          send_index_space_request(owner, rez);
+          rez.dispatch(owner);
           wait_on = done;
         }
         else
@@ -11927,11 +12011,11 @@ namespace Legion {
         {
           RtUserEvent done = Runtime::create_rt_user_event();
           index_part_requests[part] = done;
-          Serializer rez;
+          IndexPartitionRequest rez;
           rez.serialize(part);
           rez.serialize(done);
           rez.serialize(address_space);
-          send_index_partition_request(owner, rez);
+          rez.dispatch(owner);
           wait_on = done;
         }
         else
@@ -12070,11 +12154,11 @@ namespace Legion {
         {
           RtUserEvent done = Runtime::create_rt_user_event();
           field_space_requests[space] = done;
-          Serializer rez;
+          FieldSpaceRequest rez;
           rez.serialize(space);
           rez.serialize(done);
           rez.serialize(address_space);
-          send_field_space_request(owner, rez);
+          rez.dispatch(owner);
           wait_on = done;
         }
         else
@@ -12207,11 +12291,11 @@ namespace Legion {
             {
               RtUserEvent done = Runtime::create_rt_user_event();
               region_tree_requests[handle.get_tree_id()] = done;
-              Serializer rez;
+              TopLevelRegionRequest rez;
               rez.serialize(handle.get_tree_id());
               rez.serialize(done);
               rez.serialize(address_space);
-              send_top_level_region_request(owner, rez);
+              rez.dispatch(owner);
               wait_on = done;
             }
             else
@@ -12429,11 +12513,11 @@ namespace Legion {
         {
           RtUserEvent done = Runtime::create_rt_user_event();
           region_tree_requests[tid] = done;
-          Serializer rez;
+          TopLevelRegionRequest rez;
           rez.serialize(tid);
           rez.serialize(done);
           rez.serialize(runtime->address_space);
-          runtime->send_top_level_region_request(owner, rez);
+          rez.dispatch(owner);
           wait_on = done;
         }
         else
@@ -12490,11 +12574,11 @@ namespace Legion {
       {
         RtUserEvent done = Runtime::create_rt_user_event();
         index_space_requests[space] = done;
-        Serializer rez;
+        IndexSpaceRequest rez;
         rez.serialize(space);
         rez.serialize(done);
         rez.serialize(address_space);
-        send_index_space_request(target, rez);
+        rez.dispatch(target);
         return done;
       }
       else
@@ -14313,12 +14397,12 @@ namespace Legion {
       else
       {
         // Send a message to the owner asking it to do the release
-        Serializer rez;
+        ConstraintRelease rez;
         {
           RezCheck z(rez);
           rez.serialize(layout_id);
         }
-        send_constraint_release(constraints->owner_space, rez);
+        rez.dispatch(constraints->owner_space);
       }
     }
 
@@ -14458,7 +14542,7 @@ namespace Legion {
                   "Unable to find layout constraint %ld", layout_id);
             }
             RtUserEvent to_trigger = Runtime::create_rt_user_event();
-            Serializer rez;
+            ConstraintRequest rez;
             {
               RezCheck z(rez);
               rez.serialize(layout_id);
@@ -14466,7 +14550,7 @@ namespace Legion {
               rez.serialize(can_fail);
             }
             // Send the message
-            send_constraint_request(target, rez);
+            rez.dispatch(target);
             // Only save the event to wait on if this can't fail
             if (!can_fail)
               pending_constraint_requests[layout_id] = to_trigger;
@@ -14496,19 +14580,6 @@ namespace Legion {
       }
       return finder->second;
     }
-
-    /*static*/ TaskID Runtime::legion_main_id = 0;
-    /*static*/ MapperID Runtime::legion_main_mapper_id = 0;
-    /*static*/ bool Runtime::legion_main_set = false;
-    /*static*/ bool Runtime::runtime_initialized = false;
-    /*static*/ bool Runtime::runtime_cmdline_parsed = false;
-    /*static*/ bool Runtime::runtime_started = false;
-    /*static*/ bool Runtime::runtime_backgrounded = false;
-    /*static*/ std::atomic<Realm::Event::id_t> Runtime::startup_event = {0};
-    /*static*/ Realm::Barrier::timestamp_t Runtime::startup_timestamp = 0;
-    /*static*/ std::atomic<bool> Runtime::background_wait = {0};
-    /*static*/ int Runtime::return_code = 0;
-    /*static*/ int Runtime::mpi_rank = -1;
 
     //--------------------------------------------------------------------------
     /*static*/ int Runtime::start(
@@ -15071,6 +15142,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void Runtime::TopFinishArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      if (ctx->remove_base_gc_ref(RUNTIME_REF))
+        delete ctx;
+      // Finally tell the runtime that we have one less top level task
+      runtime->decrement_outstanding_top_level_tasks();
+    }
+
+    //--------------------------------------------------------------------------
     ImplicitShardManager* Runtime::find_implicit_shard_manager(
         TaskID top_task_id, MapperID mapper_id, Processor::Kind kind,
         unsigned shards_per_address_space)
@@ -15486,14 +15567,12 @@ namespace Legion {
       }
       // Now build the data structures for all processors
       std::set<AddressSpaceID> address_spaces;
-      std::map<Processor, AddressSpaceID> proc_spaces;
       Machine::ProcessorQuery all_procs(machine);
       for (Machine::ProcessorQuery::iterator it = all_procs.begin();
            it != all_procs.end(); it++)
       {
         AddressSpaceID sid = it->address_space();
         address_spaces.insert(sid);
-        proc_spaces[*it] = sid;
         if (!first_proc.exists() && (sid == 0) && (it->kind() == startup_kind))
           first_proc = *it;
       }
@@ -15518,8 +15597,7 @@ namespace Legion {
       // Construct the runtime singleton
       new Runtime(
           machine, config, background, input_args, local_space, system_memory,
-          local_procs, local_util_procs, address_spaces, proc_spaces,
-          supply_default_mapper);
+          local_procs, local_util_procs, address_spaces, supply_default_mapper);
       Realm::ProfilingRequestSet no_requests;
       // Keep track of all the registration events
       std::vector<RtEvent> registered_events;
@@ -16487,33 +16565,23 @@ namespace Legion {
         Processor p)
     //--------------------------------------------------------------------------
     {
-#if (!defined(LEGION_MALLOC_INSTANCES) && !defined(LEGION_USE_CUDA)) || \
-    (!defined(LEGION_MALLOC_INSTANCES) && !defined(LEGION_USE_HIP))
-      // Meta-tasks can run on application processors only when there
-      // are no utility processors for us to use
-      legion_assert(
-          runtime->local_utils.empty() ||
-          (implicit_context == nullptr));  // this better hold
-#endif
+      // Make sure implicit_context is a nullptr so that we know that
+      // Meta-tasks only run on the same processors as application tasks
+      // when there are no utility processors to use
+      if (implicit_context != nullptr)
+      {
+        implicit_context = nullptr;
+        // We should only have an implicit context if we're on an application
+        // processor and that should only happen if we don't have any
+        // utility processors
+        legion_assert(runtime->local_utils.empty());
+      }
       legion_assert(implicit_reference_tracker == nullptr);
       // We immediately bump the priority of all meta-tasks once they start
       // up to the highest level to ensure that they drain once they begin
       Processor::set_current_task_priority(LG_RUNNING_PRIORITY);
-      const char* data = (const char*)args;
-      implicit_provenance = *((const UniqueID*)data);
-      data += sizeof(implicit_provenance);
-      arglen -= sizeof(implicit_provenance);
-#ifdef LEGION_DEBUG_CALLERS
-      implicit_task_caller = *((const LgTaskID*)data);
-      data += sizeof(implicit_task_caller);
-      arglen -= sizeof(implicit_task_caller);
-#endif
-      LgTaskID tid = *((const LgTaskID*)data);
-#ifdef LEGION_DEBUG_CALLERS
-      implicit_task_kind = tid;
-#endif
-      data += sizeof(tid);
-      arglen -= sizeof(tid);
+      LgTaskID tid;
+      std::memcpy(&tid, args, sizeof(tid));
       if (runtime->profiler != nullptr)
       {
         implicit_fevent = LgEvent(Processor::get_current_finish_event());
@@ -16525,6 +16593,11 @@ namespace Legion {
           implicit_profiler =
               runtime->profiler->find_or_create_profiling_instance();
       }
+      legion_assert(tid < LG_LAST_TASK_ID);
+      void (*handler)(const void*, size_t) = meta_task_table[tid].load();
+      legion_assert(handler != nullptr);
+      (*handler)(args, arglen);
+#if 0
       switch (tid)
       {
         case LG_SCHEDULER_ID:
@@ -16988,6 +17061,7 @@ namespace Legion {
         default:
           std::abort();  // should never get here
       }
+#endif
       if (implicit_reference_tracker != nullptr)
       {
         delete implicit_reference_tracker;
@@ -17006,6 +17080,9 @@ namespace Legion {
         Processor p)
     //--------------------------------------------------------------------------
     {
+      // Make sure implicit_context is a nullptr so that we know that
+      if (implicit_context != nullptr)
+        implicit_context = nullptr;
       if (runtime->profiler != nullptr)
       {
         implicit_fevent = LgEvent(Processor::get_current_finish_event());
@@ -17072,9 +17149,9 @@ namespace Legion {
         AddressSpaceID target = offset + idx;
         if (target < total_address_spaces)
         {
-          Serializer rez;
+          StartupBarrierMessage rez;
           rez.serialize(startup_barrier);
-          send_startup_barrier(target, rez);
+          rez.dispatch(target);
         }
       }
       // Write the timestamp first
@@ -17121,6 +17198,8 @@ namespace Legion {
         Processor p)
     //--------------------------------------------------------------------------
     {
+      if (implicit_context != nullptr)
+        implicit_context = nullptr;
       legion_assert(implicit_reference_tracker == nullptr);
       if (runtime->profiler != nullptr)
       {
@@ -17132,21 +17211,13 @@ namespace Legion {
       // We immediately bump the priority of all meta-tasks once they start
       // up to the highest level to ensure that they drain once they begin
       Processor::set_current_task_priority(LG_RUNNING_PRIORITY);
-      const char* data = (const char*)args;
-      implicit_provenance = *((const UniqueID*)data);
-      data += sizeof(implicit_provenance);
-      arglen -= sizeof(implicit_provenance);
-#ifdef LEGION_DEBUG_CALLERS
-      implicit_task_caller = *((const LgTaskID*)data);
-      data += sizeof(implicit_task_caller);
-      arglen -= sizeof(implicit_task_caller);
-#endif
-      LgTaskID tid = *((const LgTaskID*)data);
-      data += sizeof(tid);
-      arglen -= sizeof(tid);
-#ifdef LEGION_DEBUG_CALLERS
-      implicit_task_kind = tid;
-#endif
+      LgTaskID tid;
+      std::memcpy(&tid, args, sizeof(tid));
+      legion_assert(tid < LG_LAST_TASK_ID);
+      void (*handler)(const void*, size_t) = meta_task_table[tid].load();
+      legion_assert(handler != nullptr);
+      (*handler)(args, arglen);
+#if 0
       switch (tid)
       {
         case LG_FUTURE_CALLBACK_TASK_ID:
@@ -17186,6 +17257,7 @@ namespace Legion {
         default:
           std::abort();  // should never get here
       }
+#endif
       if (implicit_reference_tracker != nullptr)
       {
         delete implicit_reference_tracker;

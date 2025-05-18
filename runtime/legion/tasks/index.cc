@@ -1235,7 +1235,7 @@ namespace Legion {
         {
           if (it->second != runtime->address_space)
           {
-            Serializer rez;
+            SliceConcurrentResponse rez;
             {
               RezCheck z(rez);
               rez.serialize(it->first);
@@ -1245,7 +1245,7 @@ namespace Legion {
               rez.serialize(finder->second.variant);
               rez.serialize(finder->second.poisoned);
             }
-            runtime->send_slice_concurrent_allreduce_response(it->second, rez);
+            rez.dispatch(it->second);
           }
           else
             it->first->finish_concurrent_allreduce(
@@ -2405,7 +2405,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexTask::process_slice_mapped(
+    /*static*/ void SliceRemoteMapped::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2415,7 +2415,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexTask::process_slice_complete(Deserializer& derez)
+    /*static*/ void SliceRemoteComplete::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       IndexTask* task;
@@ -2424,7 +2425,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexTask::process_slice_commit(Deserializer& derez)
+    /*static*/ void SliceRemoteCommit::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       IndexTask* task;
@@ -2433,8 +2435,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexTask::process_slice_find_intra_dependence(
-        Deserializer& derez)
+    /*static*/ void SliceFindIntraDependence::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2938,15 +2940,14 @@ namespace Legion {
       {
         if (it->second != runtime->address_space)
         {
-          Serializer rez;
+          IndividualTaskConcurrentResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(it->first);
             rez.serialize(lamport_clock);
             rez.serialize(poisoned);
           }
-          runtime->send_individual_concurrent_allreduce_response(
-              it->second, rez);
+          rez.dispatch(it->second);
         }
         else
           it->first->finish_concurrent_allreduce(lamport_clock, poisoned);
@@ -2957,7 +2958,7 @@ namespace Legion {
       {
         if (it->second != runtime->address_space)
         {
-          Serializer rez;
+          SliceConcurrentResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(it->first);
@@ -2967,7 +2968,7 @@ namespace Legion {
             rez.serialize(variant);
             rez.serialize(poisoned);
           }
-          runtime->send_slice_concurrent_allreduce_response(it->second, rez);
+          rez.dispatch(it->second);
         }
         else
           it->first->finish_concurrent_allreduce(

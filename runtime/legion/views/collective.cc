@@ -154,14 +154,14 @@ namespace Legion {
         // Not the owner so need to send a message on down the chain
         // to make the owner valid and ensure all the nodes are keeping
         // a valid reference
-        Serializer rez;
+        CollectiveViewAddRemoteReference rez;
         rez.serialize(did);
         if ((collective_mapping != nullptr) &&
             collective_mapping->contains(local_space))
-          runtime->send_collective_view_add_remote_reference(
-              collective_mapping->get_parent(owner_space, local_space), rez);
+          rez.dispatch(
+              collective_mapping->get_parent(owner_space, local_space));
         else
-          runtime->send_collective_view_add_remote_reference(owner_space, rez);
+          rez.dispatch(owner_space);
       }
     }
 
@@ -187,12 +187,12 @@ namespace Legion {
           collective_mapping->get_children(owner_space, local_space, children);
           if (!children.empty())
           {
-            Serializer rez;
+            CollectiveViewMakeValid rez;
             rez.serialize(did);
             for (std::vector<AddressSpaceID>::const_iterator it =
                      children.begin();
                  it != children.end(); it++)
-              runtime->send_collective_view_make_valid(*it, rez);
+              rez.dispatch(*it);
           }
         }
         // Only need to add the references if we're in the not-valid state
@@ -211,7 +211,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_make_valid(Deserializer& derez)
+    /*static*/ void CollectiveViewMakeValid::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -252,12 +253,12 @@ namespace Legion {
           collective_mapping->get_children(owner_space, local_space, children);
           if (!children.empty())
           {
-            Serializer rez;
+            CollectiveViewMakeInvalid rez;
             rez.serialize(did);
             for (std::vector<AddressSpaceID>::const_iterator it =
                      children.begin();
                  it != children.end(); it++)
-              runtime->send_collective_view_make_invalid(*it, rez);
+              rez.dispatch(*it);
           }
         }
         valid_state = NOT_VALID_STATE;
@@ -270,7 +271,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_make_invalid(Deserializer& derez)
+    /*static*/ void CollectiveViewMakeInvalid::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -298,7 +300,7 @@ namespace Legion {
         // See if we're going to fail right away
         if (valid_state == FULL_VALID_STATE)
         {
-          Serializer rez;
+          CollectiveViewInvalidateResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -307,10 +309,10 @@ namespace Legion {
           }
           if ((collective_mapping != nullptr) &&
               collective_mapping->contains(local_space))
-            runtime->send_collective_view_invalidate_response(
-                collective_mapping->get_parent(owner_space, local_space), rez);
+            rez.dispatch(
+                collective_mapping->get_parent(owner_space, local_space));
           else
-            runtime->send_collective_view_invalidate_response(owner_space, rez);
+            rez.dispatch(owner_space);
           return false;
         }
         invalidation_failed = false;
@@ -327,32 +329,33 @@ namespace Legion {
           collective_mapping->get_children(owner_space, local_space, children);
           if (!children.empty())
           {
-            Serializer rez;
+            CollectiveViewInvalidateRequest rez;
             rez.serialize(did);
             rez.serialize(invalidation_generation);
             for (std::vector<AddressSpaceID>::const_iterator it =
                      children.begin();
                  it != children.end(); it++)
-              runtime->send_collective_view_invalidate_request(*it, rez);
+              rez.dispatch(*it);
             remaining_invalidation_responses += children.size();
           }
         }
         if (is_owner() && has_remote_instances())
         {
-          Serializer rez;
+          CollectiveViewInvalidateRequest rez;
           rez.serialize(did);
           rez.serialize(invalidation_generation);
           struct InvalidFunctor {
-            InvalidFunctor(Serializer& z, unsigned& cnt)
-              : rez(z), count(cnt) { }
+            InvalidFunctor(CollectiveViewInvalidateRequest& z, unsigned& cnt)
+              : rez(z), count(cnt)
+            { }
             inline void apply(AddressSpaceID target)
             {
               if (target == runtime->address_space)
                 return;
-              runtime->send_collective_view_invalidate_request(target, rez);
+              rez.dispatch(target);
               count++;
             }
-            Serializer& rez;
+            CollectiveViewInvalidateRequest& rez;
             unsigned& count;
           };
           InvalidFunctor functor(rez, remaining_invalidation_responses);
@@ -366,8 +369,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_invalidate_request(
-        Deserializer& derez)
+    /*static*/ void CollectiveViewInvalidateRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -415,7 +418,7 @@ namespace Legion {
           if (!is_owner())
           {
             // Send the response back to the owner
-            Serializer rez;
+            CollectiveViewInvalidateResponse rez;
             {
               RezCheck z(rez);
               rez.serialize(did);
@@ -429,12 +432,10 @@ namespace Legion {
             }
             if ((collective_mapping != nullptr) &&
                 collective_mapping->contains(local_space))
-              runtime->send_collective_view_invalidate_response(
-                  collective_mapping->get_parent(owner_space, local_space),
-                  rez);
+              rez.dispatch(
+                  collective_mapping->get_parent(owner_space, local_space));
             else
-              runtime->send_collective_view_invalidate_response(
-                  owner_space, rez);
+              rez.dispatch(owner_space);
           }
           else if (!invalidation_failed)
             return make_invalid(false /*need lock*/);
@@ -444,8 +445,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_invalidate_response(
-        Deserializer& derez)
+    /*static*/ void CollectiveViewInvalidateResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -469,8 +470,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_add_remote_reference(
-        Deserializer& derez)
+    /*static*/ void CollectiveViewAddRemoteReference::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -482,8 +483,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_remove_remote_reference(
-        Deserializer& derez)
+    /*static*/ void CollectiveViewRemoveRemoteReference::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -513,15 +514,14 @@ namespace Legion {
       {
         // Not the owner so send a message down the chain to remove the
         // valid reference that we added when we became valid
-        Serializer rez;
+        CollectiveViewRemoveRemoteReference rez;
         rez.serialize(did);
         if ((collective_mapping != nullptr) &&
             collective_mapping->contains(local_space))
-          runtime->send_collective_view_remove_remote_reference(
-              collective_mapping->get_parent(owner_space, local_space), rez);
+          rez.dispatch(
+              collective_mapping->get_parent(owner_space, local_space));
         else
-          runtime->send_collective_view_remove_remote_reference(
-              owner_space, rez);
+          rez.dispatch(owner_space);
         // Nodes which aren't part of the collective won't be getting a
         // make_invalid call so they can remove their reference now
         if ((collective_mapping == nullptr) ||
@@ -616,14 +616,14 @@ namespace Legion {
             runtime->determine_owner(context_did);
         if (context_space != local_space)
         {
-          Serializer rez;
+          CollectiveViewDeletion rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(tid);
             rez.serialize(context_did);
           }
-          runtime->send_collective_view_deletion(context_space, rez);
+          rez.dispatch(context_space);
         }
         else
         {
@@ -642,11 +642,10 @@ namespace Legion {
         legion_assert(collective_mapping != nullptr);
         legion_assert(collective_mapping->contains(local_space));
         // Send the notification down to the parent
-        Serializer rez;
+        CollectiveViewNotification rez;
         rez.serialize(did);
         rez.serialize(tid);
-        runtime->send_collective_view_notification(
-            collective_mapping->get_parent(owner_space, local_space), rez);
+        rez.dispatch(collective_mapping->get_parent(owner_space, local_space));
       }
       // Unregister ourselves with all our local instances
       if (!deletion_notified.exchange(true))
@@ -662,8 +661,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_collective_view_deletion(
-        Deserializer& derez)
+    /*static*/ void CollectiveViewNotification::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -708,7 +707,7 @@ namespace Legion {
         AddressSpaceID origin = collective_mapping->find_nearest(local_space);
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveDistributeFill rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -751,7 +750,7 @@ namespace Legion {
           }
           rez.serialize(origin);
         }
-        runtime->send_collective_distribute_fill(origin, rez);
+        rez.dispatch(origin);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -862,60 +861,108 @@ namespace Legion {
         {
           const RtUserEvent recorded = Runtime::create_rt_user_event();
           const RtUserEvent applied = Runtime::create_rt_user_event();
-          Serializer rez;
-          {
-            RezCheck z(rez);
-            rez.serialize(this->did);
-            if (reduction_op_id > 0)
-              rez.serialize(source_view->did);
-            source_view->pack_fields(rez, src_fields);
-            src_inst.serialize(rez);
-            rez.serialize(source_manager->get_unique_event());
-            rez.serialize(precondition);
-            rez.serialize(predicate_guard);
-            copy_expression->pack_expression(rez, origin);
-            rez.serialize<bool>(copy_restricted);
-            if (copy_restricted)
-              op->pack_remote_operation(rez, origin, applied_events);
-            rez.serialize(index);
-            rez.serialize(collective_match_space);
-            rez.serialize(op->get_context_index());
-            rez.serialize(copy_mask);
-            trace_info.pack_trace_info(rez);
-            rez.serialize(recorded);
-            rez.serialize(applied);
-            if (trace_info.recording)
-            {
-              // If this is a reducecast case, then the barrier is for
-              // all of the different reductions
-              if (source_view->get_redop() == 0)
-              {
-                ApBarrier copy_bar;
-                ShardID sid = trace_info.record_barrier_creation(
-                    copy_bar, 1 /*arrivals*/);
-                Runtime::trigger_event(
-                    copy_done, copy_bar, trace_info, applied_events);
-                rez.serialize(copy_bar);
-                rez.serialize(sid);
-              }
-              rez.serialize(all_bar);
-              if (all_bar.exists())
-                rez.serialize(owner_shard);
-            }
-            else
-            {
-              rez.serialize(copy_done);
-              if (source_view->get_redop() == 0)
-                rez.serialize(all_done);
-            }
-            rez.serialize(origin);
-            if (reduction_op_id == 0)
-              rez.serialize(COLLECTIVE_BROADCAST);
-          }
           if (reduction_op_id == 0)
-            runtime->send_collective_distribute_broadcast(origin, rez);
+          {
+            CollectiveDistributeBroadcast rez;
+            {
+              RezCheck z(rez);
+              rez.serialize(this->did);
+              source_view->pack_fields(rez, src_fields);
+              src_inst.serialize(rez);
+              rez.serialize(source_manager->get_unique_event());
+              rez.serialize(precondition);
+              rez.serialize(predicate_guard);
+              copy_expression->pack_expression(rez, origin);
+              rez.serialize<bool>(copy_restricted);
+              if (copy_restricted)
+                op->pack_remote_operation(rez, origin, applied_events);
+              rez.serialize(index);
+              rez.serialize(collective_match_space);
+              rez.serialize(op->get_context_index());
+              rez.serialize(copy_mask);
+              trace_info.pack_trace_info(rez);
+              rez.serialize(recorded);
+              rez.serialize(applied);
+              if (trace_info.recording)
+              {
+                // If this is a reducecast case, then the barrier is for
+                // all of the different reductions
+                if (source_view->get_redop() == 0)
+                {
+                  ApBarrier copy_bar;
+                  ShardID sid = trace_info.record_barrier_creation(
+                      copy_bar, 1 /*arrivals*/);
+                  Runtime::trigger_event(
+                      copy_done, copy_bar, trace_info, applied_events);
+                  rez.serialize(copy_bar);
+                  rez.serialize(sid);
+                }
+                rez.serialize(all_bar);
+                if (all_bar.exists())
+                  rez.serialize(owner_shard);
+              }
+              else
+              {
+                rez.serialize(copy_done);
+                if (source_view->get_redop() == 0)
+                  rez.serialize(all_done);
+              }
+              rez.serialize(origin);
+              rez.serialize(COLLECTIVE_BROADCAST);
+            }
+            rez.dispatch(origin);
+          }
           else
-            runtime->send_collective_distribute_reducecast(origin, rez);
+          {
+            CollectiveDistributeReducecast rez;
+            {
+              RezCheck z(rez);
+              rez.serialize(this->did);
+              rez.serialize(source_view->did);
+              source_view->pack_fields(rez, src_fields);
+              src_inst.serialize(rez);
+              rez.serialize(source_manager->get_unique_event());
+              rez.serialize(precondition);
+              rez.serialize(predicate_guard);
+              copy_expression->pack_expression(rez, origin);
+              rez.serialize<bool>(copy_restricted);
+              if (copy_restricted)
+                op->pack_remote_operation(rez, origin, applied_events);
+              rez.serialize(index);
+              rez.serialize(collective_match_space);
+              rez.serialize(op->get_context_index());
+              rez.serialize(copy_mask);
+              trace_info.pack_trace_info(rez);
+              rez.serialize(recorded);
+              rez.serialize(applied);
+              if (trace_info.recording)
+              {
+                // If this is a reducecast case, then the barrier is for
+                // all of the different reductions
+                if (source_view->get_redop() == 0)
+                {
+                  ApBarrier copy_bar;
+                  ShardID sid = trace_info.record_barrier_creation(
+                      copy_bar, 1 /*arrivals*/);
+                  Runtime::trigger_event(
+                      copy_done, copy_bar, trace_info, applied_events);
+                  rez.serialize(copy_bar);
+                  rez.serialize(sid);
+                }
+                rez.serialize(all_bar);
+                if (all_bar.exists())
+                  rez.serialize(owner_shard);
+              }
+              else
+              {
+                rez.serialize(copy_done);
+                if (source_view->get_redop() == 0)
+                  rez.serialize(all_done);
+              }
+              rez.serialize(origin);
+            }
+            rez.dispatch(origin);
+          }
           recorded_events.insert(recorded);
           applied_events.insert(applied);
         }
@@ -996,7 +1043,7 @@ namespace Legion {
         {
           const RtUserEvent recorded = Runtime::create_rt_user_event();
           const RtUserEvent applied = Runtime::create_rt_user_event();
-          Serializer rez;
+          CollectiveDistributePointwise rez;
           {
             RezCheck z(rez);
             rez.serialize(this->did);
@@ -1030,7 +1077,7 @@ namespace Legion {
             rez.serialize(origin);
             rez.serialize(allreduce_tag);
           }
-          runtime->send_collective_distribute_pointwise(origin, rez);
+          rez.dispatch(origin);
           recorded_events.insert(recorded);
           applied_events.insert(applied);
         }
@@ -1066,7 +1113,7 @@ namespace Legion {
         ApUserEvent all_done;
         if (need_valid_return)
           all_done = Runtime::create_ap_user_event(&trace_info);
-        Serializer rez;
+        CollectiveFuseGather rez;
         {
           RezCheck z(rez);
           rez.serialize(this->did);
@@ -1090,7 +1137,7 @@ namespace Legion {
           rez.serialize(all_done);
           rez.serialize<bool>(copy_restricted);
         }
-        runtime->send_collective_fuse_gather(origin, rez);
+        rez.dispatch(origin);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
         return all_done;
@@ -1214,8 +1261,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_fuse_gather(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveFuseGather::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1308,7 +1355,7 @@ namespace Legion {
           ApUserEvent ready_event = Runtime::create_ap_user_event(&trace_info);
           RtUserEvent registered_event = Runtime::create_rt_user_event();
           RtUserEvent applied_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          ViewRegisterUser rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1327,7 +1374,7 @@ namespace Legion {
             rez.serialize(applied_event);
             trace_info.pack_trace_info(rez);
           }
-          runtime->send_view_register_user(target->owner_space, rez);
+          rez.dispatch(target->owner_space);
           registered.emplace_back(registered_event);
           applied_events.insert(applied_event);
           return ready_event;
@@ -1376,13 +1423,13 @@ namespace Legion {
         }
         // Send the request and wait for the result
         const RtUserEvent ready_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveRemoteInstancesRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
           rez.serialize(ready_event);
         }
-        runtime->send_collective_remote_instances_request(manager_space, rez);
+        rez.dispatch(manager_space);
         if (!ready_event.has_triggered())
           ready_event.wait();
         AutoLock v_lock(view_lock, 1, false /*exclusive*/);
@@ -1421,13 +1468,13 @@ namespace Legion {
                 owner_space :
                 collective_mapping->find_nearest(local_space);
         const RtUserEvent ready_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveRemoteInstancesRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
           rez.serialize(ready_event);
         }
-        runtime->send_collective_remote_instances_request(target_space, rez);
+        rez.dispatch(target_space);
         if (!ready_event.has_triggered())
           ready_event.wait();
         AutoLock v_lock(view_lock, 1, false /*exclusive*/);
@@ -1463,13 +1510,13 @@ namespace Legion {
           }
         }
         const RtUserEvent ready_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveRemoteInstancesRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
           rez.serialize(ready_event);
         }
-        runtime->send_collective_remote_instances_request(memory_space, rez);
+        rez.dispatch(memory_space);
         if (!ready_event.has_triggered())
           ready_event.wait();
         AutoLock v_lock(view_lock, 1, false /*exclusive*/);
@@ -1491,7 +1538,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_remote_instances_request(
+    /*static*/ void CollectiveRemoteInstancesRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1507,7 +1554,7 @@ namespace Legion {
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       legion_assert(!view->local_views.empty());
-      Serializer rez;
+      CollectiveRemoteInstancesResponse rez;
       {
         RezCheck z2(rez);
         rez.serialize(did);
@@ -1516,7 +1563,7 @@ namespace Legion {
           rez.serialize(view->local_views[idx]->did);
         rez.serialize(done);
       }
-      runtime->send_collective_remote_instances_response(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
@@ -1554,7 +1601,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_remote_instances_response(
+    /*static*/ void CollectiveRemoteInstancesResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1630,13 +1677,13 @@ namespace Legion {
         if (!is_owner())
         {
           const RtUserEvent ready_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          CollectiveRemoteInstancesRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(ready_event);
           }
-          runtime->send_collective_remote_instances_request(owner_space, rez);
+          rez.dispatch(owner_space);
           if (!ready_event.has_triggered())
             ready_event.wait();
           std::map<Memory, size_t> searches;
@@ -1718,7 +1765,7 @@ namespace Legion {
           // closer to the target memory than any others, so we can send the
           // request straight to that node and do the lookup
           const RtUserEvent done = Runtime::create_rt_user_event();
-          Serializer rez;
+          CollectiveNearestInstancesRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1732,7 +1779,7 @@ namespace Legion {
             rez.serialize(done);
           }
           pack_global_ref();
-          runtime->send_collective_nearest_instances_request(space, rez);
+          rez.dispatch(space);
           return done;
         }
         else
@@ -1751,7 +1798,7 @@ namespace Legion {
                  it != children.end(); it++)
             {
               const RtUserEvent done = Runtime::create_rt_user_event();
-              Serializer rez;
+              CollectiveNearestInstancesRequest rez;
               {
                 RezCheck z(rez);
                 rez.serialize(did);
@@ -1765,7 +1812,7 @@ namespace Legion {
                 rez.serialize(done);
               }
               pack_global_ref();
-              runtime->send_collective_nearest_instances_request(*it, rez);
+              rez.dispatch(*it);
               done_events.emplace_back(done);
             }
             if (!local_results.empty())
@@ -1773,7 +1820,7 @@ namespace Legion {
               if (source != local_space)
               {
                 const RtUserEvent done = Runtime::create_rt_user_event();
-                Serializer rez;
+                CollectiveNearestInstancesResponse rez;
                 {
                   RezCheck z(rez);
                   rez.serialize(instances);
@@ -1787,8 +1834,7 @@ namespace Legion {
                   rez.serialize<bool>(bandwidth);
                   rez.serialize(done);
                 }
-                runtime->send_collective_nearest_instances_response(
-                    source, rez);
+                rez.dispatch(source);
                 done_events.emplace_back(done);
               }
               else
@@ -1808,7 +1854,7 @@ namespace Legion {
             legion_assert(source == local_space);
             // Send to the origin to start
             const RtUserEvent done = Runtime::create_rt_user_event();
-            Serializer rez;
+            CollectiveNearestInstancesRequest rez;
             {
               RezCheck z(rez);
               rez.serialize(did);
@@ -1822,7 +1868,7 @@ namespace Legion {
               rez.serialize(done);
             }
             pack_global_ref();
-            runtime->send_collective_nearest_instances_request(origin, rez);
+            rez.dispatch(origin);
             return done;
           }
         }
@@ -1839,7 +1885,7 @@ namespace Legion {
           if (!results.empty())
           {
             const RtUserEvent done = Runtime::create_rt_user_event();
-            Serializer rez;
+            CollectiveNearestInstancesResponse rez;
             {
               RezCheck z(rez);
               rez.serialize(instances);
@@ -1853,7 +1899,7 @@ namespace Legion {
               rez.serialize<bool>(bandwidth);
               rez.serialize(done);
             }
-            runtime->send_collective_nearest_instances_response(source, rez);
+            rez.dispatch(source);
             return done;
           }
         }
@@ -1953,8 +1999,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_nearest_instances_request(
-        Deserializer& derez)
+    /*static*/ void CollectiveNearestInstancesRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1987,8 +2033,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_nearest_instances_response(
-        Deserializer& derez)
+    /*static*/ void CollectiveNearestInstancesResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2005,7 +2051,8 @@ namespace Legion {
         derez.deserialize(results[idx]);
       bool bandwidth;
       derez.deserialize(bandwidth);
-      process_nearest_instances(target, instances, best, results, bandwidth);
+      CollectiveView::process_nearest_instances(
+          target, instances, best, results, bandwidth);
       RtUserEvent done;
       derez.deserialize(done);
       Runtime::trigger_event(done);
@@ -2209,7 +2256,7 @@ namespace Legion {
       if (analysis_space != local_space)
       {
         const RtEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveRemoteRegistration rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -2218,7 +2265,7 @@ namespace Legion {
               rez, analysis_space, applied_events);
           rez.serialize(applied);
         }
-        runtime->send_collective_remote_registration(analysis_space, rez);
+        rez.dispatch(analysis_space);
         applied_events.insert(applied);
         return;
       }
@@ -2230,8 +2277,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_remote_analysis_registration(
-        Deserializer& derez)
+    /*static*/ void CollectiveRemoteRegistration::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2436,7 +2483,7 @@ namespace Legion {
               }
               const AddressSpaceID parent =
                   collective_mapping->get_parent(owner_space, local_space);
-              Serializer rez;
+              CollectiveRegisterUserRequest rez;
               {
                 RezCheck z(rez);
                 rez.serialize(did);
@@ -2446,7 +2493,7 @@ namespace Legion {
                 rez.serialize(registered);
                 rez.serialize(applied);
               }
-              runtime->send_collective_register_user_request(parent, rez);
+              rez.dispatch(parent);
               return result;
             }
             else
@@ -2549,7 +2596,7 @@ namespace Legion {
           }
           const AddressSpaceID parent =
               collective_mapping->get_parent(owner_space, local_space);
-          Serializer rez;
+          CollectiveRegisterUserRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -2559,7 +2606,7 @@ namespace Legion {
             rez.serialize(registered);
             rez.serialize(applied);
           }
-          runtime->send_collective_register_user_request(parent, rez);
+          rez.dispatch(parent);
           return;
         }
         legion_assert(finder->second.remaining_analyses == 0);
@@ -2595,8 +2642,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_register_user_request(
-        Deserializer& derez)
+    /*static*/ void CollectiveRegisterUserRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2657,8 +2704,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_register_user_response(
-        Deserializer& derez)
+    /*static*/ void CollectiveRegisterUserResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2701,7 +2748,7 @@ namespace Legion {
       collective_mapping->get_children(owner_space, local_space, children);
       if (!children.empty())
       {
-        Serializer rez;
+        CollectiveRegisterUserResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -2713,7 +2760,7 @@ namespace Legion {
         }
         for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
              it != children.end(); it++)
-          runtime->send_collective_register_user_response(*it, rez);
+          rez.dispatch(*it);
       }
       legion_assert(local_views.size() == term_events.size());
       legion_assert(local_views.size() == ready_events.size());
@@ -2808,7 +2855,7 @@ namespace Legion {
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveDistributeFill rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -2850,7 +2897,7 @@ namespace Legion {
           }
           rez.serialize(origin);
         }
-        runtime->send_collective_distribute_fill(*it, rez);
+        rez.dispatch(*it);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -2908,8 +2955,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_distribute_fill(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveDistributeFill::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3095,8 +3142,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_distribute_point(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveDistributePoint::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3109,7 +3156,8 @@ namespace Legion {
       derez.deserialize(num_fields);
       std::vector<CopySrcDstField> dst_fields(num_fields);
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      unpack_fields(dst_fields, derez, ready_events, view, view_ready);
+      CollectiveView::unpack_fields(
+          dst_fields, derez, ready_events, view, view_ready);
       size_t num_reservations;
       derez.deserialize(num_reservations);
       std::vector<Reservation> reservations(num_reservations);
@@ -3301,7 +3349,7 @@ namespace Legion {
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveDistributeBroadcast rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -3352,7 +3400,7 @@ namespace Legion {
           rez.serialize(origin);
           rez.serialize(collective_kind);
         }
-        runtime->send_collective_distribute_broadcast(*it, rez);
+        rez.dispatch(*it);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -3997,8 +4045,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_distribute_broadcast(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveDistributeBroadcast::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -4011,7 +4059,8 @@ namespace Legion {
       derez.deserialize(num_fields);
       std::vector<CopySrcDstField> src_fields(num_fields);
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      unpack_fields(src_fields, derez, ready_events, view, view_ready);
+      CollectiveView::unpack_fields(
+          src_fields, derez, ready_events, view, view_ready);
       UniqueInst src_inst;
       src_inst.deserialize(derez);
       LgEvent src_unique_event;
@@ -4139,7 +4188,7 @@ namespace Legion {
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveDistributeReducecast rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -4174,7 +4223,7 @@ namespace Legion {
           }
           rez.serialize(origin);
         }
-        runtime->send_collective_distribute_reducecast(*it, rez);
+        rez.dispatch(*it);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -4277,8 +4326,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_distribute_reducecast(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveDistributeReducecast::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -4294,7 +4343,8 @@ namespace Legion {
       derez.deserialize(num_fields);
       std::vector<CopySrcDstField> src_fields(num_fields);
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      unpack_fields(src_fields, derez, ready_events, view, view_ready);
+      CollectiveView::unpack_fields(
+          src_fields, derez, ready_events, view, view_ready);
       UniqueInst src_inst;
       src_inst.deserialize(derez);
       LgEvent src_unique_event;
@@ -4386,7 +4436,7 @@ namespace Legion {
         // Send this to where the target address space is
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveDistributeHourglass rez;
         {
           RezCheck z(rez);
           rez.serialize(this->did);
@@ -4405,7 +4455,7 @@ namespace Legion {
           rez.serialize(all_done);
           rez.serialize(copy_restricted);
         }
-        runtime->send_collective_distribute_hourglass(target, rez);
+        rez.dispatch(target);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
         return;
@@ -4451,7 +4501,7 @@ namespace Legion {
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveDistributeReduction rez;
         {
           RezCheck z(rez);
           rez.serialize(source->did);
@@ -4491,7 +4541,7 @@ namespace Legion {
           rez.serialize(origin);
           rez.serialize(COLLECTIVE_HOURGLASS_ALLREDUCE);
         }
-        runtime->send_collective_distribute_reduction(origin, rez);
+        rez.dispatch(origin);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -4548,7 +4598,7 @@ namespace Legion {
         {
           const RtUserEvent recorded = Runtime::create_rt_user_event();
           const RtUserEvent applied = Runtime::create_rt_user_event();
-          Serializer rez;
+          CollectiveDistributeBroadcast rez;
           {
             RezCheck z(rez);
             rez.serialize(this->did);
@@ -4599,7 +4649,7 @@ namespace Legion {
             rez.serialize(origin);
             rez.serialize(COLLECTIVE_HOURGLASS_ALLREDUCE);
           }
-          runtime->send_collective_distribute_broadcast(*it, rez);
+          rez.dispatch(*it);
           recorded_events.insert(recorded);
           applied_events.insert(applied);
         }
@@ -4646,8 +4696,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_distribute_hourglass(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveDistributeHourglass::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -4761,7 +4811,7 @@ namespace Legion {
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveDistributePointwise rez;
         {
           RezCheck z(rez);
           rez.serialize(this->did);
@@ -4800,7 +4850,7 @@ namespace Legion {
           rez.serialize(origin);
           rez.serialize(allreduce_tag);
         }
-        runtime->send_collective_distribute_pointwise(*it, rez);
+        rez.dispatch(*it);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -4899,7 +4949,7 @@ namespace Legion {
           const RtUserEvent recorded = Runtime::create_rt_user_event();
           const RtUserEvent applied = Runtime::create_rt_user_event();
           ApUserEvent done = Runtime::create_ap_user_event(&inst_info);
-          Serializer rez;
+          CollectiveDistributePoint rez;
           {
             RezCheck z(rez);
             rez.serialize(source->did);
@@ -4924,7 +4974,7 @@ namespace Legion {
             rez.serialize(applied);
             rez.serialize(done);
           }
-          runtime->send_collective_distribute_point(src, rez);
+          rez.dispatch(src);
           recorded_events.insert(recorded);
           applied_events.insert(applied);
           local_done = done;
@@ -4962,8 +5012,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::handle_distribute_pointwise(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveDistributePointwise::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

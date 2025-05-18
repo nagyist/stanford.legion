@@ -64,7 +64,6 @@ namespace Legion {
       inline PhiView* as_phi_view(void) const;
     public:
       virtual void send_view(AddressSpaceID target) = 0;
-      static void handle_view_request(Deserializer& derez);
     public:
       inline void add_base_valid_ref(ReferenceSource source, int cnt = 1);
       inline void add_nested_valid_ref(DistributedID source, int cnt = 1);

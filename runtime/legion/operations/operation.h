@@ -78,27 +78,31 @@ namespace Legion {
     public:
       struct TriggerOpArgs : public LgTaskArgs<TriggerOpArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_TRIGGER_OP_ID;
+        static constexpr LgTaskID TASK_ID = LG_TRIGGER_OP_ID;
       public:
+        TriggerOpArgs(void) = default;
         TriggerOpArgs(Operation* o)
           : LgTaskArgs<TriggerOpArgs>(o->get_unique_op_id()), op(o)
         { }
+        inline void execute(void) const { op->trigger_mapping(); }
       public:
-        Operation* const op;
+        Operation* op;
       };
       struct DeferReleaseAcquiredArgs
         : public LgTaskArgs<DeferReleaseAcquiredArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_RELEASE_ACQUIRED_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_RELEASE_ACQUIRED_TASK_ID;
       public:
+        DeferReleaseAcquiredArgs(void) = default;
         DeferReleaseAcquiredArgs(
             Operation* op,
             std::vector<std::pair<PhysicalManager*, unsigned> >* insts)
           : LgTaskArgs<DeferReleaseAcquiredArgs>(op->get_unique_op_id()),
             instances(insts)
         { }
+        void execute(void) const;
       public:
-        std::vector<std::pair<PhysicalManager*, unsigned> >* const instances;
+        std::vector<std::pair<PhysicalManager*, unsigned> >* instances;
       };
     public:
       struct OpProfilingResponse : public ProfilingResponseBase {
@@ -201,7 +205,6 @@ namespace Legion {
           std::map<PhysicalManager*, unsigned>& acquired_insts);
       static void release_acquired_instances(
           std::map<PhysicalManager*, unsigned>& acquired_insts);
-      static void handle_deferred_release(const void* args);
     public:
       // Initialize this operation in a new parent context
       // along with the number of regions this task has

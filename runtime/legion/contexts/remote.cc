@@ -281,7 +281,7 @@ namespace Legion {
             creation_target_space, expr, mask);
       RtUserEvent ready_event = Runtime::create_rt_user_event();
       // Send off a request to the owner node to handle it
-      Serializer rez;
+      ComputeEquivalenceSetsRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -298,7 +298,7 @@ namespace Legion {
         rez.serialize(ready_event);
       }
       // Send it to the owner space
-      runtime->send_compute_equivalence_sets_request(owner_space, rez);
+      rez.dispatch(owner_space);
       return ready_event;
     }
 
@@ -310,7 +310,7 @@ namespace Legion {
     {
       legion_assert(regions.size() <= req_index);
       const RtUserEvent recorded = Runtime::create_rt_user_event();
-      Serializer rez;
+      OutputEquivalenceSetRequest rez;
       {
         RezCheck z(rez);
         pack_inner_context(rez);
@@ -322,7 +322,7 @@ namespace Legion {
         rez.serialize(mask);
         rez.serialize(recorded);
       }
-      runtime->send_output_equivalence_set_request(owner_space, rez);
+      rez.dispatch(owner_space);
       return recorded;
     }
 
@@ -369,7 +369,7 @@ namespace Legion {
         if (request.exists())
         {
           // Send the request
-          Serializer rez;
+          RemoteContextPhysicalRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -377,7 +377,7 @@ namespace Legion {
             rez.serialize(this);
             rez.serialize(request);
           }
-          runtime->send_remote_context_physical_request(owner_space, rez);
+          rez.serialize(owner_space);
         }
         // Wait for the result to come back to us
         wait_on.wait();
@@ -407,7 +407,7 @@ namespace Legion {
       const RtUserEvent to_trigger = Runtime::create_rt_user_event();
       CollectiveResult* result = new CollectiveResult(instances);
       result->add_reference();
-      Serializer rez;
+      RemoteContextPhysicalRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -418,8 +418,7 @@ namespace Legion {
         rez.serialize(result);
         rez.serialize(to_trigger);
       }
-      runtime->send_remote_context_find_collective_view_request(
-          owner_space, rez);
+      rez.dispatch(owner_space);
       ready = to_trigger;
       return result;
     }
@@ -444,7 +443,7 @@ namespace Legion {
            (local_space == mapping->find_nearest(owner_space))))
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteContextRefineEquivalenceSets rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -453,7 +452,7 @@ namespace Legion {
           rez.serialize(refinement_mask);
           rez.serialize(done);
         }
-        runtime->send_remote_context_refine_equivalence_sets(owner_space, rez);
+        rez.dispatch(owner_space);
         applied_events.emplace_back(done);
       }
     }
@@ -466,7 +465,7 @@ namespace Legion {
     {
       if (!to_trigger.exists())
         to_trigger = Runtime::create_rt_user_event();
-      Serializer rez;
+      RemoteContextPointwiseDependence rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -475,7 +474,7 @@ namespace Legion {
         rez.serialize(shard);
         rez.serialize(to_trigger);
       }
-      runtime->send_remote_context_pointwise_dependence(owner_space, rez);
+      rez.dispatch(owner_space);
       return to_trigger;
     }
 
@@ -499,7 +498,7 @@ namespace Legion {
            (local_space == mapping->find_nearest(owner_space))))
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteContextFindTraceLocalRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -512,8 +511,7 @@ namespace Legion {
           rez.serialize(&current_sets);
           rez.serialize(done);
         }
-        runtime->send_remote_context_find_trace_local_sets_request(
-            owner_space, rez);
+        rez.dispatch(owner_space);
         done.wait();
       }
     }
@@ -546,7 +544,7 @@ namespace Legion {
     {
       legion_assert(created_nodes.size() == created_trees.size());
       const RtUserEvent done_event = Runtime::create_rt_user_event();
-      Serializer rez;
+      CreatedRegionContextsMessage rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -578,13 +576,13 @@ namespace Legion {
         rez.serialize(done_event);
       }
       pack_global_ref();
-      runtime->send_created_region_contexts(owner_space, rez);
+      rez.dispatch(owner_space);
       applied_events.insert(done_event);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_created_region_contexts(
-        Deserializer& derez)
+    /*static*/ void CreatedRegionContextsMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -769,8 +767,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_local_field_update(
-        Deserializer& derez)
+    /*static*/ void LocalFieldUpdateMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -786,7 +784,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_physical_request(
+    /*static*/ void RemoteContextPhysicalRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -802,7 +800,7 @@ namespace Legion {
       RtEvent ctx_ready;
       InnerContext* local = runtime->find_or_request_inner_context(context_did);
       InnerContext* result = local->find_parent_physical_context(index);
-      Serializer rez;
+      RemoteContextPhysicalResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(target);
@@ -810,7 +808,7 @@ namespace Legion {
         result->pack_inner_context(rez);
         rez.serialize(to_trigger);
       }
-      runtime->send_remote_context_physical_response(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
@@ -828,7 +826,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_physical_response(Deserializer& derez)
+    /*static*/ void RemoteContextPhysicalResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -836,7 +835,7 @@ namespace Legion {
       derez.deserialize(target);
       unsigned index;
       derez.deserialize(index);
-      InnerContext* result = unpack_inner_context(derez);
+      InnerContext* result = InnerContext::unpack_inner_context(derez);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
       target->set_physical_context_result(index, result);
@@ -844,7 +843,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_find_collective_view_request(
+    /*static*/ void RemoteContextFindCollectiveViewRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -859,17 +858,17 @@ namespace Legion {
       std::vector<DistributedID> instances(num_insts);
       for (unsigned idx = 0; idx < num_insts; idx++)
         derez.deserialize(instances[idx]);
-      CollectiveResult* target;
+      InnerContext::CollectiveResult* target;
       derez.deserialize(target);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
 
       RtEvent result_ready;
-      CollectiveResult* result =
+      InnerContext::CollectiveResult* result =
           local->find_or_create_collective_view(tid, instances, result_ready);
       if (result_ready.exists() && !result_ready.has_triggered())
         result_ready.wait();
-      Serializer rez;
+      RemoteContextFindCollectiveViewResponse rez;
       {
         RezCheck z2(rez);
         rez.serialize(target);
@@ -877,18 +876,18 @@ namespace Legion {
         rez.serialize(result->ready_event);
         rez.serialize(to_trigger);
       }
-      runtime->send_remote_context_find_collective_view_response(source, rez);
+      rez.dispatch(source);
       if (result->remove_reference())
         delete result;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_find_collective_view_response(
-        Deserializer& derez)
+    /*static*/ void RemoteContextFindCollectiveViewResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      CollectiveResult* target;
+      InnerContext::CollectiveResult* target;
       derez.deserialize(target);
       derez.deserialize(target->collective_did);
       derez.deserialize(target->ready_event);
@@ -899,8 +898,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_refine_equivalence_sets(
-        Deserializer& derez)
+    /*static*/ void RemoteContextRefineEquivalenceSets::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -925,8 +924,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_pointwise_dependence(
-        Deserializer& derez)
+    /*static*/ void RemoteContextPointwiseDependence::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -945,7 +944,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_find_trace_local_sets_request(
+    /*static*/ void RemoteContextFindTraceLocalRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -970,7 +969,7 @@ namespace Legion {
       derez.deserialize(done);
       if (!current_sets.empty())
       {
-        Serializer rez;
+        RemoteContextFindTraceLocalResponse rez;
         {
           RezCheck z2(rez);
           rez.serialize(target);
@@ -986,16 +985,15 @@ namespace Legion {
           }
           rez.serialize(done);
         }
-        runtime->send_remote_context_find_trace_local_sets_response(
-            source, rez);
+        rez.dispatch(source);
       }
       else
         Runtime::trigger_event(done);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_find_trace_local_sets_response(
-        Deserializer& derez)
+    /*static*/ void RemoteContextFindTraceLocalResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1046,7 +1044,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_context_request(Deserializer& derez)
+    /*static*/ void RemoteContextRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1060,7 +1059,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_context_response(Deserializer& derez)
+    /*static*/ void RemoteContextResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

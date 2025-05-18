@@ -71,7 +71,7 @@ namespace Legion {
     void AllreduceView::send_view(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      AllreduceViewMessage rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -85,13 +85,13 @@ namespace Legion {
           rez.serialize<size_t>(0);
         rez.serialize(redop);
       }
-      runtime->send_allreduce_view(target, rez);
+      rez.dispatch(target);
       update_remote_instances(target);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void AllreduceView::handle_send_allreduce_view(
-        Deserializer& derez)
+    /*static*/ void AllreduceViewMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -191,7 +191,7 @@ namespace Legion {
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveDistributeReduction rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -233,7 +233,7 @@ namespace Legion {
           rez.serialize(origin);
           rez.serialize(collective_kind);
         }
-        runtime->send_collective_distribute_reduction(*it, rez);
+        rez.dispatch(*it);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -517,8 +517,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void AllreduceView::handle_distribute_reduction(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveDistributeReduction::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -531,7 +531,8 @@ namespace Legion {
       derez.deserialize(num_fields);
       std::vector<CopySrcDstField> dst_fields(num_fields);
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      unpack_fields(dst_fields, derez, ready_events, view, view_ready);
+      AllreduceView::unpack_fields(
+          dst_fields, derez, ready_events, view, view_ready);
       size_t num_reservations;
       derez.deserialize(num_reservations);
       std::vector<Reservation> reservations(num_reservations);
@@ -636,7 +637,7 @@ namespace Legion {
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveHammerReduction rez;
         {
           RezCheck z(rez);
           rez.serialize(this->did);
@@ -675,7 +676,7 @@ namespace Legion {
           }
           rez.serialize(origin);
         }
-        runtime->send_collective_hammer_reduction(*it, rez);
+        rez.dispatch(*it);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -725,8 +726,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void AllreduceView::handle_hammer_reduction(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveHammerReduction::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -739,7 +740,8 @@ namespace Legion {
       derez.deserialize(num_fields);
       std::vector<CopySrcDstField> dst_fields(num_fields);
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      unpack_fields(dst_fields, derez, ready_events, view, view_ready);
+      AllreduceView::unpack_fields(
+          dst_fields, derez, ready_events, view, view_ready);
       size_t num_reservations;
       derez.deserialize(num_reservations);
       std::vector<Reservation> reservations(num_reservations);
@@ -1653,7 +1655,7 @@ namespace Legion {
       const UniqueInst src_inst(local_views[src_index]);
       for (unsigned t = 0; t < total; t++)
       {
-        Serializer rez;
+        CollectiveDistributeAllreduce rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -1684,7 +1686,7 @@ namespace Legion {
             src_events.emplace_back(src_done);
           }
         }
-        runtime->send_collective_distribute_allreduce(targets[t], rez);
+        rez.dispatch(targets[t]);
       }
     }
 
@@ -1902,8 +1904,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void AllreduceView::handle_distribute_allreduce(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void CollectiveDistributeAllreduce::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1922,7 +1924,8 @@ namespace Legion {
       derez.deserialize(num_src_fields);
       std::vector<CopySrcDstField> src_fields(num_src_fields);
       std::set<RtEvent> ready_events;
-      unpack_fields(src_fields, derez, ready_events, view, ready);
+      AllreduceView::unpack_fields(
+          src_fields, derez, ready_events, view, ready);
       UniqueInst src_inst;
       src_inst.deserialize(derez);
       LgEvent src_unique_event;

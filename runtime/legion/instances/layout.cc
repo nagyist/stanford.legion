@@ -440,7 +440,7 @@ namespace Legion {
         AddressSpaceID target, RtUserEvent done_event)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      ConstraintResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(layout_id);
@@ -455,7 +455,7 @@ namespace Legion {
         // pack the done events
         rez.serialize(done_event);
       }
-      runtime->send_constraint_response(target, rez);
+      rez.dispatch(target);
       update_remote_instances(target);
     }
 
@@ -605,7 +605,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void LayoutConstraints::process_request(
+    /*static*/ void ConstraintRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -625,7 +625,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void LayoutConstraints::process_response(
+    /*static*/ void ConstraintResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {

@@ -204,17 +204,19 @@ namespace Legion {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_REGION_SEMANTIC_INFO_REQ_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_REGION_SEMANTIC_INFO_REQ_TASK_ID;
       public:
+        SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             RegionNode* proxy, SemanticTag t, AddressSpaceID src)
           : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
             proxy_this(proxy), tag(t), source(src)
         { }
+        void execute(void) const;
       public:
-        RegionNode* const proxy_this;
-        const SemanticTag tag;
-        const AddressSpaceID source;
+        RegionNode* proxy_this;
+        SemanticTag tag;
+        AddressSpaceID source;
       };
     public:
       RegionNode(
@@ -276,14 +278,6 @@ namespace Legion {
       void process_semantic_request(
           SemanticTag tag, AddressSpaceID source, bool can_fail,
           bool wait_until, RtUserEvent ready);
-      static void handle_semantic_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_semantic_info(
-          Deserializer& derez, AddressSpaceID source);
-    public:
-      static void handle_top_level_request(Deserializer& derez);
-      static void handle_top_level_return(
-          Deserializer& derez, AddressSpaceID source);
     public:
       // Support for refinements and versioning
       void perform_versioning_analysis(
@@ -314,17 +308,20 @@ namespace Legion {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_PARTITION_SEMANTIC_INFO_REQ_TASK_ID;
+        static constexpr LgTaskID TASK_ID =
+            LG_PARTITION_SEMANTIC_INFO_REQ_TASK_ID;
       public:
+        SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             PartitionNode* proxy, SemanticTag t, AddressSpaceID src)
           : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
             proxy_this(proxy), tag(t), source(src)
         { }
+        void execute(void) const;
       public:
-        PartitionNode* const proxy_this;
-        const SemanticTag tag;
-        const AddressSpaceID source;
+        PartitionNode* proxy_this;
+        SemanticTag tag;
+        AddressSpaceID source;
       };
     public:
       PartitionNode(
@@ -379,10 +376,6 @@ namespace Legion {
       void process_semantic_request(
           SemanticTag tag, AddressSpaceID source, bool can_fail,
           bool wait_until, RtUserEvent ready);
-      static void handle_semantic_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_semantic_info(
-          Deserializer& derez, AddressSpaceID source);
     public:
       const LogicalPartition handle;
       RegionNode* const parent;

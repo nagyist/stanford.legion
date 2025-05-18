@@ -33,8 +33,9 @@ namespace Legion {
     public:
       struct DeferIssueFill : public LgTaskArgs<DeferIssueFill> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_ISSUE_FILL_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_ISSUE_FILL_TASK_ID;
       public:
+        DeferIssueFill(void) = default;
         DeferIssueFill(
             FillView* view, Operation* op, IndexSpaceExpression* fill_expr,
             IndividualView* dst_view, const FieldMask& fill_mask,
@@ -43,21 +44,22 @@ namespace Legion {
             PhysicalManager* manager, ApEvent precondition,
             PredEvent pred_guard, CollectiveKind collective, bool fill_restrict,
             std::set<RtEvent>& applied);
+        void execute(void) const;
       public:
-        FillView* const view;
-        Operation* const op;
-        IndexSpaceExpression* const fill_expr;
-        IndividualView* const dst_view;
-        const HeapifyBox<FieldMask, OPERATION_LIFETIME>* const fill_mask;
-        PhysicalTraceInfo* const trace_info;
-        std::vector<CopySrcDstField>* const dst_fields;
-        PhysicalManager* const manager;
-        const ApEvent precondition;
-        const PredEvent pred_guard;
-        const CollectiveKind collective;
-        const RtUserEvent applied;
-        const ApUserEvent done;
-        const bool fill_restricted;
+        FillView* view;
+        Operation* op;
+        IndexSpaceExpression* fill_expr;
+        IndividualView* dst_view;
+        const HeapifyBox<FieldMask, OPERATION_LIFETIME>* fill_mask;
+        PhysicalTraceInfo* trace_info;
+        std::vector<CopySrcDstField>* dst_fields;
+        PhysicalManager* manager;
+        ApEvent precondition;
+        PredEvent pred_guard;
+        CollectiveKind collective;
+        RtUserEvent applied;
+        ApUserEvent done;
+        bool fill_restricted;
       };
     public:
       // Don't know the fill value yet, will be set later
@@ -96,10 +98,6 @@ namespace Legion {
           std::set<RtEvent>& applied_events, PhysicalManager* manager,
           ApEvent precondition, PredEvent pred_guard, CollectiveKind collective,
           bool fill_restricted);
-      static void handle_defer_issue_fill(const void* args);
-    public:
-      static void handle_send_fill_view(Deserializer& derez);
-      static void handle_send_fill_view_value(Deserializer& derez);
     public:
       const UniqueID fill_op_uid;
     protected:

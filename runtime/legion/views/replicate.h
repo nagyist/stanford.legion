@@ -40,7 +40,6 @@ namespace Legion {
       ReplicatedView& operator=(const ReplicatedView& rhs) = delete;
     public:  // From InstanceView
       virtual void send_view(AddressSpaceID target);
-      static void handle_send_replicated_view(Deserializer& derez);
     };
 
     //--------------------------------------------------------------------------

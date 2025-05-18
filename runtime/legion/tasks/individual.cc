@@ -452,13 +452,13 @@ namespace Legion {
       // of the task to tell it that we are mapped
       if (is_remote())
       {
-        Serializer rez;
+        IndividualRemoteMapped rez;
         {
           RezCheck z(rez);
           rez.serialize<SingleTask*>(orig_task);
           rez.serialize(get_mapped_event());
         }
-        runtime->send_individual_remote_mapped(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
       }
       return true;
     }
@@ -497,13 +497,13 @@ namespace Legion {
         const bool result = SingleTask::replicate_task();
         if (result)
         {
-          Serializer rez;
+          IndividualRemoteMapped rez;
           {
             RezCheck z(rez);
             rez.serialize<SingleTask*>(original);
             rez.serialize(event);
           }
-          runtime->send_individual_remote_mapped(orig, rez);
+          rez.dispatch(orig.address_space());
         }
         return result;
       }
@@ -520,14 +520,14 @@ namespace Legion {
       if (is_remote())
       {
         const RtUserEvent done_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        IndividualRemoteFutureSize rez;
         {
           RezCheck z(rez);
           rez.serialize(orig_task);
           rez.serialize(return_type_size);
           rez.serialize(done_event);
         }
-        runtime->send_individual_remote_future_size(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
         applied_events.insert(done_event);
       }
       else
@@ -546,14 +546,14 @@ namespace Legion {
         // Send the message on to the origin node to tell it
         // to launch the meta task to perform the registration
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        IndividualRemoteOutputRegistration rez;
         {
           RezCheck z(rez);
           rez.serialize(orig_task);
           rez.serialize(registered);
           rez.serialize(applied);
         }
-        runtime->send_individual_remote_output_registration(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
         applied_events.insert(applied);
       }
       else
@@ -567,8 +567,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualTask::handle_remote_output_registration(
-        Deserializer& derez)
+    /*static*/ void IndividualRemoteOutputRegistration::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -587,7 +587,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualTask::handle_concurrent_request(
+    /*static*/ void IndividualTaskConcurrentRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -604,8 +604,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualTask::handle_concurrent_response(
-        Deserializer& derez)
+    /*static*/ void IndividualTaskConcurrentResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -656,9 +656,9 @@ namespace Legion {
         execution_context->invalidate_logical_context();
       if (is_remote())
       {
-        Serializer rez;
+        IndividualRemoteComplete rez;
         pack_remote_complete(rez, effects);
-        runtime->send_individual_remote_complete(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
         complete_operation(effects);
       }
       else if (must_epoch != nullptr)
@@ -715,9 +715,9 @@ namespace Legion {
         commit_precondition = Runtime::merge_events(commit_preconditions);
       if (is_remote())
       {
-        Serializer rez;
+        IndividualRemoteCommit rez;
         pack_remote_commit(rez, commit_precondition);
-        runtime->send_individual_remote_commit(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
       }
       if (must_epoch != nullptr)
       {
@@ -851,7 +851,7 @@ namespace Legion {
       legion_assert(manager->local_proc == target_proc);
       if (is_remote())
       {
-        Serializer rez;
+        IndividualTaskConcurrentRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(orig_task);
@@ -859,7 +859,7 @@ namespace Legion {
           rez.serialize(lamport_clock);
           rez.serialize(poisoned);
         }
-        runtime->send_individual_concurrent_allreduce_request(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
       }
       else
         must_epoch->concurrent_allreduce(
@@ -887,7 +887,7 @@ namespace Legion {
         Processor target, std::vector<SingleTask*>& others)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      TaskMessage rez;
       bool deactivate;
       {
         RezCheck z(rez);
@@ -895,9 +895,7 @@ namespace Legion {
         rez.serialize(INDIVIDUAL_TASK_KIND);
         deactivate = pack_task(rez, target.address_space());
       }
-      MessageManager* manager = runtime->find_messenger(target);
-      // Send the message and flush if the others are empty
-      manager->send_message(TASK_MESSAGE, rez, others.empty());
+      rez.dispatch(target.address_space());
       return deactivate;
     }
 
@@ -1005,13 +1003,13 @@ namespace Legion {
         if (!is_leaf())
         {
           // Send back the event that will be triggered when the task is mapped
-          Serializer rez;
+          IndividualRemoteMapped rez;
           {
             RezCheck z2(rez);
             rez.serialize<SingleTask*>(orig_task);
             rez.serialize(get_mapped_event());
           }
-          runtime->send_individual_remote_mapped(orig_proc, rez);
+          rez.dispatch(orig_proc.address_space());
         }
         else
           // We're not going to get a callback from the context if we're a leaf
@@ -1104,7 +1102,7 @@ namespace Legion {
     {
       legion_assert(!target_processors.empty());
       const AddressSpaceID target_space =
-          runtime->find_address_space(target_processors.front());
+          target_processors.front().address_space();
       // Check to see if we're replaying this locally or remotely
       if (target_space != runtime->address_space)
       {
@@ -1112,7 +1110,7 @@ namespace Legion {
         // Mark that we are effecitvely mapping this at the origin
         map_origin = true;
         // Pack this task up and send it to the remote node
-        Serializer rez;
+        RemoteTaskReplay rez;
         {
           RezCheck z(rez);
           rez.serialize(instance_ready_event);
@@ -1120,7 +1118,7 @@ namespace Legion {
           rez.serialize(INDIVIDUAL_TASK_KIND);
           pack_task(rez, target_space);
         }
-        runtime->send_remote_task_replay(target_space, rez);
+        rez.dispatch(target_space);
       }
       else
       {
@@ -1134,8 +1132,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualTask::process_unpack_remote_future_size(
-        Deserializer& derez)
+    /*static*/ void IndividualRemoteFutureSize::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1155,8 +1153,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualTask::process_unpack_remote_mapped(
-        Deserializer& derez)
+    /*static*/ void IndividualRemoteMapped::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1170,8 +1168,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualTask::process_unpack_remote_complete(
-        Deserializer& derez)
+    /*static*/ void IndividualRemoteComplete::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       IndividualTask* task;
@@ -1180,8 +1178,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualTask::process_unpack_remote_commit(
-        Deserializer& derez)
+    /*static*/ void IndividualRemoteCommit::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       IndividualTask* task;

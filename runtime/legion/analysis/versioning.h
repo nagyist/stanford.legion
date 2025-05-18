@@ -80,8 +80,9 @@ namespace Legion {
       struct FinalizeOutputEquivalenceSetArgs
         : public LgTaskArgs<FinalizeOutputEquivalenceSetArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_FINALIZE_OUTPUT_EQ_SET_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_FINALIZE_OUTPUT_EQ_SET_TASK_ID;
       public:
+        FinalizeOutputEquivalenceSetArgs(void) = default;
         FinalizeOutputEquivalenceSetArgs(
             VersionManager* proxy, UniqueID opid, InnerContext* ctx,
             unsigned req_index, EquivalenceSet* s, RtUserEvent done)
@@ -91,12 +92,13 @@ namespace Legion {
         {
           set->add_base_gc_ref(META_TASK_REF);
         }
+        void execute(void) const;
       public:
-        VersionManager* const proxy_this;
-        InnerContext* const context;
-        const unsigned parent_req_index;
-        EquivalenceSet* const set;
-        const RtUserEvent done_event;
+        VersionManager* proxy_this;
+        InnerContext* context;
+        unsigned parent_req_index;
+        EquivalenceSet* set;
+        RtUserEvent done_event;
       };
     public:
       VersionManager(RegionTreeNode* node, ContextID ctx);

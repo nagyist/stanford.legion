@@ -34,17 +34,19 @@ namespace Legion {
       struct DeferMaterializedViewArgs
         : public LgTaskArgs<DeferMaterializedViewArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_MATERIALIZED_VIEW_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_MATERIALIZED_VIEW_TASK_ID;
       public:
+        DeferMaterializedViewArgs(void) = default;
         DeferMaterializedViewArgs(
             DistributedID d, PhysicalManager* m, AddressSpaceID log)
           : LgTaskArgs<DeferMaterializedViewArgs>(implicit_provenance), did(d),
             manager(m), logical_owner(log)
         { }
+        void execute(void) const;
       public:
-        const DistributedID did;
-        PhysicalManager* const manager;
-        const AddressSpaceID logical_owner;
+        DistributedID did;
+        PhysicalManager* manager;
+        AddressSpaceID logical_owner;
       };
     public:
       MaterializedView(
@@ -67,8 +69,6 @@ namespace Legion {
     public:  // From InstanceView
       virtual void send_view(AddressSpaceID target);
     public:
-      static void handle_send_materialized_view(Deserializer& derez);
-      static void handle_defer_materialized_view(const void* args);
       static void create_remote_view(
           DistributedID did, PhysicalManager* manager,
           AddressSpaceID logical_owner);

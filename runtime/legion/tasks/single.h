@@ -34,31 +34,35 @@ namespace Legion {
       struct MispredicationTaskArgs
         : public LgTaskArgs<MispredicationTaskArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_MISPREDICATION_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_MISPREDICATION_TASK_ID;
       public:
+        MispredicationTaskArgs(void) = default;
         MispredicationTaskArgs(SingleTask* t)
           : LgTaskArgs<MispredicationTaskArgs>(t->get_unique_op_id()), task(t)
         { }
+        inline void execute(void) const { task->handle_mispredication(); }
       public:
-        SingleTask* const task;
+        SingleTask* task;
       };
       struct OrderConcurrentLaunchArgs
         : public LgTaskArgs<OrderConcurrentLaunchArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_ORDER_CONCURRENT_LAUNCH_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_ORDER_CONCURRENT_LAUNCH_TASK_ID;
       public:
+        OrderConcurrentLaunchArgs(void) = default;
         OrderConcurrentLaunchArgs(
             SingleTask* t, Processor p, ApEvent s, VariantID v)
           : LgTaskArgs<OrderConcurrentLaunchArgs>(t->get_unique_op_id()),
             task(t), processor(p), vid(v), start(s),
             ready(Runtime::create_ap_user_event(nullptr))
         { }
+        void execute(void) const;
       public:
-        SingleTask* const task;
-        const Processor processor;
-        const VariantID vid;
-        const ApEvent start;
-        const ApUserEvent ready;
+        SingleTask* task;
+        Processor processor;
+        VariantID vid;
+        ApEvent start;
+        ApUserEvent ready;
       };
     public:
       SingleTask(void);
@@ -236,7 +240,6 @@ namespace Legion {
               rendezvous);
     public:
       void handle_remote_profiling_response(Deserializer& derez);
-      static void process_remote_profiling_response(Deserializer& derez);
     public:
       virtual void concurrent_allreduce(
           ProcessorManager* manager, uint64_t lamport_clock, VariantID vid,
@@ -246,8 +249,6 @@ namespace Legion {
       virtual TaskContext* create_execution_context(
           VariantImpl* v, std::set<ApEvent>& launch_events, bool inline_task,
           bool leaf_task);
-    public:
-      static void order_concurrent_task_launch(const void* args);
     protected:
       // Boolean for each region saying if it is virtual mapped
       std::vector<bool> virtual_mapped;

@@ -17,6 +17,7 @@
 #define __LEGION_MESSAGE_MANAGER_H__
 
 #include "legion/kernel/metatask.h"
+#include "legion/utilities/serdez.h"
 
 namespace Legion {
   namespace Internal {
@@ -44,679 +45,368 @@ namespace Legion {
       MAX_NUM_VIRTUAL_CHANNELS = 16,  // this one must be last
     };
 
-    enum MessageKind {
-      SEND_STARTUP_BARRIER,
-      TASK_MESSAGE,
-      STEAL_MESSAGE,
-      ADVERTISEMENT_MESSAGE,
-      SEND_REGISTRATION_CALLBACK,
-      SEND_REMOTE_TASK_REPLAY,
-      SEND_REMOTE_TASK_PROFILING_RESPONSE,
-      SEND_SHARED_OWNERSHIP,
-      SEND_INDEX_SPACE_REQUEST,
-      SEND_INDEX_SPACE_RESPONSE,
-      SEND_INDEX_SPACE_RETURN,
-      SEND_INDEX_SPACE_SET,
-      SEND_INDEX_SPACE_CHILD_REQUEST,
-      SEND_INDEX_SPACE_CHILD_RESPONSE,
-      SEND_INDEX_SPACE_COLORS_REQUEST,
-      SEND_INDEX_SPACE_COLORS_RESPONSE,
-      SEND_INDEX_SPACE_GENERATE_COLOR_REQUEST,
-      SEND_INDEX_SPACE_GENERATE_COLOR_RESPONSE,
-      SEND_INDEX_SPACE_RELEASE_COLOR,
-      SEND_INDEX_PARTITION_NOTIFICATION,
-      SEND_INDEX_PARTITION_REQUEST,
-      SEND_INDEX_PARTITION_RESPONSE,
-      SEND_INDEX_PARTITION_RETURN,
-      SEND_INDEX_PARTITION_CHILD_REQUEST,
-      SEND_INDEX_PARTITION_CHILD_RESPONSE,
-      SEND_INDEX_PARTITION_CHILD_REPLICATION,
-      SEND_INDEX_PARTITION_DISJOINT_UPDATE,
-      SEND_INDEX_PARTITION_SHARD_RECTS_REQUEST,
-      SEND_INDEX_PARTITION_SHARD_RECTS_RESPONSE,
-      SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_REQUEST,
-      SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_RESPONSE,
-      SEND_FIELD_SPACE_NODE,
-      SEND_FIELD_SPACE_REQUEST,
-      SEND_FIELD_SPACE_RETURN,
-      SEND_FIELD_SPACE_ALLOCATOR_REQUEST,
-      SEND_FIELD_SPACE_ALLOCATOR_RESPONSE,
-      SEND_FIELD_SPACE_ALLOCATOR_INVALIDATION,
-      SEND_FIELD_SPACE_ALLOCATOR_FLUSH,
-      SEND_FIELD_SPACE_ALLOCATOR_FREE,
-      SEND_FIELD_SPACE_INFOS_REQUEST,
-      SEND_FIELD_SPACE_INFOS_RESPONSE,
-      SEND_FIELD_ALLOC_REQUEST,
-      SEND_FIELD_SIZE_UPDATE,
-      SEND_FIELD_FREE,
-      SEND_FIELD_FREE_INDEXES,
-      SEND_FIELD_SPACE_LAYOUT_INVALIDATION,
-      SEND_LOCAL_FIELD_ALLOC_REQUEST,
-      SEND_LOCAL_FIELD_ALLOC_RESPONSE,
-      SEND_LOCAL_FIELD_FREE,
-      SEND_LOCAL_FIELD_UPDATE,
-      SEND_TOP_LEVEL_REGION_REQUEST,
-      SEND_TOP_LEVEL_REGION_RETURN,
-      INDEX_SPACE_DESTRUCTION_MESSAGE,
-      INDEX_PARTITION_DESTRUCTION_MESSAGE,
-      FIELD_SPACE_DESTRUCTION_MESSAGE,
-      LOGICAL_REGION_DESTRUCTION_MESSAGE,
-      INDIVIDUAL_REMOTE_FUTURE_SIZE,
-      INDIVIDUAL_REMOTE_OUTPUT_REGISTRATION,
-      INDIVIDUAL_REMOTE_MAPPED,
-      INDIVIDUAL_REMOTE_COMPLETE,
-      INDIVIDUAL_REMOTE_COMMIT,
-      INDIVIDUAL_CONCURRENT_REQUEST,
-      INDIVIDUAL_CONCURRENT_RESPONSE,
-      SLICE_REMOTE_MAPPED,
-      SLICE_REMOTE_COMPLETE,
-      SLICE_REMOTE_COMMIT,
-      SLICE_RENDEZVOUS_CONCURRENT_MAPPED,
-      SLICE_COLLECTIVE_ALLREDUCE_REQUEST,
-      SLICE_COLLECTIVE_ALLREDUCE_RESPONSE,
-      SLICE_CONCURRENT_ALLREDUCE_REQUEST,
-      SLICE_CONCURRENT_ALLREDUCE_RESPONSE,
-      SLICE_FIND_INTRA_DEP,
-      SLICE_REMOTE_COLLECTIVE_RENDEZVOUS,
-      SLICE_REMOTE_VERSIONING_COLLECTIVE_RENDEZVOUS,
-      SLICE_REMOTE_OUTPUT_EXTENTS,
-      SLICE_REMOTE_OUTPUT_REGISTRATION,
-      DISTRIBUTED_REMOTE_REGISTRATION,
-      DISTRIBUTED_DOWNGRADE_REQUEST,
-      DISTRIBUTED_DOWNGRADE_RESPONSE,
-      DISTRIBUTED_DOWNGRADE_SUCCESS,
-      DISTRIBUTED_DOWNGRADE_UPDATE,
-      DISTRIBUTED_DOWNGRADE_RESTART,
-      DISTRIBUTED_GLOBAL_ACQUIRE_REQUEST,
-      DISTRIBUTED_GLOBAL_ACQUIRE_RESPONSE,
-      DISTRIBUTED_VALID_ACQUIRE_REQUEST,
-      DISTRIBUTED_VALID_ACQUIRE_RESPONSE,
-      SEND_ATOMIC_RESERVATION_REQUEST,
-      SEND_ATOMIC_RESERVATION_RESPONSE,
-      SEND_PADDED_RESERVATION_REQUEST,
-      SEND_PADDED_RESERVATION_RESPONSE,
-      SEND_CREATED_REGION_CONTEXTS,
-      SEND_MATERIALIZED_VIEW,
-      SEND_FILL_VIEW,
-      SEND_FILL_VIEW_VALUE,
-      SEND_PHI_VIEW,
-      SEND_REDUCTION_VIEW,
-      SEND_REPLICATED_VIEW,
-      SEND_ALLREDUCE_VIEW,
-      SEND_INSTANCE_MANAGER,
-      SEND_MANAGER_UPDATE,
-      SEND_COLLECTIVE_DISTRIBUTE_FILL,
-      SEND_COLLECTIVE_DISTRIBUTE_POINT,
-      SEND_COLLECTIVE_DISTRIBUTE_POINTWISE,
-      SEND_COLLECTIVE_DISTRIBUTE_REDUCTION,
-      SEND_COLLECTIVE_DISTRIBUTE_BROADCAST,
-      SEND_COLLECTIVE_DISTRIBUTE_REDUCECAST,
-      SEND_COLLECTIVE_DISTRIBUTE_HOURGLASS,
-      SEND_COLLECTIVE_DISTRIBUTE_ALLREDUCE,
-      SEND_COLLECTIVE_HAMMER_REDUCTION,
-      SEND_COLLECTIVE_FUSE_GATHER,
-      SEND_COLLECTIVE_USER_REQUEST,
-      SEND_COLLECTIVE_USER_RESPONSE,
-      SEND_COLLECTIVE_REGISTER_USER,
-      SEND_COLLECTIVE_REMOTE_INSTANCES_REQUEST,
-      SEND_COLLECTIVE_REMOTE_INSTANCES_RESPONSE,
-      SEND_COLLECTIVE_NEAREST_INSTANCES_REQUEST,
-      SEND_COLLECTIVE_NEAREST_INSTANCES_RESPONSE,
-      SEND_COLLECTIVE_REMOTE_REGISTRATION,
-      SEND_COLLECTIVE_FINALIZE_MAPPING,
-      SEND_COLLECTIVE_VIEW_CREATION,
-      SEND_COLLECTIVE_VIEW_DELETION,
-      SEND_COLLECTIVE_VIEW_RELEASE,
-      SEND_COLLECTIVE_VIEW_NOTIFICATION,
-      SEND_COLLECTIVE_VIEW_MAKE_VALID,
-      SEND_COLLECTIVE_VIEW_MAKE_INVALID,
-      SEND_COLLECTIVE_VIEW_INVALIDATE_REQUEST,
-      SEND_COLLECTIVE_VIEW_INVALIDATE_RESPONSE,
-      SEND_COLLECTIVE_VIEW_ADD_REMOTE_REFERENCE,
-      SEND_COLLECTIVE_VIEW_REMOVE_REMOTE_REFERENCE,
-      SEND_CREATE_TOP_VIEW_REQUEST,
-      SEND_CREATE_TOP_VIEW_RESPONSE,
-      SEND_VIEW_REQUEST,
-      SEND_VIEW_REGISTER_USER,
-      SEND_VIEW_FIND_COPY_PRE_REQUEST,
-      SEND_VIEW_ADD_COPY_USER,
-      SEND_VIEW_FIND_LAST_USERS_REQUEST,
-      SEND_VIEW_FIND_LAST_USERS_RESPONSE,
-      SEND_MANAGER_REQUEST,
-      SEND_FUTURE_RESULT,
-      SEND_FUTURE_RESULT_SIZE,
-      SEND_FUTURE_SUBSCRIPTION,
-      SEND_FUTURE_CREATE_INSTANCE_REQUEST,
-      SEND_FUTURE_CREATE_INSTANCE_RESPONSE,
-      SEND_FUTURE_MAP_REQUEST,
-      SEND_FUTURE_MAP_RESPONSE,
-      SEND_FUTURE_MAP_POINTWISE,
-      SEND_REPL_COMPUTE_EQUIVALENCE_SETS,
-      SEND_REPL_OUTPUT_EQUIVALENCE_SET,
-      SEND_REPL_REFINE_EQUIVALENCE_SETS,
-      SEND_REPL_EQUIVALENCE_SET_NOTIFICATION,
-      SEND_REPL_BROADCAST_UPDATE,
-      SEND_REPL_CREATED_REGIONS,
-      SEND_REPL_TRACE_EVENT_REQUEST,
-      SEND_REPL_TRACE_EVENT_RESPONSE,
-      SEND_REPL_TRACE_EVENT_TRIGGER,
-      SEND_REPL_TRACE_FRONTIER_REQUEST,
-      SEND_REPL_TRACE_FRONTIER_RESPONSE,
-      SEND_REPL_TRACE_UPDATE,
-      SEND_REPL_FIND_TRACE_SETS,
-      SEND_REPL_IMPLICIT_RENDEZVOUS,
-      SEND_REPL_FIND_COLLECTIVE_VIEW,
-      SEND_REPL_POINTWISE_DEPENDENCE,
-      SEND_MAPPER_MESSAGE,
-      SEND_MAPPER_BROADCAST,
-      SEND_TASK_IMPL_SEMANTIC_REQ,
-      SEND_INDEX_SPACE_SEMANTIC_REQ,
-      SEND_INDEX_PARTITION_SEMANTIC_REQ,
-      SEND_FIELD_SPACE_SEMANTIC_REQ,
-      SEND_FIELD_SEMANTIC_REQ,
-      SEND_LOGICAL_REGION_SEMANTIC_REQ,
-      SEND_LOGICAL_PARTITION_SEMANTIC_REQ,
-      SEND_TASK_IMPL_SEMANTIC_INFO,
-      SEND_INDEX_SPACE_SEMANTIC_INFO,
-      SEND_INDEX_PARTITION_SEMANTIC_INFO,
-      SEND_FIELD_SPACE_SEMANTIC_INFO,
-      SEND_FIELD_SEMANTIC_INFO,
-      SEND_LOGICAL_REGION_SEMANTIC_INFO,
-      SEND_LOGICAL_PARTITION_SEMANTIC_INFO,
-      SEND_REMOTE_CONTEXT_REQUEST,
-      SEND_REMOTE_CONTEXT_RESPONSE,
-      SEND_REMOTE_CONTEXT_PHYSICAL_REQUEST,
-      SEND_REMOTE_CONTEXT_PHYSICAL_RESPONSE,
-      SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_REQUEST,
-      SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_RESPONSE,
-      SEND_REMOTE_CONTEXT_REFINE_EQUIVALENCE_SETS,
-      SEND_REMOTE_CONTEXT_POINTWISE_DEPENDENCE,
-      SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_REQUEST,
-      SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_RESPONSE,
-      SEND_COMPUTE_EQUIVALENCE_SETS_REQUEST,
-      SEND_COMPUTE_EQUIVALENCE_SETS_RESPONSE,
-      SEND_COMPUTE_EQUIVALENCE_SETS_PENDING,
-      SEND_OUTPUT_EQUIVALENCE_SET_REQUEST,
-      SEND_OUTPUT_EQUIVALENCE_SET_RESPONSE,
-      SEND_CANCEL_EQUIVALENCE_SETS_SUBSCRIPTION,
-      SEND_INVALIDATE_EQUIVALENCE_SETS_SUBSCRIPTION,
-      SEND_EQUIVALENCE_SET_CREATION,
-      SEND_EQUIVALENCE_SET_REUSE,
-      SEND_EQUIVALENCE_SET_REQUEST,
-      SEND_EQUIVALENCE_SET_RESPONSE,
-      SEND_EQUIVALENCE_SET_REPLICATION_REQUEST,
-      SEND_EQUIVALENCE_SET_REPLICATION_RESPONSE,
-      SEND_EQUIVALENCE_SET_MIGRATION,
-      SEND_EQUIVALENCE_SET_OWNER_UPDATE,
-      SEND_EQUIVALENCE_SET_CLONE_REQUEST,
-      SEND_EQUIVALENCE_SET_CLONE_RESPONSE,
-      SEND_EQUIVALENCE_SET_CAPTURE_REQUEST,
-      SEND_EQUIVALENCE_SET_CAPTURE_RESPONSE,
-      SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INSTANCES,
-      SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INVALID,
-      SEND_EQUIVALENCE_SET_REMOTE_REQUEST_ANTIVALID,
-      SEND_EQUIVALENCE_SET_REMOTE_UPDATES,
-      SEND_EQUIVALENCE_SET_REMOTE_ACQUIRES,
-      SEND_EQUIVALENCE_SET_REMOTE_RELEASES,
-      SEND_EQUIVALENCE_SET_REMOTE_COPIES_ACROSS,
-      SEND_EQUIVALENCE_SET_REMOTE_OVERWRITES,
-      SEND_EQUIVALENCE_SET_REMOTE_FILTERS,
-      SEND_EQUIVALENCE_SET_REMOTE_INSTANCES,
-      SEND_EQUIVALENCE_SET_FILTER_INVALIDATIONS,
-      SEND_INSTANCE_REQUEST,
-      SEND_INSTANCE_RESPONSE,
-      SEND_EXTERNAL_CREATE_REQUEST,
-      SEND_EXTERNAL_CREATE_RESPONSE,
-      SEND_EXTERNAL_ATTACH,
-      SEND_EXTERNAL_DETACH,
-      SEND_GC_PRIORITY_UPDATE,
-      SEND_GC_REQUEST,
-      SEND_GC_RESPONSE,
-      SEND_GC_ACQUIRE,
-      SEND_GC_FAILED,
-      SEND_GC_MISMATCH,
-      SEND_GC_NOTIFY,
-      SEND_GC_DEBUG_REQUEST,
-      SEND_GC_DEBUG_RESPONSE,
-      SEND_GC_RECORD_EVENT,
-      SEND_ACQUIRE_REQUEST,
-      SEND_ACQUIRE_RESPONSE,
-      SEND_VARIANT_BROADCAST,
-      SEND_CONSTRAINT_REQUEST,
-      SEND_CONSTRAINT_RESPONSE,
-      SEND_CONSTRAINT_RELEASE,
-      SEND_TOP_LEVEL_TASK_COMPLETE,
-      SEND_MPI_RANK_EXCHANGE,
-      SEND_REPLICATE_DISTRIBUTION,
-      SEND_REPLICATE_COLLECTIVE_VERSIONING,
-      SEND_REPLICATE_COLLECTIVE_MAPPING,
-      SEND_REPLICATE_VIRTUAL_RENDEZVOUS,
-      SEND_REPLICATE_STARTUP_COMPLETE,
-      SEND_REPLICATE_POST_MAPPED,
-      SEND_REPLICATE_TRIGGER_COMPLETE,
-      SEND_REPLICATE_TRIGGER_COMMIT,
-      SEND_CONTROL_REPLICATE_RENDEZVOUS_MESSAGE,
-      SEND_LIBRARY_MAPPER_REQUEST,
-      SEND_LIBRARY_MAPPER_RESPONSE,
-      SEND_LIBRARY_TRACE_REQUEST,
-      SEND_LIBRARY_TRACE_RESPONSE,
-      SEND_LIBRARY_PROJECTION_REQUEST,
-      SEND_LIBRARY_PROJECTION_RESPONSE,
-      SEND_LIBRARY_SHARDING_REQUEST,
-      SEND_LIBRARY_SHARDING_RESPONSE,
-      SEND_LIBRARY_CONCURRENT_REQUEST,
-      SEND_LIBRARY_CONCURRENT_RESPONSE,
-      SEND_LIBRARY_TASK_REQUEST,
-      SEND_LIBRARY_TASK_RESPONSE,
-      SEND_LIBRARY_REDOP_REQUEST,
-      SEND_LIBRARY_REDOP_RESPONSE,
-      SEND_LIBRARY_SERDEZ_REQUEST,
-      SEND_LIBRARY_SERDEZ_RESPONSE,
-      SEND_REMOTE_OP_REPORT_UNINIT,
-      SEND_REMOTE_OP_PROFILING_COUNT_UPDATE,
-      SEND_REMOTE_OP_COMPLETION_EFFECT,
-      SEND_REMOTE_TRACE_UPDATE,
-      SEND_REMOTE_TRACE_RESPONSE,
-      SEND_FREE_EXTERNAL_ALLOCATION,
-      SEND_NOTIFY_COLLECTED_INSTANCES,
-      SEND_CREATE_MEMORY_POOL_REQUEST,
-      SEND_CREATE_MEMORY_POOL_RESPONSE,
-      SEND_CREATE_FUTURE_INSTANCE_REQUEST,
-      SEND_CREATE_FUTURE_INSTANCE_RESPONSE,
-      SEND_FREE_FUTURE_INSTANCE,
-      SEND_REMOTE_DISTRIBUTED_ID_REQUEST,
-      SEND_REMOTE_DISTRIBUTED_ID_RESPONSE,
-      SEND_CONTROL_REPLICATION_FUTURE_ALLREDUCE,
-      SEND_CONTROL_REPLICATION_FUTURE_BROADCAST,
-      SEND_CONTROL_REPLICATION_FUTURE_REDUCTION,
-      SEND_CONTROL_REPLICATION_VALUE_ALLREDUCE,
-      SEND_CONTROL_REPLICATION_VALUE_BROADCAST,
-      SEND_CONTROL_REPLICATION_VALUE_EXCHANGE,
-      SEND_CONTROL_REPLICATION_BUFFER_BROADCAST,
-      SEND_CONTROL_REPLICATION_SHARD_SYNC_TREE,
-      SEND_CONTROL_REPLICATION_SHARD_EVENT_TREE,
-      SEND_CONTROL_REPLICATION_SINGLE_TASK_TREE,
-      SEND_CONTROL_REPLICATION_CROSS_PRODUCT_PARTITION,
-      SEND_CONTROL_REPLICATION_SHARDING_GATHER_COLLECTIVE,
-      SEND_CONTROL_REPLICATION_INDIRECT_COPY_EXCHANGE,
-      SEND_CONTROL_REPLICATION_FIELD_DESCRIPTOR_EXCHANGE,
-      SEND_CONTROL_REPLICATION_FIELD_DESCRIPTOR_GATHER,
-      SEND_CONTROL_REPLICATION_DEPPART_RESULT_SCATTER,
-      SEND_CONTROL_REPLICATION_BUFFER_EXCHANGE,
-      SEND_CONTROL_REPLICATION_FUTURE_NAME_EXCHANGE,
-      SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_BROADCAST,
-      SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_EXCHANGE,
-      SEND_CONTROL_REPLICATION_MUST_EPOCH_DEPENDENCE_EXCHANGE,
-      SEND_CONTROL_REPLICATION_MUST_EPOCH_COMPLETION_EXCHANGE,
-      SEND_CONTROL_REPLICATION_CHECK_COLLECTIVE_MAPPING,
-      SEND_CONTROL_REPLICATION_CHECK_COLLECTIVE_SOURCES,
-      SEND_CONTROL_REPLICATION_TEMPLATE_INDEX_EXCHANGE,
-      SEND_CONTROL_REPLICATION_UNORDERED_EXCHANGE,
-      SEND_CONTROL_REPLICATION_CONSENSUS_MATCH,
-      SEND_CONTROL_REPLICATION_VERIFY_CONTROL_REPLICATION_EXCHANGE,
-      SEND_CONTROL_REPLICATION_OUTPUT_SIZE_EXCHANGE,
-      SEND_CONTROL_REPLICATION_INDEX_ATTACH_LAUNCH_SPACE,
-      SEND_CONTROL_REPLICATION_INDEX_ATTACH_UPPER_BOUND,
-      SEND_CONTROL_REPLICATION_INDEX_ATTACH_EXCHANGE,
-      SEND_CONTROL_REPLICATION_SHARD_PARTICIPANTS_EXCHANGE,
-      SEND_CONTROL_REPLICATION_IMPLICIT_SHARDING_FUNCTOR,
-      SEND_CONTROL_REPLICATION_CREATE_FILL_VIEW,
-      SEND_CONTROL_REPLICATION_VERSIONING_RENDEZVOUS,
-      SEND_CONTROL_REPLICATION_VIEW_RENDEZVOUS,
-      SEND_CONTROL_REPLICATION_CONCURRENT_MAPPING_RENDEZVOUS,
-      SEND_CONTROL_REPLICATION_CONCURRENT_ALLREDUCE,
-      SEND_CONTROL_REPLICATION_PROJECTION_TREE_EXCHANGE,
-      SEND_CONTROL_REPLICATION_TIMEOUT_MATCH_EXCHANGE,
-      SEND_CONTROL_REPLICATION_MASK_EXCHANGE,
-      SEND_CONTROL_REPLICATION_PREDICATE_EXCHANGE,
-      SEND_CONTROL_REPLICATION_CROSS_PRODUCT_EXCHANGE,
-      SEND_CONTROL_REPLICATION_TRACING_SET_DEDUPLICATION,
-      SEND_CONTROL_REPLICATION_POINTWISE_ALLREDUCE,
-      SEND_CONTROL_REPLICATION_INTERFERING_POINT_EXCHANGE,
-      SEND_CONTROL_REPLICATION_SLOW_BARRIER,
-      SEND_PROFILER_EVENT_TRIGGER,
-      SEND_PROFILER_EVENT_POISON,
-      SEND_SHUTDOWN_NOTIFICATION,
-      SEND_SHUTDOWN_RESPONSE,
-      LAST_SEND_KIND,  // This one must be last
-    };
+    // clang-format off
+    // All the different kinds of active mssages 
+#define LEGION_ACTIVE_MESSAGES(__op__) \
+  __op__(SEND_STARTUP_BARRIER, StartupBarrierMessage, "Startup Barrier Message", false) \
+  __op__(TASK_MESSAGE, TaskMessage, "Distribute Task Message", false) \
+  __op__(STEAL_MESSAGE, StealTaskMessage, "Steal Task Message", false) \
+  __op__(ADVERTISEMENT_MESSAGE, AdvertiseTaskMessage, "Advertise Task Message", false) \
+  __op__(SEND_REGISTRATION_CALLBACK, RegistrationCallbackMessage, "Registration Callback Message", false) \
+  __op__(SEND_REMOTE_TASK_REPLAY, RemoteTaskReplay, "Remote Task Replay Message", false) \
+  __op__(SEND_REMOTE_TASK_PROFILING_RESPONSE, RemoteTaskProfilingResponse, "Remote Task Profiling Response", false) \
+  __op__(SEND_SHARED_OWNERSHIP, SharedOwnershipMessage, "Shared Ownership Message", false) \
+  __op__(SEND_INDEX_SPACE_REQUEST, IndexSpaceRequest, "Index Space Request", false) \
+  __op__(SEND_INDEX_SPACE_RESPONSE, IndexSpaceResponse, "Index Space Response", true) \
+  __op__(SEND_INDEX_SPACE_RETURN, IndexSpaceReturn, "Index Space Return Message", true) \
+  __op__(SEND_INDEX_SPACE_SET, IndexSpaceSet, "Index Space Set Message", false) \
+  __op__(SEND_INDEX_SPACE_CHILD_REQUEST, IndexSpaceChildRequest, "Index Space Child Request", false) \
+  __op__(SEND_INDEX_SPACE_CHILD_RESPONSE, IndexSpaceChildResponse, "Index Space Child Response", true) \
+  __op__(SEND_INDEX_SPACE_COLORS_REQUEST, IndexSpaceColorsRequest, "Index Space Colors Request", false) \
+  __op__(SEND_INDEX_SPACE_COLORS_RESPONSE, IndexSpaceColorsResponse, "Index Space Colors Response", true) \
+  __op__(SEND_INDEX_SPACE_GENERATE_COLOR_REQUEST, IndexSpaceGenerateColorRequest, "Index Space Generate Color Request", false) \
+  __op__(SEND_INDEX_SPACE_GENERATE_COLOR_RESPONSE, IndexSpaceGenerateColorResponse, "Index Space Generate Color Response", true) \
+  __op__(SEND_INDEX_SPACE_RELEASE_COLOR, IndexSpaceReleaseColor, "Index Space Release Color Message", false) \
+  __op__(SEND_INDEX_PARTITION_NOTIFICATION, IndexPartitionNotification, "Index Partition Noitification Message", false) \
+  __op__(SEND_INDEX_PARTITION_REQUEST, IndexPartitionRequest, "Index Partition Request", false) \
+  __op__(SEND_INDEX_PARTITION_RESPONSE, IndexPartitionResponse, "Index Partition Response", false) \
+  __op__(SEND_INDEX_PARTITION_RETURN, IndexPartitionReturn, "Index Partition Return", false) \
+  __op__(SEND_INDEX_PARTITION_CHILD_REQUEST, IndexPartitionChildRequest, "Index Partition Child Request", false) \
+  __op__(SEND_INDEX_PARTITION_CHILD_RESPONSE, IndexPartitionChildResponse, "Index Partition Child Response", true) \
+  __op__(SEND_INDEX_PARTITION_CHILD_REPLICATION, IndexPartitionChildReplication, "Index Partition Child Replication Message", false) \
+  __op__(SEND_INDEX_PARTITION_DISJOINT_UPDATE, IndexPartitionDisjointUpdate, "Index Partition Disjoint Update Message", false) \
+  __op__(SEND_INDEX_PARTITION_SHARD_RECTS_REQUEST, IndexPartitionShardRectsRequest, "Index Partition Shard Rectangles Request", false) \
+  __op__(SEND_INDEX_PARTITION_SHARD_RECTS_RESPONSE, IndexPartitionShardRectsResponse, "Index Partitino Shard Rectangles Response", true) \
+  __op__(SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_REQUEST, IndexPartitionRemoteInterferenceRequest, "Index Partition Remote Interference Request", false) \
+  __op__(SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_RESPONSE, IndexPartitionRemoteInterferenceResponse, "Index Partition Remote Interference Response", true) \
+  __op__(SEND_FIELD_SPACE_NODE, FieldSpaceNodeMessage, "Field Space Message", false) \
+  __op__(SEND_FIELD_SPACE_REQUEST, FieldSpaceRequest, "Field Space Request", false) \
+  __op__(SEND_FIELD_SPACE_RETURN, FieldSpaceReturn, "Field Space Return", true) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_REQUEST, FieldSpaceAllocatorRequest, "Field Space Allocator Request", false) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_RESPONSE, FieldSpaceAllocatorResponse, "Field Space Allocator Response", true) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_INVALIDATION, FieldSpaceAllocatorInvalidation, "Field Space Allocator Invalidation", false) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_FLUSH, FieldSpaceAllocatorFlush, "Field Space Allocator Flush", true) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_FREE, FieldSpaceAllocatorFree, "Field Space Allocator Free", true) \
+  __op__(SEND_FIELD_SPACE_INFOS_REQUEST, FieldSpaceInfosRequest, "Field Space Information Request", false) \
+  __op__(SEND_FIELD_SPACE_INFOS_RESPONSE, FieldSpaceInfosResponse, "Field Space Information Response", true) \
+  __op__(SEND_FIELD_ALLOC_REQUEST, FieldAllocationRequest, "Field Allocation Request", false) \
+  __op__(SEND_FIELD_SIZE_UPDATE, FieldSizeUpdate, "Field Size Update", true) \
+  __op__(SEND_FIELD_FREE, FieldFreeMessage, "Field Free Message", true) \
+  __op__(SEND_FIELD_FREE_INDEXES, FieldFreeIndexes, "Free Field Indexes Message", true) \
+  __op__(SEND_FIELD_SPACE_LAYOUT_INVALIDATION, FieldSpaceLayoutInvalidation, "Invalidate Field Space Layouts Message", true) \
+  __op__(SEND_LOCAL_FIELD_ALLOC_REQUEST, LocalFieldAllocRequest, "Local Field Allocation Request", false) \
+  __op__(SEND_LOCAL_FIELD_ALLOC_RESPONSE, LocalFieldAllocResponse, "Local Field Allocation Response", true) \
+  __op__(SEND_LOCAL_FIELD_FREE, LocalFieldFreeMessage, "Free Local Field Message", true) \
+  __op__(SEND_LOCAL_FIELD_UPDATE, LocalFieldUpdateMessage, "Update Local Field Message", true) \
+  __op__(SEND_TOP_LEVEL_REGION_REQUEST, TopLevelRegionRequest, "Top Level Region Request", false) \
+  __op__(SEND_TOP_LEVEL_REGION_RETURN, TopLevelRegionReturn, "Top Level Region Response", true) \
+  __op__(INDEX_SPACE_DESTRUCTION_MESSAGE, IndexSpaceDestruction, "Destroy Index Space Message", false) \
+  __op__(INDEX_PARTITION_DESTRUCTION_MESSAGE, IndexPartitionDestruction, "Destroy Index Partition Message", false) \
+  __op__(FIELD_SPACE_DESTRUCTION_MESSAGE, FieldSpaceDestruction, "Destroy Field Space Message", false) \
+  __op__(LOGICAL_REGION_DESTRUCTION_MESSAGE, LogicalRegionDestruction, "Destroy Logical Region Message", false) \
+  __op__(INDIVIDUAL_REMOTE_FUTURE_SIZE, IndividualRemoteFutureSize, "Individual Task Set Remote Future Size Message ", true) \
+  __op__(INDIVIDUAL_REMOTE_OUTPUT_REGISTRATION, IndividualRemoteOutputRegistration, "Individual Task Remote Output Registration Message", true) \
+  __op__(INDIVIDUAL_REMOTE_MAPPED, IndividualRemoteMapped, "Individual Task Remote Mapped Message", true) \
+  __op__(INDIVIDUAL_REMOTE_COMPLETE, IndividualRemoteComplete, "Individual Task Remote Complete Message", true) \
+  __op__(INDIVIDUAL_REMOTE_COMMIT, IndividualRemoteCommit, "Individual Task Remote Commit Message", true) \
+  __op__(INDIVIDUAL_CONCURRENT_REQUEST, IndividualTaskConcurrentRequest, "Individual Task Concurrent Request", false) \
+  __op__(INDIVIDUAL_CONCURRENT_RESPONSE, IndividualTaskConcurrentResponse, "Individual Task Concurrent Response", true) \
+  __op__(SLICE_REMOTE_MAPPED, SliceRemoteMapped, "Slice Task Remote Mapped Message", true) \
+  __op__(SLICE_REMOTE_COMPLETE, SliceRemoteComplete, "Slice Task Remote Complete Message", true) \
+  __op__(SLICE_REMOTE_COMMIT, SliceRemoteCommit, "Slice Task Remote Commit Message", true) \
+  __op__(SLICE_RENDEZVOUS_CONCURRENT_MAPPED, SliceConcurrentMapped, "Slice Task Rendezvous Concurrent Mapped Message", false) \
+  __op__(SLICE_COLLECTIVE_ALLREDUCE_REQUEST, SliceCollectiveRequest, "Slice Task Collective Mapping All-Reduce Request", false) \
+  __op__(SLICE_COLLECTIVE_ALLREDUCE_RESPONSE, SliceCollectiveResponse, "Slice Task Collective Mapping All-Reudce Response", true) \
+  __op__(SLICE_CONCURRENT_ALLREDUCE_REQUEST, SliceConcurrentRequest, "Slice Task Concurrent All-Reduce Request", false) \
+  __op__(SLICE_CONCURRENT_ALLREDUCE_RESPONSE, SliceConcurrentResponse, "Slice Task Concurrent All-Reduce Response", true) \
+  __op__(SLICE_FIND_INTRA_DEP, SliceFindIntraDependence, "Slice Task Find Intra-Launch Dependence Message", false) \
+  __op__(SLICE_REMOTE_COLLECTIVE_RENDEZVOUS, SliceRemoteCollective, "Slice Task Remote Collective Rendezvous Message", false) \
+  __op__(SLICE_REMOTE_VERSIONING_COLLECTIVE_RENDEZVOUS, SliceRemoteVersioningCollective, "Slice Task Remote Versioning Collective Message", false) \
+  __op__(SLICE_REMOTE_OUTPUT_EXTENTS, SliceRemoteOutputExtents, "Slice Task Set Remote Output Extents Message", true) \
+  __op__(SLICE_REMOTE_OUTPUT_REGISTRATION, SliceRemoteOutputRegistration, "Slice Task Remote Output Registration Message", true) \
+  __op__(DISTRIBUTED_REMOTE_REGISTRATION, DistributedRemoteRegistration, "Distributed Collectable Remote Registration Message", false) \
+  __op__(DISTRIBUTED_DOWNGRADE_REQUEST, DistributedDowngradeRequest, "Distributed Collectable Downgrade Request", false) \
+  __op__(DISTRIBUTED_DOWNGRADE_RESPONSE, DistributedDowngradeResponse, "Distributed Collectable Downgrade Response", true) \
+  __op__(DISTRIBUTED_DOWNGRADE_SUCCESS, DistributedDowngradeSuccess, "Distributed Collectable Downgrade Success Message", false) \
+  __op__(DISTRIBUTED_DOWNGRADE_UPDATE, DistributedDowngradeUpdate, "Distributed Collectable Downgrade Update Message", false) \
+  __op__(DISTRIBUTED_DOWNGRADE_RESTART, DistributedDowngradeRestart, "Distributed Collectable Downgrade Restart Message", false) \
+  __op__(DISTRIBUTED_GLOBAL_ACQUIRE_REQUEST, DistributedGlobalAcquireRequest, "Distributed Collectable Global Acquire Request", false) \
+  __op__(DISTRIBUTED_GLOBAL_ACQUIRE_RESPONSE, DistributedGlobalAcquireResponse, "Distributed Collectable global Acquire Response", true) \
+  __op__(DISTRIBUTED_VALID_ACQUIRE_REQUEST, DistributedValidAcquireRequest, "Distributed Collectable Valid Acquire Request", false) \
+  __op__(DISTRIBUTED_VALID_ACQUIRE_RESPONSE, DistributedValidAcquireResponse, "Distributed Collectable Valid Acquire Response", true) \
+  __op__(SEND_ATOMIC_RESERVATION_REQUEST, AtomicReservationRequest, "Atomic Reservation Request", false) \
+  __op__(SEND_ATOMIC_RESERVATION_RESPONSE, AtomicReservationResponse, "Atomic Reservation Response", true) \
+  __op__(SEND_PADDED_RESERVATION_REQUEST, PaddedReservationRequest, "Padded Reservation Request", false) \
+  __op__(SEND_PADDED_RESERVATION_RESPONSE, PaddedReservationResponse, "Padded Reservation Response", true) \
+  __op__(SEND_CREATED_REGION_CONTEXTS, CreatedRegionContextsMessage, "Created Region Contexts Message", false) \
+  __op__(SEND_MATERIALIZED_VIEW, MaterializedViewMessage, "Materialized View Message", true) \
+  __op__(SEND_FILL_VIEW, FillViewMessage, "Fill View Message", true) \
+  __op__(SEND_FILL_VIEW_VALUE, FillViewValueMessage, "Fill View Value Message", false) \
+  __op__(SEND_PHI_VIEW, PhiViewMessage, "Phi View Message", false) \
+  __op__(SEND_REDUCTION_VIEW, ReductionViewMessage, "Reduction View Message", true) \
+  __op__(SEND_REPLICATED_VIEW, ReplicatedViewMessage, "Replicated View Message", true) \
+  __op__(SEND_ALLREDUCE_VIEW, AllreduceViewMessage, "Allreduce View Message", true) \
+  __op__(SEND_INSTANCE_MANAGER, InstanceManagerMessage, "Instance Manager Message", true) \
+  __op__(SEND_MANAGER_UPDATE, PhysicalManagerUpdate, "Physical Manager Update Message", true) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_FILL, CollectiveDistributeFill, "Collective View Broadcast Fill Message", false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_POINT, CollectiveDistributePoint, "Collective View Broadcast Point Message", false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_POINTWISE, CollectiveDistributePointwise, "Collective View Copy Point-wise Message", false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_REDUCTION, CollectiveDistributeReduction, "Collective View Reduction Tree Message", false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_BROADCAST, CollectiveDistributeBroadcast, "Collective View Broadcast Tree Message", false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_REDUCECAST, CollectiveDistributeReducecast, "Collective View Reducecast Message", false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_HOURGLASS, CollectiveDistributeHourglass, "Collective View Hour-glass Message", false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_ALLREDUCE, CollectiveDistributeAllreduce, "Collective View All-reduce Message", false) \
+  __op__(SEND_COLLECTIVE_HAMMER_REDUCTION, CollectiveHammerReduction, "Collective View Hammer Reduction Message", false) \
+  __op__(SEND_COLLECTIVE_FUSE_GATHER, CollectiveFuseGather, "Collective View Fused Gather Message", false) \
+  __op__(SEND_COLLECTIVE_USER_REQUEST, CollectiveRegisterUserRequest, "Collective View Register User Request", false) \
+  __op__(SEND_COLLECTIVE_USER_RESPONSE, CollectiveRegisterUserResponse, "Collective View Register User Response", true) \
+  __op__(SEND_COLLECTIVE_REGISTER_USER, CollectiveIndividualRegisterUser, "Collective View Individual Register User", false) \
+  __op__(SEND_COLLECTIVE_REMOTE_INSTANCES_REQUEST, CollectiveRemoteInstancesRequest, "Collective View Remote Instances Request", false) \
+  __op__(SEND_COLLECTIVE_REMOTE_INSTANCES_RESPONSE, CollectiveRemoteInstancesResponse, "Collective View Remote Instances Response", true) \
+  __op__(SEND_COLLECTIVE_NEAREST_INSTANCES_REQUEST, CollectiveNearestInstancesRequest, "Collective View Nearest Instances Request", false) \
+  __op__(SEND_COLLECTIVE_NEAREST_INSTANCES_RESPONSE, CollectiveNearestInstancesResponse, "Collective View Nearest Instances Response", true) \
+  __op__(SEND_COLLECTIVE_REMOTE_REGISTRATION, CollectiveRemoteRegistration, "Collective View Remote Registration Message", false) \
+  __op__(SEND_COLLECTIVE_FINALIZE_MAPPING, CollectiveFinalizeMapping, "Collective View Finalize Mapping", false) \
+  __op__(SEND_COLLECTIVE_VIEW_CREATION, CollectiveViewCreation, "Collective View Creation Message", false) \
+  __op__(SEND_COLLECTIVE_VIEW_DELETION, CollectiveViewDeletion, "Collective View Deletion Message", false) \
+  __op__(SEND_COLLECTIVE_VIEW_RELEASE, CollectiveViewRelease, "Collective View Release Message", false) \
+  __op__(SEND_COLLECTIVE_VIEW_NOTIFICATION, CollectiveViewNotification, "Collective View Notification Message", false) \
+  __op__(SEND_COLLECTIVE_VIEW_MAKE_VALID, CollectiveViewMakeValid, "Collective View Make Valid Message", false) \
+  __op__(SEND_COLLECTIVE_VIEW_MAKE_INVALID, CollectiveViewMakeInvalid, "Collective View Make Invalid Message", false) \
+  __op__(SEND_COLLECTIVE_VIEW_INVALIDATE_REQUEST, CollectiveViewInvalidateRequest, "Collective View Invalidation Request", false) \
+  __op__(SEND_COLLECTIVE_VIEW_INVALIDATE_RESPONSE, CollectiveViewInvalidateResponse, "Collective View Invalidation Response", true) \
+  __op__(SEND_COLLECTIVE_VIEW_ADD_REMOTE_REFERENCE, CollectiveViewAddRemoteReference, "Collective View Add Remote Reference Message", false) \
+  __op__(SEND_COLLECTIVE_VIEW_REMOVE_REMOTE_REFERENCE, CollectiveViewRemoveRemoteReference, "Collective View Remove Remote Reference Message", false) \
+  __op__(SEND_CREATE_TOP_VIEW_REQUEST, CreateTopViewRequest, "Create Top Logical View Request", false) \
+  __op__(SEND_CREATE_TOP_VIEW_RESPONSE, CreateTopViewResponse, "Create Top Logical View Respone", false) \
+  __op__(SEND_VIEW_REQUEST, ViewRequestMessage, "Logical View Request", false) \
+  __op__(SEND_VIEW_REGISTER_USER, ViewRegisterUser, "Logical View Register User Message", false) \
+  __op__(SEND_VIEW_FIND_COPY_PRE_REQUEST, ViewFindCopyPreMessage, "Logical View Find Copy Preconditions Message", false) \
+  __op__(SEND_VIEW_ADD_COPY_USER, ViewAddCopyUserMessage, "Logical View Add Copy User Message", true) \
+  __op__(SEND_VIEW_FIND_LAST_USERS_REQUEST, ViewFindLastUsersRequest, "Logical View Find Last Users Request", false) \
+  __op__(SEND_VIEW_FIND_LAST_USERS_RESPONSE, ViewFindLastUsersResponse, "Logical View Find Last Users Response", true) \
+  __op__(SEND_MANAGER_REQUEST, ManagerRequestMessage, "Instance Manager Request", false) \
+  __op__(SEND_FUTURE_RESULT, FutureResultMessage, "Set Future Result Message", true) \
+  __op__(SEND_FUTURE_RESULT_SIZE, FutureSizeMessage, "Set Future Size Message", true) \
+  __op__(SEND_FUTURE_SUBSCRIPTION, FutureSubscription, "Future Subscription Message", false) \
+  __op__(SEND_FUTURE_CREATE_INSTANCE_REQUEST, FutureCreateInstanceRequest, "Future Create Instance Request", false) \
+  __op__(SEND_FUTURE_CREATE_INSTANCE_RESPONSE, FutureCreateInstanceResponse, "Future Create Instance Response", true) \
+  __op__(SEND_FUTURE_MAP_REQUEST, FutureMapFutureRequest, "Future Map Future Request", false) \
+  __op__(SEND_FUTURE_MAP_RESPONSE, FutureMapFutureResponse, "Future Map Future Response", true) \
+  __op__(SEND_FUTURE_MAP_POINTWISE, FutureMapPointwise, "Future Map Pointwise Message", false) \
+  __op__(SEND_REPL_COMPUTE_EQUIVALENCE_SETS, ReplComputeEquivalenceSets, "Replicated Compute Equivalence Sets Message", false) \
+  __op__(SEND_REPL_OUTPUT_EQUIVALENCE_SET, ReplOutputEquivalenceSet, "Replicated Output Equivalence Set Message", false) \
+  __op__(SEND_REPL_REFINE_EQUIVALENCE_SETS, ReplRefineEquivalenceSets, "Replicated Refine Equivalence Sets Message", false) \
+  __op__(SEND_REPL_EQUIVALENCE_SET_NOTIFICATION, ReplEquivalenceSetNotification, "Replicated Equivalence Set Notification Message", false) \
+  __op__(SEND_REPL_BROADCAST_UPDATE, ReplBroadcastUpdate, "Replicated Broadcast Update Message", false) \
+  __op__(SEND_REPL_CREATED_REGIONS, ReplCreatedRegions, "Replicated Created Regions Message", false) \
+  __op__(SEND_REPL_TRACE_EVENT_REQUEST, ReplTraceEventRequest, "Replicated Trace Event Request", false) \
+  __op__(SEND_REPL_TRACE_EVENT_RESPONSE, ReplTraceEventResponse, "Replicated Trace Event Response", true) \
+  __op__(SEND_REPL_TRACE_EVENT_TRIGGER, ReplTraceEventTrigger, "Replicated Trace Event Trigger", false) \
+  __op__(SEND_REPL_TRACE_FRONTIER_REQUEST, ReplTraceFrontierRequest, "Replicated Trace Frontier Request", false) \
+  __op__(SEND_REPL_TRACE_FRONTIER_RESPONSE, ReplTraceFrontierResponse, "Replicated Trace Frontier Response", true) \
+  __op__(SEND_REPL_TRACE_UPDATE, ReplTraceUpdateMessage, "Replicated Trace Update Message", false) \
+  __op__(SEND_REPL_FIND_TRACE_SETS, ReplFindTraceSets, "Replicated Find Trace Sets Message", false) \
+  __op__(SEND_REPL_IMPLICIT_RENDEZVOUS, ReplImplicitRendezvous, "Replicated Implicit Task Rendezvous Message", false) \
+  __op__(SEND_REPL_FIND_COLLECTIVE_VIEW, ReplFindCollectiveView, "Replicated Find Collective View Message", false) \
+  __op__(SEND_REPL_POINTWISE_DEPENDENCE, ReplPointwiseDependence, "Replicated Find Pointwise Dependence Message", false) \
+  __op__(SEND_MAPPER_MESSAGE, MapperMessage, "Mapper Message", false) \
+  __op__(SEND_MAPPER_BROADCAST, MapperBroadcast, "Mapper Broadcast", false) \
+  __op__(SEND_TASK_IMPL_SEMANTIC_REQ, TaskSemanticInfoRequest, "Task Semantic Information Request", false) \
+  __op__(SEND_INDEX_SPACE_SEMANTIC_REQ, IndexSpaceSemanticInfoRequest, "Index Space Semantic Information Request", false) \
+  __op__(SEND_INDEX_PARTITION_SEMANTIC_REQ, IndexPartSemanticInfoRequest, "Index Partition Semantic Information Request", false) \
+  __op__(SEND_FIELD_SPACE_SEMANTIC_REQ, FieldSpaceSemanticInfoRequest, "Field Space Semantic Information Request", false) \
+  __op__(SEND_FIELD_SEMANTIC_REQ, FieldSemanticInfoRequest, "Field Semantic Information Request", false) \
+  __op__(SEND_LOGICAL_REGION_SEMANTIC_REQ, LogicalRegionSemanticInfoRequest, "Logical Region Semantic Information Request", false) \
+  __op__(SEND_LOGICAL_PARTITION_SEMANTIC_REQ, LogicalPartitionSemanticInfoRequest, "Logical Partition Semantic Information Request", false) \
+  __op__(SEND_TASK_IMPL_SEMANTIC_INFO, TaskSemanticInfoResponse, "Task Semantic Information Response", true) \
+  __op__(SEND_INDEX_SPACE_SEMANTIC_INFO, IndexSpaceSemanticInfoResponse, "Index Space Semantic Information Response", true) \
+  __op__(SEND_INDEX_PARTITION_SEMANTIC_INFO, IndexPartSemanticInfoResponse, "Index Space Semantic Information Response", true) \
+  __op__(SEND_FIELD_SPACE_SEMANTIC_INFO, FieldSpaceSemanticInfoResponse, "Field Space Semantic Information Response", true) \
+  __op__(SEND_FIELD_SEMANTIC_INFO, FieldSemanticInfoResponse, "Field Semantic Information Response", true) \
+  __op__(SEND_LOGICAL_REGION_SEMANTIC_INFO, LogicalRegionSemanticInfoResponse, "Logical Region Semantic Information Response", true) \
+  __op__(SEND_LOGICAL_PARTITION_SEMANTIC_INFO, LogicalPartitionSemanticInfoResponse, "Logical Partition Semantic Information Response", true) \
+  __op__(SEND_REMOTE_CONTEXT_REQUEST, RemoteContextRequest, "Remote Context Request", false) \
+  __op__(SEND_REMOTE_CONTEXT_RESPONSE, RemoteContextResponse, "Remote Context Response", true) \
+  __op__(SEND_REMOTE_CONTEXT_PHYSICAL_REQUEST, RemoteContextPhysicalRequest, "Remote Context Physical Request", false) \
+  __op__(SEND_REMOTE_CONTEXT_PHYSICAL_RESPONSE, RemoteContextPhysicalResponse, "Remote Context Physical Response", true) \
+  __op__(SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_REQUEST, RemoteContextFindCollectiveViewRequest, "Remote Context Find Collective View Request", false) \
+  __op__(SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_RESPONSE, RemoteContextFindCollectiveViewResponse, "Remote Context Find Collective View Response", true) \
+  __op__(SEND_REMOTE_CONTEXT_REFINE_EQUIVALENCE_SETS, RemoteContextRefineEquivalenceSets, "Remote Context Refine Equivalence Sets Messages", false) \
+  __op__(SEND_REMOTE_CONTEXT_POINTWISE_DEPENDENCE, RemoteContextPointwiseDependence, "Remote Context Pointwise Dependence Analysis", false) \
+  __op__(SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_REQUEST, RemoteContextFindTraceLocalRequest, "Remote Context Find Trace Local Sets Request", false) \
+  __op__(SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_RESPONSE, RemoteContextFindTraceLocalResponse, "Remote Context Find Trace Local Sets Response", true) \
+  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_REQUEST, ComputeEquivalenceSetsRequest, "Compute Equivalence Sets Request", false) \
+  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_RESPONSE, ComputeEquivalenceSetsResponse, "Compute Equivalence Sets Response", true) \
+  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_PENDING, ComputeEquivalenceSetsPending, "Compute Equivalence Sets Pending Message", false) \
+  __op__(SEND_OUTPUT_EQUIVALENCE_SET_REQUEST, OutputEquivalenceSetRequest, "Output Equivalence Set Request", false) \
+  __op__(SEND_OUTPUT_EQUIVALENCE_SET_RESPONSE, OutputEquivalenceSetResponse, "Output Equivalence Set Response", true) \
+  __op__(SEND_CANCEL_EQUIVALENCE_SETS_SUBSCRIPTION, CancelEquivalenceSetSubscription, "Cance Equivalence Set Subscription Message", false) \
+  __op__(SEND_INVALIDATE_EQUIVALENCE_SETS_SUBSCRIPTION, InvalidateEquivalenceSetSubscription, "Invalidate Equivalence Set Subscription", false) \
+  __op__(SEND_EQUIVALENCE_SET_CREATION, EquivalenceSetCreation, "Equivalence Set Creation Message", false) \
+  __op__(SEND_EQUIVALENCE_SET_REUSE, EquivalenceSetReuse, "Equivalence Set Reuse Message", false) \
+  __op__(SEND_EQUIVALENCE_SET_REQUEST, EquivalenceSetRequest, "Equivalence Set Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_RESPONSE, EquivalenceSetResponse, "Equivalence Set Response", true) \
+  __op__(SEND_EQUIVALENCE_SET_REPLICATION_REQUEST, EquivalenceSetReplicationRequest, "Equivalence Set Replication Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REPLICATION_RESPONSE, EquivalenceSetReplicationResponse, "Equivalence Set Replication Response", true) \
+  __op__(SEND_EQUIVALENCE_SET_MIGRATION, EquivalenceSetMigration, "Equivalence Set Migration Message", false) \
+  __op__(SEND_EQUIVALENCE_SET_OWNER_UPDATE, EquivalenceSetOwnerUpdate, "Equivalence Set Owner Update Message", false) \
+  __op__(SEND_EQUIVALENCE_SET_CLONE_REQUEST, EquivalenceSetCloneRequest, "Equivalence Set Clone Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_CLONE_RESPONSE, EquivalenceSetCloneResponse, "Equivalence Set Clone Response", true) \
+  __op__(SEND_EQUIVALENCE_SET_CAPTURE_REQUEST, EquivalenceSetCaptureRequest, "Equivalence Set Capture Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_CAPTURE_RESPONSE, EquivalenceSetCaptureResponse, "Equivalence Set Capture Response", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INSTANCES, EquivalenceSetRequestInstances, "Equivalence Set Remote Instances Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INVALID, EquivalenceSetRequestInvalid, "Equivalence Set Remote Invalid Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_ANTIVALID, EquivalenceSetRequestAntivalid, "Equivalence Set Remote Antivalid Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_UPDATES, RemoteUpdateAnalysis, "Equivalence Set Remote Updates Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_ACQUIRES, RemoteAcquireAnalysis, "Equivalence Set Remote Acquire Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_RELEASES, RemoteReleaseAnalysis, "Equivalence Set Remote Release Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_COPIES_ACROSS, RemoteCopyAcrossAnalysis, "Equivalence Set Remote Copy Across Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_OVERWRITES, RemoteOverwriteAnalysis, "Equivalence Set Remote Overwrite Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_FILTERS, RemoteFilterAnalysis, "Equivalence Set Remote Filter Request", false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_INSTANCES, EquivalenceSetRemoteInstances, "Physical Analysis Remote Instances Response", true) \
+  __op__(SEND_EQUIVALENCE_SET_FILTER_INVALIDATIONS, EquivalenceSetFilterInvalidations, "Equivalence Set Filter Invalidations Message", false) \
+  __op__(SEND_INSTANCE_REQUEST, InstanceRequest, "Instance Manager Request", false) \
+  __op__(SEND_INSTANCE_RESPONSE, InstanceResponse, "Instance Manager Response", true) \
+  __op__(SEND_EXTERNAL_CREATE_REQUEST, ExternalCreateRequest, "External Instance Request", false) \
+  __op__(SEND_EXTERNAL_CREATE_RESPONSE, ExternalCreateResponse, "External Instance Response", true) \
+  __op__(SEND_EXTERNAL_ATTACH, ExternalAttachRequest, "External Attach Request", false) \
+  __op__(SEND_EXTERNAL_DETACH, ExternalDetachRequest, "External Detach Request", false) \
+  __op__(SEND_GC_PRIORITY_UPDATE, GarbageCollectionPriorityUpdate, "Garbage Collection Priority Update", false) \
+  __op__(SEND_GC_REQUEST, GarbageCollectionRequest, "Garbage Collection Request", false) \
+  __op__(SEND_GC_RESPONSE, GarbageCollectionResponse, "Garbage Collection Response", true) \
+  __op__(SEND_GC_ACQUIRE, GarbageCollectionAcquire, "Garbage Collection Acquire Message", false) \
+  __op__(SEND_GC_FAILED, GarbageCollectionFailed, "Garbage Collection Failed Response", true) \
+  __op__(SEND_GC_MISMATCH, GarbageCollectionMismatch, "Garbage Collection Mismatch Message", false) \
+  __op__(SEND_GC_NOTIFY, GarbageCollectionNotification, "Garbage Collection Notification Message", false) \
+  __op__(SEND_GC_DEBUG_REQUEST, GarbageCollectionDebugRequest, "Garbage Collection Debug Request", false) \
+  __op__(SEND_GC_DEBUG_RESPONSE, GarbageCollectionDebugResponse, "Garbage Collection Debug Response", true) \
+  __op__(SEND_GC_RECORD_EVENT, GarbageCollectionRecordEvent, "Garbage Collection Record Event", false) \
+  __op__(SEND_ACQUIRE_REQUEST, GarbageCollectionAcquireRequest, "Garbage Collection Acquire Request", false) \
+  __op__(SEND_ACQUIRE_RESPONSE, GarbageCollectionAcquireResponse, "Garbage Collection Acquire Response", true) \
+  __op__(SEND_VARIANT_BROADCAST, VariantBroadcast, "Variant Broadcast Message", false) \
+  __op__(SEND_CONSTRAINT_REQUEST, ConstraintRequest, "Layout Constraint Request", false) \
+  __op__(SEND_CONSTRAINT_RESPONSE, ConstraintResponse, "Layout Constraint Response", true) \
+  __op__(SEND_CONSTRAINT_RELEASE, ConstraintRelease, "Layout Constraint Release Message", false) \
+  __op__(SEND_TOP_LEVEL_TASK_COMPLETE, TopLevelTaskComplete, "Top Level Task Complete Message", false) \
+  __op__(SEND_MPI_RANK_EXCHANGE, MPIRankExchange, "MPI Rank Exchange Message", false) \
+  __op__(SEND_REPLICATE_DISTRIBUTION, ReplicateDistribution, "Replicate Task Distribution", false) \
+  __op__(SEND_REPLICATE_COLLECTIVE_VERSIONING, ReplicateVersioning, "Replicate Task Collective Versioning Message", false) \
+  __op__(SEND_REPLICATE_COLLECTIVE_MAPPING, ReplicateCollectiveMapping, "Replicate Task Collective Mapping Message", false) \
+  __op__(SEND_REPLICATE_VIRTUAL_RENDEZVOUS, ReplicateVirtualRendezvous, "Replicate Task Virtual Mapping Message", false) \
+  __op__(SEND_REPLICATE_STARTUP_COMPLETE, ReplicateStartup, "Replicate Task Startup Complete Message", false) \
+  __op__(SEND_REPLICATE_POST_MAPPED, ReplicatePostMapped, "Replicate Task Post Mapped Message", false) \
+  __op__(SEND_REPLICATE_TRIGGER_COMPLETE, ReplicateTriggerComplete, "Replicate Task Trigger Complete Message", false) \
+  __op__(SEND_REPLICATE_TRIGGER_COMMIT, ReplicateTriggerCommit, "Replicate Trigger Commit Message", false) \
+  __op__(SEND_CONTROL_REPLICATE_RENDEZVOUS_MESSAGE, ReplicateRendezvousMessage, "Replicate Task Rendezvous Message", false) \
+  __op__(SEND_LIBRARY_MAPPER_REQUEST, MapperLibraryRequest, "Mapper ID Library Request", false) \
+  __op__(SEND_LIBRARY_MAPPER_RESPONSE, MapperLibraryResponse, "Mapper ID Library Response", true) \
+  __op__(SEND_LIBRARY_TRACE_REQUEST, TraceLibraryRequest, "Trace ID Library Request", false) \
+  __op__(SEND_LIBRARY_TRACE_RESPONSE, TraceLibraryResponse, "Trace ID Library Response", true) \
+  __op__(SEND_LIBRARY_PROJECTION_REQUEST, ProjectionLibraryRequest, "Projection ID Library Request", false) \
+  __op__(SEND_LIBRARY_PROJECTION_RESPONSE, ProjectionLibraryResponse, "Projection ID Library Response", true) \
+  __op__(SEND_LIBRARY_SHARDING_REQUEST, ShardingLibraryRequest, "Sharding ID Library Request", false) \
+  __op__(SEND_LIBRARY_SHARDING_RESPONSE, ShardingLibraryResponse, "Sharding ID Library Response", true) \
+  __op__(SEND_LIBRARY_CONCURRENT_REQUEST, ConcurrentLibraryRequest, "Concurrent ID Library Request", false) \
+  __op__(SEND_LIBRARY_CONCURRENT_RESPONSE, ConcurrentLibraryResponse, "Concurrent ID Library Response", true) \
+  __op__(SEND_LIBRARY_TASK_REQUEST, TaskLibraryRequest, "Task ID Library Request", false) \
+  __op__(SEND_LIBRARY_TASK_RESPONSE, TaskLibraryResponse, "Task ID Library Response", true) \
+  __op__(SEND_LIBRARY_REDOP_REQUEST, RedopLibraryRequest, "Reduction ID Library Request", false) \
+  __op__(SEND_LIBRARY_REDOP_RESPONSE, RedopLibraryResponse, "Reduction ID Library Response", true) \
+  __op__(SEND_LIBRARY_SERDEZ_REQUEST, SerdezLibraryRequest, "Serdez ID Library Request", false) \
+  __op__(SEND_LIBRARY_SERDEZ_RESPONSE, SerdezLibraryResponse, "Serdez ID Library Response", true) \
+  __op__(SEND_REMOTE_OP_REPORT_UNINIT, RemoteOpReportUninit, "Remote Operation Uninitialized Message", false) \
+  __op__(SEND_REMOTE_OP_PROFILING_COUNT_UPDATE, RemoteOpProfilingUpdate, "Remote Operation Profiling Update Message", false) \
+  __op__(SEND_REMOTE_OP_COMPLETION_EFFECT, RemoteOpCompletionEffect, "Remote Operation Completion Effect", false ) \
+  __op__(SEND_REMOTE_TRACE_UPDATE, RemoteTraceUpdate, "Remote Trace Recording Update Message", false) \
+  __op__(SEND_REMOTE_TRACE_RESPONSE, RemoteTraceResponse, "Remote Trace Recording Response", true) \
+  __op__(SEND_FREE_EXTERNAL_ALLOCATION, FreeExternalAllocation, "Free External Allocation Message", false) \
+  __op__(SEND_NOTIFY_COLLECTED_INSTANCES, NotifyCollectedInstances, "Notify Collected Instances Message", false) \
+  __op__(SEND_CREATE_MEMORY_POOL_REQUEST, CreatePoolRequest, "Create Memory Pool Request", false) \
+  __op__(SEND_CREATE_MEMORY_POOL_RESPONSE, CreatePoolResponse, "Create Memory Pool Response", true) \
+  __op__(SEND_CREATE_FUTURE_INSTANCE_REQUEST, CreateFutureInstanceRequest, "Create Future Instance Request", false) \
+  __op__(SEND_CREATE_FUTURE_INSTANCE_RESPONSE, CreateFutureInstanceResponse, "Create Future Instance Response", true) \
+  __op__(SEND_FREE_FUTURE_INSTANCE, FreeFutureInstance, "Free Future Instance Message", false) \
+  __op__(SEND_REMOTE_DISTRIBUTED_ID_REQUEST, DistributedIDRequest, "Distributed Collectable ID Request", false) \
+  __op__(SEND_REMOTE_DISTRIBUTED_ID_RESPONSE, DistributedIDResponse, "Distributed Collectable ID Response", true) \
+  __op__(SEND_PROFILER_EVENT_TRIGGER, ProfilerEventTriggerMessage, "Profiler Record Event Trigger Message", false) \
+  __op__(SEND_PROFILER_EVENT_POISON, ProfilerEventPoisonMessage, "Profiler Record Event Poison Message", false) \
+  __op__(SEND_SHUTDOWN_NOTIFICATION, ShutdownNotification, "Shutdown Notification Message", false) \
+  __op__(SEND_SHUTDOWN_RESPONSE, ShutdownResponse, "Shutdown Response", true)
 
-#define LG_MESSAGE_DESCRIPTIONS(name)                                       \
-  const char* name[LAST_SEND_KIND] = {                                      \
-      "Send Startup Barrier",                                               \
-      "Task Message",                                                       \
-      "Steal Message",                                                      \
-      "Advertisement Message",                                              \
-      "Send Registration Callback",                                         \
-      "Send Remote Task Replay",                                            \
-      "Send Remote Task Profiling Response",                                \
-      "Send Shared Ownership",                                              \
-      "Send Index Space Request",                                           \
-      "Send Index Space Response",                                          \
-      "Send Index Space Return",                                            \
-      "Send Index Space Set",                                               \
-      "Send Index Space Child Request",                                     \
-      "Send Index Space Child Response",                                    \
-      "Send Index Space Colors Request",                                    \
-      "Send Index Space Colors Response",                                   \
-      "Send Index Space Generate Color Request",                            \
-      "Send Index Space Generate Color Response",                           \
-      "Send Index Space Release Color",                                     \
-      "Send Index Partition Notification",                                  \
-      "Send Index Partition Request",                                       \
-      "Send Index Partition Response",                                      \
-      "Send Index Partition Return",                                        \
-      "Send Index Partition Child Request",                                 \
-      "Send Index Partition Child Response",                                \
-      "Send Index Partition Child Replication",                             \
-      "Send Index Partition Disjoint Update",                               \
-      "Send Index Partition Shard Rects Request",                           \
-      "Send Index Partition Shard Rects Response",                          \
-      "Send Index Partition Remote Interference Request",                   \
-      "Send Index Partition Remote Interference Response",                  \
-      "Send Field Space Node",                                              \
-      "Send Field Space Request",                                           \
-      "Send Field Space Return",                                            \
-      "Send Field Space Allocator Request",                                 \
-      "Send Field Space Allocator Response",                                \
-      "Send Field Space Allocator Invalidation",                            \
-      "Send Field Space Allocator Flush",                                   \
-      "Send Field Space Allocator Free",                                    \
-      "Send Field Space Infos Request",                                     \
-      "Send Field Space Infos Response",                                    \
-      "Send Field Alloc Request",                                           \
-      "Send Field Size Update",                                             \
-      "Send Field Free",                                                    \
-      "Send Field Free Indexes",                                            \
-      "Send Field Space Layout Invalidation",                               \
-      "Send Local Field Alloc Request",                                     \
-      "Send Local Field Alloc Response",                                    \
-      "Send Local Field Free",                                              \
-      "Send Local Field Update",                                            \
-      "Send Top Level Region Request",                                      \
-      "Send Top Level Region Return",                                       \
-      "Index Space Destruction",                                            \
-      "Index Partition Destruction",                                        \
-      "Field Space Destruction",                                            \
-      "Logical Region Destruction",                                         \
-      "Individual Remote Future Size",                                      \
-      "Individual Remote Output Region Registration",                       \
-      "Individual Remote Mapped",                                           \
-      "Individual Remote Complete",                                         \
-      "Individual Remote Commit",                                           \
-      "Individual Concurrent Request",                                      \
-      "Individual Concurrent Response",                                     \
-      "Slice Remote Mapped",                                                \
-      "Slice Remote Complete",                                              \
-      "Slice Remote Commit",                                                \
-      "Slice Rendezvous Concurrent Mapped",                                 \
-      "Slice Collective Unbounded Pools Allreduce Request",                 \
-      "Slice Collective Unbounded Pools Allreduce Response",                \
-      "Slice Concurrent Allreduce Request",                                 \
-      "Slice Concurrent Allreduce Response",                                \
-      "Slice Find Intra-Space Dependence",                                  \
-      "Slice Remote Collective Rendezvous",                                 \
-      "Slice Remote Collective Versioning Rendezvous",                      \
-      "Slice Remote Output Region Extents",                                 \
-      "Slice Remote Output Region Registration",                            \
-      "Distributed Remote Registration",                                    \
-      "Distributed Downgrade Request",                                      \
-      "Distributed Downgrade Response",                                     \
-      "Distributed Downgrade Success",                                      \
-      "Distributed Downgrade Update",                                       \
-      "Distributed Downgrade Restart",                                      \
-      "Distributed Global Acquire Request",                                 \
-      "Distributed Global Acquire Response",                                \
-      "Distributed Valid Acquire Request",                                  \
-      "Distributed Valid Acquire Response",                                 \
-      "Send Atomic Reservation Request",                                    \
-      "Send Atomic Reservation Response",                                   \
-      "Send Padded Reservation Request",                                    \
-      "Send Padded Reservation Response",                                   \
-      "Send Created Region Contexts",                                       \
-      "Send Materialized View",                                             \
-      "Send Fill View",                                                     \
-      "Send Fill View Value",                                               \
-      "Send Phi View",                                                      \
-      "Send Reduction View",                                                \
-      "Send Replicated View",                                               \
-      "Send Allreduce View",                                                \
-      "Send Instance Manager",                                              \
-      "Send Manager Update",                                                \
-      "Send Collective Distribute Fill",                                    \
-      "Send Collective Distribute Point",                                   \
-      "Send Collective Distribute Pointwise",                               \
-      "Send Collective Distribute Reduction",                               \
-      "Send Collective Distribute Broadcast",                               \
-      "Send Collective Distribute Reducecast",                              \
-      "Send Collective Distribute Hourglass",                               \
-      "Send Collective Distribute Allreduce",                               \
-      "Send Collective Hammer Reduction",                                   \
-      "Send Collective Fuse Gather",                                        \
-      "Send Collective User Request",                                       \
-      "Send Collective User Response",                                      \
-      "Send Collective Individual Register User",                           \
-      "Send Collective Remote Instances Request",                           \
-      "Send Collective Remote Instances Response",                          \
-      "Send Collective Nearest Instances Request",                          \
-      "Send Collective Nearest Instances Response",                         \
-      "Send Collective Remote Registration",                                \
-      "Send Collective Finalize Mapping",                                   \
-      "Send Collective View Creation",                                      \
-      "Send Collective View Deletion",                                      \
-      "Send Collective View Release",                                       \
-      "Send Collective View Deletion Notification",                         \
-      "Send Collective View Make Valid",                                    \
-      "Send Collective View Make Invalid",                                  \
-      "Send Collective View Invalidate Request",                            \
-      "Send Collective View Invalidate Response",                           \
-      "Send Collective View Add Remote Reference",                          \
-      "Send Collective View Remove Remote Reference",                       \
-      "Send Create Top View Request",                                       \
-      "Send Create Top View Response",                                      \
-      "Send View Request",                                                  \
-      "Send View Register User",                                            \
-      "Send View Find Copy Preconditions Request",                          \
-      "Send View Add Copy User",                                            \
-      "Send View Find Last Users Request",                                  \
-      "Send View Find Last Users Response",                                 \
-      "Send Manager Request",                                               \
-      "Send Future Result",                                                 \
-      "Send Future Result Size",                                            \
-      "Send Future Subscription",                                           \
-      "Send Future Create Instance Request",                                \
-      "Send Future Create Instance Response",                               \
-      "Send Future Map Future Request",                                     \
-      "Send Future Map Future Response",                                    \
-      "Send Future Map Find Pointwise Dependence",                          \
-      "Send Replicate Compute Equivalence Sets",                            \
-      "Send Replicate Register Output Equivalence Set",                     \
-      "Send Replicate Refine Equivalence Sets",                             \
-      "Send Replicate Equivalence Set Notification",                        \
-      "Send Replicate Broadcast Update",                                    \
-      "Send Replicate Created Regions Return",                              \
-      "Send Replicate Trace Event Request",                                 \
-      "Send Replicate Trace Event Response",                                \
-      "Send Replicate Trace Event Trigger",                                 \
-      "Send Replicate Trace Frontier Request",                              \
-      "Send Replicate Trace Frontier Response",                             \
-      "Send Replicate Trace Update",                                        \
-      "Send Replicate Find Trace Local Sets",                               \
-      "Send Replicate Implicit Rendezvous",                                 \
-      "Send Replicate Find or Create Collective View",                      \
-      "Send Replicate Find Pointwise Dependence",                           \
-      "Send Mapper Message",                                                \
-      "Send Mapper Broadcast",                                              \
-      "Send Task Impl Semantic Req",                                        \
-      "Send Index Space Semantic Req",                                      \
-      "Send Index Partition Semantic Req",                                  \
-      "Send Field Space Semantic Req",                                      \
-      "Send Field Semantic Req",                                            \
-      "Send Logical Region Semantic Req",                                   \
-      "Send Logical Partition Semantic Req",                                \
-      "Send Task Impl Semantic Info",                                       \
-      "Send Index Space Semantic Info",                                     \
-      "Send Index Partition Semantic Info",                                 \
-      "Send Field Space Semantic Info",                                     \
-      "Send Field Semantic Info",                                           \
-      "Send Logical Region Semantic Info",                                  \
-      "Send Logical Partition Semantic Info",                               \
-      "Send Remote Context Request",                                        \
-      "Send Remote Context Response",                                       \
-      "Send Remote Context Physical Request",                               \
-      "Send Remote Context Physical Response",                              \
-      "Send Remote Context Find Collective View Request",                   \
-      "Send Remote Context Find Collective View Response",                  \
-      "Send Remote Context Refine Equivalence Sets",                        \
-      "Send Remote Context Pointwise Dependence",                           \
-      "Send Remote Context Find Trace Local Sets Request",                  \
-      "Send Remote Context Find Trace Local Sets Response",                 \
-      "Send Compute Equivalence Sets Request",                              \
-      "Send Compute Equivalence Sets Response",                             \
-      "Send Compute Equivalence Sets Pending",                              \
-      "Send Register Output Equivalence Set Request",                       \
-      "Send Register Output Equivalence Set Response",                      \
-      "Send Cancel Equivalence Sets Subscription",                          \
-      "Send Invalidate Equivalence Sets Subscription",                      \
-      "Send Equivalence Set Creation",                                      \
-      "Send Equivalence Set Reuse",                                         \
-      "Send Equivalence Set Request",                                       \
-      "Send Equivalence Set Response",                                      \
-      "Send Equivalence Set Replication Request",                           \
-      "Send Equivalence Set Replication Response",                          \
-      "Send Equivalence Set Migration",                                     \
-      "Send Equivalence Set Owner Update",                                  \
-      "Send Equivalence Set Clone Request",                                 \
-      "Send Equivalence Set Clone Response",                                \
-      "Send Equivalence Set Tracing Capture Request",                       \
-      "Send Equivalence Set Tracing Capture Response",                      \
-      "Send Equivalence Set Remote Request Instances",                      \
-      "Send Equivalence Set Remote Request Invalid",                        \
-      "Send Equivalence Set Remote Request Antivalid",                      \
-      "Send Equivalence Set Remote Updates",                                \
-      "Send Equivalence Set Remote Acquires",                               \
-      "Send Equivalence Set Remote Releases",                               \
-      "Send Equivalence Set Remote Copies Across",                          \
-      "Send Equivalence Set Remote Overwrites",                             \
-      "Send Equivalence Set Remote Filters",                                \
-      "Send Equivalence Set Remote Instances",                              \
-      "Send Equivalence Set Filter Invalidations",                          \
-      "Send Instance Request",                                              \
-      "Send Instance Response",                                             \
-      "Send External Create Request",                                       \
-      "Send External Create Response",                                      \
-      "Send External Attach",                                               \
-      "Send External Detach",                                               \
-      "Send GC Priority Update",                                            \
-      "Send GC Request",                                                    \
-      "Send GC Response",                                                   \
-      "Send GC Acquire Request",                                            \
-      "Send GC Acquire Failed",                                             \
-      "Send GC Packed Reference Mismatch",                                  \
-      "Send GC Notify Collected",                                           \
-      "Send GC Debug Request",                                              \
-      "Send GC Debug Response",                                             \
-      "Send GC Record Event",                                               \
-      "Send Acquire Request",                                               \
-      "Send Acquire Response",                                              \
-      "Send Task Variant Broadcast",                                        \
-      "Send Constraint Request",                                            \
-      "Send Constraint Response",                                           \
-      "Send Constraint Release",                                            \
-      "Top Level Task Complete",                                            \
-      "Send MPI Rank Exchange",                                             \
-      "Send Replication Distribution",                                      \
-      "Send Replication Collective Versioning",                             \
-      "Send Replication Collective Mapping",                                \
-      "Send Replication Virtual Mapping Rendezvous",                        \
-      "Send Replication Startup Complete",                                  \
-      "Send Replication Post Mapped",                                       \
-      "Send Replication Trigger Complete",                                  \
-      "Send Replication Trigger Commit",                                    \
-      "Send Control Replication Rendezvous Message",                        \
-      "Send Library Mapper Request",                                        \
-      "Send Library Mapper Response",                                       \
-      "Send Library Trace Request",                                         \
-      "Send Library Trace Response",                                        \
-      "Send Library Projection Request",                                    \
-      "Send Library Projection Response",                                   \
-      "Send Library Sharding Request",                                      \
-      "Send Library Sharding Response",                                     \
-      "Send Library Concurrent Request",                                    \
-      "Send Library Concurrent Response",                                   \
-      "Send Library Task Request",                                          \
-      "Send Library Task Response",                                         \
-      "Send Library Redop Request",                                         \
-      "Send Library Redop Response",                                        \
-      "Send Library Serdez Request",                                        \
-      "Send Library Serdez Response",                                       \
-      "Remote Op Report Uninitialized",                                     \
-      "Remote Op Profiling Count Update",                                   \
-      "Remote Op Completion Effect",                                        \
-      "Send Remote Trace Update",                                           \
-      "Send Remote Trace Response",                                         \
-      "Send Free External Allocation",                                      \
-      "Send Notify Collected Instances",                                    \
-      "Send Create Memory Pool Request",                                    \
-      "Send Create Memory Pool Response",                                   \
-      "Send Create Future Instance Request",                                \
-      "Send Create Future Instance Response",                               \
-      "Send Free Future Instance",                                          \
-      "Send Remote Distributed ID Request",                                 \
-      "Send Remote Distributed ID Response",                                \
-      "Control Replication Collective Future All-Reduce",                   \
-      "Control Replication Collective Future Broadcast",                    \
-      "Control Replication Collective Future Reduction",                    \
-      "Control Replication Collective Value All-Reduce",                    \
-      "Control Replication Collective Value Broadcast",                     \
-      "Control Replication Collective Value Exchange",                      \
-      "Control Replication Collective Buffer Broadcast",                    \
-      "Control Replication Collective Shard Sync Tree",                     \
-      "Control Replication Collective Shard Event Tree",                    \
-      "Control Replication Collective Single Task Tree",                    \
-      "Control Replication Collective Cross Product Partition",             \
-      "Control Replication Collective Sharding Gather Collective",          \
-      "Control Replication Collective Indirect Copy Exchange",              \
-      "Control Replication Collective Field Descriptor Exchange",           \
-      "Control Replication Collective Field Descriptor Gather",             \
-      "Control Replication Collective Deppart Result Scatter",              \
-      "Control Replication Collective Buffer Exchange",                     \
-      "Control Replication Collective Future Name Exchange",                \
-      "Control Replication Collective Must Epoch Mapping Broadcast",        \
-      "Control Replication Collective Must Epoch Mapping Exchange",         \
-      "Control Replication Collective Must Epoch Dependence Exchange",      \
-      "Control Replication Collective Must Epoch Completion Exchange",      \
-      "Control Replication Collective Check Mapping",                       \
-      "Control Replication Collective Check Sources",                       \
-      "Control Replication Collective Template Index Exchange",             \
-      "Control Replication Collective Unordered Exchange",                  \
-      "Control Replication Collective Consensus Match",                     \
-      "Control Replication Collective Verify Control Replication Exchange", \
-      "Control Replication Collective Output Size Exchange",                \
-      "Control Replication Collective Index Attach Launch Space",           \
-      "Control Replication Collective Index Attach Upper Bound",            \
-      "Control Replication Collective Index Attach Exchange",               \
-      "Control Replication Collective Shard Participants Exchange",         \
-      "Control Replication Collective Implicit Sharding Functor",           \
-      "Control Replication Collective Create Fill View",                    \
-      "Control Replication Collective Versioning Rendezvous",               \
-      "Control Replication Collective View Rendezvous",                     \
-      "Control Replication Collective Concurrent Mapping Rendezvous",       \
-      "Control Replication Collective Concurrent Allreduce",                \
-      "Control Replication Collective Projection Tree Exchange",            \
-      "Control Replication Collective Timeout Match Exchange",              \
-      "Control Replication Collective Mask Exchange",                       \
-      "Control Replication Collective Predicate Exchange",                  \
-      "Control Replication Collective Cross Product Exchange",              \
-      "Control Replication Collective Tracing Set Deduplication",           \
-      "Control Replication Collective Pointwise Allreduce",                 \
-      "Control Replication Collective Interering Points Check",             \
-      "Control Replication Collective Slow Barrier",                        \
-      "Send Profiler Event Trigger",                                        \
-      "Send Profiler Event Poison",                                         \
-      "Send Shutdown Notification",                                         \
-      "Send Shutdown Response",                                             \
-  };
+#define LEGION_SHARD_COLLECTIVE_ACTIVE_MESSAGES(__op__) \
+  __op__(SEND_CONTROL_REPLICATION_FUTURE_ALLREDUCE, "Control Replication Future All-Reduce Message") \
+  __op__(SEND_CONTROL_REPLICATION_FUTURE_BROADCAST, "Control Replication Future Broadcast Message") \
+  __op__(SEND_CONTROL_REPLICATION_FUTURE_REDUCTION, "Control Replication Future Reduction Message") \
+  __op__(SEND_CONTROL_REPLICATION_VALUE_ALLREDUCE, "Control Replication Value All-reduce Message") \
+  __op__(SEND_CONTROL_REPLICATION_VALUE_BROADCAST, "Control Replication Value Broadcast Message") \
+  __op__(SEND_CONTROL_REPLICATION_VALUE_EXCHANGE, "Control Replication Value Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_BUFFER_BROADCAST, "Control Replication Buffer Broadcast Message") \
+  __op__(SEND_CONTROL_REPLICATION_SHARD_SYNC_TREE, "Control Replication Shard Synchronization Tree Message") \
+  __op__(SEND_CONTROL_REPLICATION_SHARD_EVENT_TREE, "Control Replication Shard Event Tree Message") \
+  __op__(SEND_CONTROL_REPLICATION_SINGLE_TASK_TREE, "Control Replication Single Task Tree Message") \
+  __op__(SEND_CONTROL_REPLICATION_CROSS_PRODUCT_PARTITION, "Control Replication Cross Product Partition Message") \
+  __op__(SEND_CONTROL_REPLICATION_SHARDING_GATHER_COLLECTIVE, "Control Replication Sharding Gather Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_INDIRECT_COPY_EXCHANGE, "Control Replication Indirect Copy Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_FIELD_DESCRIPTOR_EXCHANGE, "Control Replication Field Descriptor Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_FIELD_DESCRIPTOR_GATHER, "Control Replication Field Descriptor Gather Message") \
+  __op__(SEND_CONTROL_REPLICATION_DEPPART_RESULT_SCATTER, "Control Replication Dependent Partition Result Scatter Message") \
+  __op__(SEND_CONTROL_REPLICATION_BUFFER_EXCHANGE, "Control Replication Buffer Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_FUTURE_NAME_EXCHANGE, "Control Replication Future Name Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_BROADCAST, "Control Replication Must Epoch Mapping Broadcast Message") \
+  __op__(SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_EXCHANGE, "Control Replication Must Epoch Mapping Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_MUST_EPOCH_DEPENDENCE_EXCHANGE, "Control Replication Must Epoch Dependence Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_MUST_EPOCH_COMPLETION_EXCHANGE, "Control Replication Must Epoch Completion Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_CHECK_COLLECTIVE_MAPPING, "Control Replication Check Collective Mapping Message") \
+  __op__(SEND_CONTROL_REPLICATION_CHECK_COLLECTIVE_SOURCES, "Control Replication Check Collective Sources Message") \
+  __op__(SEND_CONTROL_REPLICATION_TEMPLATE_INDEX_EXCHANGE, "Control Replication Template Index Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_UNORDERED_EXCHANGE, "Control Replication Unordered Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_CONSENSUS_MATCH, "Control Replication Consensus Match Exchange") \
+  __op__(SEND_CONTROL_REPLICATION_VERIFY_CONTROL_REPLICATION_EXCHANGE, "Control Replication Safety Verification Message") \
+  __op__(SEND_CONTROL_REPLICATION_OUTPUT_SIZE_EXCHANGE, "Control Replication Output Size Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_INDEX_ATTACH_LAUNCH_SPACE, "Control Replication Index Attach Launch Message") \
+  __op__(SEND_CONTROL_REPLICATION_INDEX_ATTACH_UPPER_BOUND, "Control Replication Index Attach Upper Bound Message") \
+  __op__(SEND_CONTROL_REPLICATION_INDEX_ATTACH_EXCHANGE, "Control Replication Index Attach Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_SHARD_PARTICIPANTS_EXCHANGE, "Control Replication Shard Participants Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_IMPLICIT_SHARDING_FUNCTOR, "Control Replication Implicit Sharding Functor Message") \
+  __op__(SEND_CONTROL_REPLICATION_CREATE_FILL_VIEW, "Control Replication Create Fill View Message") \
+  __op__(SEND_CONTROL_REPLICATION_VERSIONING_RENDEZVOUS, "Control Replication Versioning Rendezvous Message") \
+  __op__(SEND_CONTROL_REPLICATION_VIEW_RENDEZVOUS, "Control Replication View Rendezvous Message") \
+  __op__(SEND_CONTROL_REPLICATION_CONCURRENT_MAPPING_RENDEZVOUS, "Control Replication Concurrent Mapping Rendezvous Message") \
+  __op__(SEND_CONTROL_REPLICATION_CONCURRENT_ALLREDUCE, "Control Replication Concurrent Allreduce Message") \
+  __op__(SEND_CONTROL_REPLICATION_PROJECTION_TREE_EXCHANGE, "Control Replication Projection Tree Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_TIMEOUT_MATCH_EXCHANGE, "Control Replication Timeout Match Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_MASK_EXCHANGE, "Control Replication Mask Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_PREDICATE_EXCHANGE, "Control Replication Predicate Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_CROSS_PRODUCT_EXCHANGE, "Control Replication Cross-Product Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_TRACING_SET_DEDUPLICATION, "Control Replication Tracing Set Deduplication Message") \
+  __op__(SEND_CONTROL_REPLICATION_POINTWISE_ALLREDUCE, "Control Replication Pointwise Allreduce Message") \
+  __op__(SEND_CONTROL_REPLICATION_INTERFERING_POINT_EXCHANGE, "Control Replication Interfering Point Exchange Message") \
+  __op__(SEND_CONTROL_REPLICATION_SLOW_BARRIER, "Control Replication Slow Barrier Message")
+    // clang-format on
+
+#define CTRL_REPL_KINDS(kind, name) kind,
+#define MESSAGE_KINDS(kind, type, name, resp) kind,
+    enum MessageKind {
+      LEGION_SHARD_COLLECTIVE_ACTIVE_MESSAGES(CTRL_REPL_KINDS)
+      LEGION_ACTIVE_MESSAGES(MESSAGE_KINDS) LAST_SEND_KIND
+          ,  // This one must be last
+    };
+#undef CTRL_REPL_KINDS
+#undef MESSAGE_KINDS
+
+    struct MessageHeader : public LgTaskArgs<MessageHeader> {
+    public:
+      static constexpr LgTaskID TASK_ID = LG_MESSAGE_ID;
+    public:
+      MessageHeader(MessageKind k, VirtualChannelKind c);
+      // We override handle directly since we're doing the handling
+      static void handle(const void* data, size_t size);
+    public:
+      MessageKind kind;
+      VirtualChannelKind channel;
+      AddressSpaceID sender;
+    };
 
     /**
      * \class VirtualChannel
@@ -725,26 +415,17 @@ namespace Legion {
      */
     class VirtualChannel {
     public:
-      // Implement a three-state state-machine for sending
-      // messages.  Either fully self-contained messages
-      // or chains of partial messages followed by a final
-      // message.
-      enum MessageHeader {
-        FULL_MESSAGE = 0x1,
-        PARTIAL_MESSAGE = 0x2,
-        FINAL_MESSAGE = 0x3,
-      };
-      struct PartialMessage {
+      struct MessageHeader : public LgTaskArgs<MessageHeader> {
       public:
-        PartialMessage(void)
-          : buffer(nullptr), size(0), index(0), messages(0), total(0)
+        static constexpr LgTaskID TASK_ID = LG_MESSAGE_ID;
+      public:
+        MessageHeader(AddressSpaceID local, VirtualChannelKind vc)
+          : sender(local), channel(vc)
         { }
+        static void handle(const void* data, size_t size);
       public:
-        uint8_t* buffer;
-        size_t size;
-        size_t index;
-        unsigned messages;
-        unsigned total;
+        AddressSpaceID sender;
+        VirtualChannelKind channel;
       };
     public:
       VirtualChannel(
@@ -755,39 +436,21 @@ namespace Legion {
     public:
       VirtualChannel& operator=(const VirtualChannel& rhs) = delete;
     public:
-      void package_message(
-          Serializer& rez, MessageKind k, bool flush,
-          RtEvent flush_precondition, Processor target, bool response);
-      void process_message(
-          const void* args, size_t arglen, AddressSpaceID remote_address_space);
+      void send_message(
+          MessageKind kind, const Serializer& rez, RtEvent send_precondition,
+          Processor target, bool response);
+      void record_seen(MessageKind kind);
       void confirm_shutdown(
           ShutdownManager* shutdown_manager, bool phase_one, Processor target,
           bool profiling_virtual_channel);
     private:
-      void send_message(
-          bool complete, Processor target, MessageKind kind, bool response,
-          RtEvent send_precondition);
-      void handle_messages(
-          unsigned num_messages, AddressSpaceID remote_address_space,
-          const uint8_t* args, size_t arglen) const;
-      static void buffer_messages(
-          unsigned num_messages, const void* args, size_t arglen,
-          uint8_t*& receiving_buffer, size_t& receiving_buffer_size,
-          size_t& receiving_index, unsigned& received_messages,
-          unsigned& partial_messages);
+      void handle_message(
+          MessageKind kind, AddressSpaceID remote_address_space,
+          const void* args, size_t arglen);
       void filter_unordered_events(void);
     private:
       mutable LocalLock channel_lock;
-      uint8_t* const sending_buffer;
-      unsigned sending_index;
-      const size_t sending_buffer_size;
       RtEvent last_message_event;
-      MessageHeader header;
-      unsigned packaged_messages;
-      // For unordered channels so we can group partial
-      // messages from remote nodes
-      unsigned partial_message_id;
-      bool partial;
     private:
       const bool ordered_channel;
       const bool profile_outgoing_messages;
@@ -795,19 +458,7 @@ namespace Legion {
       const LgPriority response_priority;
       static const unsigned MAX_UNORDERED_EVENTS = 32;
       std::set<RtEvent> unordered_events;
-    private:
-      // State for receiving messages
-      // No lock for receiving messages since we know
-      // that they are ordered for ordered virtual
-      // channels, for un-ordered virtual channels then
-      // we know that we do need the lock
-      uint8_t* receiving_buffer;
-      size_t receiving_buffer_size;
-      size_t receiving_index;
-      unsigned received_messages;
-      unsigned partial_messages;
-      std::map<unsigned /*message id*/, PartialMessage>* partial_assembly;
-      mutable bool observed_recent;
+      bool observed_recent;
     };
 
     /**
@@ -838,19 +489,62 @@ namespace Legion {
       MessageManager& operator=(const MessageManager& rhs) = delete;
     public:
       void send_message(
-          MessageKind message, Serializer& rez, bool flush,
+          MessageKind kind, VirtualChannelKind vc, const Serializer& rez,
           bool response = false,
           RtEvent flush_precondition = RtEvent::NO_RT_EVENT);
-      void receive_message(const void* args, size_t arglen);
+      VirtualChannel& find_channel(VirtualChannelKind vc);
       void confirm_shutdown(ShutdownManager* shutdown_manager, bool phase_one);
+      static void register_handlers(void);
       // Maintain a static-mapping between message kinds and virtual channels
-      static inline VirtualChannelKind find_message_vc(MessageKind kind);
+      static constexpr VirtualChannelKind find_message_vc(MessageKind kind);
+      // Helper method to avoid cyclic header includes
+      static MessageManager* find_manager(AddressSpaceID target);
+      static inline void (*message_handler_table[LAST_SEND_KIND])(
+          Deserializer&, AddressSpaceID) = {0};
     private:
       VirtualChannel* const channels;
     public:
       // State for sending messages
       const AddressSpaceID remote_address_space;
       const Processor target;
+    };
+
+    template<typename T>
+    class ActiveMessage : public Serializer {
+    public:
+      ActiveMessage(MessageKind kind) : Serializer(), header(kind, T::CHANNEL)
+      {
+        serialize(header);
+      }
+      ActiveMessage(const ActiveMessage& rhs) = delete;
+      ActiveMessage(ActiveMessage&&) = delete;
+      ~ActiveMessage(void) { }
+    public:
+      ActiveMessage& operator=(const ActiveMessage& rhs) = delete;
+      ActiveMessage& operator=(ActiveMessage&& rhs) = delete;
+    public:
+      inline void dispatch(
+          AddressSpaceID target, RtEvent pre = RtEvent::NO_RT_EVENT) const
+      {
+        MessageManager* manager = MessageManager::find_manager(target);
+        static_assert(T::CHANNEL < MAX_NUM_VIRTUAL_CHANNELS);
+        manager->send_message(header.kind, T::CHANNEL, *this, T::RESPONSE, pre);
+      }
+    public:
+      const MessageHeader header;
+    };
+
+    class ShardCollectiveMessage
+      : public ActiveMessage<ShardCollectiveMessage> {
+    public:
+      static constexpr VirtualChannelKind CHANNEL = DEFAULT_VIRTUAL_CHANNEL;
+      static constexpr bool RESPONSE = false;
+    public:
+      ShardCollectiveMessage(MessageKind k)
+        : ActiveMessage<ShardCollectiveMessage>(k)
+      { }
+    public:
+      static void handle(Deserializer& derez, AddressSpaceID source);
     };
 
   }  // namespace Internal

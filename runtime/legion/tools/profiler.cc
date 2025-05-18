@@ -585,9 +585,9 @@ namespace Legion {
         // Triggered on a remote node, send a message back to the creator
         // node of the event so that even partial profile loading can know
         // where the triggering of this event occurred
-        Serializer rez;
+        ProfilerEventTriggerMessage rez;
         rez.serialize(info);
-        runtime->send_profiler_event_trigger(creator_node, rez);
+        rez.dispatch(creator_node);
       }
       owner->update_footprint(sizeof(info), this);
     }
@@ -613,9 +613,9 @@ namespace Legion {
         // Triggered on a remote node, send a message back to the creator
         // node of the event so that even partial profile loading can know
         // where the triggering of this event occurred
-        Serializer rez;
+        ProfilerEventPoisonMessage rez;
         rez.serialize(info);
-        runtime->send_profiler_event_poison(creator_node, rez);
+        rez.dispatch(creator_node);
       }
       owner->update_footprint(sizeof(info), this);
     }
@@ -994,11 +994,11 @@ namespace Legion {
         {
           const EventTriggerInfo remote_info = {
               original_event, info.creator, info.finish_event, info.spawn};
-          Serializer rez;
+          ProfilerEventTriggerMessage rez;
           rez.serialize(remote_info);
           const Realm::ID id = original_event.id;
           const AddressSpaceID target = id.event_creator_node();
-          runtime->send_profiler_event_trigger(target, rez);
+          rez.dispatch(target);
         }
       }
       const size_t diff =
@@ -1361,6 +1361,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    /*static*/ void ProfilerEventTriggerMessage::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      implicit_profiler->process_event_trigger(derez);
+    }
+
+    //--------------------------------------------------------------------------
     void LegionProfInstance::process_event_poison(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
@@ -1368,6 +1376,14 @@ namespace Legion {
           event_poison_infos.emplace_back(EventPoisonInfo());
       derez.deserialize(info);
       owner->update_footprint(sizeof(info), this);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ProfilerEventPoisonMessage::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      implicit_profiler->process_event_poison(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -3212,12 +3228,10 @@ namespace Legion {
     void LegionProfiler::increment_outstanding_message_request(void)
     //--------------------------------------------------------------------------
     {
-      // Increment the count of outstanding message requests
       legion_assert(implicit_fevent.exists());
-      increment_total_outstanding_requests(LegionProfiler::LEGION_PROF_MESSAGE);
       // This part is a bit tricky: we want the implicit_fevent to always be
       // an event local to this node so that the profiler can always look up
-      // which node ot consult based on the fevent for a task. However, Realm
+      // which node to consult based on the fevent for a task. However, Realm
       // creates the finish_event for messages on the node where they are
       // spawned and not where they are run, so we have to rename the
       // implicit_fevent here to an event local to this node, so we do that
@@ -3233,6 +3247,12 @@ namespace Legion {
       // Save the current implicit fevent so we can look it up later
       AutoLock prof_lock(profiler_lock);
       message_fevents[original_fevent] = fevent;
+      // Increment the count of outstanding message requests
+#ifdef LEGION_DEBUG
+      total_outstanding_requests[LegionProfiler::LEGION_PROF_MESSAGE]++;
+#else
+      total_outstanding_requests.fetch_add(1);
+#endif
     }
 
     //--------------------------------------------------------------------------

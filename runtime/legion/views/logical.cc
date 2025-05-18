@@ -40,7 +40,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void LogicalView::handle_view_request(Deserializer& derez)
+    /*static*/ void ViewRequestMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -61,13 +62,13 @@ namespace Legion {
         if (nearest != runtime->address_space)
         {
           // Forward this on to the nearest space in the collective mapping
-          Serializer rez;
+          ViewRequestMessage rez;
           {
             RezCheck z2(rez);
             rez.serialize(did);
             rez.serialize(source);
           }
-          runtime->send_view_request(nearest, rez);
+          rez.dispatch(nearest);
           return;
         }
       }

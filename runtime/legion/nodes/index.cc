@@ -343,7 +343,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      IndexSpaceSemanticInfoRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -352,7 +352,7 @@ namespace Legion {
         rez.serialize(wait_until);
         rez.serialize(ready);
       }
-      runtime->send_index_space_semantic_request(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -362,7 +362,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Package up the message first
-      Serializer rez;
+      IndexSpaceSemanticInfoResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -372,7 +372,7 @@ namespace Legion {
         rez.serialize(is_mutable);
         rez.serialize(ready);
       }
-      runtime->send_index_space_semantic_info(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -427,7 +427,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_semantic_request(
+    void IndexSpaceNode::SemanticRequestArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      proxy_this->process_semantic_request(
+          tag, source, false, false, RtUserEvent::NO_RT_USER_EVENT);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void IndexSpaceSemanticInfoRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -447,7 +455,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_semantic_info(
+    /*static*/ void IndexSpaceSemanticInfoResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -554,7 +562,7 @@ namespace Legion {
         // Send a message to the owner to pick a color and wait for the result
         std::atomic<LegionColor> result(suggestion);
         RtUserEvent ready = Runtime::create_rt_user_event();
-        Serializer rez;
+        IndexSpaceGenerateColorRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -562,7 +570,7 @@ namespace Legion {
           rez.serialize(&result);
           rez.serialize(ready);
         }
-        runtime->send_index_space_generate_color_request(owner_space, rez);
+        rez.dispatch(owner_space);
         if (!ready.has_triggered())
           ready.wait();
         return result;
@@ -585,13 +593,13 @@ namespace Legion {
       else
       {
         pack_valid_ref();
-        Serializer rez;
+        IndexSpaceReleaseColor rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
           rez.serialize(color);
         }
-        runtime->send_index_space_release_color(owner_space, rez);
+        rez.dispatch(owner_space);
       }
     }
 
@@ -639,7 +647,7 @@ namespace Legion {
       RtUserEvent ready_event = Runtime::create_rt_user_event();
 
       DistributedID child_id = 0;
-      Serializer rez;
+      IndexSpaceChildRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -650,7 +658,7 @@ namespace Legion {
           rez.serialize<DistributedID*>(nullptr);
         rez.serialize(ready_event);
       }
-      runtime->send_index_space_child_request(owner_space, rez);
+      rez.dispatch(owner_space);
       if (defer == nullptr)
       {
         ready_event.wait();
@@ -819,7 +827,7 @@ namespace Legion {
       {
         LegionColor bound = INVALID_COLOR;
         RtUserEvent ready_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        IndexSpaceColorsRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -827,7 +835,7 @@ namespace Legion {
           rez.serialize(&bound);
           rez.serialize(ready_event);
         }
-        runtime->send_index_space_colors_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         legion_assert(bound != INVALID_COLOR);
         return bound;
@@ -857,7 +865,7 @@ namespace Legion {
         return;
       if (target == source)
         return;
-      runtime->send_index_space_set(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -885,9 +893,9 @@ namespace Legion {
         legion_assert(is_valid() || !recurse);
         if (!has_remote_instance(target))
         {
-          Serializer rez;
+          IndexSpaceResponse rez;
           pack_node(rez, target, recurse, valid);
-          runtime->send_index_space_response(target, rez);
+          rez.dispatch(target);
           update_remote_instances(target);
         }
       }
@@ -1004,7 +1012,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_node_creation(
+    /*static*/ void IndexSpaceResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1061,7 +1069,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_node_request(Deserializer& derez)
+    /*static*/ void IndexSpaceRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       IndexSpace handle;
@@ -1090,11 +1099,11 @@ namespace Legion {
             // proper node to handle the request
             if (nearest != target->local_space)
             {
-              Serializer rez;
+              IndexSpaceRequest rez;
               rez.serialize(handle);
               rez.serialize(to_trigger);
               rez.serialize(source);
-              runtime->send_index_space_request(nearest, rez);
+              rez.dispatch(nearest);
               return;
             }
           }
@@ -1145,7 +1154,7 @@ namespace Legion {
         }
         target->send_node(source, recurse, valid);
         // Now send back the results
-        Serializer rez;
+        IndexSpaceReturn rez;
         {
           RezCheck z(rez);
           rez.serialize(to_trigger);
@@ -1153,14 +1162,15 @@ namespace Legion {
           rez.serialize(valid);
           rez.serialize(recurse);
         }
-        runtime->send_index_space_return(source, rez);
+        rez.dispatch(source);
       }
       else
         Runtime::trigger_event(to_trigger);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_node_return(Deserializer& derez)
+    /*static*/ void IndexSpaceReturn::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1186,7 +1196,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_node_child_request(
+    /*static*/ void IndexSpaceChildRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1208,7 +1218,8 @@ namespace Legion {
         // Build a continuation and run it when the node is
         // ready, we have to do this in order to avoid blocking
         // the virtual channel for nested index tree requests
-        DeferChildArgs args(parent, child_color, target, to_trigger, source);
+        IndexSpaceNode::DeferChildArgs args(
+            parent, child_color, target, to_trigger, source);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, defer);
         return;
@@ -1217,7 +1228,7 @@ namespace Legion {
       {
         if (child->check_global_and_increment(REGION_TREE_REF))
         {
-          Serializer rez;
+          IndexSpaceChildResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(child->handle);
@@ -1225,7 +1236,7 @@ namespace Legion {
             rez.serialize(to_trigger);
             child->pack_global_ref();
           }
-          runtime->send_index_space_child_response(source, rez);
+          rez.dispatch(source);
           if (child->remove_base_gc_ref(REGION_TREE_REF))
             delete child;
         }
@@ -1239,40 +1250,39 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::defer_node_child_request(const void* args)
+    void IndexSpaceNode::DeferChildArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferChildArgs* dargs = (const DeferChildArgs*)args;
-      IndexPartNode* child = dargs->proxy_this->get_child(
-          dargs->child_color, nullptr, true /*can fail*/);
+      IndexPartNode* child =
+          proxy_this->get_child(child_color, nullptr, true /*can fail*/);
       if (child != nullptr)
       {
         if (child->check_global_and_increment(REGION_TREE_REF))
         {
-          Serializer rez;
+          IndexSpaceChildResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(child->handle);
-            rez.serialize(dargs->target);
-            rez.serialize(dargs->to_trigger);
+            rez.serialize(target);
+            rez.serialize(to_trigger);
             child->pack_global_ref();
           }
-          runtime->send_index_space_child_response(dargs->source, rez);
+          rez.dispatch(source);
           if (child->remove_base_gc_ref(REGION_TREE_REF))
             delete child;
         }
         else  // Unable to get a global reference
-          Runtime::trigger_event(dargs->to_trigger);
+          Runtime::trigger_event(to_trigger);
         if (child->remove_base_resource_ref(REGION_TREE_REF))
           delete child;
       }
       else  // Failed so just trigger the result
-        Runtime::trigger_event(dargs->to_trigger);
+        Runtime::trigger_event(to_trigger);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_node_child_response(
-        Deserializer& derez)
+    /*static*/ void IndexSpaceChildResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1294,16 +1304,16 @@ namespace Legion {
       else
       {
         RtEvent defer;
-        runtime->get_node(handle, &defer);
+        IndexPartNode* node = runtime->get_node(handle, &defer);
         // We'll update references and unpack the remote reference on
         // the requester here so there's no need to block waiting
-        *target = handle.did;
+        *target = node->did;
         Runtime::trigger_event(to_trigger, defer);
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_colors_request(
+    /*static*/ void IndexSpaceColorsRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1319,7 +1329,7 @@ namespace Legion {
       IndexSpaceNode* node = runtime->get_node(handle);
       std::vector<LegionColor> results;
       LegionColor bound = node->get_colors(results);
-      Serializer rez;
+      IndexSpaceColorsResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(target);
@@ -1331,11 +1341,12 @@ namespace Legion {
         rez.serialize(bound);
         rez.serialize(ready);
       }
-      runtime->send_index_space_colors_response(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_colors_response(Deserializer& derez)
+    /*static*/ void IndexSpaceColorsResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1358,7 +1369,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_index_space_set(
+    /*static*/ void IndexSpaceSet::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1385,7 +1396,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_generate_color_request(
+    /*static*/ void IndexSpaceGenerateColorRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1403,22 +1414,22 @@ namespace Legion {
       LegionColor result = node->generate_color(suggestion);
       if (result != suggestion)
       {
-        Serializer rez;
+        IndexSpaceGenerateColorResponse rez;
         {
           RezCheck z2(rez);
           rez.serialize(target);
           rez.serialize(result);
           rez.serialize(done_event);
         }
-        runtime->send_index_space_generate_color_response(source, rez);
+        rez.dispatch(source);
       }
       else  // if we matched the suggestion we know the value is right
         Runtime::trigger_event(done_event);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_generate_color_response(
-        Deserializer& derez)
+    /*static*/ void IndexSpaceGenerateColorResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1433,7 +1444,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexSpaceNode::handle_release_color(Deserializer& derez)
+    /*static*/ void IndexSpaceReleaseColor::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1741,7 +1753,7 @@ namespace Legion {
           legion_assert(!is_owner());
           const AddressSpaceID target =
               collective_mapping->get_parent(owner_space, local_space);
-          Serializer rez;
+          IndexPartitionDisjointUpdate rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -1749,8 +1761,7 @@ namespace Legion {
             rez.serialize(total_children_volume);
             rez.serialize(total_intersection_volume);
           }
-          runtime->send_index_partition_disjoint_update(
-              target, rez, initialized);
+          rez.dispatch(target, initialized);
         }
       }
       else
@@ -1885,7 +1896,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      IndexPartSemanticInfoRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -1894,7 +1905,7 @@ namespace Legion {
         rez.serialize(wait_until);
         rez.serialize(ready);
       }
-      runtime->send_index_partition_semantic_request(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -1904,7 +1915,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Package up the message first
-      Serializer rez;
+      IndexPartSemanticInfoResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -1914,7 +1925,7 @@ namespace Legion {
         rez.serialize(is_mutable);
         rez.serialize(ready);
       }
-      runtime->send_index_partition_semantic_info(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -1969,7 +1980,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_semantic_request(
+    void IndexPartNode::SemanticRequestArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      proxy_this->process_semantic_request(
+          tag, source, false, false, RtUserEvent::NO_RT_USER_EVENT);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void IndexPartSemanticInfoRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1989,7 +2008,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_semantic_info(
+    /*static*/ void IndexPartSemanticInfoResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2123,13 +2142,13 @@ namespace Legion {
           if (finder != color_map.end())
             return finder->second;
           // If we get here then we need to send the request
-          Serializer rez;
+          IndexPartitionChildRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
             rez.serialize(c);
           }
-          runtime->send_index_partition_child_request(creator_space, rez);
+          rez.dispatch(creator_space);
           // Make sure we have to event to wait on for when the child is ready
           std::map<LegionColor, RtUserEvent>::iterator pending_finder =
               pending_child_map.find(c);
@@ -2184,7 +2203,7 @@ namespace Legion {
             std::vector<AddressSpaceID> children;
             child_mapping->get_children(local_space, local_space, children);
             legion_assert(!children.empty());
-            Serializer rez;
+            IndexPartitionChildReplication rez;
             {
               RezCheck z(rez);
               rez.serialize(handle);
@@ -2196,7 +2215,7 @@ namespace Legion {
             for (std::vector<AddressSpaceID>::const_iterator it =
                      children.begin();
                  it != children.end(); it++)
-              runtime->send_index_partition_child_replication(*it, rez);
+              rez.dispatch(*it);
           }
           LegionSpy::log_index_subspace(
               handle.get_id(), is.get_id(), runtime->address_space,
@@ -2221,7 +2240,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_child_replication(Deserializer& derez)
+    /*static*/ void IndexPartitionChildReplication::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2247,7 +2267,7 @@ namespace Legion {
           mapping->get_origin(), parent->local_space, children);
       if (!children.empty())
       {
-        Serializer rez;
+        IndexPartitionChildReplication rez;
         {
           RezCheck z2(rez);
           rez.serialize(parent_handle);
@@ -2258,7 +2278,7 @@ namespace Legion {
         }
         for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
              it != children.end(); it++)
-          runtime->send_index_partition_child_replication(*it, rez);
+          rez.dispatch(*it);
       }
     }
 
@@ -2346,7 +2366,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     IndexPartNode::RemoteDisjointnessFunctor::RemoteDisjointnessFunctor(
-        Serializer& r)
+        IndexPartitionDisjointUpdate& r)
       : rez(r)
     //--------------------------------------------------------------------------
     { }
@@ -2356,7 +2376,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (target != runtime->address_space)
-        runtime->send_index_partition_disjoint_update(target, rez);
+        rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -2635,7 +2655,7 @@ namespace Legion {
           // Send the result up the tree
           const AddressSpaceID target =
               collective_mapping->get_parent(owner_space, local_space);
-          Serializer rez;
+          IndexPartitionDisjointUpdate rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -2643,8 +2663,7 @@ namespace Legion {
             rez.serialize(total_children_volume);
             rez.serialize(total_intersection_volume);
           }
-          runtime->send_index_partition_disjoint_update(
-              target, rez, initialized);
+          rez.dispatch(target, initialized);
         }
       }
       return false;
@@ -2705,7 +2724,7 @@ namespace Legion {
           // Send the result up the tree
           const AddressSpaceID target =
               collective_mapping->get_parent(owner_space, local_space);
-          Serializer rez;
+          IndexPartitionDisjointUpdate rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -2728,8 +2747,7 @@ namespace Legion {
               rez.serialize(it->second);
             }
           }
-          runtime->send_index_partition_disjoint_update(
-              target, rez, initialized);
+          rez.dispatch(target, initialized);
           total_children_volumes.clear();
           total_intersection_volumes.clear();
         }
@@ -2789,7 +2807,7 @@ namespace Legion {
         // Broadcast the result out to the children
         std::vector<AddressSpaceID> children;
         collective_mapping->get_children(owner_space, local_space, children);
-        Serializer rez;
+        IndexPartitionDisjointUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -2799,11 +2817,11 @@ namespace Legion {
         }
         for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
              it != children.end(); it++)
-          runtime->send_index_partition_disjoint_update(*it, rez);
+          rez.dispatch(*it);
       }
       if (has_remote_instances())
       {
-        Serializer rez;
+        IndexPartitionDisjointUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -3025,13 +3043,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_disjointness_computation(
-        const void* args)
+    void IndexPartNode::DisjointnessArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DisjointnessArgs* dargs = (const DisjointnessArgs*)args;
-      if (dargs->proxy_this->compute_disjointness_and_completeness())
-        delete dargs->proxy_this;
+      if (proxy_this->compute_disjointness_and_completeness())
+        delete proxy_this;
     }
 
     //--------------------------------------------------------------------------
@@ -3242,9 +3258,9 @@ namespace Legion {
         legion_assert(is_valid());
         if (!has_remote_instance(target))
         {
-          Serializer rez;
+          IndexPartitionResponse rez;
           pack_node(rez, target);
-          runtime->send_index_partition_response(target, rez);
+          rez.dispatch(target);
           update_remote_instances(target);
         }
       }
@@ -3296,7 +3312,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_node_creation(
+    /*static*/ void IndexPartitionResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3354,7 +3370,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_node_request(Deserializer& derez)
+    /*static*/ void IndexPartitionRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       IndexPartition handle;
@@ -3382,11 +3399,11 @@ namespace Legion {
             // proper node to handle the request
             if (nearest != target->local_space)
             {
-              Serializer rez;
+              IndexPartitionRequest rez;
               rez.serialize(handle);
               rez.serialize(to_trigger);
               rez.serialize(source);
-              runtime->send_index_partition_request(nearest, rez);
+              rez.dispatch(nearest);
               return;
             }
           }
@@ -3400,20 +3417,21 @@ namespace Legion {
         target->pack_valid_ref();
         target->send_node(source, true /*recurse*/);
         // Now send back the results
-        Serializer rez;
+        IndexPartitionReturn rez;
         {
           RezCheck z(rez);
           rez.serialize(to_trigger);
           rez.serialize(handle);
         }
-        runtime->send_index_partition_return(source, rez);
+        rez.dispatch(source);
       }
       else
         Runtime::trigger_event(to_trigger);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_node_return(Deserializer& derez)
+    /*static*/ void IndexPartitionReturn::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3427,7 +3445,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_node_child_request(
+    /*static*/ void IndexPartitionChildRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3443,47 +3461,44 @@ namespace Legion {
       // to avoid blocking the virtual channel for nested index tree requests
       if (defer.exists())
       {
-        DeferChildArgs args(parent, child_color, source);
+        IndexPartNode::DeferChildArgs args(parent, child_color, source);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, defer);
       }
       else
       {
-        Serializer rez;
+        IndexPartitionChildResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(child->handle);
         }
-        runtime->send_index_partition_child_response(source, rez);
+        rez.dispatch(source);
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::defer_node_child_request(const void* args)
+    void IndexPartNode::DeferChildArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferChildArgs* dargs = (const DeferChildArgs*)args;
-      IndexSpaceNode* child = dargs->proxy_this->get_child(dargs->child_color);
-      Serializer rez;
+      IndexSpaceNode* child = proxy_this->get_child(child_color);
+      IndexPartitionChildResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(child->handle);
       }
-      runtime->send_index_partition_child_response(dargs->source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::defer_find_local_shard_rects(
-        const void* args)
+    void IndexPartNode::DeferFindShardRects::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferFindShardRects* dargs = (const DeferFindShardRects*)args;
-      if (dargs->proxy_this->find_local_shard_rects())
-        delete dargs->proxy_this;
+      if (proxy_this->find_local_shard_rects())
+        delete proxy_this;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_node_child_response(
+    /*static*/ void IndexPartitionChildResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3494,8 +3509,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_node_disjoint_update(
-        Deserializer& derez)
+    /*static*/ void IndexPartitionDisjointUpdate::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3507,7 +3522,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_notification(Deserializer& derez)
+    /*static*/ void IndexPartitionNotification::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3546,14 +3562,14 @@ namespace Legion {
       }
       if (!children.empty())
       {
-        Serializer rez;
+        IndexPartitionShardRectsRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
         }
         for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
              it != children.end(); it++)
-          runtime->send_index_partition_shard_rects_request(*it, rez);
+          rez.dispatch(*it);
       }
       // Compute our local shard rectangles
       if (find_local_shard_rects())
@@ -3598,7 +3614,7 @@ namespace Legion {
 #endif
           need_local = true;
           remaining_rect_notifications = children.size() + 1;
-          Serializer rez;
+          IndexPartitionShardRectsRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -3607,7 +3623,7 @@ namespace Legion {
                    children.begin();
                it != children.end(); it++)
             if ((*it) != source)
-              runtime->send_index_partition_shard_rects_request(*it, rez);
+              rez.dispatch(*it);
           initialize_shard_rects();
         }
 #ifdef LEGION_DEBUG
@@ -3647,7 +3663,7 @@ namespace Legion {
         collective_mapping->get_children(owner_space, local_space, children);
         if (!children.empty())
         {
-          Serializer rez;
+          IndexPartitionShardRectsResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -3657,7 +3673,7 @@ namespace Legion {
           for (std::vector<AddressSpaceID>::const_iterator it =
                    children.begin();
                it != children.end(); it++)
-            runtime->send_index_partition_shard_rects_response(*it, rez);
+            rez.dispatch(*it);
         }
         // Only trigger this after we've packed the shard rects since the
         // local node is going to mutate it with its own values after this
@@ -3682,7 +3698,7 @@ namespace Legion {
           std::vector<AddressSpaceID> children;
           collective_mapping->get_children(owner_space, local_space, children);
           // We've got all the data now, so we can broadcast it back out
-          Serializer rez;
+          IndexPartitionShardRectsResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -3695,21 +3711,21 @@ namespace Legion {
           for (std::vector<AddressSpaceID>::const_iterator it =
                    children.begin();
                it != children.end(); it++)
-            runtime->send_index_partition_shard_rects_response(*it, rez);
+            rez.dispatch(*it);
           return remove_base_gc_ref(RUNTIME_REF);
         }
         else
         {
           // Continue propagating it back up the tree
-          Serializer rez;
+          IndexPartitionShardRectsResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
             rez.serialize<bool>(true);  // still going up
             pack_shard_rects(rez, true /*clear*/);
           }
-          runtime->send_index_partition_shard_rects_response(
-              collective_mapping->get_parent(owner_space, local_space), rez);
+          rez.dispatch(
+              collective_mapping->get_parent(owner_space, local_space));
         }
       }
       return false;
@@ -3740,14 +3756,14 @@ namespace Legion {
             return RtEvent::NO_RT_EVENT;
           continue;
         }
-        Serializer rez;
+        IndexPartitionRemoteInterferenceRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
           expr->pack_expression(rez, *it);
           rez.serialize(this);
         }
-        runtime->send_index_partition_remote_interference_request(*it, rez);
+        rez.dispatch(*it);
       }
       RtEvent wait_on;
       {
@@ -3798,8 +3814,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_shard_rects_request(
-        Deserializer& derez)
+    /*static*/ void IndexPartitionShardRectsRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3810,7 +3826,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_shard_rects_response(
+    /*static*/ void IndexPartitionShardRectsResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3823,7 +3839,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_remote_interference_request(
+    /*static*/ void IndexPartitionRemoteInterferenceRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3832,14 +3848,14 @@ namespace Legion {
       derez.deserialize(handle);
       IndexSpaceExpression* expr =
           IndexSpaceExpression::unpack_expression(derez, source);
-      RemoteKDTracker* tracker;
+      IndexPartNode::RemoteKDTracker* tracker;
       derez.deserialize(tracker);
 
       IndexPartNode* node = runtime->get_node(handle);
       std::vector<LegionColor> local_colors;
       node->find_interfering_children_kd(
           expr, local_colors, true /*local only*/);
-      Serializer rez;
+      IndexPartitionRemoteInterferenceResponse rez;
       {
         RezCheck z2(rez);
         rez.serialize(tracker);
@@ -3848,16 +3864,16 @@ namespace Legion {
              it != local_colors.end(); it++)
           rez.serialize(*it);
       }
-      runtime->send_index_partition_remote_interference_response(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndexPartNode::handle_remote_interference_response(
-        Deserializer& derez)
+    /*static*/ void IndexPartitionRemoteInterferenceResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      RemoteKDTracker* tracker;
+      IndexPartNode::RemoteKDTracker* tracker;
       derez.deserialize(tracker);
       const RtUserEvent to_trigger =
           tracker->process_remote_interfering_response(derez);

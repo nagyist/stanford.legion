@@ -206,7 +206,7 @@ namespace Legion {
         legion_assert(!rit->second.empty());
         const AddressSpace target = rit->first;
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteOverwriteAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
@@ -262,7 +262,7 @@ namespace Legion {
             rez.serialize<size_t>(0);
           rez.serialize(applied);
         }
-        runtime->send_equivalence_set_remote_overwrites(target, rez);
+        rez.dispatch(target);
         applied_events.insert(applied);
       }
       return RtEvent::NO_RT_EVENT;
@@ -355,7 +355,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void OverwriteAnalysis::handle_remote_overwrites(
+    /*static*/ void RemoteOverwriteAnalysis::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {

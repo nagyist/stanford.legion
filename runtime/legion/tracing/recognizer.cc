@@ -529,11 +529,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void TraceRecognizer::find_repeats(const void* args)
+    void TraceRecognizer::FindRepeatsTaskArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const FindRepeatsTaskArgs* fargs = (const FindRepeatsTaskArgs*)args;
-      fargs->recognizer->compute_longest_nonoverlapping_repeats(*fargs->result);
+      recognizer->compute_longest_nonoverlapping_repeats(*result);
     }
 
   }  // namespace Internal

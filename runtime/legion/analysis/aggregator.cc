@@ -151,18 +151,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CopyFillGuard::handle_deletion(const void* args)
+    void CopyFillGuard::CopyFillDeletion::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const CopyFillDeletion* dargs = (const CopyFillDeletion*)args;
       std::set<RtEvent> released_preconditions;
-      dargs->guard->release_guarded_sets(released_preconditions);
+      guard->release_guarded_sets(released_preconditions);
       if (!released_preconditions.empty())
         Runtime::trigger_event(
-            dargs->released, Runtime::merge_events(released_preconditions));
+            released, Runtime::merge_events(released_preconditions));
       else
-        Runtime::trigger_event(dargs->released);
-      delete dargs->guard;
+        Runtime::trigger_event(released);
+      delete guard;
     }
 
     //--------------------------------------------------------------------------
@@ -1437,16 +1436,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CopyFillAggregator::handle_aggregation(const void* args)
+    void CopyFillAggregator::CopyFillAggregation::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const CopyFillAggregation* cfargs = (const CopyFillAggregation*)args;
-      cfargs->aggregator->issue_updates(
-          *cfargs, cfargs->pre, cfargs->restricted_output,
-          cfargs->manage_dst_events, cfargs->dst_events, cfargs->stage);
-      cfargs->remove_recorder_reference();
-      if (cfargs->dst_events != nullptr)
-        delete cfargs->dst_events;
+      aggregator->issue_updates(
+          *info, pre, restricted_output, manage_dst_events, dst_events, stage);
+      delete info;
+      if (dst_events != nullptr)
+        delete dst_events;
     }
 
   }  // namespace Internal

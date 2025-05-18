@@ -110,26 +110,31 @@ namespace Legion {
     public:
       struct ReplaySliceArgs : public LgTaskArgs<ReplaySliceArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_REPLAY_SLICE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_REPLAY_SLICE_TASK_ID;
+        static constexpr bool IS_APPLICATION_TASK = true;
       public:
+        ReplaySliceArgs(void) = default;
         ReplaySliceArgs(PhysicalTemplate* t, unsigned si, bool recurrent)
           : LgTaskArgs<ReplaySliceArgs>(implicit_provenance), tpl(t),
             slice_index(si), recurrent_replay(recurrent)
         { }
+        void execute(void) const;
       public:
-        PhysicalTemplate* const tpl;
-        const unsigned slice_index;
-        const bool recurrent_replay;
+        PhysicalTemplate* tpl;
+        unsigned slice_index;
+        bool recurrent_replay;
       };
       struct DeleteTemplateArgs : public LgTaskArgs<DeleteTemplateArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DELETE_TEMPLATE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DELETE_TEMPLATE_TASK_ID;
       public:
+        DeleteTemplateArgs(void) = default;
         DeleteTemplateArgs(PhysicalTemplate* t)
           : LgTaskArgs<DeleteTemplateArgs>(implicit_provenance), tpl(t)
         { }
+        void execute(void) const;
       public:
-        PhysicalTemplate* const tpl;
+        PhysicalTemplate* tpl;
       };
     private:
       struct CachedPremapping {
@@ -218,16 +223,18 @@ namespace Legion {
       struct TransitiveReductionArgs
         : public LgTaskArgs<TransitiveReductionArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_TRANSITIVE_REDUCTION_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_TRANSITIVE_REDUCTION_TASK_ID;
       public:
+        TransitiveReductionArgs(void) = default;
         TransitiveReductionArgs(
             PhysicalTemplate* t, TransitiveReductionState* s)
           : LgTaskArgs<TransitiveReductionArgs>(implicit_provenance), tpl(t),
             state(s)
         { }
+        void execute(void) const;
       public:
-        PhysicalTemplate* const tpl;
-        TransitiveReductionState* const state;
+        PhysicalTemplate* tpl;
+        TransitiveReductionState* state;
       };
     public:
       PhysicalTemplate(PhysicalTrace* trace, ApEvent fence_event);
@@ -466,10 +473,6 @@ namespace Legion {
     public:
       bool defer_template_deletion(
           ApEvent& pending_deletion, std::set<RtEvent>& applied_events);
-    public:
-      static void handle_replay_slice(const void* args);
-      static void handle_transitive_reduction(const void* args);
-      static void handle_delete_template(const void* args);
     protected:
       void record_memo_entry(
           const TraceLocalID& tlid, unsigned entry, unsigned op_kind);

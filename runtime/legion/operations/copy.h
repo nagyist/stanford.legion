@@ -61,11 +61,11 @@ namespace Legion {
         REQ_COUNT = 4,
       };
     public:
-      struct DeferredCopyAcross : public LgTaskArgs<DeferredCopyAcross>,
-                                  public PhysicalTraceInfo {
+      struct DeferredCopyAcross : public LgTaskArgs<DeferredCopyAcross> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFERRED_COPY_ACROSS_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFERRED_COPY_ACROSS_TASK_ID;
       public:
+        DeferredCopyAcross(void) = default;
         DeferredCopyAcross(
             CopyOp* op, const PhysicalTraceInfo& info, unsigned idx,
             ApEvent init, ApEvent sready, ApEvent dready, ApEvent gready,
@@ -74,8 +74,8 @@ namespace Legion {
             RtUserEvent a, InstanceSet* src, InstanceSet* dst,
             InstanceSet* gather, InstanceSet* scatter, const bool preimages,
             const bool shadow)
-          : LgTaskArgs<DeferredCopyAcross>(op->get_unique_op_id()),
-            PhysicalTraceInfo(info), copy(op), index(idx),
+          : LgTaskArgs<DeferredCopyAcross>(op->get_unique_op_id()), copy(op),
+            trace_info(new PhysicalTraceInfo(info)), index(idx),
             init_precondition(init), src_ready(sready), dst_ready(dready),
             gather_ready(gready), scatter_ready(cready),
             local_precondition(local_pre), local_postcondition(local_post),
@@ -84,40 +84,29 @@ namespace Legion {
             src_targets(src), dst_targets(dst), gather_targets(gather),
             scatter_targets(scatter), compute_preimages(preimages),
             shadow_indirections(shadow)
-        // This is kind of scary, Realm is about to make a copy of this
-        // without our knowledge, but we need to preserve the correctness
-        // of reference counting on PhysicalTraceRecorders, so just add
-        // an extra reference here that we will remove when we're handled.
-        {
-          if (rec != nullptr)
-            rec->add_recorder_reference();
-        }
+        { }
+        void execute(void) const;
       public:
-        inline void remove_recorder_reference(void) const
-        {
-          if ((rec != nullptr) && rec->remove_recorder_reference())
-            delete rec;
-        }
-      public:
-        CopyOp* const copy;
-        const unsigned index;
-        const ApEvent init_precondition;
-        const ApEvent src_ready;
-        const ApEvent dst_ready;
-        const ApEvent gather_ready;
-        const ApEvent scatter_ready;
-        const ApUserEvent local_precondition;
-        const ApUserEvent local_postcondition;
-        const ApEvent collective_precondition;
-        const ApEvent collective_postcondition;
-        const PredEvent guard;
-        const RtUserEvent applied;
-        InstanceSet* const src_targets;
-        InstanceSet* const dst_targets;
-        InstanceSet* const gather_targets;
-        InstanceSet* const scatter_targets;
-        const bool compute_preimages;
-        const bool shadow_indirections;
+        CopyOp* copy;
+        PhysicalTraceInfo* trace_info;
+        unsigned index;
+        ApEvent init_precondition;
+        ApEvent src_ready;
+        ApEvent dst_ready;
+        ApEvent gather_ready;
+        ApEvent scatter_ready;
+        ApUserEvent local_precondition;
+        ApUserEvent local_postcondition;
+        ApEvent collective_precondition;
+        ApEvent collective_postcondition;
+        PredEvent guard;
+        RtUserEvent applied;
+        InstanceSet* src_targets;
+        InstanceSet* dst_targets;
+        InstanceSet* gather_targets;
+        InstanceSet* scatter_targets;
+        bool compute_preimages;
+        bool shadow_indirections;
       };
     public:
       CopyOp(void);
@@ -200,8 +189,6 @@ namespace Legion {
       static void req_vector_reduce_restore(
           std::vector<RegionRequirement>& reqs,
           const std::vector<unsigned>& changed_idxs);
-    public:
-      static void handle_deferred_across(const void* args);
     public:
       // From MemoizableOp
       virtual void trigger_replay(void);

@@ -1793,7 +1793,7 @@ namespace Legion {
       if (!is_owner)
       {
         // Not the owner, send a meessage to the owner to request the creation
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<bool> success(false);
         std::atomic<PhysicalManager*> remote_manager(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -1818,7 +1818,7 @@ namespace Legion {
           rez.serialize(&remote_manager);
           rez.serialize(&success);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         PhysicalManager* manager = remote_manager.load();
         if (manager != nullptr)
@@ -1878,7 +1878,7 @@ namespace Legion {
       if (!is_owner)
       {
         // Not the owner, send a meessage to the owner to request the creation
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<bool> success(false);
         std::atomic<PhysicalManager*> remote_manager(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -1903,7 +1903,7 @@ namespace Legion {
           rez.serialize(&remote_manager);
           rez.serialize(&success);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         PhysicalManager* manager = remote_manager.load();
         if (manager != nullptr)
@@ -1970,7 +1970,7 @@ namespace Legion {
                 remote))
           return true;
         // Not the owner, send a message to the owner to request creation
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<bool> remote_created(created);
         std::atomic<PhysicalManager*> remote_manager(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -1995,7 +1995,7 @@ namespace Legion {
           rez.serialize(&remote_manager);
           rez.serialize(&remote_created);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         PhysicalManager* manager = remote_manager.load();
         if (manager != nullptr)
@@ -2076,7 +2076,7 @@ namespace Legion {
                 remote))
           return true;
         // Not the owner, send a message to the owner to request creation
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<bool> remote_created(created);
         std::atomic<PhysicalManager*> remote_manager(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -2101,7 +2101,7 @@ namespace Legion {
           rez.serialize(&remote_manager);
           rez.serialize(&remote_created);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         PhysicalManager* manager = remote_manager.load();
         if (manager != nullptr)
@@ -2176,7 +2176,7 @@ namespace Legion {
       if (!is_owner)
       {
         // Not the owner, send a meessage to the owner to request the redistrict
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<bool> success(false);
         std::atomic<PhysicalManager*> remote_manager(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -2198,7 +2198,7 @@ namespace Legion {
           rez.serialize(&remote_manager);
           rez.serialize(&success);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         PhysicalManager* new_manager = remote_manager.load();
         if (new_manager != nullptr)
@@ -2276,7 +2276,7 @@ namespace Legion {
       if (!is_owner)
       {
         // Not the owner, send a meessage to the owner to request the redistrict
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<bool> success(false);
         std::atomic<PhysicalManager*> remote_manager(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -2298,7 +2298,7 @@ namespace Legion {
           rez.serialize(&remote_manager);
           rez.serialize(&success);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         PhysicalManager* new_manager = remote_manager.load();
         if (new_manager != nullptr)
@@ -2379,7 +2379,7 @@ namespace Legion {
                 remote))
           return true;
         // Not the owner, send a message to the owner to try and find it
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<PhysicalManager*> remote_manager(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
         {
@@ -2394,7 +2394,7 @@ namespace Legion {
           rez.serialize<bool>(tight_region_bounds);
           rez.serialize(&remote_manager);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         PhysicalManager* manager = remote_manager.load();
         if (manager != nullptr)
@@ -2431,7 +2431,7 @@ namespace Legion {
                 *constraints, regions, result, acquire, tight_region_bounds,
                 remote))
           return true;
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<PhysicalManager*> remote_manager(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
         {
@@ -2446,7 +2446,7 @@ namespace Legion {
           rez.serialize<bool>(tight_region_bounds);
           rez.serialize(&remote_manager);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         PhysicalManager* manager = remote_manager.load();
         if (manager != nullptr)
@@ -2481,7 +2481,7 @@ namespace Legion {
       if (!is_owner)
       {
         // Not the owner, send a message to the owner to try and find it
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<std::vector<PhysicalManager*>*> remote_managers(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
         {
@@ -2496,7 +2496,7 @@ namespace Legion {
           rez.serialize<bool>(tight_region_bounds);
           rez.serialize(&remote_managers);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         std::vector<PhysicalManager*>* managers = remote_managers.load();
         if (managers != nullptr)
@@ -2529,7 +2529,7 @@ namespace Legion {
     {
       if (!is_owner)
       {
-        Serializer rez;
+        InstanceRequest rez;
         std::atomic<std::vector<PhysicalManager*>*> remote_managers(nullptr);
         RtUserEvent ready_event = Runtime::create_rt_user_event();
         {
@@ -2544,7 +2544,7 @@ namespace Legion {
           rez.serialize<bool>(tight_region_bounds);
           rez.serialize(&remote_managers);
         }
-        runtime->send_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready_event.wait();
         std::vector<PhysicalManager*>* managers = remote_managers.load();
         if (managers != nullptr)
@@ -2698,7 +2698,7 @@ namespace Legion {
                 (remote_safe_for_unbounded_pools != nullptr))
             {
               // Send back the response starting with the instance
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -2726,7 +2726,7 @@ namespace Legion {
                 if (remote_safe_for_unbounded_pools != nullptr)
                   rez.serialize(safe_for_unbounded_pools);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // we can just trigger the done event since we failed
               Runtime::trigger_event(to_trigger);
@@ -2777,7 +2777,7 @@ namespace Legion {
                 (remote_kind != nullptr) || (remote_index != nullptr) ||
                 (remote_safe_for_unbounded_pools != nullptr))
             {
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -2805,7 +2805,7 @@ namespace Legion {
                 if (remote_safe_for_unbounded_pools != nullptr)
                   rez.serialize(safe_for_unbounded_pools);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // if we failed, we can just trigger the response
               Runtime::trigger_event(to_trigger);
@@ -2855,7 +2855,7 @@ namespace Legion {
                 (remote_kind != nullptr) || (remote_index != nullptr) ||
                 (remote_safe_for_unbounded_pools != nullptr))
             {
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -2884,7 +2884,7 @@ namespace Legion {
                 if (remote_safe_for_unbounded_pools != nullptr)
                   rez.serialize(safe_for_unbounded_pools);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // if we failed, we can just trigger the response
               Runtime::trigger_event(to_trigger);
@@ -2936,7 +2936,7 @@ namespace Legion {
                 (remote_kind != nullptr) || (remote_index != nullptr) ||
                 (remote_safe_for_unbounded_pools != nullptr))
             {
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -2965,7 +2965,7 @@ namespace Legion {
                 if (remote_safe_for_unbounded_pools != nullptr)
                   rez.serialize(safe_for_unbounded_pools);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // we failed so just trigger the response
               Runtime::trigger_event(to_trigger);
@@ -3000,7 +3000,7 @@ namespace Legion {
             if (success)
             {
               // Send back the response starting with the instance
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -3018,7 +3018,7 @@ namespace Legion {
                 rez.serialize<size_t*>(nullptr);
                 rez.serialize<RtEvent*>(nullptr);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // we can just trigger the done event since we failed
               Runtime::trigger_event(to_trigger);
@@ -3055,7 +3055,7 @@ namespace Legion {
             if (success)
             {
               // Send back the response starting with the instance
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -3073,7 +3073,7 @@ namespace Legion {
                 rez.serialize<size_t*>(nullptr);
                 rez.serialize<RtEvent*>(nullptr);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // we can just trigger the done event since we failed
               Runtime::trigger_event(to_trigger);
@@ -3095,7 +3095,7 @@ namespace Legion {
             {
               InstanceManager* manager = result.impl;
               manager->pack_global_ref();
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -3110,7 +3110,7 @@ namespace Legion {
                 rez.serialize<size_t*>(nullptr);
                 rez.serialize<RtEvent*>(nullptr);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // we failed so we can just trigger the response
               Runtime::trigger_event(to_trigger);
@@ -3134,7 +3134,7 @@ namespace Legion {
             {
               InstanceManager* manager = result.impl;
               manager->pack_global_ref();
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -3149,7 +3149,7 @@ namespace Legion {
                 rez.serialize<size_t*>(nullptr);
                 rez.serialize<RtEvent*>(nullptr);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // we failed so just trigger
               Runtime::trigger_event(to_trigger);
@@ -3169,7 +3169,7 @@ namespace Legion {
                 true /*remote*/);
             if (!results.empty())
             {
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -3190,7 +3190,7 @@ namespace Legion {
                 rez.serialize<size_t*>(nullptr);
                 rez.serialize<RtEvent*>(nullptr);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // we failed so we can just trigger the response
               Runtime::trigger_event(to_trigger);
@@ -3212,7 +3212,7 @@ namespace Legion {
                 true /*remote*/);
             if (!results.empty())
             {
-              Serializer rez;
+              InstanceResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(memory);
@@ -3233,7 +3233,7 @@ namespace Legion {
                 rez.serialize<size_t*>(nullptr);
                 rez.serialize<RtEvent*>(nullptr);
               }
-              runtime->send_instance_response(source, rez);
+              rez.dispatch(source);
             }
             else  // we failed so just trigger
               Runtime::trigger_event(to_trigger);
@@ -4324,7 +4324,7 @@ namespace Legion {
       else
       {
         // Send the managers to the owner node to nodify them of the deletion
-        Serializer rez;
+        NotifyCollectedInstances rez;
         {
           RezCheck z(rez);
           rez.serialize(memory);
@@ -4337,13 +4337,13 @@ namespace Legion {
             (*it)->pack_global_ref();
           }
         }
-        runtime->send_notify_collected_instances(owner_space, rez);
+        rez.dispatch(owner_space);
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MemoryManager::handle_notify_collected_instances(
-        Deserializer& derez)
+    /*static*/ void NotifyCollectedInstances::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -4391,7 +4391,7 @@ namespace Legion {
       {
         MemoryPool* result = nullptr;
         const RtEvent ready = Runtime::create_rt_user_event();
-        Serializer rez;
+        CreatePoolRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(memory);
@@ -4402,7 +4402,7 @@ namespace Legion {
           rez.serialize(safe_for_unbounded_pools);
           rez.serialize(ready);
         }
-        runtime->send_create_memory_pool_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready.wait();
         return result;
       }
@@ -4578,7 +4578,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MemoryManager::handle_create_memory_pool_request(
+    /*static*/ void CreatePoolRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -4608,7 +4608,7 @@ namespace Legion {
       if ((pool != nullptr) || ((remote_safe_for_unbounded_pools != nullptr) &&
                                 safe_for_unbounded_pools.exists()))
       {
-        Serializer rez;
+        CreatePoolResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(result);
@@ -4621,7 +4621,7 @@ namespace Legion {
             rez.serialize(safe_for_unbounded_pools);
           rez.serialize(ready);
         }
-        runtime->send_create_memory_pool_response(source, rez);
+        rez.dispatch(source);
         delete pool;
       }
       else
@@ -4629,8 +4629,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MemoryManager::handle_create_memory_pool_response(
-        Deserializer& derez)
+    /*static*/ void CreatePoolResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -5011,7 +5011,7 @@ namespace Legion {
         std::atomic<FutureInstance*> result(nullptr);
         // Send a message to the owner to do this and wait for the result
         const RtUserEvent wait_on = Runtime::create_rt_user_event();
-        Serializer rez;
+        CreateFutureInstanceRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(memory);
@@ -5022,7 +5022,7 @@ namespace Legion {
           rez.serialize(size);
           rez.serialize(safe_for_unbounded_pools);
         }
-        runtime->send_create_future_instance_request(owner_space, rez);
+        rez.dispatch(owner_space);
         wait_on.wait();
         return result.load();
       }
@@ -5085,7 +5085,7 @@ namespace Legion {
       if (!is_owner)
       {
         // Send this to the owner node
-        Serializer rez;
+        FreeFutureInstance rez;
         {
           RezCheck z(rez);
           rez.serialize(memory);
@@ -5093,7 +5093,7 @@ namespace Legion {
           rez.serialize(size);
           rez.serialize(free_event);
         }
-        runtime->send_free_future_instance(owner_space, rez);
+        rez.dispatch(owner_space);
         return;
       }
       else
@@ -5160,14 +5160,14 @@ namespace Legion {
       {
         // Send a message to the owner node to do the record
         RtUserEvent result = Runtime::create_rt_user_event();
-        Serializer rez;
+        ExternalAttachRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(memory);
           rez.serialize(manager->did);
           rez.serialize(result);
         }
-        runtime->send_external_attach(manager->owner_space, rez);
+        rez.dispatch(manager->owner_space);
         return result;
       }
       legion_assert(is_owner);
@@ -5190,14 +5190,14 @@ namespace Legion {
       if (!is_owner)
       {
         // Send a message to the owner node to do the deletion
-        Serializer rez;
+        ExternalDetachRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(memory);
           rez.serialize(manager->did);
         }
         manager->pack_valid_ref();
-        runtime->send_external_detach(manager->owner_space, rez);
+        rez.dispatch(manager->owner_space);
       }
       else
       {
@@ -5570,27 +5570,182 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MemoryManager::handle_malloc_instance(const void* args)
+    void MemoryManager::MallocInstanceArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const MallocInstanceArgs* margs = (const MallocInstanceArgs*)args;
-      const RtEvent ready = margs->manager->allocate_legion_instance(
-          margs->layout, *(margs->requests), *(margs->instance),
-          margs->unique_event, false /*needs defer*/);
-      delete margs->layout;
+      const RtEvent ready = manager->allocate_legion_instance(
+          layout, *requests, *instance, unique_event, false /*needs defer*/);
+      delete layout;
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MemoryManager::handle_free_instance(const void* args)
+    void MemoryManager::FreeInstanceArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const FreeInstanceArgs* fargs = (const FreeInstanceArgs*)args;
-      fargs->manager->free_legion_instance(
-          RtEvent::NO_RT_EVENT, fargs->instance, false /*needs defer*/);
+      manager->free_legion_instance(
+          RtEvent::NO_RT_EVENT, instance, false /*needs defer*/);
     }
 #endif
+
+    //--------------------------------------------------------------------------
+    /*static*/ void InstanceRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory target_memory;
+      derez.deserialize(target_memory);
+      MemoryManager* manager = runtime->find_memory_manager(target_memory);
+      manager->process_instance_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void InstanceResponse::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory target_memory;
+      derez.deserialize(target_memory);
+      MemoryManager* manager = runtime->find_memory_manager(target_memory);
+      manager->process_instance_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ExternalAttachRequest::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory target_memory;
+      derez.deserialize(target_memory);
+      DistributedID did;
+      derez.deserialize(did);
+      RtEvent manager_ready;
+      PhysicalManager* manager =
+          runtime->find_or_request_instance_manager(did, manager_ready);
+      RtUserEvent done_event;
+      derez.deserialize(done_event);
+      MemoryManager* memory_manager =
+          runtime->find_memory_manager(target_memory);
+      if (manager_ready.exists() && !manager_ready.has_triggered())
+        manager_ready.wait();
+      RtEvent local_done = memory_manager->attach_external_instance(manager);
+      Runtime::trigger_event(done_event, local_done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ExternalDetachRequest::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory target_memory;
+      derez.deserialize(target_memory);
+      DistributedID did;
+      derez.deserialize(did);
+      RtEvent manager_ready;
+      PhysicalManager* manager =
+          runtime->find_or_request_instance_manager(did, manager_ready);
+      MemoryManager* memory_manager =
+          runtime->find_memory_manager(target_memory);
+      if (manager_ready.exists() && !manager_ready.has_triggered())
+        manager_ready.wait();
+      memory_manager->detach_external_instance(manager);
+      manager->unpack_valid_ref();
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void CreateFutureInstanceRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory memory;
+      derez.deserialize(memory);
+      std::atomic<FutureInstance*>* target;
+      derez.deserialize(target);
+      RtUserEvent done;
+      derez.deserialize(done);
+      UniqueID uid;
+      derez.deserialize(uid);
+      TaskTreeCoordinates coordinates;
+      coordinates.deserialize(derez);
+      size_t size;
+      derez.deserialize(size);
+      RtEvent* remote_safe_for_unbounded_pools;
+      derez.deserialize(remote_safe_for_unbounded_pools);
+
+      MemoryManager* manager = runtime->find_memory_manager(memory);
+      RtEvent safe_for_unbounded_pools;
+      FutureInstance* result = manager->create_future_instance(
+          uid, coordinates, size,
+          (remote_safe_for_unbounded_pools == nullptr) ?
+              nullptr :
+              &safe_for_unbounded_pools);
+      if ((result != nullptr) ||
+          ((remote_safe_for_unbounded_pools != nullptr) &&
+           safe_for_unbounded_pools.exists()))
+      {
+        CreateFutureInstanceResponse rez;
+        {
+          RezCheck z(rez);
+          rez.serialize(target);
+          if (result != nullptr)
+            result->pack_instance(
+                rez, ApEvent::NO_AP_EVENT, true /*pack ownership*/,
+                false /*allow by value*/);
+          else
+            FutureInstance::pack_null(rez);
+          rez.serialize(remote_safe_for_unbounded_pools);
+          if (remote_safe_for_unbounded_pools != nullptr)
+            rez.serialize(safe_for_unbounded_pools);
+          rez.serialize(done);
+        }
+        rez.dispatch(source);
+        delete result;
+      }
+      else
+        Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void CreateFutureInstanceResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      std::atomic<FutureInstance*>* target;
+      derez.deserialize(target);
+      target->store(FutureInstance::unpack_instance(derez));
+      RtEvent* safe_for_unbounded_pools;
+      derez.deserialize(safe_for_unbounded_pools);
+      if (safe_for_unbounded_pools != nullptr)
+        derez.deserialize(*safe_for_unbounded_pools);
+      RtUserEvent done;
+      derez.deserialize(done);
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void FreeFutureInstance::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory memory;
+      derez.deserialize(memory);
+      PhysicalInstance instance;
+      derez.deserialize(instance);
+      size_t size;
+      derez.deserialize(size);
+      RtEvent free_event;
+      derez.deserialize(free_event);
+      MemoryManager* manager = runtime->find_memory_manager(memory);
+      manager->free_future_instance(instance, size, free_event);
+    }
 
   }  // namespace Internal
 }  // namespace Legion

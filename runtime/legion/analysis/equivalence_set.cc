@@ -2504,14 +2504,14 @@ namespace Legion {
             (eq_source != logical_owner_space))
         {
           RtUserEvent notification_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          EquivalenceSetOwnerUpdate rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(logical_owner_space);
             rez.serialize(notification_event);
           }
-          runtime->send_equivalence_set_owner_update(eq_source, rez);
+          rez.dispatch(eq_source);
           applied_events.insert(notification_event);
         }
         return;
@@ -2636,14 +2636,14 @@ namespace Legion {
             (eq_source != logical_owner_space))
         {
           RtUserEvent notification_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          EquivalenceSetOwnerUpdate rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(logical_owner_space);
             rez.serialize(notification_event);
           }
-          runtime->send_equivalence_set_owner_update(eq_source, rez);
+          rez.dispatch(eq_source);
           applied_events.insert(notification_event);
         }
         return;
@@ -2654,7 +2654,7 @@ namespace Legion {
           new_logical_owner);
       const FieldMask all_ones(LEGION_FIELD_MASK_FIELD_ALL_ONES);
       // Do the migration
-      Serializer rez;
+      EquivalenceSetMigration rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -2663,7 +2663,7 @@ namespace Legion {
             all_ones, true /*pack guards*/, true /*pack invalids*/);
         pack_global_ref();
       }
-      runtime->send_equivalence_set_migration(new_logical_owner, rez);
+      rez.dispatch(new_logical_owner);
       invalidate_state(set_expr, true /*covers*/, all_ones, false /*record*/);
       // Also invalidate the partial invalidations since we know we migrated
       // them all to the new owner node
@@ -2795,13 +2795,13 @@ namespace Legion {
         // We're just chasing the logical owner at this point
         if (is_logical_owner())
         {
-          Serializer rez;
+          EquivalenceSetReplicationResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(local_space);
           }
-          runtime->send_equivalence_set_replication_response(source, rez);
+          rez.dispatch(source);
           if (replicated_owner_state == nullptr)
             replicated_owner_state = new ReplicatedOwnerState(true /*valid*/);
           replicated_owner_state->children.emplace_back(source);
@@ -2809,15 +2809,14 @@ namespace Legion {
         else
         {
           // Keep forwarding this on searching for the owner space
-          Serializer rez;
+          EquivalenceSetReplicationRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             CollectiveMapping::pack_null(rez);
             rez.serialize(source);
           }
-          runtime->send_equivalence_set_replication_request(
-              logical_owner_space, rez);
+          rez.dispatch(logical_owner_space);
         }
         return false;
       }
@@ -2833,27 +2832,26 @@ namespace Legion {
             const AddressSpaceID parent =
                 mapping->get_parent(origin, local_space);
             // Send the request on to our parent space
-            Serializer rez;
+            EquivalenceSetReplicationRequest rez;
             {
               RezCheck z(rez);
               rez.serialize(did);
               mapping->pack(rez);
               rez.serialize(local_space);
             }
-            runtime->send_equivalence_set_replication_request(parent, rez);
+            rez.dispatch(parent);
           }
           else
           {
             // Send the request on to whomever we thought was the previous owner
-            Serializer rez;
+            EquivalenceSetReplicationRequest rez;
             {
               RezCheck z(rez);
               rez.serialize(did);
               CollectiveMapping::pack_null(rez);
               rez.serialize(local_space);
             }
-            runtime->send_equivalence_set_replication_request(
-                logical_owner_space, rez);
+            rez.dispatch(logical_owner_space);
           }
         }
       }
@@ -2866,13 +2864,13 @@ namespace Legion {
         // If we're already replicated send back the response now
         if (source != local_space)
         {
-          Serializer rez;
+          EquivalenceSetReplicationResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(logical_owner_space);
           }
-          runtime->send_equivalence_set_replication_response(source, rez);
+          rez.dispatch(source);
         }
         return true;
       }
@@ -2900,13 +2898,13 @@ namespace Legion {
         {
           if ((*it) != owner)
           {
-            Serializer rez;
+            EquivalenceSetReplicationResponse rez;
             {
               RezCheck z(rez);
               rez.serialize(did);
               rez.serialize(owner);
             }
-            runtime->send_equivalence_set_replication_response(*it, rez);
+            rez.dispatch(*it);
             it++;
           }
           else
@@ -3132,15 +3130,14 @@ namespace Legion {
       {
         if (!filtered.exists())
           filtered = Runtime::create_rt_user_event();
-        Serializer rez;
+        EquivalenceSetFilterInvalidations rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
           rez.serialize(mask);
           rez.serialize(filtered);
         }
-        runtime->send_equivalence_set_filter_invalidations(
-            logical_owner_space, rez);
+        rez.dispatch(logical_owner_space);
         return false;
       }
       else
@@ -3172,8 +3169,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_filter_invalidations(
-        Deserializer& derez)
+    /*static*/ void EquivalenceSetFilterInvalidations::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -8196,7 +8193,7 @@ namespace Legion {
       {
         if (!ready_event.exists())
           ready_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        EquivalenceSetCaptureRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -8206,7 +8203,7 @@ namespace Legion {
           rez.serialize(result);
           rez.serialize(ready_event);
         }
-        runtime->send_equivalence_set_capture_request(logical_owner_space, rez);
+        rez.dispatch(logical_owner_space);
         return ready_event;
       }
       // Uniquify the tracing dirty fields so there is one expression per field
@@ -8238,7 +8235,7 @@ namespace Legion {
       if (target_space != local_space)
       {
         legion_assert(ready_event.exists());
-        Serializer rez;
+        EquivalenceSetCaptureResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -8268,7 +8265,7 @@ namespace Legion {
           }
           rez.serialize(ready_event);
         }
-        runtime->send_equivalence_set_capture_response(target_space, rez);
+        rez.dispatch(target_space);
       }
       else
       {
@@ -8379,8 +8376,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_replication_request(
-        Deserializer& derez)
+    /*static*/ void EquivalenceSetReplicationRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -8397,7 +8394,6 @@ namespace Legion {
         mapping = new CollectiveMapping(derez, num_spaces);
         mapping->add_reference();
       }
-      AddressSpaceID source;
       derez.deserialize(source);
       if (ready_event.exists() && !ready_event.has_triggered())
         ready_event.wait();
@@ -8407,8 +8403,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_replication_response(
-        Deserializer& derez)
+    /*static*/ void EquivalenceSetReplicationResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -8440,7 +8436,7 @@ namespace Legion {
           collective_mapping->contains(target))
         return;
       update_remote_instances(target);
-      Serializer rez;
+      EquivalenceSetResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -8478,12 +8474,12 @@ namespace Legion {
         else
           rez.serialize(logical_owner_space);
       }
-      runtime->send_equivalence_set_response(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_equivalence_set_request(
-        Deserializer& derez)
+    /*static*/ void EquivalenceSetRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -8497,8 +8493,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_equivalence_set_response(
-        Deserializer& derez)
+    /*static*/ void EquivalenceSetResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -8581,18 +8577,16 @@ namespace Legion {
         {
           legion_assert(!replicated_owner_state->is_valid());
           // Send notifications to the children now that we know the owner
+          EquivalenceSetReplicationResponse rez;
+          {
+            RezCheck z(rez);
+            rez.serialize(did);
+            rez.serialize(local_space);
+          }
           for (std::vector<AddressSpaceID>::const_iterator it =
                    replicated_owner_state->children.begin();
                it != replicated_owner_state->children.end(); it++)
-          {
-            Serializer rez;
-            {
-              RezCheck z(rez);
-              rez.serialize(did);
-              rez.serialize(local_space);
-            }
-            runtime->send_equivalence_set_replication_response(*it, rez);
-          }
+            rez.dispatch(*it);
           to_trigger = replicated_owner_state->ready;
           replicated_owner_state->ready = RtUserEvent::NO_RT_USER_EVENT;
         }
@@ -8603,15 +8597,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_make_owner(const void* args)
+    void EquivalenceSet::DeferMakeOwnerArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferMakeOwnerArgs* dargs = (const DeferMakeOwnerArgs*)args;
-      dargs->set->make_owner();
+      set->make_owner();
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_owner_update(Deserializer& derez)
+    /*static*/ void EquivalenceSetOwnerUpdate::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -8631,7 +8625,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_migration(
+    /*static*/ void EquivalenceSetMigration::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -9192,39 +9186,36 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_apply_state(const void* args)
+    void EquivalenceSet::DeferApplyStateArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferApplyStateArgs* dargs = (const DeferApplyStateArgs*)args;
       std::vector<RtEvent> applied_events;
-      dargs->set->apply_state(
-          *(dargs->valid_updates), *(dargs->initialized_updates),
-          *(dargs->invalidated_updates), *(dargs->reduction_updates),
-          *(dargs->restricted_updates), *(dargs->released_updates),
-          dargs->precondition_updates, dargs->anticondition_updates,
-          dargs->postcondition_updates, dargs->dirty_updates,
-          dargs->read_only_updates, dargs->reduction_fill_updates,
-          applied_events, true /*needs lock*/, dargs->forward_to_owner,
+      set->apply_state(
+          *valid_updates, *initialized_updates, *invalidated_updates,
+          *reduction_updates, *restricted_updates, *released_updates,
+          precondition_updates, anticondition_updates, postcondition_updates,
+          dirty_updates, read_only_updates, reduction_fill_updates,
+          applied_events, true /*needs lock*/, forward_to_owner,
           true /*unpack tracing refs*/);
       if (!applied_events.empty())
         Runtime::trigger_event(
-            dargs->done_event, Runtime::merge_events(applied_events));
+            done_event, Runtime::merge_events(applied_events));
       else
-        Runtime::trigger_event(dargs->done_event);
+        Runtime::trigger_event(done_event);
       for (std::set<IndexSpaceExpression*>::const_iterator it =
-               dargs->expr_references->begin();
-           it != dargs->expr_references->end(); it++)
+               expr_references->begin();
+           it != expr_references->end(); it++)
         if ((*it)->remove_base_expression_reference(META_TASK_REF))
           delete (*it);
-      delete dargs->valid_updates;
-      delete dargs->initialized_updates;
-      delete dargs->invalidated_updates;
-      delete dargs->reduction_updates;
-      delete dargs->restricted_updates;
-      delete dargs->released_updates;
-      delete dargs->read_only_updates;
-      delete dargs->reduction_fill_updates;
-      delete dargs->expr_references;
+      delete valid_updates;
+      delete initialized_updates;
+      delete invalidated_updates;
+      delete reduction_updates;
+      delete restricted_updates;
+      delete released_updates;
+      delete read_only_updates;
+      delete reduction_fill_updates;
+      delete expr_references;
     }
 
     //--------------------------------------------------------------------------
@@ -9391,7 +9382,7 @@ namespace Legion {
         if (!is_logical_owner())
         {
           const RtUserEvent done_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          EquivalenceSetCloneRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -9403,7 +9394,7 @@ namespace Legion {
             rez.serialize(done_event);
             rez.serialize<bool>(record_invalidate);
           }
-          runtime->send_equivalence_set_clone_request(logical_owner_space, rez);
+          rez.dispatch(logical_owner_space);
           applied_events.emplace_back(done_event);
           return;
         }
@@ -9592,7 +9583,7 @@ namespace Legion {
       if (!is_logical_owner())
       {
         const RtUserEvent done_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        EquivalenceSetCloneRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -9604,14 +9595,14 @@ namespace Legion {
           rez.serialize(done_event);
           rez.serialize<bool>(record_invalidate);
         }
-        runtime->send_equivalence_set_clone_request(logical_owner_space, rez);
+        rez.dispatch(logical_owner_space);
         applied_events.emplace_back(done_event);
       }
       else
       {
         // If we make it here, then we've got valid data for the all the fields
         const RtUserEvent done_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        EquivalenceSetCloneResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(target);
@@ -9621,7 +9612,7 @@ namespace Legion {
               rez, target_space, target, target_expr, overlap, overlap_covers,
               mask, false /*pack guards*/, false /*pack invalids*/);
         }
-        runtime->send_equivalence_set_clone_response(target_space, rez);
+        rez.dispatch(target_space);
         applied_events.emplace_back(done_event);
         if (!set_expr->is_empty())
           invalidate_state(overlap, overlap_covers, mask, record_invalidate);
@@ -10105,7 +10096,7 @@ namespace Legion {
           }
         }
         // Forward this on to the logical owner
-        Serializer rez;
+        EquivalenceSetCloneResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -10119,7 +10110,7 @@ namespace Legion {
               anticondition_updates, postcondition_updates, dirty_updates,
               false /*pack references*/, !unpack_tracing_references);
         }
-        runtime->send_equivalence_set_clone_response(logical_owner_space, rez);
+        rez.dispatch(logical_owner_space);
         applied_events.emplace_back(done_event);
         return;
       }
@@ -10287,7 +10278,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_clone_request(
+    /*static*/ void EquivalenceSetCloneRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -10339,7 +10330,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_clone_response(Deserializer& derez)
+    /*static*/ void EquivalenceSetCloneResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -10366,8 +10358,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_capture_request(
-        Deserializer& derez, AddressSpaceID source)
+    /*static*/ void EquivalenceSetCaptureRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -10393,7 +10385,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EquivalenceSet::handle_capture_response(
+    /*static*/ void EquivalenceSetCaptureResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -11171,7 +11163,7 @@ namespace Legion {
                  cit != children.end(); cit++)
             {
               const RtUserEvent notified = Runtime::create_rt_user_event();
-              Serializer rez;
+              EquivalenceSetCreation rez;
               {
                 RezCheck z(rez);
                 rez.serialize(this);
@@ -11213,7 +11205,7 @@ namespace Legion {
                 rez.serialize(rit->set_mask);
                 rez.serialize(notified);
               }
-              runtime->send_equivalence_set_creation(*cit, rez);
+              rez.dispatch(*cit);
               ready_events.emplace_back(notified);
             }
           }
@@ -11224,7 +11216,7 @@ namespace Legion {
                  cit != children.end(); cit++)
             {
               const RtUserEvent notified = Runtime::create_rt_user_event();
-              Serializer rez;
+              EquivalenceSetReuse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(set->did);
@@ -11254,7 +11246,7 @@ namespace Legion {
                 rez.serialize(rit->set_mask);
                 rez.serialize(notified);
               }
-              runtime->send_equivalence_set_reuse(*cit, rez);
+              rez.dispatch(*cit);
               ready_events.emplace_back(notified);
             }
           }
@@ -11396,7 +11388,7 @@ namespace Legion {
                    cit != children.end(); cit++)
               {
                 const RtUserEvent notified = Runtime::create_rt_user_event();
-                Serializer rez;
+                EquivalenceSetReuse rez;
                 {
                   RezCheck z(rez);
                   // Reference still held by at least one EqKDTree
@@ -11429,7 +11421,7 @@ namespace Legion {
                   rez.serialize(overlap);
                   rez.serialize(notified);
                 }
-                runtime->send_equivalence_set_reuse(*cit, rez);
+                rez.dispatch(*cit);
                 ready_events.emplace_back(notified);
               }
             }
@@ -12006,8 +11998,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EqSetTracker::handle_pending_equivalence_set(
-        Deserializer& derez)
+    /*static*/ void ComputeEquivalenceSetsPending::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -12034,8 +12026,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EqSetTracker::handle_equivalence_set_creation(
-        Deserializer& derez)
+    /*static*/ void EquivalenceSetCreation::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -12108,7 +12100,7 @@ namespace Legion {
              cit != children.end(); cit++)
         {
           const RtUserEvent notified = Runtime::create_rt_user_event();
-          Serializer rez;
+          EquivalenceSetCreation rez;
           {
             RezCheck z(rez);
             rez.serialize(owner);
@@ -12145,7 +12137,7 @@ namespace Legion {
             rez.serialize(recording_mask);
             rez.serialize(notified);
           }
-          runtime->send_equivalence_set_creation(*cit, rez);
+          rez.dispatch(*cit);
           notified_events.emplace_back(notified);
         }
       }
@@ -12200,8 +12192,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EqSetTracker::handle_equivalence_set_reuse(
-        Deserializer& derez)
+    /*static*/ void EquivalenceSetReuse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -12256,7 +12248,7 @@ namespace Legion {
            cit != children.end(); cit++)
       {
         const RtUserEvent notified = Runtime::create_rt_user_event();
-        Serializer rez;
+        EquivalenceSetReuse rez;
         {
           RezCheck z2(rez);
           // Reference still held by at least one EqKDTree
@@ -12288,7 +12280,7 @@ namespace Legion {
           rez.serialize(recording_mask);
           rez.serialize(notified);
         }
-        runtime->send_equivalence_set_reuse(*cit, rez);
+        rez.dispatch(*cit);
         done_events.emplace_back(notified);
       }
       local::map<AddressSpaceID, local::FieldMaskMap<EqKDTree> >::iterator
@@ -12504,7 +12496,7 @@ namespace Legion {
     {
       if (target != runtime->address_space)
       {
-        Serializer rez;
+        CancelEquivalenceSetSubscription rez;
         {
           RezCheck z(rez);
           legion_assert(!to_cancel.empty());
@@ -12525,7 +12517,7 @@ namespace Legion {
           else
             rez.serialize(RtUserEvent::NO_RT_USER_EVENT);
         }
-        runtime->send_cancel_equivalence_sets_subscription(target, rez);
+        rez.dispatch(target);
       }
       else
       {
@@ -12545,7 +12537,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EqSetTracker::handle_cancel_subscription(
+    /*static*/ void CancelEquivalenceSetSubscription::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -12570,14 +12562,14 @@ namespace Legion {
         }
         if (references_to_remove > 0)
         {
-          Serializer rez;
+          InvalidateEquivalenceSetSubscription rez;
           {
             RezCheck z2(rez);
             rez.serialize<size_t>(0);  // nothing to filter
             rez.serialize(owner);
             rez.serialize(references_to_remove);
           }
-          runtime->send_invalidate_equivalence_sets_subscription(source, rez);
+          rez.dispatch(source);
         }
         RtUserEvent cancelled;
         derez.deserialize(cancelled);
@@ -12611,7 +12603,7 @@ namespace Legion {
         if (sit->first != local_space)
         {
           const RtUserEvent invalidated = Runtime::create_rt_user_event();
-          Serializer rez;
+          InvalidateEquivalenceSetSubscription rez;
           {
             RezCheck z(rez);
             legion_assert(!sit->second.empty());
@@ -12626,8 +12618,7 @@ namespace Legion {
             }
             rez.serialize(invalidated);
           }
-          runtime->send_invalidate_equivalence_sets_subscription(
-              sit->first, rez);
+          rez.dispatch(sit->first);
           invalidated_events.emplace_back(invalidated);
         }
         else
@@ -12651,7 +12642,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EqSetTracker::handle_invalidate_subscription(
+    /*static*/ void InvalidateEquivalenceSetSubscription::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -12684,14 +12675,14 @@ namespace Legion {
           Runtime::trigger_event(invalidated);
         if (references_to_remove > 0)
         {
-          Serializer rez;
+          CancelEquivalenceSetSubscription rez;
           {
             RezCheck z2(rez);
             rez.serialize<size_t>(0);  // num subscribers
             rez.serialize(owner);
             rez.serialize(references_to_remove);
           }
-          runtime->send_cancel_equivalence_sets_subscription(source, rez);
+          rez.dispatch(source);
         }
       }
       else
@@ -12719,19 +12710,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void EqSetTracker::handle_finalize_eq_sets(const void* args)
+    void EqSetTracker::LgFinalizeEqSetsArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const LgFinalizeEqSetsArgs* fargs = (const LgFinalizeEqSetsArgs*)args;
-      fargs->tracker->finalize_equivalence_sets(
-          fargs->compute, fargs->enclosing, fargs->outermost,
-          fargs->parent_req_index, fargs->expr, fargs->provenance);
-      if (fargs->enclosing->remove_base_gc_ref(META_TASK_REF))
-        delete fargs->enclosing;
-      if (fargs->outermost->remove_base_gc_ref(META_TASK_REF))
-        delete fargs->outermost;
-      if (fargs->expr->remove_base_expression_reference(META_TASK_REF))
-        delete fargs->expr;
+      tracker->finalize_equivalence_sets(
+          compute, enclosing, outermost, parent_req_index, expr, provenance);
+      if (enclosing->remove_base_gc_ref(META_TASK_REF))
+        delete enclosing;
+      if (outermost->remove_base_gc_ref(META_TASK_REF))
+        delete outermost;
+      if (expr->remove_base_expression_reference(META_TASK_REF))
+        delete expr;
     }
 
   }  // namespace Internal

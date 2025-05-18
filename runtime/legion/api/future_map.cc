@@ -288,7 +288,7 @@ namespace Legion {
         // Make an event for when we have the answer
         RtUserEvent future_ready_event = Runtime::create_rt_user_event();
         // If not send a message to get it
-        Serializer rez;
+        FutureMapFutureRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -296,7 +296,7 @@ namespace Legion {
           rez.serialize(future_ready_event);
           rez.serialize<bool>(internal);
         }
-        runtime->send_future_map_request_future(owner_space, rez);
+        rez.dispatch(owner_space);
         if (wait_on != nullptr)
         {
           *wait_on = future_ready_event;
@@ -566,7 +566,7 @@ namespace Legion {
         // Make an event and send it back to the owner node
         if (!to_trigger.exists())
           to_trigger = Runtime::create_rt_user_event();
-        Serializer rez;
+        FutureMapPointwise rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -574,7 +574,7 @@ namespace Legion {
           rez.serialize(context_depth);
           rez.serialize(to_trigger);
         }
-        runtime->send_future_map_find_pointwise(owner_space, rez);
+        rez.dispatch(owner_space);
         return to_trigger;
       }
       else
@@ -601,7 +601,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureMapImpl::handle_future_map_future_request(
+    /*static*/ void FutureMapFutureRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -621,7 +621,7 @@ namespace Legion {
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
       FutureMapImpl* impl = legion_safe_cast<FutureMapImpl*>(dc);
       Future f = impl->get_future(point, internal);
-      Serializer rez;
+      FutureMapFutureResponse rez;
       {
         RezCheck z2(rez);
         rez.serialize(did);
@@ -630,7 +630,7 @@ namespace Legion {
         f.impl->pack_global_ref();
         rez.serialize(done);
       }
-      runtime->send_future_map_response_future(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
@@ -650,8 +650,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureMapImpl::handle_future_map_future_response(
-        Deserializer& derez)
+    /*static*/ void FutureMapFutureResponse::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -669,8 +669,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureMapImpl::handle_future_map_find_pointwise(
-        Deserializer& derez)
+    /*static*/ void FutureMapPointwise::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -932,7 +932,7 @@ namespace Legion {
         // Make an event for when we have the answer
         RtUserEvent future_ready_event = Runtime::create_rt_user_event();
         // If not send a message to get it
-        Serializer rez;
+        FutureMapFutureRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -940,7 +940,7 @@ namespace Legion {
           rez.serialize(future_ready_event);
           rez.serialize<bool>(internal);
         }
-        runtime->send_future_map_request_future(space, rez);
+        rez.dispatch(space);
         if (wait_on != nullptr)
         {
           *wait_on = future_ready_event;

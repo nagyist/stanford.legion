@@ -83,7 +83,7 @@ namespace Legion {
         const AddressSpaceID target = rit->first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        EquivalenceSetRemoteInstances rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
@@ -103,7 +103,7 @@ namespace Legion {
           rez.serialize(ready);
           rez.serialize(applied);
         }
-        runtime->send_equivalence_set_remote_request_instances(target, rez);
+        rez.dispatch(target);
         ready_events.insert(ready);
         applied_events.insert(applied);
       }
@@ -124,7 +124,7 @@ namespace Legion {
         if (original_source != runtime->address_space)
         {
           const RtUserEvent response_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          EquivalenceSetRemoteInstances rez;
           {
             RezCheck z(rez);
             rez.serialize(target_analysis);
@@ -139,7 +139,7 @@ namespace Legion {
             }
             rez.serialize<bool>(restricted);
           }
-          runtime->send_equivalence_set_remote_instances(original_source, rez);
+          rez.dispatch(original_source);
           return response_event;
         }
         else
@@ -150,7 +150,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ValidInstAnalysis::handle_remote_request_instances(
+    /*static*/ void EquivalenceSetRequestInstances::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {
@@ -288,7 +288,7 @@ namespace Legion {
         const AddressSpaceID target = rit->first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        EquivalenceSetRequestInvalid rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
@@ -315,7 +315,7 @@ namespace Legion {
           rez.serialize(ready);
           rez.serialize(applied);
         }
-        runtime->send_equivalence_set_remote_request_invalid(target, rez);
+        rez.dispatch(target);
         ready_events.insert(ready);
         applied_events.insert(applied);
       }
@@ -336,7 +336,7 @@ namespace Legion {
         if (original_source != runtime->address_space)
         {
           const RtUserEvent response_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          EquivalenceSetRemoteInstances rez;
           {
             RezCheck z(rez);
             rez.serialize(target_analysis);
@@ -351,7 +351,7 @@ namespace Legion {
             }
             rez.serialize<bool>(restricted);
           }
-          runtime->send_equivalence_set_remote_instances(original_source, rez);
+          rez.dispatch(original_source);
           return response_event;
         }
         else
@@ -362,7 +362,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InvalidInstAnalysis::handle_remote_request_invalid(
+    /*static*/ void EquivalenceSetRequestInvalid::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {
@@ -512,7 +512,7 @@ namespace Legion {
         const AddressSpaceID target = rit->first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        EquivalenceSetRequestAntivalid rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
@@ -539,7 +539,7 @@ namespace Legion {
           rez.serialize(ready);
           rez.serialize(applied);
         }
-        runtime->send_equivalence_set_remote_request_antivalid(target, rez);
+        rez.dispatch(target);
         ready_events.insert(ready);
         applied_events.insert(applied);
       }
@@ -560,7 +560,7 @@ namespace Legion {
         if (original_source != runtime->address_space)
         {
           const RtUserEvent response_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          EquivalenceSetRemoteInstances rez;
           {
             RezCheck z(rez);
             rez.serialize(target_analysis);
@@ -575,7 +575,7 @@ namespace Legion {
             }
             rez.serialize<bool>(restricted);
           }
-          runtime->send_equivalence_set_remote_instances(original_source, rez);
+          rez.dispatch(original_source);
           return response_event;
         }
         else
@@ -586,7 +586,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void AntivalidInstAnalysis::handle_remote_request_antivalid(
+    /*static*/ void EquivalenceSetRequestAntivalid::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {

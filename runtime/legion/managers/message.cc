@@ -23,6 +23,36 @@
 namespace Legion {
   namespace Internal {
 
+    //--------------------------------------------------------------------------
+    MessageHeader::MessageHeader(MessageKind k, VirtualChannelKind vc)
+      : LgTaskArgs<MessageHeader>(implicit_provenance), kind(k), channel(vc),
+        sender(runtime->address_space)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void MessageHeader::handle(const void* data, size_t size)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(sizeof(MessageHeader) <= size);
+      const MessageHeader* header = static_cast<const MessageHeader*>(data);
+      legion_assert(header->lg_task_id == TASK_ID);
+#ifdef LEGION_DEBUG_CALLERS
+      implicit_task_caller = header->lg_call_id;
+#endif
+      implicit_provenance = header->provenance;
+      // Find the handler for this message
+      legion_assert(header->kind < LAST_SEND_KIND);
+      void (*handler)(Deserializer&, AddressSpaceID) =
+          MessageManager::message_handler_table[header->kind];
+      assert(handler != nullptr);
+      Deserializer derez(header + 1, size - sizeof(MessageHeader));
+      (*handler)(derez, header->sender);
+      // Record that we've seen this message
+      MessageManager* manager = runtime->find_messenger(header->sender);
+      manager->find_channel(header->channel).record_seen(header->kind);
+    }
+
     /////////////////////////////////////////////////////////////
     // Virtual Channel
     /////////////////////////////////////////////////////////////
@@ -31,9 +61,7 @@ namespace Legion {
     VirtualChannel::VirtualChannel(
         VirtualChannelKind kind, AddressSpaceID local_address_space,
         size_t max_message_size, bool profile_outgoing)
-      : sending_buffer((uint8_t*)malloc(max_message_size)),
-        sending_buffer_size(max_message_size),
-        ordered_channel(
+      : ordered_channel(
             (kind != DEFAULT_VIRTUAL_CHANNEL) &&
             (kind != THROUGHPUT_VIRTUAL_CHANNEL)),
         profile_outgoing_messages(profile_outgoing),
@@ -47,201 +75,26 @@ namespace Legion {
                 LG_THROUGHPUT_RESPONSE_PRIORITY :
             (kind == UPDATE_VIRTUAL_CHANNEL) ? LG_LATENCY_MESSAGE_PRIORITY :
                                                LG_LATENCY_RESPONSE_PRIORITY),
-        partial_messages(0), observed_recent(true)
+        observed_recent(true)
     //--------------------------------------------------------------------------
     //
-    {
-      receiving_buffer_size = max_message_size;
-      // Not really a VirtualChannel*
-      VirtualChannel* buffer = legion_malloc<VirtualChannel, RUNTIME_LIFETIME>(
-          receiving_buffer_size, alignof(std::max_align_t));
-      static_assert(sizeof(uint8_t*) == sizeof(VirtualChannel*));
-      memcpy(&receiving_buffer, &buffer, sizeof(buffer));
-      legion_assert(sending_buffer != nullptr);
-      legion_assert(receiving_buffer != nullptr);
-      // Use a dummy implicit provenance at the front for the message
-      // to comply with the requirements of the meta-task handler which
-      // expects this before the task ID. We'll actually have individual
-      // implicit provenances that will override this when handling the
-      // messages so we can just set this to zero.
-      memset(sending_buffer, 0, sizeof(UniqueID));
-      sending_index = sizeof(UniqueID);
-#ifdef LEGION_DEBUG_CALLERS
-      const LgTaskID scheduler = LG_SCHEDULER_ID;
-      memcpy(sending_buffer + sending_index, &sched, sizeof(scheduler));
-      sending_index += sizeof(scheduler);
-#endif
-      // Set up the buffer for sending the first batch of messages
-      // Only need to write the processor once
-      const LgTaskID message = LG_MESSAGE_ID;
-      memcpy(sending_buffer + sending_index, &message, sizeof(message));
-      sending_index += sizeof(message);
-      memcpy(
-          sending_buffer + sending_index, &local_address_space,
-          sizeof(local_address_space));
-      sending_index += sizeof(local_address_space);
-      memcpy(sending_buffer + sending_index, &kind, sizeof(kind));
-      sending_index += sizeof(kind);
-      header = FULL_MESSAGE;
-      sending_index += sizeof(header);
-      packaged_messages = 0;
-      sending_index += sizeof(packaged_messages);
-      last_message_event = RtEvent::NO_RT_EVENT;
-      partial_message_id = 0;
-      partial_assembly = nullptr;
-      partial = false;
-      // Set up the receiving buffer
-      received_messages = 0;
-      receiving_index = 0;
-    }
+    { }
 
     //--------------------------------------------------------------------------
     VirtualChannel::~VirtualChannel(void)
     //--------------------------------------------------------------------------
-    {
-      free(sending_buffer);
-      VirtualChannel* buffer;
-      memcpy(&buffer, &receiving_buffer, sizeof(buffer));
-      legion_free<VirtualChannel>(buffer, receiving_buffer_size);
-      receiving_buffer = nullptr;
-      receiving_buffer_size = 0;
-      if (partial_assembly != nullptr)
-        delete partial_assembly;
-    }
-
-    //--------------------------------------------------------------------------
-    void VirtualChannel::package_message(
-        Serializer& rez, MessageKind k, bool flush, RtEvent flush_precondition,
-        Processor target, bool response)
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(!flush_precondition.exists() || flush);
-      // First check to see if the message fits in the current buffer
-      // including the overhead for the message: kind and size
-      size_t buffer_size = rez.get_used_bytes();
-      const uint8_t* buffer = (const uint8_t*)rez.get_buffer();
-      const size_t header_size =
-#ifdef LEGION_DEBUG_CALLERS
-          sizeof(LgTaskID) +
-#endif
-          sizeof(k) + sizeof(implicit_provenance) + sizeof(buffer_size);
-      // Need to hold the lock when manipulating the buffer
-      AutoLock c_lock(channel_lock);
-      if ((sending_index + header_size + buffer_size) > sending_buffer_size)
-      {
-        // Make sure we can at least get the meta-data into the buffer
-        // Since there is no partial data we can fake the flush
-        if ((sending_buffer_size - sending_index) <= header_size)
-          send_message(
-              true /*complete*/, target, k, response, flush_precondition);
-        // Now can package up the meta data
-        packaged_messages++;
-        memcpy(sending_buffer + sending_index, &k, sizeof(k));
-        sending_index += sizeof(k);
-        memcpy(
-            sending_buffer + sending_index, &implicit_provenance,
-            sizeof(implicit_provenance));
-        sending_index += sizeof(implicit_provenance);
-#ifdef LEGION_DEBUG_CALLERS
-        memcpy(
-            sending_buffer + sending_index, &implicit_task_kind,
-            sizeof(implicit_task_kind));
-        sending_index += sizeof(implicit_task_kind);
-#endif
-        memcpy(
-            sending_buffer + sending_index, &buffer_size, sizeof(buffer_size));
-        sending_index += sizeof(buffer_size);
-        while (buffer_size > 0)
-        {
-          unsigned remaining = sending_buffer_size - sending_index;
-          if (remaining == 0)
-            send_message(
-                false /*complete*/, target, k, response, flush_precondition);
-          remaining = sending_buffer_size - sending_index;
-          legion_assert(remaining > 0);  // should be space after the send
-          // Figure out how much to copy into the buffer
-          unsigned to_copy =
-              (remaining < buffer_size) ? remaining : buffer_size;
-          memcpy(sending_buffer + sending_index, buffer, to_copy);
-          buffer_size -= to_copy;
-          buffer += to_copy;
-          sending_index += to_copy;
-        }
-      }
-      else
-      {
-        packaged_messages++;
-        // Package up the kind and the size first
-        memcpy(sending_buffer + sending_index, &k, sizeof(k));
-        sending_index += sizeof(k);
-        memcpy(
-            sending_buffer + sending_index, &implicit_provenance,
-            sizeof(implicit_provenance));
-        sending_index += sizeof(implicit_provenance);
-#ifdef LEGION_DEBUG_CALLERS
-        memcpy(
-            sending_buffer + sending_index, &implicit_task_kind,
-            sizeof(implicit_task_kind));
-        sending_index += sizeof(implicit_task_kind);
-#endif
-        memcpy(
-            sending_buffer + sending_index, &buffer_size, sizeof(buffer_size));
-        sending_index += sizeof(buffer_size);
-        // Then copy over the buffer
-        memcpy(sending_buffer + sending_index, buffer, buffer_size);
-        sending_index += buffer_size;
-      }
-      if (flush)
-        send_message(
-            true /*complete*/, target, k, response, flush_precondition);
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void VirtualChannel::send_message(
-        bool complete, Processor target, MessageKind kind, bool response,
-        RtEvent send_precondition)
+        MessageKind kind, const Serializer& rez, RtEvent send_precondition,
+        Processor target, bool response)
     //--------------------------------------------------------------------------
     {
-      // See if we need to switch the header file
-      // and update the state of partial
-      bool first_partial = false;
-      if (!complete)
-      {
-        header = PARTIAL_MESSAGE;
-        // If this is an unordered virtual channel, then embed our partial
-        // message id in the high-order bits
-        if (!ordered_channel)
-          header =
-              (MessageHeader)(((unsigned)header) | (partial_message_id << 2));
-        if (!partial)
-        {
-          partial = true;
-          first_partial = true;
-        }
-      }
-      else if (partial)
-      {
-        header = FINAL_MESSAGE;
-        // If this is an unordered virtual channel, then embed our partial
-        // message id in the high-order bits
-        if (!ordered_channel)
-          // Also increment the partial message id for the next message
-          // This can overflow safely since it's an unsigned integer
-          header =
-              (MessageHeader)(((unsigned)header) | (partial_message_id++ << 2));
-        partial = false;
-      }
-      // Save the header and the number of messages into the buffer
-      const size_t base_size = sizeof(UniqueID) + sizeof(LgTaskID) +
-#ifdef LEGION_DEBUG_CALLERS
-                               sizeof(LgTaskID) +
-#endif
-                               sizeof(AddressSpaceID) +
-                               sizeof(VirtualChannelKind);
-      memcpy(sending_buffer + base_size, &header, sizeof(header));
-      memcpy(
-          sending_buffer + base_size + sizeof(header), &packaged_messages,
-          sizeof(packaged_messages));
+      // Need an excluisve lock if this an ordered channel, otherwise this
+      // is just a formality and many messages can be sent in parallel
+      // and just can't race with shutdown tests
+      AutoLock c_lock(channel_lock, ordered_channel ? 0 : 1, ordered_channel);
       // Send the message directly there, don't go through the
       // runtime interface to avoid being counted, still include
       // a profiling request though if necessary in order to
@@ -250,24 +103,24 @@ namespace Legion {
       {
         Realm::ProfilingRequestSet requests;
         const RtEvent precondition =
-            (ordered_channel || ((header != FULL_MESSAGE) && !first_partial)) ?
-                (send_precondition.exists() ?
-                     Runtime::merge_events(
-                         send_precondition, last_message_event) :
-                     last_message_event) :
-                send_precondition;
+            ordered_channel ? (send_precondition.exists() ?
+                                   Runtime::merge_events(
+                                       send_precondition, last_message_event) :
+                                   last_message_event) :
+                              send_precondition;
         LegionProfiler::add_message_request(
             requests, kind, target, precondition);
-        last_message_event = RtEvent(target.spawn(
+        const RtEvent message_done(target.spawn(
 #ifdef LEGION_SEPARATE_META_TASKS
             LG_TASK_ID + LG_MESSAGE_ID + kind,
 #else
             LG_TASK_ID,
 #endif
-            sending_buffer, sending_index, requests, precondition,
+            rez.get_buffer(), rez.get_used_bytes(), requests, precondition,
             response ? response_priority : request_priority));
-        if (!ordered_channel && (header != PARTIAL_MESSAGE))
+        if (!ordered_channel)
         {
+          last_message_event = message_done;
           unordered_events.insert(last_message_event);
           if (unordered_events.size() >= MAX_UNORDERED_EVENTS)
             filter_unordered_events();
@@ -275,34 +128,27 @@ namespace Legion {
       }
       else
       {
-        last_message_event = RtEvent(target.spawn(
+        RtEvent message_done(target.spawn(
 #ifdef LEGION_SEPARATE_META_TASKS
             LG_TASK_ID + LG_MESSAGE_ID + kind,
 #else
             LG_TASK_ID,
 #endif
-            sending_buffer, sending_index,
-            (ordered_channel || ((header != FULL_MESSAGE) && !first_partial)) ?
-                (send_precondition.exists() ?
-                     Runtime::merge_events(
-                         send_precondition, last_message_event) :
-                     last_message_event) :
-                send_precondition,
+            rez.get_buffer(), rez.get_used_bytes(),
+            ordered_channel ? (send_precondition.exists() ?
+                                   Runtime::merge_events(
+                                       send_precondition, last_message_event) :
+                                   last_message_event) :
+                              send_precondition,
             response ? response_priority : request_priority));
-        if (!ordered_channel && (header != PARTIAL_MESSAGE))
+        if (!ordered_channel)
         {
+          last_message_event = message_done;
           unordered_events.insert(last_message_event);
           if (unordered_events.size() >= MAX_UNORDERED_EVENTS)
             filter_unordered_events();
         }
       }
-      // Reset the state of the buffer
-      sending_index = base_size + sizeof(header) + sizeof(unsigned);
-      if (partial)
-        header = PARTIAL_MESSAGE;
-      else
-        header = FULL_MESSAGE;
-      packaged_messages = 0;
     }
 
     //--------------------------------------------------------------------------
@@ -335,6 +181,19 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void VirtualChannel::record_seen(MessageKind kind)
+    //--------------------------------------------------------------------------
+    {
+      // Any message that is not a shutdown message needs to be recorded
+      if ((kind != SEND_SHUTDOWN_NOTIFICATION) &&
+          (kind != SEND_SHUTDOWN_RESPONSE))
+      {
+        AutoLock c_lock(channel_lock);
+        observed_recent = true;
+      }
+    }
+
+    //--------------------------------------------------------------------------
     void VirtualChannel::confirm_shutdown(
         ShutdownManager* shutdown_manager, bool phase_one, Processor target,
         bool profiling_virtual_channel)
@@ -343,15 +202,6 @@ namespace Legion {
       AutoLock c_lock(channel_lock);
       if (phase_one)
       {
-        if (packaged_messages > 0)
-        {
-          shutdown_manager->record_recent_message();
-          // If this is the profiling channel then flush the messages
-          if (profiling_virtual_channel)
-            send_message(
-                true /*complete*/, target, SEND_PROFILER_EVENT_TRIGGER,
-                false /*response*/, RtEvent::NO_RT_EVENT);
-        }
         if (ordered_channel)
         {
           if (!last_message_event.has_triggered())
@@ -396,14 +246,9 @@ namespace Legion {
       }
       else
       {
-        if (observed_recent || (packaged_messages > 0))
+        if (observed_recent)
         {
           shutdown_manager->record_recent_message();
-          // If this is the profiling channel then flush the messages
-          if (profiling_virtual_channel && (packaged_messages > 0))
-            send_message(
-                true /*complete*/, target, SEND_PROFILER_EVENT_TRIGGER,
-                false /*response*/, RtEvent::NO_RT_EVENT);
         }
         else
         {
@@ -448,127 +293,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void VirtualChannel::process_message(
-        const void* args, size_t arglen, AddressSpaceID remote_address_space)
+    /*static*/ MessageManager* MessageManager::find_manager(
+        AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-      // Strip off our header and the number of messages, the
-      // processor part was already stipped off by the Legion runtime
-      const uint8_t* buffer = (const uint8_t*)args;
-      MessageHeader head;
-      memcpy(&head, buffer, sizeof(head));
-      buffer += sizeof(head);
-      arglen -= sizeof(head);
-      unsigned num_messages;
-      memcpy(&num_messages, buffer, sizeof(num_messages));
-      buffer += sizeof(num_messages);
-      arglen -= sizeof(num_messages);
-      unsigned incoming_message_id = 0;
-      if (!ordered_channel)
-      {
-        incoming_message_id = ((unsigned)head) >> 2;
-        head = (MessageHeader)(((unsigned)head) & 0x3);
-      }
-      switch (head)
-      {
-        case FULL_MESSAGE:
-          {
-            // Can handle these messages directly
-            handle_messages(num_messages, remote_address_space, buffer, arglen);
-            break;
-          }
-        case PARTIAL_MESSAGE:
-          {
-            // Save these messages onto the receiving buffer
-            // but do not handle them
-            if (!ordered_channel)
-            {
-              AutoLock c_lock(channel_lock);
-              if (partial_assembly == nullptr)
-                partial_assembly = new std::map<unsigned, PartialMessage>();
-              PartialMessage& message =
-                  (*partial_assembly)[incoming_message_id];
-              // Allocate the buffer on the first pass
-              if (message.buffer == nullptr)
-              {
-                // Same as max message size
-                message.size = sending_buffer_size;
-                VirtualChannel* buffer =
-                    legion_malloc<VirtualChannel, SHORT_LIFETIME>(
-                        message.size, alignof(std::max_align_t));
-                memcpy(&message.buffer, &buffer, sizeof(buffer));
-              }
-              buffer_messages(
-                  num_messages, buffer, arglen, message.buffer, message.size,
-                  message.index, message.messages, message.total);
-            }
-            else
-              // Ordered channels don't need the lock
-              buffer_messages(
-                  num_messages, buffer, arglen, receiving_buffer,
-                  receiving_buffer_size, receiving_index, received_messages,
-                  partial_messages);
-            break;
-          }
-        case FINAL_MESSAGE:
-          {
-            // Save the remaining messages onto the receiving
-            // buffer, then handle them and reset the state.
-            uint8_t* final_buffer = nullptr;
-            size_t final_index = 0;
-            unsigned final_messages = 0;
-            bool free_buffer_size = 0;
-            if (!ordered_channel)
-            {
-              AutoLock c_lock(channel_lock);
-              legion_assert(partial_assembly != nullptr);
-              std::map<unsigned, PartialMessage>::iterator finder =
-                  partial_assembly->find(incoming_message_id);
-              legion_assert(finder != partial_assembly->end());
-              legion_assert(finder->second.buffer != nullptr);
-              buffer_messages(
-                  num_messages, buffer, arglen, finder->second.buffer,
-                  finder->second.size, finder->second.index,
-                  finder->second.messages, finder->second.total);
-              final_index = finder->second.index;
-              final_buffer = finder->second.buffer;
-              final_messages = finder->second.messages;
-              free_buffer_size = finder->second.size;
-              partial_assembly->erase(finder);
-            }
-            else
-            {
-              buffer_messages(
-                  num_messages, buffer, arglen, receiving_buffer,
-                  receiving_buffer_size, receiving_index, received_messages,
-                  partial_messages);
-              final_index = receiving_index;
-              final_buffer = receiving_buffer;
-              final_messages = received_messages;
-              receiving_index = 0;
-              received_messages = 0;
-              partial_messages = 0;
-            }
-            handle_messages(
-                final_messages, remote_address_space, final_buffer,
-                final_index);
-            if (free_buffer_size > 0)
-            {
-              VirtualChannel* to_free;
-              memcpy(&to_free, &final_buffer, sizeof(to_free));
-              legion_free<VirtualChannel>(to_free, free_buffer_size);
-            }
-            break;
-          }
-        default:
-          std::abort();  // should never get here
-      }
+      return runtime->find_messenger(target);
     }
 
+#if 0
     //--------------------------------------------------------------------------
-    void VirtualChannel::handle_messages(
-        unsigned num_messages, AddressSpaceID remote_address_space,
-        const uint8_t* args, size_t arglen) const
+    void VirtualChannel::handle_message(MessageKind kind
+        AddressSpaceID remote_address_space, const void* args, size_t arglen) const
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < num_messages; idx++)
@@ -2184,39 +1919,7 @@ namespace Legion {
       }
       legion_assert(arglen == 0);  // make sure we processed everything
     }
-
-    //--------------------------------------------------------------------------
-    /*static*/ void VirtualChannel::buffer_messages(
-        unsigned num_messages, const void* args, size_t arglen,
-        uint8_t*& receiving_buffer, size_t& receiving_buffer_size,
-        size_t& receiving_index, unsigned& received_messages,
-        unsigned& partial_messages)
-    //--------------------------------------------------------------------------
-    {
-      received_messages += num_messages;
-      partial_messages += 1;  // up the number of partial messages received
-      // Check to see if it fits
-      if (receiving_buffer_size < (receiving_index + arglen))
-      {
-        // Figure out what the new size should be
-        // Keep doubling until it's larger
-        size_t new_buffer_size = receiving_buffer_size;
-        while (new_buffer_size < (receiving_index + arglen))
-          new_buffer_size *= 2;
-        legion_assert(new_buffer_size != 0);  // would cause deallocation
-        // Now realloc the memory
-        VirtualChannel* buffer;
-        memcpy(&buffer, &receiving_buffer, sizeof(buffer));
-        buffer = legion_realloc<VirtualChannel, RUNTIME_LIFETIME>(
-            buffer, receiving_buffer_size, new_buffer_size);
-        memcpy(&receiving_buffer, &buffer, sizeof(buffer));
-        receiving_buffer_size = new_buffer_size;
-        legion_assert(receiving_buffer != nullptr);
-      }
-      // Copy the data in
-      memcpy(receiving_buffer + receiving_index, args, arglen);
-      receiving_index += arglen;
-    }
+#endif
 
     /////////////////////////////////////////////////////////////
     // Message Manager
@@ -2253,29 +1956,20 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MessageManager::send_message(
-        MessageKind message, Serializer& rez, bool flush, bool response,
-        RtEvent flush_precondition)
+        MessageKind kind, VirtualChannelKind channel, const Serializer& rez,
+        bool response, RtEvent flush_precondition)
     //--------------------------------------------------------------------------
     {
-      const VirtualChannelKind channel = find_message_vc(message);
-      // Always flush for the profiler if we're doing that
-      if (!flush && (runtime->profiler != nullptr) &&
-          (channel != PROFILING_VIRTUAL_CHANNEL))
-        flush = true;
-      channels[channel].package_message(
-          rez, message, flush, flush_precondition, target, response);
+      channels[channel].send_message(
+          kind, rez, flush_precondition, target, response);
     }
 
     //--------------------------------------------------------------------------
-    void MessageManager::receive_message(const void* args, size_t arglen)
+    VirtualChannel& MessageManager::find_channel(VirtualChannelKind vc)
     //--------------------------------------------------------------------------
     {
-      // Pull the channel off to do the receiving
-      const char* buffer = (const char*)args;
-      VirtualChannelKind channel = *((const VirtualChannelKind*)buffer);
-      buffer += sizeof(channel);
-      arglen -= sizeof(channel);
-      channels[channel].process_message(buffer, arglen, remote_address_space);
+      legion_assert(vc < MAX_NUM_VIRTUAL_CHANNELS);
+      return channels[vc];
     }
 
     //--------------------------------------------------------------------------
@@ -2287,6 +1981,22 @@ namespace Legion {
         channels[idx].confirm_shutdown(
             shutdown_manager, phase_one, target,
             (idx == PROFILING_VIRTUAL_CHANNEL));
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void MessageManager::register_handlers(void)
+    //--------------------------------------------------------------------------
+    {
+#define REGISTER_HANDLERS(kind, type, name, response)    \
+  legion_assert(message_handler_table[kind] == nullptr); \
+  message_handler_table[kind] = type::handle;
+      LEGION_ACTIVE_MESSAGES(REGISTER_HANDLERS)
+#undef REGISTER_HANDLERS
+#define REGISTER_SHARD_COLLECTIVES(kind, name)           \
+  legion_assert(message_handler_table[kind] == nullptr); \
+  message_handler_table[kind] = ShardCollectiveMessage::handle;
+      LEGION_SHARD_COLLECTIVE_ACTIVE_MESSAGES(REGISTER_SHARD_COLLECTIVES)
+#undef REGISTER_SHARD_COLLECTIVES
     }
 
   }  // namespace Internal

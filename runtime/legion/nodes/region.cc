@@ -1474,7 +1474,7 @@ namespace Legion {
                    semantic_info.begin();
                it != semantic_info.end(); it++)
           {
-            Serializer rez2;
+            LogicalRegionSemanticInfoResponse rez2;
             {
               RezCheck z(rez2);
               rez2.serialize(handle);
@@ -1486,7 +1486,7 @@ namespace Legion {
                   it->second.buffer.get_buffer(), it->second.buffer.get_size());
               rez2.serialize(it->second.is_mutable);
             }
-            runtime->send_logical_region_semantic_info(target, rez2);
+            rez2.dispatch(target);
           }
         }
         else
@@ -1611,7 +1611,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      LogicalRegionSemanticInfoRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -1620,7 +1620,7 @@ namespace Legion {
         rez.serialize(wait_until);
         rez.serialize(ready);
       }
-      runtime->send_logical_region_semantic_request(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -1642,7 +1642,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Package up the message first
-      Serializer rez;
+      LogicalRegionSemanticInfoResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -1652,7 +1652,7 @@ namespace Legion {
         rez.serialize(is_mutable);
         rez.serialize(ready);
       }
-      runtime->send_logical_region_semantic_info(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -1707,7 +1707,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RegionNode::handle_semantic_request(
+    void RegionNode::SemanticRequestArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      proxy_this->process_semantic_request(
+          tag, source, false, false, RtUserEvent::NO_RT_USER_EVENT);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void LogicalRegionSemanticInfoRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1727,7 +1735,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RegionNode::handle_semantic_info(
+    /*static*/ void LogicalRegionSemanticInfoResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1751,7 +1759,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RegionNode::handle_top_level_request(Deserializer& derez)
+    /*static*/ void TopLevelRegionRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       RegionTreeID tid;
@@ -1777,11 +1786,11 @@ namespace Legion {
             // proper node to handle the request
             if (nearest != node->local_space)
             {
-              Serializer rez;
+              TopLevelRegionRequest rez;
               rez.serialize(tid);
               rez.serialize(done_event);
               rez.serialize(source);
-              runtime->send_top_level_region_request(nearest, rez);
+              rez.dispatch(nearest);
               return;
             }
           }
@@ -1792,25 +1801,25 @@ namespace Legion {
                 node->collective_mapping->find_nearest(source));
           }
         }
-        Serializer rez;
+        TopLevelRegionReturn rez;
         {
           RezCheck z(rez);
           node->send_node(rez, source);
           rez.serialize(done_event);
         }
-        runtime->send_top_level_region_return(source, rez);
+        rez.dispatch(source);
       }
       else
         Runtime::trigger_event(done_event);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RegionNode::handle_top_level_return(
+    /*static*/ void TopLevelRegionReturn::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      handle_node_creation(derez, source);
+      RegionNode::handle_node_creation(derez, source);
       RtUserEvent done_event;
       derez.deserialize(done_event);
       Runtime::trigger_event(done_event);
@@ -2151,7 +2160,7 @@ namespace Legion {
                  semantic_info.begin();
              it != semantic_info.end(); it++)
         {
-          Serializer rez;
+          LogicalPartitionSemanticInfoResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -2161,7 +2170,7 @@ namespace Legion {
                 it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
-          runtime->send_logical_partition_semantic_info(target, rez);
+          rez.dispatch(target);
         }
       }
     }
@@ -2172,7 +2181,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      LogicalPartitionSemanticInfoRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -2181,7 +2190,7 @@ namespace Legion {
         rez.serialize(wait_until);
         rez.serialize(ready);
       }
-      runtime->send_logical_partition_semantic_request(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -2199,7 +2208,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Package up the message first
-      Serializer rez;
+      LogicalPartitionSemanticInfoResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -2209,7 +2218,7 @@ namespace Legion {
         rez.serialize(is_mutable);
         rez.serialize(ready);
       }
-      runtime->send_logical_partition_semantic_info(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -2264,7 +2273,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PartitionNode::handle_semantic_request(
+    void PartitionNode::SemanticRequestArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      proxy_this->process_semantic_request(
+          tag, source, false, false, RtUserEvent::NO_RT_USER_EVENT);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void LogicalPartitionSemanticInfoRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2284,7 +2301,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PartitionNode::handle_semantic_info(
+    /*static*/ void LogicalPartitionSemanticInfoResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2307,9 +2324,11 @@ namespace Legion {
         Runtime::trigger_event(ready);
     }
 
-    /* static */
-    IndexSpaceOperation* InternalExpressionCreator::create_with_domain(
-        TypeTag tag, const Domain& dom)
+    //--------------------------------------------------------------------------
+    /*static*/ IndexSpaceOperation*
+        InternalExpressionCreator::create_with_domain(
+            TypeTag tag, const Domain& dom)
+    //--------------------------------------------------------------------------
     {
       InternalExpressionCreator creator(tag, dom);
       creator.create_operation();

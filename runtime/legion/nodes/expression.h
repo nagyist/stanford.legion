@@ -40,8 +40,9 @@ namespace Legion {
     public:
       struct TightenIndexSpaceArgs : public LgTaskArgs<TightenIndexSpaceArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_TIGHTEN_INDEX_SPACE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_TIGHTEN_INDEX_SPACE_TASK_ID;
       public:
+        TightenIndexSpaceArgs(void) = default;
         TightenIndexSpaceArgs(
             IndexSpaceExpression* proxy, DistributedCollectable* dc)
           : LgTaskArgs<TightenIndexSpaceArgs>(implicit_provenance),
@@ -49,9 +50,10 @@ namespace Legion {
         {
           proxy_dc->add_base_resource_ref(META_TASK_REF);
         }
+        void execute(void) const;
       public:
-        IndexSpaceExpression* const proxy_this;
-        DistributedCollectable* const proxy_dc;
+        IndexSpaceExpression* proxy_this;
+        DistributedCollectable* proxy_dc;
       };
     public:
       IndexSpaceExpression(LocalLock& lock);
@@ -183,7 +185,6 @@ namespace Legion {
           op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0) = 0;
     public:
-      static void handle_tighten_index_space(const void* args);
       static AddressSpaceID get_owner_space(IndexSpaceExprID id);
     public:
       void add_derived_operation(IndexSpaceOperation* op);

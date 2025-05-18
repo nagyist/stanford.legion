@@ -17,6 +17,7 @@
 #include "legion/analysis/aggregator.h"
 #include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
+#include "legion/managers/message.h"
 #include "legion/nodes/region.h"
 #include "legion/nodes/across.h"
 #include "legion/operations/remote.h"
@@ -169,7 +170,7 @@ namespace Legion {
         const AddressSpaceID target = rit->first;
         const ApUserEvent copy = Runtime::create_ap_user_event(&trace_info);
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteCopyAcrossAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
@@ -222,7 +223,7 @@ namespace Legion {
           rez.serialize(copy);
           trace_info.pack_trace_info(rez);
         }
-        runtime->send_equivalence_set_remote_copies_across(target, rez);
+        rez.dispatch(target);
         applied_events.insert(applied);
         copy_events.emplace_back(copy);
       }
@@ -309,7 +310,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CopyAcrossAnalysis::handle_remote_copies_across(
+    /*static*/ void RemoteCopyAcrossAnalysis::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {

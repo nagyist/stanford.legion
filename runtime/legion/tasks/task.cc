@@ -510,18 +510,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void TaskOp::process_unpack_task(Deserializer& derez)
+    /*static*/ void TaskMessage::handle(Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       // Figure out what kind of task this is and where it came from
       DerezCheck z(derez);
       Processor current;
       derez.deserialize(current);
-      TaskKind kind;
+      TaskOp::TaskKind kind;
       derez.deserialize(kind);
       switch (kind)
       {
-        case INDIVIDUAL_TASK_KIND:
+        case TaskOp::INDIVIDUAL_TASK_KIND:
           {
             IndividualTask* task = runtime->get_operation<IndividualTask>();
             std::set<RtEvent> ready_events;
@@ -536,7 +536,7 @@ namespace Legion {
               {
                 if (ready.exists() && !ready.has_triggered())
                 {
-                  TriggerTaskArgs trigger_args(task);
+                  TaskOp::TriggerTaskArgs trigger_args(task);
                   runtime->issue_runtime_meta_task(
                       trigger_args, LG_THROUGHPUT_WORK_PRIORITY, ready);
                 }
@@ -548,7 +548,7 @@ namespace Legion {
             }
             break;
           }
-        case SLICE_TASK_KIND:
+        case TaskOp::SLICE_TASK_KIND:
           {
             SliceTask* task = runtime->get_operation<SliceTask>();
             std::set<RtEvent> ready_events;
@@ -560,7 +560,7 @@ namespace Legion {
               // Invoke trigger mapping on this slice
               if (ready.exists() && !ready.has_triggered())
               {
-                TriggerTaskArgs trigger_args(task);
+                TaskOp::TriggerTaskArgs trigger_args(task);
                 runtime->issue_runtime_meta_task(
                     trigger_args, LG_THROUGHPUT_WORK_PRIORITY, ready);
               }
@@ -575,7 +575,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void TaskOp::process_remote_replay(Deserializer& derez)
+    /*static*/ void RemoteTaskReplay::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       // Figure out what kind of task this is and where it came from
@@ -584,11 +585,11 @@ namespace Legion {
       derez.deserialize(instance_ready);
       Processor target_proc;
       derez.deserialize(target_proc);
-      TaskKind kind;
+      TaskOp::TaskKind kind;
       derez.deserialize(kind);
       switch (kind)
       {
-        case INDIVIDUAL_TASK_KIND:
+        case TaskOp::INDIVIDUAL_TASK_KIND:
           {
             IndividualTask* task = runtime->get_operation<IndividualTask>();
             std::set<RtEvent> ready_events;
@@ -602,7 +603,7 @@ namespace Legion {
             task->complete_replay(instance_ready);
             break;
           }
-        case SLICE_TASK_KIND:
+        case TaskOp::SLICE_TASK_KIND:
           {
             SliceTask* task = runtime->get_operation<SliceTask>();
             std::set<RtEvent> ready_events;
@@ -616,8 +617,6 @@ namespace Legion {
             task->complete_replay(instance_ready);
             break;
           }
-        case POINT_TASK_KIND:
-        case INDEX_TASK_KIND:
         default:
           std::abort();  // no other tasks should be sent anywhere
       }
@@ -985,6 +984,23 @@ namespace Legion {
       runtime->issue_runtime_meta_task(
           args, LG_THROUGHPUT_DEFERRED_PRIORITY, precondition);
       return false;
+    }
+
+    //--------------------------------------------------------------------------
+    void TaskOp::DeferMappingArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      if (proxy_this->is_origin_mapped())
+      {
+        if (proxy_this->perform_mapping(must_op, this) &&
+            proxy_this->distribute_task())
+          proxy_this->launch_task();
+      }
+      else
+      {
+        if (proxy_this->perform_mapping(must_op, this))
+          proxy_this->launch_task();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1596,15 +1612,6 @@ namespace Legion {
         LegionSpy::log_requirement_projection(uid, idx, req.projection);
     }
 
-    //--------------------------------------------------------------------------
-    /*static*/ void TaskOp::handle_deferred_children_commit(const void* args)
-    //--------------------------------------------------------------------------
-    {
-      const DeferTriggerChildrenCommitArgs* targs =
-          (const DeferTriggerChildrenCommitArgs*)args;
-      targs->task->trigger_children_committed();
-    }
-
     /////////////////////////////////////////////////////////////
     // Task Impl
     /////////////////////////////////////////////////////////////
@@ -1979,7 +1986,7 @@ namespace Legion {
         bool is_mutable, RtUserEvent to_trigger)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      TaskSemanticInfoResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(task_id);
@@ -1989,7 +1996,7 @@ namespace Legion {
         rez.serialize(is_mutable);
         rez.serialize(to_trigger);
       }
-      runtime->send_task_impl_semantic_info(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -1998,7 +2005,7 @@ namespace Legion {
         RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      TaskSemanticInfoRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(task_id);
@@ -2007,7 +2014,7 @@ namespace Legion {
         rez.serialize(wait_until);
         rez.serialize(ready);
       }
-      runtime->send_task_impl_semantic_request(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -2063,7 +2070,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void TaskImpl::handle_semantic_request(
+    void TaskImpl::SemanticRequestArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      proxy_this->process_semantic_request(
+          tag, source, false, false, RtUserEvent::NO_RT_USER_EVENT);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void TaskSemanticInfoRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2083,7 +2098,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void TaskImpl::handle_semantic_info(
+    /*static*/ void TaskSemanticInfoResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2314,7 +2329,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < targets.size(); idx++)
         {
           RtUserEvent next_done = Runtime::create_rt_user_event();
-          Serializer rez;
+          VariantBroadcast rez;
           {
             RezCheck z(rez);
             // pack the code descriptors
@@ -2360,7 +2375,7 @@ namespace Legion {
             rez.serialize(origin);
             rez.serialize(locals[idx]);
           }
-          runtime->send_variant_broadcast(targets[idx], rez);
+          rez.dispatch(targets[idx]);
           local_done.insert(next_done);
         }
         Runtime::trigger_event(done, Runtime::merge_events(local_done));
@@ -2483,7 +2498,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void VariantImpl::handle_variant_broadcast(Deserializer& derez)
+    /*static*/ void VariantBroadcast::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

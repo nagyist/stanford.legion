@@ -118,7 +118,7 @@ namespace Legion {
           bool poisoned);
       virtual void perform_concurrent_task_barrier(void);
       void finish_concurrent_allreduce(uint64_t lamport_clock, bool poisoned);
-    protected:
+    public:
       void pack_remote_complete(Serializer& rez, ApEvent effect);
       void pack_remote_commit(Serializer& rez, RtEvent precondition);
       void unpack_remote_complete(Deserializer& derez);
@@ -126,15 +126,6 @@ namespace Legion {
     public:
       // From MemoizableOp
       virtual void complete_replay(ApEvent pre);
-    public:
-      static void process_unpack_remote_future_size(Deserializer& derez);
-      static void process_unpack_remote_mapped(Deserializer& derez);
-      static void process_unpack_remote_complete(Deserializer& derez);
-      static void process_unpack_remote_commit(Deserializer& derez);
-      static void handle_remote_output_registration(Deserializer& derez);
-      static void handle_concurrent_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_concurrent_response(Deserializer& derez);
     protected:
       Future result;
     protected:

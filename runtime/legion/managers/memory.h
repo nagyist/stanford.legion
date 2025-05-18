@@ -268,6 +268,7 @@ namespace Legion {
           : LgTaskArgs<MallocInstanceArgs>(implicit_provenance), manager(m),
             layout(l->clone()), requests(r), instance(i), unique_event(u)
         { }
+        void execute(void) const;
       public:
         MemoryManager* const manager;
         Realm::InstanceLayoutGeneric* const layout;
@@ -283,6 +284,7 @@ namespace Legion {
           : LgTaskArgs<FreeInstanceArgs>(implicit_provenance), manager(m),
             instance(i)
         { }
+        void execute(void) const;
       public:
         MemoryManager* const manager;
         const PhysicalInstance instance;
@@ -399,7 +401,6 @@ namespace Legion {
           PhysicalManager* manager, bool acquire, GCPriority priority);
       void notify_collected_instances(
           const std::vector<PhysicalManager*>& instances);
-      static void handle_notify_collected_instances(Deserializer& derez);
     public:
       size_t compute_future_alignment(size_t size) const;
       FutureInstance* create_future_instance(
@@ -419,9 +420,6 @@ namespace Legion {
           UniqueID creator_uid, TaskTreeCoordinates& coordinates,
           const PoolBounds& bounds, RtEvent* safe_for_unbounded_pools);
       void release_unbound_pool(void);
-      static void handle_create_memory_pool_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_create_memory_pool_response(Deserializer& derez);
       uint64_t order_collective_unbounded_pools(SingleTask* task);
       RtEvent finalize_collective_unbounded_pools_order(
           SingleTask* task, uint64_t max_lamport_clock);
@@ -484,8 +482,6 @@ namespace Legion {
       void free_legion_instance(InstanceManager* manager, RtEvent deferred);
       void free_legion_instance(
           RtEvent deferred, PhysicalInstance inst, bool needs_defer = true);
-      static void handle_malloc_instance(const void* args);
-      static void handle_free_instance(const void* args);
 #endif
     public:
       // The memory that we are managing

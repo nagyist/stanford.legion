@@ -48,13 +48,15 @@ namespace Legion {
         static constexpr LgTaskID TASK_ID =
             LG_AUTO_TRACE_PROCESS_REPEATS_TASK_ID;
       public:
+        FindRepeatsTaskArgs(void) = default;
         FindRepeatsTaskArgs(TraceRecognizer* recog, FindRepeatsResult* res)
           : LgTaskArgs<FindRepeatsTaskArgs>(implicit_provenance),
             recognizer(recog), result(res)
         { }
+        void execute(void) const;
       public:
-        TraceRecognizer* const recognizer;
-        FindRepeatsResult* const result;
+        TraceRecognizer* recognizer;
+        FindRepeatsResult* result;
       };
     public:
       TraceRecognizer(
@@ -68,7 +70,6 @@ namespace Legion {
           Operation* op, Murmur3Hasher& hasher, uint64_t opidx);
       bool record_operation_noop(Operation* op);
       bool record_operation_untraceable(uint64_t opidx);
-      static void find_repeats(const void* args);
     private:
       bool check_for_repeats(uint64_t opidx);
       void update_watcher(uint64_t opidx);

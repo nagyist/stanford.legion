@@ -98,9 +98,6 @@ namespace Legion {
       virtual FillView* get_redop_fill_view(void) const { std::abort(); }
       virtual AddressSpaceID get_analysis_space(PhysicalManager* man) const = 0;
       virtual bool aliases(InstanceView* other) const = 0;
-    public:
-      static void handle_view_register_user(
-          Deserializer& derez, AddressSpaceID source);
     };
 
     //--------------------------------------------------------------------------

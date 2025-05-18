@@ -220,7 +220,7 @@ namespace Legion {
         for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
              it != children.end(); it++)
         {
-          Serializer rez;
+          ReplicateDistribution rez;
           {
             RezCheck z(rez);
             pack_shard_manager(rez);
@@ -231,7 +231,7 @@ namespace Legion {
             task->get_context()->pack_inner_context(rez);
             task->pack_single_task(rez, *it);
           }
-          runtime->send_replicate_distribution(*it, rez);
+          rez.dispatch(*it);
         }
       }
       for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
@@ -260,7 +260,7 @@ namespace Legion {
         for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
              it != children.end(); it++)
         {
-          Serializer rez;
+          ReplicateDistribution rez;
           {
             RezCheck z(rez);
             pack_shard_manager(rez);
@@ -273,7 +273,7 @@ namespace Legion {
             rez.serialize(ctx->get_executing_processor());
             rez.serialize(implicit_coord);
           }
-          runtime->send_replicate_distribution(*it, rez);
+          rez.dispatch(*it);
         }
       }
     }
@@ -369,7 +369,7 @@ namespace Legion {
       {
         const AddressSpaceID target =
             collective_mapping->get_parent(owner_space, local_space);
-        Serializer rez;
+        ReplicateVersioning rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -377,7 +377,7 @@ namespace Legion {
           rez.serialize(parent_req_index);
           pack_collective_versioning(rez, to_perform);
         }
-        runtime->send_replicate_collective_versioning(target, rez);
+        rez.dispatch(target);
       }
       else
         original_task->perform_replicate_collective_versioning(
@@ -396,7 +396,7 @@ namespace Legion {
       {
         const AddressSpaceID target =
             collective_mapping->get_parent(owner_space, local_space);
-        Serializer rez;
+        ReplicateCollectiveMapping rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -404,7 +404,7 @@ namespace Legion {
           rez.serialize(key.analysis);
           pack_collective_rendezvous(rez, rendezvous);
         }
-        runtime->send_replicate_collective_mapping(target, rez);
+        rez.dispatch(target);
       }
       else
         original_task->convert_replicate_collective_views(key, rendezvous);
@@ -461,7 +461,7 @@ namespace Legion {
                      children.begin();
                  it != children.end(); it++)
             {
-              Serializer rez;
+              ReplicateVirtualRendezvous rez;
               {
                 RezCheck z(rez);
                 rez.serialize(did);
@@ -470,7 +470,7 @@ namespace Legion {
                 for (unsigned idx = 0; idx < virtual_mappings.size(); idx++)
                   rez.serialize<bool>(virtual_mappings[idx]);
               }
-              runtime->send_replicate_rendezvous_virtual_mappings(*it, rez);
+              rez.dispatch(*it);
             }
           }
         }
@@ -536,7 +536,7 @@ namespace Legion {
       legion_assert(target_space != runtime->address_space);
       if (!to_trigger.exists())
         to_trigger = Runtime::create_rt_user_event();
-      Serializer rez;
+      ReplPointwiseDependence rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -545,7 +545,7 @@ namespace Legion {
         rez.serialize(shard);
         rez.serialize(to_trigger);
       }
-      runtime->send_control_replicate_pointwise_dependence(target_space, rez);
+      rez.dispatch(target_space);
       return to_trigger;
     }
 
@@ -612,7 +612,7 @@ namespace Legion {
         const DistributedID eq_did = runtime->get_available_distributed_id();
         if (eq_mapping->size() > 1)
         {
-          Serializer rez;
+          ReplEquivalenceSetNotification rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -630,8 +630,7 @@ namespace Legion {
           for (std::vector<AddressSpaceID>::const_iterator it =
                    children.begin();
                it != children.end(); it++)
-            runtime->send_control_replicate_equivalence_set_notification(
-                *it, rez);
+            rez.dispatch(*it);
         }
         // Now make the equivalence set locally and register it
         EquivalenceSet* result = new EquivalenceSet(
@@ -1275,11 +1274,11 @@ namespace Legion {
         legion_assert(startup_complete.exists());
         if (!is_owner())
         {
-          Serializer rez;
+          ReplicateStartup rez;
           rez.serialize(did);
           rez.serialize(startup_complete);
-          runtime->send_replicate_startup_complete(
-              collective_mapping->get_parent(owner_space, local_space), rez);
+          rez.dispatch(
+              collective_mapping->get_parent(owner_space, local_space));
         }
         else
           Runtime::trigger_event(startup_complete);
@@ -1316,11 +1315,11 @@ namespace Legion {
           mapped_precondition = Runtime::merge_events(mapping_preconditions);
         if (original_task == nullptr)
         {
-          Serializer rez;
+          ReplicatePostMapped rez;
           rez.serialize(did);
           rez.serialize(mapped_precondition);
-          runtime->send_replicate_post_mapped(
-              collective_mapping->get_parent(owner_space, local_space), rez);
+          rez.dispatch(
+              collective_mapping->get_parent(owner_space, local_space));
         }
         else
           original_task->handle_post_mapped(mapped_precondition);
@@ -1402,12 +1401,12 @@ namespace Legion {
           all_shard_effects = Runtime::merge_events(nullptr, shard_effects);
         if (original_task == nullptr)
         {
-          Serializer rez;
+          ReplicateTriggerComplete rez;
           rez.serialize(did);
           rez.serialize(all_shard_effects);
           rez.serialize(all_shards_complete);
-          runtime->send_replicate_trigger_complete(
-              collective_mapping->get_parent(owner_space, local_space), rez);
+          rez.dispatch(
+              collective_mapping->get_parent(owner_space, local_space));
         }
         else
         {
@@ -1451,11 +1450,11 @@ namespace Legion {
         {
           const RtEvent commit_precondition =
               Runtime::merge_events(commit_preconditions);
-          Serializer rez;
+          ReplicateTriggerCommit rez;
           rez.serialize(did);
           rez.serialize(commit_precondition);
-          runtime->send_replicate_trigger_commit(
-              collective_mapping->get_parent(owner_space, local_space), rez);
+          rez.dispatch(
+              collective_mapping->get_parent(owner_space, local_space));
         }
         else
         {
@@ -1474,7 +1473,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::send_collective_message(
-        MessageKind message, ShardID target, Serializer& rez)
+        ShardID target, const ShardCollectiveMessage& rez)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -1489,7 +1488,7 @@ namespace Legion {
         handle_collective_message(derez);
       }
       else
-        runtime->send_message(message, target_space, rez, true /*flush*/);
+        rez.dispatch(target_space);
     }
 
     //--------------------------------------------------------------------------
@@ -1513,7 +1512,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ShardManager::send_rendezvous_message(ShardID target, Serializer& rez)
+    void ShardManager::send_rendezvous_message(
+        ShardID target, const ReplicateRendezvousMessage& rez)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -1528,7 +1528,7 @@ namespace Legion {
         handle_rendezvous_message(derez);
       }
       else
-        runtime->send_control_replicate_rendezvous_message(target_space, rez);
+        rez.dispatch(target_space);
     }
 
     //--------------------------------------------------------------------------
@@ -1553,7 +1553,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::send_compute_equivalence_sets(
-        ShardID target, Serializer& rez)
+        ShardID target, const ReplComputeEquivalenceSets& rez)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -1568,8 +1568,7 @@ namespace Legion {
         handle_compute_equivalence_sets(derez);
       }
       else
-        runtime->send_control_replicate_compute_equivalence_sets(
-            target_space, rez);
+        rez.dispatch(target_space);
     }
 
     //--------------------------------------------------------------------------
@@ -1614,7 +1613,7 @@ namespace Legion {
       eq_mapping->get_children(owner_space, runtime->address_space, children);
       if (!children.empty())
       {
-        Serializer rez;
+        ReplEquivalenceSetNotification rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -1629,8 +1628,7 @@ namespace Legion {
         }
         for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
              it != children.end(); it++)
-          runtime->send_control_replicate_equivalence_set_notification(
-              *it, rez);
+          rez.dispatch(*it);
       }
       // Now we can save this locally and wake up any waiters
       AutoLock m_lock(manager_lock);
@@ -1659,7 +1657,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::send_output_equivalence_set(
-        ShardID target, Serializer& rez)
+        ShardID target, const ReplOutputEquivalenceSet& rez)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -1674,8 +1672,7 @@ namespace Legion {
         handle_output_equivalence_set(derez);
       }
       else
-        runtime->send_control_replicate_output_equivalence_set(
-            target_space, rez);
+        rez.dispatch(target_space);
     }
 
     //--------------------------------------------------------------------------
@@ -1700,7 +1697,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::send_refine_equivalence_sets(
-        ShardID target, Serializer& rez)
+        ShardID target, const ReplRefineEquivalenceSets& rez)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -1715,8 +1712,7 @@ namespace Legion {
         handle_refine_equivalence_sets(derez);
       }
       else
-        runtime->send_control_replicate_refine_equivalence_sets(
-            target_space, rez);
+        rez.dispatch(target_space);
     }
 
     //--------------------------------------------------------------------------
@@ -1741,7 +1737,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::broadcast_resource_update(
-        ShardTask* source, Serializer& rez, std::set<RtEvent>& applied_events)
+        ShardTask* source, const Serializer& rez,
+        std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
       broadcast_message(source, rez, RESOURCE_UPDATE_KIND, applied_events);
@@ -1749,7 +1746,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::broadcast_created_region_contexts(
-        ShardTask* source, Serializer& rez, std::set<RtEvent>& applied_events)
+        ShardTask* source, const Serializer& rez,
+        std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
       broadcast_message(
@@ -1758,7 +1756,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::send_created_region_contexts(
-        ShardID target, Serializer& rez, std::set<RtEvent>& applied_events)
+        ShardID target, ReplCreatedRegions& rez,
+        std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -1775,13 +1774,14 @@ namespace Legion {
       {
         const RtUserEvent applied = Runtime::create_rt_user_event();
         rez.serialize(applied);
-        runtime->send_control_replicate_created_regions(target_space, rez);
+        rez.dispatch(target_space);
         applied_events.insert(applied);
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_created_regions(Deserializer& derez)
+    /*static*/ void ReplCreatedRegions::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -1847,7 +1847,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::broadcast_message(
-        ShardTask* source, Serializer& rez, BroadcastMessageKind kind,
+        ShardTask* source, const Serializer& rez, BroadcastMessageKind kind,
         std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
@@ -1861,14 +1861,14 @@ namespace Legion {
              it != targets.end(); it++)
         {
           RtEvent next_done = Runtime::create_rt_user_event();
-          Serializer rez2;
+          ReplBroadcastUpdate rez2;
           rez2.serialize(did);
           rez2.serialize(local_space);
           rez2.serialize(kind);
           rez2.serialize<size_t>(rez.get_used_bytes());
           rez2.serialize(rez.get_buffer(), rez.get_used_bytes());
           rez2.serialize(next_done);
-          runtime->send_control_replicate_broadcast_update(*it, rez2);
+          rez2.dispatch(*it);
           applied_events.insert(next_done);
         }
       }
@@ -1924,14 +1924,14 @@ namespace Legion {
              it != targets.end(); it++)
         {
           RtEvent next_done = Runtime::create_rt_user_event();
-          Serializer rez;
+          ReplBroadcastUpdate rez;
           rez.serialize(did);
           rez.serialize(origin);
           rez.serialize(kind);
           rez.serialize<size_t>(message_size);
           rez.serialize(message, message_size);
           rez.serialize(next_done);
-          runtime->send_control_replicate_broadcast_update(*it, rez);
+          rez.dispatch(*it);
           remote_handled.insert(next_done);
         }
       }
@@ -1987,7 +1987,7 @@ namespace Legion {
         }
         if (found)
         {
-          Serializer rez;
+          ReplTraceEventRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1997,7 +1997,7 @@ namespace Legion {
             rez.serialize(event);
             rez.serialize(done_event);
           }
-          runtime->send_control_replicate_trace_event_request(event_space, rez);
+          rez.dispatch(event_space);
         }
         else
           send_trace_event_response(
@@ -2028,7 +2028,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_trace_event_request(
+    /*static*/ void ReplTraceEventRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2061,7 +2061,7 @@ namespace Legion {
       if (temp_source != runtime->address_space)
       {
         // Not local so send the response message
-        Serializer rez;
+        ReplTraceEventResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(physical_template);
@@ -2069,7 +2069,7 @@ namespace Legion {
           rez.serialize(result);
           rez.serialize(done_event);
         }
-        runtime->send_control_replicate_trace_event_response(temp_source, rez);
+        rez.dispatch(temp_source);
       }
       else  // This is local so handle it here
       {
@@ -2079,8 +2079,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_trace_event_response(
-        Deserializer& derez)
+    /*static*/ void ReplTraceEventResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2108,7 +2108,7 @@ namespace Legion {
         legion_assert(collective_mapping != nullptr);
         legion_assert(collective_mapping->contains(target));
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        ReplTraceEventTrigger rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -2118,7 +2118,7 @@ namespace Legion {
           tlid.serialize(rez);
           rez.serialize(done);
         }
-        runtime->send_control_replicate_trace_event_trigger(target, rez);
+        rez.dispatch(target);
         return done;
       }
       else
@@ -2137,8 +2137,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_trace_event_trigger(
-        Deserializer& derez)
+    /*static*/ void ReplTraceEventTrigger::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2185,7 +2185,7 @@ namespace Legion {
         }
         if (found)
         {
-          Serializer rez;
+          ReplTraceFrontierRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -2196,8 +2196,7 @@ namespace Legion {
             rez.serialize(frontier);
             rez.serialize(done_event);
           }
-          runtime->send_control_replicate_trace_frontier_request(
-              event_space, rez);
+          rez.dispatch(event_space);
         }
         else
           send_trace_frontier_response(
@@ -2229,7 +2228,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_trace_frontier_request(
+    /*static*/ void ReplTraceFrontierRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2264,7 +2263,7 @@ namespace Legion {
       if (temp_source != runtime->address_space)
       {
         // Not local so send the response message
-        Serializer rez;
+        ReplTraceFrontierResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(physical_template);
@@ -2272,8 +2271,7 @@ namespace Legion {
           rez.serialize(result);
           rez.serialize(done_event);
         }
-        runtime->send_control_replicate_trace_frontier_response(
-            temp_source, rez);
+        rez.dispatch(temp_source);
       }
       else  // This is local so handle it here
       {
@@ -2283,8 +2281,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_trace_frontier_response(
-        Deserializer& derez)
+    /*static*/ void ReplTraceFrontierResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2302,7 +2300,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ShardManager::send_trace_update(ShardID target, Serializer& rez)
+    void ShardManager::send_trace_update(
+        ShardID target, const ReplTraceUpdateMessage& rez)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -2317,7 +2316,7 @@ namespace Legion {
         handle_trace_update(derez, target_space);
       }
       else
-        runtime->send_control_replicate_trace_update(target_space, rez);
+        rez.dispatch(target_space);
     }
 
     //--------------------------------------------------------------------------
@@ -2343,7 +2342,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::send_find_trace_local_sets(
-        ShardID target, Serializer& rez)
+        ShardID target, const ReplFindTraceSets& rez)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -2358,8 +2357,7 @@ namespace Legion {
         handle_find_trace_local_sets(derez, target_space);
       }
       else
-        runtime->send_control_replicate_find_trace_local_sets(
-            target_space, rez);
+        rez.dispatch(target_space);
     }
 
     //--------------------------------------------------------------------------
@@ -2405,7 +2403,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardManager::send_find_or_create_collective_view(
-        ShardID target, Serializer& rez)
+        ShardID target, const ReplFindCollectiveView& rez)
     //--------------------------------------------------------------------------
     {
       legion_assert(target < address_spaces->size());
@@ -2420,7 +2418,7 @@ namespace Legion {
         handle_find_or_create_collective_view(derez);
       }
       else
-        runtime->send_control_replicate_find_collective_view(target_space, rez);
+        rez.dispatch(target_space);
     }
 
     //--------------------------------------------------------------------------
@@ -2454,7 +2452,7 @@ namespace Legion {
               context->find_or_create_collective_view(tid, instances, ready);
           if (ready.exists() && !ready.has_triggered())
             ready.wait();
-          Serializer rez;
+          RemoteContextFindCollectiveViewResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(target);
@@ -2462,8 +2460,7 @@ namespace Legion {
             rez.serialize(result->ready_event);
             rez.serialize(to_trigger);
           }
-          runtime->send_remote_context_find_collective_view_response(
-              source, rez);
+          rez.dispatch(source);
           if (result->remove_reference())
             delete result;
           return;
@@ -2474,8 +2471,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_find_collective_view(
-        Deserializer& derez)
+    /*static*/ void ReplFindCollectiveView::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2485,8 +2482,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_pointwise_dependence(
-        Deserializer& derez)
+    /*static*/ void ReplPointwiseDependence::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2506,7 +2503,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_distribution(Deserializer& derez)
+    /*static*/ void ReplicateDistribution::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2630,8 +2628,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_collective_versioning(
-        Deserializer& derez)
+    /*static*/ void ReplicateVersioning::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2640,8 +2638,8 @@ namespace Legion {
       unsigned index, parent_req_index;
       derez.deserialize(index);
       derez.deserialize(parent_req_index);
-      op::map<LogicalRegion, RegionVersioning> to_perform;
-      unpack_collective_versioning(derez, to_perform);
+      op::map<LogicalRegion, ShardManager::RegionVersioning> to_perform;
+      ShardManager::unpack_collective_versioning(derez, to_perform);
 
       ShardManager* manager = runtime->find_shard_manager(did);
       manager->rendezvous_collective_versioning_analysis(
@@ -2649,24 +2647,26 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_collective_mapping(Deserializer& derez)
+    /*static*/ void ReplicateCollectiveMapping::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
-      RendezvousKey key;
+      ShardManager::RendezvousKey key;
       derez.deserialize(key.region_index);
       derez.deserialize(key.analysis);
-      std::map<LogicalRegion, CollectiveRendezvous> rendezvous;
-      unpack_collective_rendezvous(derez, rendezvous);
+      std::map<LogicalRegion, ShardManager::CollectiveRendezvous> rendezvous;
+      ShardManager::unpack_collective_rendezvous(derez, rendezvous);
 
       ShardManager* manager = runtime->find_shard_manager(did);
       manager->rendezvous_collective_mapping(key, rendezvous);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_virtual_rendezvous(Deserializer& derez)
+    /*static*/ void ReplicateVirtualRendezvous::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2691,7 +2691,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_startup_complete(Deserializer& derez)
+    /*static*/ void ReplicateStartup::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2705,7 +2706,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_post_mapped(Deserializer& derez)
+    /*static*/ void ReplicatePostMapped::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2717,7 +2719,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_trigger_complete(Deserializer& derez)
+    /*static*/ void ReplicateTriggerComplete::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2734,7 +2737,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_trigger_commit(Deserializer& derez)
+    /*static*/ void ReplicateTriggerCommit::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2746,8 +2750,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::process_collective_message(
-        Deserializer& derez)
+    /*static*/ void ShardCollectiveMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2757,8 +2761,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::process_rendezvous_message(
-        Deserializer& derez)
+    /*static*/ void ReplicateRendezvousMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2768,7 +2772,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::process_trace_update(
+    /*static*/ void ReplTraceUpdateMessage::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2779,7 +2783,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::process_find_trace_local_sets(
+    /*static*/ void ReplFindTraceSets::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2790,8 +2794,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::process_compute_equivalence_sets(
-        Deserializer& derez)
+    /*static*/ void ReplComputeEquivalenceSets::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2801,8 +2805,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::process_output_equivalence_set(
-        Deserializer& derez)
+    /*static*/ void ReplOutputEquivalenceSet::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2812,8 +2816,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::process_refine_equivalence_sets(
-        Deserializer& derez)
+    /*static*/ void ReplRefineEquivalenceSets::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -2823,8 +2827,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::process_equivalence_set_notification(
-        Deserializer& derez)
+    /*static*/ void ReplEquivalenceSetNotification::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2835,7 +2839,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_broadcast_update(Deserializer& derez)
+    /*static*/ void ReplBroadcastUpdate::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -3154,7 +3159,7 @@ namespace Legion {
     {
       legion_assert(shard_manager == nullptr);
       legion_assert(runtime->address_space > 0);
-      Serializer rez;
+      ReplImplicitRendezvous rez;
       {
         RezCheck z(rez);
         rez.serialize(task_id);
@@ -3171,8 +3176,7 @@ namespace Legion {
           rez.serialize(it->second.second);
         }
       }
-      runtime->send_control_replicate_implicit_rendezvous(
-          collective_mapping->get_parent(0, runtime->address_space), rez);
+      rez.dispatch(collective_mapping->get_parent(0, runtime->address_space));
     }
 
     //--------------------------------------------------------------------------
@@ -3218,8 +3222,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ImplicitShardManager::handle_remote_rendezvous(
-        Deserializer& derez)
+    /*static*/ void ReplImplicitRendezvous::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

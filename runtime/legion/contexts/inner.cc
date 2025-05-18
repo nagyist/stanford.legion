@@ -1083,7 +1083,7 @@ namespace Legion {
       {
         // Send a message back to the child node with the results
         const RtUserEvent ready_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        ComputeEquivalenceSetsResponse rez;
         {
           RezCheck z(rez);
           outermost->pack_inner_context(rez);
@@ -1154,7 +1154,7 @@ namespace Legion {
           rez.serialize(expected_responses);
           rez.serialize(ready_event);
         }
-        runtime->send_compute_equivalence_sets_response(*cit, rez);
+        rez.dispatch(*cit);
         ready_events.emplace_back(ready_event);
       }
       if (origin_space == local_space)
@@ -1175,12 +1175,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_compute_equivalence_sets_response(
-        Deserializer& derez)
+    /*static*/ void ComputeEquivalenceSetsResponse::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      InnerContext* context = unpack_inner_context(derez);
+      InnerContext* context = InnerContext::unpack_inner_context(derez);
       AddressSpaceID source_space;
       derez.deserialize(source_space);
       size_t total_spaces;
@@ -1318,7 +1318,7 @@ namespace Legion {
       {
         // Send a message back to the child node with the results
         const RtUserEvent child_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        ComputeEquivalenceSetsResponse rez;
         {
           RezCheck z(rez);
           context->pack_inner_context(rez);
@@ -1391,7 +1391,7 @@ namespace Legion {
           rez.serialize(expected_responses);
           rez.serialize(child_event);
         }
-        runtime->send_compute_equivalence_sets_response(*cit, rez);
+        rez.dispatch(*cit);
         done_events.emplace_back(child_event);
       }
       // Wait for any ready events to be complete
@@ -1441,12 +1441,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_output_equivalence_set_request(
-        Deserializer& derez)
+    /*static*/ void OutputEquivalenceSetRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      InnerContext* context = unpack_inner_context(derez);
+      InnerContext* context = InnerContext::unpack_inner_context(derez);
       EqSetTracker* source;
       derez.deserialize(source);
       AddressSpaceID source_space;
@@ -1484,7 +1484,7 @@ namespace Legion {
       if (target_space != runtime->address_space)
       {
         const RtUserEvent reported = Runtime::create_rt_user_event();
-        Serializer rez;
+        OutputEquivalenceSetResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(target);
@@ -1499,7 +1499,7 @@ namespace Legion {
           }
           rez.serialize(reported);
         }
-        runtime->send_output_equivalence_set_response(target_space, rez);
+        rez.dispatch(target_space);
         return reported;
       }
       else
@@ -1513,7 +1513,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_output_equivalence_set_response(
+    /*static*/ void OutputEquivalenceSetResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3892,12 +3892,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_partition_verification(
-        const void* args)
+    void InnerContext::VerifyPartitionArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const VerifyPartitionArgs* vargs = (const VerifyPartitionArgs*)args;
-      vargs->proxy_this->verify_partition(vargs->pid, vargs->kind, vargs->func);
+      proxy_this->verify_partition(pid, kind, func);
     }
 
     //--------------------------------------------------------------------------
@@ -4295,7 +4293,7 @@ namespace Legion {
         void apply(AddressSpaceID target)
         {
           RtUserEvent done_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          LocalFieldUpdateMessage rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -4309,7 +4307,7 @@ namespace Legion {
             rez.serialize(info);
             rez.serialize(done_event);
           }
-          runtime->send_local_field_update(target, rez);
+          rez.dispatch(target);
           done_events.insert(done_event);
           count++;
         };
@@ -4433,7 +4431,7 @@ namespace Legion {
         void apply(AddressSpaceID target)
         {
           RtUserEvent done_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          LocalFieldUpdateMessage rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -4448,7 +4446,7 @@ namespace Legion {
               rez.serialize(infos[offset + idx]);
             rez.serialize(done_event);
           }
-          runtime->send_local_field_update(target, rez);
+          rez.dispatch(target);
           done_events.insert(done_event);
           count++;
         }
@@ -9614,17 +9612,17 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       update_remote_instances(target);
-      Serializer rez;
+      RemoteContextResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
         pack_remote_context(rez, target);
       }
-      runtime->send_remote_context_response(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_compute_equivalence_sets_request(
+    /*static*/ void ComputeEquivalenceSetsRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -9783,7 +9781,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < children.size(); idx++)
         {
           const RtUserEvent done = Runtime::create_rt_user_event();
-          Serializer rez;
+          CollectiveViewCreation rez;
           {
             RezCheck z(rez);
             pack_inner_context(rez);
@@ -9797,7 +9795,7 @@ namespace Legion {
               rez.serialize(*it);
             rez.serialize(done);
           }
-          runtime->send_collective_view_creation(children[idx], rez);
+          rez.dispatch(children[idx]);
           done_events[idx] = done;
         }
         std::vector<IndividualView*> local_views;
@@ -9836,7 +9834,7 @@ namespace Legion {
       {
         // Send this to the owner node to start the broadcast tree
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        CollectiveViewCreation rez;
         {
           RezCheck z(rez);
           pack_inner_context(rez);
@@ -9850,18 +9848,18 @@ namespace Legion {
             rez.serialize(*it);
           rez.serialize(done);
         }
-        runtime->send_collective_view_creation(owner_space, rez);
+        rez.dispatch(owner_space);
         return done;
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_create_collective_view(
-        Deserializer& derez)
+    /*static*/ void CollectiveViewCreation::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      InnerContext* context = unpack_inner_context(derez);
+      InnerContext* context = InnerContext::unpack_inner_context(derez);
       DistributedID creator_did, collective_did;
       derez.deserialize(creator_did);
       derez.deserialize(collective_did);
@@ -9912,8 +9910,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_delete_collective_view(
-        Deserializer& derez)
+    /*static*/ void CollectiveViewDeletion::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -9941,10 +9939,10 @@ namespace Legion {
       const AddressSpaceID owner = runtime->determine_owner(collective_did);
       if (owner != runtime->address_space)
       {
-        Serializer rez;
+        CollectiveViewRelease rez;
         rez.serialize(context_did);
         rez.serialize(collective_did);
-        runtime->send_collective_view_release(owner, rez);
+        rez.dispatch(owner);
       }
       else
       {
@@ -9960,14 +9958,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_release_collective_view(
-        Deserializer& derez)
+    /*static*/ void CollectiveViewRelease::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DistributedID context_did, collective_did;
       derez.deserialize(context_did);
       derez.deserialize(collective_did);
-      release_collective_view(context_did, collective_did);
+      InnerContext::release_collective_view(context_did, collective_did);
     }
 
     //--------------------------------------------------------------------------
@@ -10645,111 +10643,97 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_prepipeline_stage(const void* args)
+    void InnerContext::PrepipelineArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const PrepipelineArgs* pargs = (const PrepipelineArgs*)args;
-      if (pargs->context->process_prepipeline_stage() &&
-          pargs->context->remove_base_resource_ref(META_TASK_REF))
-        delete pargs->context;
+      if (context->process_prepipeline_stage() &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_dependence_stage(const void* args)
+    void InnerContext::DependenceArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DependenceArgs* dargs = (const DependenceArgs*)args;
-      dargs->context->process_dependence_stage();
+      context->process_dependence_stage();
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_ready_queue(const void* args)
+    void InnerContext::TriggerReadyArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const TriggerReadyArgs* targs = (const TriggerReadyArgs*)args;
-      if (targs->context->process_ready_queue() &&
-          targs->context->remove_base_resource_ref(META_TASK_REF))
-        delete targs->context;
+      if (context->process_ready_queue() &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_enqueue_task_queue(const void* args)
+    void InnerContext::DeferredEnqueueTaskArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferredEnqueueTaskArgs* dargs =
-          (const DeferredEnqueueTaskArgs*)args;
-      if (dargs->context->process_enqueue_task_queue(
-              dargs->precondition, dargs->previous_fevent, dargs->performed) &&
-          dargs->context->remove_base_resource_ref(META_TASK_REF))
-        delete dargs->context;
+      if (context->process_enqueue_task_queue(
+              precondition, previous_fevent, performed) &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_trigger_execution_queue(
-        const void* args)
+    void InnerContext::TriggerExecutionArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const TriggerExecutionArgs* targs = (const TriggerExecutionArgs*)args;
-      if (targs->context->process_trigger_execution_queue(
-              targs->precondition, targs->previous_fevent, targs->performed) &&
-          targs->context->remove_base_resource_ref(META_TASK_REF))
-        delete targs->context;
+      if (context->process_trigger_execution_queue(
+              precondition, previous_fevent, performed) &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_deferred_execution_queue(
-        const void* args)
+    void InnerContext::DeferredExecutionArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferredExecutionArgs* dargs = (const DeferredExecutionArgs*)args;
-      if (dargs->context->process_deferred_execution_queue(
-              dargs->precondition, dargs->previous_fevent, dargs->performed) &&
-          dargs->context->remove_base_resource_ref(META_TASK_REF))
-        delete dargs->context;
+      if (context->process_deferred_execution_queue(
+              precondition, previous_fevent, performed) &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_deferred_mapped_queue(const void* args)
+    void InnerContext::DeferredMappedArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferredMappedArgs* targs = (const DeferredMappedArgs*)args;
-      if (targs->context->process_deferred_mapped_queue(
-              targs->precondition, targs->previous_fevent, targs->performed) &&
-          targs->context->remove_base_resource_ref(META_TASK_REF))
-        delete targs->context;
+      if (context->process_deferred_mapped_queue(
+              precondition, previous_fevent, performed) &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_deferred_completion_queue(
-        const void* args)
+    void InnerContext::DeferredCompletionArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferredCompletionArgs* dargs = (const DeferredCompletionArgs*)args;
-      if (dargs->context->process_deferred_completion_queue(
-              dargs->precondition, dargs->previous_fevent, dargs->performed) &&
-          dargs->context->remove_base_resource_ref(META_TASK_REF))
-        delete dargs->context;
+      if (context->process_deferred_completion_queue(
+              precondition, previous_fevent, performed) &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_trigger_commit_queue(const void* args)
+    void InnerContext::TriggerCommitArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const TriggerCommitArgs* targs = (const TriggerCommitArgs*)args;
-      if (targs->context->process_trigger_commit_queue() &&
-          targs->context->remove_base_resource_ref(META_TASK_REF))
-        delete targs->context;
+      if (context->process_trigger_commit_queue() &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::handle_deferred_commit_queue(const void* args)
+    void InnerContext::DeferredCommitArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferredCommitArgs* dargs = (const DeferredCommitArgs*)args;
-      if (dargs->context->process_deferred_commit_queue(
-              dargs->precondition, dargs->previous_fevent, dargs->performed) &&
-          dargs->context->remove_base_resource_ref(META_TASK_REF))
-        delete dargs->context;
+      if (context->process_deferred_commit_queue(
+              precondition, previous_fevent, performed) &&
+          context->remove_base_resource_ref(META_TASK_REF))
+        delete context;
     }
 
     //--------------------------------------------------------------------------
@@ -11067,7 +11051,7 @@ namespace Legion {
            (mapping->find_nearest(parent_owner) == runtime->address_space)))
       {
         RtUserEvent notified_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        IndexPartitionNotification rez;
         {
           RezCheck z(rez);
           rez.serialize(pid);
@@ -11075,7 +11059,7 @@ namespace Legion {
           rez.serialize(partition_color);
           rez.serialize(notified_event);
         }
-        runtime->send_index_partition_notification(parent_owner, rez);
+        rez.serialize(parent_owner);
         parent_notified = notified_event;
       }
       if ((part_kind == LEGION_COMPUTE_KIND) ||

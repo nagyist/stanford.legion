@@ -34,26 +34,32 @@ namespace Legion {
     public:
       struct SchedulerArgs : public LgTaskArgs<SchedulerArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_SCHEDULER_ID;
+        static constexpr LgTaskID TASK_ID = LG_SCHEDULER_ID;
       public:
-        SchedulerArgs(Processor p) : LgTaskArgs<SchedulerArgs>(0), proc(p) { }
+        SchedulerArgs(void) = default;
+        SchedulerArgs(ProcessorManager* m)
+          : LgTaskArgs<SchedulerArgs>(0), manager(m)
+        { }
+        void execute(void) const;
       public:
-        const Processor proc;
+        ProcessorManager* manager;
       };
       struct DeferMapperSchedulerArgs
         : public LgTaskArgs<DeferMapperSchedulerArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_MAPPER_SCHEDULER_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_MAPPER_SCHEDULER_TASK_ID;
       public:
+        DeferMapperSchedulerArgs(void) = default;
         DeferMapperSchedulerArgs(
             ProcessorManager* proxy, MapperID mid, RtEvent defer)
           : LgTaskArgs<DeferMapperSchedulerArgs>(implicit_provenance),
             proxy_this(proxy), map_id(mid), deferral_event(defer)
         { }
+        void execute(void) const;
       public:
-        ProcessorManager* const proxy_this;
-        const MapperID map_id;
-        const RtEvent deferral_event;
+        ProcessorManager* proxy_this;
+        MapperID map_id;
+        RtEvent deferral_event;
       };
       struct MapperMessage {
       public:
@@ -93,7 +99,6 @@ namespace Legion {
       void perform_scheduling(void);
       void launch_task_scheduler(void);
       void notify_deferred_mapper(MapperID map_id, RtEvent deferred_event);
-      static void handle_defer_mapper(const void* args);
     public:
       void activate_context(InnerContext* context);
       void deactivate_context(InnerContext* context);

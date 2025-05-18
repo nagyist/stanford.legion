@@ -48,46 +48,51 @@ namespace Legion {
       struct DeferPhysicalManagerArgs
         : public LgTaskArgs<DeferPhysicalManagerArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PHYSICAL_MANAGER_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_PHYSICAL_MANAGER_TASK_ID;
       public:
+        DeferPhysicalManagerArgs(void) = default;
         DeferPhysicalManagerArgs(
             DistributedID d, Memory m, PhysicalInstance i, size_t f,
-            IndexSpaceExpression* lx, FieldSpace h, RegionTreeID tid,
+            IndexSpaceExpression* lx, FieldSpace fs, RegionTreeID tid,
             LayoutConstraintID l, ApEvent use, LgEvent unique,
             InstanceKind kind, ReductionOpID redop, const void* piece_list,
             size_t piece_list_size, GarbageCollectionState state);
+        void execute(void) const;
       public:
-        const DistributedID did;
-        const Memory mem;
-        const PhysicalInstance inst;
-        const size_t footprint;
+        DistributedID did;
+        Memory mem;
+        PhysicalInstance inst;
+        size_t footprint;
         IndexSpaceExpression* local_expr;
-        const FieldSpace handle;
-        const RegionTreeID tree_id;
-        const LayoutConstraintID layout_id;
-        const ApEvent use_event;
-        const LgEvent unique_event;
-        const InstanceKind kind;
-        const ReductionOpID redop;
-        const void* const piece_list;
-        const size_t piece_list_size;
-        const GarbageCollectionState state;
+        FieldSpace space;
+        RegionTreeID tree_id;
+        LayoutConstraintID layout_id;
+        ApEvent use_event;
+        LgEvent unique_event;
+        InstanceKind kind;
+        ReductionOpID redop;
+        const void* piece_list;
+        size_t piece_list_size;
+        GarbageCollectionState state;
       };
     public:
       struct DeferDeletePhysicalManager
         : public LgTaskArgs<DeferDeletePhysicalManager> {
       public:
-        static const LgTaskID TASK_ID =
+        static constexpr LgTaskID TASK_ID =
             LG_DEFER_DELETE_PHYSICAL_MANAGER_TASK_ID;
       public:
+        DeferDeletePhysicalManager(void) = default;
         DeferDeletePhysicalManager(PhysicalManager* manager_);
+        void execute(void) const;
       public:
         PhysicalManager* manager;
       };
       struct RemoteCreateViewArgs : public LgTaskArgs<RemoteCreateViewArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_REMOTE_VIEW_CREATION_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_REMOTE_VIEW_CREATION_TASK_ID;
       public:
+        RemoteCreateViewArgs(void) = default;
         RemoteCreateViewArgs(
             PhysicalManager* man, InnerContext* ctx, AddressSpaceID log,
             CollectiveMapping* map, std::atomic<DistributedID>* tar,
@@ -96,14 +101,15 @@ namespace Legion {
             context(ctx), logical_owner(log), mapping(map), target(tar),
             source(src), done_event(done)
         { }
+        void execute(void) const;
       public:
-        PhysicalManager* const manager;
-        InnerContext* const context;
-        const AddressSpaceID logical_owner;
-        CollectiveMapping* const mapping;
-        std::atomic<DistributedID>* const target;
-        const AddressSpaceID source;
-        const RtUserEvent done_event;
+        PhysicalManager* manager;
+        InnerContext* context;
+        AddressSpaceID logical_owner;
+        CollectiveMapping* mapping;
+        std::atomic<DistributedID>* target;
+        AddressSpaceID source;
+        RtUserEvent done_event;
       };
     public:
       PhysicalManager(
@@ -148,6 +154,7 @@ namespace Legion {
       void pack_valid_ref(void);
       void unpack_valid_ref(void);
     protected:
+      friend class GarbageCollectionAcquireResponse;
       // Internal valid reference counting
       void add_valid_reference(int cnt, bool need_check = true);
 #ifdef LEGION_DEBUG_GC
@@ -165,7 +172,6 @@ namespace Legion {
       bool notify_invalid(AutoLock& i_lock);
     public:
       virtual void send_manager(AddressSpaceID target);
-      static void handle_manager_request(Deserializer& derez);
     public:
       virtual void notify_local(void);
     public:
@@ -194,8 +200,6 @@ namespace Legion {
       bool update_physical_instance(
           PhysicalInstance new_instance, RtEvent ready, size_t new_footprint);
       void broadcast_manager_update(void);
-      static void handle_send_manager_update(
-          AddressSpaceID source, Deserializer& derez);
       void pack_fields(
           Serializer& rez, const std::vector<CopySrcDstField>& fields) const;
       void initialize_across_helper(
@@ -234,19 +238,12 @@ namespace Legion {
           const FieldMask& mask, Operation* op, unsigned index);
       void find_field_reservations(
           const FieldMask& mask, std::vector<Reservation>& results);
-      static void handle_padded_reservation_request(
-          Deserializer& derez, AddressSpaceID source);
       void update_field_reservations(
           const FieldMask& mask, const std::vector<Reservation>& reservations);
-      static void handle_padded_reservation_response(Deserializer& derez);
     protected:
       void pack_garbage_collection_state(
           Serializer& rez, AddressSpaceID target, bool need_lock);
     public:
-      static void handle_send_manager(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_defer_manager(const void* args);
-      static void handle_defer_perform_deletion(const void* args);
       static void create_remote_manager(
           DistributedID did, Memory mem, PhysicalInstance inst,
           size_t inst_footprint, IndexSpaceExpression* inst_domain,
@@ -261,27 +258,6 @@ namespace Legion {
           AddressSpaceID logical_owner, CollectiveMapping* mapping,
           std::atomic<DistributedID>* target, AddressSpaceID source,
           RtUserEvent done_event);
-      static void handle_top_view_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_top_view_response(Deserializer& derez);
-      static void handle_top_view_creation(const void* args);
-      static void handle_acquire_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_acquire_response(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_garbage_collection_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_garbage_collection_response(Deserializer& derez);
-      static void handle_garbage_collection_acquire(Deserializer& derez);
-      static void handle_garbage_collection_failed(Deserializer& derez);
-      static void handle_garbage_collection_mismatch(Deserializer& derez);
-      static void handle_garbage_collection_notify(Deserializer& derez);
-      static void handle_garbage_collection_priority_update(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_garbage_collection_debug_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_garbage_collection_debug_response(Deserializer& derez);
-      static void handle_record_event(Deserializer& derez);
     public:
       MemoryManager* const memory_manager;
       // Unique identifier event that is common across nodes

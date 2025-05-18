@@ -56,11 +56,11 @@ namespace Legion {
         legion_assert(profiling_response.exists());
         if (profiling_reports.load() > 0)
         {
-          Serializer rez;
+          RemoteOpProfilingUpdate rez;
           rez.serialize(remote_ptr);
           rez.serialize(profiling_reports.load());
           rez.serialize(profiling_response);
-          runtime->send_remote_op_profiling_count_update(source, rez);
+          rez.dispatch(source);
         }
         else
           Runtime::trigger_event(profiling_response);
@@ -172,7 +172,7 @@ namespace Legion {
         return;
       }
       // Ship this back to the owner node to report it there
-      Serializer rez;
+      RemoteOpReportUninit rez;
       {
         RezCheck z(rez);
         rez.serialize(remote_ptr);
@@ -183,8 +183,7 @@ namespace Legion {
         rez.serialize<size_t>(length);
         rez.serialize(field_string, length);
       }
-      // Send the message and wait for it to be received
-      runtime->send_remote_op_report_uninitialized(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
@@ -238,14 +237,14 @@ namespace Legion {
       if (source != runtime->address_space)
       {
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteOpCompletionEffect rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_ptr);
           rez.serialize(effect);
           rez.serialize(applied);
         }
-        runtime->send_remote_op_completion_effect(source, rez);
+        rez.dispatch(source);
         applied.wait();
       }
       else
@@ -260,14 +259,14 @@ namespace Legion {
       if (source != runtime->address_space)
       {
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteOpCompletionEffect rez;
         {
           RezCheck z(rez);
           rez.serialize(remote_ptr);
           rez.serialize(effect);
           rez.serialize(applied);
         }
-        runtime->send_remote_op_completion_effect(source, rez);
+        rez.dispatch(source);
         applied_events.insert(applied);
       }
       else
@@ -292,12 +291,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteOp::handle_deferred_deletion(const void* args)
+    void RemoteOp::DeferRemoteOpDeletionArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferRemoteOpDeletionArgs* dargs =
-          (const DeferRemoteOpDeletionArgs*)args;
-      delete dargs->op;
+      delete op;
     }
 
     //--------------------------------------------------------------------------
@@ -390,7 +387,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteOp::handle_report_uninitialized(Deserializer& derez)
+    /*static*/ void RemoteOpReportUninit::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -408,8 +406,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteOp::handle_report_profiling_count_update(
-        Deserializer& derez)
+    /*static*/ void RemoteOpProfilingUpdate::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       Operation* op;
@@ -424,7 +422,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteOp::handle_completion_effect(Deserializer& derez)
+    /*static*/ void RemoteOpCompletionEffect::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

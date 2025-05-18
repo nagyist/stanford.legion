@@ -93,7 +93,7 @@ namespace Legion {
     {
       legion_assert(is_owner());
       legion_assert(collective_mapping == nullptr);
-      Serializer rez;
+      FillViewMessage rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -106,7 +106,7 @@ namespace Legion {
         // Update the remote instances while holding the lock
         update_remote_instances(target);
       }
-      runtime->send_fill_view(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -122,7 +122,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FillView::handle_send_fill_view(Deserializer& derez)
+    /*static*/ void FillViewMessage::handle(Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -212,7 +212,7 @@ namespace Legion {
         Runtime::trigger_event(value_ready);
       if (is_owner() && has_remote_instances())
       {
-        Serializer rez;
+        FillViewValueMessage rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -220,14 +220,14 @@ namespace Legion {
           rez.serialize(val, size);
         }
         struct ValueFunctor {
-          ValueFunctor(Serializer& z) : rez(z) { }
+          ValueFunctor(FillViewValueMessage& z) : rez(z) { }
           inline void apply(AddressSpaceID target)
           {
             if (target == runtime->address_space)
               return;
-            runtime->send_fill_view_value(target, rez);
+            rez.dispatch(target);
           }
-          Serializer& rez;
+          FillViewValueMessage& rez;
         };
         ValueFunctor functor(rez);
         map_over_remote_instances(functor);
@@ -236,7 +236,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FillView::handle_send_fill_view_value(Deserializer& derez)
+    /*static*/ void FillViewValueMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -332,31 +333,27 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FillView::handle_defer_issue_fill(const void* args)
+    void FillView::DeferIssueFill::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferIssueFill* dargs = (const DeferIssueFill*)args;
       std::set<RtEvent> applied_events;
-      const ApEvent result = dargs->view->issue_fill(
-          dargs->op, dargs->fill_expr, dargs->dst_view, *(dargs->fill_mask),
-          *(dargs->trace_info), *(dargs->dst_fields), applied_events,
-          dargs->manager, dargs->precondition, dargs->pred_guard,
-          dargs->collective, dargs->fill_restricted);
-      Runtime::trigger_event(
-          dargs->done, result, *(dargs->trace_info), applied_events);
-      Runtime::trigger_event(
-          dargs->applied, Runtime::merge_events(applied_events));
-      delete dargs->fill_mask;
-      delete dargs->trace_info;
-      delete dargs->dst_fields;
-      if (dargs->view->remove_base_resource_ref(META_TASK_REF))
-        delete dargs->view;
-      if (dargs->dst_view->remove_base_resource_ref(META_TASK_REF))
-        delete dargs->dst_view;
-      if (dargs->fill_expr->remove_base_expression_reference(META_TASK_REF))
-        delete dargs->fill_expr;
-      if (dargs->manager->remove_base_resource_ref(META_TASK_REF))
-        delete dargs->manager;
+      const ApEvent result = view->issue_fill(
+          op, fill_expr, dst_view, *fill_mask, *trace_info, *dst_fields,
+          applied_events, manager, precondition, pred_guard, collective,
+          fill_restricted);
+      Runtime::trigger_event(done, result, *trace_info, applied_events);
+      Runtime::trigger_event(applied, Runtime::merge_events(applied_events));
+      delete fill_mask;
+      delete trace_info;
+      delete dst_fields;
+      if (view->remove_base_resource_ref(META_TASK_REF))
+        delete view;
+      if (dst_view->remove_base_resource_ref(META_TASK_REF))
+        delete dst_view;
+      if (fill_expr->remove_base_expression_reference(META_TASK_REF))
+        delete fill_expr;
+      if (manager->remove_base_resource_ref(META_TASK_REF))
+        delete manager;
     }
 
   }  // namespace Internal

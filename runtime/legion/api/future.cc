@@ -16,6 +16,7 @@
 #include "legion/api/exception.h"
 #include "legion/contexts/inner.h"
 #include "legion/api/future_impl.h"
+#include "legion/managers/message.h"
 #include "legion/operations/allreduce.h"
 #include "legion/utilities/provenance.h"
 
@@ -721,7 +722,7 @@ namespace Legion {
         // Send the request off to the target node
         bool result = true;
         const RtUserEvent wait_on = Runtime::create_rt_user_event();
-        Serializer rez;
+        FutureCreateInstanceRequest rez;
         {
           RezCheck z(rez);
           pack_future(rez, target_space);
@@ -733,7 +734,7 @@ namespace Legion {
           rez.serialize(wait_on);
           rez.serialize(&result);
         }
-        runtime->send_future_create_instance_request(target_space, rez);
+        rez.dispatch(target_space);
         wait_on.wait();
         if (result)
           return true;
@@ -1425,18 +1426,18 @@ namespace Legion {
       {
         // Send the message back to the owner so it can broadcast it out
         // to any subscribers
-        Serializer rez;
+        FutureSizeMessage rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
           rez.serialize(size);
         }
         pack_global_ref();
-        runtime->send_future_result_size(owner_space, rez);
+        rez.dispatch(owner_space);
       }
       if (!subscribers.empty())
       {
-        Serializer rez;
+        FutureSizeMessage rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -1448,7 +1449,7 @@ namespace Legion {
           if (((*it) == source) || ((*it) == local_space))
             continue;
           pack_global_ref();
-          runtime->send_future_result_size(*it, rez);
+          rez.dispatch(*it);
         }
       }
       // If the future size is zero then clean out any pending instances
@@ -1830,33 +1831,30 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_callback(const void* args)
+    void FutureImpl::FutureCallbackArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const FutureCallbackArgs* fargs = (const FutureCallbackArgs*)args;
-      fargs->impl->perform_callback();
-      if (fargs->impl->remove_base_gc_ref(DEFERRED_TASK_REF))
-        delete fargs->impl;
+      impl->perform_callback();
+      if (impl->remove_base_gc_ref(DEFERRED_TASK_REF))
+        delete impl;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_release(const void* args)
+    void FutureImpl::CallbackReleaseArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const CallbackReleaseArgs* cargs = (const CallbackReleaseArgs*)args;
-      cargs->functor->callback_release_future();
-      if (cargs->own_functor)
-        delete cargs->functor;
+      functor->callback_release_future();
+      if (own_functor)
+        delete functor;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_broadcast(const void* args)
+    void FutureImpl::FutureBroadcastArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const FutureBroadcastArgs* fargs = (const FutureBroadcastArgs*)args;
-      fargs->impl->perform_broadcast();
-      if (fargs->impl->remove_base_gc_ref(DEFERRED_TASK_REF))
-        delete fargs->impl;
+      impl->perform_broadcast();
+      if (impl->remove_base_gc_ref(DEFERRED_TASK_REF))
+        delete impl;
     }
 
     //--------------------------------------------------------------------------
@@ -2045,16 +2043,15 @@ namespace Legion {
           if (!is_owner())
           {
             // Send a request to the owner node to subscribe
-            Serializer rez;
+            FutureSubscription rez;
             rez.serialize(did);
             pack_global_ref();
             if ((collective_mapping != nullptr) &&
                 collective_mapping->contains(local_space))
-              runtime->send_future_subscription(
-                  collective_mapping->get_parent(owner_space, local_space),
-                  rez);
+              rez.dispatch(
+                  collective_mapping->get_parent(owner_space, local_space));
             else
-              runtime->send_future_subscription(owner_space, rez);
+              rez.dispatch(owner_space);
           }
           else
             record_subscription(local_space, false /*need lock*/);
@@ -2309,10 +2306,10 @@ namespace Legion {
           continue;
         // Need to pack each of these separately in case we need to make
         // events for each future instance being packed
-        Serializer rez;
+        FutureResultMessage rez;
         pack_future_result(rez, *it);
         pack_global_ref();
-        runtime->send_future_result(*it, rez);
+        rez.dispatch(*it);
       }
       subscribers.clear();
     }
@@ -2334,14 +2331,14 @@ namespace Legion {
         // can have it to be able to create instances
         if (future_size_set && (subscriber != local_space))
         {
-          Serializer rez;
+          FutureSizeMessage rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(future_size);
           }
           pack_global_ref();
-          runtime->send_future_result_size(subscriber, rez);
+          rez.dispatch(subscriber);
         }
         legion_assert(subscribers.find(subscriber) == subscribers.end());
         subscribers.insert(subscriber);
@@ -2420,19 +2417,19 @@ namespace Legion {
           else
           {
             // We can send the result right now
-            Serializer rez;
+            FutureResultMessage rez;
             pack_future_result(rez, subscriber);
             pack_global_ref();
-            runtime->send_future_result(subscriber, rez);
+            rez.dispatch(subscriber);
           }
         }
         else
         {
           // Send the result back to the subscriber since right away
-          Serializer rez;
+          FutureResultMessage rez;
           pack_future_result(rez, subscriber);
           pack_global_ref();
-          runtime->send_future_result(subscriber, rez);
+          rez.dispatch(subscriber);
         }
       }
     }
@@ -2571,7 +2568,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_future_result(Deserializer& derez)
+    /*static*/ void FutureResultMessage::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -2599,7 +2597,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_future_result_size(
+    /*static*/ void FutureSizeMessage::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2617,7 +2615,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_future_subscription(
+    /*static*/ void FutureSubscription::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2630,7 +2628,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_future_create_instance_request(
+    /*static*/ void FutureCreateInstanceRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2658,7 +2656,7 @@ namespace Legion {
                   nullptr :
                   &safe_for_unbounded_pools))
       {
-        Serializer rez;
+        FutureCreateInstanceResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(result);
@@ -2667,14 +2665,15 @@ namespace Legion {
             rez.serialize(safe_for_unbounded_pools);
           rez.serialize(done_event);
         }
-        runtime->send_future_create_instance_response(source, rez);
+        rez.dispatch(source);
       }
       else
         Runtime::trigger_event(done_event);
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::handle_future_create_instance_response(Deserializer& derez)
+    /*static*/ void FutureCreateInstanceResponse::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2718,16 +2717,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_contribute_to_collective(
-        const void* args)
+    void FutureImpl::ContributeCollectiveArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const ContributeCollectiveArgs* cargs = (ContributeCollectiveArgs*)args;
-      cargs->impl->contribute_to_collective(cargs->dc, cargs->count);
+      impl->contribute_to_collective(dc, count);
       // Now remote the garbage collection reference and see if we can
       // reclaim the future
-      if (cargs->impl->remove_base_gc_ref(PENDING_COLLECTIVE_REF))
-        delete cargs->impl;
+      if (impl->remove_base_gc_ref(PENDING_COLLECTIVE_REF))
+        delete impl;
     }
 
     /////////////////////////////////////////////////////////////
@@ -2814,14 +2811,14 @@ namespace Legion {
             legion_assert(
                 !freeproc.exists() || freeproc.address_space() == target_space);
             // Send the message to the remote node to do the free
-            Serializer rez;
+            FreeExternalAllocation rez;
             {
               RezCheck z(rez);
               rez.serialize(freeproc);
               rez.serialize(freefunc);
               rez.serialize(instance);
             }
-            runtime->send_free_external_allocation(target_space, rez);
+            rez.dispatch(target_space);
           }
           else
           {
@@ -3452,7 +3449,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureInstance::handle_free_external(Deserializer& derez)
+    /*static*/ void FreeExternalAllocation::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3461,11 +3459,12 @@ namespace Legion {
       void (*freefunc)(const Realm::ExternalInstanceResource&);
       derez.deserialize(freefunc);
       if (freefunc == nullptr)
-        freefunc = free_host_memory;
+        freefunc = FutureInstance::free_host_memory;
       PhysicalInstance instance;
       derez.deserialize(instance);
       const RtEvent use_event(instance.fetch_metadata(freeproc));
-      FreeExternalArgs args(nullptr /*no resource*/, freefunc, instance);
+      FutureInstance::FreeExternalArgs args(
+          nullptr /*no resource*/, freefunc, instance);
       if (freeproc.exists())
         runtime->issue_application_processor_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, freeproc, use_event);
@@ -3488,23 +3487,22 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureInstance::handle_free_external(const void* args)
+    void FutureInstance::FreeExternalArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const FreeExternalArgs* fargs = (const FreeExternalArgs*)args;
-      const Realm::ExternalInstanceResource* resource = fargs->resource;
+      const Realm::ExternalInstanceResource* res = resource;
       if (resource == nullptr)
       {
         const Point<1, coord_t> zero(0);
         const Realm::IndexSpace<1, coord_t> rect_space(
             Realm::Rect<1, coord_t>(zero, zero));
-        resource = fargs->instance.generate_resource_info(
+        res = instance.generate_resource_info(
             rect_space, 0 /*fid*/, true /*read only*/);
       }
-      (*(fargs->freefunc))(*resource);
-      if (fargs->instance.exists())
-        fargs->instance.destroy();
-      delete resource;
+      (*freefunc)(*res);
+      if (instance.exists())
+        instance.destroy();
+      delete res;
     }
 
     //--------------------------------------------------------------------------
@@ -3518,12 +3516,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureInstance::handle_defer_deletion(const void* args)
+    void FutureInstance::DeferDeleteFutureInstanceArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferDeleteFutureInstanceArgs* dargs =
-          (const DeferDeleteFutureInstanceArgs*)args;
-      delete dargs->instance;
+      delete instance;
     }
 
   }  // namespace Internal

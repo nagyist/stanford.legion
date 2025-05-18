@@ -233,19 +233,21 @@ namespace Legion {
     public:
       struct LgFinalizeEqSetsArgs : public LgTaskArgs<LgFinalizeEqSetsArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_FINALIZE_EQ_SETS_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_FINALIZE_EQ_SETS_TASK_ID;
       public:
+        LgFinalizeEqSetsArgs(void) = default;
         LgFinalizeEqSetsArgs(
             EqSetTracker* t, RtUserEvent c, UniqueID uid,
             InnerContext* enclosing, InnerContext* outermost,
             unsigned parent_req_index, IndexSpaceExpression* expr);
+        void execute(void) const;
       public:
-        EqSetTracker* const tracker;
-        const RtUserEvent compute;
-        InnerContext* const enclosing;
-        InnerContext* const outermost;
-        IndexSpaceExpression* const expr;
-        const unsigned parent_req_index;
+        EqSetTracker* tracker;
+        RtUserEvent compute;
+        InnerContext* enclosing;
+        InnerContext* outermost;
+        IndexSpaceExpression* expr;
+        unsigned parent_req_index;
       };
     public:
       EqSetTracker(LocalLock& lock);
@@ -285,16 +287,8 @@ namespace Legion {
           const MapView<AddressSpaceID, local::FieldMaskMap<EqSetTracker> >&
               subscribers,
           std::vector<RtEvent>& applied_events);
-      static void handle_cancel_subscription(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_invalidate_subscription(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_equivalence_set_creation(Deserializer& derez);
-      static void handle_equivalence_set_reuse(Deserializer& derez);
       void record_pending_equivalence_set(
           EquivalenceSet* set, const FieldMask& mask);
-      static void handle_pending_equivalence_set(Deserializer& derez);
-      static void handle_finalize_eq_sets(const void* args);
     protected:
       void record_subscriptions(
           AddressSpaceID source, const FieldMapView<EqKDTree>& new_subs);
@@ -419,17 +413,19 @@ namespace Legion {
     public:
       struct DeferMakeOwnerArgs : public LgTaskArgs<DeferMakeOwnerArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_MAKE_OWNER_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_MAKE_OWNER_TASK_ID;
       public:
+        DeferMakeOwnerArgs(void) = default;
         DeferMakeOwnerArgs(EquivalenceSet* s)
           : LgTaskArgs<DeferMakeOwnerArgs>(implicit_provenance), set(s)
         { }
+        void execute(void) const;
       public:
-        EquivalenceSet* const set;
+        EquivalenceSet* set;
       };
       struct DeferApplyStateArgs : public LgTaskArgs<DeferApplyStateArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_APPLY_STATE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_APPLY_STATE_TASK_ID;
         typedef shrt::map<
             IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >
             ExprLogicalViews;
@@ -441,6 +437,7 @@ namespace Legion {
             IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView> >
             ExprInstanceViews;
       public:
+        DeferApplyStateArgs(void) = default;
         DeferApplyStateArgs(
             EquivalenceSet* set, bool forward,
             std::vector<RtEvent>& applied_events,
@@ -456,24 +453,25 @@ namespace Legion {
             TraceViewSet* anticondition_updates,
             TraceViewSet* postcondition_updates,
             shrt::FieldMaskMap<IndexSpaceExpression>* dirty_updates);
+        void execute(void) const;
         void release_references(void) const;
       public:
-        EquivalenceSet* const set;
-        ExprLogicalViews* const valid_updates;
-        shrt::FieldMaskMap<IndexSpaceExpression>* const initialized_updates;
-        shrt::FieldMaskMap<IndexSpaceExpression>* const invalidated_updates;
-        ExprReductionViews* const reduction_updates;
-        ExprInstanceViews* const restricted_updates;
-        ExprInstanceViews* const released_updates;
-        shrt::FieldMaskMap<CopyFillGuard>* const read_only_updates;
-        shrt::FieldMaskMap<CopyFillGuard>* const reduction_fill_updates;
+        EquivalenceSet* set;
+        ExprLogicalViews* valid_updates;
+        shrt::FieldMaskMap<IndexSpaceExpression>* initialized_updates;
+        shrt::FieldMaskMap<IndexSpaceExpression>* invalidated_updates;
+        ExprReductionViews* reduction_updates;
+        ExprInstanceViews* restricted_updates;
+        ExprInstanceViews* released_updates;
+        shrt::FieldMaskMap<CopyFillGuard>* read_only_updates;
+        shrt::FieldMaskMap<CopyFillGuard>* reduction_fill_updates;
         TraceViewSet* precondition_updates;
         TraceViewSet* anticondition_updates;
         TraceViewSet* postcondition_updates;
         shrt::FieldMaskMap<IndexSpaceExpression>* dirty_updates;
-        std::set<IndexSpaceExpression*>* const expr_references;
-        const RtUserEvent done_event;
-        const bool forward_to_owner;
+        std::set<IndexSpaceExpression*>* expr_references;
+        RtUserEvent done_event;
+        bool forward_to_owner;
       };
     public:
       EquivalenceSet(
@@ -757,7 +755,7 @@ namespace Legion {
           InstanceView* inst, FieldMask& inst_mask, IndexSpaceExpression* expr,
           const bool expr_covers,
           local::FieldMaskMap<IndexSpaceExpression>& partial_valid_exprs) const;
-    protected:
+    public:
       void send_equivalence_set(AddressSpaceID target);
       void check_for_migration(
           PhysicalAnalysis& analysis, std::set<RtEvent>& applied_events);
@@ -766,7 +764,7 @@ namespace Legion {
           AddressSpaceID source, const CollectiveMapping* mapping,
           bool need_lock);
       void process_replication_response(AddressSpaceID owner);
-    protected:
+    public:
       void pack_state(
           Serializer& rez, const AddressSpaceID target,
           DistributedID target_did, IndexSpaceExpression* target_expr,
@@ -855,25 +853,6 @@ namespace Legion {
           const TraceViewSet* postcondition_updates,
           const shrt::FieldMaskMap<IndexSpaceExpression>* dirty_updates,
           const bool pack_references, const bool pack_tracing_references);
-    public:
-      static void handle_make_owner(const void* args);
-      static void handle_apply_state(const void* args);
-    public:
-      static void handle_equivalence_set_request(Deserializer& derez);
-      static void handle_equivalence_set_response(Deserializer& derez);
-      static void handle_migration(Deserializer& derez, AddressSpaceID source);
-      static void handle_owner_update(Deserializer& derez);
-      static void handle_invalidate_trackers(Deserializer& derez);
-      static void handle_replication_request(Deserializer& derez);
-      static void handle_replication_response(Deserializer& derez);
-      static void handle_clone_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_clone_response(Deserializer& derez);
-      static void handle_capture_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_capture_response(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_filter_invalidations(Deserializer& derez);
     public:
       // Note this context refers to the context from which the views are
       // created in. Normally this is the same as the context in which the

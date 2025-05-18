@@ -22,7 +22,7 @@ namespace Legion {
   namespace Internal {
 
     //--------------------------------------------------------------------------
-    /*static*/ inline VirtualChannelKind MessageManager::find_message_vc(
+    /*static*/ constexpr VirtualChannelKind MessageManager::find_message_vc(
         MessageKind kind)
     //--------------------------------------------------------------------------
     {
@@ -671,6 +671,22 @@ namespace Legion {
       }
       return DEFAULT_VIRTUAL_CHANNEL;
     }
+
+#define MAKE_ACTIVE_MESSAGES(kind, type, name, response)            \
+  class type : public ActiveMessage<type> {                         \
+  public:                                                           \
+    static constexpr MessageKind KIND = kind;                       \
+    static constexpr VirtualChannelKind CHANNEL =                   \
+        MessageManager::find_message_vc(KIND);                      \
+    static constexpr bool RESPONSE = response;                      \
+  public:                                                           \
+    type(void) : ActiveMessage<type>(KIND)                          \
+    { }                                                             \
+  public:                                                           \
+    static void handle(Deserializer& derez, AddressSpaceID source); \
+  };
+    LEGION_ACTIVE_MESSAGES(MAKE_ACTIVE_MESSAGES)
+#undef MAKE_ACTIVE_MESSAGES
 
   }  // namespace Internal
 }  // namespace Legion

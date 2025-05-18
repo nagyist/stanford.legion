@@ -92,8 +92,6 @@ namespace Legion {
       RtEvent convert_views(
           LogicalRegion region, const InstanceSet& targets,
           unsigned analysis_index = 0);
-      static void handle_remote_overwrites(
-          Deserializer& derez, AddressSpaceID previous);
     public:
       const RegionUsage usage;
       const PhysicalTraceInfo trace_info;

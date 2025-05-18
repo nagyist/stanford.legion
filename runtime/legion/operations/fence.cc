@@ -182,12 +182,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FenceOp::handle_deferred_measurement(const void* args)
+    void FenceOp::DeferTimingMeasurementArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferTimingMeasurementArgs* dargs =
-          (const DeferTimingMeasurementArgs*)args;
-      dargs->op->perform_measurement();
+      op->perform_measurement();
     }
 
     /////////////////////////////////////////////////////////////

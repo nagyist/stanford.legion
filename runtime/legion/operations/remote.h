@@ -32,13 +32,15 @@ namespace Legion {
       struct DeferRemoteOpDeletionArgs
         : public LgTaskArgs<DeferRemoteOpDeletionArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_REMOTE_OP_DELETION_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_REMOTE_OP_DELETION_TASK_ID;
       public:
+        DeferRemoteOpDeletionArgs(void) = default;
         DeferRemoteOpDeletionArgs(Operation* o)
           : LgTaskArgs<DeferRemoteOpDeletionArgs>(o->get_unique_op_id()), op(o)
         { }
+        void execute(void) const;
       public:
-        Operation* const op;
+        Operation* op;
       };
     public:
       RemoteOp(Operation* ptr, AddressSpaceID src);
@@ -74,12 +76,8 @@ namespace Legion {
       void pack_profiling_requests(
           Serializer& rez, std::set<RtEvent>& applied) const;
       void unpack_profiling_requests(Deserializer& derez);
-      static void handle_deferred_deletion(const void* args);
       // Caller takes ownership of this object and must delete it when done
       static RemoteOp* unpack_remote_operation(Deserializer& derez);
-      static void handle_report_uninitialized(Deserializer& derez);
-      static void handle_report_profiling_count_update(Deserializer& derez);
-      static void handle_completion_effect(Deserializer& derez);
     public:
       virtual void record_completion_effect(ApEvent effect);
       virtual void record_completion_effect(

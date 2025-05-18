@@ -3396,7 +3396,7 @@ namespace Legion {
         // We need to send this response back to the owner node along
         // with the overhead tracker
         SingleTask* orig_task = get_origin_task();
-        Serializer rez;
+        RemoteTaskProfilingResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(orig_task);
@@ -3413,7 +3413,7 @@ namespace Legion {
           else
             rez.serialize<bool>(false);
         }
-        runtime->send_remote_task_profiling_response(orig_proc, rez);
+        rez.dispatch(orig_proc.address_space());
       }
       else
       {
@@ -3512,8 +3512,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SingleTask::process_remote_profiling_response(
-        Deserializer& derez)
+    /*static*/ void RemoteTaskProfilingResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3583,14 +3583,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SingleTask::order_concurrent_task_launch(const void* args)
+    void SingleTask::OrderConcurrentLaunchArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const OrderConcurrentLaunchArgs* oargs =
-          (const OrderConcurrentLaunchArgs*)args;
-      runtime->order_concurrent_task_launch(
-          oargs->processor, oargs->task, oargs->start, oargs->ready,
-          oargs->vid);
+      runtime->order_concurrent_task_launch(processor, task, start, ready, vid);
     }
 
   }  // namespace Internal

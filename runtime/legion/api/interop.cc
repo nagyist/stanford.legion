@@ -470,7 +470,7 @@ namespace Legion {
     void MPIRankTable::send_remainder_stage(void)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      MPIRankExchange rez;
       {
         RezCheck z(rez);
         rez.serialize(-1);
@@ -490,14 +490,14 @@ namespace Legion {
         AddressSpaceID target =
             runtime->address_space + collective_participating_spaces;
         legion_assert(target < runtime->total_address_spaces);
-        runtime->send_mpi_rank_exchange(target, rez);
+        rez.dispatch(target);
       }
       else
       {
         // Sent to a node that is participating
         AddressSpaceID target =
             runtime->address_space % collective_participating_spaces;
-        runtime->send_mpi_rank_exchange(target, rez);
+        rez.dispatch(target);
       }
     }
 
@@ -510,7 +510,7 @@ namespace Legion {
       // Remember that stages have to be done in order
       for (int stage = start_stage; stage < collective_stages; stage++)
       {
-        Serializer rez;
+        MPIRankExchange rez;
         {
           RezCheck z(rez);
           rez.serialize(stage);
@@ -551,7 +551,7 @@ namespace Legion {
             AddressSpaceID target =
                 runtime->address_space ^ (r << (stage * collective_log_radix));
             legion_assert(int(target) < collective_participating_spaces);
-            runtime->send_mpi_rank_exchange(target, rez);
+            rez.dispatch(target);
           }
         }
         else
@@ -561,7 +561,7 @@ namespace Legion {
             AddressSpaceID target =
                 runtime->address_space ^ (r << (stage * collective_log_radix));
             legion_assert(int(target) < collective_participating_spaces);
-            runtime->send_mpi_rank_exchange(target, rez);
+            rez.dispatch(target);
           }
         }
       }
@@ -646,6 +646,15 @@ namespace Legion {
         send_remainder_stage();
       // We are done
       Runtime::trigger_event(done_event);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void MPIRankExchange::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(runtime->mpi_rank_table != nullptr);
+      runtime->mpi_rank_table->handle_mpi_rank_exchange(derez);
     }
 
   }  // namespace Internal

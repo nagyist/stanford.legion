@@ -50,7 +50,7 @@ namespace Legion {
     void ReplicatedView::send_view(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      ReplicatedViewMessage rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -63,13 +63,13 @@ namespace Legion {
         else
           rez.serialize<size_t>(0);
       }
-      runtime->send_replicated_view(target, rez);
+      rez.dispatch(target);
       update_remote_instances(target);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ReplicatedView::handle_send_replicated_view(
-        Deserializer& derez)
+    /*static*/ void ReplicatedViewMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

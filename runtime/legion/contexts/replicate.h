@@ -1251,13 +1251,15 @@ namespace Legion {
     public:
       struct ConsensusMatchArgs : public LgTaskArgs<ConsensusMatchArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_CONSENSUS_MATCH_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_CONSENSUS_MATCH_TASK_ID;
       public:
+        ConsensusMatchArgs(void) = default;
         ConsensusMatchArgs(ConsensusMatchBase* b, UniqueID uid)
           : LgTaskArgs(uid), base(b)
         { }
+        void execute(void) const;
       public:
-        ConsensusMatchBase* const base;
+        ConsensusMatchBase* base;
       };
     public:
       ConsensusMatchBase(ReplicateContext* ctx, CollectiveIndexLocation loc);
@@ -1265,8 +1267,6 @@ namespace Legion {
       virtual ~ConsensusMatchBase(void);
     public:
       virtual void complete_exchange(void) = 0;
-    public:
-      static void handle_consensus_match(const void* args);
     };
 
     /**

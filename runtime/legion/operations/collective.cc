@@ -378,7 +378,7 @@ namespace Legion {
         for (std::vector<AddressSpaceID>::const_iterator it = targets.begin();
              it != targets.end(); it++)
         {
-          Serializer rez;
+          CollectiveFinalizeMapping rez;
           {
             RezCheck z(rez);
             mapping->pack(rez);
@@ -426,7 +426,7 @@ namespace Legion {
               rez.serialize(vit->second);
             }
           }
-          runtime->send_collective_finalize_mapping(*it, rez);
+          rez.dispatch(*it);
         }
       }
       // Now handle all of the local results
@@ -521,6 +521,14 @@ namespace Legion {
           delete it->first;
       if (mapping->remove_reference())
         delete mapping;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void CollectiveFinalizeMapping::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveViewCreatorBase::handle_finalize_collective_mapping(derez);
     }
 
     //--------------------------------------------------------------------------

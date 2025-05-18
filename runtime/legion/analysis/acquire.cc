@@ -16,6 +16,7 @@
 #include "legion/analysis/acquire.h"
 #include "legion/analysis/equivalence_set.h"
 #include "legion/kernel/runtime.h"
+#include "legion/managers/message.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/remote.h"
 #include "legion/views/logical.h"
@@ -88,7 +89,7 @@ namespace Legion {
         const AddressSpaceID target = rit->first;
         const RtUserEvent returned = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteAcquireAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
@@ -119,7 +120,7 @@ namespace Legion {
           else
             rez.serialize<size_t>(0);
         }
-        runtime->send_equivalence_set_remote_acquires(target, rez);
+        rez.dispatch(target);
         applied_events.insert(applied);
         remote_events.insert(returned);
       }
@@ -140,7 +141,7 @@ namespace Legion {
         if (original_source != runtime->address_space)
         {
           const RtUserEvent response_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          EquivalenceSetRemoteInstances rez;
           {
             RezCheck z(rez);
             rez.serialize(target_analysis);
@@ -155,7 +156,7 @@ namespace Legion {
             }
             rez.serialize<bool>(restricted);
           }
-          runtime->send_equivalence_set_remote_instances(original_source, rez);
+          rez.dispatch(original_source);
           return response_event;
         }
         else
@@ -166,7 +167,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void AcquireAnalysis::handle_remote_acquires(
+    /*static*/ void RemoteAcquireAnalysis::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {

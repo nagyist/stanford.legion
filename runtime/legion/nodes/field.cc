@@ -502,7 +502,7 @@ namespace Legion {
         // Send a request if necessary
         if (is_remote && request.exists())
         {
-          Serializer rez;
+          FieldSpaceSemanticInfoRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -511,7 +511,7 @@ namespace Legion {
             rez.serialize(wait_until);
             rez.serialize(wait_on);
           }
-          runtime->send_field_space_semantic_request(owner_space, rez);
+          rez.dispatch(owner_space);
         }
         wait_on.wait();
       }
@@ -606,7 +606,7 @@ namespace Legion {
         // Send a request if necessary
         if (is_remote && request.exists())
         {
-          Serializer rez;
+          FieldSemanticInfoRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -616,7 +616,7 @@ namespace Legion {
             rez.serialize(wait_until);
             rez.serialize(wait_on);
           }
-          runtime->send_field_semantic_request(owner_space, rez);
+          rez.dispatch(owner_space);
         }
         wait_on.wait();
       }
@@ -646,7 +646,7 @@ namespace Legion {
         bool is_mutable, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      FieldSpaceSemanticInfoResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -656,7 +656,7 @@ namespace Legion {
         rez.serialize(is_mutable);
         rez.serialize(ready);
       }
-      runtime->send_field_space_semantic_info(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -665,7 +665,7 @@ namespace Legion {
         size_t size, bool is_mutable, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      FieldSemanticInfoRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
@@ -676,7 +676,7 @@ namespace Legion {
         rez.serialize(is_mutable);
         rez.serialize(ready);
       }
-      runtime->send_field_semantic_info(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
@@ -728,6 +728,14 @@ namespace Legion {
       }
       else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
+    }
+
+    //--------------------------------------------------------------------------
+    void FieldSpaceNode::SemanticRequestArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      proxy_this->process_semantic_request(
+          tag, source, false, false, RtUserEvent::NO_RT_USER_EVENT);
     }
 
     //--------------------------------------------------------------------------
@@ -784,7 +792,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_semantic_request(
+    void FieldSpaceNode::SemanticFieldRequestArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      proxy_this->process_semantic_field_request(
+          fid, tag, source, false, false, RtUserEvent::NO_RT_USER_EVENT);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void FieldSpaceSemanticInfoRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -804,7 +820,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_field_semantic_request(
+    /*static*/ void FieldSemanticInfoRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -827,7 +843,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_semantic_info(
+    /*static*/ void FieldSpaceSemanticInfoResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -851,7 +867,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_field_semantic_info(
+    /*static*/ void FieldSemanticInfoResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -926,7 +942,7 @@ namespace Legion {
               add_base_gc_ref(FIELD_ALLOCATOR_REF);
               // Send the invalidation and make ourselves the new
               // pending exclusive allocator value
-              Serializer rez;
+              FieldSpaceAllocatorInvalidation rez;
               {
                 RezCheck z(rez);
                 rez.serialize(handle);
@@ -934,8 +950,7 @@ namespace Legion {
                 rez.serialize<bool>(true);   // flush allocation
                 rez.serialize<bool>(false);  // need merge
               }
-              runtime->send_field_space_allocator_invalidation(
-                  remote_owner, rez);
+              rez.dispatch(remote_owner);
               outstanding_allocators = 1;
               pending_field_allocation = ready_event;
               allocation_state = FIELD_ALLOC_PENDING;
@@ -957,7 +972,7 @@ namespace Legion {
                 {
                   const RtUserEvent done = Runtime::create_rt_user_event();
                   outstanding_invalidations++;
-                  Serializer rez;
+                  FieldSpaceAllocatorInvalidation rez;
                   {
                     RezCheck z(rez);
                     rez.serialize(handle);
@@ -965,7 +980,7 @@ namespace Legion {
                     rez.serialize<bool>(true);  // flush allocation
                     rez.serialize<bool>(true);  // need merge
                   }
-                  runtime->send_field_space_allocator_invalidation(*it, rez);
+                  rez.dispatch(*it);
                   preconditions.insert(done);
                 }
                 remote_field_infos.clear();
@@ -998,7 +1013,7 @@ namespace Legion {
                   outstanding_invalidations++;
                   // Add a reference that will be remove when the flush returns
                   add_base_gc_ref(FIELD_ALLOCATOR_REF);
-                  Serializer rez;
+                  FieldSpaceAllocatorInvalidation rez;
                   {
                     RezCheck z(rez);
                     rez.serialize(handle);
@@ -1006,7 +1021,7 @@ namespace Legion {
                     rez.serialize<bool>(false);  // flush allocation
                     rez.serialize<bool>(false);  // need merge
                   }
-                  runtime->send_field_space_allocator_invalidation(*it, rez);
+                  rez.dispatch(*it);
                   preconditions.insert(done);
                 }
                 remote_field_infos.clear();
@@ -1018,7 +1033,7 @@ namespace Legion {
                 legion_assert(ready_event.exists());
                 // Send the response back to the source and mark that
                 // we are now invalid
-                Serializer rez;
+                FieldSpaceAllocatorResponse rez;
                 {
                   RezCheck z(rez);
                   rez.serialize(handle);
@@ -1062,7 +1077,7 @@ namespace Legion {
                 // Add a reference to this node to keep it alive until we
                 // get the corresponding free operation from the remote node
                 add_base_gc_ref(FIELD_ALLOCATOR_REF);
-                runtime->send_field_space_allocator_response(source, rez);
+                rez.dispatch(source);
                 remote_field_infos.insert(source);
                 allocation_state = FIELD_ALLOC_INVALID;
               }
@@ -1122,13 +1137,13 @@ namespace Legion {
         if (allocation_state != FIELD_ALLOC_EXCLUSIVE)
         {
           ready_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          FieldSpaceAllocatorRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
             rez.serialize(ready_event);
           }
-          runtime->send_field_space_allocator_request(owner_space, rez);
+          rez.dispatch(owner_space);
           pending_field_allocation = ready_event;
         }
         else  // Have privileges, increment our allocator count
@@ -1179,7 +1194,7 @@ namespace Legion {
           {
             const RtUserEvent done_event = Runtime::create_rt_user_event();
             // Send the allocation data back to the owner node
-            Serializer rez;
+            FieldSpaceAllocatorFree rez;
             {
               RezCheck z(rez);
               rez.serialize(handle);
@@ -1204,7 +1219,7 @@ namespace Legion {
               }
               rez.serialize(done_event);
             }
-            runtime->send_field_space_allocator_free(owner_space, rez);
+            rez.dispatch(owner_space);
             return done_event;
           }
         }
@@ -1305,7 +1320,7 @@ namespace Legion {
       {
         legion_assert(!is_owner());
         const RtUserEvent allocated_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        FieldAllocationRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -1320,7 +1335,7 @@ namespace Legion {
           rez.serialize(fid);
           rez.serialize(size);
         }
-        runtime->send_field_alloc_request(owner_space, rez);
+        rez.dispatch(owner_space);
         return allocated_event;
       }
       // We're the owner so do the field allocation
@@ -1381,7 +1396,7 @@ namespace Legion {
       {
         legion_assert(!is_owner());
         const RtUserEvent allocated_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        FieldAllocationRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -1395,7 +1410,7 @@ namespace Legion {
           rez.serialize<size_t>(1);  // only allocating one field
           rez.serialize(fid);
         }
-        runtime->send_field_alloc_request(owner_space, rez);
+        rez.dispatch(owner_space);
         return allocated_event;
       }
       // We're the owner so do the field allocation
@@ -1457,7 +1472,7 @@ namespace Legion {
           (allocation_state != FIELD_ALLOC_COLLECTIVE))
       {
         const RtUserEvent allocated_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        FieldAllocationRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -1475,7 +1490,7 @@ namespace Legion {
             rez.serialize(sizes[idx]);
           }
         }
-        runtime->send_field_alloc_request(owner_space, rez);
+        rez.dispatch(owner_space);
         return allocated_event;
       }
       // We're the owner so do the field allocation
@@ -1545,7 +1560,7 @@ namespace Legion {
           (allocation_state != FIELD_ALLOC_COLLECTIVE))
       {
         const RtUserEvent allocated_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        FieldAllocationRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -1560,7 +1575,7 @@ namespace Legion {
           for (unsigned idx = 0; idx < fids.size(); idx++)
             rez.serialize(fids[idx]);
         }
-        runtime->send_field_alloc_request(owner_space, rez);
+        rez.dispatch(owner_space);
         return allocated_event;
       }
       // We're the owner so do the field allocation
@@ -1645,7 +1660,7 @@ namespace Legion {
             if ((*it) == source)
               continue;
             const RtUserEvent done_event = Runtime::create_rt_user_event();
-            Serializer rez;
+            FieldSizeUpdate rez;
             {
               RezCheck z(rez);
               rez.serialize(handle);
@@ -1654,7 +1669,7 @@ namespace Legion {
               rez.serialize(field_size);
             }
             pack_global_ref();
-            runtime->send_field_size_update(*it, rez);
+            rez.dispatch(*it);
             update_events.insert(done_event);
           }
         }
@@ -1668,7 +1683,7 @@ namespace Legion {
             (allocation_state != FIELD_ALLOC_COLLECTIVE))
         {
           const RtUserEvent done_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          FieldSizeUpdate rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -1677,7 +1692,7 @@ namespace Legion {
             rez.serialize(field_size);
           }
           pack_global_ref();
-          runtime->send_field_size_update(owner_space, rez);
+          rez.dispatch(owner_space);
           update_events.insert(done_event);
         }
       }
@@ -1708,7 +1723,7 @@ namespace Legion {
       {
         legion_assert(!is_owner());
         const RtUserEvent done_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        FieldFreeMessage rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -1716,7 +1731,7 @@ namespace Legion {
           rez.serialize(fid);
           rez.serialize(done_event);
         }
-        runtime->send_field_free(owner_space, rez);
+        rez.dispatch(owner_space);
         applied.insert(done_event);
         return;
       }
@@ -1751,7 +1766,7 @@ namespace Legion {
       {
         legion_assert(!is_owner());
         const RtUserEvent done_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        FieldFreeMessage rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -1760,7 +1775,7 @@ namespace Legion {
             rez.serialize(to_free[idx]);
           rez.serialize(done_event);
         }
-        runtime->send_field_free(owner_space, rez);
+        rez.dispatch(owner_space);
         applied.insert(done_event);
         return;
       }
@@ -1798,7 +1813,7 @@ namespace Legion {
           (allocation_state != FIELD_ALLOC_COLLECTIVE))
       {
         legion_assert(!is_owner());
-        Serializer rez;
+        FieldFreeIndexes rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -1807,7 +1822,7 @@ namespace Legion {
             rez.serialize(to_free[idx]);
           rez.serialize(freed_event);
         }
-        runtime->send_field_free_indexes(owner_space, rez);
+        rez.dispatch(owner_space);
         return;
       }
       for (std::vector<FieldID>::const_iterator it = to_free.begin();
@@ -1835,7 +1850,7 @@ namespace Legion {
         // If we're not the owner, send a message to the owner
         // to do the local field allocation
         RtUserEvent allocated_event = Runtime::create_rt_user_event();
-        Serializer rez;
+        LocalFieldAllocRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -1857,7 +1872,7 @@ namespace Legion {
             rez.serialize(*it);
           rez.serialize(&new_indexes);
         }
-        runtime->send_local_field_alloc_request(owner_space, rez);
+        rez.dispatch(owner_space);
         // Wait for the result
         allocated_event.wait();
         if (new_indexes.empty())
@@ -1915,7 +1930,7 @@ namespace Legion {
           const AddressSpaceID nearest = mapping->find_nearest(owner_space);
           if (nearest == local_space)
           {
-            Serializer rez;
+            LocalFieldFreeMessage rez;
             {
               RezCheck z(rez);
               rez.serialize(handle);
@@ -1926,7 +1941,7 @@ namespace Legion {
                 rez.serialize(indexes[idx]);
               }
             }
-            runtime->send_local_field_free(owner_space, rez);
+            rez.dispatch(owner_space);
           }
           return;
         }
@@ -1936,7 +1951,7 @@ namespace Legion {
         if (!is_owner())
         {
           // Send a message to the owner to do the free of the fields
-          Serializer rez;
+          LocalFieldFreeMessage rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -1947,7 +1962,7 @@ namespace Legion {
               rez.serialize(indexes[idx]);
             }
           }
-          runtime->send_local_field_free(owner_space, rez);
+          rez.dispatch(owner_space);
           return;
         }
       }
@@ -2549,7 +2564,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_alloc_request(Deserializer& derez)
+    /*static*/ void FieldAllocationRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2589,7 +2605,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_field_free(
+    /*static*/ void FieldFreeMessage::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2616,8 +2632,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_field_free_indexes(
-        Deserializer& derez)
+    /*static*/ void FieldFreeIndexes::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2635,7 +2651,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_layout_invalidation(
+    /*static*/ void FieldSpaceLayoutInvalidation::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2657,7 +2673,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_local_alloc_request(
+    /*static*/ void LocalFieldAllocRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2697,7 +2713,7 @@ namespace Legion {
               fields, sizes, serdez_id, current_indexes, new_indexes,
               provenance))
       {
-        Serializer rez;
+        LocalFieldAllocResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(destination);
@@ -2706,15 +2722,15 @@ namespace Legion {
             rez.serialize(new_indexes[idx]);
           rez.serialize(done_event);
         }
-        runtime->send_local_field_alloc_response(source, rez);
+        rez.dispatch(source);
       }
       else  // if we failed we can just trigger the event
         Runtime::trigger_event(done_event);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_local_alloc_response(
-        Deserializer& derez)
+    /*static*/ void LocalFieldAllocResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2731,7 +2747,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_local_free(Deserializer& derez)
+    /*static*/ void LocalFieldFreeMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2752,7 +2769,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_field_size_update(
+    /*static*/ void FieldSizeUpdate::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2777,13 +2794,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_defer_infos_request(const void* args)
+    void FieldSpaceNode::DeferRequestFieldInfoArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferRequestFieldInfoArgs* dargs =
-          (const DeferRequestFieldInfoArgs*)args;
-      dargs->proxy_this->request_field_infos_copy(
-          dargs->copy, dargs->source, dargs->to_trigger);
+      proxy_this->request_field_infos_copy(copy, source, to_trigger);
     }
 
     //--------------------------------------------------------------------------
@@ -2810,7 +2824,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_external_create_request(
+    /*static*/ void ExternalCreateRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2865,14 +2879,14 @@ namespace Legion {
           file_mask, mask_index_map, unique_event, region_node, serdez,
           runtime->get_available_distributed_id(), collective_mapping);
 
-      Serializer rez;
+      ExternalCreateRequest rez;
       {
         RezCheck z2(rez);
         rez.serialize(did_ptr);
         rez.serialize(manager->did);
         rez.serialize(done_event);
       }
-      runtime->send_external_create_response(source, rez);
+      rez.dispatch(source);
 
       if ((collective_mapping != nullptr) &&
           collective_mapping->remove_reference())
@@ -2880,8 +2894,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_external_create_response(
-        Deserializer& derez)
+    /*static*/ void ExternalCreateResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3071,7 +3085,7 @@ namespace Legion {
       if (!has_remote_instance(target))
       {
         // First send the node info and then send all the fields
-        Serializer rez;
+        FieldSpaceNodeMessage rez;
         {
           RezCheck z(rez);
           rez.serialize(handle);
@@ -3124,14 +3138,14 @@ namespace Legion {
             rez.serialize(it->second.is_mutable);
           }
         }
-        runtime->send_field_space_node(target, rez);
+        rez.dispatch(target);
         // Finally add it to the creation set
         update_remote_instances(target);
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_node_creation(
+    /*static*/ void FieldSpaceNodeMessage::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3186,7 +3200,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_node_request(Deserializer& derez)
+    /*static*/ void FieldSpaceRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       FieldSpace handle;
@@ -3211,11 +3226,11 @@ namespace Legion {
           // proper node to handle the request
           if (nearest != target->local_space)
           {
-            Serializer rez;
+            FieldSpaceRequest rez;
             rez.serialize(handle);
             rez.serialize(to_trigger);
             rez.serialize(source);
-            runtime->send_field_space_request(nearest, rez);
+            rez.dispatch(nearest);
             return;
           }
         }
@@ -3227,13 +3242,14 @@ namespace Legion {
         }
       }
       target->send_node(source);
-      Serializer rez;
+      FieldSpaceReturn rez;
       rez.serialize(to_trigger);
-      runtime->send_field_space_return(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_node_return(Deserializer& derez)
+    /*static*/ void FieldSpaceReturn::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       RtUserEvent to_trigger;
@@ -3242,7 +3258,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_allocator_request(
+    /*static*/ void FieldSpaceAllocatorRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3259,8 +3275,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_allocator_response(
-        Deserializer& derez)
+    /*static*/ void FieldSpaceAllocatorResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3280,8 +3296,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_allocator_invalidation(
-        Deserializer& derez)
+    /*static*/ void FieldSpaceAllocatorInvalidation::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3299,7 +3315,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_allocator_flush(Deserializer& derez)
+    /*static*/ void FieldSpaceAllocatorFlush::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3317,7 +3334,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_allocator_free(
+    /*static*/ void FieldSpaceAllocatorFree::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3336,13 +3353,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_infos_request(Deserializer& derez)
+    /*static*/ void FieldSpaceInfosRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       FieldSpace handle;
       derez.deserialize(handle);
-      std::map<FieldID, FieldInfo>* target;
+      std::map<FieldID, FieldSpaceNode::FieldInfo>* target;
       derez.deserialize(target);
       AddressSpaceID source;
       derez.deserialize(source);
@@ -3354,11 +3372,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_infos_response(Deserializer& derez)
+    /*static*/ void FieldSpaceInfosResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      std::map<FieldID, FieldInfo>* target;
+      std::map<FieldID, FieldSpaceNode::FieldInfo>* target;
       derez.deserialize(target);
       size_t num_infos;
       derez.deserialize(num_infos);
@@ -3568,7 +3587,7 @@ namespace Legion {
           if ((*it) == source)
             continue;
           RtUserEvent remote_done = Runtime::create_rt_user_event();
-          Serializer rez;
+          FieldSpaceLayoutInvalidation rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -3576,7 +3595,7 @@ namespace Legion {
             rez.serialize(remote_done);
           }
           pack_global_ref();
-          runtime->send_field_space_layout_invalidation(*it, rez);
+          rez.dispatch(*it);
           applied.insert(remote_done);
         }
       }
@@ -3654,7 +3673,7 @@ namespace Legion {
             const AddressSpaceID target = *(remote_field_infos.begin());
             if (!to_trigger.exists())
               to_trigger = Runtime::create_rt_user_event();
-            Serializer rez;
+            FieldSpaceInfosRequest rez;
             {
               RezCheck z(rez);
               rez.serialize(handle);
@@ -3662,7 +3681,7 @@ namespace Legion {
               rez.serialize(source);
               rez.serialize(to_trigger);
             }
-            runtime->send_field_space_infos_request(target, rez);
+            rez.dispatch(target);
           }
           else if (allocation_state == FIELD_ALLOC_READ_ONLY)
           {
@@ -3671,7 +3690,7 @@ namespace Legion {
             if (source != local_space)
             {
               legion_assert(to_trigger.exists());
-              Serializer rez;
+              FieldSpaceInfosResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(copy);
@@ -3694,7 +3713,7 @@ namespace Legion {
                   rez.serialize(FieldSpace::NO_SPACE);
                 rez.serialize(to_trigger);
               }
-              runtime->send_field_space_infos_response(source, rez);
+              rez.dispatch(source);
             }
             else
             {
@@ -3715,7 +3734,7 @@ namespace Legion {
             if (source != local_space)
             {
               legion_assert(to_trigger.exists());
-              Serializer rez;
+              FieldSpaceInfosResponse rez;
               {
                 RezCheck z(rez);
                 rez.serialize(copy);
@@ -3730,7 +3749,7 @@ namespace Legion {
                 rez.serialize(FieldSpace::NO_SPACE);
                 rez.serialize(to_trigger);
               }
-              runtime->send_field_space_infos_response(source, rez);
+              rez.dispatch(source);
             }
             else
             {
@@ -3754,7 +3773,7 @@ namespace Legion {
           {
             legion_assert(to_trigger.exists());
             // Send the response back to the source
-            Serializer rez;
+            FieldSpaceInfosResponse rez;
             {
               RezCheck z(rez);
               rez.serialize(copy);
@@ -3770,7 +3789,7 @@ namespace Legion {
               rez.serialize(FieldSpace::NO_SPACE);
               rez.serialize(to_trigger);
             }
-            runtime->send_field_space_infos_response(source, rez);
+            rez.dispatch(source);
           }
           else
           {
@@ -3784,7 +3803,7 @@ namespace Legion {
           // Did not lose the race, send the request back to the owner
           if (!to_trigger.exists())
             to_trigger = Runtime::create_rt_user_event();
-          Serializer rez;
+          FieldSpaceInfosRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(handle);
@@ -3792,7 +3811,7 @@ namespace Legion {
             rez.serialize(source);
             rez.serialize(to_trigger);
           }
-          runtime->send_field_space_infos_request(owner_space, rez);
+          rez.dispatch(owner_space);
         }
       }
       return to_trigger;
@@ -3863,7 +3882,7 @@ namespace Legion {
           (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
           (allocation_state == FIELD_ALLOC_COLLECTIVE) ||
           (allocation_state == FIELD_ALLOC_READ_ONLY));
-      Serializer rez;
+      FieldSpaceAllocatorFlush rez;
       // It's possible to be in the read-only state even with a flush because
       // of ships passing in the night. We get sent an invalidation, but we
       // already released our allocator and sent it back to the owner so we are
@@ -3926,7 +3945,7 @@ namespace Legion {
         }
         rez.serialize(done_event);
       }
-      runtime->send_field_space_allocator_flush(owner_space, rez);
+      rez.dispatch(owner_space);
       // back to the invalid state
       allocation_state = FIELD_ALLOC_INVALID;
     }

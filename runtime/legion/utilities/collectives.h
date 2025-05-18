@@ -276,13 +276,15 @@ namespace Legion {
     public:
       struct DeferCollectiveArgs : public LgTaskArgs<DeferCollectiveArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_COLLECTIVE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_COLLECTIVE_TASK_ID;
       public:
+        DeferCollectiveArgs(void) = default;
         DeferCollectiveArgs(ShardCollective* c)
           : LgTaskArgs(implicit_provenance), collective(c)
         { }
+        void execute(void) const;
       public:
-        ShardCollective* const collective;
+        ShardCollective* collective;
       };
     public:
       ShardCollective(CollectiveIndexLocation loc, ReplicateContext* ctx);
@@ -294,7 +296,6 @@ namespace Legion {
       virtual RtEvent perform_collective_wait(bool block = false) = 0;
       virtual void handle_collective_message(Deserializer& derez) = 0;
       void perform_collective_sync(RtEvent pre = RtEvent::NO_RT_EVENT);
-      static void handle_deferred_collective(const void* args);
     protected:
       bool defer_collective_async(RtEvent precondition);
       int convert_to_index(ShardID id, ShardID origin) const;

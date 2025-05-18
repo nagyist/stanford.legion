@@ -153,9 +153,6 @@ namespace Legion {
     public:
       static AddressSpaceID get_owner_space(LayoutConstraintID layout_id);
     public:
-      static void process_request(Deserializer& derez, AddressSpaceID source);
-      static void process_response(Deserializer& derez, AddressSpaceID source);
-    public:
       const LayoutConstraintID layout_id;
       const FieldSpace handle;
       // True if this layout constraint object was made by the runtime

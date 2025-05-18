@@ -32,17 +32,19 @@ namespace Legion {
       struct DeferReductionViewArgs
         : public LgTaskArgs<DeferReductionViewArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_REDUCTION_VIEW_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_REDUCTION_VIEW_TASK_ID;
       public:
+        DeferReductionViewArgs(void) = default;
         DeferReductionViewArgs(
             DistributedID d, PhysicalManager* m, AddressSpaceID log)
           : LgTaskArgs<DeferReductionViewArgs>(implicit_provenance), did(d),
             manager(m), logical_owner(log)
         { }
+        void execute(void) const;
       public:
-        const DistributedID did;
-        PhysicalManager* const manager;
-        const AddressSpaceID logical_owner;
+        DistributedID did;
+        PhysicalManager* manager;
+        AddressSpaceID logical_owner;
       };
     public:
       ReductionView(
@@ -58,8 +60,6 @@ namespace Legion {
       virtual ReductionOpID get_redop(void) const;
       virtual FillView* get_redop_fill_view(void) const { return fill_view; }
     public:
-      static void handle_send_reduction_view(Deserializer& derez);
-      static void handle_defer_reduction_view(const void* args);
       static void create_remote_view(
           DistributedID did, PhysicalManager* manager,
           AddressSpaceID logical_owner);

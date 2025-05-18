@@ -116,18 +116,21 @@ namespace Legion {
     public:
       struct TriggerTaskArgs : public LgTaskArgs<TriggerTaskArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_TRIGGER_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_TRIGGER_TASK_ID;
       public:
+        TriggerTaskArgs(void) = default;
         TriggerTaskArgs(TaskOp* t)
           : LgTaskArgs<TriggerTaskArgs>(t->get_unique_op_id()), op(t)
         { }
+        inline void execute(void) const { op->trigger_mapping(); }
       public:
-        TaskOp* const op;
+        TaskOp* op;
       };
       struct DeferMappingArgs : public LgTaskArgs<DeferMappingArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_PERFORM_MAPPING_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DEFER_PERFORM_MAPPING_TASK_ID;
       public:
+        DeferMappingArgs(void) = default;
         DeferMappingArgs(
             TaskOp* op, MustEpochOp* owner, unsigned cnt,
             std::vector<unsigned>* performed, std::vector<ApEvent>* eff)
@@ -135,37 +138,45 @@ namespace Legion {
             proxy_this(op), must_op(owner), invocation_count(cnt),
             performed_regions(performed), effects(eff)
         { }
+        void execute(void) const;
       public:
-        TaskOp* const proxy_this;
-        MustEpochOp* const must_op;
-        const unsigned invocation_count;
-        std::vector<unsigned>* const performed_regions;
-        std::vector<ApEvent>* const effects;
+        TaskOp* proxy_this;
+        MustEpochOp* must_op;
+        unsigned invocation_count;
+        std::vector<unsigned>* performed_regions;
+        std::vector<ApEvent>* effects;
       };
       struct FinalizeOutputEqKDTreeArgs
         : public LgTaskArgs<FinalizeOutputEqKDTreeArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_FINALIZE_OUTPUT_TREE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_FINALIZE_OUTPUT_TREE_TASK_ID;
       public:
+        FinalizeOutputEqKDTreeArgs(void) = default;
         FinalizeOutputEqKDTreeArgs(TaskOp* owner)
           : LgTaskArgs<FinalizeOutputEqKDTreeArgs>(owner->get_unique_op_id()),
             proxy_this(owner)
         { }
+        inline void execute(void) const
+        {
+          proxy_this->finalize_output_region_trees();
+        }
       public:
-        TaskOp* const proxy_this;
+        TaskOp* proxy_this;
       };
       struct DeferTriggerChildrenCommitArgs
         : public LgTaskArgs<DeferTriggerChildrenCommitArgs> {
       public:
-        static const LgTaskID TASK_ID =
+        static constexpr LgTaskID TASK_ID =
             LG_DEFER_TRIGGER_CHILDREN_COMMIT_TASK_ID;
       public:
+        DeferTriggerChildrenCommitArgs(void) = default;
         DeferTriggerChildrenCommitArgs(TaskOp* t)
           : LgTaskArgs<DeferTriggerChildrenCommitArgs>(t->get_unique_op_id()),
             task(t)
         { }
+        inline void execute(void) const { task->trigger_children_committed(); }
       public:
-        TaskOp* const task;
+        TaskOp* task;
       };
     public:
       TaskOp(void);
@@ -303,8 +314,6 @@ namespace Legion {
       // - all commit dependences must be satisfied (trigger_commit)
       // - all children must commit (children_committed)
       virtual void trigger_task_commit(void) = 0;
-    public:
-      static void handle_deferred_children_commit(const void* args);
     protected:
       TaskRequirements logical_regions;
       // Region requirements to check for collective behavior
@@ -340,10 +349,6 @@ namespace Legion {
       // Index for this must epoch op
       unsigned must_epoch_index;
     public:
-      // Static methods
-      static void process_unpack_task(Deserializer& derez);
-      static void process_remote_replay(Deserializer& derez);
-    public:
       static void log_requirement(
           UniqueID uid, unsigned idx, const RegionRequirement& req);
     };
@@ -365,16 +370,19 @@ namespace Legion {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_TASK_IMPL_SEMANTIC_INFO_REQ_TASK_ID;
+        static constexpr LgTaskID TASK_ID =
+            LG_TASK_IMPL_SEMANTIC_INFO_REQ_TASK_ID;
       public:
+        SemanticRequestArgs(void) = default;
         SemanticRequestArgs(TaskImpl* proxy, SemanticTag t, AddressSpaceID src)
           : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
             proxy_this(proxy), tag(t), source(src)
         { }
+        void execute(void) const;
       public:
-        TaskImpl* const proxy_this;
-        const SemanticTag tag;
-        const AddressSpaceID source;
+        TaskImpl* proxy_this;
+        SemanticTag tag;
+        AddressSpaceID source;
       };
     public:
       TaskImpl(TaskID tid, const char* name = nullptr);
@@ -412,13 +420,6 @@ namespace Legion {
         return get_owner_space(task_id);
       }
       static AddressSpaceID get_owner_space(TaskID task_id);
-    public:
-      static void handle_semantic_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_semantic_info(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_variant_request(
-          Deserializer& derez, AddressSpaceID source);
     public:
       const TaskID task_id;
       char* const initial_name;
@@ -483,7 +484,6 @@ namespace Legion {
           const std::vector<RegionRequirement>& regions,
           const std::vector<PhysicalRegion>& physical_regions) const;
     public:
-      static void handle_variant_broadcast(Deserializer& derez);
       static bool check_padding(const TaskLayoutConstraintSet& constraints);
     public:
       const VariantID vid;

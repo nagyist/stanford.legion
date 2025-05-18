@@ -487,8 +487,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalAnalysis::handle_remote_instances(
-        Deserializer& derez)
+    /*static*/ void EquivalenceSetRemoteInstances::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -517,21 +517,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalAnalysis::handle_deferred_traversal(
-        const void* args)
+    void PhysicalAnalysis::DeferPerformTraversalArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferPerformTraversalArgs* dargs =
-          (const DeferPerformTraversalArgs*)args;
       std::set<RtEvent> applied_events;
       Runtime::trigger_event(
-          dargs->done_event,
-          dargs->analysis->perform_traversal(
-              RtEvent::NO_RT_EVENT, *(dargs->version_info), applied_events));
+          done_event, analysis->perform_traversal(
+                          RtEvent::NO_RT_EVENT, *version_info, applied_events));
       if (!applied_events.empty())
-        dargs->analysis->record_deferred_applied_events(applied_events);
-      if (dargs->analysis->on_heap && dargs->analysis->remove_reference())
-        delete dargs->analysis;
+        analysis->record_deferred_applied_events(applied_events);
+      if (analysis->on_heap && analysis->remove_reference())
+        delete analysis;
     }
 
     //--------------------------------------------------------------------------
@@ -551,27 +547,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalAnalysis::handle_deferred_analysis(const void* args)
+    void PhysicalAnalysis::DeferPerformAnalysisArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferPerformAnalysisArgs* dargs =
-          (const DeferPerformAnalysisArgs*)args;
       // Get this before doing anything
-      const bool on_heap = dargs->analysis->on_heap;
+      const bool on_heap = analysis->on_heap;
       std::set<RtEvent> deferral_events, applied_events;
-      dargs->analysis->analyze(
-          dargs->set, *(dargs->mask), deferral_events, applied_events,
-          RtEvent::NO_RT_EVENT, dargs->already_deferred);
+      analysis->analyze(
+          set, *mask, deferral_events, applied_events, RtEvent::NO_RT_EVENT,
+          already_deferred);
       if (!deferral_events.empty())
         Runtime::trigger_event(
-            dargs->done_event, Runtime::merge_events(deferral_events));
+            done_event, Runtime::merge_events(deferral_events));
       else
-        Runtime::trigger_event(dargs->done_event);
+        Runtime::trigger_event(done_event);
       if (!applied_events.empty())
-        dargs->analysis->record_deferred_applied_events(applied_events);
-      if (on_heap && dargs->analysis->remove_reference())
-        delete dargs->analysis;
-      delete dargs->mask;
+        analysis->record_deferred_applied_events(applied_events);
+      if (on_heap && analysis->remove_reference())
+        delete analysis;
+      delete mask;
     }
 
     //--------------------------------------------------------------------------
@@ -586,20 +580,19 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalAnalysis::handle_deferred_remote(const void* args)
+    void PhysicalAnalysis::DeferPerformRemoteArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferPerformRemoteArgs* dargs = (const DeferPerformRemoteArgs*)args;
       std::set<RtEvent> applied_events;
       // Get this before doing anything
-      const bool on_heap = dargs->analysis->on_heap;
-      const RtEvent done = dargs->analysis->perform_remote(
+      const bool on_heap = analysis->on_heap;
+      const RtEvent done = analysis->perform_remote(
           RtEvent::NO_RT_EVENT, applied_events, true /*already deferred*/);
-      Runtime::trigger_event(dargs->done_event, done);
+      Runtime::trigger_event(done_event, done);
       if (!applied_events.empty())
-        dargs->analysis->record_deferred_applied_events(applied_events);
-      if (on_heap && dargs->analysis->remove_reference())
-        delete dargs->analysis;
+        analysis->record_deferred_applied_events(applied_events);
+      if (on_heap && analysis->remove_reference())
+        delete analysis;
     }
 
     //--------------------------------------------------------------------------
@@ -614,20 +607,19 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalAnalysis::handle_deferred_update(const void* args)
+    void PhysicalAnalysis::DeferPerformUpdateArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferPerformUpdateArgs* dargs = (const DeferPerformUpdateArgs*)args;
       std::set<RtEvent> applied_events;
       // Get this before doing anything
-      const bool on_heap = dargs->analysis->on_heap;
-      const RtEvent done = dargs->analysis->perform_updates(
+      const bool on_heap = analysis->on_heap;
+      const RtEvent done = analysis->perform_updates(
           RtEvent::NO_RT_EVENT, applied_events, true /*already deferred*/);
-      Runtime::trigger_event(dargs->done_event, done);
+      Runtime::trigger_event(done_event, done);
       if (!applied_events.empty())
-        dargs->analysis->record_deferred_applied_events(applied_events);
-      if (on_heap && dargs->analysis->remove_reference())
-        delete dargs->analysis;
+        analysis->record_deferred_applied_events(applied_events);
+      if (on_heap && analysis->remove_reference())
+        delete analysis;
     }
 
     //--------------------------------------------------------------------------
@@ -647,26 +639,21 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalAnalysis::handle_deferred_registration(
-        const void* args)
+    void PhysicalAnalysis::DeferPerformRegistrationArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferPerformRegistrationArgs* dargs =
-          (const DeferPerformRegistrationArgs*)args;
       ApEvent insts_ready;
       std::set<RtEvent> applied_events;
-      const RtEvent done = dargs->analysis->perform_registration(
-          RtEvent::NO_RT_EVENT, dargs->usage, applied_events,
-          dargs->precondition, dargs->termination, insts_ready,
-          dargs->symbolic);
+      const RtEvent done = analysis->perform_registration(
+          RtEvent::NO_RT_EVENT, usage, applied_events, precondition,
+          termination, insts_ready, symbolic);
       Runtime::trigger_event(
-          dargs->instances_ready, insts_ready, *(dargs->trace_info),
-          applied_events);
-      Runtime::trigger_event(dargs->done_event, done);
+          instances_ready, insts_ready, *trace_info, applied_events);
+      Runtime::trigger_event(done_event, done);
       if (!applied_events.empty())
-        dargs->analysis->record_deferred_applied_events(applied_events);
-      if (dargs->analysis->on_heap && dargs->analysis->remove_reference())
-        delete dargs->analysis;
+        analysis->record_deferred_applied_events(applied_events);
+      if (analysis->on_heap && analysis->remove_reference())
+        delete analysis;
     }
 
     //--------------------------------------------------------------------------
@@ -684,21 +671,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalAnalysis::handle_deferred_output(const void* args)
+    void PhysicalAnalysis::DeferPerformOutputArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferPerformOutputArgs* dargs = (const DeferPerformOutputArgs*)args;
       std::set<RtEvent> applied_events;
-      const bool on_heap = dargs->analysis->on_heap;
-      const ApEvent result = dargs->analysis->perform_output(
+      const bool on_heap = analysis->on_heap;
+      const ApEvent result = analysis->perform_output(
           RtEvent::NO_RT_EVENT, applied_events, true /*already deferred*/);
-      if (dargs->effects_event.exists())
+      if (effects_event.exists())
         Runtime::trigger_event(
-            dargs->effects_event, result, *(dargs->trace_info), applied_events);
+            effects_event, result, *trace_info, applied_events);
       if (!applied_events.empty())
-        dargs->analysis->record_deferred_applied_events(applied_events);
-      if (on_heap && dargs->analysis->remove_reference())
-        delete dargs->analysis;
+        analysis->record_deferred_applied_events(applied_events);
+      if (on_heap && analysis->remove_reference())
+        delete analysis;
     }
 
   }  // namespace Internal

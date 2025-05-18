@@ -60,41 +60,51 @@ namespace Legion {
       struct ContributeCollectiveArgs
         : public LgTaskArgs<ContributeCollectiveArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_CONTRIBUTE_COLLECTIVE_ID;
+        static constexpr LgTaskID TASK_ID = LG_CONTRIBUTE_COLLECTIVE_ID;
       public:
+        ContributeCollectiveArgs(void) = default;
         ContributeCollectiveArgs(FutureImpl* i, DynamicCollective d, unsigned c)
           : LgTaskArgs<ContributeCollectiveArgs>(implicit_provenance), impl(i),
             dc(d), count(c)
         { }
+        void execute(void) const;
       public:
-        FutureImpl* const impl;
-        const DynamicCollective dc;
-        const unsigned count;
+        FutureImpl* impl;
+        DynamicCollective dc;
+        unsigned count;
       };
       struct FutureCallbackArgs : public LgTaskArgs<FutureCallbackArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_FUTURE_CALLBACK_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_FUTURE_CALLBACK_TASK_ID;
+        static constexpr bool IS_APPLICATION_TASK = true;
       public:
+        FutureCallbackArgs(void) = default;
         FutureCallbackArgs(FutureImpl* i);
+        void execute(void) const;
       public:
-        FutureImpl* const impl;
+        FutureImpl* impl;
       };
       struct CallbackReleaseArgs : public LgTaskArgs<CallbackReleaseArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_CALLBACK_RELEASE_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_CALLBACK_RELEASE_TASK_ID;
+        static constexpr bool IS_APPLICATION_TASK = true;
       public:
+        CallbackReleaseArgs(void) = default;
         CallbackReleaseArgs(FutureFunctor* functor, bool own_functor);
+        void execute(void) const;
       public:
-        FutureFunctor* const functor;
-        const bool own_functor;
+        FutureFunctor* functor;
+        bool own_functor;
       };
       struct FutureBroadcastArgs : public LgTaskArgs<FutureBroadcastArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_FUTURE_BROADCAST_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_FUTURE_BROADCAST_TASK_ID;
       public:
+        FutureBroadcastArgs(void) = default;
         FutureBroadcastArgs(FutureImpl* i);
+        void execute(void) const;
       public:
-        FutureImpl* const impl;
+        FutureImpl* impl;
       };
       struct PendingInstance {
       public:
@@ -231,6 +241,7 @@ namespace Legion {
       void register_dependence(Operation* consumer_op);
       void register_remote(AddressSpaceID sid);
       void set_future_result_size(size_t size, AddressSpaceID source);
+      void record_subscription(AddressSpaceID subscriber, bool need_lock);
     protected:
       void finish_set_future(ApEvent complete);  // must be holding lock
       void create_pending_instances(void);       // must be holding lock
@@ -245,7 +256,6 @@ namespace Legion {
       Memory find_best_source(Memory target) const;
       void mark_sampled(void);
       void broadcast_result(void);  // must be holding lock
-      void record_subscription(AddressSpaceID subscriber, bool need_lock);
     protected:
       RtEvent invoke_callback(void);  // must be holding lock
       void perform_callback(void);
@@ -254,21 +264,9 @@ namespace Legion {
       void pack_future_result(Serializer& rez, AddressSpaceID target);
     public:
       RtEvent record_future_registered(bool has_global_reference);
-      static void handle_future_result(Deserializer& derez);
-      static void handle_future_result_size(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_future_subscription(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_future_create_instance_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_future_create_instance_response(Deserializer& derez);
     public:
       void contribute_to_collective(
           const DynamicCollective& dc, unsigned count);
-      static void handle_contribute_to_collective(const void* args);
-      static void handle_callback(const void* args);
-      static void handle_release(const void* args);
-      static void handle_broadcast(const void* args);
     public:
       TaskContext* const context;
       // These three fields are only valid on the owner node
@@ -363,27 +361,33 @@ namespace Legion {
       struct DeferDeleteFutureInstanceArgs
         : public LgTaskArgs<DeferDeleteFutureInstanceArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DEFER_DELETE_FUTURE_INSTANCE_TASK_ID;
+        static constexpr LgTaskID TASK_ID =
+            LG_DEFER_DELETE_FUTURE_INSTANCE_TASK_ID;
       public:
+        DeferDeleteFutureInstanceArgs(void) = default;
         DeferDeleteFutureInstanceArgs(FutureInstance* inst)
           : LgTaskArgs<DeferDeleteFutureInstanceArgs>(implicit_provenance),
             instance(inst)
         { }
+        void execute(void) const;
       public:
-        FutureInstance* const instance;
+        FutureInstance* instance;
       };
       struct FreeExternalArgs : public LgTaskArgs<FreeExternalArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_FREE_EXTERNAL_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_FREE_EXTERNAL_TASK_ID;
+        static constexpr bool IS_APPLICATION_TASK = true;
       public:
+        FreeExternalArgs(void) = default;
         FreeExternalArgs(
             const Realm::ExternalInstanceResource* r,
             void (*func)(const Realm::ExternalInstanceResource&),
             PhysicalInstance inst);
+        void execute(void) const;
       public:
-        const Realm::ExternalInstanceResource* const resource;
-        void (* const freefunc)(const Realm::ExternalInstanceResource&);
-        const PhysicalInstance instance;
+        const Realm::ExternalInstanceResource* resource;
+        void (*freefunc)(const Realm::ExternalInstanceResource&);
+        PhysicalInstance instance;
       };
     public:
       FutureInstance(
@@ -444,10 +448,7 @@ namespace Legion {
       static bool check_meta_visible(Memory memory);
       static FutureInstance* create_local(
           const void* value, size_t size, bool own);
-      static void handle_free_external(Deserializer& derez);
-      static void handle_free_external(const void* args);
       static void free_host_memory(const Realm::ExternalInstanceResource& mem);
-      static void handle_defer_deletion(const void* args);
     public:
       const size_t size;
       const Memory memory;

@@ -359,7 +359,7 @@ namespace Legion {
                     collective_mapping->get_parent(owner_space, local_space);
             if (!children.empty() || (parent_space != source))
             {
-              Serializer rez;
+              IndexSpaceSet rez;
               {
                 RezCheck z(rez);
                 if (parent != nullptr)
@@ -379,14 +379,14 @@ namespace Legion {
                        children.begin();
                    it != children.end(); it++)
                 if ((*it) != source)
-                  runtime->send_index_space_set(*it, rez);
+                  rez.dispatch(*it);
               if (parent_space != source)
-                runtime->send_index_space_set(parent_space, rez);
+                rez.dispatch(parent_space);
             }
           }
           else if (!is_owner() && (source == local_space))
           {
-            Serializer rez;
+            IndexSpaceSet rez;
             {
               RezCheck z(rez);
               if (parent != nullptr)
@@ -402,17 +402,16 @@ namespace Legion {
               pack_index_space(rez, 1 /*reference count*/);
             }
             if (collective_mapping != nullptr)
-              runtime->send_index_space_set(
-                  collective_mapping->find_nearest(local_space), rez);
+              rez.dispatch(collective_mapping->find_nearest(local_space));
             else
-              runtime->send_index_space_set(owner_space, rez);
+              rez.dispatch(owner_space);
           }
         }
         if (has_remote_instances())
         {
           // We're the owner, send messages to everyone else that we've
           // sent this node to except the source
-          Serializer rez;
+          IndexSpaceSet rez;
           {
             RezCheck z(rez);
             if (parent != nullptr)

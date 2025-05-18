@@ -17,6 +17,7 @@
 #define __LEGION_COPY_ACROSS_H__
 
 #include "legion/analysis/physical.h"
+#include "legion/managers/message.h"
 #include "legion/tracing/recording.h"
 
 namespace Legion {

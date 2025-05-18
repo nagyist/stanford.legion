@@ -76,9 +76,6 @@ namespace Legion {
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
     public:
-      static void handle_remote_updates(
-          Deserializer& derez, AddressSpaceID previous);
-    public:
       const RegionUsage usage;
       const ApEvent precondition;
       const ApEvent term_event;

@@ -116,28 +116,12 @@ namespace Legion {
           const std::vector<EqKDTree*>& created_trees,
           std::set<RtEvent>& applied_events, const ShardMapping* mapping,
           ShardID source_shard);
-      static void handle_created_region_contexts(Deserializer& derez);
     public:
       const Task* get_parent_task(void);
       inline Provenance* get_provenance(void) { return provenance; }
     public:
       void unpack_local_field_update(Deserializer& derez);
-      static void handle_local_field_update(Deserializer& derez);
-    public:
-      static void handle_context_request(Deserializer& derez);
-      static void handle_context_response(Deserializer& derez);
-      static void handle_physical_request(
-          Deserializer& derez, AddressSpaceID source);
       void set_physical_context_result(unsigned index, InnerContext* result);
-      static void handle_physical_response(Deserializer& derez);
-      static void handle_find_collective_view_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_find_collective_view_response(Deserializer& derez);
-      static void handle_refine_equivalence_sets(Deserializer& derez);
-      static void handle_pointwise_dependence(Deserializer& derez);
-      static void handle_find_trace_local_sets_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_find_trace_local_sets_response(Deserializer& derez);
     protected:
       DistributedID parent_context_did;
       std::atomic<InnerContext*> parent_ctx;

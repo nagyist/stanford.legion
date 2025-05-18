@@ -55,14 +55,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Don't take the lock, it's alright to have duplicate sends
-      Serializer rez;
+      ReductionViewMessage rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
         rez.serialize(manager->did);
         rez.serialize(logical_owner);
       }
-      runtime->send_reduction_view(target, rez);
+      rez.dispatch(target);
       update_remote_instances(target);
     }
 
@@ -74,8 +74,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ReductionView::handle_send_reduction_view(
-        Deserializer& derez)
+    /*static*/ void ReductionViewMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -91,20 +91,19 @@ namespace Legion {
       if (man_ready.exists() && !man_ready.has_triggered())
       {
         // Defer this until the manager is ready
-        DeferReductionViewArgs args(did, manager, logical_owner);
+        ReductionView::DeferReductionViewArgs args(did, manager, logical_owner);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_RESPONSE_PRIORITY, man_ready);
       }
       else
-        create_remote_view(did, manager, logical_owner);
+        ReductionView::create_remote_view(did, manager, logical_owner);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ReductionView::handle_defer_reduction_view(const void* args)
+    void ReductionView::DeferReductionViewArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferReductionViewArgs* dargs = (const DeferReductionViewArgs*)args;
-      create_remote_view(dargs->did, dargs->manager, dargs->logical_owner);
+      create_remote_view(did, manager, logical_owner);
     }
 
     //--------------------------------------------------------------------------

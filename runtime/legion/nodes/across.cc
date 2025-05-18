@@ -271,22 +271,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CopyAcrossExecutor::handle_deferred_copy_across(
-        const void* args)
+    void CopyAcrossExecutor::DeferCopyAcrossArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferCopyAcrossArgs* dargs = (const DeferCopyAcrossArgs*)args;
       // Dummy trace info since we can't be tracing if we're here
-      const PhysicalTraceInfo trace_info(dargs->op, -1U);
+      const PhysicalTraceInfo trace_info(op, -1U);
       Runtime::trigger_event_untraced(
-          dargs->done_event,
-          dargs->executor->execute(
-              dargs->op, dargs->guard, dargs->copy_precondition,
-              dargs->src_indirect_precondition,
-              dargs->dst_indirect_precondition, trace_info, dargs->replay,
-              dargs->recurrent_replay, dargs->stage));
-      if (dargs->executor->remove_reference())
-        delete dargs->executor;
+          done_event, executor->execute(
+                          op, guard, copy_precondition,
+                          src_indirect_precondition, dst_indirect_precondition,
+                          trace_info, replay, recurrent_replay, stage));
+      if (executor->remove_reference())
+        delete executor;
     }
 
     /////////////////////////////////////////////////////////////

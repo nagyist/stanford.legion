@@ -71,6 +71,12 @@ namespace Legion {
           const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           const uint64_t allreduce_tag);
+      void process_distribute_allreduce(
+          const uint64_t allreduce_tag, const int src_rank, const int stage,
+          std::vector<CopySrcDstField>& src_fields,
+          const ApEvent src_precondition, ApUserEvent src_postcondition,
+          ApBarrier src_barrier, ShardID bar_shard, const UniqueInst& src_inst,
+          const LgEvent src_unique_event);
       uint64_t generate_unique_allreduce_tag(void);
     protected:
       inline void set_redop(std::vector<CopySrcDstField>& fields) const
@@ -165,12 +171,6 @@ namespace Legion {
           const std::vector<Reservation>& reservations,
           const int* expected_ranks, size_t total_ranks,
           std::vector<ApEvent>& reduce_events);
-      void process_distribute_allreduce(
-          const uint64_t allreduce_tag, const int src_rank, const int stage,
-          std::vector<CopySrcDstField>& src_fields,
-          const ApEvent src_precondition, ApUserEvent src_postcondition,
-          ApBarrier src_barrier, ShardID bar_shard, const UniqueInst& src_inst,
-          const LgEvent src_unique_event);
       void reduce_local(
           const PhysicalManager* dst_manager, const unsigned dst_index,
           Operation* op, const unsigned index, IndexSpaceExpression* copy_expr,
@@ -185,14 +185,6 @@ namespace Legion {
           std::set<RtEvent>* recorded_events = nullptr,
           const bool prepare_allreduce = false,
           std::vector<std::vector<CopySrcDstField> >* src_fields = nullptr);
-    public:
-      static void handle_send_allreduce_view(Deserializer& derez);
-      static void handle_distribute_reduction(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_hammer_reduction(
-          AddressSpaceID source, Deserializer& derez);
-      static void handle_distribute_allreduce(
-          AddressSpaceID source, Deserializer& derez);
     public:
       const ReductionOpID redop;
       const ReductionOp* const reduction_op;

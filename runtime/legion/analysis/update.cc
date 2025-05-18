@@ -133,7 +133,7 @@ namespace Legion {
         const AddressSpaceID target = rit->first;
         const RtUserEvent updated = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        RemoteUpdateAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
@@ -185,7 +185,7 @@ namespace Legion {
           rez.serialize<bool>(check_initialized);
           rez.serialize<bool>(record_valid);
         }
-        runtime->send_equivalence_set_remote_updates(target, rez);
+        rez.dispatch(target);
         remote_events.insert(updated);
         applied_events.insert(applied);
       }
@@ -320,7 +320,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void UpdateAnalysis::handle_remote_updates(
+    /*static*/ void RemoteUpdateAnalysis::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {

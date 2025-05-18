@@ -87,10 +87,6 @@ namespace Legion {
       void process_future_response(Deserializer& derez);
     public:
       void record_future_map_registered(void);
-      static void handle_future_map_future_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_future_map_future_response(Deserializer& derez);
-      static void handle_future_map_find_pointwise(Deserializer& derez);
     public:
       TaskContext* const context;
       // Either an index space task or a must epoch op

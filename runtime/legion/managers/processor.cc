@@ -190,7 +190,7 @@ namespace Legion {
       // If the task scheduler is enabled launch ourselves again
       if (task_scheduler_enabled)
       {
-        SchedulerArgs sched_args(local_proc);
+        SchedulerArgs sched_args(this);
         // If we need to recursively run the scheduler then we do so with
         // a lower priority than other meta-tasks to ensure that those other
         // meta tasks can continue to make forward progress and the scheduler
@@ -208,10 +208,23 @@ namespace Legion {
     {
       legion_assert(!outstanding_task_scheduler);
       outstanding_task_scheduler = true;
-      SchedulerArgs sched_args(local_proc);
+      SchedulerArgs sched_args(this);
       // This is waking the scheduler up so give it higher priority in
       // order to ensure that we can get tasks mapped and running sooner
       runtime->issue_runtime_meta_task(sched_args, LG_LATENCY_WORK_PRIORITY);
+    }
+
+    //--------------------------------------------------------------------------
+    void ProcessorManager::SchedulerArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      manager->perform_scheduling();
+#ifdef LEGION_TRACE_ALLOCATION
+      unsigned long long trace_count =
+          runtime->allocation_tracing_count.fetch_add(1);
+      if ((trace_count % LEGION_TRACE_ALLOCATION_FREQUENCY) == 0)
+        runtime->dump_allocation_info();
+#endif
     }
 
     //--------------------------------------------------------------------------
@@ -233,13 +246,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ProcessorManager::handle_defer_mapper(const void* args)
+    void ProcessorManager::DeferMapperSchedulerArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferMapperSchedulerArgs* dargs =
-          (const DeferMapperSchedulerArgs*)args;
-      dargs->proxy_this->notify_deferred_mapper(
-          dargs->map_id, dargs->deferral_event);
+      proxy_this->notify_deferred_mapper(map_id, deferral_event);
     }
 
     //--------------------------------------------------------------------------

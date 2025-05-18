@@ -55,9 +55,6 @@ namespace Legion {
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
     public:
-      static void handle_remote_filters(
-          Deserializer& derez, AddressSpaceID previous);
-    public:
       op::FieldMaskMap<InstanceView> filter_views;
       const bool remove_restriction;
     };

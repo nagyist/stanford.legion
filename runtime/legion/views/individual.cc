@@ -1414,7 +1414,7 @@ namespace Legion {
             {
               const RtUserEvent recorded = Runtime::create_rt_user_event();
               const RtUserEvent applied = Runtime::create_rt_user_event();
-              Serializer rez;
+              CollectiveDistributeReduction rez;
               {
                 RezCheck z(rez);
                 rez.serialize(allreduce->did);
@@ -1457,7 +1457,7 @@ namespace Legion {
                 rez.serialize(origin);
                 rez.serialize(COLLECTIVE_REDUCTION);
               }
-              runtime->send_collective_distribute_reduction(origin, rez);
+              rez.dispatch(origin);
               recorded_events.insert(recorded);
               applied_events.insert(applied);
             }
@@ -1493,7 +1493,7 @@ namespace Legion {
             {
               const RtUserEvent recorded = Runtime::create_rt_user_event();
               const RtUserEvent applied = Runtime::create_rt_user_event();
-              Serializer rez;
+              CollectiveHammerReduction rez;
               {
                 RezCheck z(rez);
                 rez.serialize(allreduce->did);
@@ -1531,7 +1531,7 @@ namespace Legion {
                 }
                 rez.serialize(origin);
               }
-              runtime->send_collective_hammer_reduction(origin, rez);
+              rez.dispatch(origin);
               recorded_events.insert(recorded);
               applied_events.insert(applied);
             }
@@ -1559,7 +1559,7 @@ namespace Legion {
             const RtUserEvent recorded = Runtime::create_rt_user_event();
             const RtUserEvent applied = Runtime::create_rt_user_event();
             ApUserEvent to_trigger = Runtime::create_ap_user_event(&trace_info);
-            Serializer rez;
+            CollectiveDistributePoint rez;
             {
               RezCheck z(rez);
               rez.serialize(collective->did);
@@ -1587,7 +1587,7 @@ namespace Legion {
               rez.serialize(applied);
               rez.serialize(to_trigger);
             }
-            runtime->send_collective_distribute_point(origin, rez);
+            rez.dispatch(origin);
             recorded_events.insert(recorded);
             applied_events.insert(applied);
             result = to_trigger;
@@ -1661,7 +1661,7 @@ namespace Legion {
           ready_event = Runtime::create_ap_user_event(&trace_info);
           RtUserEvent registered_event = Runtime::create_rt_user_event();
           RtUserEvent applied_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          ViewRegisterUser rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1680,7 +1680,7 @@ namespace Legion {
             rez.serialize(applied_event);
             trace_info.pack_trace_info(rez);
           }
-          runtime->send_view_register_user(logical_owner, rez);
+          rez.dispatch(logical_owner);
           registered.emplace_back(registered_event);
           applied_events.insert(applied_event);
         }
@@ -1741,7 +1741,7 @@ namespace Legion {
           // precondition for the mapping
           ApUserEvent ready_event = Runtime::create_ap_user_event(&trace_info);
           RtUserEvent applied = Runtime::create_rt_user_event();
-          Serializer rez;
+          ViewFindCopyPreMessage rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1755,8 +1755,7 @@ namespace Legion {
             rez.serialize(applied);
             trace_info.pack_trace_info(rez);
           }
-          runtime->send_view_find_copy_preconditions_request(
-              logical_owner, rez);
+          rez.dispatch(logical_owner);
           applied_events.insert(applied);
           result_event = ready_event;
         }
@@ -1806,7 +1805,7 @@ namespace Legion {
         if (source != logical_owner)
         {
           RtUserEvent applied_event = Runtime::create_rt_user_event();
-          Serializer rez;
+          ViewAddCopyUserMessage rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1820,7 +1819,7 @@ namespace Legion {
             rez.serialize(applied_event);
             rez.serialize<bool>(trace_recording);
           }
-          runtime->send_view_add_copy_user(logical_owner, rez);
+          rez.dispatch(logical_owner);
           applied_events.insert(applied_event);
         }
       }
@@ -1850,7 +1849,7 @@ namespace Legion {
       if (logical_owner != local_space)
       {
         const RtUserEvent ready = Runtime::create_rt_user_event();
-        Serializer rez;
+        ViewFindLastUsersRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -1861,7 +1860,7 @@ namespace Legion {
           expr->pack_expression(rez, logical_owner);
           rez.serialize(ready);
         }
-        runtime->send_view_find_last_users_request(logical_owner, rez);
+        rez.dispatch(logical_owner);
         ready_events.emplace_back(ready);
       }
       else
@@ -2491,7 +2490,7 @@ namespace Legion {
         legion_assert(analysis_mapping != nullptr);
         const AddressSpaceID parent =
             analysis_mapping->get_parent(origin, local_space);
-        Serializer rez;
+        CollectiveIndividualRegisterUser rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -2506,7 +2505,7 @@ namespace Legion {
           rez.serialize(registered);
           rez.serialize(applied);
         }
-        runtime->send_collective_individual_register_user(parent, rez);
+        rez.dispatch(parent);
       }
       else
       {
@@ -2608,7 +2607,7 @@ namespace Legion {
         const AddressSpaceID parent =
             to_perform.analysis_mapping->get_parent(origin, local_space);
         std::set<RtEvent> applied_events;
-        Serializer rez;
+        CollectiveIndividualRegisterUser rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -2622,7 +2621,7 @@ namespace Legion {
           rez.serialize(to_perform.registered);
           rez.serialize(to_perform.applied);
         }
-        runtime->send_collective_individual_register_user(parent, rez);
+        rez.dispatch(parent);
         if (!applied_events.empty())
           Runtime::trigger_event(
               to_perform.applied, Runtime::merge_events(applied_events));
@@ -2665,8 +2664,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualView::handle_collective_user_registration(
-        Deserializer& derez)
+    /*static*/ void CollectiveIndividualRegisterUser::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2803,7 +2802,7 @@ namespace Legion {
           // Couldn't find them all so send the request to the owner
           if (!to_trigger.exists())
             to_trigger = Runtime::create_rt_user_event();
-          Serializer rez;
+          AtomicReservationRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -2812,7 +2811,7 @@ namespace Legion {
             rez.serialize(source);
             rez.serialize(to_trigger);
           }
-          runtime->send_atomic_reservation_request(logical_owner, rez);
+          rez.dispatch(logical_owner);
           return to_trigger;
         }
       }
@@ -2820,7 +2819,7 @@ namespace Legion {
       {
         legion_assert(to_trigger.exists());
         // Send the result back to the source
-        Serializer rez;
+        AtomicReservationResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -2832,7 +2831,7 @@ namespace Legion {
             rez.serialize(*it);
           rez.serialize(to_trigger);
         }
-        runtime->send_atomic_reservation_response(source, rez);
+        rez.dispatch(source);
       }
       else
       {
@@ -2857,8 +2856,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualView::handle_atomic_reservation_request(
-        Deserializer& derez)
+    /*static*/ void AtomicReservationRequest::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2882,8 +2881,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualView::handle_atomic_reservation_response(
-        Deserializer& derez)
+    /*static*/ void AtomicReservationResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2910,7 +2909,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualView::handle_view_find_copy_pre_request(
+    /*static*/ void ViewFindCopyPreMessage::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2957,7 +2956,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void IndividualView::handle_view_add_copy_user(
+    /*static*/ void ViewAddCopyUserMessage::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3003,7 +3002,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void IndividualView::handle_view_find_last_users_request(
+    /*static*/ void ViewFindLastUsersRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -3040,7 +3039,7 @@ namespace Legion {
       inst_view->find_last_users(manager, result, usage, mask, expr, applied);
       if (!result.empty())
       {
-        Serializer rez;
+        ViewFindLastUsersResponse rez;
         {
           RezCheck z2(rez);
           rez.serialize(target);
@@ -3054,7 +3053,7 @@ namespace Legion {
           else
             rez.serialize(RtEvent::NO_RT_EVENT);
         }
-        runtime->send_view_find_last_users_response(source, rez);
+        rez.dispatch(source);
       }
       else
       {
@@ -3066,8 +3065,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void IndividualView::handle_view_find_last_users_response(
-        Deserializer& derez)
+    /*static*/ void ViewFindLastUsersResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

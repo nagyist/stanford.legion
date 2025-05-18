@@ -748,15 +748,14 @@ namespace Legion {
       {
         if (it->second != runtime->address_space)
         {
-          Serializer rez;
+          IndividualTaskConcurrentResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(it->first);
             rez.serialize(concurrent_lamport_clock);
             rez.serialize(concurrent_poisoned);
           }
-          runtime->send_individual_concurrent_allreduce_response(
-              it->second, rez);
+          rez.dispatch(it->second);
         }
         else
           it->first->finish_concurrent_allreduce(
@@ -770,7 +769,7 @@ namespace Legion {
       {
         if (it->second != runtime->address_space)
         {
-          Serializer rez;
+          SliceConcurrentResponse rez;
           {
             RezCheck z(rez);
             rez.serialize(it->first);
@@ -780,7 +779,7 @@ namespace Legion {
             rez.serialize(vid);
             rez.serialize(concurrent_poisoned);
           }
-          runtime->send_slice_concurrent_allreduce_response(it->second, rez);
+          rez.dispatch(it->second);
         }
         else
           it->first->finish_concurrent_allreduce(
@@ -2435,21 +2434,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ReplMustEpochOp::handle_defer_return_resources(
-        const void* args)
+    void ReplMustEpochOp::DeferMustEpochReturnResourcesArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferMustEpochReturnResourcesArgs* dargs =
-          (const DeferMustEpochReturnResourcesArgs*)args;
       std::set<RtEvent> preconditions;
-      dargs->op->return_resources(
-          dargs->op->get_context(), dargs->op->get_context_index(),
-          preconditions);
+      op->return_resources(
+          op->get_context(), op->get_context_index(), preconditions);
       if (!preconditions.empty())
-        Runtime::trigger_event(
-            dargs->done, Runtime::merge_events(preconditions));
+        Runtime::trigger_event(done, Runtime::merge_events(preconditions));
       else
-        Runtime::trigger_event(dargs->done);
+        Runtime::trigger_event(done);
     }
 
     //--------------------------------------------------------------------------

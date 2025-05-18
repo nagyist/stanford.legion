@@ -355,7 +355,7 @@ namespace Legion {
         // in the collective mapping though
         std::atomic<DistributedID> view_did(0);
         RtUserEvent ready = Runtime::create_rt_user_event();
-        Serializer rez;
+        CreateTopViewRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -366,7 +366,7 @@ namespace Legion {
           rez.serialize(ready);
         }
         AddressSpaceID target = mapping->get_parent(owner_space, local_space);
-        runtime->send_create_top_view_request(target, rez);
+        rez.dispatch(target);
         ready.wait();
         // For collective instances each node of the instance serves as its
         // own logical owner view
@@ -379,7 +379,7 @@ namespace Legion {
         // to the owner to make the logical view and send back the result
         std::atomic<DistributedID> view_did(0);
         RtUserEvent ready = Runtime::create_rt_user_event();
-        Serializer rez;
+        CreateTopViewRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -389,7 +389,7 @@ namespace Legion {
           rez.serialize(&view_did);
           rez.serialize(ready);
         }
-        runtime->send_create_top_view_request(owner_space, rez);
+        rez.dispatch(owner_space);
         ready.wait();
         RtEvent view_ready;
         result = static_cast<IndividualView*>(
@@ -534,7 +534,7 @@ namespace Legion {
       else
       {
         const RtEvent applied = Runtime::create_rt_user_event();
-        Serializer rez;
+        GarbageCollectionRecordEvent rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -542,13 +542,14 @@ namespace Legion {
           rez.serialize(applied);
         }
         pack_global_ref();
-        runtime->send_gc_record_event(owner_space, rez);
+        rez.dispatch(owner_space);
         applied_events.insert(applied);
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_record_event(Deserializer& derez)
+    /*static*/ void GarbageCollectionRecordEvent::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -780,7 +781,7 @@ namespace Legion {
         // Send a message to check that we can safely do the acquire
         const RtUserEvent done = Runtime::create_rt_user_event();
         std::atomic<bool> result(true);
-        Serializer rez;
+        GarbageCollectionDebugRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -788,7 +789,7 @@ namespace Legion {
           rez.serialize(done);
         }
         pack_global_ref();
-        runtime->send_gc_debug_request(owner_space, rez);
+        rez.dispatch(owner_space);
         if (!done.has_triggered())
           done.wait();
         if (!result.load())
@@ -811,7 +812,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_debug_request(
+    /*static*/ void GarbageCollectionDebugRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -836,13 +837,13 @@ namespace Legion {
       else
       {
         // If we get here, we failed so send the response
-        Serializer rez;
+        GarbageCollectionDebugResponse rez;
         {
           RezCheck z2(rez);
           rez.serialize(target);
           rez.serialize(done);
         }
-        runtime->send_gc_debug_response(source, rez);
+        rez.dispatch(source);
       }
       manager->unpack_global_ref();
 #else
@@ -851,8 +852,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_debug_response(
-        Deserializer& derez)
+    /*static*/ void GarbageCollectionDebugResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_DEBUG
@@ -957,7 +958,7 @@ namespace Legion {
       legion_assert(!is_owner());
       std::atomic<bool> result(false);
       const RtUserEvent ready = Runtime::create_rt_user_event();
-      Serializer rez;
+      GarbageCollectionAcquireRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -965,7 +966,7 @@ namespace Legion {
         rez.serialize(&result);
         rez.serialize(ready);
       }
-      runtime->send_acquire_request(owner_space, rez);
+      rez.dispatch(owner_space);
       ready.wait();
       if (result.load())
       {
@@ -1012,7 +1013,7 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_acquire_request(
+    /*static*/ void GarbageCollectionAcquireRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1031,14 +1032,14 @@ namespace Legion {
       if (manager->acquire_instance(REMOTE_DID_REF))
       {
         // We succeeded so send the response back with the reference
-        Serializer rez;
+        GarbageCollectionAcquireResponse rez;
         {
           RezCheck z(rez);
           rez.serialize(remote);
           rez.serialize(result);
           rez.serialize(ready);
         }
-        runtime->send_acquire_response(source, rez);
+        rez.dispatch(source);
         // Wait for the result to be applied and then remove
         // the reference that we acquired on this node
         ready.wait();
@@ -1052,7 +1053,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_acquire_response(
+    /*static*/ void GarbageCollectionAcquireResponse::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1113,7 +1114,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_request(
+    /*static*/ void GarbageCollectionRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1135,7 +1136,7 @@ namespace Legion {
       PhysicalInstance hole_instance = PhysicalInstance::NO_INST;
       if (manager->collect(ready, (hole == nullptr) ? nullptr : &hole_instance))
       {
-        Serializer rez;
+        GarbageCollectionResponse rez;
         {
           RezCheck z2(rez);
           rez.serialize(result);
@@ -1146,7 +1147,7 @@ namespace Legion {
             rez.serialize(hole_instance);
           rez.serialize(done);
         }
-        runtime->send_gc_response(source, rez);
+        rez.dispatch(source);
       }
       else  // Couldn't collect so we are done
         Runtime::trigger_event(done);
@@ -1154,8 +1155,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_response(
-        Deserializer& derez)
+    /*static*/ void GarbageCollectionResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1176,8 +1177,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_acquire(
-        Deserializer& derez)
+    /*static*/ void GarbageCollectionAcquire::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1198,13 +1199,13 @@ namespace Legion {
       uint64_t sent_valid = 0, received_valid = 0;
       if (!manager->acquire_collect(gc_events, sent_valid, received_valid))
       {
-        Serializer rez;
+        GarbageCollectionFailed rez;
         {
           RezCheck z(rez);
           rez.serialize(target);
           rez.serialize(done);
         }
-        runtime->send_gc_failed(owner, rez);
+        rez.dispatch(owner);
       }
       else
       {
@@ -1223,7 +1224,7 @@ namespace Legion {
         if (sent_valid != received_valid)
         {
           const RtUserEvent notified = Runtime::create_rt_user_event();
-          Serializer rez;
+          GarbageCollectionMismatch rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1231,7 +1232,7 @@ namespace Legion {
             rez.serialize(received_valid);
             rez.serialize(notified);
           }
-          runtime->send_gc_mismatch(owner, rez);
+          rez.dispatch(owner);
           ready_events.insert(notified);
         }
         const AddressSpaceID local = manager->local_space;
@@ -1249,14 +1250,14 @@ namespace Legion {
                  it != children.end(); it++)
             {
               const RtUserEvent child_done = Runtime::create_rt_user_event();
-              Serializer rez;
+              GarbageCollectionAcquire rez;
               {
                 RezCheck z(rez);
                 rez.serialize(did);
                 rez.serialize(target);
                 rez.serialize(child_done);
               }
-              runtime->send_gc_acquire(*it, rez);
+              rez.dispatch(*it);
               ready_events.insert(child_done);
             }
           }
@@ -1269,8 +1270,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_failed(
-        Deserializer& derez)
+    /*static*/ void GarbageCollectionFailed::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1296,8 +1297,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_mismatch(
-        Deserializer& derez)
+    /*static*/ void GarbageCollectionMismatch::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1316,8 +1317,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_notify(
-        Deserializer& derez)
+    /*static*/ void GarbageCollectionNotification::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1344,7 +1345,7 @@ namespace Legion {
         collective_mapping->get_children(owner_space, local_space, children);
         if (!children.empty())
         {
-          Serializer rez;
+          GarbageCollectionNotification rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1354,7 +1355,7 @@ namespace Legion {
                it != children.end(); it++)
           {
             pack_global_ref();
-            runtime->send_gc_notify(*it, rez);
+            rez.dispatch(*it);
           }
         }
       }
@@ -1469,14 +1470,14 @@ namespace Legion {
                  it != children.end(); it++)
             {
               const RtUserEvent ready_event = Runtime::create_rt_user_event();
-              Serializer rez;
+              GarbageCollectionAcquire rez;
               {
                 RezCheck z(rez);
                 rez.serialize(did);
                 rez.serialize(&failed_collection_count);
                 rez.serialize(ready_event);
               }
-              runtime->send_gc_acquire(*it, rez);
+              rez.dispatch(*it);
               ready_events.emplace_back(ready_event);
             }
           }
@@ -1494,14 +1495,14 @@ namespace Legion {
                 if (target == runtime->address_space)
                   return;
                 const RtUserEvent ready_event = Runtime::create_rt_user_event();
-                Serializer rez;
+                GarbageCollectionAcquire rez;
                 {
                   RezCheck z(rez);
                   rez.serialize(did);
                   rez.serialize(count);
                   rez.serialize(ready_event);
                 }
-                runtime->send_gc_acquire(target, rez);
+                rez.dispatch(target);
                 ready_events.emplace_back(ready_event);
               }
               const DistributedID did;
@@ -1598,12 +1599,12 @@ namespace Legion {
                              children.begin();
                          it != children.end(); it++)
                     {
-                      Serializer rez;
+                      GarbageCollectionNotification rez;
                       {
                         RezCheck z(rez);
                         rez.serialize(did);
                       }
-                      runtime->send_gc_notify(*it, rez);
+                      rez.dispatch(*it);
                     }
                   }
                 }
@@ -1616,12 +1617,12 @@ namespace Legion {
                     {
                       if (target == runtime->address_space)
                         return;
-                      Serializer rez;
+                      GarbageCollectionNotification rez;
                       {
                         RezCheck z(rez);
                         rez.serialize(did);
                       }
-                      runtime->send_gc_notify(target, rez);
+                      rez.dispatch(target);
                       count++;
                     }
                     const DistributedID did;
@@ -1666,7 +1667,7 @@ namespace Legion {
         // Send it to the owner to check
         std::atomic<bool> result(false);
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        GarbageCollectionRequest rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -1676,7 +1677,7 @@ namespace Legion {
           rez.serialize(done);
         }
         pack_global_ref();
-        runtime->send_gc_request(owner_space, rez);
+        rez.dispatch(owner_space);
         done.wait();
         i_lock->reacquire();
         return result.load();
@@ -1846,7 +1847,7 @@ namespace Legion {
       else
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
-        Serializer rez;
+        GarbageCollectionPriorityUpdate rez;
         {
           RezCheck z(rez);
           rez.serialize(did);
@@ -1855,7 +1856,7 @@ namespace Legion {
           rez.serialize<bool>(false);  // broadcast
         }
         pack_global_ref();
-        runtime->send_gc_priority_update(owner_space, rez);
+        rez.dispatch(owner_space);
         updated = done;
       }
       if (remove_never_reference && remove_base_valid_ref(NEVER_GC_REF))
@@ -1865,7 +1866,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_garbage_collection_priority_update(
+    /*static*/ void GarbageCollectionPriorityUpdate::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1906,7 +1907,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_manager_request(Deserializer& derez)
+    /*static*/ void ManagerRequestMessage::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1941,7 +1943,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_top_view_request(
+    /*static*/ void CreateTopViewRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -1969,13 +1971,13 @@ namespace Legion {
       // See if we're ready or we need to defer this until later
       if (man_ready.exists() && !man_ready.has_triggered())
       {
-        RemoteCreateViewArgs args(
+        PhysicalManager::RemoteCreateViewArgs args(
             manager, context, logical_owner, mapping, target, source, done);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, man_ready);
         return;
       }
-      process_top_view_request(
+      PhysicalManager::process_top_view_request(
           manager, context, logical_owner, mapping, target, source, done);
       if ((mapping != nullptr) && mapping->remove_reference())
         delete mapping;
@@ -1991,19 +1993,19 @@ namespace Legion {
       // Get the view from the context
       InstanceView* view =
           context->create_instance_top_view(manager, logical, mapping);
-      Serializer rez;
+      CreateTopViewResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(target);
         rez.serialize(view->did);
         rez.serialize(done_event);
       }
-      runtime->send_create_top_view_response(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_top_view_response(
-        Deserializer& derez)
+    /*static*/ void CreateTopViewResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2018,15 +2020,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_top_view_creation(const void* args)
+    void PhysicalManager::RemoteCreateViewArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const RemoteCreateViewArgs* rargs = (const RemoteCreateViewArgs*)args;
       process_top_view_request(
-          rargs->manager, rargs->context, rargs->logical_owner, rargs->mapping,
-          rargs->target, rargs->source, rargs->done_event);
-      if ((rargs->mapping != nullptr) && rargs->mapping->remove_reference())
-        delete rargs->mapping;
+          manager, context, logical_owner, mapping, target, source, done_event);
+      if ((mapping != nullptr) && mapping->remove_reference())
+        delete mapping;
     }
 
     //--------------------------------------------------------------------------
@@ -2080,7 +2080,7 @@ namespace Legion {
       legion_assert(
           (collective_mapping == nullptr) ||
           !collective_mapping->contains(target));
-      Serializer rez;
+      InstanceManagerMessage rez;
       {
         AutoLock lock(inst_lock, 1, false /*exlcusive*/);
         RezCheck z(rez);
@@ -2105,12 +2105,12 @@ namespace Legion {
         rez.serialize(kind);
         pack_garbage_collection_state(rez, target, false /*need lock*/);
       }
-      runtime->send_instance_manager(target, rez);
+      rez.dispatch(target);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_send_manager(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void InstanceManagerMessage::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2149,9 +2149,9 @@ namespace Legion {
           layout_id, false /*can fail*/, &layout_ready);
       ReductionOpID redop;
       derez.deserialize(redop);
-      InstanceKind kind;
+      PhysicalManager::InstanceKind kind;
       derez.deserialize(kind);
-      GarbageCollectionState gc_state;
+      PhysicalManager::GarbageCollectionState gc_state;
       derez.deserialize(gc_state);
 
       if (fs_ready.exists() || layout_ready.exists())
@@ -2161,7 +2161,7 @@ namespace Legion {
         if (precondition.exists() && !precondition.has_triggered())
         {
           // We need to defer this instance creation
-          DeferPhysicalManagerArgs args(
+          PhysicalManager::DeferPhysicalManagerArgs args(
               did, mem, inst, inst_footprint, inst_domain, handle, tree_id,
               layout_id, use_event, unique_event, kind, redop, piece_list,
               piece_list_size, gc_state);
@@ -2177,7 +2177,7 @@ namespace Legion {
               runtime->find_layout_constraints(layout_id, false /*can fail*/);
       }
       // If we fall through here we can create the manager now
-      create_remote_manager(
+      PhysicalManager::create_remote_manager(
           did, mem, inst, inst_footprint, inst_domain, piece_list,
           piece_list_size, space_node, tree_id, constraints, use_event,
           unique_event, kind, redop, gc_state);
@@ -2186,12 +2186,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalManager::DeferPhysicalManagerArgs::DeferPhysicalManagerArgs(
         DistributedID d, Memory m, PhysicalInstance i, size_t f,
-        IndexSpaceExpression* lx, FieldSpace h, RegionTreeID tid,
+        IndexSpaceExpression* lx, FieldSpace fs, RegionTreeID tid,
         LayoutConstraintID l, ApEvent use, LgEvent unique, InstanceKind k,
         ReductionOpID r, const void* pl, size_t pl_size,
         GarbageCollectionState gc)
       : LgTaskArgs<DeferPhysicalManagerArgs>(implicit_provenance), did(d),
-        mem(m), inst(i), footprint(f), local_expr(lx), handle(h), tree_id(tid),
+        mem(m), inst(i), footprint(f), local_expr(lx), space(fs), tree_id(tid),
         layout_id(l), use_event(use), unique_event(unique), kind(k), redop(r),
         piece_list(pl), piece_list_size(pl_size), state(gc)
     //--------------------------------------------------------------------------
@@ -2208,32 +2208,25 @@ namespace Legion {
     { }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_defer_manager(const void* args)
+    void PhysicalManager::DeferPhysicalManagerArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferPhysicalManagerArgs* dargs =
-          (const DeferPhysicalManagerArgs*)args;
-      FieldSpaceNode* space_node = runtime->get_node(dargs->handle);
+      FieldSpaceNode* space_node = runtime->get_node(space);
       LayoutConstraints* constraints =
-          runtime->find_layout_constraints(dargs->layout_id);
+          runtime->find_layout_constraints(layout_id);
       create_remote_manager(
-          dargs->did, dargs->mem, dargs->inst, dargs->footprint,
-          dargs->local_expr, dargs->piece_list, dargs->piece_list_size,
-          space_node, dargs->tree_id, constraints, dargs->use_event,
-          dargs->unique_event, dargs->kind, dargs->redop, dargs->state);
+          did, mem, inst, footprint, local_expr, piece_list, piece_list_size,
+          space_node, tree_id, constraints, use_event, unique_event, kind,
+          redop, state);
       // Remove the local expression reference if necessary
-      if (dargs->local_expr->remove_base_expression_reference(META_TASK_REF))
-        delete dargs->local_expr;
+      if (local_expr->remove_base_expression_reference(META_TASK_REF))
+        delete local_expr;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_defer_perform_deletion(
-        const void* args)
+    void PhysicalManager::DeferDeletePhysicalManager::execute(void) const
     //--------------------------------------------------------------------------
     {
-      const DeferDeletePhysicalManager* dargs =
-          (const DeferDeletePhysicalManager*)args;
-      PhysicalManager* manager = dargs->manager;
       manager->memory_manager->unregister_deleted_instance(manager);
     }
 
@@ -2383,7 +2376,7 @@ namespace Legion {
              it != children.end(); it++)
         {
           const RtUserEvent done = Runtime::create_rt_user_event();
-          Serializer rez;
+          GarbageCollectionPriorityUpdate rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -2392,7 +2385,7 @@ namespace Legion {
             rez.serialize<bool>(true);  // broadcast
           }
           pack_global_ref();
-          runtime->send_gc_priority_update(*it, rez);
+          rez.dispatch(*it);
           done_events.emplace_back(done);
         }
       }
@@ -2408,7 +2401,7 @@ namespace Legion {
             if (target == runtime->address_space)
               return;
             const RtUserEvent done = Runtime::create_rt_user_event();
-            Serializer rez;
+            GarbageCollectionPriorityUpdate rez;
             {
               RezCheck z(rez);
               rez.serialize(manager->did);
@@ -2417,7 +2410,7 @@ namespace Legion {
               rez.serialize<bool>(true);  // broadcast
             }
             manager->pack_global_ref();
-            runtime->send_gc_priority_update(target, rez);
+            rez.dispatch(target);
             done_events.emplace_back(done);
           }
           PhysicalManager* const manager;
@@ -2526,7 +2519,7 @@ namespace Legion {
     void PhysicalManager::broadcast_manager_update(void)
     //--------------------------------------------------------------------------
     {
-      Serializer rez;
+      PhysicalManagerUpdate rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
@@ -2535,20 +2528,17 @@ namespace Legion {
         rez.serialize(instance_footprint);
       }
       struct BroadcastFunctor {
-        BroadcastFunctor(Serializer& r) : rez(r) { }
-        inline void apply(AddressSpaceID target)
-        {
-          runtime->send_manager_update(target, rez);
-        }
-        Serializer& rez;
+        BroadcastFunctor(PhysicalManagerUpdate& r) : rez(r) { }
+        inline void apply(AddressSpaceID target) { rez.dispatch(target); }
+        PhysicalManagerUpdate& rez;
       };
       BroadcastFunctor functor(rez);
       map_over_remote_instances(functor);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_send_manager_update(
-        AddressSpaceID source, Deserializer& derez)
+    /*static*/ void PhysicalManagerUpdate::handle(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2639,14 +2629,14 @@ namespace Legion {
         if (!!needed_fields)
         {
           RtUserEvent wait_on = Runtime::create_rt_user_event();
-          Serializer rez;
+          PaddedReservationRequest rez;
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(needed_fields);
             rez.serialize(wait_on);
           }
-          runtime->send_padded_reservation_request(owner_space, rez);
+          rez.dispatch(owner_space);
           wait_on.wait();
           // Now retake the lock and get the remaining reservations
           AutoLock i_lock(inst_lock, 1, false);
@@ -2668,7 +2658,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_padded_reservation_request(
+    /*static*/ void PaddedReservationRequest::handle(
         Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
@@ -2683,7 +2673,7 @@ namespace Legion {
       PhysicalManager* target = legion_safe_cast<PhysicalManager*>(dc);
       std::vector<Reservation> reservations(needed_fields.pop_count());
       target->find_field_reservations(needed_fields, reservations);
-      Serializer rez;
+      PaddedReservationResponse rez;
       {
         RezCheck z2(rez);
         rez.serialize(did);
@@ -2692,7 +2682,7 @@ namespace Legion {
           rez.serialize(reservations[idx]);
         rez.serialize(to_trigger);
       }
-      runtime->send_padded_reservation_response(source, rez);
+      rez.dispatch(source);
     }
 
     //--------------------------------------------------------------------------
@@ -2713,8 +2703,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_padded_reservation_response(
-        Deserializer& derez)
+    /*static*/ void PaddedReservationResponse::handle(
+        Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

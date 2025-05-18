@@ -259,6 +259,13 @@ namespace Legion {
       // Atomic check and increment operations
       inline bool check_global_and_increment(ReferenceSource src, int cnt = 1);
       inline bool check_global_and_increment(DistributedID source, int cnt = 1);
+      friend class DistributedGlobalAcquireRequest;
+      friend class DistributedGlobalAcquireResponse;
+      friend class DistributedDowngradeRequest;
+      friend class DistributedDowngradeResponse;
+      friend class DistributedDowngradeSuccess;
+      friend class DistributedDowngradeUpdate;
+      friend class DistributedDowngradeRestart;
 #ifndef LEGION_DEBUG_GC
     private:
       void add_gc_reference(int cnt);
@@ -305,12 +312,9 @@ namespace Legion {
     public:
       // This for remote nodes only
       void unregister_collectable(std::set<RtEvent>& done_events);
-      static void handle_unregister_collectable(Deserializer& derez);
     public:
       // Can ignore return result if you hold a global reference
       RtEvent send_remote_registration(bool has_global_reference);
-      static void handle_did_remote_registration(
-          Deserializer& derez, AddressSpaceID source);
     protected:
       bool can_delete(AutoLock& gc);
       virtual bool can_downgrade(void) const;
@@ -327,16 +331,6 @@ namespace Legion {
       void send_downgrade_notifications(State to_downgrade);
       void process_downgrade_success(State old_state);
       AddressSpaceID get_downgrade_target(AddressSpaceID owner) const;
-    public:
-      static void handle_downgrade_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_downgrade_response(Deserializer& derez);
-      static void handle_downgrade_success(Deserializer& derez);
-      static void handle_downgrade_update(Deserializer& derez);
-      static void handle_downgrade_restart(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_global_acquire_request(Deserializer& derez);
-      static void handle_global_acquire_response(Deserializer& derez);
     public:
       const DistributedID did;
       const AddressSpaceID owner_space;
@@ -398,6 +392,8 @@ namespace Legion {
       bool is_valid(void) const;
       bool check_valid_and_increment(ReferenceSource source, int cnt = 1);
       bool check_valid_and_increment(DistributedID source, int cnt = 1);
+      friend class DistributedValidAcquireRequest;
+      friend class DistributedValidAcquireResponse;
 #ifndef LEGION_DEBUG_GC
     private:
       void add_valid_reference(int cnt);
@@ -429,9 +425,6 @@ namespace Legion {
     public:
       // Notify that this is no longer globally valid
       virtual void notify_invalid(void) = 0;
-    public:
-      static void handle_valid_acquire_request(Deserializer& derez);
-      static void handle_valid_acquire_response(Deserializer& derez);
     protected:
 #ifdef LEGION_DEBUG_GC
       int valid_references;

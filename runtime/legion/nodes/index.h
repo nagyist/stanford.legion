@@ -170,46 +170,50 @@ namespace Legion {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
-        static const LgTaskID TASK_ID =
+        static constexpr LgTaskID TASK_ID =
             LG_INDEX_SPACE_SEMANTIC_INFO_REQ_TASK_ID;
       public:
+        SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             IndexSpaceNode* proxy, SemanticTag t, AddressSpaceID src)
           : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
             proxy_this(proxy), tag(t), source(src)
         { }
+        void execute(void) const;
       public:
-        IndexSpaceNode* const proxy_this;
-        const SemanticTag tag;
-        const AddressSpaceID source;
+        IndexSpaceNode* proxy_this;
+        SemanticTag tag;
+        AddressSpaceID source;
       };
       struct DeferChildArgs : public LgTaskArgs<DeferChildArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_INDEX_SPACE_DEFER_CHILD_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_INDEX_SPACE_DEFER_CHILD_TASK_ID;
       public:
+        DeferChildArgs(void) = default;
         DeferChildArgs(
             IndexSpaceNode* proxy, LegionColor child, DistributedID* tar,
             RtUserEvent trig, AddressSpaceID src)
           : LgTaskArgs<DeferChildArgs>(implicit_provenance), proxy_this(proxy),
             child_color(child), target(tar), to_trigger(trig), source(src)
         { }
+        void execute(void) const;
       public:
-        IndexSpaceNode* const proxy_this;
-        const LegionColor child_color;
-        DistributedID* const target;
-        const RtUserEvent to_trigger;
-        const AddressSpaceID source;
+        IndexSpaceNode* proxy_this;
+        LegionColor child_color;
+        DistributedID* target;
+        RtUserEvent to_trigger;
+        AddressSpaceID source;
       };
       class IndexSpaceSetFunctor {
       public:
-        IndexSpaceSetFunctor(AddressSpaceID src, Serializer& r)
+        IndexSpaceSetFunctor(AddressSpaceID src, IndexSpaceSet& r)
           : source(src), rez(r)
         { }
       public:
         void apply(AddressSpaceID target);
       public:
         const AddressSpaceID source;
-        Serializer& rez;
+        IndexSpaceSet& rez;
       };
     public:
       IndexSpaceNode(
@@ -245,10 +249,6 @@ namespace Legion {
       void process_semantic_request(
           SemanticTag tag, AddressSpaceID source, bool can_fail,
           bool wait_until, RtUserEvent ready);
-      static void handle_semantic_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_semantic_info(
-          Deserializer& derez, AddressSpaceID source);
     public:
       bool has_color(const LegionColor color);
       LegionColor generate_color(LegionColor suggestion = INVALID_COLOR);
@@ -271,24 +271,6 @@ namespace Legion {
       bool invalidate_root(
           AddressSpaceID source, std::set<RtEvent>& applied,
           const CollectiveMapping* mapping);
-      static void handle_node_creation(
-          Deserializer& derez, AddressSpaceID source);
-    public:
-      static void handle_node_request(Deserializer& derez);
-      static void handle_node_return(Deserializer& derez);
-      static void handle_node_child_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void defer_node_child_request(const void* args);
-      static void handle_node_child_response(Deserializer& derez);
-      static void handle_colors_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_colors_response(Deserializer& derez);
-      static void handle_index_space_set(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_generate_color_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_generate_color_response(Deserializer& derez);
-      static void handle_release_color(Deserializer& derez);
     public:
       virtual Domain get_tight_domain(void) = 0;
       [[nodiscard]] virtual ApEvent get_loose_domain(
@@ -1230,61 +1212,71 @@ namespace Legion {
     public:
       struct DisjointnessArgs : public LgTaskArgs<DisjointnessArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_DISJOINTNESS_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_DISJOINTNESS_TASK_ID;
       public:
+        DisjointnessArgs(void) = default;
         DisjointnessArgs(IndexPartNode* proxy)
           : LgTaskArgs<DisjointnessArgs>(implicit_provenance), proxy_this(proxy)
         { }
+        void execute(void) const;
       public:
-        IndexPartNode* const proxy_this;
+        IndexPartNode* proxy_this;
       };
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_INDEX_PART_SEMANTIC_INFO_REQ_TASK_ID;
+        static constexpr LgTaskID TASK_ID =
+            LG_INDEX_PART_SEMANTIC_INFO_REQ_TASK_ID;
       public:
+        SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             IndexPartNode* proxy, SemanticTag t, AddressSpaceID src)
           : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
             proxy_this(proxy), tag(t), source(src)
         { }
+        void execute(void) const;
       public:
-        IndexPartNode* const proxy_this;
-        const SemanticTag tag;
-        const AddressSpaceID source;
+        IndexPartNode* proxy_this;
+        SemanticTag tag;
+        AddressSpaceID source;
       };
       struct DeferChildArgs : public LgTaskArgs<DeferChildArgs> {
       public:
-        static const LgTaskID TASK_ID = LG_INDEX_PART_DEFER_CHILD_TASK_ID;
+        static constexpr LgTaskID TASK_ID = LG_INDEX_PART_DEFER_CHILD_TASK_ID;
       public:
+        DeferChildArgs(void) = default;
         DeferChildArgs(
             IndexPartNode* proxy, LegionColor child, AddressSpaceID src)
           : LgTaskArgs<DeferChildArgs>(implicit_provenance), proxy_this(proxy),
             child_color(child), source(src)
         { }
+        void execute(void) const;
       public:
-        IndexPartNode* const proxy_this;
-        const LegionColor child_color;
-        const AddressSpaceID source;
+        IndexPartNode* proxy_this;
+        LegionColor child_color;
+        AddressSpaceID source;
       };
       class DeferFindShardRects : public LgTaskArgs<DeferFindShardRects> {
       public:
-        static const LgTaskID TASK_ID = LG_INDEX_PART_DEFER_SHARD_RECTS_TASK_ID;
+        static constexpr LgTaskID TASK_ID =
+            LG_INDEX_PART_DEFER_SHARD_RECTS_TASK_ID;
       public:
+        DeferFindShardRects(void) = default;
         DeferFindShardRects(IndexPartNode* proxy)
           : LgTaskArgs<DeferFindShardRects>(implicit_provenance),
             proxy_this(proxy)
         { }
+        void execute(void) const;
       public:
-        IndexPartNode* const proxy_this;
+        IndexPartNode* proxy_this;
       };
       class RemoteDisjointnessFunctor {
       public:
-        RemoteDisjointnessFunctor(Serializer& r);
+        RemoteDisjointnessFunctor(IndexPartitionDisjointUpdate& r);
       public:
         void apply(AddressSpaceID target);
       public:
-        Serializer& rez;
+        IndexPartitionDisjointUpdate& rez;
       };
     protected:
       class InterferenceEntry {
@@ -1296,6 +1288,7 @@ namespace Legion {
         InterferenceEntry* older;
         InterferenceEntry* newer;
       };
+    public:
       class RemoteKDTracker {
       public:
         RemoteKDTracker(void);
@@ -1348,10 +1341,6 @@ namespace Legion {
       void process_semantic_request(
           SemanticTag tag, AddressSpaceID source, bool can_fail,
           bool wait_until, RtUserEvent ready);
-      static void handle_semantic_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_semantic_info(
-          Deserializer& derez, AddressSpaceID source);
     public:
       bool has_color(const LegionColor c);
       AddressSpaceID find_color_creator_space(
@@ -1403,25 +1392,9 @@ namespace Legion {
           IndexSpaceExpression* expr, std::vector<LegionColor>& colors,
           bool local_only = false) = 0;
     public:
-      static void handle_disjointness_computation(const void* args);
-    public:
       void send_node(AddressSpaceID target, bool recurse);
       void pack_node(Serializer& rez, AddressSpaceID target);
-      static void handle_node_creation(
-          Deserializer& derez, AddressSpaceID source);
     public:
-      static void handle_node_request(Deserializer& derez);
-      static void handle_node_return(Deserializer& derez);
-      static void handle_node_child_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void defer_node_child_request(const void* args);
-      static void defer_find_local_shard_rects(const void* args);
-      static void handle_node_child_response(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_child_replication(Deserializer& derez);
-      static void handle_node_disjoint_update(Deserializer& derez);
-      static void handle_notification(Deserializer& derez);
-    protected:
       RtEvent request_shard_rects(void);
       virtual void initialize_shard_rects(void) = 0;
       virtual bool find_local_shard_rects(void) = 0;
@@ -1429,13 +1402,6 @@ namespace Legion {
       virtual void unpack_shard_rects(Deserializer& derez) = 0;
       bool process_shard_rects_response(Deserializer& derez, AddressSpace src);
       bool perform_shard_rects_notification(void);
-    public:
-      static void handle_shard_rects_request(Deserializer& derez);
-      static void handle_shard_rects_response(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_remote_interference_request(
-          Deserializer& derez, AddressSpaceID source);
-      static void handle_remote_interference_response(Deserializer& derez);
     public:
       const IndexPartition handle;
       IndexSpaceNode* const parent;
