@@ -93,7 +93,7 @@ namespace Legion {
       // Need an excluisve lock if this an ordered channel, otherwise this
       // is just a formality and many messages can be sent in parallel
       // and just can't race with shutdown tests
-      AutoLock c_lock(channel_lock, ordered_channel ? 0 : 1, ordered_channel);
+      AutoLock c_lock(channel_lock);
       // Send the message directly there, don't go through the
       // runtime interface to avoid being counted, still include
       // a profiling request though if necessary in order to
@@ -119,15 +119,16 @@ namespace Legion {
             response ? response_priority : request_priority));
         if (!ordered_channel)
         {
-          last_message_event = message_done;
-          unordered_events.insert(last_message_event);
+          unordered_events.push_back(message_done);
           if (unordered_events.size() >= MAX_UNORDERED_EVENTS)
             filter_unordered_events();
         }
+        else
+          last_message_event = message_done;
       }
       else
       {
-        RtEvent message_done(target.spawn(
+        const RtEvent message_done(target.spawn(
 #ifdef LEGION_SEPARATE_META_TASKS
             LG_TASK_ID + LG_MESSAGE_ID + kind,
 #else
@@ -142,11 +143,12 @@ namespace Legion {
             response ? response_priority : request_priority));
         if (!ordered_channel)
         {
-          last_message_event = message_done;
-          unordered_events.insert(last_message_event);
+          unordered_events.push_back(message_done);
           if (unordered_events.size() >= MAX_UNORDERED_EVENTS)
             filter_unordered_events();
         }
+        else
+          last_message_event = message_done;
       }
     }
 
@@ -157,25 +159,12 @@ namespace Legion {
       // Lock held from caller
       legion_assert(!ordered_channel);
       legion_assert(unordered_events.size() >= MAX_UNORDERED_EVENTS);
-      // Prune out any triggered events
-      for (std::set<RtEvent>::iterator it = unordered_events.begin();
-           it != unordered_events.end();
-           /*nothing*/)
+      // Pop as many triggered events off the front as we can
+      while (!unordered_events.empty())
       {
-        if (it->has_triggered())
-        {
-          std::set<RtEvent>::iterator to_delete = it++;
-          unordered_events.erase(to_delete);
-        }
-        else
-          it++;
-      }
-      // If we still have too many events, collapse them down
-      if (unordered_events.size() >= MAX_UNORDERED_EVENTS)
-      {
-        const RtEvent summary = Runtime::merge_events(unordered_events);
-        unordered_events.clear();
-        unordered_events.insert(summary);
+        if (!unordered_events.front().has_triggered())
+          break;
+        unordered_events.pop_front();
       }
     }
 
@@ -222,7 +211,8 @@ namespace Legion {
         else
         {
           observed_recent = false;
-          for (std::set<RtEvent>::const_iterator it = unordered_events.begin();
+          for (std::deque<RtEvent>::const_iterator it =
+                   unordered_events.begin();
                it != unordered_events.end(); it++)
           {
             if (!it->has_triggered())
@@ -267,7 +257,7 @@ namespace Legion {
           }
           else
           {
-            for (std::set<RtEvent>::const_iterator it =
+            for (std::deque<RtEvent>::const_iterator it =
                      unordered_events.begin();
                  it != unordered_events.end(); it++)
             {

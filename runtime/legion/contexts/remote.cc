@@ -377,7 +377,7 @@ namespace Legion {
             rez.serialize(this);
             rez.serialize(request);
           }
-          rez.serialize(owner_space);
+          rez.dispatch(owner_space);
         }
         // Wait for the result to come back to us
         wait_on.wait();

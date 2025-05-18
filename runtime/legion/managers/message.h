@@ -458,7 +458,7 @@ namespace Legion {
       const LgPriority request_priority;
       const LgPriority response_priority;
       static const unsigned MAX_UNORDERED_EVENTS = 32;
-      std::set<RtEvent> unordered_events;
+      std::deque<RtEvent> unordered_events;
       bool observed_recent;
     };
 

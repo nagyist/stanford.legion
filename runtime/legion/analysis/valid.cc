@@ -83,7 +83,7 @@ namespace Legion {
         const AddressSpaceID target = rit->first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
-        EquivalenceSetRemoteInstances rez;
+        EquivalenceSetRequestInstances rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
