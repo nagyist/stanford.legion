@@ -2485,8 +2485,8 @@ namespace Legion {
       static inline std::atomic<Realm::Event::id_t> startup_event = {0};
       static inline Realm::Barrier::timestamp_t startup_timestamp = 0;
       static inline std::atomic<bool> background_wait = {0};
-      static inline std::atomic<void (*)(const void*, size_t)>
-          meta_task_table[LG_LAST_TASK_ID] = {0};
+      static inline void (*meta_task_table[LG_LAST_TASK_ID])(
+          const void*, size_t) = {0};
       // Shutdown error condition
       static inline int return_code = 0;
       // Static member variables for MPI interop

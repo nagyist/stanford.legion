@@ -1481,7 +1481,7 @@ namespace Legion {
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);
@@ -1521,7 +1521,7 @@ namespace Legion {
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);
@@ -1561,7 +1561,7 @@ namespace Legion {
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);
@@ -1665,7 +1665,7 @@ namespace Legion {
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);
@@ -1705,7 +1705,7 @@ namespace Legion {
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);
@@ -1764,7 +1764,7 @@ namespace Legion {
       AddressSpaceID target_space = (*address_spaces)[target];
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);
@@ -2309,7 +2309,7 @@ namespace Legion {
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);
@@ -2350,7 +2350,7 @@ namespace Legion {
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);
@@ -2411,7 +2411,7 @@ namespace Legion {
       // Check to see if this is a local shard
       if (target_space == runtime->address_space)
       {
-        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        Deserializer derez(rez.get_payload(), rez.get_payload_size());
         // Have to unpack the preample we already know
         DistributedID local_repl;
         derez.deserialize(local_repl);

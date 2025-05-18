@@ -530,6 +530,15 @@ namespace Legion {
         static_assert(T::CHANNEL < MAX_NUM_VIRTUAL_CHANNELS);
         manager->send_message(header.kind, T::CHANNEL, *this, T::RESPONSE, pre);
       }
+      inline const void* get_payload(void) const
+      {
+        const uint8_t* payload = static_cast<const uint8_t*>(get_buffer());
+        return (payload + sizeof(header));
+      }
+      inline size_t get_payload_size(void) const
+      {
+        return (get_used_bytes() - sizeof(header));
+      }
     public:
       const MessageHeader header;
     };

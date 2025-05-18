@@ -12263,7 +12263,7 @@ namespace Legion {
               runtime->profiler->find_or_create_profiling_instance();
       }
       legion_assert(tid < LG_LAST_TASK_ID);
-      void (*handler)(const void*, size_t) = meta_task_table[tid].load();
+      void (*handler)(const void*, size_t) = meta_task_table[tid];
       legion_assert(handler != nullptr);
       (*handler)(args, arglen);
       if (implicit_reference_tracker != nullptr)
@@ -12418,7 +12418,7 @@ namespace Legion {
       LgTaskID tid;
       std::memcpy(&tid, args, sizeof(tid));
       legion_assert(tid < LG_LAST_TASK_ID);
-      void (*handler)(const void*, size_t) = meta_task_table[tid].load();
+      void (*handler)(const void*, size_t) = meta_task_table[tid];
       legion_assert(handler != nullptr);
       (*handler)(args, arglen);
       if (implicit_reference_tracker != nullptr)
