@@ -34,23 +34,23 @@ namespace Legion {
     /*static*/ void MessageHeader::handle(const void* data, size_t size)
     //--------------------------------------------------------------------------
     {
-      legion_assert(sizeof(MessageHeader) <= size);
-      const MessageHeader* header = static_cast<const MessageHeader*>(data);
-      legion_assert(header->lg_task_id == TASK_ID);
+      Deserializer derez(data, size);
+      MessageHeader header;
+      derez.deserialize(header);
+      legion_assert(header.lg_task_id == TASK_ID);
 #ifdef LEGION_DEBUG_CALLERS
-      implicit_task_caller = header->lg_call_id;
+      implicit_task_caller = header.lg_call_id;
 #endif
-      implicit_provenance = header->provenance;
+      implicit_provenance = header.provenance;
       // Find the handler for this message
-      legion_assert(header->kind < LAST_SEND_KIND);
+      legion_assert(header.kind < LAST_SEND_KIND);
       void (*handler)(Deserializer&, AddressSpaceID) =
-          MessageManager::message_handler_table[header->kind];
-      assert(handler != nullptr);
-      Deserializer derez(header + 1, size - sizeof(MessageHeader));
-      (*handler)(derez, header->sender);
+          MessageManager::message_handler_table[header.kind];
+      legion_assert(handler != nullptr);
+      (*handler)(derez, header.sender);
       // Record that we've seen this message
-      MessageManager* manager = runtime->find_messenger(header->sender);
-      manager->find_channel(header->channel).record_seen(header->kind);
+      MessageManager* manager = runtime->find_messenger(header.sender);
+      manager->find_channel(header.channel).record_seen(header.kind);
     }
 
     /////////////////////////////////////////////////////////////
@@ -77,7 +77,6 @@ namespace Legion {
                                                LG_LATENCY_RESPONSE_PRIORITY),
         observed_recent(true)
     //--------------------------------------------------------------------------
-    //
     { }
 
     //--------------------------------------------------------------------------

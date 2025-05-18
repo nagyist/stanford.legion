@@ -383,22 +383,23 @@ namespace Legion {
   __op__(SEND_CONTROL_REPLICATION_POINTWISE_ALLREDUCE, "Control Replication Pointwise Allreduce Message") \
   __op__(SEND_CONTROL_REPLICATION_INTERFERING_POINT_EXCHANGE, "Control Replication Interfering Point Exchange Message") \
   __op__(SEND_CONTROL_REPLICATION_SLOW_BARRIER, "Control Replication Slow Barrier Message")
-    // clang-format on
 
 #define CTRL_REPL_KINDS(kind, name) kind,
 #define MESSAGE_KINDS(kind, type, name, resp) kind,
     enum MessageKind {
       LEGION_SHARD_COLLECTIVE_ACTIVE_MESSAGES(CTRL_REPL_KINDS)
-      LEGION_ACTIVE_MESSAGES(MESSAGE_KINDS) LAST_SEND_KIND
-          ,  // This one must be last
+      LEGION_ACTIVE_MESSAGES(MESSAGE_KINDS)
+      LAST_SEND_KIND,  // This one must be last
     };
 #undef CTRL_REPL_KINDS
 #undef MESSAGE_KINDS
+    // clang-format on
 
     struct MessageHeader : public LgTaskArgs<MessageHeader> {
     public:
       static constexpr LgTaskID TASK_ID = LG_MESSAGE_ID;
     public:
+      MessageHeader(void) = default;
       MessageHeader(MessageKind k, VirtualChannelKind c);
       // We override handle directly since we're doing the handling
       static void handle(const void* data, size_t size);
