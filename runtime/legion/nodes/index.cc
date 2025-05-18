@@ -1304,10 +1304,10 @@ namespace Legion {
       else
       {
         RtEvent defer;
-        IndexPartNode* node = runtime->get_node(handle, &defer);
+        runtime->get_node(handle, &defer);
         // We'll update references and unpack the remote reference on
         // the requester here so there's no need to block waiting
-        *target = node->did;
+        *target = handle.get_id(false /*filter*/);
         Runtime::trigger_event(to_trigger, defer);
       }
     }
