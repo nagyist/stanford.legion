@@ -665,7 +665,7 @@ namespace Legion {
         size_t size, bool is_mutable, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
-      FieldSemanticInfoRequest rez;
+      FieldSemanticInfoResponse rez;
       {
         RezCheck z(rez);
         rez.serialize(handle);
