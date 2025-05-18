@@ -32,7 +32,7 @@ namespace Legion {
      */
     class PhysicalAnalysis : public Collectable,
                              public LocalLock {
-    private:
+    public:
       struct DeferPerformTraversalArgs
         : public LgTaskArgs<DeferPerformTraversalArgs> {
       public:

@@ -5568,26 +5568,34 @@ namespace Legion {
             (uintptr_t)instance.pointer_untyped(0, 0), size);
       instance.destroy(defer);
     }
+#endif
 
     //--------------------------------------------------------------------------
     void MemoryManager::MallocInstanceArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
+#ifdef LEGION_MALLOC_INSTANCES
       const RtEvent ready = manager->allocate_legion_instance(
           layout, *requests, *instance, unique_event, false /*needs defer*/);
       delete layout;
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
+#else
+      std::abort();
+#endif
     }
 
     //--------------------------------------------------------------------------
     void MemoryManager::FreeInstanceArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
+#ifdef LEGION_MALLOC_INSTANCES
       manager->free_legion_instance(
           RtEvent::NO_RT_EVENT, instance, false /*needs defer*/);
-    }
+#else
+      std::abort();
 #endif
+    }
 
     //--------------------------------------------------------------------------
     /*static*/ void InstanceRequest::handle(

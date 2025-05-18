@@ -220,6 +220,7 @@ namespace Legion {
         int pos;
         const RtUserEvent done;
       };
+    public:
       struct TransitiveReductionArgs
         : public LgTaskArgs<TransitiveReductionArgs> {
       public:

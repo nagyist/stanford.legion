@@ -28,13 +28,6 @@ namespace Legion {
         Processor target)
     //--------------------------------------------------------------------------
     {
-      // Check to make sure we've registered the handler function in the
-      // meta task table. Technically this is a dynamic overhead that we
-      // could eliminate but branch predictors should be pretty good at
-      // predicting this branch since it will only be taken once for each
-      // function and then never again
-      if (meta_task_table[T::TASK_ID].load() == nullptr)
-        meta_task_table[T::TASK_ID].store(T::handle);
       // If this is not a task directly related to shutdown or is a message,
       // to a remote node then increment the number of outstanding tasks
       if (T::TASK_ID < LG_BEGIN_SHUTDOWN_TASK_IDS)
@@ -84,13 +77,6 @@ namespace Legion {
       static_assert(
           T::TASK_ID < LG_BEGIN_SHUTDOWN_TASK_IDS,
           "Shutdown tasks should never be run directly on application procs");
-      // Check to make sure we've registered the handler function in the
-      // meta task table. Technically this is a dynamic overhead that we
-      // could eliminate but branch predictors should be pretty good at
-      // predicting this branch since it will only be taken once for each
-      // function and then never again
-      if (meta_task_table[T::TASK_ID].load() == nullptr)
-        meta_task_table[T::TASK_ID].store(T::handle);
       // If this is not a task directly related to shutdown or is a message,
       // to a remote node then increment the number of outstanding tasks
       legion_assert(target.exists());

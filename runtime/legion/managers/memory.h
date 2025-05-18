@@ -256,7 +256,6 @@ namespace Legion {
         LgEvent caller_fevent;
         bool success;
       };
-#ifdef LEGION_MALLOC_INSTANCES
     public:
       struct MallocInstanceArgs : public LgTaskArgs<MallocInstanceArgs> {
       public:
@@ -270,11 +269,11 @@ namespace Legion {
         { }
         void execute(void) const;
       public:
-        MemoryManager* const manager;
-        Realm::InstanceLayoutGeneric* const layout;
-        const Realm::ProfilingRequestSet* const requests;
-        PhysicalInstance* const instance;
-        const LgEvent unique_event;
+        MemoryManager* manager;
+        Realm::InstanceLayoutGeneric* layout;
+        const Realm::ProfilingRequestSet* requests;
+        PhysicalInstance* instance;
+        LgEvent unique_event;
       };
       struct FreeInstanceArgs : public LgTaskArgs<FreeInstanceArgs> {
       public:
@@ -286,10 +285,9 @@ namespace Legion {
         { }
         void execute(void) const;
       public:
-        MemoryManager* const manager;
-        const PhysicalInstance instance;
+        MemoryManager* manager;
+        PhysicalInstance instance;
       };
-#endif
     public:
       MemoryManager(Memory mem);
       MemoryManager(const MemoryManager& rhs) = delete;

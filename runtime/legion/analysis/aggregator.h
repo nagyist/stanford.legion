@@ -31,7 +31,7 @@ namespace Legion {
      * set observe each others changes before performing their copies.
      */
     class CopyFillGuard {
-    private:
+    public:
       struct CopyFillDeletion : public LgTaskArgs<CopyFillDeletion> {
       public:
         static constexpr LgTaskID TASK_ID = LG_COPY_FILL_DELETION_TASK_ID;
