@@ -1779,9 +1779,7 @@ void Profiler::log_configuration(Machine &machine, Processor local) const {
   unsigned node_id = local.address_space();
   pr_fwrite(f, (char *)&(node_id), sizeof(node_id));
   pr_fwrite(f, (char *)&(total_address_spaces), sizeof(total_address_spaces));
-  constexpr unsigned version =
-#include "legion/tools/profiler_version.h"
-      ;
+  unsigned version = LEGION_PROF_VERSION;
   pr_fwrite(f, (char *)&(version), sizeof(version));
   Machine::ProcessInfo process_info;
   machine.get_process_info(local, &process_info);
