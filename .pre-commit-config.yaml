@@ -17,5 +17,5 @@ repos:
         entry: cargo 
         language: system
         files: ^tools/legion_prof_rs/src/.*\.rs$
-        args: ["fmt", "--manifest-path", "tools/legion_prof_rs/Cargo.toml", "--package", "legion_prof", "--", "--check"]
+        args: ["fmt", "--manifest-path", "tools/legion_prof_rs/Cargo.toml", "--all", "--", "--check"]
 
