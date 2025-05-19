@@ -10,12 +10,12 @@ use flate2::read::GzDecoder;
 use nonmax::NonMaxU64;
 
 use nom::{
+    IResult,
     bytes::complete::{tag, take_till, take_while1},
     character::{is_alphanumeric, is_digit},
     combinator::{map, map_opt, map_res, opt},
-    multi::{many1, many_m_n, separated_list1},
-    number::complete::{le_i32, le_i64, le_u32, le_u64, le_u8},
-    IResult,
+    multi::{many_m_n, many1, separated_list1},
+    number::complete::{le_i32, le_i64, le_u8, le_u32, le_u64},
 };
 
 use serde::Serialize;
@@ -148,6 +148,7 @@ pub enum Record {
     EventMergerInfo { result: EventID, fevent: EventID, performed: Timestamp, pre0: Option<EventID>, pre1: Option<EventID>, pre2: Option<EventID>, pre3: Option<EventID> },
     EventTriggerInfo { result: EventID, fevent: EventID, precondition: Option<EventID>, performed: Timestamp },
     EventPoisonInfo { result: EventID, fevent: EventID, performed: Timestamp },
+    ExternalEventInfo { external: EventID, fevent: EventID, triggered: Timestamp, provenance: ProvenanceID },
     BarrierArrivalInfo { result: EventID, fevent: EventID, precondition: Option<EventID>, performed: Timestamp },
     ReservationAcquireInfo { result: EventID, fevent: EventID, precondition: Option<EventID>, performed: Timestamp, reservation: u64 },
     CompletionQueueInfo { result: EventID, fevent: EventID, performed: Timestamp, pre0: Option<EventID>, pre1: Option<EventID>, pre2: Option<EventID>, pre3: Option<EventID> },
@@ -1242,6 +1243,21 @@ fn parse_event_poison_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record
         },
     ))
 }
+fn parse_external_event_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
+    let (input, external) = parse_event_id(input)?;
+    let (input, fevent) = parse_event_id(input)?;
+    let (input, triggered) = parse_timestamp(input)?;
+    let (input, provenance) = parse_provenance_id(input)?;
+    Ok((
+        input,
+        Record::ExternalEventInfo {
+            external,
+            fevent,
+            triggered,
+            provenance,
+        },
+    ))
+}
 fn parse_barrier_arrival_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, result) = parse_event_id(input)?;
     let (input, fevent) = parse_event_id(input)?;
@@ -1391,7 +1407,11 @@ fn check_version(version: u32) {
         .parse()
         .unwrap();
 
-    assert_eq!(version, expected_version, "Legion Prof was built against an incompatible Legion version. Please rebuild with the same version of Legion used by the application to generate the profile logs. (Expected version {}, got version {}.)", expected_version, version);
+    assert_eq!(
+        version, expected_version,
+        "Legion Prof was built against an incompatible Legion version. Please rebuild with the same version of Legion used by the application to generate the profile logs. (Expected version {}, got version {}.)",
+        expected_version, version
+    );
 }
 
 fn parse_record<'a>(
@@ -1483,6 +1503,7 @@ fn parse<'a>(
     insert("EventMergerInfo", parse_event_merger_info);
     insert("EventTriggerInfo", parse_event_trigger_info);
     insert("EventPoisonInfo", parse_event_poison_info);
+    insert("ExternalEventInfo", parse_external_event_info);
     insert("BarrierArrivalInfo", parse_barrier_arrival_info);
     insert("ReservationAcquireInfo", parse_reservation_acquire_info);
     insert("InstanceReadyInfo", parse_instance_ready_info);
