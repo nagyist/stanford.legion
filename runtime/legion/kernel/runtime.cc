@@ -1422,7 +1422,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::finalize_runtime(std::vector<RtEvent>& shutdown_preconditions)
+    void Runtime::finalize_runtime(
+        std::vector<Realm::Event>& shutdown_preconditions)
     //--------------------------------------------------------------------------
     {
       // We send messages to the next address spaces up the
@@ -1435,8 +1436,8 @@ namespace Legion {
         if (total_address_spaces <= next)
           break;
         MessageManager* messenger = find_messenger(next);
-        shutdown_preconditions.emplace_back(RtEvent(messenger->target.spawn(
-            LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests)));
+        shutdown_preconditions.emplace_back(messenger->target.spawn(
+            LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests));
       }
       // Have the memory managers for deletion of all their instances
       for (std::map<Memory, MemoryManager*>::const_iterator it =
@@ -10949,15 +10950,30 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!ctx->implicit_task)
-        REPORT_LEGION_ERROR(
-            ERROR_CONFUSED_USER,
-            "Illegal call to unbind a context for task %s (UID %lld) that "
-            "is not an implicit top-level task",
-            ctx->get_task_name(), ctx->get_unique_id())
-      ctx->begin_wait(LgEvent::NO_LG_EVENT, true /*from application*/);
-      implicit_context = nullptr;
-      implicit_profiler = nullptr;
-      implicit_fevent = LgEvent::NO_LG_EVENT;
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to unbind a context for task " << *ctx
+              << " that is not an implicit top-level task";
+        error.raise();
+      }
+      if (ctx != implicit_context)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to unbind an implicit top-level task " << *ctx
+              << "when it is not bound to the current external thread.";
+        error.raise();
+      }
+      if (implicit_profiler != nullptr)
+      {
+        ctx->begin_wait(LgEvent::NO_LG_EVENT, true /*from application*/);
+        implicit_fevent = implicit_profiler->external_fevent;
+        Fatal fatal;
+        fatal << "Need support for profiling unbind implicit top-level tasks";
+        fatal.raise();
+      }
+      else
+        implicit_fevent = LgEvent::NO_LG_EVENT;
+      implicit_context = NULL;
       implicit_provenance = 0;
     }
 
@@ -10966,15 +10982,39 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!ctx->implicit_task)
-        REPORT_LEGION_ERROR(
-            ERROR_CONFUSED_USER,
-            "Illegal call to bind a context for task %s (UID %lld) that "
-            "is not an implicit top-level task",
-            ctx->get_task_name(), ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to bind a context for task " << *ctx
+              << " that is not an implicit top-level task";
+        error.raise();
+      }
+      if (Processor::get_executing_processor().exists())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Attempted to bind an implicit top-level task " << *ctx
+              << " on a Realm processor. Implicit top-level tasks can only "
+              << "be run on external threads not managed by Realm.";
+        error.raise();
+      }
+      if (implicit_context != nullptr)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to bind an implicit top-level task " << *ctx
+              << "to an external thread that already has an implicit top-level "
+              << "task associated with it. Only one implicit top-level task "
+              << "can be associated with an external thread at a time.";
+        error.raise();
+      }
       ctx->end_wait(LgEvent::NO_LG_EVENT, true /*from application*/);
-      if ((profiler != nullptr) && (implicit_profiler == nullptr))
+      if ((profiler != NULL) && (implicit_profiler == NULL))
+      {
         implicit_profiler = profiler->find_or_create_profiling_instance();
+        Fatal fatal;
+        fatal << "Need support for profiling binding implicit top-level tasks";
+        fatal.raise();
+      }
       implicit_context = ctx;
+      implicit_fevent = ctx->owner_task->get_completion_event();
       implicit_provenance = ctx->owner_task->get_unique_op_id();
     }
 
@@ -10982,21 +11022,30 @@ namespace Legion {
     void Runtime::finish_implicit_task(TaskContext* ctx, ApEvent effects)
     //--------------------------------------------------------------------------
     {
+      if (implicit_context != ctx)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to finish an implicit top-level task " << *ctx
+              << " which is not currently bound to the external thread.";
+        error.raise();
+      }
       if (!ctx->implicit_task)
-        REPORT_LEGION_ERROR(
-            ERROR_CONFUSED_USER,
-            "Illegal call to finish an implicit task for task %s (UID %lld) "
-            "that is not an implicit top-level task",
-            ctx->get_task_name(), ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to finish an implicit task for task " << *ctx
+              << "that is not an implicit top-level task";
+        error.raise();
+      }
       // this is just a normal finish operation
       ctx->end_task(
-          nullptr, 0, false /*owned*/, PhysicalInstance::NO_INST,
-          nullptr /*callback functor*/, nullptr /*resource*/,
-          nullptr /*freefunc*/, nullptr /*metadataptr*/, 0 /*metadatasize*/,
-          effects);
-      implicit_context = nullptr;
-      implicit_profiler = nullptr;
-      implicit_fevent = LgEvent::NO_LG_EVENT;
+          NULL, 0, false /*owned*/, PhysicalInstance::NO_INST,
+          NULL /*callback functor*/, NULL /*resource*/, NULL /*freefunc*/,
+          NULL /*metadataptr*/, 0 /*metadatasize*/, effects);
+      if (implicit_profiler != nullptr)
+        implicit_fevent = implicit_profiler->external_fevent;
+      else
+        implicit_fevent = LgEvent::NO_LG_EVENT;
+      implicit_context = NULL;
       implicit_provenance = 0;
     }
 
@@ -12224,19 +12273,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We don't profile this task
-      implicit_profiler = nullptr;
       implicit_fevent = LgEvent::NO_LG_EVENT;
       // Finalize the runtime and then delete it
-      std::vector<RtEvent> shutdown_events;
+      std::vector<Realm::Event> shutdown_events;
       runtime->finalize_runtime(shutdown_events);
       delete runtime;
       // If we have any shutdown events we need to wait for them to have
       // finished before we return and end up marking ourselves finished
       if (!shutdown_events.empty())
-      {
-        const RtEvent wait_on = Runtime::merge_events(shutdown_events);
-        wait_on.wait();
-      }
+        Realm::Event::merge_events(shutdown_events).wait();
     }
 
     //--------------------------------------------------------------------------

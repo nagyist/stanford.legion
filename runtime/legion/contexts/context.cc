@@ -754,7 +754,6 @@ namespace Legion {
       // Clear the thread local task context to prevent users from
       // calling back into this context now that the task has finished
       implicit_context = nullptr;
-      implicit_profiler = nullptr;
     }
 
     //--------------------------------------------------------------------------

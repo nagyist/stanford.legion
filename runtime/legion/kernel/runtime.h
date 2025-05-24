@@ -378,7 +378,7 @@ namespace Legion {
           const PendingRegistrationCallback& callback, bool global,
           bool preregistered);
       void broadcast_startup_barrier(RtBarrier startup_barrier);
-      void finalize_runtime(std::vector<RtEvent>& shutdown_events);
+      void finalize_runtime(std::vector<Realm::Event>& shutdown_events);
       ApEvent launch_mapper_task(
           Mapper* mapper, Processor proc, TaskID tid, const UntypedBuffer& arg,
           MapperID map_id);
