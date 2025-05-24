@@ -96,17 +96,27 @@ namespace Legion {
     const PredUserEvent PredUserEvent::NO_PRED_USER_EVENT = {};
 
     //--------------------------------------------------------------------------
-    void LgEvent::begin_context_wait(Context ctx, bool from_application) const
+    void LgEvent::begin_wait(Context ctx, bool from_application) const
     //--------------------------------------------------------------------------
     {
-      ctx->begin_wait(*this, from_application);
+      if (ctx != nullptr)
+        ctx->begin_wait(*this, from_application);
+      else if (
+          (implicit_profiler != nullptr) &&
+          implicit_profiler->is_external_thread())
+        implicit_profiler->begin_external_wait(*this);
     }
 
     //--------------------------------------------------------------------------
-    void LgEvent::end_context_wait(Context ctx, bool from_application) const
+    void LgEvent::end_wait(Context ctx, bool from_application) const
     //--------------------------------------------------------------------------
     {
-      ctx->end_wait(*this, from_application);
+      if (ctx != nullptr)
+        ctx->end_wait(*this, from_application);
+      else if (
+          (implicit_profiler != nullptr) &&
+          implicit_profiler->is_external_thread())
+        implicit_profiler->end_external_wait(*this);
     }
 
     //--------------------------------------------------------------------------
@@ -117,11 +127,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LgEvent::record_event_wait(
-        LegionProfInstance* profiler, Realm::Backtrace& bt) const
+    void LgEvent::record_event_wait(Realm::Backtrace& bt) const
     //--------------------------------------------------------------------------
     {
-      profiler->record_event_wait(*this, bt);
+      legion_assert(exists());
+      legion_assert(implicit_profiler != NULL);
+      implicit_profiler->record_event_wait(*this, bt);
     }
 
     //--------------------------------------------------------------------------
@@ -129,7 +140,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(exists());
-      legion_assert(implicit_profiler != nullptr);
+      legion_assert(implicit_profiler != NULL);
       implicit_profiler->record_event_trigger(*this, precondition);
     }
 

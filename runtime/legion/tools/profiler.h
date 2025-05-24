@@ -574,11 +574,17 @@ namespace Legion {
         LgEvent critical;
       };
     public:
-      LegionProfInstance(LegionProfiler* owner);
+      LegionProfInstance(
+          LegionProfiler* owner, Processor local, LgEvent external);
       LegionProfInstance(const LegionProfInstance& rhs) = delete;
       ~LegionProfInstance(void);
     public:
       LegionProfInstance& operator=(const LegionProfInstance& rhs) = delete;
+    public:
+      inline bool is_external_thread(void) const
+      {
+        return external_fevent.exists();
+      }
     public:
       void register_operation(Operation* op);
       void register_multi_task(Operation* op, TaskID kind);
@@ -682,6 +688,8 @@ namespace Legion {
       void record_application_range(
           ProvenanceID pid, timestamp_t start, timestamp_t stop);
       void record_event_wait(LgEvent event, Realm::Backtrace& bt);
+      void begin_external_wait(LgEvent event);
+      void end_external_wait(LgEvent event);
     public:
       void record_proftask(
           Processor p, UniqueID op_id, timestamp_t start, timestamp_t stop,
@@ -689,6 +697,13 @@ namespace Legion {
     public:
       void dump_state(LegionProfSerializer* serializer);
       size_t dump_inter(LegionProfSerializer* serializer, const double over);
+    public:
+      // If this profiler instance is associated with an external thread
+      // then it will have an external fevent that will eventually be
+      // rendered in Legion Prof as an implicit top-level task
+      const LgEvent external_fevent;
+      const Processor local_proc;  // might be fake
+      const long long external_start;
     private:
       LegionProfiler* const owner;
       std::deque<OperationInstance> operation_instances;
@@ -731,6 +746,7 @@ namespace Legion {
       std::deque<InstanceReadyInfo> instance_ready_infos;
       std::deque<InstanceRedistrictInfo> instance_redistrict_infos;
       std::deque<CompletionQueueInfo> completion_queue_infos;
+      std::vector<WaitInfo> external_wait_infos;
       // keep track of MemIDs/ProcIDs to avoid duplicate entries
       std::vector<MemID> mem_ids;
       std::vector<ProcID> proc_ids;
@@ -797,6 +813,7 @@ namespace Legion {
       // (Note also that the same implicit top-level task doesn't even
       // need to stay on the same external thread for its whole lifespan.)
       ProcID get_implicit_processor(void);
+      TaskID get_external_implicit_task(void);
     public:
       void add_task_request(
           Realm::ProfilingRequestSet& requests, TaskID tid, VariantID vid,
@@ -890,7 +907,7 @@ namespace Legion {
       LegionProfInstance* find_or_create_profiling_instance(void);
     public:
       // Event to trigger once the profiling is actually done
-      const RtUserEvent done_event;
+      const Realm::UserEvent done_event;
       // Minimum duration of mapper and runtime calls for logging in ns
       const long long minimum_call_threshold;
       // Size in bytes of the footprint before we start dumping
@@ -927,6 +944,7 @@ namespace Legion {
       std::atomic<size_t> total_memory_footprint;
     private:
       std::atomic<ProcID> implicit_top_level_task_proc;
+      std::optional<TaskID> external_implicit_task;
     private:
       // Issue the default mapper warning
       std::atomic<bool> need_default_mapper_warning;

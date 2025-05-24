@@ -17,6 +17,7 @@
 #include "legion/api/interop_impl.h"
 #include "legion/api/sync.h"
 #include "legion/utilities/collectives.h"
+#include "legion/utilities/provenance.h"
 
 namespace Legion {
 
@@ -176,6 +177,11 @@ namespace Legion {
     // Handshake Impl
     /////////////////////////////////////////////////////////////
 
+    /*static*/ std::atomic<Provenance*> LegionHandshakeImpl::external_wait =
+        nullptr;
+    /*static*/ std::atomic<Provenance*> LegionHandshakeImpl::external_handoff =
+        nullptr;
+
     //--------------------------------------------------------------------------
     HandshakeImpl::HandshakeImpl(bool init_ext)
       : init_in_ext(init_ext), split(false)
@@ -221,18 +227,43 @@ namespace Legion {
         implicit_fevent = previous_fevent;
         Runtime::advance_barrier(ext_arrive_barrier);
       }
+      if (runtime->profiler != nullptr)
+      {
+        if (external_wait.load() == nullptr)
+          external_wait.store(runtime->find_or_create_provenance(
+              EXTERNAL_WAIT.data(), EXTERNAL_WAIT.size()));
+        if (external_handoff.load() == nullptr)
+          external_handoff.store(runtime->find_or_create_provenance(
+              EXTERNAL_HANDOFF.data(), EXTERNAL_HANDOFF.size()));
+      }
     }
 
     //--------------------------------------------------------------------------
     void HandshakeImpl::ext_handoff_to_legion(void)
     //--------------------------------------------------------------------------
     {
-      if (implicit_fevent.exists())
+      if (Processor::get_executing_processor().exists())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to perform an external handshake hand-off "
+              << "to Legion while on a Realm processor. All external calls "
+              << "must be done from external threads.";
+        error.raise();
+      }
+      if (implicit_context != nullptr)
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
         error << "Detected an illegal handshake calling "
               << "'ext_handoff_to_legion' from inside of a Legion task.";
         error.raise();
+      }
+      if (runtime->profiler != nullptr)
+      {
+        if (implicit_profiler == nullptr)
+          implicit_profiler =
+              runtime->profiler->find_or_create_profiling_instance();
+        if (!previous_external_time)
+          previous_external_time = Realm::Clock::current_time_in_nanoseconds();
       }
       // We need to detect the case where we are about to trigger the last
       // external barrier generation and update the legion side with new
@@ -249,21 +280,25 @@ namespace Legion {
         ext_arrive_barrier = legion_next_barrier;
         legion_arrive_barrier = ext_wait_barrier;
       }
-      // A little trick for profiling, nominally we don't have an fevent
-      // since we're external to Legion, but we need the profiling critical
-      // path logging to know this is an external handshake. We signal this
-      // by setting the implicit fevent to be the same as arrival barrier.
-      // The profiler will record this and recognize it as a handshake
-      implicit_fevent = to_arrive;
       runtime->phase_barrier_arrive(to_arrive, 1);
-      implicit_fevent = LgEvent::NO_LG_EVENT;
+      if (implicit_profiler != nullptr)
+        record_external_handshake(external_handoff.load());
     }
 
     //--------------------------------------------------------------------------
     void HandshakeImpl::ext_wait_on_legion(void)
     //--------------------------------------------------------------------------
     {
-      if (implicit_fevent.exists())
+      if (Processor::get_executing_processor().exists())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to perform an external handshake wait on Legion "
+              << "while on a Realm processor. All external calls must be done "
+                 "from "
+              << "external threads.";
+        error.raise();
+      }
+      if (implicit_context != nullptr)
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
         error << "Detected an illegal handshake calling 'ext_wait_on_legion' "
@@ -276,6 +311,19 @@ namespace Legion {
       ext_wait_barrier.external_wait();
       // Now we can advance our wait barrier
       Runtime::advance_barrier(ext_wait_barrier);
+      if (implicit_profiler != nullptr)
+        record_external_handshake(external_wait.load());
+    }
+
+    //--------------------------------------------------------------------------
+    void HandshakeImpl::record_external_handshake(Provenance* provenance)
+    //--------------------------------------------------------------------------
+    {
+      const long long next_external_time =
+          Realm::Clock::current_time_in_nanoseconds();
+      implicit_profiler->record_application_range(
+          provenance->pid, *previous_external_time, next_external_time);
+      previous_external_time = next_external_time;
     }
 
     //--------------------------------------------------------------------------

@@ -3690,7 +3690,8 @@ namespace Legion {
             new_offset++;
         }
         else
-          new_offset += (1 << (tile->morton_order * tile->interesting_count));
+          new_offset +=
+              (1ULL << (tile->morton_order * tile->interesting_count));
         // Check for overflow which would be very bad
         if (new_offset <= offset)
           REPORT_LEGION_FATAL(
@@ -3840,7 +3841,7 @@ namespace Legion {
       if (interesting_count < 2)
         return bounds.volume();
       else
-        return (1 << (morton_order * interesting_count));
+        return (1ULL << (morton_order * interesting_count));
     }
 
     //--------------------------------------------------------------------------
@@ -3932,7 +3933,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < morton_order; idx++)
         {
           for (unsigned i = 0; i < interesting_count; i++)
-            coords[i] |= (color & (1 << (selector + i))) >> (shift + i);
+            coords[i] |= (color & (1ULL << (selector + i))) >> (shift + i);
           selector += interesting_count;
           shift += (interesting_count - 1);
         }
@@ -3946,7 +3947,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < morton_order; idx++)
         {
           for (int i = 0; i < DIM; i++)
-            coords[i] |= (color & (1 << (selector + i))) >> (shift + i);
+            coords[i] |= (color & (1ULL << (selector + i))) >> (shift + i);
           selector += DIM;
           shift += (DIM - 1);
         }
