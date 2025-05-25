@@ -893,7 +893,10 @@ namespace Legion {
           ProvenanceID pid, const char* provenance, size_t size);
     public:
       void increment_outstanding_message_request(void);
-      LgEvent find_message_fevent(LgEvent original_fevent);
+      LgEvent find_message_fevent(
+          LgEvent original_fevent, LgEvent creator, timestamp_t spawn,
+          VirtualChannelKind vc);
+      bool confirm_shutdown(void) const;
     protected:
       void increment_total_outstanding_requests(
           ProfilingKind kind, unsigned cnt = 1);
