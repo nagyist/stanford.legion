@@ -1936,12 +1936,14 @@ namespace Legion {
           std::numeric_limits<ShardingID>::max(), true};
       mapper->invoke_partition_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s failed to pick a valid sharding functor for "
-            "dependent partition in task %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_INVALID_MAPPER_OUTPUT_EXCEPTION);
+        error << "Mapper " << mapper->get_mapper_name()
+              << " failed to pick a valid sharding functor for dependent "
+              << "partition in task " << parent_ctx->get_task_name() << " (UID "
+              << parent_ctx->get_unique_id() << ").";
+        error.raise();
+      }
       sharding_function = repl_ctx->shard_manager->find_sharding_function(
           output.chosen_functor);
       if (runtime->safe_mapper)
@@ -1950,12 +1952,14 @@ namespace Legion {
         sharding_collective->contribute(output.chosen_functor);
         if (sharding_collective->is_target() &&
             !sharding_collective->validate(output.chosen_functor))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s chose different sharding functions "
-              "for dependent partition op in task %s (UID %lld)",
-              mapper->get_mapper_name(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_INVALID_MAPPER_OUTPUT_EXCEPTION);
+          error << "Mapper " << mapper->get_mapper_name()
+                << " chose different sharding functions for dependent "
+                << "partition op in task " << parent_ctx->get_task_name()
+                << " (UID " << parent_ctx->get_unique_id() << ").";
+          error.raise();
+        }
       }
     }
 
@@ -1981,17 +1985,21 @@ namespace Legion {
         {
           const LogicalPartition chosen_part = part_check.get_value();
           if (chosen_part != requirement.partition)
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_MAPPER_OUTPUT,
-                "Invalid mapper output from invocation of "
-                "'select_partition_projection' on mapper %s for "
-                "depedent partitioning operation launched in %s "
-                "(UID %lld). Mapper selected a logical partition "
-                "on shard %d that is different than the logical "
-                "partition selected by shard 0. All shards must "
-                "select the same logical partition.",
-                mapper->get_mapper_name(), parent_ctx->get_task_name(),
-                parent_ctx->get_unique_id(), repl_ctx->owner_shard->shard_id)
+          {
+            Error error(LEGION_INVALID_MAPPER_OUTPUT_EXCEPTION);
+            error << "Invalid mapper output from invocation of "
+                  << "'select_partition_projection' on mapper "
+                  << mapper->get_mapper_name() << " for dependent "
+                  << "partitioning operation launched in "
+                  << parent_ctx->get_task_name() << " (UID "
+                  << parent_ctx->get_unique_id() << "). Mapper selected "
+                  << "a logical partition on shard "
+                  << repl_ctx->owner_shard->shard_id
+                  << " that is different than the logical partition "
+                  << "selected by shard 0. All shards must select the "
+                  << "same logical partition.";
+            error.raise();
+          }
         }
         else
           part_check.broadcast(requirement.partition);
