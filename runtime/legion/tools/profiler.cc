@@ -3264,6 +3264,11 @@ namespace Legion {
       // Save the current implicit fevent so we can look it up later
       AutoLock prof_lock(profiler_lock);
       message_fevents[fevent] = original_fevent;
+#ifdef LEGION_DEBUG
+      total_outstanding_requests[LegionProfiler::LEGION_PROF_MESSAGE]++;
+#else
+      total_outstanding_requests.fetch_add(1);
+#endif
     }
 
     //--------------------------------------------------------------------------
@@ -3273,9 +3278,7 @@ namespace Legion {
       AutoLock prof_lock(profiler_lock);
       std::map<LgEvent, LgEvent>::iterator finder =
           message_fevents.find(fevent);
-#ifdef DEBUG_LEGION
-      assert(finder != message_fevents.end());
-#endif
+      legion_assert(finder != message_fevents.end());
       const LgEvent result = finder->second;
       message_fevents.erase(finder);
       // Reverse the order so we can find it the other way in the response
