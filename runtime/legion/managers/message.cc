@@ -48,9 +48,20 @@ namespace Legion {
           MessageManager::message_handler_table[header.kind];
       legion_assert(handler != nullptr);
       (*handler)(derez, header.sender);
-      // Record that we've seen this message
       MessageManager* manager = runtime->find_messenger(header.sender);
-      manager->find_channel(header.channel).record_seen(header.kind);
+      VirtualChannel& channel = manager->find_channel(header.channel);
+      // See if there is any profiling work to do
+      if (channel.profile_outgoing_messages)
+      {
+        const LgEvent original_fevent = runtime->profiler->find_message_fevent(
+            implicit_fevent, false /*remove*/);
+        if (channel.ordered_channel &&
+            (header.channel != PROFILING_VIRTUAL_CHANNEL))
+          implicit_profiler->record_event_trigger(
+              original_fevent, implicit_fevent);
+      }
+      // Record that we've seen this message
+      channel.record_seen(header.kind);
     }
 
     /////////////////////////////////////////////////////////////

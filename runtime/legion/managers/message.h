@@ -452,11 +452,12 @@ namespace Legion {
     private:
       mutable LocalLock channel_lock;
       RtEvent last_message_event;
-    private:
+    public:
       const bool ordered_channel;
       const bool profile_outgoing_messages;
       const LgPriority request_priority;
       const LgPriority response_priority;
+    private:
       static const unsigned MAX_UNORDERED_EVENTS = 32;
       std::deque<RtEvent> unordered_events;
       bool observed_recent;

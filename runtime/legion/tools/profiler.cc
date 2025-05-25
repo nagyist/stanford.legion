@@ -991,8 +991,8 @@ namespace Legion {
       {
         const LgEvent original_event = LgEvent(finish.finish_event);
         // Lookup the renamed fevent that we gave it
-        info.finish_event = owner->find_message_fevent(
-            original_event, info.creator, info.spawn, vc);
+        info.finish_event =
+            owner->find_message_fevent(original_event, true /*remove*/);
       }
       const size_t diff =
           sizeof(MessageInfo) + num_intervals * sizeof(WaitInfo);
@@ -3263,55 +3263,25 @@ namespace Legion {
       implicit_fevent = fevent;
       // Save the current implicit fevent so we can look it up later
       AutoLock prof_lock(profiler_lock);
-      message_fevents[original_fevent] = fevent;
-      // Increment the count of outstanding message requests
-#ifdef LEGION_DEBUG
-      total_outstanding_requests[LegionProfiler::LEGION_PROF_MESSAGE]++;
-#else
-      total_outstanding_requests.fetch_add(1);
-#endif
+      message_fevents[fevent] = original_fevent;
     }
 
     //--------------------------------------------------------------------------
-    LgEvent LegionProfiler::find_message_fevent(
-        LgEvent original_fevent, LgEvent creator, timestamp_t spawn,
-        VirtualChannelKind vc)
+    LgEvent LegionProfiler::find_message_fevent(LgEvent fevent, bool remove)
     //--------------------------------------------------------------------------
     {
       AutoLock prof_lock(profiler_lock);
       std::map<LgEvent, LgEvent>::iterator finder =
-          message_fevents.find(original_fevent);
-      legion_assert(finder != message_fevents.end());
+          message_fevents.find(fevent);
+#ifdef DEBUG_LEGION
+      assert(finder != message_fevents.end());
+#endif
       const LgEvent result = finder->second;
       message_fevents.erase(finder);
-      // Check to see if this message kind was sent on an ordered
-      // virtual channel in which case we need to send a message
-      // back to the spawning node for the message to tell it about
-      // the implicit fevent that we made to represent the completion
-      // event for the task.
-      // Only send this back if it's not a profiler message otherwise
-      // we'll create an infinite loop of profiling messages
-      if ((LAST_UNORDERED_VIRTUAL_CHANNEL < vc) &&
-          (vc != PROFILING_VIRTUAL_CHANNEL))
-      {
-        const LegionProfInstance::EventTriggerInfo remote_info = {
-            original_fevent, creator, result, spawn};
-        ProfilerEventTriggerMessage rez;
-        rez.serialize(remote_info);
-        const Realm::ID id = original_fevent.id;
-        const AddressSpaceID target = id.event_creator_node();
-        rez.dispatch(target);
-      }
+      // Reverse the order so we can find it the other way in the response
+      if (!remove)
+        message_fevents[result] = fevent;
       return result;
-    }
-
-    //--------------------------------------------------------------------------
-    bool LegionProfiler::confirm_shutdown(void) const
-    //--------------------------------------------------------------------------
-    {
-      AutoLock prof_lock(profiler_lock, false /*exclusive*/);
-      // Make sure we don't have any messages left to send
-      return message_fevents.empty();
     }
 
     //--------------------------------------------------------------------------
