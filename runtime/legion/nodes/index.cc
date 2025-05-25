@@ -203,7 +203,7 @@ namespace Legion {
         wait_on.wait();
       }
       // When we wake up, we should be able to find everything
-      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      AutoLock n_lock(node_lock, false /*exclusive*/);
       lng::map<SemanticTag, SemanticInfo>::const_iterator finder =
           semantic_info.find(tag);
       if (finder == semantic_info.end())
@@ -611,7 +611,7 @@ namespace Legion {
       // See if we have it locally if not go find it
       IndexPartition remote_handle = IndexPartition::NO_PART;
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         std::map<LegionColor, IndexPartNode*>::const_iterator finder =
             color_map.find(c);
         if ((finder != color_map.end()) && (finder->second != nullptr))
@@ -739,7 +739,7 @@ namespace Legion {
     size_t IndexSpaceNode::get_num_children(void) const
     //--------------------------------------------------------------------------
     {
-      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      AutoLock n_lock(node_lock, false /*exclusive*/);
       return color_map.size();
     }
 
@@ -768,7 +768,7 @@ namespace Legion {
         std::swap(c1, c2);
       const std::pair<LegionColor, LegionColor> key(c1, c2);
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         if (disjoint_subsets.find(key) != disjoint_subsets.end())
           return true;
         else if (aliased_subsets.find(key) != aliased_subsets.end())
@@ -842,7 +842,7 @@ namespace Legion {
       }
       else
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         for (std::map<LegionColor, IndexPartNode*>::const_iterator it =
                  color_map.begin();
              it != color_map.end(); it++)
@@ -2091,7 +2091,7 @@ namespace Legion {
     {
       // First check to see if we can find it
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         std::map<LegionColor, IndexSpaceNode*>::const_iterator finder =
             color_map.find(c);
         if (finder != color_map.end())
@@ -2870,7 +2870,7 @@ namespace Legion {
         std::swap(c1, c2);
       const std::pair<LegionColor, LegionColor> key(c1, c2);
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         if (disjoint_subspaces.find(key) != disjoint_subspaces.end())
           return true;
         else if (aliased_subspaces.find(key) != aliased_subspaces.end())

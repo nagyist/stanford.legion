@@ -101,7 +101,7 @@ namespace Legion {
       FieldMask compressed;
       // First check to see if we've memoized this result
       {
-        AutoLock o_lock(layout_lock, 1, false /*exclusive*/);
+        AutoLock o_lock(layout_lock, false /*exclusive*/);
         std::map<
             LEGION_FIELD_MASK_FIELD_TYPE,
             lng::list<std::pair<FieldMask, FieldMask> > >::const_iterator
@@ -483,7 +483,7 @@ namespace Legion {
       // Check to see if the result is in the cache
       if (test_pointer)
       {
-        AutoLock lay(layout_lock, 1, false /*exclusive*/);
+        AutoLock lay(layout_lock, false /*exclusive*/);
         std::map<
             std::pair<LayoutConstraintID, unsigned>,
             const LayoutConstraint*>::const_iterator finder =
@@ -502,7 +502,7 @@ namespace Legion {
       }
       else
       {
-        AutoLock lay(layout_lock, 1, false /*exclusive*/);
+        AutoLock lay(layout_lock, false /*exclusive*/);
         std::map<
             std::pair<LayoutConstraintID, unsigned>,
             const LayoutConstraint*>::const_iterator finder =
@@ -556,7 +556,7 @@ namespace Legion {
           constraints->layout_id, total_dims);
       // Check to see if the result is in the cache
       {
-        AutoLock lay(layout_lock, 1, false /*exclusive*/);
+        AutoLock lay(layout_lock, false /*exclusive*/);
         std::map<
             std::pair<LayoutConstraintID, unsigned>,
             const LayoutConstraint*>::const_iterator finder =

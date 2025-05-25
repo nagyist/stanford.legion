@@ -279,7 +279,7 @@ namespace Legion {
       {
         // See if we already have it
         {
-          AutoLock fm_lock(future_map_lock, 1, false /*exlusive*/);
+          AutoLock fm_lock(future_map_lock, false /*exclusive*/);
           std::map<DomainPoint, FutureImpl*>::const_iterator finder =
               futures.find(point);
           if (finder != futures.end())
@@ -304,7 +304,7 @@ namespace Legion {
         }
         future_ready_event.wait();
         // When we wake up it should be here
-        AutoLock fm_lock(future_map_lock, 1, false /*exlusive*/);
+        AutoLock fm_lock(future_map_lock, false /*exclusive*/);
         std::map<DomainPoint, FutureImpl*>::const_iterator finder =
             futures.find(point);
         legion_assert(finder != futures.end());
@@ -893,7 +893,7 @@ namespace Legion {
     {
       // Do a quick check to see if we've already got it
       {
-        AutoLock f_lock(future_map_lock, 1, false /*exclusive*/);
+        AutoLock f_lock(future_map_lock, false /*exclusive*/);
         std::map<DomainPoint, FutureImpl*>::const_iterator finder =
             futures.find(point);
         if (finder != futures.end())
@@ -948,7 +948,7 @@ namespace Legion {
         }
         future_ready_event.wait();
         // Now we can wake up see if we found it
-        AutoLock f_lock(future_map_lock, 1, false /*exclusive*/);
+        AutoLock f_lock(future_map_lock, false /*exclusive*/);
         std::map<DomainPoint, FutureImpl*>::const_iterator finder =
             futures.find(point);
         legion_assert(finder != futures.end());

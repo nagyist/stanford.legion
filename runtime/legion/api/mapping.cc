@@ -3088,8 +3088,36 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
+    AutoLock::AutoLock(MapperContext c, LocalLock& r, bool excl)
+      : Internal::AutoLock(excl, r), ctx(c)
+    //--------------------------------------------------------------------------
+    {
+      AutoMapperCall call(ctx, Internal::MAPPER_AUTO_LOCK_CALL);
+      if (exclusive)
+      {
+        Internal::RtEvent ready = local_lock.wrlock();
+        while (ready.exists())
+        {
+          ready.wait();
+          ready = local_lock.wrlock();
+        }
+      }
+      else
+      {
+        Internal::RtEvent ready = local_lock.rdlock();
+        while (ready.exists())
+        {
+          ready.wait();
+          ready = local_lock.rdlock();
+        }
+      }
+      held = true;
+      Internal::local_lock_list = this;
+    }
+
+    //--------------------------------------------------------------------------
     AutoLock::AutoLock(MapperContext c, LocalLock& r, int mode, bool excl)
-      : Internal::AutoLock(mode, excl, r), ctx(c)
+      : Internal::AutoLock(excl, r), ctx(c)
     //--------------------------------------------------------------------------
     {
       AutoMapperCall call(ctx, Internal::MAPPER_AUTO_LOCK_CALL);

@@ -3191,7 +3191,7 @@ namespace Legion {
       DomainT<DIM, T> realm_index_space = get_tight_index_space();
       EqKDTreeT<DIM, T>* typed_tree = tree->as_eq_kd_tree<DIM, T>();
       // Need non-exclusive access to the tree for non-invalidations
-      AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(*tree_lock, false /*exclusive*/);
       for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
            itr.step())
         typed_tree->compute_equivalence_sets(
@@ -3215,7 +3215,7 @@ namespace Legion {
       DomainT<DIM, T> realm_index_space = get_tight_index_space();
       unsigned new_subs = 0;
       // Need non-exclusive access to the tree for non-invalidations
-      AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(*tree_lock, false /*exclusive*/);
       for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
            itr.step())
         new_subs += typed_tree->record_output_equivalence_set(
@@ -3271,7 +3271,7 @@ namespace Legion {
       DomainT<DIM, T> realm_index_space = get_tight_index_space();
       EqKDTreeT<DIM, T>* typed_tree = tree->as_eq_kd_tree<DIM, T>();
       // Need non-exclusive access to the tree for non-invalidations
-      AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(*tree_lock, false /*exclusive*/);
       for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
            itr.step())
         typed_tree->find_trace_local_sets(
@@ -3289,7 +3289,7 @@ namespace Legion {
       DomainT<DIM, T> realm_index_space = get_tight_index_space();
       EqKDTreeT<DIM, T>* typed_tree = tree->as_eq_kd_tree<DIM, T>();
       // Need non-exclusive access to the tree for non-invalidations
-      AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(*tree_lock, false /*exclusive*/);
       for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
            itr.step())
         typed_tree->find_shard_trace_local_sets(

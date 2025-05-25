@@ -1669,7 +1669,7 @@ namespace Legion {
       // Take the lock in read only mode and see if we can find the result
       RtEvent wait_on;
       {
-        AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(library_lock, false /*exclusive*/);
         std::map<std::string, LibraryTraceIDs>::const_iterator finder =
             library_trace_ids.find(library_name);
         if (finder != library_trace_ids.end())
@@ -1751,7 +1751,7 @@ namespace Legion {
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
-      AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(library_lock, false /*exclusive*/);
       std::map<std::string, LibraryTraceIDs>::const_iterator finder =
           library_trace_ids.find(library_name);
       legion_assert(finder != library_trace_ids.end());
@@ -1951,7 +1951,7 @@ namespace Legion {
       // Take the lock in read only mode and see if we can find the result
       RtEvent wait_on;
       {
-        AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(library_lock, false /*exclusive*/);
         std::map<std::string, LibraryMapperIDs>::const_iterator finder =
             library_mapper_ids.find(library_name);
         if (finder != library_mapper_ids.end())
@@ -2033,7 +2033,7 @@ namespace Legion {
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
-      AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(library_lock, false /*exclusive*/);
       std::map<std::string, LibraryMapperIDs>::const_iterator finder =
           library_mapper_ids.find(library_name);
       legion_assert(finder != library_mapper_ids.end());
@@ -2211,7 +2211,7 @@ namespace Legion {
       // Take the lock in read only mode and see if we can find the result
       RtEvent wait_on;
       {
-        AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(library_lock, false /*exclusive*/);
         std::map<std::string, LibraryProjectionIDs>::const_iterator finder =
             library_projection_ids.find(library_name);
         if (finder != library_projection_ids.end())
@@ -2295,7 +2295,7 @@ namespace Legion {
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
-      AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(library_lock, false /*exclusive*/);
       std::map<std::string, LibraryProjectionIDs>::const_iterator finder =
           library_projection_ids.find(library_name);
       legion_assert(finder != library_projection_ids.end());
@@ -2401,7 +2401,7 @@ namespace Legion {
         ProjectionID pid, bool can_fail)
     //--------------------------------------------------------------------------
     {
-      AutoLock p_lock(projection_lock, 1, false /*exclusive*/);
+      AutoLock p_lock(projection_lock, false /*exclusive*/);
       std::map<ProjectionID, ProjectionFunction*>::const_iterator finder =
           projection_functions.find(pid);
       if (finder == projection_functions.end())
@@ -2470,7 +2470,7 @@ namespace Legion {
       // Take the lock in read only mode and see if we can find the result
       RtEvent wait_on;
       {
-        AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(library_lock, false /*exclusive*/);
         std::map<std::string, LibraryShardingIDs>::const_iterator finder =
             library_sharding_ids.find(library_name);
         if (finder != library_sharding_ids.end())
@@ -2554,7 +2554,7 @@ namespace Legion {
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
-      AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(library_lock, false /*exclusive*/);
       std::map<std::string, LibraryShardingIDs>::const_iterator finder =
           library_sharding_ids.find(library_name);
       legion_assert(finder != library_sharding_ids.end());
@@ -2669,7 +2669,7 @@ namespace Legion {
         ShardingID sid, bool can_fail)
     //--------------------------------------------------------------------------
     {
-      AutoLock s_lock(sharding_lock, 1, false /*exclusive*/);
+      AutoLock s_lock(sharding_lock, false /*exclusive*/);
       std::map<ShardingID, ShardingFunctor*>::const_iterator finder =
           sharding_functors.find(sid);
       if (finder == sharding_functors.end())
@@ -2731,7 +2731,7 @@ namespace Legion {
       // Take the lock in read only mode and see if we can find the result
       RtEvent wait_on;
       {
-        AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(library_lock, false /*exclusive*/);
         std::map<std::string, LibraryConcurrentIDs>::const_iterator finder =
             library_concurrent_ids.find(library_name);
         if (finder != library_concurrent_ids.end())
@@ -2815,7 +2815,7 @@ namespace Legion {
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
-      AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(library_lock, false /*exclusive*/);
       std::map<std::string, LibraryConcurrentIDs>::const_iterator finder =
           library_concurrent_ids.find(library_name);
       legion_assert(finder != library_concurrent_ids.end());
@@ -2931,7 +2931,7 @@ namespace Legion {
         ConcurrentID cid, bool can_fail)
     //--------------------------------------------------------------------------
     {
-      AutoLock c_lock(concurrent_lock, 1, false /*exclusive*/);
+      AutoLock c_lock(concurrent_lock, false /*exclusive*/);
       std::map<ConcurrentID, ConcurrentColoringFunctor*>::const_iterator
           finder = concurrent_functors.find(cid);
       if (finder == concurrent_functors.end())
@@ -3211,7 +3211,7 @@ namespace Legion {
       // Take the lock in read only mode and see if we can find the result
       RtEvent wait_on;
       {
-        AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(library_lock, false /*exclusive*/);
         std::map<std::string, LibraryTaskIDs>::const_iterator finder =
             library_task_ids.find(library_name);
         if (finder != library_task_ids.end())
@@ -3293,7 +3293,7 @@ namespace Legion {
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
-      AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(library_lock, false /*exclusive*/);
       std::map<std::string, LibraryTaskIDs>::const_iterator finder =
           library_task_ids.find(library_name);
       legion_assert(finder != library_task_ids.end());
@@ -3366,7 +3366,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock tv_lock(task_variant_lock, 1, false /*exclusive*/);
+        AutoLock tv_lock(task_variant_lock, false /*exclusive*/);
         std::map<TaskID, TaskImpl*>::const_iterator finder =
             task_table.find(task_id);
         if (finder != task_table.end())
@@ -3390,7 +3390,7 @@ namespace Legion {
     TaskImpl* Runtime::find_task_impl(TaskID task_id)
     //--------------------------------------------------------------------------
     {
-      AutoLock tv_lock(task_variant_lock, 1, false /*exclusive*/);
+      AutoLock tv_lock(task_variant_lock, false /*exclusive*/);
       std::map<TaskID, TaskImpl*>::const_iterator finder =
           task_table.find(task_id);
       legion_assert(finder != task_table.end());
@@ -3435,7 +3435,7 @@ namespace Legion {
       // Take the lock in read only mode and see if we can find the result
       RtEvent wait_on;
       {
-        AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(library_lock, false /*exclusive*/);
         std::map<std::string, LibraryRedopIDs>::const_iterator finder =
             library_redop_ids.find(library_name);
         if (finder != library_redop_ids.end())
@@ -3519,7 +3519,7 @@ namespace Legion {
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
-      AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(library_lock, false /*exclusive*/);
       std::map<std::string, LibraryRedopIDs>::const_iterator finder =
           library_redop_ids.find(library_name);
       legion_assert(finder != library_redop_ids.end());
@@ -3556,7 +3556,7 @@ namespace Legion {
       // Take the lock in read only mode and see if we can find the result
       RtEvent wait_on;
       {
-        AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(library_lock, false /*exclusive*/);
         std::map<std::string, LibrarySerdezIDs>::const_iterator finder =
             library_serdez_ids.find(library_name);
         if (finder != library_serdez_ids.end())
@@ -3640,7 +3640,7 @@ namespace Legion {
       }
       wait_on.wait();
       // When we wake up we should be able to find the result
-      AutoLock l_lock(library_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(library_lock, false /*exclusive*/);
       std::map<std::string, LibrarySerdezIDs>::const_iterator finder =
           library_serdez_ids.find(library_name);
       legion_assert(finder != library_serdez_ids.end());
@@ -3653,7 +3653,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock m_lock(memory_manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(memory_manager_lock, false /*exclusive*/);
         std::map<Memory, MemoryManager*>::const_iterator finder =
             memory_managers.find(mem);
         if (finder != memory_managers.end())
@@ -5203,7 +5203,7 @@ namespace Legion {
     {
       std::map<Memory, MemoryManager*> copy_managers;
       {
-        AutoLock m_lock(memory_manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(memory_manager_lock, false /*exclusive*/);
         copy_managers = memory_managers;
       }
       for (std::map<Memory, MemoryManager*>::const_iterator it =
@@ -5285,7 +5285,7 @@ namespace Legion {
       ProcessorMask result;
       std::vector<Processor> need_allocation;
       {
-        AutoLock p_lock(processor_mapping_lock, 1, false /*exclusive*/);
+        AutoLock p_lock(processor_mapping_lock, false /*exclusive*/);
         for (std::vector<Processor>::const_iterator it = procs.begin();
              it != procs.end(); it++)
         {
@@ -5445,7 +5445,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       did &= LEGION_DISTRIBUTED_ID_MASK;
-      AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
+      AutoLock d_lock(distributed_collectable_lock, false /*exclusive*/);
       return (dist_collectables.find(did) != dist_collectables.end());
     }
 
@@ -5458,7 +5458,7 @@ namespace Legion {
       DistributedCollectable* result = nullptr;
       const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
       {
-        AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
+        AutoLock d_lock(distributed_collectable_lock, false /*exclusive*/);
         lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(to_find);
         if (finder == dist_collectables.end())
@@ -5511,7 +5511,7 @@ namespace Legion {
         ready.wait();
       if (result != nullptr)
         return result;
-      AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
+      AutoLock d_lock(distributed_collectable_lock, false /*exclusive*/);
       lng::map<DistributedID, DistributedCollectable*>::const_iterator finder =
           dist_collectables.find(to_find);
       legion_assert(finder != dist_collectables.end());
@@ -5524,7 +5524,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
-      AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
+      AutoLock d_lock(distributed_collectable_lock, false /*exclusive*/);
       lng::map<DistributedID, DistributedCollectable*>::const_iterator finder =
           dist_collectables.find(to_find);
       if (finder == dist_collectables.end())
@@ -5657,7 +5657,7 @@ namespace Legion {
       if (can_fail)
       {
         const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
-        AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
+        AutoLock d_lock(distributed_collectable_lock, false /*exclusive*/);
         lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(to_find);
         if (finder == dist_collectables.end())
@@ -5735,7 +5735,7 @@ namespace Legion {
     {
       did &= LEGION_DISTRIBUTED_ID_MASK;
       {
-        AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
+        AutoLock d_lock(distributed_collectable_lock, false /*exclusive*/);
         lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(did);
         if (finder != dist_collectables.end())
@@ -5772,7 +5772,7 @@ namespace Legion {
     {
       did &= LEGION_DISTRIBUTED_ID_MASK;
       {
-        AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
+        AutoLock d_lock(distributed_collectable_lock, false /*exclusive*/);
         lng::map<DistributedID, DistributedCollectable*>::const_iterator
             finder = dist_collectables.find(did);
         if (finder != dist_collectables.end())
@@ -5811,7 +5811,7 @@ namespace Legion {
       legion_assert(type_tag != 0);
       const std::pair<Domain, TypeTag> key(domain, type_tag);
       {
-        AutoLock is_lock(is_slice_lock, 1, false /*exclusive*/);
+        AutoLock is_lock(is_slice_lock, false /*exclusive*/);
         std::map<
             std::pair<Domain, TypeTag>,
             std::pair<IndexSpace, RtUserEvent> >::const_iterator finder =
@@ -5891,7 +5891,7 @@ namespace Legion {
           copy.destroy();
         }
         wait_on.wait();
-        AutoLock is_lock(is_slice_lock, 1, false /*exclusive*/);
+        AutoLock is_lock(is_slice_lock, false /*exclusive*/);
         std::map<
             std::pair<Domain, TypeTag>,
             std::pair<IndexSpace, RtUserEvent> >::const_iterator finder =
@@ -5965,7 +5965,7 @@ namespace Legion {
         // try and get close to when there are no more outstanding tasks
         std::map<Memory, MemoryManager*> copy_managers;
         {
-          AutoLock m_lock(memory_manager_lock, 1, false /*exclusive*/);
+          AutoLock m_lock(memory_manager_lock, false /*exclusive*/);
           copy_managers = memory_managers;
         }
         std::set<ApEvent> wait_events;
@@ -6005,7 +6005,7 @@ namespace Legion {
             LEGION_META_TASKS(META_TASK_NAMES)
 #undef META_TASK_NAMES
         };
-        AutoLock out_lock(outstanding_task_lock, 1, false /*exclusive*/);
+        AutoLock out_lock(outstanding_task_lock, false /*exclusive*/);
         for (std::map<std::pair<unsigned, bool>, unsigned>::const_iterator it =
                  outstanding_task_counts.begin();
              it != outstanding_task_counts.end(); it++)
@@ -6046,7 +6046,7 @@ namespace Legion {
       std::vector<FutureImpl*> leaked_futures;
       {
         // Also have any leaking futures force delete their instances
-        AutoLock d_lock(distributed_collectable_lock, 1, false /*exclusive*/);
+        AutoLock d_lock(distributed_collectable_lock, false /*exclusive*/);
         for (lng::map<DistributedID, DistributedCollectable*>::const_iterator
                  it = dist_collectables.begin();
              it != dist_collectables.end(); it++)
@@ -6090,7 +6090,7 @@ namespace Legion {
         it->second->prepare_for_shutdown();
       std::vector<LayoutConstraints*> to_remove;
       {
-        AutoLock l_lock(layout_constraints_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(layout_constraints_lock, false /*exclusive*/);
         for (std::map<LayoutConstraintID, LayoutConstraints*>::const_iterator
                  it = layout_constraints_table.begin();
              it != layout_constraints_table.end(); it++)
@@ -7043,7 +7043,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CurrentInitializer init(ctx);
-      AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(lookup_lock, false /*exclusive*/);
       // Need to hold references to prevent deletion race
       for (std::map<RegionTreeID, RegionNode*>::const_iterator it =
                tree_nodes.begin();
@@ -7339,7 +7339,7 @@ namespace Legion {
       // Special case for root nodes without dids, we better find them
       if ((parent == nullptr) && (did == 0))
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         // Check to see if it already exists
         std::map<LogicalRegion, RegionNode*>::const_iterator finder =
             region_nodes.find(r);
@@ -7468,7 +7468,7 @@ namespace Legion {
       RtEvent wait_on;
       IndexSpaceNode* result = nullptr;
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         std::map<IndexSpace, IndexSpaceNode*>::const_iterator finder =
             index_nodes.find(space);
         if (finder != index_nodes.end())
@@ -7615,7 +7615,7 @@ namespace Legion {
       RtEvent wait_on;
       IndexPartNode* result = nullptr;
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         std::map<IndexPartition, IndexPartNode*>::const_iterator finder =
             index_parts.find(part);
         if (finder != index_parts.end())
@@ -7761,7 +7761,7 @@ namespace Legion {
       RtEvent wait_on;
       FieldSpaceNode* result = nullptr;
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         std::map<FieldSpace, FieldSpaceNode*>::const_iterator finder =
             field_nodes.find(space);
         if (finder != field_nodes.end())
@@ -7853,7 +7853,7 @@ namespace Legion {
         // Wait for the event to be ready
         wait_on.wait();
         {
-          AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+          AutoLock l_lock(lookup_lock, false /*exclusive*/);
           std::map<FieldSpace, FieldSpaceNode*>::const_iterator finder =
               field_nodes.find(space);
           if (finder != field_nodes.end())
@@ -7904,7 +7904,7 @@ namespace Legion {
       RegionNode* result = nullptr;
       bool has_top_level_region = false;
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         std::map<LogicalRegion, RegionNode*>::const_iterator finder =
             region_nodes.find(handle);
         if (finder != region_nodes.end())
@@ -8002,7 +8002,7 @@ namespace Legion {
           {
             // Retake the lock and see again if the handle we
             // were looking for was the top-level node or not
-            AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+            AutoLock l_lock(lookup_lock, false /*exclusive*/);
             std::map<LogicalRegion, RegionNode*>::const_iterator it =
                 region_nodes.find(handle);
             if (it != region_nodes.end())
@@ -8047,7 +8047,7 @@ namespace Legion {
         result = create_node(handle, nullptr, RtEvent::NO_RT_EVENT, 0 /*did*/);
       }
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         if (!result->initialized.exists())
           return result;
         wait_on = result->initialized;
@@ -8072,7 +8072,7 @@ namespace Legion {
       PartitionNode* result = nullptr;
       // Check to see if the node already exists
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         std::map<LogicalPartition, PartitionNode*>::const_iterator it =
             part_nodes.find(handle);
         if (it != part_nodes.end())
@@ -8105,7 +8105,7 @@ namespace Legion {
       // Now create our node and return it
       result = create_node(handle, parent);
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         if (!result->initialized.exists())
           return result;
         wait_on = result->initialized;
@@ -8133,7 +8133,7 @@ namespace Legion {
       RtEvent wait_on;
       RegionNode* result = nullptr;
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         std::map<RegionTreeID, RegionNode*>::const_iterator finder =
             tree_nodes.find(tid);
         if (finder != tree_nodes.end())
@@ -8208,7 +8208,7 @@ namespace Legion {
           wait_on = req_finder->second;
       }
       wait_on.wait();
-      AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+      AutoLock l_lock(lookup_lock, false /*exclusive*/);
       std::map<RegionTreeID, RegionNode*>::const_iterator finder =
           tree_nodes.find(tid);
       if (finder == tree_nodes.end())
@@ -8233,7 +8233,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock l_lock(lookup_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_lock, false /*exclusive*/);
         std::map<IndexSpace, IndexSpaceNode*>::const_iterator finder =
             index_nodes.find(space);
         if (finder != index_nodes.end())
@@ -8984,7 +8984,7 @@ namespace Legion {
       const IndexSpaceExprID key = first->expr_id;
       // See if we can find it in read-only mode
       {
-        AutoLock l_lock(lookup_is_op_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_is_op_lock, false /*exclusive*/);
         std::map<IndexSpaceExprID, ExpressionTrieNode*>::const_iterator finder =
             union_ops.find(key);
         if (finder != union_ops.end())
@@ -9276,7 +9276,7 @@ namespace Legion {
       const IndexSpaceExprID key = first->expr_id;
       // See if we can find it in read-only mode
       {
-        AutoLock l_lock(lookup_is_op_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_is_op_lock, false /*exclusive*/);
         std::map<IndexSpaceExprID, ExpressionTrieNode*>::const_iterator finder =
             intersection_ops.find(key);
         if (finder != intersection_ops.end())
@@ -9375,7 +9375,7 @@ namespace Legion {
       const IndexSpaceExprID key = expressions[0]->expr_id;
       // See if we can find it in read-only mode
       {
-        AutoLock l_lock(lookup_is_op_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_is_op_lock, false /*exclusive*/);
         std::map<IndexSpaceExprID, ExpressionTrieNode*>::const_iterator finder =
             difference_ops.find(key);
         if (finder != difference_ops.end())
@@ -9552,7 +9552,7 @@ namespace Legion {
     {
       // See if we can find it with the read-only lock first
       {
-        AutoLock l_lock(lookup_is_op_lock, 1, false /*exclusive*/);
+        AutoLock l_lock(lookup_is_op_lock, false /*exclusive*/);
         std::map<IndexSpaceExprID, IndexSpaceExpression*>::const_iterator
             finder = remote_expressions.find(remote_expr_id);
         if (finder != remote_expressions.end())
@@ -9896,7 +9896,7 @@ namespace Legion {
       const size_t hash = std::hash<std::string_view>{}(view);
       // Check to see if we can find it in read-only mode first
       {
-        AutoLock prov_lock(provenance_lock, 1, false /*exclusive*/);
+        AutoLock prov_lock(provenance_lock, false /*exclusive*/);
         std::unordered_map<size_t, Provenance*>::const_iterator finder =
             provenances.find(hash);
         if (finder != provenances.end())
@@ -11605,7 +11605,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock r_lock(redop_lock, 1, false /*exclusive*/);
+        AutoLock r_lock(redop_lock, false /*exclusive*/);
         std::map<ReductionOpID, FillView*>::const_iterator finder =
             redop_fill_views.find(redop);
         if (finder != redop_fill_views.end())

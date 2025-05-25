@@ -94,7 +94,7 @@ namespace Legion {
     inline bool DistributedCollectable::has_remote_instances(void) const
     //--------------------------------------------------------------------------
     {
-      AutoLock gc(gc_lock, 1, false /*exclusive*/);
+      AutoLock gc(gc_lock, false /*exclusive*/);
       return !remote_instances.empty();
     }
 
@@ -102,7 +102,7 @@ namespace Legion {
     inline size_t DistributedCollectable::count_remote_instances(void) const
     //--------------------------------------------------------------------------
     {
-      AutoLock gc(gc_lock, 1, false /*exclusive*/);
+      AutoLock gc(gc_lock, false /*exclusive*/);
       return remote_instances.pop_count();
     }
 
@@ -111,7 +111,7 @@ namespace Legion {
     void DistributedCollectable::map_over_remote_instances(FUNCTOR& functor)
     //--------------------------------------------------------------------------
     {
-      AutoLock gc(gc_lock, 1, false /*exclusive*/);
+      AutoLock gc(gc_lock, false /*exclusive*/);
       remote_instances.map(functor);
     }
 

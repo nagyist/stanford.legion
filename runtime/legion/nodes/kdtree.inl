@@ -1155,7 +1155,7 @@ namespace Legion {
     {
       local::FieldMaskMap<EqKDNode<DIM, T> > to_get_previous;
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         legion_assert(
             (current_sets == nullptr) ||
             (current_sets->get_valid_mask() * mask));
@@ -2019,7 +2019,7 @@ namespace Legion {
       legion_assert(this->bounds.contains(rect));
       std::vector<EqKDNode<DIM, T>*> to_traverse;
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         if (current_sets != nullptr)
         {
           for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
@@ -2596,7 +2596,7 @@ namespace Legion {
       local::FieldMaskMap<EqKDNode<DIM, T> > to_traverse;
       {
         FieldMask remaining = mask;
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         if ((current_sets != nullptr) &&
             !(remaining * current_sets->get_valid_mask()))
         {

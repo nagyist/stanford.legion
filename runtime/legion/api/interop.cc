@@ -522,7 +522,7 @@ namespace Legion {
       {
         RezCheck z(rez);
         rez.serialize(-1);
-        AutoLock r_lock(reservation, 1, false /*exclusive*/);
+        AutoLock r_lock(reservation, false /*exclusive*/);
         rez.serialize<size_t>(forward_mapping.size());
         for (std::map<int, AddressSpace>::const_iterator it =
                  forward_mapping.begin();

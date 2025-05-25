@@ -3054,7 +3054,9 @@ namespace Legion {
      */
     class AutoLock : public Internal::AutoLock {
     public:
-      AutoLock(MapperContext ctx, LocalLock& r, int mode = 0, bool excl = true);
+      AutoLock(MapperContext ctx, LocalLock& r, bool excl = true);
+      [[deprecated("Use the version without a mode")]]
+      AutoLock(MapperContext ctx, LocalLock& r, int mode, bool excl = true);
       AutoLock(AutoLock&& rhs) = delete;
       AutoLock(const AutoLock& rhs) = delete;
       ~AutoLock(void) { };

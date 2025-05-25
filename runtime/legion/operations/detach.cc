@@ -647,7 +647,7 @@ namespace Legion {
         RtUserEvent to_trigger)
     //--------------------------------------------------------------------------
     {
-      AutoLock o_lock(op_lock, 1, false /*exclusive*/);
+      AutoLock o_lock(op_lock, false /*exclusive*/);
       legion_assert(needed_gen <= gen);
       if ((needed_gen < gen) || mapped)
       {

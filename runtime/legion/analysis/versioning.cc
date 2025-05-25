@@ -168,7 +168,7 @@ namespace Legion {
       FieldMask remaining_mask(version_mask);
       bool has_waiter = false;
       {
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         // Check to see if any computations of equivalence sets are in progress
         // If so we'll skip out early and go down the slow path which should
         // be a fairly rare thing to do
@@ -302,7 +302,7 @@ namespace Legion {
     {
       FieldMask set_mask;
       {
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         lng::FieldMaskMap<EquivalenceSet>::const_iterator finder =
             equivalence_sets.find(set);
         legion_assert(finder != equivalence_sets.end());

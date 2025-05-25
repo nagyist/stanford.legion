@@ -1100,7 +1100,7 @@ namespace Legion {
     // the object goes out of scope
     class AutoLock {
     public:
-      inline AutoLock(LocalLock& r, int mode = 0, bool excl = true)
+      inline AutoLock(LocalLock& r, bool excl = true)
         : local_lock(r), previous(local_lock_list), exclusive(excl), held(true)
       {
 #ifdef LEGION_DEBUG_REENTRANT_LOCKS
@@ -1129,7 +1129,7 @@ namespace Legion {
       }
     protected:
       // Helper constructor for AutoTryLock and Mapping::AutoLock
-      inline AutoLock(int mode, bool excl, LocalLock& r)
+      inline AutoLock(bool excl, LocalLock& r)
         : local_lock(r), previous(local_lock_list), exclusive(excl), held(false)
       {
 #ifdef LEGION_DEBUG_REENTRANT_LOCKS
@@ -1225,8 +1225,7 @@ namespace Legion {
     // AutoTryLock is an extension of AutoLock that supports try lock
     class AutoTryLock : public AutoLock {
     public:
-      inline AutoTryLock(LocalLock& r, int mode = 0, bool excl = true)
-        : AutoLock(mode, excl, r)
+      inline AutoTryLock(LocalLock& r, bool excl = true) : AutoLock(excl, r)
       {
         if (exclusive)
           ready = local_lock.wrlock();

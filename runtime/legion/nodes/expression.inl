@@ -1584,7 +1584,7 @@ namespace Legion {
     {
       if (new_expr_id == 0)
         new_expr_id = expr_id;
-      AutoLock i_lock(inter_lock, 1, false /*exclusive*/);
+      AutoLock i_lock(inter_lock, false /*exclusive*/);
       if (is_index_space_tight.load())
         return runtime->create_node(
             handle, Domain(tight_index_space), false /*take ownership*/,
@@ -1801,7 +1801,7 @@ namespace Legion {
       EqKDTreeT<DIM, T>* typed_tree = tree->as_eq_kd_tree<DIM, T>();
       DomainT<DIM, T> realm_index_space = get_tight_index_space();
       // Need non-exclusive access to the tree for non-invalidations
-      AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(*tree_lock, false /*exclusive*/);
       for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
            itr.step())
         typed_tree->compute_equivalence_sets(
@@ -1825,7 +1825,7 @@ namespace Legion {
       DomainT<DIM, T> realm_index_space = get_tight_index_space();
       unsigned new_subs = 0;
       // Need non-exclusive access to the tree for non-invalidations
-      AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(*tree_lock, false /*exclusive*/);
       for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
            itr.step())
         new_subs += typed_tree->record_output_equivalence_set(

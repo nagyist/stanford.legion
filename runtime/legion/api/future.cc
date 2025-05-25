@@ -604,7 +604,7 @@ namespace Legion {
       // Wait for the future to be ready
       memories.clear();
       wait(silence_warnings, warning_string);
-      AutoLock f_lock(future_lock, 1, false /*exclusive*/);
+      AutoLock f_lock(future_lock, false /*exclusive*/);
       for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
                instances.begin();
            it != instances.end(); it++)
@@ -2071,14 +2071,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock f_lock(future_lock, 1, false /*exclusive*/);
+        AutoLock f_lock(future_lock, false /*exclusive*/);
         if (!empty.load() || future_size_set)
           return upper_bound_size;
       }
       const RtEvent subscribed = subscribe();
       if (subscribed.exists() && !subscribed.has_triggered())
         subscribed.wait();
-      AutoLock f_lock(future_lock, 1, false /*exclusive*/);
+      AutoLock f_lock(future_lock, false /*exclusive*/);
       legion_assert(!empty.load() || future_size_set);
       return upper_bound_size;
     }

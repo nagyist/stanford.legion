@@ -516,7 +516,7 @@ namespace Legion {
         wait_on.wait();
       }
       // When we wake up, we should be able to find everything
-      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      AutoLock n_lock(node_lock, false /*exclusive*/);
       lng::map<SemanticTag, SemanticInfo>::const_iterator finder =
           semantic_info.find(tag);
       if (finder == semantic_info.end())
@@ -621,7 +621,7 @@ namespace Legion {
         wait_on.wait();
       }
       // When we wake up, we should be able to find everything
-      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      AutoLock n_lock(node_lock, false /*exclusive*/);
       lng::map<std::pair<FieldID, SemanticTag>, SemanticInfo>::const_iterator
           finder = semantic_field_info.find(
               std::pair<FieldID, SemanticTag>(fid, tag));
@@ -2015,7 +2015,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2054,7 +2054,7 @@ namespace Legion {
     {
       RtEvent wait_for;
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2101,7 +2101,7 @@ namespace Legion {
     {
       RtEvent wait_for;
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2148,7 +2148,7 @@ namespace Legion {
     {
       to_set.clear();
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2187,7 +2187,7 @@ namespace Legion {
     {
       std::set<unsigned> local_indexes;
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2247,7 +2247,7 @@ namespace Legion {
     {
       std::set<unsigned> local_indexes;
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2306,7 +2306,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2354,7 +2354,7 @@ namespace Legion {
     {
       FieldMask result;
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2397,7 +2397,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2433,7 +2433,7 @@ namespace Legion {
     {
       legion_assert(needed.size() == indexes.size());
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2483,7 +2483,7 @@ namespace Legion {
       std::map<unsigned /*mask index*/, unsigned /*layout index*/> index_map;
       {
         // Need to hold the lock when accessing field infos
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -2960,7 +2960,7 @@ namespace Legion {
       std::deque<LayoutDescription*> candidates;
       {
         uint64_t hash_key = mask.get_hash_key();
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         std::map<LEGION_FIELD_MASK_FIELD_TYPE, lng::list<LayoutDescription*>>::
             const_iterator finder = layouts.find(hash_key);
         if (finder == layouts.end())
@@ -3000,7 +3000,7 @@ namespace Legion {
     {
       // This one better work
       uint64_t hash_key = mask.get_hash_key();
-      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      AutoLock n_lock(node_lock, false /*exclusive*/);
       std::map<LEGION_FIELD_MASK_FIELD_TYPE, lng::list<LayoutDescription*>>::
           const_iterator finder = layouts.find(hash_key);
       legion_assert(finder != layouts.end());
@@ -3411,7 +3411,7 @@ namespace Legion {
       bool invalid = false;
       size_t count = 0;  // used to skip leading comma
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
           legion_assert(is_owner());
@@ -3765,7 +3765,7 @@ namespace Legion {
       else
       {
         // Not the owner
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         // check to see if we lost the race
         if (allocation_state != FIELD_ALLOC_INVALID)
         {

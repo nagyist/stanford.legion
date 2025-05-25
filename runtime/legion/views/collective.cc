@@ -1411,7 +1411,7 @@ namespace Legion {
           return false;
         // Check all the current
         {
-          AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+          AutoLock v_lock(view_lock, false /*exclusive*/);
           std::map<PhysicalManager*, IndividualView*>::const_iterator finder =
               remote_instances.find(manager);
           if (finder != remote_instances.end())
@@ -1432,7 +1432,7 @@ namespace Legion {
         rez.dispatch(manager_space);
         if (!ready_event.has_triggered())
           ready_event.wait();
-        AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+        AutoLock v_lock(view_lock, false /*exclusive*/);
         return (remote_instances.find(manager) != remote_instances.end());
       }
       else
@@ -1457,7 +1457,7 @@ namespace Legion {
           !collective_mapping->contains(local_space));
       PhysicalManager* manager = nullptr;
       {
-        AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+        AutoLock v_lock(view_lock, false /*exclusive*/);
         if (!remote_instances.empty())
           manager = remote_instances.begin()->first;
       }
@@ -1477,7 +1477,7 @@ namespace Legion {
         rez.dispatch(target_space);
         if (!ready_event.has_triggered())
           ready_event.wait();
-        AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+        AutoLock v_lock(view_lock, false /*exclusive*/);
         legion_assert(!remote_instances.empty());
         manager = remote_instances.begin()->first;
       }
@@ -1497,7 +1497,7 @@ namespace Legion {
             !collective_mapping->contains(memory_space))
           return;
         {
-          AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+          AutoLock v_lock(view_lock, false /*exclusive*/);
           // See if we need the check
           if (remote_instance_responses.contains(memory_space))
           {
@@ -1519,7 +1519,7 @@ namespace Legion {
         rez.dispatch(memory_space);
         if (!ready_event.has_triggered())
           ready_event.wait();
-        AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+        AutoLock v_lock(view_lock, false /*exclusive*/);
         for (std::map<PhysicalManager*, IndividualView*>::const_iterator it =
                  remote_instances.begin();
              it != remote_instances.end(); it++)
@@ -1687,7 +1687,7 @@ namespace Legion {
           if (!ready_event.has_triggered())
             ready_event.wait();
           std::map<Memory, size_t> searches;
-          AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+          AutoLock v_lock(view_lock, false /*exclusive*/);
           for (std::map<PhysicalManager*, IndividualView*>::const_iterator it =
                    remote_instances.begin();
                it != remote_instances.end(); it++)
@@ -2142,7 +2142,7 @@ namespace Legion {
           }
           if (!found)
           {
-            AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+            AutoLock v_lock(view_lock, false /*exclusive*/);
             for (std::map<PhysicalManager*, IndividualView*>::const_iterator
                      rit = remote_instances.begin();
                  rit != remote_instances.end(); rit++)
@@ -3632,7 +3632,7 @@ namespace Legion {
     {
       // Check to see if we already have an answer
       {
-        AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+        AutoLock v_lock(view_lock, false /*exclusive*/);
         std::map<unsigned, std::vector<std::pair<unsigned, unsigned> > >::
             const_iterator finder = spanning_copies.find(root_index);
         if (finder != spanning_copies.end())

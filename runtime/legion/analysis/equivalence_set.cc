@@ -8459,7 +8459,7 @@ namespace Legion {
         // break the cycle and allow forward progress. Analysis messages
         // may go round and round a few times, but they have lower
         // priority and therefore shouldn't create a livelock.
-        AutoLock eq(eq_lock, 1, false /*exclusive*/);
+        AutoLock eq(eq_lock, false /*exclusive*/);
         // is_ready tests whether this set expression has been set
         // it might not be in the case of an output region and we
         // don't want to block testing is_empty in that case if it
@@ -11500,7 +11500,7 @@ namespace Legion {
       // change at the same time that we're iterating over it
       // We're just reading though so we don't need exclusive access
       const ReferenceSource ref_kind = get_reference_source_kind();
-      AutoLock t_lock(tracker_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(tracker_lock, false /*exclusive*/);
       for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
                equivalence_sets.begin();
            it != equivalence_sets.end(); it++)

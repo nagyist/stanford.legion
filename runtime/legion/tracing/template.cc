@@ -2759,7 +2759,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       TraceLocalID op_key = task->get_trace_local_id();
-      AutoLock t_lock(template_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(template_lock, false /*exclusive*/);
       legion_assert(is_replaying());
       CachedPremappings::const_iterator finder =
           cached_premappings.find(op_key);
@@ -2826,7 +2826,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       TraceLocalID op_key = task->get_trace_local_id();
-      AutoLock t_lock(template_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(template_lock, false /*exclusive*/);
       legion_assert(is_replaying());
       CachedMappings::const_iterator finder = cached_mappings.find(op_key);
       legion_assert(finder != cached_mappings.end());
@@ -2846,7 +2846,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       TraceLocalID op_key = allreduce->get_trace_local_id();
-      AutoLock t_lock(template_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(template_lock, false /*exclusive*/);
       legion_assert(is_replaying());
       std::map<TraceLocalID, CachedAllreduce>::const_iterator finder =
           cached_allreduces.find(op_key);
@@ -3404,7 +3404,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const TraceLocalID key = task->get_trace_local_id();
-      AutoLock t_lock(template_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(template_lock, false /*exclusive*/);
       legion_assert(is_replaying());
       std::map<TraceLocalID, std::map<Reservation, bool> >::const_iterator
           finder = cached_reservations.find(key);

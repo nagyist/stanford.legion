@@ -382,7 +382,7 @@ namespace Legion {
         // Wait for the result to come back to us
         wait_on.wait();
         // When we wake up it should be there
-        AutoLock rem_lock(remote_lock, 1, false /*exclusive*/);
+        AutoLock rem_lock(remote_lock, false /*exclusive*/);
         legion_assert(physical_contexts.find(index) != physical_contexts.end());
         return physical_contexts[index];
       }

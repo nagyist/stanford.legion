@@ -189,7 +189,7 @@ namespace Legion {
       local::FieldMaskMap<PhysicalUser> current_to_filter, previous_to_filter;
       // Perform the analysis with a read-only lock
       {
-        AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+        AutoLock v_lock(view_lock, false /*exclusive*/);
         // Check to see if we dominate when doing this analysis and
         // can therefore filter or whether we are just intersecting
         // Do the local analysis
@@ -329,7 +329,7 @@ namespace Legion {
       local::FieldMaskMap<PhysicalUser> current_to_filter, previous_to_filter;
       // Do the first pass with a read-only lock on the events
       {
-        AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+        AutoLock v_lock(view_lock, false /*exclusive*/);
         // Check to see if we dominate when doing this analysis and
         // can therefore filter or whether we are just intersecting
         // Do the local analysis
@@ -479,7 +479,7 @@ namespace Legion {
       }
       FieldMask dominated;
       // Now we can traverse at this level
-      AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+      AutoLock v_lock(view_lock, false /*exclusive*/);
       // We dominate in this case so we can do filtering
       if (!current_epoch_users.empty())
       {
@@ -1699,7 +1699,7 @@ namespace Legion {
             (user_expr->get_volume() == current_users->get_view_volume());
         {
           // Traversing the tree so need the expr_view lock
-          AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
+          AutoLock e_lock(expr_lock, false /*exclusive*/);
           current_users->find_user_preconditions(
               usage, user_expr, user_dominates, user_mask, term_event, op_id,
               index, wait_on_events, trace_info.recording);
@@ -1779,7 +1779,7 @@ namespace Legion {
             (copy_expr->get_volume() == current_users->get_view_volume());
         {
           // Need a read-only copy of the expr_lock to traverse the tree
-          AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
+          AutoLock e_lock(expr_lock, false /*exclusive*/);
           current_users->find_copy_preconditions(
               usage, copy_expr, copy_dominates, copy_mask, op_id, index,
               preconditions, trace_info.recording);
@@ -1870,7 +1870,7 @@ namespace Legion {
             (expr->get_volume() == current_users->get_view_volume());
         {
           // Need a read-only copy of the expr_lock to traverse the tree
-          AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
+          AutoLock e_lock(expr_lock, false /*exclusive*/);
           current_users->find_last_users(
               usage, expr, expr_dominates, mask, events);
         }
@@ -1920,7 +1920,7 @@ namespace Legion {
       else if (expr_cache_uses.fetch_add(1) < USER_CACHE_TIMEOUT)
       {
         // Hard case where we will have subviews
-        AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
+        AutoLock e_lock(expr_lock, false /*exclusive*/);
         // See if we can find the entry in the cache and it's valid
         // for all of our fields
         lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
@@ -2077,7 +2077,7 @@ namespace Legion {
       else if (expr_cache_uses.fetch_add(1) < USER_CACHE_TIMEOUT)
       {
         // Hard case where we will have subviews
-        AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
+        AutoLock e_lock(expr_lock, false /*exclusive*/);
         // See if we can find the entry in the cache and it's valid
         // for all of our fields
         lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
@@ -2187,7 +2187,7 @@ namespace Legion {
       {
         // We're traversing the view tree but not modifying it so
         // we need a read-only copy of the expr_lock
-        AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
+        AutoLock e_lock(expr_lock, false /*exclusive*/);
         PhysicalUser* covered_user = nullptr;
         PhysicalUser* uncovered_user = nullptr;
         current_users->add_partial_user(
@@ -2785,7 +2785,7 @@ namespace Legion {
       {
         // See if we can find them all locally
         {
-          AutoLock v_lock(view_lock, 1, false /*exclusive*/);
+          AutoLock v_lock(view_lock, false /*exclusive*/);
           for (int idx = mask.find_first_set(); idx >= 0;
                idx = mask.find_next_set(idx + 1))
           {

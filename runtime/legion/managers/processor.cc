@@ -155,7 +155,7 @@ namespace Legion {
         legion_assert(finder != mappers.end());
         return finder->second.first;
       }
-      AutoLock m_lock(mapper_lock, 0 /*mode*/, false /*exclusive*/);
+      AutoLock m_lock(mapper_lock, false /*exclusive*/);
       MapperManager* result = nullptr;
       // We've got the lock, so do the operation
       std::map<MapperID, std::pair<MapperManager*, bool> >::const_iterator
@@ -169,7 +169,7 @@ namespace Legion {
     bool ProcessorManager::has_non_default_mapper(void) const
     //--------------------------------------------------------------------------
     {
-      AutoLock m_lock(mapper_lock, 0 /*mode*/, false /*exclusive*/);
+      AutoLock m_lock(mapper_lock, false /*exclusive*/);
       for (std::map<MapperID, std::pair<MapperManager*, bool> >::const_iterator
                it = mappers.begin();
            it != mappers.end(); it++)
@@ -759,7 +759,7 @@ namespace Legion {
       std::vector<std::pair<MapperID, MapperManager*> > current_mappers;
       // Take a snapshot of our current mappers
       {
-        AutoLock m_lock(mapper_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(mapper_lock, false /*exclusive*/);
         // Fast path for no deferred mappers
         current_mappers.resize(mappers.size());
         unsigned idx = 0;

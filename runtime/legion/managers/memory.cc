@@ -1600,7 +1600,7 @@ namespace Legion {
         return;
       std::vector<PhysicalManager*> to_check;
       {
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         for (lng::map<RegionTreeID, TreeInstances>::const_iterator cit =
                  current_instances.begin();
              cit != current_instances.end(); cit++)
@@ -3367,7 +3367,7 @@ namespace Legion {
       if (tree_id != 0)
       {
         // Hold the lock while searching here
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
             current_instances.find(tree_id);
         if (finder == current_instances.end())
@@ -3384,7 +3384,7 @@ namespace Legion {
       else
       {
         // Just get all the instances since we don't care about regions
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         for (lng::map<RegionTreeID, TreeInstances>::const_iterator rit =
                  current_instances.begin();
              rit != current_instances.end(); rit++)
@@ -3486,7 +3486,7 @@ namespace Legion {
       if (tree_id != 0)
       {
         // Hold the lock while searching here
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
             current_instances.find(tree_id);
         if (finder == current_instances.end())
@@ -3503,7 +3503,7 @@ namespace Legion {
       else
       {
         // Just get all the instances since we don't care about regions
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         for (lng::map<RegionTreeID, TreeInstances>::const_iterator rit =
                  current_instances.begin();
              rit != current_instances.end(); rit++)
@@ -3601,7 +3601,7 @@ namespace Legion {
       std::deque<PhysicalManager*> candidates;
       {
         // Hold the lock while searching here
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
             current_instances.find(tree_id);
         if (finder == current_instances.end())
@@ -5213,7 +5213,7 @@ namespace Legion {
       if (other == memory)
         return true;
       {
-        AutoLock m_lock(manager_lock, 1, false);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         if (!visible_memories.empty())
           return (visible_memories.find(other) != visible_memories.end());
       }

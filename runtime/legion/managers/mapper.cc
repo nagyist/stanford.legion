@@ -849,7 +849,7 @@ namespace Legion {
       Mapper::SelectStealingInput steal_input;
       Mapper::SelectStealingOutput steal_output;
       {
-        AutoLock m_lock(mapper_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(mapper_lock, false /*exclusive*/);
         steal_input.blacklist = steal_blacklist;
       }
       invoke_select_steal_targets(steal_input, steal_output);

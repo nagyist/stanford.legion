@@ -4611,7 +4611,7 @@ namespace Legion {
           break;
       }
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         const std::pair<FieldSpace, FieldID> key(space, fid);
         // This field will actually be removed in analyze_destroy_fields
         std::set<std::pair<FieldSpace, FieldID> >::const_iterator finder =
@@ -4904,7 +4904,7 @@ namespace Legion {
       }
       std::set<FieldID> free_now;
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         // These fields will actually be removed in analyze_destroy_fields
         for (std::set<FieldID>::const_iterator it = to_free.begin();
              it != to_free.end(); it++)
@@ -5155,7 +5155,7 @@ namespace Legion {
             handle.get_tree_id(), get_task_name(), get_unique_id())
         // Check to see if this is one that we should be allowed to destory
         {
-          AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+          AutoLock priv_lock(privilege_lock, false /*exclusive*/);
           std::map<LogicalRegion, unsigned>::iterator finder =
               created_regions.find(handle);
           if (finder == created_regions.end())
@@ -5274,7 +5274,7 @@ namespace Legion {
           break;
       }
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         std::map<FieldSpace, FieldAllocatorImpl*>::const_iterator finder =
             field_allocators.find(handle);
         if (finder != field_allocators.end())
@@ -7778,7 +7778,7 @@ namespace Legion {
       if (shard == owner_shard->shard_id)
       {
         // We 're just reading so only need the lock in read-only mode
-        AutoLock child_lock(child_op_lock, 1, false /*exclusive*/);
+        AutoLock child_lock(child_op_lock, false /*exclusive*/);
         if (reorder_buffer.empty())
         {
           // Already been retired so there is nothing to do
@@ -9767,7 +9767,7 @@ namespace Legion {
       std::vector<unsigned> new_target_references(num_targets, 0);
       {
         // Non-exclusive access to the tree for
-        AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+        AutoLock t_lock(*tree_lock, false /*exclusive*/);
         for (unsigned idx = 0; idx < num_rects; idx++)
         {
           Domain rect;
@@ -9820,7 +9820,7 @@ namespace Legion {
       unsigned references = 0;
       {
         // Non exclusive accessor for recording shard output sets
-        AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+        AutoLock t_lock(*tree_lock, false /*exclusive*/);
         for (unsigned idx = 0; idx < num_rects; idx++)
         {
           Domain rect;
@@ -9987,7 +9987,7 @@ namespace Legion {
         TraceID tid) const
     //--------------------------------------------------------------------------
     {
-      AutoLock t_lock(trace_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(trace_lock, false /*exclusive*/);
       std::map<TraceID, LogicalTrace*>::const_iterator finder =
           traces.find(tid);
       legion_assert(finder != traces.end());

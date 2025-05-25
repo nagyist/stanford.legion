@@ -2444,7 +2444,7 @@ namespace Legion {
     {
       const uintptr_t hash = bt.hash();
       {
-        AutoLock p_lock(profiler_lock, 1, false /*exclusive*/);
+        AutoLock p_lock(profiler_lock, false /*exclusive*/);
         std::map<uintptr_t, unsigned long long>::const_iterator finder =
             backtrace_ids.find(hash);
         if (finder != backtrace_ids.end())
@@ -2474,7 +2474,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock p_lock(profiler_lock, 1, false /*exclusive*/);
+        AutoLock p_lock(profiler_lock, false /*exclusive*/);
         if (std::binary_search(
                 recorded_memories.begin(), recorded_memories.end(), m))
           return;
@@ -2493,7 +2493,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock p_lock(profiler_lock, 1, false /*exclusive*/);
+        AutoLock p_lock(profiler_lock, false /*exclusive*/);
         if (std::binary_search(
                 recorded_processors.begin(), recorded_processors.end(), p))
           return;
@@ -3311,7 +3311,7 @@ namespace Legion {
     bool LegionProfiler::confirm_shutdown(void) const
     //--------------------------------------------------------------------------
     {
-      AutoLock prof_lock(profiler_lock, 1, false /*exclusive*/);
+      AutoLock prof_lock(profiler_lock, false /*exclusive*/);
       // Make sure we don't have any messages left to send
       return message_fevents.empty();
     }
@@ -3484,7 +3484,7 @@ namespace Legion {
         // If the processor already exists then we can use an existing instance
         // on anything except I/O processors which can have multiple threads
         // running at the same time
-        AutoLock p_lock(profiler_lock, 1, false /*exclusive*/);
+        AutoLock p_lock(profiler_lock, false /*exclusive*/);
         std::map<Processor, LegionProfInstance*>::const_iterator finder =
             processor_instances.find(current);
         if (finder != processor_instances.end())

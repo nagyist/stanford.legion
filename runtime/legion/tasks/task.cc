@@ -1714,7 +1714,7 @@ namespace Legion {
     {
       // See if we already have the variant
       {
-        AutoLock t_lock(task_lock, 1, false /*exclusive*/);
+        AutoLock t_lock(task_lock, false /*exclusive*/);
         std::map<VariantID, VariantImpl*>::const_iterator finder =
             variants.find(variant_id);
         if (finder != variants.end())
@@ -1734,7 +1734,7 @@ namespace Legion {
     {
       if (kind == Processor::NO_KIND)
       {
-        AutoLock t_lock(task_lock, 1, false /*exclusive*/);
+        AutoLock t_lock(task_lock, false /*exclusive*/);
         valid_variants.resize(variants.size());
         unsigned idx = 0;
         for (std::map<VariantID, VariantImpl*>::const_iterator it =
@@ -1746,7 +1746,7 @@ namespace Legion {
       }
       else
       {
-        AutoLock t_lock(task_lock, 1, false /*exclusive*/);
+        AutoLock t_lock(task_lock, false /*exclusive*/);
         for (std::map<VariantID, VariantImpl*>::const_iterator it =
                  variants.begin();
              it != variants.end(); it++)
@@ -1964,7 +1964,7 @@ namespace Legion {
         wait_on.wait();
       }
       // When we wake up, we should be able to find everything
-      AutoLock t_lock(task_lock, 1, false /*exclusive*/);
+      AutoLock t_lock(task_lock, false /*exclusive*/);
       std::map<SemanticTag, SemanticInfo>::const_iterator finder =
           semantic_infos.find(tag);
       if (finder == semantic_infos.end())

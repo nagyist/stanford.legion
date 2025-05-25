@@ -958,7 +958,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // This is a mixed mapping and execution fence analysis
-      AutoLock child_lock(child_op_lock, 1, false /*exclusive*/);
+      AutoLock child_lock(child_op_lock, false /*exclusive*/);
       for (std::deque<ReorderBufferEntry>::const_iterator it =
                reorder_buffer.begin();
            it != reorder_buffer.end(); it++)
@@ -1637,7 +1637,7 @@ namespace Legion {
       // requirements data structure as well in this routine
       RtEvent wait_on;
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         // If there is a guard we always need to wait on it
         std::map<unsigned, RtUserEvent>::const_iterator finder =
             pending_equivalence_set_trees.find(req_index);
@@ -1710,7 +1710,7 @@ namespace Legion {
       else
       {
         wait_on.wait();
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         std::map<unsigned, EqKDRoot>::const_iterator finder =
             equivalence_set_trees.find(req_index);
         legion_assert(finder != equivalence_set_trees.end());
@@ -1726,7 +1726,7 @@ namespace Legion {
     {
       IndexSpace root_space = IndexSpace::NO_SPACE;
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         // Should always have a guard here
         legion_assert(
             pending_equivalence_set_trees.find(req_index) !=
@@ -2177,7 +2177,7 @@ namespace Legion {
         // Otherwise we just keep going
       }
       // If none of that worked, we now get to try the created requirements
-      AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+      AutoLock priv_lock(privilege_lock, false /*exclusive*/);
       for (std::map<unsigned, RegionRequirement>::const_iterator it =
                created_requirements.begin();
            it != created_requirements.end(); it++)
@@ -2229,7 +2229,7 @@ namespace Legion {
     {
       if (index < regions.size())
         return regions[index].region;
-      AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+      AutoLock priv_lock(privilege_lock, false /*exclusive*/);
       std::map<unsigned, RegionRequirement>::const_iterator finder =
           created_requirements.find(index);
       legion_assert(finder != created_requirements.end());
@@ -2259,7 +2259,7 @@ namespace Legion {
         // otherwise if they are returnable then the top-level
         // context has to provide global guidance about which
         // node manages the meta-data.
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         std::map<unsigned, bool>::const_iterator finder =
             returnable_privileges.find(index);
         if ((finder != returnable_privileges.end()) && !finder->second)
@@ -2310,7 +2310,7 @@ namespace Legion {
         Provenance::serialize_null(rez);
       rez.serialize(get_unique_id());
       // Finally pack the local field infos
-      AutoLock local_lock(local_field_lock, 1, false /*exclusive*/);
+      AutoLock local_lock(local_field_lock, false /*exclusive*/);
       rez.serialize<size_t>(local_field_infos.size());
       for (std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
                it = local_field_infos.begin();
@@ -4089,7 +4089,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         std::map<FieldSpace, FieldAllocatorImpl*>::const_iterator finder =
             field_allocators.find(handle);
         if (finder != field_allocators.end())
@@ -4475,7 +4475,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         const std::pair<FieldSpace, FieldID> key(space, fid);
         // This field will actually be removed in analyze_destroy_fields
         std::set<std::pair<FieldSpace, FieldID> >::const_iterator finder =
@@ -4523,7 +4523,7 @@ namespace Legion {
     {
       std::set<FieldID> free_now;
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         // These fields will actually be removed in analyze_destroy_fields
         for (std::set<FieldID>::const_iterator it = to_free.begin();
              it != to_free.end(); it++)
@@ -4651,7 +4651,7 @@ namespace Legion {
             handle.get_tree_id(), get_task_name(), get_unique_id())
         // Check to see if this is one that we should be allowed to destory
         {
-          AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+          AutoLock priv_lock(privilege_lock, false /*exclusive*/);
           std::map<LogicalRegion, unsigned>::iterator finder =
               created_regions.find(handle);
           if (finder == created_regions.end())
@@ -4742,7 +4742,7 @@ namespace Legion {
         std::set<FieldID>& to_set) const
     //--------------------------------------------------------------------------
     {
-      AutoLock lf_lock(local_field_lock, 1, false /*exclusive*/);
+      AutoLock lf_lock(local_field_lock, false /*exclusive*/);
       std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
           finder = local_field_infos.find(handle);
       legion_assert(finder != local_field_infos.end());
@@ -4766,7 +4766,7 @@ namespace Legion {
         std::vector<FieldID>& to_set) const
     //--------------------------------------------------------------------------
     {
-      AutoLock lf_lock(local_field_lock, 1, false /*exclusive*/);
+      AutoLock lf_lock(local_field_lock, false /*exclusive*/);
       std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
           finder = local_field_infos.find(handle);
       legion_assert(finder != local_field_infos.end());
@@ -7931,7 +7931,7 @@ namespace Legion {
         }
       }
       // Need lock here because of unordered detach operations
-      AutoLock i_lock(inline_lock, 1, false /*exclusive*/);
+      AutoLock i_lock(inline_lock, false /*exclusive*/);
       for (std::list<PhysicalRegion>::const_iterator it =
                inline_regions.begin();
            it != inline_regions.end(); it++)
@@ -7991,7 +7991,7 @@ namespace Legion {
         }
       }
       // Need lock here because of unordered detach operations
-      AutoLock i_lock(inline_lock, 1, false /*exclusive*/);
+      AutoLock i_lock(inline_lock, false /*exclusive*/);
       for (std::list<PhysicalRegion>::const_iterator it =
                inline_regions.begin();
            it != inline_regions.end(); it++)
@@ -8080,7 +8080,7 @@ namespace Legion {
           conflicting.emplace_back(physical_regions[our_idx]);
       }
       // Need lock here because of unordered detach operations
-      AutoLock i_lock(inline_lock, 1, false /*exclusive*/);
+      AutoLock i_lock(inline_lock, false /*exclusive*/);
       for (std::list<PhysicalRegion>::const_iterator it =
                inline_regions.begin();
            it != inline_regions.end(); it++)
@@ -8186,7 +8186,7 @@ namespace Legion {
           conflicting.emplace_back(physical_regions[our_idx]);
       }
       // Need lock here because of unordered detach operations
-      AutoLock i_lock(inline_lock, 1, false /*exclusive*/);
+      AutoLock i_lock(inline_lock, false /*exclusive*/);
       for (std::list<PhysicalRegion>::const_iterator it =
                inline_regions.begin();
            it != inline_regions.end(); it++)
@@ -8355,7 +8355,7 @@ namespace Legion {
       const uint64_t next_fence_index = op->get_context_index();
       {
         // Mapping analysis only
-        AutoLock child_lock(child_op_lock, 1, false /*exclusive*/);
+        AutoLock child_lock(child_op_lock, false /*exclusive*/);
         for (std::deque<ReorderBufferEntry>::const_reverse_iterator it =
                  reorder_buffer.crbegin();
              it != reorder_buffer.crend(); it++)
@@ -8425,7 +8425,7 @@ namespace Legion {
       const uint64_t next_fence_index = op->get_context_index();
       {
         // Execution analysis only
-        AutoLock child_lock(child_op_lock, 1, false /*exclusive*/);
+        AutoLock child_lock(child_op_lock, false /*exclusive*/);
         for (std::deque<ReorderBufferEntry>::const_reverse_iterator it =
                  reorder_buffer.crbegin();
              it != reorder_buffer.crend(); it++)
@@ -9489,7 +9489,7 @@ namespace Legion {
       GenerationID gen;
       {
         // We 're just reading so only need the lock in read-only mode
-        AutoLock child_lock(child_op_lock, 1, false /*exclusive*/);
+        AutoLock child_lock(child_op_lock, false /*exclusive*/);
         // If the context index is less than what is at the front of the
         // reorder buffer then this operation was already retired
         if (reorder_buffer.empty() ||
@@ -9527,7 +9527,7 @@ namespace Legion {
       source_views.resize(sources.size());
       std::vector<unsigned> still_needed;
       {
-        AutoLock inst_lock(instance_view_lock, 1, false /*exclusive*/);
+        AutoLock inst_lock(instance_view_lock, false /*exclusive*/);
         for (unsigned idx = 0; idx < sources.size(); idx++)
         {
           // See if we can find it
@@ -9570,7 +9570,7 @@ namespace Legion {
       source_views.resize(sources.size());
       std::vector<unsigned> still_needed;
       {
-        AutoLock inst_lock(instance_view_lock, 1, false /*exclusive*/);
+        AutoLock inst_lock(instance_view_lock, false /*exclusive*/);
         for (unsigned idx = 0; idx < sources.size(); idx++)
         {
           // See if we can find it
@@ -9667,7 +9667,7 @@ namespace Legion {
       target_views.resize(targets.size());
       std::vector<unsigned> still_needed;
       {
-        AutoLock inst_lock(instance_view_lock, 1, false /*exclusive*/);
+        AutoLock inst_lock(instance_view_lock, false /*exclusive*/);
         for (unsigned idx = 0; idx < targets.size(); idx++)
         {
           // See if we can find it
@@ -10003,7 +10003,7 @@ namespace Legion {
         // Someone else is making it so we just have to wait for it
         wait_on.wait();
         // Retake the lock and read out the result
-        AutoLock inst_lock(instance_view_lock, 1, false /*exclusive*/);
+        AutoLock inst_lock(instance_view_lock, false /*exclusive*/);
         std::map<PhysicalManager*, IndividualView*>::const_iterator finder =
             instance_top_views.find(manager);
         legion_assert(finder != instance_top_views.end());
@@ -10442,7 +10442,7 @@ namespace Legion {
       std::vector<LogicalRegion> local_regions_to_delete;
       std::map<FieldSpace, std::set<FieldID> > local_fields_to_delete;
       {
-        AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         for (std::map<LogicalRegion, bool>::const_iterator it =
                  local_regions.begin();
              it != local_regions.end(); it++)
@@ -10777,7 +10777,7 @@ namespace Legion {
         if (found)
           continue;
         // Need the lock here because of unordered detach operations
-        AutoLock i_lock(inline_lock, 1, false /*exclusive*/);
+        AutoLock i_lock(inline_lock, false /*exclusive*/);
         for (std::list<PhysicalRegion>::const_iterator it =
                  inline_regions.begin();
              it != inline_regions.end(); it++)
@@ -10833,7 +10833,7 @@ namespace Legion {
         std::vector<unsigned>& local_field_indexes)
     //--------------------------------------------------------------------------
     {
-      AutoLock local_lock(local_field_lock, 1, false /*exclusive*/);
+      AutoLock local_lock(local_field_lock, false /*exclusive*/);
       std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
           finder = local_field_infos.find(handle);
       legion_assert(finder != local_field_infos.end());
@@ -10981,7 +10981,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(child_local.empty());
-      AutoLock local_lock(local_field_lock, 1, false /*exclusive*/);
+      AutoLock local_lock(local_field_lock, false /*exclusive*/);
       if (local_field_infos.empty())
         return;
       for (std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator

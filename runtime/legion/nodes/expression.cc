@@ -100,7 +100,7 @@ namespace Legion {
       // Traverse upwards for any derived operations and invalidate them
       std::vector<IndexSpaceOperation*> derived;
       {
-        AutoLock e_lock(expr_lock, 1, false /*exclusive*/);
+        AutoLock e_lock(expr_lock, false /*exclusive*/);
         if (!derived_operations.empty())
         {
           derived.reserve(derived_operations.size());
@@ -441,7 +441,7 @@ namespace Legion {
         ExpressionTrieNode* next = nullptr;
         const IndexSpaceExprID target_expr = expressions.back()->expr_id;
         {
-          AutoLock t_lock(trie_lock, 1, false /*exclusive*/);
+          AutoLock t_lock(trie_lock, false /*exclusive*/);
           std::map<IndexSpaceExprID, IndexSpaceExpression*>::const_iterator
               op_finder = operations.find(target_expr);
           if (op_finder != operations.end())
@@ -487,7 +487,7 @@ namespace Legion {
         ExpressionTrieNode* next = nullptr;
         const IndexSpaceExprID target_expr = expressions[depth + 1]->expr_id;
         {
-          AutoLock t_lock(trie_lock, 1, false /*exclusive*/);
+          AutoLock t_lock(trie_lock, false /*exclusive*/);
           std::map<IndexSpaceExprID, ExpressionTrieNode*>::const_iterator
               finder = nodes.find(target_expr);
           if (finder != nodes.end())
@@ -558,7 +558,7 @@ namespace Legion {
         ExpressionTrieNode* next = nullptr;
         const IndexSpaceExprID target_expr = expressions.back()->expr_id;
         {
-          AutoLock t_lock(trie_lock, 1, false /*exclusive*/);
+          AutoLock t_lock(trie_lock, false /*exclusive*/);
           std::map<IndexSpaceExprID, IndexSpaceExpression*>::const_iterator
               op_finder = operations.find(target_expr);
           if ((op_finder != operations.end()) &&
@@ -604,7 +604,7 @@ namespace Legion {
         ExpressionTrieNode* next = nullptr;
         const IndexSpaceExprID target_expr = expressions[depth + 1]->expr_id;
         {
-          AutoLock t_lock(trie_lock, 1, false /*exclusive*/);
+          AutoLock t_lock(trie_lock, false /*exclusive*/);
           std::map<IndexSpaceExprID, ExpressionTrieNode*>::const_iterator
               finder = nodes.find(target_expr);
           if (finder != nodes.end())

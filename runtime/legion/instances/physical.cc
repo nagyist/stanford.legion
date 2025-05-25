@@ -576,7 +576,7 @@ namespace Legion {
         std::set<ApEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
-      AutoLock inst(inst_lock, 1, false /*exclusive*/);
+      AutoLock inst(inst_lock, false /*exclusive*/);
       // Only need to get these if we didn't already delete the manager
       // If we already deleted the manager there is already a meta-task in
       // flight that summarizes these events and makes sure we can't shutdown
@@ -1081,7 +1081,7 @@ namespace Legion {
       // or commitment to performing a collection. It's just for finding
       // instances that we know are locally collectable
       already_collected = false;
-      AutoLock i_lock(inst_lock, 1, false /*exclusive*/);
+      AutoLock i_lock(inst_lock, false /*exclusive*/);
       // Do a quick to check to see if we can do a collection on the local node
       if (gc_state == VALID_GC_STATE)
         return false;
@@ -1392,7 +1392,7 @@ namespace Legion {
       // call will take its own exclusive lock
       if (need_lock)
       {
-        AutoLock i_lock(inst_lock, 1, false /*exclusive*/);
+        AutoLock i_lock(inst_lock, false /*exclusive*/);
         pack_garbage_collection_state(rez, target, false /*need lock*/);
       }
       else
@@ -1925,7 +1925,7 @@ namespace Legion {
     size_t PhysicalManager::get_instance_size(void) const
     //--------------------------------------------------------------------------
     {
-      AutoLock lock(inst_lock, 1, false /*exlcusive*/);
+      AutoLock lock(inst_lock, false /*exclusive*/);
       return instance_footprint;
     }
 
@@ -2082,7 +2082,7 @@ namespace Legion {
           !collective_mapping->contains(target));
       InstanceManagerMessage rez;
       {
-        AutoLock lock(inst_lock, 1, false /*exlcusive*/);
+        AutoLock lock(inst_lock, false /*exclusive*/);
         RezCheck z(rez);
         rez.serialize(did);
         rez.serialize(memory_manager->memory);
@@ -2605,7 +2605,7 @@ namespace Legion {
         // Figure out which fields we need requests for and send them
         FieldMask needed_fields;
         {
-          AutoLock i_lock(inst_lock, 1, false);
+          AutoLock i_lock(inst_lock, false /*exclusive*/);
           if (padded_reservations == nullptr)
           {
             for (int idx = mask.find_first_set(); idx >= 0;
@@ -2639,7 +2639,7 @@ namespace Legion {
           rez.dispatch(owner_space);
           wait_on.wait();
           // Now retake the lock and get the remaining reservations
-          AutoLock i_lock(inst_lock, 1, false);
+          AutoLock i_lock(inst_lock, false /*exclusive*/);
           legion_assert(padded_reservations != nullptr);
           for (int idx = needed_fields.find_first_set(); idx >= 0;
                idx = needed_fields.find_next_set(idx + 1))

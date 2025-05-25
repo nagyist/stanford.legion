@@ -204,7 +204,7 @@ namespace Legion {
     {
       if (g < gen.load())
         return std::optional<uint64_t>();
-      AutoLock o_lock(op_lock, 1, false /*exclusive*/);
+      AutoLock o_lock(op_lock, false /*exclusive*/);
       // Make sure we didn't lose the race
       if (g < gen.load())
         return std::optional<uint64_t>();
@@ -1424,7 +1424,7 @@ namespace Legion {
     void Operation::forward_completion_effects(Operation* target)
     //--------------------------------------------------------------------------
     {
-      AutoLock o_lock(op_lock, 1, false /*exclusive*/);
+      AutoLock o_lock(op_lock, false /*exclusive*/);
       if (!completion_effects.empty())
         target->record_completion_effects(completion_effects);
     }

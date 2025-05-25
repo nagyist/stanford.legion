@@ -213,7 +213,7 @@ namespace Legion {
         wait_on.wait();
       }
       // When we wake up, we should be able to find everything
-      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      AutoLock n_lock(node_lock, false /*exclusive*/);
       lng::map<SemanticTag, SemanticInfo>::const_iterator finder =
           semantic_info.find(tag);
       if (finder == semantic_info.end())
@@ -1190,7 +1190,7 @@ namespace Legion {
     {
       // check to see if we have it, if not try to make it
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         std::map<LegionColor, PartitionNode*>::const_iterator finder =
             color_map.find(c);
         if (finder != color_map.end())
@@ -1385,7 +1385,7 @@ namespace Legion {
           // Need to hold the lock when reading from
           // the color map or the valid map
           {
-            AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+            AutoLock n_lock(node_lock, false /*exclusive*/);
             for (std::map<LegionColor, PartitionNode*>::const_iterator it =
                      color_map.begin();
                  it != color_map.end(); it++)
@@ -1949,7 +1949,7 @@ namespace Legion {
     {
       // check to see if we have it, if not try to make it
       {
-        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        AutoLock n_lock(node_lock, false /*exclusive*/);
         std::map<LegionColor, RegionNode*>::const_iterator finder =
             color_map.find(c);
         if (finder != color_map.end())
@@ -2089,7 +2089,7 @@ namespace Legion {
           // Need to hold the lock when reading from
           // the color map or the valid map
           {
-            AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+            AutoLock n_lock(node_lock, false /*exclusive*/);
             children = color_map;
           }
           for (std::map<LegionColor, RegionNode*>::const_iterator it =

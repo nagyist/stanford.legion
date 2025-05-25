@@ -2856,7 +2856,7 @@ namespace Legion {
     {
       // Check to see if it is in the cache
       {
-        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
+        AutoLock m_lock(manager_lock, false /*exclusive*/);
         std::map<ShardingID, ShardingFunction*>::const_iterator finder =
             sharding_functions.find(sid);
         if (finder != sharding_functions.end())

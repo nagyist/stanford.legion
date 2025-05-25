@@ -567,7 +567,7 @@ namespace Legion {
         rez.serialize(manager->did);
         rez.serialize(next);
         rez.serialize(collective_index);
-        AutoLock c_lock(collective_lock, 1, false /*exclusive*/);
+        AutoLock c_lock(collective_lock, false /*exclusive*/);
         pack_collective(rez);
       }
       manager->send_collective_message(next, rez);
@@ -807,7 +807,7 @@ namespace Legion {
       rez.serialize(target);
       rez.serialize(collective_index);
       rez.serialize(stage);
-      AutoLock c_lock(collective_lock, 1, false /*exclusive*/);
+      AutoLock c_lock(collective_lock, false /*exclusive*/);
       pack_collective_stage(target, rez, stage);
     }
 

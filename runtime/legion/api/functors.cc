@@ -1886,7 +1886,7 @@ namespace Legion {
       const ShardKey key(shard, full_space->handle, shard_space);
       // Check to see if we already have it
       {
-        AutoLock s_lock(sharding_lock, 1, false /*exclusive*/);
+        AutoLock s_lock(sharding_lock, false /*exclusive*/);
         std::map<ShardKey, IndexSpace>::const_iterator finder =
             shard_index_spaces.find(key);
         if (finder != shard_index_spaces.end())
@@ -1910,7 +1910,7 @@ namespace Legion {
       legion_assert(participants.empty());
       std::pair<IndexSpace, IndexSpace> key(full_space->handle, shard_space);
       {
-        AutoLock s_lock(sharding_lock, 1, false /*exclusive*/);
+        AutoLock s_lock(sharding_lock, false /*exclusive*/);
         std::map<std::pair<IndexSpace, IndexSpace>, std::vector<ShardID> >::
             const_iterator finder = shard_participants.find(key);
         if (finder != shard_participants.end())
@@ -1950,7 +1950,7 @@ namespace Legion {
       const ShardKey key(shard, full_space->handle, shard_space);
       // Check to see if we already have it
       {
-        AutoLock s_lock(sharding_lock, 1, false /*exclusive*/);
+        AutoLock s_lock(sharding_lock, false /*exclusive*/);
         std::map<ShardKey, IndexSpace>::const_iterator finder =
             shard_index_spaces.find(key);
         if (finder != shard_index_spaces.end())

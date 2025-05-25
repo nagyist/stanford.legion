@@ -542,7 +542,7 @@ namespace Legion {
         AddressSpaceID remote_inst) const
     //--------------------------------------------------------------------------
     {
-      AutoLock gc(gc_lock, 1, false /*exclusive*/);
+      AutoLock gc(gc_lock, false /*exclusive*/);
       return remote_instances.contains(remote_inst);
     }
 

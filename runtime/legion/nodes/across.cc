@@ -460,7 +460,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < it->instances.size(); idx++)
           if (it->instances[idx] == instance)
             return it->instance_events[idx];
-      AutoLock p_lock(preimage_lock, 1, false /*exclusive*/);
+      AutoLock p_lock(preimage_lock, false /*exclusive*/);
       std::map<PhysicalInstance, LgEvent>::const_iterator finder =
           profiling_shadow_instances.find(instance);
       if (finder != profiling_shadow_instances.end())
