@@ -181,7 +181,7 @@ namespace Legion {
     if (impl == nullptr)
     {
       Error error(LEGION_INTERFACE_EXCEPTION);
-      error << "Illegal request to create an accessor on null physical region";
+      error << "Illegal request to create an accessor on null physical region.";
       error.raise();
     }
     return impl->get_instance_info(
@@ -200,7 +200,7 @@ namespace Legion {
     {
       Error error(LEGION_INTERFACE_EXCEPTION);
       error << "Illegal request to create a padded accessor on null physical "
-               "region";
+               "region.";
       error.raise();
     }
     return impl->get_padding_info(
@@ -436,35 +436,46 @@ namespace Legion {
           (context != nullptr) && !context->is_leaf_context())
       {
         if (source != nullptr)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_WAITING_REGION,
-              "Waiting for a physical region to be valid "
-              "for call %s in non-leaf task %s (UID %lld) is a violation of "
-              "Legion's deferred execution model best practices. You may "
-              "notice a severe performance degradation. Warning string: %s",
-              source, context->get_task_name(), context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning << "Waiting for a physical region to be valid for call "
+                  << source << " in non-leaf task " << *context
+                  << " is a violation of Legion's "
+                  << "deferred execution model best practices. You may notice "
+                     "a severe "
+                  << "performance degradation. Warning string: "
+                  << ((warning_string == nullptr) ? "" : warning_string);
+          warning.raise();
+        }
         else
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_WAITING_REGION,
-              "Waiting for a physical region to be valid "
-              "in non-leaf task %s (UID %lld) is a violation of Legion's "
-              "deferred execution model best practices. You may notice a "
-              "severe performance degradation. Warning string: %s",
-              context->get_task_name(), context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning
+              << "Waiting for a physical region to be valid in non-leaf task "
+              << *context
+              << " is a violation of Legion's deferred execution model "
+              << "best practices. You may notice a severe performance "
+                 "degradation. "
+              << "Warning string: "
+              << ((warning_string == nullptr) ? "" : warning_string);
+          warning.raise();
+        }
       }
       if (mapped_event.exists() && !mapped_event.has_triggered())
       {
         if (warn && !silence_warnings && (source != nullptr))
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_MISSING_REGION_WAIT,
-              "Request for %s was performed on a "
-              "physical region in task %s (ID %lld) without first waiting "
-              "for the physical region to be valid. Legion is performing "
-              "the wait for you. Warning string: %s",
-              source, context->get_task_name(), context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning
+              << "Request for " << source
+              << " was performed on a physical region "
+              << "in task " << *context
+              << " without first waiting for the physical "
+              << "region to be valid. Legion is performing the wait for you. "
+              << "Warning string: "
+              << ((warning_string == nullptr) ? "" : warning_string);
+          warning.raise();
+        }
         mapped_event.wait();
       }
       // If we've already gone through this process we're good
@@ -655,14 +666,18 @@ namespace Legion {
       if (mapped_event.exists() && !mapped_event.has_triggered())
       {
         if (runtime->runtime_warnings && !silence_warnings)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_MISSING_REGION_WAIT,
-              "Request for 'get_memories' was performed on a "
-              "physical region in task %s (ID %lld) without first waiting "
-              "for the physical region to be valid. Legion is performing "
-              "the wait for you. Warning string: %s",
-              context->get_task_name(), context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning
+              << "Request for 'get_memories' was performed on a physical "
+                 "region "
+              << "in task " << *context
+              << " without first waiting for the physical "
+              << "region to be valid. Legion is performing the wait for you. "
+              << "Warning string: "
+              << ((warning_string == nullptr) ? "" : warning_string);
+          warning.raise();
+        }
         mapped_event.wait();
       }
       const InstanceSet& instances = references;
@@ -695,22 +710,27 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (req.privilege_fields.find(fid) == req.privilege_fields.end())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_FIELD_PRIVILEGES,
-            "Piece iterator construction in task %s on "
-            "PhysicalRegion that does not contain field %d!",
-            context->get_task_name(), fid)
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Piece iterator construction in task " << *context
+              << " on PhysicalRegion that does not contain field " << fid
+              << ".";
+        error.raise();
+      }
       if (mapped_event.exists() && !mapped_event.has_triggered())
       {
         if (runtime->runtime_warnings && !silence_warnings)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_MISSING_REGION_WAIT,
-              "Request for 'get_piece_iterator' was performed on a "
-              "physical region in task %s (ID %lld) without first waiting "
-              "for the physical region to be valid. Legion is performing "
-              "the wait for you. Warning string: %s",
-              context->get_task_name(), context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning
+              << "Request for 'get_piece_iterator' was performed on a "
+              << "physical region in task " << *context
+              << " without first waiting "
+              << "for the physical region to be valid. Legion is performing "
+              << "the wait for you. Warning string: "
+              << ((warning_string == nullptr) ? "" : warning_string);
+          warning.raise();
+        }
         mapped_event.wait();
       }
       const InstanceSet& instances = references;
@@ -746,11 +766,13 @@ namespace Legion {
         case LEGION_READ_ONLY:
           {
             if (!(LEGION_READ_ONLY & req.privilege))
-              REPORT_LEGION_ERROR(
-                  ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                  "Error creating read-only field accessor without "
-                  "read-only privileges on field %d in task %s",
-                  fid, context->get_task_name())
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error << "Error creating read-only field accessor without "
+                    << "read-only privileges on field " << fid << " in task "
+                    << *context << ".";
+              error.raise();
+            }
             break;
           }
         case LEGION_READ_WRITE:
@@ -758,33 +780,39 @@ namespace Legion {
             if (req.privilege == LEGION_WRITE_DISCARD)
             {
               if (!silence_warnings)
-                REPORT_LEGION_WARNING(
-                    LEGION_WARNING_READ_DISCARD,
-                    "creating read-write accessor for "
-                    "field %d in task %s which only has "
-                    "WRITE_DISCARD privileges. You may be "
-                    "accessing uninitialized data. "
-                    "Warning string: %s",
-                    fid, context->get_task_name(),
-                    (warning_string == nullptr) ? "" : warning_string)
+              {
+                Warning warning;
+                warning
+                    << "Creating read-write accessor for field " << fid
+                    << " in task " << *context
+                    << " which only has WRITE_DISCARD "
+                    << "privileges. You may be accessing uninitialized data. "
+                    << "Warning string: "
+                    << ((warning_string == nullptr) ? "" : warning_string);
+                warning.raise();
+              }
             }
             else if (req.privilege != LEGION_READ_WRITE)
-              REPORT_LEGION_ERROR(
-                  ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                  "Error creating read-write field accessor without "
-                  "read-write privileges on field %d in task %s",
-                  fid, context->get_task_name())
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error << "Error creating read-write field accessor without "
+                    << "read-write privileges on field " << fid << " in task "
+                    << *context << ".";
+              error.raise();
+            }
             break;
           }
         case LEGION_WRITE_ONLY:
         case LEGION_WRITE_DISCARD:
           {
             if (!(LEGION_WRITE_ONLY & req.privilege))
-              REPORT_LEGION_ERROR(
-                  ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                  "Error creating write-discard field accessor "
-                  "without write privileges on field %d in task %s",
-                  fid, context->get_task_name())
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error << "Error creating write-discard field accessor without "
+                    << "write privileges on field " << fid << " in task "
+                    << *context << ".";
+              error.raise();
+            }
             break;
           }
         case LEGION_REDUCE:
@@ -792,20 +820,23 @@ namespace Legion {
             if ((LEGION_REDUCE != req.privilege) || (redop != req.redop))
             {
               if (!(LEGION_REDUCE & req.privilege))
-                REPORT_LEGION_ERROR(
-                    ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                    "Error creating reduction field accessor "
-                    "without reduction privileges on field %d in "
-                    "task %s",
-                    fid, context->get_task_name())
+              {
+                Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+                error << "Error creating reduction field accessor without "
+                      << "reduction privileges on field " << fid << " in task "
+                      << *context << ".";
+                error.raise();
+              }
               else if (
                   (redop != req.redop) && (req.privilege != LEGION_READ_WRITE))
-                REPORT_LEGION_ERROR(
-                    ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                    "Error creating reduction field accessor "
-                    "with mismatched reduction operators %d and %d "
-                    "on field %d in task %s",
-                    redop, req.redop, fid, context->get_task_name())
+              {
+                Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+                error << "Error creating reduction field accessor with "
+                         "mismatched "
+                      << "reduction operators " << redop << " and " << req.redop
+                      << " on field " << fid << " in task " << *context << ".";
+                error.raise();
+              }
               legion_assert(req.privilege == LEGION_READ_WRITE);
             }
             break;
@@ -816,43 +847,49 @@ namespace Legion {
       if (context != nullptr)
       {
         if (context->is_inner_context())
-          REPORT_LEGION_ERROR(
-              ERROR_INNER_TASK_VIOLATION,
-              "Illegal accessor construction inside "
-              "task %s (UID %lld) for a variant that was labeled as an 'inner' "
-              "variant.",
-              context->get_task_name(), context->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Illegal accessor construction inside task " << *context
+                << " for a variant that was labeled as an 'inner' variant.";
+          error.raise();
+        }
         else if (
             runtime->runtime_warnings && !silence_warnings &&
             !context->is_leaf_context())
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_NONLEAF_ACCESSOR,
-              "Accessor construction in non-leaf "
-              "task %s (UID %lld) is a blocking operation in violation of "
-              "Legion's deferred execution model best practices. You may "
-              "notice a severe performance degradation. Warning string: %s",
-              context->get_task_name(), context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning
+              << "Accessor construction in non-leaf task " << *context
+              << " is a blocking operation in violation of Legion's deferred "
+              << "execution model best practices. You may notice a severe "
+              << "performance degradation. Warning string: "
+              << ((warning_string == nullptr) ? "" : warning_string);
+          warning.raise();
+        }
       }
       // If this physical region isn't mapped, then we have to
       // map it before we can return an accessor
       if (!mapped)
       {
         if (virtual_mapped)
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_IMPLICIT_MAPPING,
-              "Illegal implicit mapping of a virtual mapped region "
-              "in task %s (UID %lld)",
-              context->get_task_name(), context->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
+              << "Illegal implicit mapping of a virtual mapped region in task "
+              << *context << ".";
+          error.raise();
+        }
         if (runtime->runtime_warnings && !silence_warnings)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_UNMAPPED_ACCESSOR,
-              "Accessor construction was "
-              "performed on an unmapped region in task %s "
-              "(UID %lld). Legion is mapping it for you. "
-              "Please try to be more careful. Warning string: %s",
-              context->get_task_name(), context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning << "Accessor construction was performed on an unmapped "
+                     "region in task "
+                  << *context
+                  << ". Legion is mapping it for you. Please try to be more "
+                  << "careful. Warning string: "
+                  << ((warning_string == nullptr) ? "" : warning_string);
+          warning.raise();
+        }
         context->remap_region(
             PhysicalRegion(this), nullptr /*prov*/, true /*internal*/);
         // At this point we should have a new ready event
@@ -860,21 +897,23 @@ namespace Legion {
         legion_assert(mapped);
       }
       if (req.privilege_fields.find(fid) == req.privilege_fields.end())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_FIELD_PRIVILEGES,
-            "Accessor construction for field %d in task %s "
-            "without privileges!",
-            fid, context->get_task_name())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Accessor construction for field " << fid << " in task "
+              << *context << " without privileges.";
+        error.raise();
+      }
       if (generic_accessor && runtime->runtime_warnings && !silence_warnings)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_GENERIC_ACCESSOR,
-            "Using a generic accessor for accessing a "
-            "physical instance of task %s (UID %lld). "
-            "Generic accessors are very slow and are "
-            "strongly discouraged for use in high "
-            "performance code. Warning string: %s",
-            context->get_task_name(), context->get_unique_id(),
-            (warning_string == nullptr) ? "" : warning_string)
+      {
+        Warning warning;
+        warning
+            << "Using a generic accessor for accessing a physical instance of "
+               "task "
+            << *context << ". Generic accessors are very slow and are strongly "
+            << "discouraged for use in high performance code. Warning string: "
+            << ((warning_string == nullptr) ? "" : warning_string);
+        warning.raise();
+      }
       // Get the index space to use for the accessor
       IndexSpaceNode* bounds = runtime->get_node(req.region.get_index_space());
       // Check to see if this is a padded field, if it is then we need to
@@ -902,14 +941,15 @@ namespace Legion {
             const size_t actual_size =
                 manager->field_space_node->get_field_size(fid);
             if (actual_size != field_size)
-              REPORT_LEGION_ERROR(
-                  ERROR_ACCESSOR_FIELD_SIZE_CHECK,
-                  "Error creating accessor for field %d with a "
-                  "type of size %zd bytes when the field was "
-                  "originally allocated with a size of %zd bytes "
-                  "in task %s (UID %lld)",
-                  fid, field_size, actual_size, context->get_task_name(),
-                  context->get_unique_id())
+            {
+              Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+              error << "Error creating accessor for field " << fid
+                    << " with a type of size " << field_size
+                    << " bytes when the field "
+                    << "was originally allocated with a size of " << actual_size
+                    << " bytes in task " << *context << ".";
+              error.raise();
+            }
           }
           if (need_padded_bounds)
           {
@@ -958,51 +998,60 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!std::binary_search(padded_fields.begin(), padded_fields.end(), fid))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PADDED_ACCESSOR,
-            "Illegal request to create a padded accessor for field %d in "
-            "parent task %s (UID %lld) which does not have padded privileges. "
-            "You must record a layout constraint with an explicit for padding "
-            "constraint when registering this task variant in order to be able "
-            "to access the padded space on this instance.",
-            fid, context->get_task_name(), context->get_unique_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Illegal request to create a padded accessor for field " << fid
+              << " in parent task " << *context
+              << " which does not have padded "
+              << "privileges. You must record a layout constraint with an "
+                 "explicit "
+              << "padding constraint when registering this task variant in "
+                 "order to "
+              << "be able to access the padded space on this instance.";
+        error.raise();
+      }
       if (context != nullptr)
       {
         if (context->is_inner_context())
-          REPORT_LEGION_ERROR(
-              ERROR_INNER_TASK_VIOLATION,
-              "Illegal padding accessor construction inside "
-              "task %s (UID %lld) for a variant that was labeled as an 'inner' "
-              "variant.",
-              context->get_task_name(), context->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Illegal padding accessor construction inside task "
+                << *context
+                << " for a variant that was labeled as an 'inner' variant.";
+          error.raise();
+        }
         else if (
             runtime->runtime_warnings && !silence_warnings &&
             !context->is_leaf_context())
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_NONLEAF_ACCESSOR,
-              "Padding ccessor construction in non-leaf "
-              "task %s (UID %lld) is a blocking operation in violation of "
-              "Legion's deferred execution model best practices. You may "
-              "notice a severe performance degradation. Warning string: %s",
-              context->get_task_name(), context->get_unique_id(),
-              (warning_string == nullptr) ? "" : warning_string)
+        {
+          Warning warning;
+          warning
+              << "Padding accessor construction in non-leaf task " << *context
+              << " is a blocking operation in violation of Legion's deferred "
+              << "execution model best practices. You may notice a severe "
+              << "performance degradation. Warning string: "
+              << ((warning_string == nullptr) ? "" : warning_string);
+          warning.raise();
+        }
       }
       if (req.privilege_fields.find(fid) == req.privilege_fields.end())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_FIELD_PRIVILEGES,
-            "Padding accessor construction for field %d in task %s "
-            "without privileges!",
-            fid, context->get_task_name())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Padding accessor construction for field " << fid
+              << " in task " << *context << " without privileges.";
+        error.raise();
+      }
       if (generic_accessor && runtime->runtime_warnings && !silence_warnings)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_GENERIC_ACCESSOR,
-            "Using a generic accessor for accessing a "
-            "physical instance of task %s (UID %lld). "
-            "Generic accessors are very slow and are "
-            "strongly discouraged for use in high "
-            "performance code. Warning string: %s",
-            context->get_task_name(), context->get_unique_id(),
-            (warning_string == nullptr) ? "" : warning_string)
+      {
+        Warning warning;
+        warning
+            << "Using a generic accessor for accessing a physical instance of "
+               "task "
+            << *context << ". Generic accessors are very slow and are strongly "
+            << "discouraged for use in high performance code. Warning string: "
+            << ((warning_string == nullptr) ? "" : warning_string);
+        warning.raise();
+      }
       const InstanceSet& instances = references;
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
@@ -1015,14 +1064,15 @@ namespace Legion {
             const size_t actual_size =
                 manager->field_space_node->get_field_size(fid);
             if (actual_size != field_size)
-              REPORT_LEGION_ERROR(
-                  ERROR_ACCESSOR_FIELD_SIZE_CHECK,
-                  "Error creating accessor for field %d with a "
-                  "type of size %zd bytes when the field was "
-                  "originally allocated with a size of %zd bytes "
-                  "in task %s (UID %lld)",
-                  fid, field_size, actual_size, context->get_task_name(),
-                  context->get_unique_id())
+            {
+              Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+              error << "Error creating accessor for field " << fid
+                    << " with a type of size " << field_size
+                    << " bytes when the field "
+                    << "was originally allocated with a size of " << actual_size
+                    << " bytes in task " << *context << ".";
+              error.raise();
+            }
           }
           // If this is a padded instance, then we know that this is an affine
           // instance so we can get it's index space expression and it should
@@ -1054,10 +1104,11 @@ namespace Legion {
         const char* accessor_kind, PhysicalInstance instance, FieldID fid)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ACCESSOR_COMPATIBILITY_CHECK,
-          "Unable to create Realm %s for field %d of instance %llx in task %s",
-          accessor_kind, fid, instance.id, context->get_task_name())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Unable to create Realm " << accessor_kind << " for field "
+            << fid << " of instance " << instance.id << " in task " << *context
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1066,14 +1117,14 @@ namespace Legion {
         PhysicalInstance inst2)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ACCESSOR_COMPATIBILITY_CHECK,
-          "Unable to create multi-region accessor for field %d because "
-          "instances " IDFMT " (index 0) and " IDFMT
-          " (index %d) are "
-          "differnt. Multi-region accessors must always be for region "
-          "requirements with the same physical instance.",
-          fid, inst1.id, inst2.id, index)
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Unable to create multi-region accessor for field " << fid
+            << " because instances " << inst1.id << " (index 0) and "
+            << inst2.id << " (index " << index
+            << ") are different. Multi-region accessors must "
+            << "always be for region requirements with the same physical "
+               "instance.";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1082,13 +1133,14 @@ namespace Legion {
         PhysicalInstance inst2, const PhysicalRegion& other, bool reduction)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_COLOCATION_VIOLATION,
-          "Unable to create co-location %s<%s> from multiple physical regions "
-          "for field %d in task %s because regions have different physical "
-          "instances " IDFMT " and  " IDFMT,
-          reduction ? "ReductionAccessor" : "FieldAccessor", accessor_kind, fid,
-          context->get_task_name(), inst1.id, inst2.id)
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Unable to create co-location "
+            << (reduction ? "ReductionAccessor" : "FieldAccessor") << "<"
+            << accessor_kind << "> from multiple physical regions for field "
+            << fid << " in task " << *context
+            << " because regions have different physical "
+            << "instances " << inst1.id << " and " << inst2.id << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1096,12 +1148,13 @@ namespace Legion {
         const char* accessor_kind, FieldID fid, bool reduction)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_COLOCATION_VIOLATION,
-          "Attempt to create colocation %s<%s> with no physical regions for "
-          "field %d task %s. Must provide a non-empty set of regions.",
-          reduction ? "ReductionAccessor" : "FieldAccessor", accessor_kind, fid,
-          implicit_context->get_task_name())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Attempt to create colocation "
+            << (reduction ? "ReductionAccessor" : "FieldAccessor") << "<"
+            << accessor_kind << "> with no physical regions for field " << fid
+            << " task " << *implicit_context
+            << ". Must provide a non-empty set of regions.";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1125,43 +1178,39 @@ namespace Legion {
       {
         case LEGION_READ_ONLY:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_BOUNDS_CHECK,
-                "Bounds check failure reading point %s from "
-                "field %d in task %s%s\n",
-                point_string, fid, implicit_context->get_task_name(),
-                multi ? " for multi-region accessor" : "")
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Bounds check failure reading point " << point_string
+                  << " from "
+                  << "field " << fid << " in task " << *implicit_context << ".";
+            error.raise();
             break;
           }
         case LEGION_READ_WRITE:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_BOUNDS_CHECK,
-                "Bounds check failure geting a reference to point %s "
-                "from field %d in task %s%s\n",
-                point_string, fid, implicit_context->get_task_name(),
-                multi ? " for multi-region accessor" : "")
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Bounds check failure geting a reference to point "
+                  << point_string << " from field " << fid << " in task "
+                  << *implicit_context << ".";
+            error.raise();
             break;
           }
         case LEGION_WRITE_ONLY:
         case LEGION_WRITE_DISCARD:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_BOUNDS_CHECK,
-                "Bounds check failure writing to point %s in "
-                "field %d in task %s%s\n",
-                point_string, fid, implicit_context->get_task_name(),
-                multi ? " for multi-region accessor" : "")
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Bounds check failure writing to point " << point_string
+                  << " in "
+                  << "field " << fid << " in task " << *implicit_context << ".";
+            error.raise();
             break;
           }
         case LEGION_REDUCE:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_BOUNDS_CHECK,
-                "Bounds check failure reducing to point %s in "
-                "field %d in task %s%s\n",
-                point_string, fid, implicit_context->get_task_name(),
-                multi ? " for multi-region accessor" : "")
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Bounds check failure reducing to point " << point_string
+                  << " in "
+                  << "field " << fid << " in task " << *implicit_context << ".";
+            error.raise();
             break;
           }
         default:
@@ -1200,22 +1249,20 @@ namespace Legion {
       {
         case LEGION_READ_ONLY:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_BOUNDS_CHECK,
-                "Bounds check failure getting a read-only reference "
-                "to rect %s from field %d in task %s%s\n",
-                rect_string, fid, implicit_context->get_task_name(),
-                multi ? " for multi-region accessor" : "")
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Bounds check failure getting a read-only reference "
+                  << "to rect " << rect_string << " from field " << fid
+                  << " in task " << *implicit_context << ".";
+            error.raise();
             break;
           }
         case LEGION_READ_WRITE:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_BOUNDS_CHECK,
-                "Bounds check failure geting a reference to rect %s "
-                "from field %d in task %s%s\n",
-                rect_string, fid, implicit_context->get_task_name(),
-                multi ? " for multi-region accessor" : "")
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Bounds check failure geting a reference to rect "
+                  << rect_string << " from field " << fid << " in task "
+                  << *implicit_context << ".";
+            error.raise();
             break;
           }
         default:
@@ -1244,39 +1291,39 @@ namespace Legion {
       {
         case LEGION_READ_ONLY:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                "Privilege check failure reading point %s from "
-                "field %d in task %s\n",
-                point_string, fid, implicit_context->get_task_name())
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Privilege check failure reading point " << point_string
+                  << " from "
+                  << "field " << fid << " in task " << *implicit_context << ".";
+            error.raise();
             break;
           }
         case LEGION_READ_WRITE:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                "Privilege check failure geting a reference to point "
-                "%s from field %d in task %s\n",
-                point_string, fid, implicit_context->get_task_name())
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Privilege check failure geting a reference to point "
+                  << point_string << " from field " << fid << " in task "
+                  << *implicit_context << ".";
+            error.raise();
             break;
           }
         case LEGION_WRITE_ONLY:
         case LEGION_WRITE_DISCARD:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                "Privilege check failure writing to point %s in "
-                "field %d in task %s\n",
-                point_string, fid, implicit_context->get_task_name())
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Privilege check failure writing to point " << point_string
+                  << " in "
+                  << "field " << fid << " in task " << *implicit_context << ".";
+            error.raise();
             break;
           }
         case LEGION_REDUCE:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                "Privilege check failure reducing to point %s in "
-                "field %d in task %s\n",
-                point_string, fid, implicit_context->get_task_name())
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Privilege check failure reducing to point "
+                  << point_string << " in "
+                  << "field " << fid << " in task " << *implicit_context << ".";
+            error.raise();
             break;
           }
         default:
@@ -1315,20 +1362,20 @@ namespace Legion {
       {
         case LEGION_READ_ONLY:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                "Privilege check failure getting a read-only "
-                "reference to rect %s from field %d in task %s\n",
-                rect_string, fid, implicit_context->get_task_name())
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Privilege check failure getting a read-only "
+                  << "reference to rect " << rect_string << " from field "
+                  << fid << " in task " << *implicit_context << ".";
+            error.raise();
             break;
           }
         case LEGION_READ_WRITE:
           {
-            REPORT_LEGION_ERROR(
-                ERROR_ACCESSOR_PRIVILEGE_CHECK,
-                "Privilege check failure geting a reference to rect "
-                "%s from field %d in task %s\n",
-                rect_string, fid, implicit_context->get_task_name())
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Privilege check failure geting a reference to rect "
+                  << rect_string << " from field " << fid << " in task "
+                  << *implicit_context << ".";
+            error.raise();
             break;
           }
         default:
@@ -1353,11 +1400,11 @@ namespace Legion {
         strcat(point_string, buffer);
       }
       strcat(point_string, ")");
-      REPORT_LEGION_ERROR(
-          ERROR_ACCESSOR_BOUNDS_CHECK,
-          "Bounds check failure accessing padded point %s from "
-          "field %d in task %s\n",
-          point_string, fid, implicit_context->get_task_name())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Bounds check failure accessing padded point " << point_string
+            << " from "
+            << "field " << fid << " in task " << *implicit_context << ".";
+      error.raise();
     }
 
     /////////////////////////////////////////////////////////////
@@ -1429,18 +1476,22 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (ctx != context)
-        REPORT_LEGION_ERROR(
-            ERROR_INDEX_SPACE_DETACH,
-            "Attempted detach of external resources in context of task %s "
-            "(UID %lld). Detach of external resources must always be performed "
-            "in the the context of the task in which they are attached.",
-            ctx->get_task_name(), ctx->get_unique_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Attempted detach of external resources in context of task "
+            << *ctx
+            << ". Detach of external resources must always be performed in the "
+            << "context of the task in which they are attached.";
+        error.raise();
+      }
       if (detached)
-        REPORT_LEGION_ERROR(
-            ERROR_INDEX_SPACE_DETACH,
-            "Duplicate detach of external resources performed in task %s "
-            "(UID %lld). External resources should only be detached once.",
-            ctx->get_task_name(), ctx->get_unique_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Duplicate detach of external resources performed in task "
+              << *ctx << ". External resources should only be detached once.";
+        error.raise();
+      }
       detached = true;
       // Unmap any mapped regions
       for (std::vector<PhysicalRegion>::iterator it = regions.begin();
