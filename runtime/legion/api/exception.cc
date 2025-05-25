@@ -59,11 +59,6 @@ namespace Legion {
           stream << "LEGION MAPPER ERROR: ";
           break;
         }
-      case LEGION_INVALID_MAPPER_OUTPUT_EXCEPTION:
-        {
-          stream << "LEGION INVALID MAPPER OUTPUT ERROR: ";
-          break;
-        }
       case LEGION_STARTUP_EXCEPTION:
         {
           stream << "LEGION STARTUP ERROR: ";

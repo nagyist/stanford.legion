@@ -4205,14 +4205,12 @@ namespace Legion {
           std::numeric_limits<ShardingID>::max(), true};
       mapper->invoke_copy_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
-      {
-        Error error(LEGION_INVALID_MAPPER_OUTPUT_EXCEPTION);
-        error << "Mapper " << mapper->get_mapper_name()
-              << " failed to pick a valid sharding functor for copy in task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id() << ").";
-        error.raise();
-      }
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_MAPPER_OUTPUT,
+            "Mapper %s failed to pick a valid sharding functor for "
+            "copy in task %s (UID %lld)",
+            mapper->get_mapper_name(), parent_ctx->get_task_name(),
+            parent_ctx->get_unique_id())
       this->sharding_functor = output.chosen_functor;
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
@@ -4222,14 +4220,192 @@ namespace Legion {
         sharding_collective->contribute(this->sharding_functor);
         if (sharding_collective->is_target() &&
             !sharding_collective->validate(this->sharding_functor))
-        {
-          Error error(LEGION_INVALID_MAPPER_OUTPUT_EXCEPTION);
-          error << "Mapper " << mapper->get_mapper_name()
-                << " chose different sharding functions for index copy "
-                << "in task " << parent_ctx->get_task_name() << " (UID "
-                << parent_ctx->get_unique_id() << ").";
-          error.raise();
-        }
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Mapper %s chose different sharding functions "
+              "for copy in task %s (UID %lld)",
+              mapper->get_mapper_name(), parent_ctx->get_task_name(),
+              parent_ctx->get_unique_id())
+      }
+      // Now we can do the normal prepipeline stage
+      CopyOp::trigger_prepipeline_stage();
+    }
+
+    //--------------------------------------------------------------------------
+    void ReplCopyOp::trigger_dependence_analysis(void)
+    //--------------------------------------------------------------------------
+    {
+      perform_base_dependence_analysis(false /*permit projection*/);
+
+      // Perform reudciton dependence analysis as if it was READ_WRITE
+      // so that we can get the version numbers correct
+      std::vector<unsigned> changed_idxs;
+      req_vector_reduce_to_readwrite(dst_requirements, changed_idxs);
+
+      // Make these requirements look like projection requirmeents since we
+      // need the logical analysis to look at sharding to determine if any
+      // kind of close operations are required
+      analyze_region_requirements(
+          launch_space, sharding_function, sharding_space);
+
+      req_vector_reduce_restore(dst_requirements, changed_idxs);
+    }
+
+    //--------------------------------------------------------------------------
+    void ReplCopyOp::trigger_ready(void)
+    //--------------------------------------------------------------------------
+    {
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      // Figure out whether this shard owns this point
+      ShardID owner_shard;
+      if (sharding_space.exists())
+      {
+        Domain shard_domain;
+        runtime->find_domain(sharding_space, shard_domain);
+        owner_shard = sharding_function->find_owner(index_point, shard_domain);
+      }
+      else
+        owner_shard = sharding_function->find_owner(index_point, index_domain);
+      // If we're recording then record the owner shard
+      if (is_recording())
+      {
+        legion_assert((tpl != nullptr) && tpl->is_recording());
+        tpl->record_owner_shard(trace_local_id, owner_shard);
+      }
+      LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
+      // If we own it we go on the queue, otherwise we complete early
+      if (owner_shard != repl_ctx->owner_shard->shard_id)
+      {
+        // Still have to do this for legion spy
+        LegionSpy::log_operation_events(
+            unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
+        // We don't own it, so we can pretend like we
+        // mapped and executed this copy already
+        complete_mapping();
+        complete_execution();
+      }
+      else  // We own it, so do the base call
+        CopyOp::trigger_ready();
+    }
+
+    //--------------------------------------------------------------------------
+    void ReplCopyOp::trigger_replay(void)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(tpl != nullptr);
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      const ShardID owner_shard = tpl->find_owner_shard(trace_local_id);
+      LegionSpy::log_owner_shard(get_unique_id(), owner_shard);
+      if (owner_shard != repl_ctx->owner_shard->shard_id)
+      {
+        LegionSpy::log_replay_operation(unique_op_id);
+        LegionSpy::log_operation_events(
+            unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
+        complete_mapping();
+        complete_execution();
+      }
+      else  // We own it, so do the base call
+        CopyOp::trigger_replay();
+    }
+
+    /////////////////////////////////////////////////////////////
+    // Repl Index Copy Op
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    ReplIndexCopyOp::ReplIndexCopyOp(void) : IndexCopyOp()
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    ReplIndexCopyOp::~ReplIndexCopyOp(void)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    void ReplIndexCopyOp::activate(void)
+    //--------------------------------------------------------------------------
+    {
+      IndexCopyOp::activate();
+      sharding_functor = std::numeric_limits<ShardingID>::max();
+      sharding_function = nullptr;
+      shard_points = nullptr;
+      interfering_check_id = 0;
+      interfering_exchange = nullptr;
+      sharding_collective = nullptr;
+    }
+
+    //--------------------------------------------------------------------------
+    void ReplIndexCopyOp::deactivate(bool freeop)
+    //--------------------------------------------------------------------------
+    {
+      if (sharding_collective != nullptr)
+        delete sharding_collective;
+      IndexCopyOp::deactivate(false /*free*/);
+      pre_indirection_barriers.clear();
+      post_indirection_barriers.clear();
+      if (!src_collectives.empty())
+      {
+        for (std::vector<IndirectRecordExchange*>::const_iterator it =
+                 src_collectives.begin();
+             it != src_collectives.end(); it++)
+          delete (*it);
+        src_collectives.clear();
+      }
+      if (!dst_collectives.empty())
+      {
+        for (std::vector<IndirectRecordExchange*>::const_iterator it =
+                 dst_collectives.begin();
+             it != dst_collectives.end(); it++)
+          delete (*it);
+        dst_collectives.clear();
+      }
+      unique_intra_space_deps.clear();
+      remove_launch_space_reference(shard_points);
+      if (interfering_exchange != nullptr)
+        delete interfering_exchange;
+      if (freeop)
+        runtime->free_operation(this);
+    }
+
+    //--------------------------------------------------------------------------
+    void ReplIndexCopyOp::trigger_prepipeline_stage(void)
+    //--------------------------------------------------------------------------
+    {
+      ReplicateContext* repl_ctx =
+          legion_safe_cast<ReplicateContext*>(parent_ctx);
+      // Do the mapper call to get the sharding function to use
+      if (mapper == nullptr)
+        mapper =
+            runtime->find_mapper(parent_ctx->get_executing_processor(), map_id);
+      Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
+      Mapper::SelectShardingFunctorOutput output = {
+          std::numeric_limits<ShardingID>::max(), true};
+      mapper->invoke_copy_select_sharding_functor(this, *input, output);
+      if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_MAPPER_OUTPUT,
+            "Mapper %s failed to pick a valid sharding functor for "
+            "index copy in task %s (UID %lld)",
+            mapper->get_mapper_name(), parent_ctx->get_task_name(),
+            parent_ctx->get_unique_id())
+      this->sharding_functor = output.chosen_functor;
+      sharding_function =
+          repl_ctx->shard_manager->find_sharding_function(sharding_functor);
+      if (runtime->safe_mapper)
+      {
+        legion_assert(sharding_collective != nullptr);
+        sharding_collective->contribute(this->sharding_functor);
+        if (sharding_collective->is_target() &&
+            !sharding_collective->validate(this->sharding_functor))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Mapper %s chose different sharding functions "
+              "for index copy in task %s (UID %lld)",
+              mapper->get_mapper_name(), parent_ctx->get_task_name(),
+              parent_ctx->get_unique_id())
       }
       // Now we can do the normal prepipeline stage
       IndexCopyOp::trigger_prepipeline_stage();

@@ -714,50 +714,37 @@ namespace Legion {
     {
       is_first_local_shard = first_local_shard;
       if (restricted_region.impl == nullptr)
-      {
-        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        error << "Acquire operation in control replicated parent task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id()
-              << ") did not specify a 'physical_region' argument. "
-              << "All acquire operations in control replicated contexts must "
-              << "specify an explicit PhysicalRegion.";
-        error.raise();
-      }
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
+            "Acquire operation in control replicated parent task %s "
+            "(UID %lld) did not specify a `physical_region' argument. "
+            "All acquire operations in control replicated contexts must "
+            "specify an explicit PhysicalRegion.",
+            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       if (!grants.empty())
-      {
-        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        error << "Illegal use of grants with an acquire operation in control "
-              << "replicated parent task " << parent_ctx->get_task_name()
-              << " (UID " << parent_ctx->get_unique_id()
-              << "). Use of non-canonical Legion features such as grants "
-              << "are not permitted with control replication.";
-        error.raise();
-      }
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
+            "Illegal use of grants with an acquire operation in control "
+            "replicated parent task %s (UID %lld). Use of non-canonical "
+            "Legion features such as grants are not permitted with "
+            "control replication.",
+            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       if (!wait_barriers.empty())
-      {
-        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        error << "Illegal use of wait phase barriers with an acquire operation "
-                 "in "
-              << "control replicated parent task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id()
-              << "). Use of non-canonical Legion features such as wait phase "
-              << "barriers are not permitted with control replication.";
-        error.raise();
-      }
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
+            "Illegal use of wait phase barriers with an acquire operation in "
+            "control replicated parent task %s (UID %lld). Use of "
+            "non-canonical Legion features such as wait phase barriers are "
+            "not permitted with control replication.",
+            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       if (!arrive_barriers.empty())
-      {
-        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        error << "Illegal use of arrive phase barriers with an acquire "
-                 "operation in "
-              << "control replicated parent task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id()
-              << "). Use of non-canonical Legion features such as arrive phase "
-              << "barriers are not permitted with control replication.";
-        error.raise();
-      }
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
+            "Illegal use of arrive phase barriers with an acquire operation in "
+            "control replicated parent task %s (UID %lld). Use of "
+            "non-canonical Legion features such as arrive phase barriers are "
+            "not permitted with control replication.",
+            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
     }
 
     //--------------------------------------------------------------------------

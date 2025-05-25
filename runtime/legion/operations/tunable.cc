@@ -291,15 +291,12 @@ namespace Legion {
               value_broadcast->get_buffer(expected_size);
           if ((expected_size != size) ||
               (memcmp(buffer, expected_buffer, size) != 0))
-          {
-            Error error(LEGION_INVALID_MAPPER_OUTPUT_EXCEPTION);
-            error << "Mapper " << mapper->get_mapper_name()
-                  << " returned different values for selection of tunable "
-                  << "value " << tunable_id << " in parent task "
-                  << parent_ctx->get_task_name() << " (UID "
-                  << parent_ctx->get_unique_id() << ").";
-            error.raise();
-          }
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_MAPPER_OUTPUT,
+                "Mapper %s returned different values for selection of "
+                "tunable value %d in parent task %s (UID %lld)",
+                mapper->get_mapper_name(), tunable_id,
+                parent_ctx->get_task_name(), parent_ctx->get_unique_id())
         }
         else
           value_broadcast->broadcast(buffer, size);

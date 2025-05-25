@@ -279,15 +279,13 @@ namespace Legion {
       std::map<PhysicalInstance, unsigned>::iterator finder =
           allocated.find(instance);
       if (finder == allocated.end())
-      {
-        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        error << "Detected a use-after-free case for instance " << instance.id
-              << " in memory " << manager->get_name() << " by task "
-              << implicit_context->get_task_name() << " (UID "
-              << implicit_context->get_unique_id()
-              << ") while trying to escape the instance for an output region.";
-        error.raise();
-      }
+        REPORT_LEGION_ERROR(
+            ERROR_POOL_USE_AFTER_FREE,
+            "Detected a use-after-free case for instance " IDFMT
+            " in memory %s by task %s (UID %lld) while trying to "
+            "escape the instance for an output region.",
+            instance.id, manager->get_name(), implicit_context->get_task_name(),
+            implicit_context->get_unique_id())
       const Realm::InstanceLayoutGeneric* layout = instance.get_layout();
       if (layouts == nullptr)
       {
@@ -348,17 +346,14 @@ namespace Legion {
       std::map<PhysicalInstance, unsigned>::iterator finder =
           allocated.find(instance);
       if (finder == allocated.end())
-      {
-        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        error
-            << "Detected a duplicate delete for instance " << instance.id
-            << " in memory " << manager->get_name() << " by task "
-            << implicit_context->get_task_name() << " (UID "
-            << implicit_context->get_unique_id()
-            << "). This most likely means that you called 'destroy' on "
-            << "your deferred buffer or deferred value twice which is illegal.";
-        error.raise();
-      }
+        REPORT_LEGION_ERROR(
+            ERROR_POOL_USE_AFTER_FREE,
+            "Detected a duplicate delete for instance " IDFMT
+            " in memory %s by task %s (UID %lld). This most likely "
+            "means that you called 'destroy' on your deferred buffer "
+            " or deferred value twice which is illegal.",
+            instance.id, manager->get_name(), implicit_context->get_task_name(),
+            implicit_context->get_unique_id())
       legion_assert(finder != allocated.end());
       if (released)
       {
@@ -5302,11 +5297,9 @@ namespace Legion {
 #undef CHECK_HIP
 #endif
         default:
-          {
-            Fatal fatal(LEGION_FATAL_UNIMPLEMENTED_FEATURE);
-            fatal << "Unsupported memory kind " << memory.kind() << ".";
-            fatal.raise();
-          }
+          REPORT_LEGION_FATAL(
+              LEGION_FATAL_UNIMPLEMENTED_FEATURE, "Unsupported memory kind %d",
+              memory.kind())
       }
     }
 
@@ -5470,12 +5463,10 @@ namespace Legion {
           }
 #endif
         default:
-          {
-            Fatal fatal(LEGION_FATAL_UNIMPLEMENTED_FEATURE);
-            fatal << "Unsupported memory kind for LEGION_MALLOC_INSTANCES "
-                  << memory.kind() << ".";
-            fatal.raise();
-          }
+          REPORT_LEGION_FATAL(
+              LEGION_FATAL_UNIMPLEMENTED_FEATURE,
+              "Unsupported memory kind for LEGION_MALLOC_INSTANCES %d",
+              memory.kind())
       }
       if (instance.exists())
       {
