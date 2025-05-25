@@ -932,7 +932,6 @@ namespace Legion {
       std::vector<LegionProfInstance*> instances;
       std::map<Processor, LegionProfInstance*> processor_instances;
       std::map<uintptr_t, unsigned long long> backtrace_ids;
-      unsigned long long next_backtrace_id;
       std::vector<Memory> recorded_memories;
       std::vector<Processor> recorded_processors;
       std::map<LgEvent, LgEvent> message_fevents;

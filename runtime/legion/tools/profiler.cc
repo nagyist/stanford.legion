@@ -2245,9 +2245,6 @@ namespace Legion {
 #else
         all_critical_arrivals(all_arrivals),
 #endif
-        next_backtrace_id(
-            (runtime->address_space == 0) ? runtime->total_address_spaces :
-                                            runtime->address_space),
 #ifndef LEGION_DEBUG
         total_outstanding_requests(1 /*start with guard*/),
 #endif
@@ -2460,9 +2457,10 @@ namespace Legion {
           backtrace_ids.find(hash);
       if (finder != backtrace_ids.end())
         return finder->second;
+      // Use the hash of the string for the backtrace so that the profiler
+      // can deduplicate it across different processes
+      const unsigned long long result = std::hash<std::string>{}(str);
       // Didn't lose the race so generate a new ID for this backtrace
-      unsigned long long result = next_backtrace_id;
-      next_backtrace_id += runtime->total_address_spaces;
       const LegionProfDesc::Backtrace backtrace = {result, str.c_str()};
       serializer->serialize(backtrace);
       backtrace_ids[hash] = result;
