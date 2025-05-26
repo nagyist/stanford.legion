@@ -138,7 +138,8 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     legion_assert(
-        LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::FIELD_SPACE_DC);
+        (LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::FIELD_SPACE_DC) ||
+        (did == 0));
   }
 
   //--------------------------------------------------------------------------

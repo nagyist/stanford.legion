@@ -1730,7 +1730,7 @@ $(LG_RT_DIR)/legion/bindings/f_types.f90.o : $(LG_RT_DIR)/legion/bindings/f_type
 $(LG_RT_DIR)/legion/bindings/f_c_interface.f90.o : $(LG_RT_DIR)/legion/bindings/f_c_interface.f90 $(LG_RT_DIR)/legion/bindings/f_types.f90.o $(LEGION_DEFINES_HEADER) $(REALM_DEFINES_HEADER)
 	$(FC) -J$(LG_RT_DIR) -o $@ -c $< $(FC_FLAGS) $(INC_FLAGS)
 
-$(LG_RT_DIR)/legion/f_bindings.f90.o : $(LG_RT_DIR)/legion/bindings/f_bindings.f90 $(LG_RT_DIR)/legion/bindings/f_c_interface.f90.o $(LG_RT_DIR)/legion/bindings/f_types.f90.o $(LEGION_DEFINES_HEADER) $(REALM_DEFINES_HEADER)
+$(LG_RT_DIR)/legion/bindings/f_bindings.f90.o : $(LG_RT_DIR)/legion/bindings/f_bindings.f90 $(LG_RT_DIR)/legion/bindings/f_c_interface.f90.o $(LG_RT_DIR)/legion/bindings/f_types.f90.o $(LEGION_DEFINES_HEADER) $(REALM_DEFINES_HEADER)
 	$(FC) -J$(LG_RT_DIR) -o $@ -c $< $(FC_FLAGS) $(INC_FLAGS)
 endif
 
