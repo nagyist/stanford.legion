@@ -1334,7 +1334,6 @@ namespace Legion {
           {
             o_lock.release();
             collective_lamport_clock_ready.wait();
-            o_lock.reacquire();
           }
           return collective_lamport_clock;
         }

@@ -512,6 +512,12 @@ namespace Legion {
           delete;
       static inline void* operator new[](std::size_t, std::align_val_t, void*) =
           delete;
+    public:
+      static inline void operator delete(void* ptr, std::size_t size) = delete;
+      static inline void operator delete[](void* ptr, std::size_t size) =
+          delete;
+      static inline void operator delete(void* ptr, void* place) = delete;
+      static inline void operator delete[](void* ptr, void* place) = delete;
     };
 
     /**

@@ -14,7 +14,6 @@
  */
 
 #include "canonical_python.h"
-#include "legion/bindings/c_bindings_util.h"
 
 #include <libgen.h>
 

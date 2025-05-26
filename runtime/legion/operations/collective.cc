@@ -1472,6 +1472,8 @@ namespace Legion {
     template class ReplCollectiveVersioning<CollectiveVersioning<DeletionOp> >;
     template class ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> >;
     template class ReplCollectiveVersioning<CollectiveVersioning<FillOp> >;
+    template class ReplCollectiveVersioning<CollectiveViewCreator<AttachOp> >;
+    template class ReplCollectiveVersioning<CollectiveViewCreator<DetachOp> >;
 
     /////////////////////////////////////////////////////////////
     // Repl Collective View Creator

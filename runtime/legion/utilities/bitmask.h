@@ -1312,7 +1312,7 @@ namespace Legion {
     template<
         typename DT, AllocationLifetime L, unsigned BLOAT = 1,
         bool BIDIR = true>
-    class CompoundBitMask {
+    class CompoundBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE = DT::ELEMENT_SIZE;
       static constexpr unsigned BIT_ELMTS = DT::BIT_ELMTS;

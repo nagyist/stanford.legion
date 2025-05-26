@@ -8481,7 +8481,7 @@ namespace Legion {
         return;
       if (MAX_SPARSE < mask.dense->pop_count())
         return;
-      DT* oldmask = mask.dense;
+      HeapifyBox<DT, L>* oldmask = mask.dense;
       sparse_size = 0;
       for (unsigned idx = 0; idx < DT::BIT_ELMTS; idx++)
       {
