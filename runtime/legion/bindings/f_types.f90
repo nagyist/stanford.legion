@@ -252,33 +252,33 @@ module legion_fortran_types
 
   ! Legion::IndexSpace
   type, bind(C) :: legion_index_space_f_t
-    integer(c_int) :: id
-    integer(c_int) :: tid
-    integer(c_int) :: type_tag
+    integer(c_long_long) :: id
+    integer(c_int)       :: tid
+    integer(c_int)       :: type_tag
   end type legion_index_space_f_t
 
   ! Legion::IndexPartition
   type, bind(C) :: legion_index_partition_f_t
-    integer(c_int) :: id
-    integer(c_int) :: tid
-    integer(c_int) :: type_tag
+    integer(c_long_long) :: id
+    integer(c_int)       :: tid
+    integer(c_int)       :: type_tag
   end type legion_index_partition_f_t
 
   ! Legion::FieldSpace
   type, bind(C) :: legion_field_space_f_t
-    integer(c_int) :: id
+    integer(c_long_long) :: id
   end type legion_field_space_f_t
 
   ! Legion::LogicalRegion
   type, bind(C) :: legion_logical_region_f_t
-    integer(c_int)               :: tree_id
+    integer(c_long_long)         :: tree_id
     type(legion_index_space_f_t) :: index_space
     type(legion_field_space_f_t) :: field_space
   end type legion_logical_region_f_t
 
   ! Legion::LogicalPartition
   type, bind(C) :: legion_logical_partition_f_t
-    integer(c_int)                   :: tree_id
+    integer(c_long_long)             :: tree_id
     type(legion_index_partition_f_t) :: index_partition
     type(legion_field_space_f_t)     :: field_space
   end type legion_logical_partition_f_t
