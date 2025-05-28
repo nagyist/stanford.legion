@@ -81,17 +81,23 @@ namespace Legion {
       if (!skip_replay && replay_execution)
         return;
       if (check && (mid == 0))
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_MAPPING_ID, "Invalid mapping ID. ID 0 is reserved.");
+      {
+        Error err(LEGION_INTERFACE_EXCEPTION);
+        err << "Invalid mapping ID. ID 0 is reserved.";
+        err.raise();
+      }
       if (check && !inside_registration_callback)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_NON_CALLBACK_REGISTRATION,
-            "Mapper %s (ID %d) was dynamically registered outside of a "
-            "registration callback invocation. In the near future this will "
-            "become an error in order to support task subprocesses. Please "
-            "use 'perform_registration_callback' to generate a callback "
-            "where it will be safe to perform dynamic registrations.",
-            m->get_mapper_name(), mid)
+      {
+        Warning warn;
+        warn
+            << "Mapper " << m->get_mapper_name() << " (ID " << mid
+            << ") was dynamically registered outside of a "
+            << "registration callback invocation. In the near future this will "
+            << "become an error in order to support task subprocesses. Please "
+            << "use 'perform_registration_callback' to generate a callback "
+            << "where it will be safe to perform dynamic registrations.";
+        warn.raise();
+      }
       AutoLock m_lock(mapper_lock);
       std::map<MapperID, std::pair<MapperManager*, bool> >::iterator finder =
           mappers.find(mid);
@@ -117,15 +123,17 @@ namespace Legion {
       if (replay_execution)
         return;
       if (!inside_registration_callback)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_NON_CALLBACK_REGISTRATION,
-            "Replacing default mapper with %s was dynamically performed "
-            "outside of a registration callback invocation. In the near "
-            "future this will become an error in order to support task "
-            "subprocesses. Please use 'perform_registration_callback' to "
-            "generate a callback where it will be safe to perform dynamic "
-            "registrations.",
-            m->get_mapper_name())
+      {
+        Warning warn;
+        warn << "Replacing default mapper with " << m->get_mapper_name()
+             << " was dynamically performed "
+             << "outside of a registration callback invocation. In the near "
+             << "future this will become an error in order to support task "
+             << "subprocesses. Please use 'perform_registration_callback' to "
+             << "generate a callback where it will be safe to perform dynamic "
+             << "registrations.";
+        warn.raise();
+      }
       AutoLock m_lock(mapper_lock);
       std::map<MapperID, std::pair<MapperManager*, bool> >::iterator finder =
           mappers.find(0);
@@ -876,15 +884,17 @@ namespace Legion {
             // which will lead to select_tasks_to_map being called again
           }
           else  // Very bad, error message
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_MAPPER_OUTPUT,
-                "Mapper %s failed to specify an output MapperEvent "
-                "when returning from a call to 'select_tasks_to_map' "
-                "that performed no other actions. Specifying a "
-                "MapperEvent in such situation is necessary to avoid "
-                "livelock conditions. Please return a "
-                "'deferral_event' in the 'output' struct.",
-                mapper->get_mapper_name())
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Mapper " << mapper->get_mapper_name()
+                  << " failed to specify an output MapperEvent "
+                  << "when returning from a call to 'select_tasks_to_map' "
+                  << "that performed no other actions. Specifying a "
+                  << "MapperEvent in such situation is necessary to avoid "
+                  << "livelock conditions. Please return a "
+                  << "'deferral_event' in the 'output' struct.";
+            error.raise();
+          }
         }
         else if (!output.relocate_tasks.empty())
         {
@@ -892,14 +902,18 @@ namespace Legion {
                    output.relocate_tasks.begin();
                it != output.relocate_tasks.end(); it++)
             if (it->second.kind() == Processor::UTIL_PROC)
-              REPORT_LEGION_ERROR(
-                  ERROR_INVALID_MAPPER_OUTPUT,
-                  "Invalid mapper output. Mapper %s requested that task %s "
-                  "(UID %lld) be relocated to a utility processor in "
-                  "'select_tasks_to_map.' Only application processor kinds "
-                  "are permitted to be the target processor for tasks.",
-                  mapper->get_mapper_name(), it->first->get_task_name(),
-                  it->first->get_unique_id())
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error
+                  << "Invalid mapper output. Mapper "
+                  << mapper->get_mapper_name() << " requested that task "
+                  << it->first->get_task_name() << " (UID "
+                  << it->first->get_unique_id()
+                  << ") be relocated to a utility processor in "
+                  << "'select_tasks_to_map.' Only application processor kinds "
+                  << "are permitted to be the target processor for tasks.";
+              error.raise();
+            }
         }
         // Figure out which tasks are to be triggered
         std::vector<SingleTask*> to_trigger;

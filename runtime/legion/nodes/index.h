@@ -103,9 +103,11 @@ namespace Legion {
           const Domain& domain, void* realm_is, const TypeTag type_tag,
           const char* context)
       {
-        REPORT_LEGION_ERROR(
-            ERROR_DYNAMIC_TYPE_MISMATCH, "Dynamic type mismatch in '%s'",
-            context)
+        {
+          Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          err << "Dynamic type mismatch in '" << context << "'";
+          err.raise();
+        }
       }
     };
 

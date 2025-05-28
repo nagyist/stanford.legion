@@ -494,22 +494,28 @@ namespace Legion {
           if (mapper == nullptr)
             mapper = virtual_mapping_rendezvous->mapper;
           legion_assert(mapper != nullptr);
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s provided different virtual mapping outputs for "
-              "region requirement %d of shards %d and %d of replicated "
-              "task %s. All shards of a replicated task must either provide "
-              "concrete instances for a particular region requirement or all "
-              "shards must decide to virtual map the region requirement. "
-              "Mixed virtual and concrete instances are not allowed.",
-              mapper->get_mapper_name(), bad_index,
-              (shard < virtual_mapping_rendezvous->shard) ?
-                  shard :
-                  virtual_mapping_rendezvous->shard,
-              (shard < virtual_mapping_rendezvous->shard) ?
-                  virtual_mapping_rendezvous->shard :
-                  shard,
-              local_shards.back()->get_task_name())
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
+                << "Mapper " << mapper->get_mapper_name()
+                << " provided different virtual mapping outputs for "
+                << "region requirement " << bad_index << " of shards "
+                << ((shard < virtual_mapping_rendezvous->shard) ?
+                        shard :
+                        virtual_mapping_rendezvous->shard)
+                << " and "
+                << ((shard < virtual_mapping_rendezvous->shard) ?
+                        virtual_mapping_rendezvous->shard :
+                        shard)
+                << " of replicated task "
+                << local_shards.back()->get_task_name() << ". "
+                << "All shards of a replicated task must either provide "
+                << "concrete instances for a particular region requirement or "
+                   "all "
+                << "shards must decide to virtual map the region requirement. "
+                << "Mixed virtual and concrete instances are not allowed.";
+            error.raise();
+          }
         }
       }
       legion_assert(virtual_mapping_rendezvous->remaining_arrivals > 0);
@@ -1340,12 +1346,15 @@ namespace Legion {
         {
           size_t inst_size = (inst == nullptr) ? 0 : inst->size;
           if (inst_size != future_size)
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_MISMATCHED_REPLICATED_FUTURES,
-                "WARNING: futures returned from control "
-                "replicated task %s have different sizes "
-                "of %zd and %zd bytes!",
-                local_shards[0]->get_task_name(), inst_size, future_size)
+          {
+            Warning warning;
+            warning << "WARNING: futures returned from control "
+                    << "replicated task " << local_shards[0]->get_task_name()
+                    << " have different sizes "
+                    << "of " << inst_size << " and " << future_size
+                    << " bytes!";
+            warning.raise();
+          }
           return_future = false;
         }
         else if (inst != nullptr)
@@ -2625,6 +2634,13 @@ namespace Legion {
         if (to_trigger.exists())
           Runtime::trigger_event(to_trigger);
       }
+      if (!callback_barrier.exists())
+      {
+        Fatal fatal;
+        fatal << "Need support for refreshing exhausted callback phase "
+              << "barrier generations.";
+        fatal.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -2949,10 +2965,12 @@ namespace Legion {
       preconditions.insert(callback_barrier);
       Runtime::advance_barrier(callback_barrier);
       if (!callback_barrier.exists())
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-            "Need support for refreshing exhausted callback phase "
-            "barrier generations.")
+      {
+        Fatal fatal;
+        fatal << "Need support for refreshing exhausted callback phase "
+              << "barrier generations.";
+        fatal.raise();
+      }
     }
 #endif  // LEGION_USE_LIBDL
 
@@ -3027,11 +3045,13 @@ namespace Legion {
         const size_t total_shards =
             shards_per_address_space * runtime->total_address_spaces;
         if (total_shards <= shard)
-          REPORT_LEGION_ERROR(
-              ERROR_IMPLICIT_REPLICATED_SHARDING,
-              "All shard IDs must be contained within [0,%zd) for implicit "
-              "control replicated task %s",
-              total_shards, task_name)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "All shard IDs must be contained within [0," << total_shards
+                << ") for implicit "
+                << "control replicated task " << task_name;
+          error.raise();
+        }
         const DomainPoint shard_point =
             (point.get_dim() > 0) ? point : DomainPoint(shard);
         const bool result = shard_points
@@ -3039,17 +3059,21 @@ namespace Legion {
                                     shard_point, std::make_pair(shard, proxy)))
                                 .second;
         if (!result)
-          REPORT_LEGION_ERROR(
-              ERROR_IMPLICIT_REPLICATED_SHARDING,
-              "Discovered multiple ranks with the same implicit shard point "
-              "for implicit control replicated task %s",
-              task_name)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error
+              << "Discovered multiple ranks with the same implicit shard point "
+              << "for implicit control replicated task " << task_name;
+          error.raise();
+        }
         if (remaining_local_arrivals == 0)
-          REPORT_LEGION_ERROR(
-              ERROR_IMPLICIT_REPLICATED_SHARDING,
-              "Too many arrivals for implicit control replicated task %s. "
-              "Only %d are permitted.",
-              task_name, shards_per_address_space)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Too many arrivals for implicit control replicated task "
+                << task_name << ". "
+                << "Only " << shards_per_address_space << " are permitted.";
+          error.raise();
+        }
         if ((--remaining_local_arrivals == 0) &&
             (remaining_remote_arrivals == 0))
         {
@@ -3104,11 +3128,12 @@ namespace Legion {
       bool isomorphic_points = true;
       // Should not be any duplicate shard domains
       if (shard_points.size() != total_shards)
-        REPORT_LEGION_ERROR(
-            ERROR_IMPLICIT_REPLICATED_SHARDING,
-            "Discovered multiple ranks with the same implicit shard point "
-            "for implicit control replicated task %s",
-            local_task_name)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Discovered multiple ranks with the same implicit shard point "
+              << "for implicit control replicated task " << local_task_name;
+        error.raise();
+      }
       std::vector<Processor> shard_mapping(total_shards);
       for (std::map<DomainPoint, std::pair<ShardID, Processor> >::const_iterator
                it = shard_points.begin();
@@ -3122,11 +3147,12 @@ namespace Legion {
         legion_assert(it->second.first < points.size());
         // Should not be any duplicate shard IDs
         if (points[it->second.first].get_dim() > 0)
-          REPORT_LEGION_ERROR(
-              ERROR_IMPLICIT_REPLICATED_SHARDING,
-              "Discovered multiple ranks with the same implicit shard ID "
-              "for implicit control replicated task %s",
-              local_task_name)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Discovered multiple ranks with the same implicit shard ID "
+                << "for implicit control replicated task " << local_task_name;
+          error.raise();
+        }
         points[it->second.first] = it->first;
         shard_mapping[it->second.first] = it->second.second;
       }

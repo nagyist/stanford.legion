@@ -2519,19 +2519,16 @@ namespace Legion {
       // Issue a warning and don't migrate if we hit this case
       if (current_samples.size() == SAMPLES_PER_MIGRATION_TEST)
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_LARGE_EQUIVALENCE_SET_NODE_USAGE,
-            "Internal runtime performance warning: equivalence set %llx "
-            "has %zd different users which is the same as "
-            "the sampling rate of %d. Region requirement %d of operation %s "
-            "(UID %lld) triggered this warning. Please report this "
-            "application use case to the Legion developers mailing list.",
-            did, current_samples.size(), SAMPLES_PER_MIGRATION_TEST,
-            analysis.index,
-            (analysis.op->get_operation_kind() == TASK_OP_KIND) ?
-                static_cast<TaskOp*>(analysis.op)->get_task_name() :
-                analysis.op->get_logging_name(),
-            analysis.op->get_unique_op_id())
+        Warning warning;
+        warning
+            << "Internal runtime performance warning: equivalence set "
+            << std::hex << did << std::dec << " has " << current_samples.size()
+            << " different users which is the same as the sampling rate of "
+            << SAMPLES_PER_MIGRATION_TEST << ". Region requirement "
+            << analysis.index << " of " << *analysis.op
+            << " triggered this warning. Please report this application use "
+            << "case to the Legion developers mailing list.";
+        warning.raise();
         // Reset the data structures for the next run
         current_samples.clear();
         sample_count = 0;
@@ -4954,15 +4951,17 @@ namespace Legion {
                     alias_analysis.visit_leaves(
                         reduce_mask, it->second, failure);
                   if (failure)
+                  {
                     // If we make it here, report the ABA violation
-                    REPORT_LEGION_FATAL(
-                        LEGION_FATAL_REDUCTION_ABA_PROBLEM,
-                        "Unsafe re-use of reduction instance detected due "
-                        "to alternating un-flushed reduction operations "
-                        "%d and %d. Please report this use case to the "
-                        "Legion developer's mailing list so that we can "
-                        "help you address it.",
-                        view_redop, it->first->get_redop())
+                    Fatal fatal;
+                    fatal << "Unsafe re-use of reduction instance detected due "
+                          << "to alternating un-flushed reduction operations "
+                          << view_redop << " and " << it->first->get_redop()
+                          << ". Please report this use case to the Legion "
+                          << "developer's mailing list so that we can "
+                          << "help you address it.";
+                    fatal.raise();
+                  }
                 }
                 else
                   alias_analysis.analyze(it->first, reduce_mask, it->second);
@@ -5046,15 +5045,18 @@ namespace Legion {
                                   mit->second, it->second) :
                               mit->second;
                       if (!overlap->is_empty())
+                      {
                         // If we make it here, report the ABA violation
-                        REPORT_LEGION_FATAL(
-                            LEGION_FATAL_REDUCTION_ABA_PROBLEM,
-                            "Unsafe re-use of reduction instance detected due "
-                            "to alternating un-flushed reduction operations "
-                            "%d and %d. Please report this use case to the "
-                            "Legion developer's mailing list so that we can "
-                            "help you address it.",
-                            mit->first, view_redop)
+                        Fatal fatal;
+                        fatal << "Unsafe re-use of reduction instance "
+                              << "detected due to alternating un-flushed "
+                              << "reduction operations " << mit->first
+                              << " and " << view_redop << ". Please report "
+                              << "this use case to the Legion developer's "
+                              << "mailing list so that we can help you address "
+                                 "it.";
+                        fatal.raise();
+                      }
                     }
                     if ((fill_expr == it->second) || (it->second == set_expr))
                     {

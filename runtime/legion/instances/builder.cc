@@ -71,11 +71,12 @@ namespace Legion {
       // If there are no fields then we are done
       if (field_sizes.empty())
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORE_MEMORY_REQUEST,
-            "Ignoring request to create instance in "
-            "memory " IDFMT " with no fields.",
-            memory_manager->memory.id);
+        {
+          Warning warn;
+          warn << "Ignoring request to create instance in memory "
+               << memory_manager->memory.id << " with no fields.";
+          warn.raise();
+        }
         if (footprint != nullptr)
           *footprint = 0;
         if (unsat_kind != nullptr)
@@ -357,10 +358,12 @@ namespace Legion {
           {
             // Should never be duplicated
             if (field_idx != -1)
-              REPORT_LEGION_ERROR(
-                  ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
-                  "Illegal ordering constraint used during instance "
-                  "creation contained multiple instances of DIM_F")
+            {
+              Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              err << "Illegal ordering constraint used during instance "
+                  << "creation contained multiple instances of DIM_F";
+              err.raise();
+            }
             else
               field_idx = idx;
           }
@@ -368,11 +371,13 @@ namespace Legion {
           {
             // Should never be duplicated
             if (spatial_dims.find(ord.ordering[idx]) != spatial_dims.end())
-              REPORT_LEGION_ERROR(
-                  ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
-                  "Illegal ordering constraint used during instance "
-                  "creation contained multiple instances of dimension %d",
-                  ord.ordering[idx])
+            {
+              Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              err << "Illegal ordering constraint used during instance "
+                  << "creation contained multiple instances of dimension "
+                  << ord.ordering[idx];
+              err.raise();
+            }
             else
             {
               // Check to make sure that it is one of our dims
@@ -466,13 +471,17 @@ namespace Legion {
         {
           case LEGION_COMPACT_SPECIALIZE:
           case LEGION_COMPACT_REDUCTION_SPECIALIZE:
-            REPORT_LEGION_ERROR(
-                ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
-                "Illegal tiling constraints specified for compact-sparse "
-                "instance creation. Tiling constraints can only be specified "
-                "on affine instances currently. If you have a compelling use "
-                "case for tiling the pieces of an compact-sparse instance "
-                "please report it to the Legion developer's mailing list.")
+            {
+              Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              err << "Illegal tiling constraints specified for compact-sparse "
+                  << "instance creation. Tiling constraints can only be "
+                     "specified "
+                  << "on affine instances currently. If you have a compelling "
+                     "use "
+                  << "case for tiling the pieces of an compact-sparse instance "
+                  << "please report it to the Legion developer's mailing list.";
+              err.raise();
+            }
           default:
             break;
         }
@@ -518,27 +527,32 @@ namespace Legion {
             for (unsigned idx = 0; idx < field_sizes.size(); idx++)
             {
               if (field_sizes[idx] != reduction_op->sizeof_lhs)
-                REPORT_LEGION_ERROR(
-                    ERROR_UNSUPPORTED_LAYOUT_CONSTRAINT,
-                    "Illegal reduction instance request with field %d "
-                    "which has size %d but the LHS type of reduction "
-                    "operator %d is %d",
-                    field_set[idx], int(field_sizes[idx]), redop_id,
-                    int(reduction_op->sizeof_lhs))
+              {
+                Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+                err << "Illegal reduction instance request with field "
+                    << field_set[idx] << " which has size " << field_sizes[idx]
+                    << " but the LHS type of reduction operator " << redop_id
+                    << " is " << reduction_op->sizeof_lhs;
+                err.raise();
+              }
               // Update the field sizes to the rhs of the reduction op
               field_sizes[idx] = reduction_op->sizeof_rhs;
             }
             break;
           }
         case LEGION_VIRTUAL_SPECIALIZE:
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
-              "Illegal request to create a virtual instance");
+          {
+            Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            err << "Illegal request to create a virtual instance";
+            err.raise();
+          }
         default:
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
-              "Illegal request to create instance of type %d",
-              constraints.specialized_constraint.get_kind())
+          {
+            Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            err << "Illegal request to create instance of type "
+                << constraints.specialized_constraint.get_kind();
+            err.raise();
+          }
       }
       legion_assert(
           (constraints.padding_constraint.delta.get_dim() == 0) ||

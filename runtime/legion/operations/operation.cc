@@ -995,7 +995,7 @@ namespace Legion {
       {
         Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
         error << "Region requirement " << index << " of " << *this
-              << "is using uninitialized data for field(s) " << field_string
+              << " is using uninitialized data for field(s) " << field_string
               << " of logical region " << req.region
               << " with reduction privileges.";
         error.raise();
@@ -1004,9 +1004,11 @@ namespace Legion {
       else if ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0)
       {
         Warning warning;
-        warning << "Region requirement " << index << " of " << *this
-                << " is using uninitialized data for fields(s) " << field_string
-                << " of " << req.region << ".";
+        warning << "WARNING: Region requirement " << index << " of " << *this
+                << " is using uninitialized data for field(s) " << field_string
+                << " of logical region " << req.region
+                << " with read-write privileges. This is safe but you may be "
+                << "accessing invalid data.";
         warning.raise();
       }
       Runtime::trigger_event(reported);

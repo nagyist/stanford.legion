@@ -1472,12 +1472,14 @@ namespace Legion {
           std::numeric_limits<ShardingID>::max(), true};
       mapper->invoke_fill_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s failed to pick a valid sharding functor for "
-            "index fill in task %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Mapper " << mapper->get_mapper_name()
+              << " failed to pick a valid sharding functor for "
+              << "index fill in task " << parent_ctx->get_task_name()
+              << " (UID " << parent_ctx->get_unique_id() << ").";
+        error.raise();
+      }
       this->sharding_functor = output.chosen_functor;
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
@@ -1487,12 +1489,14 @@ namespace Legion {
         sharding_collective->contribute(this->sharding_functor);
         if (sharding_collective->is_target() &&
             !sharding_collective->validate(this->sharding_functor))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s chose different sharding functions "
-              "for index fill in task %s (UID %lld)",
-              mapper->get_mapper_name(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << mapper->get_mapper_name()
+                << " chose different sharding functions "
+                << "for index fill in task " << parent_ctx->get_task_name()
+                << " (UID " << parent_ctx->get_unique_id() << ").";
+          error.raise();
+        }
       }
       // Now we can do the normal prepipeline stage
       IndexFillOp::trigger_prepipeline_stage();

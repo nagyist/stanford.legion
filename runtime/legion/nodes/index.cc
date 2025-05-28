@@ -67,29 +67,33 @@ namespace Legion {
               // It's not mutable so check to make
               // sure that the bits are the same
               if (size != finder->second.buffer.get_size())
-                REPORT_LEGION_ERROR(
-                    ERROR_INCONSISTENT_SEMANTIC_TAG,
-                    "Inconsistent Semantic Tag value "
-                    "for tag %ld with different sizes of %zd"
-                    " and %zd for index tree node",
-                    tag, size, finder->second.buffer.get_size())
-                // Otherwise do a bitwise comparison
+              {
+                Error err(LEGION_INTERFACE_EXCEPTION);
+                err << "Inconsistent Semantic Tag value for tag " << tag
+                    << " with different sizes of " << size << " and "
+                    << finder->second.buffer.get_size()
+                    << " for index tree node";
+                err.raise();
+              }
+              // Otherwise do a bitwise comparison
+              {
+                const char* orig =
+                    (const char*)finder->second.buffer.get_buffer();
+                const char* next = (const char*)buffer;
+                for (unsigned idx = 0; idx < size; idx++)
                 {
-                  const char* orig =
-                      (const char*)finder->second.buffer.get_buffer();
-                  const char* next = (const char*)buffer;
-                  for (unsigned idx = 0; idx < size; idx++)
+                  char diff = orig[idx] ^ next[idx];
+                  if (diff)
                   {
-                    char diff = orig[idx] ^ next[idx];
-                    if (diff)
-                      REPORT_LEGION_ERROR(
-                          ERROR_INCONSISTENT_SEMANTIC_TAG,
-                          "Inconsistent Semantic Tag value "
-                          "for tag %ld with different values at"
-                          "byte %d for index tree node, %x != %x",
-                          tag, idx, orig[idx], next[idx])
+                    Error err(LEGION_INTERFACE_EXCEPTION);
+                    err << "Inconsistent Semantic Tag value for tag " << tag
+                        << " with different values at byte " << idx
+                        << " for index tree node, " << std::hex
+                        << (int)orig[idx] << " != " << (int)next[idx];
+                    err.raise();
                   }
                 }
+              }
               added = false;
             }
             else
@@ -188,11 +192,9 @@ namespace Legion {
         // Nothing to wait on so we have to do something
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SEMANTIC_TAG,
-            "invalid semantic tag %ld for "
-            "index tree node",
-            tag)
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid semantic tag " << tag << " for index tree node.";
+        error.raise();
       }
       else
       {
@@ -210,11 +212,9 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SEMANTIC_TAG,
-            "invalid semantic tag %ld for "
-            "index tree node",
-            tag)
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid semantic tag " << tag << " for index tree node.";
+        error.raise();
       }
       result = finder->second.buffer.get_buffer();
       size = finder->second.buffer.get_size();
@@ -504,14 +504,17 @@ namespace Legion {
         {
           if (!color_map.empty() || !remote_colors.empty() ||
               (next_uncollected_color > 0))
-            REPORT_LEGION_ERROR(
-                ERROR_MIXED_PARTITION_COLOR_ALLOCATION_MODES,
-                "Illegal request for Legion to generated a color for index "
-                "space %llu after a child was already registered with an "
-                "explicit color. Colors of partitions must either be "
-                "completely specified by the user or completely generated "
-                "by the runtime. Mixing of allocation modes is not allowed.",
-                handle.get_id())
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error
+                << "Illegal request for Legion to generated a color for index "
+                << "space " << handle.get_id()
+                << " after a child was already registered with an "
+                << "explicit color. Colors of partitions must either be "
+                << "completely specified by the user or completely generated "
+                << "by the runtime. Mixing of allocation modes is not allowed.";
+            error.raise();
+          }
           // If we made it here then there are no other children registered
           // so we record an empty entry to mark that we're generating colors
           remote_colors[INVALID_COLOR] = IndexPartition::NO_PART;
@@ -638,11 +641,10 @@ namespace Legion {
         }
         if (can_fail)
           return nullptr;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PARTITION_COLOR,
-            "Unable to find entry for color %lld in "
-            "index space %llu.",
-            c, handle.get_id())
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Unable to find entry for color " << c << " in "
+              << "index space " << handle.get_id() << ".";
+        error.raise();
       }
       RtUserEvent ready_event = Runtime::create_rt_user_event();
 
@@ -666,11 +668,10 @@ namespace Legion {
         {
           if (can_fail)
             return nullptr;
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PARTITION_COLOR,
-              "Unable to find entry for color %lld in "
-              "index space %llu.",
-              c, handle.get_id())
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Unable to find entry for color " << c << " in "
+                << "index space " << handle.get_id() << ".";
+          error.raise();
         }
         IndexPartition child_handle(
             child_id, handle.get_tree_id(), handle.get_type_tag());
@@ -700,14 +701,16 @@ namespace Legion {
       if (is_owner() &&
           (remote_colors.find(INVALID_COLOR) != remote_colors.end()) &&
           (color_map.find(child->color) == color_map.end()))
-        REPORT_LEGION_ERROR(
-            ERROR_MIXED_PARTITION_COLOR_ALLOCATION_MODES,
-            "Illegal request for Legion to generated a color for index "
-            "space %llu after a child was already registered with an "
-            "explicit color. Colors of partitions must either be "
-            "completely specified by the user or completely generated "
-            "by the runtime. Mixing of allocation modes is not allowed.",
-            handle.get_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal request for Legion to generated a color for index "
+              << "space " << handle.get_id()
+              << " after a child was already registered with an "
+              << "explicit color. Colors of partitions must either be "
+              << "completely specified by the user or completely generated "
+              << "by the runtime. Mixing of allocation modes is not allowed.";
+        error.raise();
+      }
       color_map[child->color] = child;
       if (!remote_colors.empty())
         remote_colors.erase(child->color);
@@ -805,14 +808,16 @@ namespace Legion {
       legion_assert(get_owner_space() == runtime->address_space);
       if ((remote_colors.find(INVALID_COLOR) != remote_colors.end()) &&
           (color_map.find(part_color) == color_map.end()))
-        REPORT_LEGION_ERROR(
-            ERROR_MIXED_PARTITION_COLOR_ALLOCATION_MODES,
-            "Illegal request for Legion to generated a color for index "
-            "space %llu after a child was already registered with an "
-            "explicit color. Colors of partitions must either be "
-            "completely specified by the user or completely generated "
-            "by the runtime. Mixing of allocation modes is not allowed.",
-            handle.get_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal request for Legion to generated a color for index "
+              << "space " << handle.get_id()
+              << " after a child was already registered with an "
+              << "explicit color. Colors of partitions must either be "
+              << "completely specified by the user or completely generated "
+              << "by the runtime. Mixing of allocation modes is not allowed.";
+        error.raise();
+      }
       remote_colors[part_color] = pid;
     }
 
@@ -2098,11 +2103,12 @@ namespace Legion {
           return finder->second;
       }
       if (!color_space->contains_color(c, false /*report error*/))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_INDEX_SPACE_COLOR,
-            "Invalid color space color for child %lld "
-            "of partition %llu",
-            c, handle.get_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid color space color for child " << c << " of partition "
+              << handle.get_id();
+        error.raise();
+      }
       // Retake the lock and see if we're going to be the one responsible
       // for trying to make the child on this node
       RtUserEvent ready_event;

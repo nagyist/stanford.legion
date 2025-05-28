@@ -908,29 +908,39 @@ namespace Legion {
         sources_check = ctx->get_next_collective_index(COLLECTIVE_LOC_104);
       }
       if (!grants.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_CONTROL_REPLICATION_VIOLATION,
-            "Illegal use of grants with an inline mapping in control "
-            "replicated parent task %s (UID %lld). Use of non-canonical "
-            "Legion features such as grants are not permitted with "
-            "control replication.",
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal use of grants with an inline mapping in control "
+              << "replicated parent task " << parent_ctx->get_task_name()
+              << " (UID " << parent_ctx->get_unique_id()
+              << "). Use of non-canonical "
+              << "Legion features such as grants are not permitted with "
+              << "control replication.";
+        error.raise();
+      }
       if (!wait_barriers.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_CONTROL_REPLICATION_VIOLATION,
-            "Illegal use of wait phase barriers with an inline mapping in "
-            "control replicated parent task %s (UID %lld). Use of "
-            "non-canonical Legion features such as wait phase barriers are "
-            "not permitted with control replication.",
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "Illegal use of wait phase barriers with an inline mapping in "
+            << "control replicated parent task " << parent_ctx->get_task_name()
+            << " (UID " << parent_ctx->get_unique_id() << "). Use of "
+            << "non-canonical Legion features such as wait phase barriers are "
+            << "not permitted with control replication.";
+        error.raise();
+      }
       if (!arrive_barriers.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_CONTROL_REPLICATION_VIOLATION,
-            "Illegal use of arrive phase barriers with an inline mapping in "
-            "control replicated parent task %s (UID %lld). Use of "
-            "non-canonical Legion features such as arrive phase barriers are "
-            "not permitted with control replication.",
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "Illegal use of arrive phase barriers with an inline mapping in "
+            << "control replicated parent task " << parent_ctx->get_task_name()
+            << " (UID " << parent_ctx->get_unique_id() << "). Use of "
+            << "non-canonical Legion features such as arrive phase barriers "
+               "are "
+            << "not permitted with control replication.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1002,16 +1012,20 @@ namespace Legion {
         {
           CheckCollectiveSources sources_collective(repl_ctx, sources_check);
           if (!sources_collective.verify(source_instances))
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_MAPPER_OUTPUT,
-                "Invalid mapper output from invocation of 'map_inline' "
-                "by mapper %s. Mapper selected different 'source_instances' "
-                "on shard 0 and shard %d when mapping an inline mapping in "
-                "control-replicated parent task %s (UID %lld). Each inline "
-                "mapping in a control-replicated parent task must provide "
-                "same 'source_instances' across all shards.",
-                mapper->get_mapper_name(), repl_ctx->owner_shard->shard_id,
-                parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'map_inline' "
+                  << "by mapper " << mapper->get_mapper_name()
+                  << ". Mapper selected different 'source_instances' "
+                  << "on shard 0 and shard " << repl_ctx->owner_shard->shard_id
+                  << " when mapping an inline mapping in "
+                  << "control-replicated parent task "
+                  << parent_ctx->get_task_name() << " (UID "
+                  << parent_ctx->get_unique_id() << "). Each inline "
+                  << "mapping in a control-replicated parent task must provide "
+                  << "same 'source_instances' across all shards.";
+            error.raise();
+          }
         }
       }
       return result;
@@ -1173,17 +1187,19 @@ namespace Legion {
             continue;
           if (it->second * ref.get_valid_fields())
             continue;
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output from invocation of 'map_inline' "
-              "by mapper %s. Mapper selected the same physical instance " IDFMT
-              " on both shards %d and %d with write privileges for "
-              "inline mapping in control-replicated parent task %s "
-              "(UID %lld). Each inline mapping with write privileges in a "
-              "control-replicated parent task must map to a different "
-              "physical instance to avoid races.",
-              mapper->get_mapper_name(), inst.id, local_shard, it->first,
-              context->get_task_name(), context->get_unique_id())
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'map_inline' "
+                << "by mapper " << mapper->get_mapper_name()
+                << ". Mapper selected the same physical instance " << inst.id
+                << " on both shards " << local_shard << " and " << it->first
+                << " with write privileges for "
+                << "inline mapping in control-replicated parent task "
+                << context->get_task_name() << " (UID "
+                << context->get_unique_id()
+                << "). Each inline mapping with write privileges in a "
+                << "control-replicated parent task must map to a different "
+                << "physical instance to avoid races.";
+          error.raise();
         }
       }
     }

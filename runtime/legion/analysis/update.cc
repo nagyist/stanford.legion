@@ -281,13 +281,16 @@ namespace Legion {
               (it->first->is_individual_view() ||
                (it->first->as_collective_view()->local_views.size() <
                 it->second)))
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_MAPPER_OUTPUT,
-                "Illegal mapper output: detected multiple write-collective "
-                "users of the same instance on region requirement %d of %s "
-                "(UID %lld). For read-write collectives it is mandatory "
-                "that every point map to a separate instance.",
-                index, op->get_logging_name(), op->get_unique_op_id())
+          {
+            Error err(LEGION_MAPPER_EXCEPTION);
+            err << "Illegal mapper output: detected multiple write-collective "
+                << "users of the same instance on region requirement " << index
+                << " of " << op->get_logging_name() << " (UID "
+                << op->get_unique_op_id() << "). "
+                << "For read-write collectives it is mandatory "
+                << "that every point map to a separate instance.";
+            err.raise();
+          }
       }
       if (user_registered.exists())
       {

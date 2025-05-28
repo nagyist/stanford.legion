@@ -395,15 +395,15 @@ namespace Legion {
           if (region_finder == created_regions.end())
           {
             if (local_regions.find(rit->region) != local_regions.end())
-              REPORT_LEGION_ERROR(
-                  ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-                  "Local logical region (%llu,%llu,%llu) in task %s (UID %lld) "
-                  "was "
-                  "not deleted by this task. Local regions can only be deleted "
-                  "by the task that made them.",
-                  rit->region.index_space.get_id(),
-                  rit->region.field_space.get_id(), rit->region.get_tree_id(),
-                  get_task_name(), get_unique_id())
+            {
+              Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              err << "Local logical region " << rit->region << " in task "
+                  << get_task_name() << " (UID " << get_unique_id()
+                  << ") was not deleted by this task. Local regions can only "
+                     "be "
+                  << "deleted by the task that made them.";
+              err.raise();
+            }
             // Deletion keeps going up
             deleted_regions.emplace_back(*rit);
           }
@@ -515,14 +515,15 @@ namespace Legion {
             std::map<std::pair<FieldSpace, FieldID>, bool>::iterator
                 local_finder = local_fields.find(key);
             if (local_finder != local_fields.end())
-              REPORT_LEGION_ERROR(
-                  ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-                  "Local field %d in field space %llu in task %s (UID %lld) "
-                  "was "
-                  "not deleted by this task. Local fields can only be deleted "
-                  "by the task that made them.",
-                  fit->fid, fit->space.get_id(), get_task_name(),
-                  get_unique_id())
+            {
+              Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              err << "Local field " << fit->fid << " in field space "
+                  << fit->space << " in task " << get_task_name() << " (UID "
+                  << get_unique_id()
+                  << ") was not deleted by this task. Local fields can only be "
+                  << "deleted by the task that made them.";
+              err.raise();
+            }
             deleted_fields.emplace_back(*fit);
           }
           else
@@ -2511,12 +2512,15 @@ namespace Legion {
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to create shared ownership for index space %llu in "
-            "task %s (UID %lld) which is not a top-level index space. Legion "
-            "only permits top-level index spaces to have shared ownership.",
-            handle.get_id(), get_task_name(), get_unique_id())
+      {
+        Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        err << "Illegal call to create shared ownership for index space "
+            << handle << " in task " << get_task_name() << " (UID "
+            << get_unique_id()
+            << ") which is not a top-level index space. Legion only permits "
+            << "top-level index spaces to have shared ownership.";
+        err.raise();
+      }
       runtime->create_shared_ownership(handle);
       AutoLock priv_lock(privilege_lock);
       std::map<IndexSpace, unsigned>::iterator finder =
@@ -2541,11 +2545,13 @@ namespace Legion {
         if (none_exists && it->exists())
           none_exists = false;
         if (spaces[0].get_type_tag() != it->get_type_tag())
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in 'union_index_spaces' "
-              "performed in task %s (UID %lld)",
-              get_task_name(), get_unique_id())
+        {
+          Error err(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          err << "Dynamic type mismatch in 'union_index_spaces' performed in "
+                 "task "
+              << get_task_name() << " (UID " << get_unique_id() << ")";
+          err.raise();
+        }
       }
       if (none_exists)
         return IndexSpace::NO_SPACE;
@@ -2574,11 +2580,13 @@ namespace Legion {
         if (none_exists && it->exists())
           none_exists = false;
         if (spaces[0].get_type_tag() != it->get_type_tag())
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in 'intersect_index_spaces' "
-              "performed in task %s (UID %lld)",
-              get_task_name(), get_unique_id())
+        {
+          Error err(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          err << "Dynamic type mismatch in 'intersect_index_spaces' performed "
+                 "in task "
+              << get_task_name() << " (UID " << get_unique_id() << ")";
+          err.raise();
+        }
       }
       if (none_exists)
         return IndexSpace::NO_SPACE;
@@ -2601,11 +2609,13 @@ namespace Legion {
       if (!left.exists())
         return IndexSpace::NO_SPACE;
       if (right.exists() && left.get_type_tag() != right.get_type_tag())
-        REPORT_LEGION_ERROR(
-            ERROR_DYNAMIC_TYPE_MISMATCH,
-            "Dynamic type mismatch in 'create_difference_spaces' "
-            "performed in task %s (UID %lld)",
-            get_task_name(), get_unique_id())
+      {
+        Error err(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        err << "Dynamic type mismatch in 'create_difference_spaces' performed "
+               "in task "
+            << get_task_name() << " (UID " << get_unique_id() << ")";
+        err.raise();
+      }
       const IndexSpace handle(
           runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), left.get_type_tag());
@@ -2653,12 +2663,14 @@ namespace Legion {
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-            "Illegal call to destroy index space %llu in task %s (UID %lld) "
-            "which is not a top-level index space. Legion only permits "
-            "top-level index spaces to be destroyed.",
-            handle.get_id(), get_task_name(), get_unique_id())
+      {
+        Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        err << "Illegal call to destroy index space " << handle << " in task "
+            << get_task_name() << " (UID " << get_unique_id()
+            << ") which is not a top-level index space. Legion only permits "
+            << "top-level index spaces to be destroyed.";
+        err.raise();
+      }
       // Check to see if this is one that we should be allowed to destory
       std::vector<IndexPartition> sub_partitions;
       {
@@ -4251,13 +4263,15 @@ namespace Legion {
       AutoLock local_lock(local_field_lock);
       std::vector<LocalFieldInfo>& infos = local_field_infos[space];
       if (infos.size() == runtime->max_local_fields)
-        REPORT_LEGION_ERROR(
-            ERROR_EXCEEDED_MAXIMUM_NUMBER_LOCAL_FIELDS,
-            "Exceeded maximum number of local fields in "
-            "context of task %s (UID %lld). The maximum "
-            "is currently set to %d, but can be modified "
-            "with the -lg:local flag.",
-            get_task_name(), get_unique_id(), runtime->max_local_fields)
+      {
+        Error err(LEGION_INTERFACE_EXCEPTION);
+        err << "Exceeded maximum number of local fields in context of task "
+            << get_task_name() << " (UID " << get_unique_id()
+            << "). The maximum is currently set to "
+            << runtime->max_local_fields
+            << ", but can be modified with the -lg:local flag.";
+        err.raise();
+      }
       std::set<unsigned> current_indexes;
       for (std::vector<LocalFieldInfo>::const_iterator it = infos.begin();
            it != infos.end(); it++)
@@ -4268,15 +4282,15 @@ namespace Legion {
       if (!runtime->allocate_local_fields(
               space, fields, sizes, serdez_id, current_indexes, new_indexes,
               provenance))
-        REPORT_LEGION_ERROR(
-            ERROR_UNABLE_ALLOCATE_LOCAL_FIELD,
-            "Unable to allocate local field in context of "
-            "task %s (UID %lld) due to local field size "
-            "fragmentation. This situation can be improved "
-            "by increasing the maximum number of permitted "
-            "local fields in a context with the -lg:local "
-            "flag.",
-            get_task_name(), get_unique_id())
+      {
+        Error err(LEGION_RESOURCE_EXCEPTION);
+        err << "Unable to allocate local field in context of task "
+            << get_task_name() << " (UID " << get_unique_id()
+            << ") due to local field size fragmentation. This situation can "
+            << "be improved by increasing the maximum number of permitted "
+            << "local fields in a context with the -lg:local flag.";
+        err.raise();
+      }
       legion_assert(new_indexes.size() == 1);
       // Only need the lock here when modifying since all writes
       // to this data structure are serialized
@@ -4333,9 +4347,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (local)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-            "Local fields do no support allocation with future sizes yet.")
+      {
+        Fatal err;
+        err << "Local fields do no support allocation with future sizes yet.";
+        err.raise();
+      }
       if (resulting_fields.size() < sizes.size())
         resulting_fields.resize(sizes.size(), LEGION_AUTO_GENERATE_ID);
       for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
@@ -4343,20 +4359,25 @@ namespace Legion {
         if (resulting_fields[idx] == LEGION_AUTO_GENERATE_ID)
           resulting_fields[idx] = runtime->get_unique_field_id();
         else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
-          REPORT_LEGION_ERROR(
-              ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
-              "Task %s (ID %lld) attempted to allocate a field with "
-              "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
-              "bound set in legion_config.h",
-              get_task_name(), get_unique_id(), resulting_fields[idx])
+        {
+          Error err(LEGION_INTERFACE_EXCEPTION);
+          err << "Task " << get_task_name() << " (ID " << get_unique_id()
+              << ") attempted to allocate a field with ID "
+              << resulting_fields[idx]
+              << " which exceeds the LEGION_MAX_APPLICATION_FIELD_ID bound set "
+              << "in legion_config.h";
+          err.raise();
+        }
       }
       for (unsigned idx = 0; idx < sizes.size(); idx++)
         if (sizes[idx].impl == nullptr)
-          REPORT_LEGION_ERROR(
-              ERROR_REQUEST_FOR_EMPTY_FUTURE,
-              "Invalid empty future passed to field allocation for field %d "
-              "in task %s (UID %lld)",
-              resulting_fields[idx], get_task_name(), get_unique_id())
+        {
+          Error err(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          err << "Invalid empty future passed to field allocation for field "
+              << resulting_fields[idx] << " in task " << get_task_name()
+              << " (UID " << get_unique_id() << ")";
+          err.raise();
+        }
       // Get a new creation operation
       CreationOp* creator_op = runtime->get_operation<CreationOp>();
       const ApEvent ready = creator_op->get_completion_event();

@@ -68,14 +68,16 @@ namespace Legion {
       if (profiling_ranges != nullptr)
       {
         if (!profiling_ranges->empty())
-          REPORT_LEGION_ERROR(
-              ERROR_MISMATCHED_PROFILING_RANGE,
-              "Detected mismatched profiling range calls, missing %zd stop "
-              "calls "
-              "at the end of mapper call %s by mapper %s for %s (UID %lld)",
-              profiling_ranges->size(), get_mapper_call_name(),
-              get_mapper_name(), operation->get_logging_name(),
-              operation->get_unique_op_id())
+        {
+          Error err(LEGION_MAPPER_EXCEPTION);
+          err << "Detected mismatched profiling range calls, missing "
+              << profiling_ranges->size()
+              << " stop calls at the end of mapper call "
+              << get_mapper_call_name() << " by mapper " << get_mapper_name()
+              << " for " << operation->get_logging_name() << " (UID "
+              << operation->get_unique_op_id() << ")";
+          err.raise();
+        }
         delete profiling_ranges;
       }
     }
@@ -178,26 +180,30 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (prov == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_MISSING_PROFILING_PROVENANCE,
-            "Missing provenance string for mapper profiling range "
-            "in mapper call %s by mapper %s for %s (UID %lld)",
-            get_mapper_call_name(), get_mapper_name(),
-            operation->get_logging_name(), operation->get_unique_op_id())
+      {
+        Error err(LEGION_MAPPER_EXCEPTION);
+        err << "Missing provenance string for mapper profiling range "
+            << "in mapper call " << get_mapper_call_name() << " by mapper "
+            << get_mapper_name() << " for " << operation->get_logging_name()
+            << " (UID " << operation->get_unique_op_id() << ")";
+        err.raise();
+      }
       if (implicit_profiler != nullptr)
       {
         Provenance* provenance =
             runtime->find_or_create_provenance(prov, strlen(prov));
         if ((profiling_ranges == nullptr) || profiling_ranges->empty())
-          REPORT_LEGION_ERROR(
-              ERROR_MISMATCHED_PROFILING_RANGE,
-              "Detected mismatched profiling range calls, received a stop call "
-              "without a corresponding start call in mapper call %s by mapper "
-              "%s "
-              "for %s (UID %lld) at %.*s",
-              get_mapper_call_name(), get_mapper_name(),
-              operation->get_logging_name(), operation->get_unique_op_id(),
-              int(provenance->human.length()), provenance->human.data())
+        {
+          Error err(LEGION_MAPPER_EXCEPTION);
+          err << "Detected mismatched profiling range calls, received a stop "
+                 "call "
+              << "without a corresponding start call in mapper call "
+              << get_mapper_call_name() << " by mapper " << get_mapper_name()
+              << " for " << operation->get_logging_name() << " (UID "
+              << operation->get_unique_op_id() << ") at "
+              << provenance->human.length() << provenance->human.data();
+          err.raise();
+        }
         const long long stop = Realm::Clock::current_time_in_nanoseconds();
         implicit_profiler->record_application_range(
             provenance->pid, profiling_ranges->back(), stop);
@@ -923,24 +929,24 @@ namespace Legion {
     void SerializingManager::lock_mapper(MappingCallInfo* info, bool read_only)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_MAPPER_SYNCHRONIZATION,
-          "Illegal 'lock_mapper' call performed in mapper %s "
-          "with the serialized synchronization model. Use the "
-          "'disable_reentrant' call instead.",
-          get_mapper_name())
+      Error err(LEGION_MAPPER_EXCEPTION);
+      err << "Illegal 'lock_mapper' call performed in mapper "
+          << get_mapper_name()
+          << " with the serialized synchronization model. Use the "
+          << "'disable_reentrant' call instead.";
+      err.raise();
     }
 
     //--------------------------------------------------------------------------
     void SerializingManager::unlock_mapper(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_MAPPER_SYNCHRONIZATION,
-          "Illegal 'unlock_mapper' call performed in mapper %s "
-          "with the serialized synchronization model. Use the "
-          "'enable_reentrant' call instead.",
-          get_mapper_name())
+      Error err(LEGION_MAPPER_EXCEPTION);
+      err << "Illegal 'unlock_mapper' call performed in mapper "
+          << get_mapper_name()
+          << " with the serialized synchronization model. Use the "
+          << "'enable_reentrant' call instead.";
+      err.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -958,19 +964,23 @@ namespace Legion {
     {
       legion_assert(executing_call == info);
       if (!allow_reentrant)
-        REPORT_LEGION_ERROR(
-            ERROR_MAPPER_SYNCHRONIZATION,
-            "Illegal 'enable_reentrant' call performed in mapper "
-            "%s with the SERIALIZED_NON_REENTRANT_MAPPER_MODEL. "
-            "Reentrant calls are never allowed with this model.",
-            get_mapper_name())
+      {
+        Error err(LEGION_MAPPER_EXCEPTION);
+        err << "Illegal 'enable_reentrant' call performed in mapper "
+            << get_mapper_name()
+            << " with the SERIALIZED_NON_REENTRANT_MAPPER_MODEL. "
+            << "Reentrant calls are never allowed with this model.";
+        err.raise();
+      }
       else if (info->reentrant)
-        REPORT_LEGION_ERROR(
-            ERROR_MAPPER_SYNCHRONIZATION,
-            "Illegal 'disable_reentrant' call performed in mapper "
-            "%s. Reentrant calls were already enabled and we do "
-            "not support nested calls to enable them.",
-            get_mapper_name())
+      {
+        Error err(LEGION_MAPPER_EXCEPTION);
+        err << "Illegal 'disable_reentrant' call performed in mapper "
+            << get_mapper_name()
+            << ". Reentrant calls were already enabled and we do "
+            << "not support nested calls to enable them.";
+        err.raise();
+      }
       info->reentrant = true;
       AutoLock m_lock(mapper_lock);
       permit_reentrant = true;
@@ -982,20 +992,23 @@ namespace Legion {
     {
       legion_assert(executing_call == info);
       if (!allow_reentrant)
-        REPORT_LEGION_ERROR(
-            ERROR_MAPPER_SYNCHRONIZATION,
-            "Illegal 'disable_reentrant' call performed in mapper "
-            "%s with the SERIALIZED_NON_REENTRANT_MAPPER_MODEL. "
-            "Reentrant calls are already disallowed with this "
-            "model.",
-            get_mapper_name())
+      {
+        Error err(LEGION_MAPPER_EXCEPTION);
+        err << "Illegal 'disable_reentrant' call performed in mapper "
+            << get_mapper_name()
+            << " with the SERIALIZED_NON_REENTRANT_MAPPER_MODEL. "
+            << "Reentrant calls are already disallowed with this model.";
+        err.raise();
+      }
       else if (!info->reentrant)
-        REPORT_LEGION_ERROR(
-            ERROR_MAPPER_SYNCHRONIZATION,
-            "Illegal 'disable_reentrant' call performed in mapper "
-            "%s. Reentrant calls were already disabled and we do "
-            "not support nested calls to disable them.",
-            get_mapper_name())
+      {
+        Error err(LEGION_MAPPER_EXCEPTION);
+        err << "Illegal 'disable_reentrant' call performed in mapper "
+            << get_mapper_name()
+            << ". Reentrant calls were already disabled and we do "
+            << "not support nested calls to disable them.";
+        err.raise();
+      }
       info->reentrant = false;
       AutoLock m_lock(mapper_lock);
       permit_reentrant = false;
@@ -1251,35 +1264,42 @@ namespace Legion {
       RUNTIME_CALL_DESCRIPTIONS(lg_runtime_calls);
       MemoryManager* manager = runtime->find_memory_manager(memory);
       if (permit_reentrant)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
-            "Encountered a non-permissive unbouned memory pool in memory %s "
-            "while invoking %s in mapper call %s by mapper %s with reentrant "
-            "mapper calls disabled. This situation can and most likely will "
-            "lead to a deadlock as mapper calls needed to ensure forward "
-            "progress will not be able to run while this mapper is blocked "
-            "waiting for the unbounded pool allocation to finish. To work "
-            "around this currently, all serializing reentrant mappers need "
-            "to ensure that reentrant mapper calls are allowed while "
-            "attempting to allocated in a memory containing non-permissive "
-            "unbounded pools.",
-            manager->get_name(), lg_runtime_calls[kind],
-            get_mapper_call_name(info->kind), get_mapper_name())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Encountered a non-permissive unbouned memory pool in memory "
+              << manager->get_name() << " while invoking "
+              << lg_runtime_calls[kind] << " in mapper call "
+              << get_mapper_call_name(info->kind) << " by mapper "
+              << get_mapper_name()
+              << " with reentrant mapper calls disabled. This situation can "
+                 "and most likely will "
+              << "lead to a deadlock as mapper calls needed to ensure forward "
+                 "progress will not be able to run while this mapper is "
+                 "blocked waiting for the unbounded pool allocation to finish. "
+                 "To work around this currently, all serializing reentrant "
+                 "mappers need to ensure that reentrant mapper calls are "
+                 "allowed while attempting to allocated in a memory containing "
+                 "non-permissive unbounded pools.";
+        error.raise();
+      }
       else
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
-            "Encountered a non-permissive unbounded memory pool in memory %s "
-            "while invoking %s in mapper call %s by serializing non-reentrant "
-            "mapper %s. This situation can and most likely will lead to a "
-            "deadlock as mapper calls needed to ensure forward progress will "
-            "not be able to run while this mapper is blocked waiting for the "
-            "unbounded pool allocation to finish. To work around this "
-            "currently, all mappers attempting to allocate in a memory "
-            "continaing non-permissive unbounded pools must use either "
-            "the serializing reentrant or concurrent mapper synchronization "
-            "model.",
-            manager->get_name(), lg_runtime_calls[kind],
-            get_mapper_call_name(info->kind), get_mapper_name())
+      {
+        Fatal fatal;
+        fatal << "Encountered a non-permissive unbounded memory pool in memory "
+              << manager->get_name() << " while invoking "
+              << lg_runtime_calls[kind] << " in mapper call "
+              << get_mapper_call_name(info->kind)
+              << " by serializing non-reentrant mapper " << get_mapper_name()
+              << ". This situation can and most likely will lead to a deadlock "
+                 "as mapper calls needed to ensure forward progress will not "
+                 "be able to run while this mapper is blocked waiting for the "
+                 "unbounded pool allocation to finish. To work around this "
+                 "currently, all mappers attempting to allocate in a memory "
+                 "containing non-permissive unbounded pools must use either "
+                 "the serializing reentrant or concurrent mapper "
+                 "synchronization model.";
+        fatal.raise();
+      }
     }
 
     /////////////////////////////////////////////////////////////
@@ -1314,11 +1334,13 @@ namespace Legion {
       {
         AutoLock m_lock(mapper_lock);
         if (current_holders.find(info) != current_holders.end())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_DUPLICATE_MAPPER,
-              "Invalid duplicate mapper lock request in mapper call "
-              "%s for mapper %s",
-              get_mapper_call_name(info->kind), mapper->get_mapper_name())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid duplicate mapper lock request in mapper call "
+                << get_mapper_call_name(info->kind) << " for mapper "
+                << get_mapper_name() << ".";
+          error.raise();
+        }
         switch (lock_state)
         {
           case UNLOCKED_STATE:
@@ -1372,11 +1394,13 @@ namespace Legion {
         std::set<MappingCallInfo*>::iterator finder =
             current_holders.find(info);
         if (finder == current_holders.end())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_UNLOCK_MAPPER,
-              "Invalid unlock mapper call with no prior lock call "
-              "in mapper call %s for mapper %s",
-              get_mapper_call_name(info->kind), mapper->get_mapper_name())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid unlock mapper call with no prior lock call "
+                << "in mapper call " << get_mapper_call_name(info->kind)
+                << " for mapper " << get_mapper_name() << ".";
+          error.raise();
+        }
         current_holders.erase(finder);
         // See if we can now give the lock to someone else
         if (current_holders.empty())
@@ -1402,24 +1426,24 @@ namespace Legion {
     void ConcurrentManager::enable_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_MAPPER_SYNCHRONIZATION,
-          "Illegal 'enable_reentrant' call performed in mapper "
-          "%s with the concurrent synchronization model. Use "
-          "the 'unlock_mapper' call instead.",
-          get_mapper_name())
+      Error error(LEGION_MAPPER_EXCEPTION);
+      error << "Illegal 'enable_reentrant' call performed in mapper "
+            << get_mapper_name()
+            << " with the concurrent synchronization model. Use "
+            << "the 'unlock_mapper' call instead.";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void ConcurrentManager::disable_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_MAPPER_SYNCHRONIZATION,
-          "Illegal 'disable_reentrant' call performed in mapper"
-          " %s with the concurrent synchronization model. Use "
-          "the 'lock_mapper' call instead.",
-          get_mapper_name())
+      Error error(LEGION_MAPPER_EXCEPTION);
+      error << "Illegal 'disable_reentrant' call performed in mapper"
+            << get_mapper_name()
+            << " with the concurrent synchronization model. Use "
+            << "the 'lock_mapper' call instead.";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1492,20 +1516,21 @@ namespace Legion {
     {
       RUNTIME_CALL_DESCRIPTIONS(lg_runtime_calls);
       MemoryManager* manager = runtime->find_memory_manager(memory);
-      REPORT_LEGION_FATAL(
-          LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
-          "Encountered a non-permissive unbouned memory pool in memory %s "
-          "while invoking %s in mapper call %s by mapper %s while holding "
-          "the concurrent mapper lock. This situation can and most likely "
-          "will lead to a deadlock as mapper calls needed to ensure forward "
-          "progress will not be able to run while this mapper is holding "
-          "the lock and waiting for the unbounded pool allocation to "
-          "finish. To work around this currently, concurrent mappers need "
-          "to ensure that they are not holding the concurrent mapper lock "
-          "while attempting to allocated in a memory containing "
-          "non-permissive unbounded pools.",
-          manager->get_name(), lg_runtime_calls[kind],
-          get_mapper_call_name(info->kind), get_mapper_name())
+      Fatal fatal;
+      fatal << "Encountered a non-permissive unbouned memory pool in memory "
+            << manager->get_name() << " while invoking "
+            << lg_runtime_calls[kind] << " in mapper call "
+            << get_mapper_call_name(info->kind) << " by mapper "
+            << get_mapper_name()
+            << " while holding the concurrent mapper lock. This situation can "
+               "and most likely will lead to a deadlock as mapper calls needed "
+               "to ensure forward progress will not be able to run while this "
+               "mapper is holding the lock and waiting for the unbounded pool "
+               "allocation to finish. To work around this currently, "
+               "concurrent mappers need to ensure that they are not holding "
+               "the concurrent mapper lock while attempting to allocated in a "
+               "memory containing non-permissive unbounded pools.";
+      fatal.raise();
     }
 
     //--------------------------------------------------------------------------

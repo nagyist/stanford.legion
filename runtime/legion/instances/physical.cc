@@ -793,19 +793,23 @@ namespace Legion {
         if (!done.has_triggered())
           done.wait();
         if (!result.load())
-          REPORT_LEGION_FATAL(
-              LEGION_FATAL_GARBAGE_COLLECTION_RACE,
-              "Found an internal garbage collection race. Please "
-              "run with -lg:safe_mapper and see if it reports any "
-              "errors. If not, then please report this as a bug.")
+        {
+          Fatal err;
+          err << "Found an internal garbage collection race. Please "
+              << "run with -lg:safe_mapper and see if it reports any "
+              << "errors. If not, then please report this as a bug.";
+          err.raise();
+        }
       }
 #else
       if (gc_state == COLLECTED_GC_STATE)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_GARBAGE_COLLECTION_RACE,
-            "Found an internal garbage collection race. Please "
-            "run with -lg:safe_mapper and see if it reports any "
-            "errors. If not, then please report this as a bug.")
+      {
+        Fatal err;
+        err << "Found an internal garbage collection race. Please "
+            << "run with -lg:safe_mapper and see if it reports any "
+            << "errors. If not, then please report this as a bug.";
+        err.raise();
+      }
 #endif
       gc_state = VALID_GC_STATE;
       add_base_gc_ref(INTERNAL_VALID_REF);

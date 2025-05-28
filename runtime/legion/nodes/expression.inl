@@ -706,11 +706,13 @@ namespace Legion {
             legion_assert(constraints.padding_constraint.delta.hi()[dim] >= 0);
             if ((constraints.padding_constraint.delta.lo()[dim] > 0) ||
                 (constraints.padding_constraint.delta.hi()[dim] > 0))
-              REPORT_LEGION_FATAL(
-                  LEGION_FATAL_COMPACT_SPARSE_PADDING,
-                  "Legion does not currently support additional padding "
-                  "on compact sparse instances. Please open a github "
-                  "issue to request support.")
+            {
+              Fatal fatal;
+              fatal << "Legion does not currently support additional padding "
+                    << "on compact sparse instances. Please open a github "
+                    << "issue to request support.";
+              fatal.raise();
+            }
           }
         }
         *num_pieces = piece_bounds.size();

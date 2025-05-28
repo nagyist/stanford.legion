@@ -48,9 +48,11 @@ namespace Legion {
       if (this->predication_state == OP::PENDING_PREDICATE_STATE)
       {
         if (this->is_recording())
-          REPORT_LEGION_FATAL(
-              LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-              "Recording of predicated operations is not yet supported")
+        {
+          Fatal err;
+          err << "Recording of predicated operations is not yet supported";
+          err.raise();
+        }
         legion_assert(this->predicate != nullptr);
         bool value = this->predicate->get_predicate(
             this->context_index, this->true_guard, this->false_guard);
@@ -77,9 +79,11 @@ namespace Legion {
       if (this->predication_state == OP::PREDICATED_FALSE_STATE)
       {
         if (this->is_recording())
-          REPORT_LEGION_FATAL(
-              LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-              "Recording of predicated operations is not yet supported")
+        {
+          Fatal err;
+          err << "Recording of predicated operations is not yet supported";
+          err.raise();
+        }
         LegionSpy::log_predicated_false_op(this->unique_op_id);
         this->predicate_false();
       }

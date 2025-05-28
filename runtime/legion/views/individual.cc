@@ -1480,13 +1480,18 @@ namespace Legion {
             // Issue a performance warning if we're ever going to
             // be doing this case and the number of instance is large
             if (collective->instances.size() > LEGION_COLLECTIVE_RADIX)
-              REPORT_LEGION_WARNING(
-                  LEGION_WARNING_COLLECTIVE_HAMMER_REDUCTION,
-                  "WARNING: Performing copy-across reduction hammer with %zd "
-                  "instances into a single instance from collective manager "
-                  "%llx to normal manager %llx. Please report this use case "
-                  "to the Legion developers' mailing list.",
-                  collective->instances.size(), collective->did, did)
+            {
+              Warning warning;
+              warning
+                  << "WARNING: Performing copy-across reduction hammer with "
+                  << collective->instances.size()
+                  << " instances into a single instance "
+                  << "from collective manager " << std::hex << collective->did
+                  << " to normal manager " << did << std::dec
+                  << ". Please report this use case to the Legion developers' "
+                     "mailing list.";
+              warning.raise();
+            }
             const AddressSpaceID origin =
                 collective->select_source_space(owner_space);
             if (origin != local_space)

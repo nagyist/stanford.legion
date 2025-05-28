@@ -691,14 +691,18 @@ namespace Legion {
         FutureImpl* impl = it->second;
         const size_t source_size = impl->get_untyped_size();
         if (source_size != redop->sizeof_rhs)
-          REPORT_LEGION_ERROR(
-              ERROR_FUTURE_MAP_REDOP_TYPE_MISMATCH,
-              "Future in future map reduction in task %s (UID %lld) does not "
-              "have the right input size for the given reduction operator. "
-              "Future has size %zd bytes but reduction operator expects "
-              "RHS inputs of %zd bytes.",
-              parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-              source_size, redop->sizeof_rhs)
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error
+              << "Future in future map reduction in task "
+              << parent_ctx->get_task_name() << " (UID "
+              << parent_ctx->get_unique_id() << ") does not "
+              << "have the right input size for the given reduction operator. "
+              << "Future has size " << source_size
+              << " bytes but reduction operator expects "
+              << "RHS inputs of " << redop->sizeof_rhs << " bytes.";
+          error.raise();
+        }
         LegionSpy::log_future_use(unique_op_id, impl->did);
       }
       legion_assert(!targets.empty());

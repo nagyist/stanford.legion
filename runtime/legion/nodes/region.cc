@@ -79,29 +79,34 @@ namespace Legion {
             {
               // Check to make sure that the bits are the same
               if (size != finder->second.buffer.get_size())
-                REPORT_LEGION_ERROR(
-                    ERROR_INCONSISTENT_SEMANTIC_TAG,
-                    "Inconsistent Semantic Tag value "
-                    "for tag %ld with different sizes of %zd"
-                    " and %zd for region tree node",
-                    tag, size, finder->second.buffer.get_size())
-                // Otherwise do a bitwise comparison
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Inconsistent Semantic Tag value "
+                      << "for tag " << tag << " with different sizes of "
+                      << size << " and " << finder->second.buffer.get_size()
+                      << " for region tree node";
+                error.raise();
+              }
+              // Otherwise do a bitwise comparison
+              {
+                const char* orig =
+                    (const char*)finder->second.buffer.get_buffer();
+                const char* next = (const char*)buffer;
+                for (unsigned idx = 0; idx < size; idx++)
                 {
-                  const char* orig =
-                      (const char*)finder->second.buffer.get_buffer();
-                  const char* next = (const char*)buffer;
-                  for (unsigned idx = 0; idx < size; idx++)
+                  char diff = orig[idx] ^ next[idx];
+                  if (diff)
                   {
-                    char diff = orig[idx] ^ next[idx];
-                    if (diff)
-                      REPORT_LEGION_ERROR(
-                          ERROR_INCONSISTENT_SEMANTIC_TAG,
-                          "Inconsistent Semantic Tag value "
-                          "for tag %ld with different values at"
-                          "byte %d for region tree node, %x != %x",
-                          tag, idx, orig[idx], next[idx])
+                    Error error(LEGION_INTERFACE_EXCEPTION);
+                    error << "Inconsistent Semantic Tag value "
+                          << "for tag " << tag << " with different values at "
+                          << "byte " << idx << " for region tree node, "
+                          << std::hex << (int)orig[idx]
+                          << " != " << (int)next[idx] << std::dec;
+                    error.raise();
                   }
                 }
+              }
               added = false;
             }
             else
@@ -199,11 +204,12 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SEMANTIC_TAG,
-            "invalid semantic tag %ld for "
-            "region tree node",
-            tag)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "invalid semantic tag " << tag << " for "
+                << "region tree node";
+          error.raise();
+        }
       }
       else
       {
@@ -220,11 +226,12 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SEMANTIC_TAG,
-            "invalid semantic tag %ld for "
-            "region tree node",
-            tag)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "invalid semantic tag " << tag << " for "
+                << "region tree node";
+          error.raise();
+        }
       }
       result = finder->second.buffer.get_buffer();
       size = finder->second.buffer.get_size();

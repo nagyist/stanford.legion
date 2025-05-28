@@ -425,12 +425,13 @@ namespace Legion {
       }
       else
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_KDTREE_REFINEMENT_FAILED,
-            "Failed to find a refinement for KD tree with %d dimensions "
-            "and %zd rectangles. Please report your application to the "
-            "Legion developers' mailing list.",
-            DIM, subrects.size())
+        Warning warn;
+        warn << "Failed to find a refinement for KD tree with " << DIM
+             << " dimensions "
+             << "and " << subrects.size()
+             << " rectangles. Please report your application to the "
+             << "Legion developers' mailing list.";
+        warn.raise();
         // If we make it here then we couldn't find a splitting plane to refine
         // anymore so just record all the subrects as our rects
         rects.swap(subrects);
@@ -530,12 +531,13 @@ namespace Legion {
       }
       else
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_KDTREE_REFINEMENT_FAILED,
-            "Failed to find a refinement for KD tree with %d dimensions "
-            "and %zd rectangles. Please report your application to the "
-            "Legion developers' mailing list.",
-            DIM, subrects.size())
+        Warning warn;
+        warn << "Failed to find a refinement for KD tree with " << DIM
+             << " dimensions "
+             << "and " << subrects.size()
+             << " rectangles. Please report your application to the "
+             << "Legion developers' mailing list.";
+        warn.raise();
         // If we make it here then we couldn't find a splitting plane to refine
         // anymore so just record all the subrects as our rects
         rects.swap(subrects);
@@ -2724,12 +2726,12 @@ namespace Legion {
       }
       else
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_KDTREE_REFINEMENT_FAILED,
-            "Failed to find a refinement for Equivalence Set KD tree with %d "
-            "dimensions and %zd rectangles. Please report your application to "
-            "the Legion developers' mailing list.",
-            DIM, rects.size())
+        Warning warn;
+        warn << "Failed to find a refinement for Equivalence Set KD tree with "
+             << DIM << " dimensions and " << rects.size()
+             << " rectangles. Please report your application to "
+             << "the Legion developers' mailing list.";
+        warn.raise();
         // If we make it here then we couldn't find a splitting plane to refine
         // anymore so just record all the subrects as our rects
         children.reserve(rects.size());

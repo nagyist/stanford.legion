@@ -289,29 +289,33 @@ namespace Legion {
             {
               // Check to make sure that the bits are the same
               if (size != finder->second.buffer.get_size())
-                REPORT_LEGION_ERROR(
-                    ERROR_INCONSISTENT_SEMANTIC_TAG,
-                    "Inconsistent Semantic Tag value "
-                    "for tag %ld with different sizes of %zd"
-                    " and %zd for index tree node",
-                    tag, size, finder->second.buffer.get_size())
-                // Otherwise do a bitwise comparison
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Inconsistent Semantic Tag value for tag " << tag
+                      << " with different sizes of " << size << " and "
+                      << finder->second.buffer.get_size()
+                      << " for index tree node";
+                error.raise();
+              }
+              // Otherwise do a bitwise comparison
+              {
+                const char* orig =
+                    (const char*)finder->second.buffer.get_buffer();
+                const char* next = (const char*)buffer;
+                for (unsigned idx = 0; idx < size; idx++)
                 {
-                  const char* orig =
-                      (const char*)finder->second.buffer.get_buffer();
-                  const char* next = (const char*)buffer;
-                  for (unsigned idx = 0; idx < size; idx++)
+                  char diff = orig[idx] ^ next[idx];
+                  if (diff)
                   {
-                    char diff = orig[idx] ^ next[idx];
-                    if (diff)
-                      REPORT_LEGION_ERROR(
-                          ERROR_INCONSISTENT_SEMANTIC_TAG,
-                          "Inconsistent Semantic Tag value "
-                          "for tag %ld with different values at"
-                          "byte %d for index tree node, %x != %x",
-                          tag, idx, orig[idx], next[idx])
+                    Error error(LEGION_INTERFACE_EXCEPTION);
+                    error << "Inconsistent Semantic Tag value for tag " << tag
+                          << " with different values at byte " << idx
+                          << " for index tree node, " << std::hex
+                          << (int)orig[idx] << " != " << (int)next[idx];
+                    error.raise();
                   }
                 }
+              }
               added = false;
             }
             else
@@ -371,29 +375,33 @@ namespace Legion {
             {
               // Check to make sure that the bits are the same
               if (size != finder->second.buffer.get_size())
-                REPORT_LEGION_ERROR(
-                    ERROR_INCONSISTENT_SEMANTIC_TAG,
-                    "Inconsistent Semantic Tag value "
-                    "for tag %ld with different sizes of %zd"
-                    " and %zd for index tree node",
-                    tag, size, finder->second.buffer.get_size())
-                // Otherwise do a bitwise comparison
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Inconsistent Semantic Tag value for tag " << tag
+                      << " with different sizes of " << size << " and "
+                      << finder->second.buffer.get_size()
+                      << " for index tree node";
+                error.raise();
+              }
+              // Otherwise do a bitwise comparison
+              {
+                const char* orig =
+                    (const char*)finder->second.buffer.get_buffer();
+                const char* next = (const char*)buffer;
+                for (unsigned idx = 0; idx < size; idx++)
                 {
-                  const char* orig =
-                      (const char*)finder->second.buffer.get_buffer();
-                  const char* next = (const char*)buffer;
-                  for (unsigned idx = 0; idx < size; idx++)
+                  char diff = orig[idx] ^ next[idx];
+                  if (diff)
                   {
-                    char diff = orig[idx] ^ next[idx];
-                    if (diff)
-                      REPORT_LEGION_ERROR(
-                          ERROR_INCONSISTENT_SEMANTIC_TAG,
-                          "Inconsistent Semantic Tag value "
-                          "for tag %ld with different values at"
-                          "byte %d for index tree node, %x != %x",
-                          tag, idx, orig[idx], next[idx])
+                    Error error(LEGION_INTERFACE_EXCEPTION);
+                    error << "Inconsistent Semantic Tag value for tag " << tag
+                          << " with different values at byte " << idx
+                          << " for index tree node, " << std::hex
+                          << (int)orig[idx] << " != " << (int)next[idx];
+                    error.raise();
                   }
                 }
+              }
               added = false;
             }
             else
@@ -491,11 +499,10 @@ namespace Legion {
         // Nothing to wait on so we have to do something
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INCONSISTENT_SEMANTIC_TAG,
-            "invalid semantic tag %ld for "
-            "field space %llu",
-            tag, handle.get_id())
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "invalid semantic tag " << tag << " for field space "
+              << handle.get_id();
+        error.raise();
       }
       else
       {
@@ -523,11 +530,10 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INCONSISTENT_SEMANTIC_TAG,
-            "invalid semantic tag %ld for "
-            "field space %llu",
-            tag, handle.get_id())
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "invalid semantic tag " << tag << " for field space "
+              << handle.get_id();
+        error.raise();
       }
       result = finder->second.buffer.get_buffer();
       size = finder->second.buffer.get_size();
@@ -595,11 +601,10 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SEMANTIC_TAG,
-            "invalid semantic tag %ld for field %d "
-            "of field space %llu",
-            tag, fid, handle.get_id())
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "invalid semantic tag " << tag << " for field " << fid
+              << " of field space " << handle.get_id();
+        error.raise();
       }
       else
       {
@@ -629,11 +634,10 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SEMANTIC_TAG,
-            "invalid semantic tag %ld for field %d "
-            "of field space %llu",
-            tag, fid, handle.get_id())
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "invalid semantic tag " << tag << " for field " << fid
+              << " of field space " << handle.get_id();
+        error.raise();
       }
       result = finder->second.buffer.get_buffer();
       size = finder->second.buffer.get_size();
@@ -1238,22 +1242,25 @@ namespace Legion {
       {
         FieldID fid = fids[idx];
         if (field_infos.find(fid) != field_infos.end())
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-              "Illegal duplicate field ID %d used by the "
-              "application in field space %llu",
-              fid, handle.get_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Illegal duplicate field ID " << fid << " used by the "
+                << "application in field space " << handle.get_id();
+          error.raise();
+        }
         // Find an index in which to allocate this field
         RtEvent dummy_event;
         int result = allocate_index(dummy_event, true /*initializing*/);
         if (result < 0)
-          REPORT_LEGION_ERROR(
-              ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-              "Exceeded maximum number of allocated fields for "
-              "field space %llu. Change LEGION_MAX_FIELDS from %d "
-              "and related macros at the top of legion_config.h "
-              "and recompile.",
-              handle.get_id(), LEGION_MAX_FIELDS)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Exceeded maximum number of allocated fields for "
+                << "field space " << handle.get_id()
+                << ". Change LEGION_MAX_FIELDS from " << LEGION_MAX_FIELDS
+                << " and related macros at the top of legion_config.h "
+                << "and recompile.";
+          error.raise();
+        }
         legion_assert(!dummy_event.exists());
         const unsigned index = result;
         field_infos[fid] = FieldInfo(
@@ -1271,22 +1278,25 @@ namespace Legion {
       {
         FieldID fid = fids[idx];
         if (field_infos.find(fid) != field_infos.end())
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-              "Illegal duplicate field ID %d used by the "
-              "application in field space %llu",
-              fid, handle.get_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Illegal duplicate field ID " << fid << " used by the "
+                << "application in field space " << handle.get_id() << ".";
+          error.raise();
+        }
         // Find an index in which to allocate this field
         RtEvent dummy_event;
         int result = allocate_index(dummy_event, true /*initializing*/);
         if (result < 0)
-          REPORT_LEGION_ERROR(
-              ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-              "Exceeded maximum number of allocated fields for "
-              "field space %llu. Change LEGION_MAX_FIELDS from %d "
-              "and related macros at the top of legion_config.h "
-              "and recompile.",
-              handle.get_id(), LEGION_MAX_FIELDS)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Exceeded maximum number of allocated fields for "
+                << "field space " << handle.get_id()
+                << ". Change LEGION_MAX_FIELDS from " << LEGION_MAX_FIELDS
+                << " and related macros at the top of legion_config.h "
+                << "and recompile.";
+          error.raise();
+        }
         legion_assert(!dummy_event.exists());
         const unsigned index = result;
         field_infos[fid] = FieldInfo(
@@ -1346,23 +1356,24 @@ namespace Legion {
         // in a collective mode but are now merged together
         if (finder->second.collective)
           return RtEvent::NO_RT_EVENT;
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-            "Illegal duplicate field ID %d used by the "
-            "application in field space %llu",
-            fid, handle.get_id())
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal duplicate field ID " << fid << " used by the "
+              << "application in field space " << handle.get_id() << ".";
+        error.raise();
       }
       // Find an index in which to allocate this field
       RtEvent ready_event;
       int result = allocate_index(ready_event);
       if (result < 0)
-        REPORT_LEGION_ERROR(
-            ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-            "Exceeded maximum number of allocated fields for "
-            "field space %llu. Change LEGION_MAX_FIELDS from %d and"
-            " related macros at the top of legion_config.h and "
-            "recompile.",
-            handle.get_id(), LEGION_MAX_FIELDS)
+      {
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Exceeded maximum number of allocated fields for "
+              << "field space " << handle.get_id()
+              << ". Change LEGION_MAX_FIELDS from " << LEGION_MAX_FIELDS
+              << " and related macros at the top of legion_config.h "
+              << "and recompile.";
+        error.raise();
+      }
       const unsigned index = result;
       field_infos[fid] = FieldInfo(
           size, index, serdez_id, prov, false /*local*/,
@@ -1421,23 +1432,24 @@ namespace Legion {
         // in a collective mode but are now merged together
         if (finder->second.collective)
           return RtEvent::NO_RT_EVENT;
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-            "Illegal duplicate field ID %d used by the "
-            "application in field space %llu",
-            fid, handle.get_id())
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal duplicate field ID " << fid << " used by the "
+              << "application in field space " << handle.get_id() << ".";
+        error.raise();
       }
       // Find an index in which to allocate this field
       RtEvent ready_event;
       int result = allocate_index(ready_event);
       if (result < 0)
-        REPORT_LEGION_ERROR(
-            ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-            "Exceeded maximum number of allocated fields for "
-            "field space %llu. Change LEGION_MAX_FIELDS from %d and"
-            " related macros at the top of legion_config.h and "
-            "recompile.",
-            handle.get_id(), LEGION_MAX_FIELDS)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Exceeded maximum number of allocated fields for "
+              << "field space " << handle.get_id()
+              << ". Change LEGION_MAX_FIELDS from " << LEGION_MAX_FIELDS
+              << " and related macros at the top of legion_config.h "
+              << "and recompile.";
+        error.raise();
+      }
       const unsigned index = result;
       field_infos[fid] = FieldInfo(
           size_ready, index, serdez_id, prov, false /*local*/,
@@ -1499,29 +1511,30 @@ namespace Legion {
       {
         const FieldID fid = fids[idx];
         std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
-        if (field_infos.find(fid) != field_infos.end())
+        if (finder != field_infos.end())
         {
           // Handle the case of deduplicating fields that were allocated
           // in a collective mode but are now merged together
           if (finder->second.collective)
             continue;
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-              "Illegal duplicate field ID %d used by the "
-              "application in field space %llu",
-              fid, handle.get_id())
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Illegal duplicate field ID " << fid << " used by the "
+                << "application in field space " << handle.get_id() << ".";
+          error.raise();
         }
         // Find an index in which to allocate this field
         RtEvent ready_event;
         int result = allocate_index(ready_event);
         if (result < 0)
-          REPORT_LEGION_ERROR(
-              ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-              "Exceeded maximum number of allocated fields for "
-              "field space %llu. Change LEGION_MAX_FIELDS from %d "
-              "and related macros at the top of legion_config.h "
-              "and recompile.",
-              handle.get_id(), LEGION_MAX_FIELDS)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Exceeded maximum number of allocated fields for "
+                << "field space " << handle.get_id()
+                << ". Change LEGION_MAX_FIELDS from " << LEGION_MAX_FIELDS
+                << " and related macros at the top of legion_config.h "
+                << "and recompile.";
+          error.raise();
+        }
         if (ready_event.exists())
           allocated_events.insert(ready_event);
         const unsigned index = result;
@@ -1590,23 +1603,24 @@ namespace Legion {
           // in a collective mode but are now merged together
           if (finder->second.collective)
             continue;
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-              "Illegal duplicate field ID %d used by the "
-              "application in field space %llu",
-              fid, handle.get_id())
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Illegal duplicate field ID " << fid << " used by the "
+                << "application in field space " << handle.get_id() << ".";
+          error.raise();
         }
         // Find an index in which to allocate this field
         RtEvent ready_event;
         int result = allocate_index(ready_event);
         if (result < 0)
-          REPORT_LEGION_ERROR(
-              ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-              "Exceeded maximum number of allocated fields for "
-              "field space %llu. Change LEGION_MAX_FIELDS from %d "
-              "and related macros at the top of legion_config.h "
-              "and recompile.",
-              handle.get_id(), LEGION_MAX_FIELDS)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Exceeded maximum number of allocated fields for "
+                << "field space " << handle.get_id()
+                << ". Change LEGION_MAX_FIELDS from " << LEGION_MAX_FIELDS
+                << " and related macros at the top of legion_config.h "
+                << "and recompile.";
+          error.raise();
+        }
         if (ready_event.exists())
           allocated_events.insert(ready_event);
         const unsigned index = result;
@@ -1899,11 +1913,12 @@ namespace Legion {
         {
           FieldID fid = fids[idx];
           if (field_infos.find(fid) != field_infos.end())
-            REPORT_LEGION_ERROR(
-                ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-                "Illegal duplicate field ID %d used by the "
-                "application in field space %llu",
-                fid, handle.get_id())
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "Illegal duplicate field ID " << fid << " used by the "
+                  << "application in field space " << handle.get_id() << ".";
+            error.raise();
+          }
           field_infos[fid] = FieldInfo(
               sizes[idx], new_indexes[idx], serdez_id, prov, true /*local*/);
         }
@@ -2502,9 +2517,12 @@ namespace Legion {
                 field_infos.find(fid);
             // Catch unknown fields here for now
             if (finder == field_infos.end())
-              REPORT_LEGION_FATAL(
-                  LEGION_FATAL_UNKNOWN_FIELD_ID,
-                  "unknown field ID %d requested during instance creation", fid)
+            {
+              Fatal fatal;
+              fatal << "unknown field ID " << fid
+                    << " requested during instance creation";
+              fatal.raise();
+            }
             if (finder->second.size_ready.exists())
               defer_events.insert(finder->second.size_ready);
             else if (defer_events.empty())
@@ -2533,9 +2551,12 @@ namespace Legion {
               local_infos.find(fid);
           // Catch unknown fields here for now
           if (finder == local_infos.end())
-            REPORT_LEGION_FATAL(
-                LEGION_FATAL_UNKNOWN_FIELD_ID,
-                "unknown field ID %d requested during instance creation", fid)
+          {
+            Fatal fatal;
+            fatal << "unknown field ID " << fid
+                  << " requested during instance creation";
+            fatal.raise();
+          }
           if (finder->second.size_ready.exists())
             defer_events.insert(finder->second.size_ready);
           else if (defer_events.empty())

@@ -165,7 +165,7 @@ namespace Legion {
           error << "Source region requirement " << idx << " of " << *this
                 << "does not have read-only privileges. All "
                 << "source region requirements for copy operations must be "
-                   "read-only.";
+                << "read-only.";
           error.raise();
         }
         if (runtime->safe_model)
@@ -193,22 +193,22 @@ namespace Legion {
                 << ". The 'instance_fields' member of destination region "
                 << "requirements must contain exactly the same set of "
                 << "fields as the 'privilege_fields' for copy operations.";
+          error.raise();
         }
         if (src_requirements[idx].instance_fields.size() !=
             dst_requirements[idx].instance_fields.size())
         {
           Error error(LEGION_INTERFACE_EXCEPTION);
-          error
-              << "The 'instance_fields' member of the source and destination "
-                 "region requirements at index"
-              << idx << " do no have the same size ("
-              << src_requirements[idx].instance_fields.size() << " and "
-              << dst_requirements[idx].instance_fields.size()
-              << " respectively) for " << *this
-              << ". The 'instance_fields' data structure must have the same "
-                 "number of "
-              << "fields for the copy operation to know how to zip the fields "
-                 "together.";
+          error << "The 'instance_fields' member of the source and destination "
+                << "region requirements at index" << idx
+                << " do no have the same size ("
+                << src_requirements[idx].instance_fields.size() << " and "
+                << dst_requirements[idx].instance_fields.size()
+                << " respectively) for " << *this
+                << ". The 'instance_fields' data structure must have the same "
+                << "number of fields for the copy operation to know how to zip "
+                   "the fields "
+                << "together.";
           error.raise();
         }
         if (!HAS_WRITE(dst_requirements[idx]))
@@ -217,7 +217,7 @@ namespace Legion {
           error << "Destination region requirement " << idx << " of " << *this
                 << "is not writing or reducing. All destination "
                 << "region requirements for copy operations must either be "
-                   "writing or reducing.";
+                << "writing or reducing.";
           error.raise();
         }
         if ((dst_requirements[idx].privilege == LEGION_READ_WRITE) &&
@@ -298,7 +298,7 @@ namespace Legion {
             error << "Source indirect region requirement " << idx << " for "
                   << *this << " has " << req.privilege_fields.size()
                   << " fields, but indirection region requirements must always "
-                     "have exactly one field.";
+                  << "have exactly one field.";
             error.raise();
           }
           if (!IS_READ_ONLY(req))
@@ -308,7 +308,7 @@ namespace Legion {
                 << "Source indirect region requirement " << idx << " for "
                 << *this << " does not have read-only privileges. All source "
                 << "indirect region requirements for copy operations must have "
-                   "read-only privileges.";
+                << "read-only privileges.";
             error.raise();
           }
           if (runtime->safe_model)
@@ -390,8 +390,8 @@ namespace Legion {
             error << "Destination indirect region requirement " << idx
                   << " for " << *this << " does not have "
                   << "read-only privileges. All destination indirect region "
-                     "requirements for copy "
-                  << "operations must have read-only privileges.";
+                  << "requirements for copy operations must have read-only "
+                     "privileges.";
             error.raise();
           }
           if (runtime->safe_model)
@@ -535,7 +535,7 @@ namespace Legion {
               runtime->get_field_serdez(dst_space, dst_fields[fidx]);
           if (src_serdez != dst_serdez)
           {
-            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
             error << "Fields with different serdez modes are not permitted for "
                   << "region-to-region copy operations. Fields "
                   << src_fields[fidx] << " and " << dst_fields[fidx]
@@ -662,7 +662,7 @@ namespace Legion {
               dst_idx_req.parent.get_field_space(), fid);
           if (idx_serdez != 0)
           {
-            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
             error
                 << "Serdez fields are not permitted to be used as indirection "
                 << "fields for copy operations. Field " << fid
@@ -1680,7 +1680,7 @@ namespace Legion {
     {
       legion_assert(idx1 < idx2);
       // The logical dependence analysis can report this because there are
-      // interfering fields and regions, check to make sure there are alos
+      // interfering fields and regions, check to make sure there are also
       // interfering privileges and index spaces
       const RegionRequirement& req1 = get_requirement(idx1);
       const RegionRequirement& req2 = get_requirement(idx2);
@@ -1697,7 +1697,7 @@ namespace Legion {
               << get_requirement_name(idx1) << " region requirement and "
               << get_requirement_offset(idx2) << " of "
               << get_requirement_name(idx2) << ". Aliased region "
-              << "region requirements can lead to races are not permitted.";
+              << "requirements can lead to races and are not permitted.";
         error.raise();
       }
     }
@@ -4205,12 +4205,14 @@ namespace Legion {
           std::numeric_limits<ShardingID>::max(), true};
       mapper->invoke_copy_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s failed to pick a valid sharding functor for "
-            "copy in task %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Mapper " << mapper->get_mapper_name()
+              << " failed to pick a valid sharding functor for copy in task "
+              << parent_ctx->get_task_name() << " (UID "
+              << parent_ctx->get_unique_id() << ").";
+        error.raise();
+      }
       this->sharding_functor = output.chosen_functor;
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
@@ -4220,12 +4222,14 @@ namespace Legion {
         sharding_collective->contribute(this->sharding_functor);
         if (sharding_collective->is_target() &&
             !sharding_collective->validate(this->sharding_functor))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s chose different sharding functions "
-              "for copy in task %s (UID %lld)",
-              mapper->get_mapper_name(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << mapper->get_mapper_name()
+                << " chose different sharding functions for copy in task "
+                << parent_ctx->get_task_name() << " (UID "
+                << parent_ctx->get_unique_id() << ").";
+          error.raise();
+        }
       }
       // Now we can do the normal prepipeline stage
       CopyOp::trigger_prepipeline_stage();
@@ -4385,12 +4389,15 @@ namespace Legion {
           std::numeric_limits<ShardingID>::max(), true};
       mapper->invoke_copy_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s failed to pick a valid sharding functor for "
-            "index copy in task %s (UID %lld)",
-            mapper->get_mapper_name(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Mapper " << mapper->get_mapper_name()
+              << " failed to pick a valid sharding functor for index copy in "
+                 "task "
+              << parent_ctx->get_task_name() << " (UID "
+              << parent_ctx->get_unique_id() << ").";
+        error.raise();
+      }
       this->sharding_functor = output.chosen_functor;
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
@@ -4400,12 +4407,14 @@ namespace Legion {
         sharding_collective->contribute(this->sharding_functor);
         if (sharding_collective->is_target() &&
             !sharding_collective->validate(this->sharding_functor))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s chose different sharding functions "
-              "for index copy in task %s (UID %lld)",
-              mapper->get_mapper_name(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << mapper->get_mapper_name()
+                << " chose different sharding functions for index copy in task "
+                << parent_ctx->get_task_name() << " (UID "
+                << parent_ctx->get_unique_id() << ").";
+          error.raise();
+        }
       }
       // Now we can do the normal prepipeline stage
       IndexCopyOp::trigger_prepipeline_stage();

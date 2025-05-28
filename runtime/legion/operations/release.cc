@@ -769,37 +769,51 @@ namespace Legion {
         sources_check = context->get_next_collective_index(COLLECTIVE_LOC_23);
       is_first_local_shard = first_local_shard;
       if (restricted_region.impl == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_CONTROL_REPLICATION_VIOLATION,
-            "Acquire operation in control replicated parent task %s "
-            "(UID %lld) did not specify a `physical_region' argument. "
-            "All acquire operations in control replicated contexts must "
-            "specify an explicit PhysicalRegion.",
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "Acquire operation in control replicated parent task "
+            << parent_ctx->get_task_name() << " (UID "
+            << parent_ctx->get_unique_id() << ") did not specify a "
+            << "`physical_region' argument. All acquire operations in control "
+            << "replicated contexts must specify an explicit PhysicalRegion.";
+        error.raise();
+      }
       if (!grants.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_CONTROL_REPLICATION_VIOLATION,
-            "Illegal use of grants with a release operation in control "
-            "replicated parent task %s (UID %lld). Use of non-canonical "
-            "Legion features such as grants are not permitted with "
-            "control replication.",
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal use of grants with a release operation in control "
+              << "replicated parent task " << parent_ctx->get_task_name()
+              << " (UID " << parent_ctx->get_unique_id()
+              << "). Use of non-canonical "
+              << "Legion features such as grants are not permitted with "
+              << "control replication.";
+        error.raise();
+      }
       if (!wait_barriers.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_CONTROL_REPLICATION_VIOLATION,
-            "Illegal use of wait phase barriers with a release operation in "
-            "control replicated parent task %s (UID %lld). Use of "
-            "non-canonical Legion features such as wait phase barriers are "
-            "not permitted with control replication.",
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "Illegal use of wait phase barriers with a release operation in "
+            << "control replicated parent task " << parent_ctx->get_task_name()
+            << " (UID " << parent_ctx->get_unique_id() << "). Use of "
+            << "non-canonical Legion features such as wait phase barriers are "
+            << "not permitted with control replication.";
+        error.raise();
+      }
       if (!arrive_barriers.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_CONTROL_REPLICATION_VIOLATION,
-            "Illegal use of arrive phase barriers with a release operation in "
-            "control replicated parent task %s (UID %lld). Use of "
-            "non-canonical Legion features such as arrive phase barriers are "
-            "not permitted with control replication.",
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal use of arrive phase barriers with a release "
+                 "operation in "
+              << "control replicated parent task "
+              << parent_ctx->get_task_name() << " (UID "
+              << parent_ctx->get_unique_id() << "). Use of "
+              << "non-canonical Legion features such as arrive phase barriers "
+                 "are "
+              << "not permitted with control replication.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -933,16 +947,21 @@ namespace Legion {
             legion_safe_cast<ReplicateContext*>(parent_ctx);
         CheckCollectiveSources sources_collective(repl_ctx, sources_check);
         if (!sources_collective.verify(source_instances))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output from the invocation of 'map_release' "
-              "by mapper %s. Mapper selected difference 'source_instances' "
-              "on shard 0 and shard %d when mapping a release operation in "
-              "control-replicated parent task %s (UID %lld). Each release "
-              "mapping in a control-replicated parent task must provide the "
-              "same 'source_instances' across all the shards.",
-              mapper->get_mapper_name(), repl_ctx->owner_shard->shard_id,
-              parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from the invocation of 'map_release' "
+                << "by mapper " << mapper->get_mapper_name()
+                << ". Mapper selected difference 'source_instances' "
+                << "on shard 0 and shard " << repl_ctx->owner_shard->shard_id
+                << " when mapping a release operation in "
+                << "control-replicated parent task "
+                << parent_ctx->get_task_name() << " (UID "
+                << parent_ctx->get_unique_id()
+                << "). Each release mapping in a control-replicated parent "
+                   "task must provide the "
+                << "same 'source_instances' across all the shards.";
+          error.raise();
+        }
       }
     }
 
