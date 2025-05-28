@@ -2634,13 +2634,6 @@ namespace Legion {
         if (to_trigger.exists())
           Runtime::trigger_event(to_trigger);
       }
-      if (!callback_barrier.exists())
-      {
-        Fatal fatal;
-        fatal << "Need support for refreshing exhausted callback phase "
-              << "barrier generations.";
-        fatal.raise();
-      }
     }
 
     //--------------------------------------------------------------------------
