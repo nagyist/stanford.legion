@@ -42,12 +42,9 @@ namespace Legion {
       implicit_task_caller = header.lg_call_id;
 #endif
       implicit_provenance = header.provenance;
-      // Find the handler for this message
-      legion_assert(header.kind < LAST_SEND_KIND);
-      void (*handler)(Deserializer&, AddressSpaceID) =
-          MessageManager::message_handler_table[header.kind];
-      legion_assert(handler != nullptr);
-      (*handler)(derez, header.sender);
+      // Need to do all this stuff before invoking the handler because if
+      // this is a handler for a shutdown message then we could race with
+      // the runtime shutdown
       MessageManager* manager = runtime->find_messenger(header.sender);
       VirtualChannel& channel = manager->find_channel(header.channel);
       // See if there is any profiling work to do
@@ -62,6 +59,12 @@ namespace Legion {
       }
       // Record that we've seen this message
       channel.record_seen(header.kind);
+      // Find the handler for this message
+      legion_assert(header.kind < LAST_SEND_KIND);
+      void (*handler)(Deserializer&, AddressSpaceID) =
+          MessageManager::message_handler_table[header.kind];
+      legion_assert(handler != nullptr);
+      (*handler)(derez, header.sender);
     }
 
     /////////////////////////////////////////////////////////////
