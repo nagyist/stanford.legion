@@ -82,16 +82,20 @@ namespace Legion {
       else
       {
         if (has_physical_trace() && (op->get_memoizable() == nullptr))
-          REPORT_LEGION_ERROR(
-              ERROR_PHYSICAL_TRACING_UNSUPPORTED_OP,
-              "Illegal operation in physical trace. The application launched "
-              "a %s operation inside of physical trace %d of parent task %s "
-              "(UID %lld) but this kind of operation is not supported for "
-              "physical traces at the moment. You can request support but "
-              "we can guarantee support for all kinds of operations in "
-              "physical traces.",
-              op->get_logging_name(), tid, context->get_task_name(),
-              context->get_unique_id())
+        {
+          Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          e << "Illegal operation in physical trace. The application launched "
+               "a "
+            << op->get_logging_name() << " operation inside of physical trace "
+            << tid << " of parent task " << context->get_task_name() << " (UID "
+            << context->get_unique_id()
+            << ") but this kind of operation is not "
+            << "supported for physical traces at the moment. You can request "
+               "support "
+            << "but we cannot guarantee support for all kinds of operations in "
+            << "physical traces.";
+          e.raise();
+        }
         // Check to see if we are doing safe tracing checks or not
         if (runtime->safe_tracing)
         {
@@ -142,82 +146,108 @@ namespace Legion {
           if (fixed)
           {
             if (verification_infos.size() <= verification_index)
-              REPORT_LEGION_ERROR(
-                  ERROR_TRACE_VIOLATION_OPERATION,
-                  "Detected %d operations in trace %d of parent task %s "
-                  "(UID %lld) which differs from the %zd operations that "
-                  "where recorded in the first execution of the trace. "
-                  "The number of operations in the trace must always "
-                  "be the same across all executions of the trace.",
-                  verification_index, tid, context->get_task_name(),
-                  context->get_unique_id(), verification_infos.size())
+            {
+              Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              e << "Detected " << verification_index << " operations in trace "
+                << tid << " of parent task " << context->get_task_name()
+                << " (UID " << context->get_unique_id()
+                << ") which differs from the " << verification_infos.size()
+                << " operations that were recorded in the "
+                << "first execution of the trace. The number of operations in "
+                   "the trace "
+                << "must always be the same across all executions of the "
+                   "trace.";
+              e.raise();
+            }
             const VerificationInfo& info =
                 verification_infos[verification_index++];
             if (info.kind != kind)
-              REPORT_LEGION_ERROR(
-                  ERROR_TRACE_VIOLATION_OPERATION,
-                  "Operation %s does match the recorded operation kind %s "
-                  "for the %d operation in trace %d of parent task %s "
-                  "(UID %lld). The same order of operations must be "
-                  "issued every time a trace is executed.",
-                  Operation::get_string_rep(kind), op->get_logging_name(),
-                  verification_index - 1, tid, context->get_task_name(),
-                  context->get_unique_id())
+            {
+              Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              e << "Operation " << Operation::get_string_rep(kind)
+                << " does not match the "
+                << "recorded operation kind " << op->get_logging_name()
+                << " for the " << (verification_index - 1)
+                << " operation in trace " << tid << " of parent task "
+                << context->get_task_name() << " (UID "
+                << context->get_unique_id()
+                << "). The same order of operations must be "
+                << "issued every time a trace is executed.";
+              e.raise();
+            }
             if (info.task_id != task_id)
-              REPORT_LEGION_ERROR(
-                  ERROR_TRACE_VIOLATION_OPERATION,
-                  "Task %d does match the recorded task %d for the %d task "
-                  "in trace %d of parent task %s (UID %lld). The same order "
-                  "of operations must be issued every time a trace is "
-                  "executed.",
-                  task_id, info.task_id, verification_index - 1, tid,
-                  context->get_task_name(), context->get_unique_id())
+            {
+              Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              e << "Task " << task_id << " does not match the recorded task "
+                << info.task_id << " for the " << (verification_index - 1)
+                << " task in trace " << tid << " of parent task "
+                << context->get_task_name() << " (UID "
+                << context->get_unique_id()
+                << "). The same order of operations must be "
+                << "issued every time a trace is executed.";
+              e.raise();
+            }
             if (info.regions != num_regions)
             {
               if (kind == TASK_OP_KIND)
-                REPORT_LEGION_ERROR(
-                    ERROR_TRACE_VIOLATION_OPERATION,
-                    "Task %s recorded %d region requirements for trace "
-                    "%d in parent task %s (UID %lld) but was re-executed with "
-                    "%d region requirements. The number of region requirements"
-                    " recorded must always match the number re-executed for "
-                    "each corresponding operation in the trace.",
-                    op->get_logging_name(), info.regions, tid,
-                    context->get_task_name(), context->get_unique_id(),
-                    num_regions)
+              {
+                Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+                e << "Task " << op->get_logging_name() << " recorded "
+                  << info.regions << " region requirements for trace " << tid
+                  << " in parent task " << context->get_task_name() << " (UID "
+                  << context->get_unique_id() << ") but was re-executed with "
+                  << num_regions
+                  << " region requirements. The number of region requirements "
+                     "recorded "
+                  << "must always match the number re-executed for each "
+                     "corresponding "
+                  << "operation in the trace.";
+                e.raise();
+              }
               else
-                REPORT_LEGION_ERROR(
-                    ERROR_TRACE_VIOLATION_OPERATION,
-                    "Operation %s recorded %d region requirements for trace "
-                    "%d in parent task %s (UID %lld) but was re-executed with "
-                    "%d region requirements. The number of region requirements"
-                    " must always match the number re-executed for each "
-                    "corresponding operation in the trace.",
-                    op->get_logging_name(), info.regions, tid,
-                    context->get_task_name(), context->get_unique_id(),
-                    num_regions)
+              {
+                Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+                e << "Operation " << op->get_logging_name() << " recorded "
+                  << info.regions << " region requirements for trace " << tid
+                  << " in parent task " << context->get_task_name() << " (UID "
+                  << context->get_unique_id() << ") but was re-executed with "
+                  << num_regions
+                  << " region requirements. The number of region requirements "
+                     "must "
+                  << "always match the number re-executed for each "
+                     "corresponding "
+                  << "operation in the trace.";
+                e.raise();
+              }
             }
             if ((info.hash[0] != hash[0]) || (info.hash[1] != hash[1]))
             {
               if (kind == TASK_OP_KIND)
-                REPORT_LEGION_ERROR(
-                    ERROR_TRACE_VIOLATION_OPERATION,
-                    "Task %s was replayed with different region requirements "
-                    "for trace %d in parent task %s (UID %lld) than what it "
-                    "had when it was recorded. Region requirement arguments "
-                    "must match exactly every time a trace is executed.",
-                    op->get_logging_name(), tid, context->get_task_name(),
-                    context->get_unique_id())
+              {
+                Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+                e << "Task " << op->get_logging_name()
+                  << " was replayed with different "
+                  << "region requirements for trace " << tid
+                  << " in parent task " << context->get_task_name() << " (UID "
+                  << context->get_unique_id()
+                  << ") than what it had when it was recorded. Region "
+                     "requirement arguments "
+                  << "must match exactly every time a trace is executed.";
+                e.raise();
+              }
               else
-                REPORT_LEGION_ERROR(
-                    ERROR_TRACE_VIOLATION_OPERATION,
-                    "Operation %s was replayed with different region "
-                    "requirements for trace %d in parent task %s (UID %lld) "
-                    "than waht it had when it was recorded. Region "
-                    "requirement arguments must match exactly every time a "
-                    "trace is executed.",
-                    op->get_logging_name(), tid, context->get_task_name(),
-                    context->get_unique_id())
+              {
+                Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+                e << "Operation " << op->get_logging_name()
+                  << " was replayed with different "
+                  << "region requirements for trace " << tid
+                  << " in parent task " << context->get_task_name() << " (UID "
+                  << context->get_unique_id()
+                  << ") than what it had when it was recorded. Region "
+                     "requirement arguments "
+                  << "must match exactly every time a trace is executed.";
+                e.raise();
+              }
             }
           }
           else
@@ -238,15 +268,18 @@ namespace Legion {
     {
       legion_assert(verification_index <= verification_infos.size());
       if (verification_index < verification_infos.size())
-        REPORT_LEGION_ERROR(
-            ERROR_TRACE_VIOLATION_OPERATION,
-            "Detected %d operations in trace %d of parent task %s "
-            "(UID %lld) which differs from the %zd operations that "
-            "where recorded in the first execution of the trace. "
-            "The number of operations in the trace must always "
-            "be the same across all executions of the trace.",
-            verification_index, tid, context->get_task_name(),
-            context->get_unique_id(), verification_infos.size())
+      {
+        Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        e << "Detected " << verification_index << " operations in trace " << tid
+          << " of parent task " << context->get_task_name() << " (UID "
+          << context->get_unique_id() << ") which differs from the "
+          << verification_infos.size()
+          << " operations that were recorded in the "
+          << "first execution of the trace. The number of operations in the "
+             "trace "
+          << "must always be the same across all executions of the trace.";
+        e.raise();
+      }
       verification_index = 0;
     }
 
@@ -738,13 +771,15 @@ namespace Legion {
       {
         legion_assert(trace_fence != nullptr);
         if (replay_index != replay_info.size())
-          REPORT_LEGION_ERROR(
-              ERROR_TRACE_VIOLATION_RECORDED,
-              "Trace violation! Recorded %zd operations in trace "
-              "%d in task %s (UID %lld) but only %zd operations "
-              "have been issued at the end of the trace!",
-              replay_info.size(), tid, context->get_task_name(),
-              context->get_unique_id(), replay_index)
+        {
+          Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          e << "Trace violation! Recorded " << replay_info.size()
+            << " operations in trace " << tid << " in task "
+            << context->get_task_name() << " (UID " << context->get_unique_id()
+            << ") but only " << replay_index
+            << " operations have been issued at the end of the trace.";
+          e.raise();
+        }
         op->register_dependence(trace_fence, trace_fence_gen);
         trace_fence->remove_mapping_reference(trace_fence_gen);
         trace_fence = nullptr;
