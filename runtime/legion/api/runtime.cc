@@ -3816,15 +3816,19 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (ext_participants != 1)
-      REPORT_LEGION_FATAL(
-          LEGION_FATAL_UNSUPPORTED_HANDSHAKE_PARTICIPANTS,
-          "Legion does not currently suppport creating handshake with a "
-          "value for 'external_participants' different than '1'.")
+    {
+      Fatal fatal;
+      fatal << "Legion does not currently support creating handshake with a "
+            << "value for 'external_participants' different than '1'.";
+      fatal.raise();
+    }
     if (legion_participants != 1)
-      REPORT_LEGION_FATAL(
-          LEGION_FATAL_UNSUPPORTED_HANDSHAKE_PARTICIPANTS,
-          "Legion does not currently suppport creating handshake with a "
-          "value for 'legion_participants' different than '1'.")
+    {
+      Fatal fatal;
+      fatal << "Legion does not currently support creating handshake with a "
+            << "value for 'legion_participants' different than '1'.";
+      fatal.raise();
+    }
     LegionHandshake result(new Internal::LegionHandshakeImpl(init_in_ext));
     Internal::Runtime::register_handshake(result);
     return result;
@@ -3836,15 +3840,19 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (mpi_participants != 1)
-      REPORT_LEGION_FATAL(
-          LEGION_FATAL_UNSUPPORTED_HANDSHAKE_PARTICIPANTS,
-          "Legion does not currently suppport creating handshake with a "
-          "value for 'mpi_participants' different than '1'.")
+    {
+      Fatal fatal;
+      fatal << "Legion does not currently support creating handshake with a "
+            << "value for 'mpi_participants' different than '1'.";
+      fatal.raise();
+    }
     if (legion_participants != 1)
-      REPORT_LEGION_FATAL(
-          LEGION_FATAL_UNSUPPORTED_HANDSHAKE_PARTICIPANTS,
-          "Legion does not currently suppport creating handshake with a "
-          "value for 'legion_participants' different than '1'.")
+    {
+      Fatal fatal;
+      fatal << "Legion does not currently support creating handshake with a "
+            << "value for 'legion_participants' different than '1'.";
+      fatal.raise();
+    }
     MPILegionHandshake result(new Internal::LegionHandshakeImpl(init_in_MPI));
     Internal::Runtime::register_handshake(result);
     return result;
