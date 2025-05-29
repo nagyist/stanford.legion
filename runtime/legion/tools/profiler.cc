@@ -2256,20 +2256,24 @@ namespace Legion {
       if (!strcmp(serializer_type, "binary"))
       {
         if (prof_logfile == nullptr)
-          REPORT_LEGION_ERROR(
-              ERROR_UNKNOWN_PROFILER_OPTION,
-              "ERROR: Please specify -lg:prof_logfile "
-              "<logfile_name> when running with -lg:serializer binary")
+        {
+          Error error(LEGION_STARTUP_EXCEPTION);
+          error << "Please specify -lg:prof_logfile <logfile_name> when "
+                   "running with -lg:serializer binary.";
+          error.raise();
+        }
         std::string filename(prof_logfile);
         size_t pct = filename.find_first_of('%', 0);
         if (pct == std::string::npos)
         {
           // This is only an error if we have multiple runtimes
           if (total_runtime_instances > 1)
-            REPORT_LEGION_ERROR(
-                ERROR_MISSING_PROFILER_OPTION,
-                "ERROR: The logfile name must contain '%%' "
-                "which will be replaced with the node id\n")
+          {
+            Error error(LEGION_STARTUP_EXCEPTION);
+            error << "The logfile name must contain '%' which will be replaced "
+                     "with the node id.";
+            error.raise();
+          }
           serializer = new LegionProfBinarySerializer(filename.c_str());
         }
         else
@@ -2284,20 +2288,23 @@ namespace Legion {
       else if (!strcmp(serializer_type, "ascii"))
       {
         if (prof_logfile != nullptr)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_UNUSED_PROFILING_FILE_NAME,
-              "You should not specify -lg:prof_logfile "
-              "<logfile_name> when running with -lg:serializer ascii\n"
-              "       legion_prof output will be written to '-logfile "
-              "<logfile_name>' instead")
+        {
+          Warning warning;
+          warning << "You should not specify -lg:prof_logfile <logfile_name> "
+                     "when running with -lg:serializer ascii. "
+                  << "Legion_prof output will be written to '-logfile "
+                     "<logfile_name>' instead.";
+          warning.raise();
+        }
         serializer = new LegionProfASCIISerializer();
       }
       else
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROFILER_SERIALIZER,
-            "Invalid serializer (%s), must be 'binary' "
-            "or 'ascii'\n",
-            serializer_type)
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Invalid serializer (" << serializer_type
+              << "), must be 'binary' or 'ascii'.";
+        error.raise();
+      }
 
       // log machine info, this needs to be the first log
       LegionProfDesc::MachineDesc machine_desc;

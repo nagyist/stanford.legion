@@ -327,14 +327,14 @@ namespace Legion {
         // Replaying
         const size_t index = replay_index++;
         if (index >= replay_info.size())
-          REPORT_LEGION_ERROR(
-              ERROR_TRACE_VIOLATION_RECORDED,
-              "Trace violation! Recorded %zd operations in trace "
-              "%d in task %s (UID %lld) but %zd operations have "
-              "now been issued!",
-              replay_info.size(), tid, context->get_task_name(),
-              context->get_unique_id(), index + 1)
-
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Trace violation! Recorded " << replay_info.size()
+                << " operations in trace " << tid << " in " << *context
+                << " but " << (index + 1)
+                << " operations have now been issued.";
+          error.raise();
+        }
         // Check to see if the meta-data alignes
         OperationInfo& info = replay_info[index];
         // Add a mapping reference since ops will be registering dependences

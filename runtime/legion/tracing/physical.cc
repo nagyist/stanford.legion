@@ -424,20 +424,25 @@ namespace Legion {
         if (++new_template_count > LEGION_NEW_TEMPLATE_WARNING_COUNT)
         {
           InnerContext* ctx = logical_trace->context;
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_NEW_TEMPLATE_COUNT_EXCEEDED,
-              "WARNING: The runtime has created %d new replayable templates "
-              "for trace %u in task %s (UID %lld) without replaying any "
-              "existing templates. This may mean that your mapper is not "
-              "making mapper decisions conducive to replaying templates. "
-              "Please "
-              "check that your mapper is making decisions that align with "
-              "prior "
-              "templates. If you believe that this number of templates is "
-              "reasonable please adjust the settings for "
-              "LEGION_NEW_TEMPLATE_WARNING_COUNT in legion_config.h.",
-              LEGION_NEW_TEMPLATE_WARNING_COUNT, logical_trace->get_trace_id(),
-              ctx->get_task_name(), ctx->get_unique_id())
+          {
+            Warning warning;
+            warning << "The runtime has created "
+                    << LEGION_NEW_TEMPLATE_WARNING_COUNT
+                    << " new replayable templates for trace "
+                    << logical_trace->get_trace_id() << " in task "
+                    << ctx->get_task_name() << " (UID " << ctx->get_unique_id()
+                    << ") without replaying any existing templates. This may "
+                       "mean that your mapper "
+                    << "is not making mapper decisions conducive to replaying "
+                       "templates. Please "
+                    << "check that your mapper is making decisions that align "
+                       "with prior templates. "
+                    << "If you believe that this number of templates is "
+                       "reasonable, please adjust "
+                    << "the settings for LEGION_NEW_TEMPLATE_WARNING_COUNT in "
+                       "legion_config.h.";
+            warning.raise();
+          }
           new_template_count = 0;
         }
         // Reset the nonreplayable count when we find a replayable template
@@ -454,19 +459,23 @@ namespace Legion {
             (++nonreplayable_count > LEGION_NON_REPLAYABLE_WARNING))
         {
           InnerContext* ctx = logical_trace->context;
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_NON_REPLAYABLE_COUNT_EXCEEDED,
-              "WARNING: The runtime has failed to memoize the trace more than "
-              "%u times, due to the absence of a replayable template. It is "
-              "highly likely that trace %u in task %s (UID %lld) will not be "
-              "memoized for the rest of execution. The most recent template "
-              "was "
-              "not replayable for the following reason: %s. Please change the "
-              "mapper to stop making memoization requests.",
-              LEGION_NON_REPLAYABLE_WARNING, logical_trace->get_trace_id(),
-              ctx->get_task_name(), ctx->get_unique_id(),
-              (status == NOT_REPLAYABLE_BLOCKING) ? "blocking call" :
-                                                    "virtual mapping")
+          {
+            Warning warning;
+            warning << "The runtime has failed to memoize the trace more than "
+                    << LEGION_NON_REPLAYABLE_WARNING
+                    << " times due to the absence of a replayable "
+                    << "template. It is highly likely that trace "
+                    << logical_trace->get_trace_id() << " in task "
+                    << ctx->get_task_name() << " (UID " << ctx->get_unique_id()
+                    << ") will not be memoized for the rest of execution. The "
+                       "most recent template "
+                    << "was not replayable for the following reason: "
+                    << ((status == NOT_REPLAYABLE_BLOCKING) ? "blocking call" :
+                                                              "virtual mapping")
+                    << ". Please change the mapper to stop making memoization "
+                       "requests.";
+            warning.raise();
+          }
           nonreplayable_count = 0;
         }
         // Defer template deletion

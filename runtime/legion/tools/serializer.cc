@@ -28,9 +28,12 @@ namespace Legion {
     {
       f = lp_fopen(filename, "wb");
       if (!f)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROFILER_FILE,
-            "Unable to open legion logfile %s for writing!", filename.c_str())
+      {
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Unable to open legion logfile " << filename
+              << " for writing to dump Legion Prof data.";
+        error.raise();
+      }
       writePreamble();
     }
 
