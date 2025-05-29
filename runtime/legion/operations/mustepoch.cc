@@ -167,10 +167,12 @@ namespace Legion {
       for (unsigned idx = 0; idx < launcher.index_tasks.size(); idx++)
       {
         if (launcher.index_tasks[idx].concurrent_functor != 0)
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_CONCURRENT_ID,
-              "All index space task launches in must epoch operations "
-              "are required to use default concurrent functor (ID=0).")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "All index space task launches in must epoch operations "
+                << "are required to use default concurrent functor (ID=0).";
+          error.raise();
+        }
         IndexSpace launch_space = launcher.index_tasks[idx].launch_space;
         if (!launch_space.exists())
           launch_space = ctx->find_index_launch_space(
@@ -2155,18 +2157,22 @@ namespace Legion {
         {
           Processor mapper_proc = parent_ctx->get_executing_processor();
           MapperManager* mapper = runtime->find_mapper(mapper_proc, map_id);
-          REPORT_LEGION_FATAL(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s specified a slice for a must epoch "
-              "launch in control replicated task %s "
-              "(UID %lld) for which not all the points "
-              "mapped to the same shard. Legion does not "
-              "currently support this use case. Please "
-              "specify slices and a sharding function to "
-              "ensure that all the points in a slice are "
-              "owned by the same shard",
-              mapper->get_mapper_name(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id())
+          {
+            Fatal fatal;
+            fatal << "Mapper " << mapper->get_mapper_name()
+                  << " specified a slice for a must epoch launch in control "
+                     "replicated task "
+                  << parent_ctx->get_task_name() << " (UID "
+                  << parent_ctx->get_unique_id()
+                  << ") for which not all the points mapped to the same shard. "
+                     "Legion does not "
+                  << "currently support this use case. Please specify slices "
+                     "and a sharding function to "
+                  << "ensure that all the points in a slice are owned by the "
+                     "same shard.";
+            fatal.raise();
+          }
+          remaining_resource_returns++;
         }
         remaining_resource_returns++;
       }
@@ -2262,14 +2268,18 @@ namespace Legion {
       // Check that we have a sharding ID
       if (sharding_output.chosen_functor ==
           std::numeric_limits<ShardingID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output from invocation of "
-            "'map_must_epoch' on mapper %s. Mapper failed to specify "
-            "a valid sharding ID for a must epoch operation in control "
-            "replicated context of task %s (UID %lld).",
-            mapper->get_mapper_name(), repl_ctx->get_task_name(),
-            repl_ctx->get_unique_id())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'map_must_epoch' on "
+                 "mapper "
+              << mapper->get_mapper_name()
+              << ". Mapper failed to specify a valid sharding ID "
+              << "for a must epoch operation in control replicated context of "
+                 "task "
+              << repl_ctx->get_task_name() << " (UID "
+              << repl_ctx->get_unique_id() << ").";
+        error.raise();
+      }
       this->sharding_functor = sharding_output.chosen_functor;
       this->collective_map_must_epoch_call =
           sharding_output.collective_map_must_epoch_call;
