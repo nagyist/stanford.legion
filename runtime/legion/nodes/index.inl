@@ -766,18 +766,20 @@ namespace Legion {
         {
           TaskContext* ctx = op->get_context();
           if (is_union)
-            REPORT_LEGION_ERROR(
-                ERROR_DYNAMIC_TYPE_MISMATCH,
-                "Dynamic type mismatch in 'create_index_space_union' "
-                "performed in task %s (UID %lld)",
-                ctx->get_task_name(), ctx->get_unique_id())
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "Dynamic type mismatch in 'create_index_space_union' "
+                  << "performed in task " << *ctx << ".";
+            error.raise();
+          }
           else
-            REPORT_LEGION_ERROR(
-                ERROR_DYNAMIC_TYPE_MISMATCH,
-                "Dynamic type mismatch in "
-                "'create_index_space_intersection' performed in "
-                "task %s (UID %lld)",
-                ctx->get_task_name(), ctx->get_unique_id())
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "Dynamic type mismatch in "
+                  << "'create_index_space_intersection' performed in task "
+                  << *ctx << ".";
+            error.raise();
+          }
         }
         IndexSpaceNodeT<DIM, T>* space = static_cast<IndexSpaceNodeT<DIM, T>*>(
             runtime->get_node(handles[idx]));
@@ -826,18 +828,19 @@ namespace Legion {
       {
         TaskContext* ctx = op->get_context();
         if (is_union)
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in 'create_index_space_union' "
-              "performed in task %s (UID %lld)",
-              ctx->get_task_name(), ctx->get_unique_id())
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Dynamic type mismatch in 'create_index_space_union' "
+                << "performed in task " << *ctx << ".";
+          error.raise();
+        }
         else
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in "
-              "'create_index_space_intersection' performed in "
-              "task %s (UID %lld)",
-              ctx->get_task_name(), ctx->get_unique_id())
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Dynamic type mismatch in 'create_index_space_intersection' "
+                << "performed in task " << *ctx << ".";
+          error.raise();
+        }
       }
       IndexPartNode* partition = runtime->get_node(part_handle);
       ApUserEvent to_trigger;
@@ -893,12 +896,10 @@ namespace Legion {
       if (init.get_type_tag() != handle.get_type_tag())
       {
         TaskContext* ctx = op->get_context();
-        REPORT_LEGION_ERROR(
-            ERROR_DYNAMIC_TYPE_MISMATCH,
-            "Dynamic type mismatch in "
-            "'create_index_space_difference' performed in "
-            "task %s (%lld)",
-            ctx->get_task_name(), ctx->get_unique_id())
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Dynamic type mismatch in 'create_index_space_difference' "
+              << "performed in task " << *ctx << ".";
+        error.raise();
       }
       ApUserEvent to_trigger;
       std::set<ApEvent> preconditions;
@@ -908,12 +909,10 @@ namespace Legion {
         if (handles[idx].get_type_tag() != handle.get_type_tag())
         {
           TaskContext* ctx = op->get_context();
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in "
-              "'create_index_space_difference' performed in "
-              "task %s (%lld)",
-              ctx->get_task_name(), ctx->get_unique_id())
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Dynamic type mismatch in 'create_index_space_difference' "
+                << "performed in task " << *ctx << ".";
+          error.raise();
         }
         IndexSpaceNodeT<DIM, T>* space = static_cast<IndexSpaceNodeT<DIM, T>*>(
             runtime->get_node(handles[idx]));
@@ -1048,17 +1047,17 @@ namespace Legion {
           const DomainPoint& point, void* realm_point, const TypeTag type_tag,
           const char* context)
       {
-        REPORT_LEGION_ERROR(
-            ERROR_DYNAMIC_TYPE_MISMATCH, "Dynamic type mismatch in '%s'",
-            context)
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Dynamic type mismatch in " << context << ".";
+        error.raise();
       }
       static inline void convert_from(
           const void* realm_point, TypeTag type_tag, DomainPoint& point,
           const char* context)
       {
-        REPORT_LEGION_ERROR(
-            ERROR_DYNAMIC_TYPE_MISMATCH, "Dynamic type mismatch in '%s'",
-            context)
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Dynamic type mismatch in " << context << ".";
+        error.raise();
       }
     };
 
@@ -1261,8 +1260,11 @@ namespace Legion {
         linear = compute_linearization_metadata();
       const bool result = linear->contains_color(color);
       if (!result && report_error)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_INDEX_SPACE_COLOR, "Invalid color request")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid color request.";
+        error.raise();
+      }
       return result;
     }
 
@@ -1879,10 +1881,12 @@ namespace Legion {
           const Domain* domain = static_cast<const Domain*>(
               future->find_runtime_buffer(op->get_context(), future_size));
           if (future_size != sizeof(Domain))
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_PARTITION_BY_DOMAIN_VALUE,
-                "An invalid future size was found in a partition by domain "
-                "call. All futures must contain Domain objects.")
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "An invalid future size was found in a partition by "
+                  << "domain call. All futures must contain Domain objects.";
+            error.raise();
+          }
           child_space = *domain;
           // Add a reference to the child space and wait for it to be
           // added to ensure that it gets added before the future releases
@@ -1958,10 +1962,12 @@ namespace Legion {
           std::map<DomainPoint, FutureImpl*>::const_iterator finder =
               futures.find(key);
           if (finder == futures.end())
-            REPORT_LEGION_ERROR(
-                ERROR_MISSING_PARTITION_BY_WEIGHT_COLOR,
-                "A partition by weight call is missing an entry for a "
-                "color in the color space. All colors must be present.")
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "A partition by weight call is missing an entry for a "
+                  << "color in the color space. All colors must be present.";
+            error.raise();
+          }
           FutureImpl* future = finder->second;
           size_t future_size = 0;
           const void* data =
@@ -1971,11 +1977,13 @@ namespace Legion {
             if (weights.empty())
             {
               if (!long_weights.empty())
-                REPORT_LEGION_ERROR(
-                    ERROR_INVALID_PARTITION_BY_WEIGHT_VALUE,
-                    "An invalid future size was found in a partition by weight "
-                    "call. All futures must be consistent int or size_t "
-                    "values.")
+              {
+                Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+                error << "An invalid future size was found in a partition by "
+                      << "weight call. All futures must be consistent int or "
+                      << "size_t values.";
+                error.raise();
+              }
               weights.resize(count);
             }
             weights[color_index] = *(static_cast<const int*>(data));
@@ -1985,20 +1993,25 @@ namespace Legion {
             if (long_weights.empty())
             {
               if (!weights.empty())
-                REPORT_LEGION_ERROR(
-                    ERROR_INVALID_PARTITION_BY_WEIGHT_VALUE,
-                    "An invalid future size was found in a partition by weight "
-                    "call. All futures must be consistent int or size_t "
-                    "values.")
+              {
+                Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+                error << "An invalid future size was found in a partition by "
+                      << "weight call. All futures must be consistent int or "
+                      << "size_t values.";
+                error.raise();
+              }
               long_weights.resize(count);
             }
             long_weights[color_index] = *(static_cast<const size_t*>(data));
           }
           else
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_PARTITION_BY_WEIGHT_VALUE,
-                "An invalid future size was found in a partition by weight "
-                "call. All futures must contain int or size_t values.")
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error << "An invalid future size was found in a partition by "
+                  << "weight call. All futures must contain int or "
+                  << "size_t values.";
+            error.raise();
+          }
           child_colors[color_index++] = color_space->linearize_color(
               &itr.p, color_space->handle.get_type_tag());
         }
@@ -3324,24 +3337,25 @@ namespace Legion {
           if (!slice_nodes[idx]->contains_point(point))
             continue;
           if (found)
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_MAPPER_OUTPUT,
-                "Invalid mapper output from invocation of 'slice_task' "
-                "on mapper %s. Mapper returned multilple slices that "
-                "contained the same point for task %s (ID %lld)",
-                mapper->get_mapper_name(), task->get_task_name(),
-                task->get_unique_id())
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'slice_task' on "
+                  << "mapper " << *mapper << ". Mapper returned multiple "
+                  << "slices that contained the same point for task " << *task
+                  << ".";
+            error.raise();
+          }
           else
             found = true;
         }
         if (!found)
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output from invocation of 'slice_task' "
-              "on mapper %s. Mapper returned no slices that "
-              "contained some point(s) for task %s (ID %lld)",
-              mapper->get_mapper_name(), task->get_task_name(),
-              task->get_unique_id())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'slice_task' on "
+                << "mapper " << *mapper << ". Mapper returned no slices that "
+                << "contained some point(s) for task " << *task << ".";
+          error.raise();
+        }
       }
     }
 
@@ -3694,10 +3708,13 @@ namespace Legion {
               (1ULL << (tile->morton_order * tile->interesting_count));
         // Check for overflow which would be very bad
         if (new_offset <= offset)
-          REPORT_LEGION_FATAL(
-              LEGION_FATAL_MORTON_TILING_FAILURE,
-              "Failure during Morton tiling of color space. Please "
-              "report this issue as a bug and provide a reproducer.")
+        {
+          Fatal fatal;
+          fatal << "Failure during Morton tiling of color space. Please report "
+                   "this issue "
+                << "as a bug and provide a reproducer.";
+          fatal.raise();
+        }
         offset = new_offset;
       }
     }
