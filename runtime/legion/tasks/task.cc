@@ -1687,21 +1687,26 @@ namespace Legion {
       if (!variants.empty())
       {
         if (all_idempotent != impl->is_idempotent())
-          REPORT_LEGION_ERROR(
-              ERROR_IDEMPOTENT_MISMATCH,
-              "Variants of task %s (ID %d) have different idempotent "
-              "options.  All variants of the same task must "
-              "all be either idempotent or non-idempotent.",
-              get_name(false /*need lock*/), task_id)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error
+              << "Variants of task " << get_name(false /*need lock*/) << " (ID "
+              << task_id << ") have different idempotent options. "
+              << "All variants of the same task must all be either idempotent "
+              << "or non-idempotent.";
+          error.raise();
+        }
       }
       else
         all_idempotent = impl->is_idempotent();
       // Check to see if this variant has already been registered
       if (variants.find(impl->vid) != variants.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_VARIANT_REGISTRATION,
-            "Duplicate variant ID %d registered for task %s (ID %d)", impl->vid,
-            get_name(false /*need lock*/), task_id)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Duplicate variant ID " << impl->vid << " registered for task "
+              << get_name(false /*need lock*/) << " (ID " << task_id << ").";
+        error.raise();
+      }
       variants[impl->vid] = impl;
       // Erase the pending VariantID if there is one
       pending_variants.erase(impl->vid);
@@ -1721,9 +1726,12 @@ namespace Legion {
           return finder->second;
       }
       if (!can_fail)
-        REPORT_LEGION_ERROR(
-            ERROR_UNREGISTERED_VARIANT, "Unable to find variant %d of task %s!",
-            variant_id, get_name())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Unable to find variant " << variant_id << " of task "
+              << get_name() << "!";
+        error.raise();
+      }
       return nullptr;
     }
 
@@ -1815,29 +1823,33 @@ namespace Legion {
             {
               // Note mutable so check to make sure that the bits are the same
               if (size != finder->second.buffer.get_size())
-                REPORT_LEGION_ERROR(
-                    ERROR_INCONSISTENT_SEMANTIC_TAG,
-                    "Inconsistent Semantic Tag value "
-                    "for tag %ld with different sizes of %zd"
-                    " and %zd for task impl",
-                    tag, size, finder->second.buffer.get_size())
-                // Otherwise do a bitwise comparison
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Inconsistent Semantic Tag value "
+                      << "for tag " << tag << " with different sizes of "
+                      << size << " and " << finder->second.buffer.get_size()
+                      << " for task impl";
+                error.raise();
+              }
+              // Otherwise do a bitwise comparison
+              {
+                const char* orig =
+                    (const char*)finder->second.buffer.get_buffer();
+                const char* next = (const char*)buffer;
+                for (unsigned idx = 0; idx < size; idx++)
                 {
-                  const char* orig =
-                      (const char*)finder->second.buffer.get_buffer();
-                  const char* next = (const char*)buffer;
-                  for (unsigned idx = 0; idx < size; idx++)
+                  char diff = orig[idx] ^ next[idx];
+                  if (diff)
                   {
-                    char diff = orig[idx] ^ next[idx];
-                    if (diff)
-                      REPORT_LEGION_ERROR(
-                          ERROR_INCONSISTENT_SEMANTIC_TAG,
-                          "Inconsistent Semantic Tag value "
-                          "for tag %ld with different values at"
-                          "byte %d for task impl, %x != %x",
-                          tag, idx, orig[idx], next[idx])
+                    Error error(LEGION_INTERFACE_EXCEPTION);
+                    error << "Inconsistent Semantic Tag value "
+                          << "for tag " << tag << " with different values at"
+                          << "byte " << idx << " for task impl, " << orig[idx]
+                          << " != " << next[idx];
+                    error.raise();
                   }
                 }
+              }
               added = false;
             }
             else
@@ -1951,9 +1963,9 @@ namespace Legion {
         // Nothing to wait on so we have to do something
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SEMANTIC_TAG,
-            "Invalid semantic tag %ld for task implementation", tag)
+        Error e(LEGION_INTERFACE_EXCEPTION);
+        e << "Invalid semantic tag " << tag << " for task implementation";
+        e.raise();
       }
       else
       {
@@ -1971,9 +1983,9 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SEMANTIC_TAG,
-            "invalid semantic tag %ld for task implementation", tag)
+        Error e(LEGION_INTERFACE_EXCEPTION);
+        e << "invalid semantic tag " << tag << " for task implementation";
+        e.raise();
       }
       result = finder->second.buffer.get_buffer();
       size = finder->second.buffer.get_size();
@@ -2182,11 +2194,12 @@ namespace Legion {
           execution_constraints.processor_constraint;
       if (proc_constraint.valid_kinds.empty())
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_MISSING_PROC_CONSTRAINT,
-            "NO PROCESSOR CONSTRAINT SPECIFIED FOR VARIANT"
-            " %s (ID %d) OF TASK %s (ID %d)! ASSUMING LOC_PROC!",
-            variant_name, vid, owner->get_name(false), owner->task_id)
+        Warning warning;
+        warning << "NO PROCESSOR CONSTRAINT SPECIFIED FOR VARIANT"
+                << " " << variant_name << " (ID " << vid << ") OF TASK "
+                << owner->get_name(false) << " (ID " << owner->task_id << ")!"
+                << " ASSUMING LOC_PROC!";
+        warning.raise();
         ready_event = ApEvent(Processor::register_task_by_kind(
             Processor::LOC_PROC, false /*global*/, descriptor_id,
             realm_descriptor, profiling_requests, user_data, user_data_size));
@@ -2212,18 +2225,23 @@ namespace Legion {
             own->task_id, vid, variant_name);
       // Check that global registration has portable implementations
       if (global && (!realm_descriptor.has_portable_implementations()))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_GLOBAL_VARIANT_REGISTRATION,
-            "Variant %s requested global registration without "
-            "a portable implementation.",
-            variant_name)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Variant " << variant_name
+              << " requested global registration without "
+              << "a portable implementation.";
+        error.raise();
+      }
       if (leaf_variant && inner_variant)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_TASK_VARIANT_PROPERTIES,
-            "Task variant %s (ID %d) of task %s (ID %d) is not "
-            "permitted to be both inner and leaf tasks "
-            "simultaneously.",
-            variant_name, vid, owner->get_name(), owner->task_id)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Task variant " << variant_name << " (ID " << vid
+              << ") of task " << owner->get_name() << " (ID " << owner->task_id
+              << ") is not "
+              << "permitted to be both inner and leaf tasks "
+              << "simultaneously.";
+        error.raise();
+      }
       if (runtime->record_registration)
         log_registration.print(
             "Task variant %s of task %s (ID %d) has Realm ID %ld", variant_name,
@@ -2297,11 +2315,14 @@ namespace Legion {
       if (constraint.is_valid())
         return constraint.can_use(kind);
       if (warn)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_MISSING_PROC_CONSTRAINT,
-            "NO PROCESSOR CONSTRAINT SPECIFIED FOR VARIANT"
-            " %s (ID %d) OF TASK %s (ID %d)! ASSUMING LOC_PROC!",
-            variant_name, vid, owner->get_name(false), owner->task_id)
+      {
+        Warning warning;
+        warning << "NO PROCESSOR CONSTRAINT SPECIFIED FOR VARIANT"
+                << " " << variant_name << " (ID " << vid << ") OF TASK "
+                << owner->get_name(false) << " (ID " << owner->task_id << ")!"
+                << " ASSUMING LOC_PROC!";
+        warning.raise();
+      }
       return (Processor::LOC_PROC == kind);
     }
 

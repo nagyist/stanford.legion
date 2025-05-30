@@ -493,26 +493,26 @@ namespace Legion {
             runtime->find_variant_impl(task_id, selected_variant);
         if (!impl->is_concurrent())
           return true;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s selected a concurrent variant %d for point task %s "
-            "(UID %lld) of a concurrent task launch but selected a "
-            "non-concurrent variant for a different point task. All point "
-            "tasks in a concurrent index task launch must be the same if "
-            "any of them are going to be a concurrent variant.",
-            mapper->get_mapper_name(), selected_variant, get_task_name(),
-            get_unique_id())
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Mapper " << *mapper << " selected a concurrent variant "
+              << selected_variant << " for point task " << *this
+              << " of a concurrent task launch but selected a "
+              << "non-concurrent variant for a different point task. All point "
+              << "tasks in a concurrent index task launch must be the same if "
+              << "any of them are going to be a concurrent variant.";
+        error.raise();
       }
       else if (vid != selected_variant)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s selected a concurrent variant %d for point task %s "
-            "(UID %lld) of a concurrent task launch but selected a different "
-            "concurrent variant %d for a different point task. All point "
-            "tasks in a concurrent index task launch must use the same "
-            "concurrent task variant.",
-            mapper->get_mapper_name(), selected_variant, get_task_name(),
-            get_unique_id(), vid)
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Mapper " << *mapper << " selected a concurrent variant "
+              << selected_variant << " for point task " << *this
+              << " of a concurrent task launch but selected a different "
+              << "concurrent variant " << vid << " for a different point task. "
+              << "All point tasks in a concurrent index task launch must use "
+              << "the same concurrent task variant.";
+        error.raise();
+      }
       return true;
     }
 
@@ -522,25 +522,29 @@ namespace Legion {
     {
       // Check that this is a concurrent index space task launch
       if (!is_concurrent())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_CONCURRENT_TASK_BARRIER,
-            "Illegal concurrent task barrier in task %s (UID %lld) which is "
-            "not part of a concurrent index space task. Concurrent task "
-            "barriers are only permitted in concurrent index space tasks.",
-            get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal concurrent task barrier in task " << *this
+              << " which is not part of a concurrent index space task. "
+              << "Concurrent task barriers are only permitted in concurrent "
+              << "index space tasks.";
+        error.raise();
+      }
       if (!concurrent_task_barrier.exists())
       {
         concurrent_task_barrier =
             slice_owner->get_concurrent_task_barrier(concurrent_color);
         if (!concurrent_task_barrier.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_CONCURRENT_TASK_BARRIER,
-              "Illegal concurrent task barrier in task %s (UID %lld) which is "
-              "not a task variant that requested support for concurrent "
-              "barriers. To request support you must mark the task variant "
-              "as needing 'concurrent_barrier' support in the task variant "
-              "registrar.",
-              get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error
+              << "Illegal concurrent task barrier in task " << *this
+              << " which is not a task variant that requested support for "
+              << "concurrent barriers. To request support you must mark the "
+              << "task variant as needing 'concurrent_barrier' support in the "
+              << "task variant registrar.";
+          error.raise();
+        }
       }
       runtime->phase_barrier_arrive(concurrent_task_barrier, 1 /*count*/);
       concurrent_task_barrier.wait();
@@ -792,24 +796,27 @@ namespace Legion {
         return;
       }
       if (concurrent_task)
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_CONCURRENT_EXECUTION,
-            "Concurrent index space task %s (UID %lld) has intra-index-space "
-            "dependences on region requirement %d. It is illegal to have "
-            "intra-index-space dependences on concurrent executions because "
-            "the resulting execution is guaranteed to hang.",
-            get_task_name(), get_unique_id(), index)
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Concurrent index space task " << *this
+              << " has intra-index-space dependences on region requirement "
+              << index
+              << ". It is illegal to have intra-index-space dependences "
+              << "on concurrent executions because the resulting execution is "
+              << "guaranteed to hang.";
+        error.raise();
+      }
       if (!check_collective_regions.empty())
       {
         if (mapper == nullptr)
           mapper = runtime->find_mapper(current_proc, map_id);
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s asked for collective region checks for index task "
-            "%s (UID %lld) but this task has intra-index-space task "
-            "dependences. Collective behavior cannot be analyzed on task "
-            "with inter-index-space dependences.",
-            mapper->get_mapper_name(), get_task_name(), get_unique_id())
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error
+            << "Mapper " << *mapper << " asked for collective region "
+            << "checks for index task " << *this << " but this task has "
+            << "intra-index-space task dependences. Collective behavior "
+            << "cannot be analyzed on task with inter-index-space dependences.";
+        error.raise();
       }
       // Scan through the list until we find ourself
       for (unsigned idx = 0; idx < dependences.size(); idx++)

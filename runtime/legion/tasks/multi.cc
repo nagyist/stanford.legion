@@ -134,38 +134,45 @@ namespace Legion {
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_slice_task(this, input, output);
       if (output.slices.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output from invocation of 'slice_task' "
-            "call on mapper %s. Mapper failed to specify an slices "
-            "for task %s (ID %lld).",
-            mapper->get_mapper_name(), get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'slice_task' "
+              << "call on mapper " << mapper->get_mapper_name()
+              << ". Mapper failed to specify any slices for task "
+              << get_task_name() << " (ID " << get_unique_id() << ").";
+        error.raise();
+      }
       size_t total_points = 0;
       for (unsigned idx = 0; idx < output.slices.size(); idx++)
       {
         Mapper::TaskSlice& slice = output.slices[idx];
         if (!slice.proc.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output from invocation of 'slice_task' "
-              "on mapper %s. Mapper returned a slice for task "
-              "%s (ID %lld) with an invalid processor " IDFMT ".",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id(),
-              slice.proc.id)
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'slice_task' "
+                << "on mapper " << mapper->get_mapper_name()
+                << ". Mapper returned a slice for task " << get_task_name()
+                << " (ID " << get_unique_id() << ") with an invalid processor "
+                << slice.proc.id << ".";
+          error.raise();
+        }
         // Check to see if we need to get an index space for this domain
         if (!slice.domain_is.exists() && (slice.domain.get_volume() > 0))
           slice.domain_is = runtime->find_or_create_index_slice_space(
               slice.domain, slice.take_ownership, internal_space.get_type_tag(),
               get_provenance());
         if (slice.domain_is.get_type_tag() != internal_space.get_type_tag())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output from invocation of 'slice_task' "
-              "on mapper %s. Mapper returned slice index space %llu "
-              "for task %s (UID %lld) with a different type than "
-              "original index space to be sliced.",
-              mapper->get_mapper_name(), slice.domain_is.get_id(),
-              get_task_name(), get_unique_id());
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output from invocation of 'slice_task' "
+                << "on mapper " << mapper->get_mapper_name()
+                << ". Mapper returned slice index space "
+                << slice.domain_is.get_id() << " for task " << get_task_name()
+                << " (UID " << get_unique_id()
+                << ") with a different type than original index space to be "
+                   "sliced.";
+          error.raise();
+        }
         if (runtime->safe_mapper)
         {
           // Check to make sure the domain is not empty
@@ -179,12 +186,14 @@ namespace Legion {
           else
             total_points += volume;
           if (empty)
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_MAPPER_OUTPUT,
-                "Invalid mapper output from invocation of 'slice_task' "
-                "on mapper %s. Mapper returned an empty slice for task "
-                "%s (ID %lld).",
-                mapper->get_mapper_name(), get_task_name(), get_unique_id())
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'slice_task' "
+                  << "on mapper " << mapper->get_mapper_name()
+                  << ". Mapper returned an empty slice for task "
+                  << get_task_name() << " (ID " << get_unique_id() << ").";
+            error.raise();
+          }
         }
         SliceTask* new_slice = this->clone_as_slice_task(
             slice.domain_is, slice.proc, slice.recurse, slice.stealable);
@@ -192,14 +201,17 @@ namespace Legion {
       }
       // If the volumes don't match, then something bad happend in the mapper
       if (runtime->safe_mapper && (total_points != input.domain.get_volume()))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output from invocation of 'slice_task' "
-            "on mapper %s. Mapper returned slices with a total "
-            "volume %ld that does not match the expected volume of "
-            "%zd when slicing task %s (ID %lld).",
-            mapper->get_mapper_name(), long(total_points),
-            input.domain.get_volume(), get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'slice_task' "
+              << "on mapper " << mapper->get_mapper_name()
+              << ". Mapper returned slices with a total volume "
+              << long(total_points)
+              << " that does not match the expected volume of "
+              << input.domain.get_volume() << " when slicing task "
+              << get_task_name() << " (ID " << get_unique_id() << ").";
+        error.raise();
+      }
       if (output.verify_correctness)
       {
         std::vector<IndexSpace> slice_spaces(slices.size());
@@ -690,17 +702,14 @@ namespace Legion {
       MapperManager* bad_mapper = mapper;
       if (bad_mapper == nullptr)
         bad_mapper = runtime->find_mapper(current_proc, map_id);
-      // TODO: update this error message to name the bad points
-      REPORT_LEGION_ERROR(
-          ERROR_INVALID_MAPPER_OUTPUT,
-          "Mapper %s performed illegal mapping of concurrent index "
-          "space task %s (UID %lld) by mapping multiple points to "
-          "the same processor " IDFMT
-          ". All point tasks must be "
-          "mapped to different processors for concurrent execution "
-          "of index space tasks.",
-          bad_mapper->get_mapper_name(), get_task_name(), get_unique_id(),
-          proc.id)
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Mapper " << bad_mapper->get_mapper_name()
+            << " performed illegal mapping of concurrent index space task "
+            << *this << " by mapping points " << one << " and " << two
+            << " to the same " << proc.kind() << " processor " << proc.id
+            << ". All point tasks must be mapped to different processors for "
+            << "concurrent execution of index space tasks.";
+      error.raise();
     }
 
   }  // namespace Internal

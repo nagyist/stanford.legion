@@ -111,21 +111,23 @@ namespace Legion {
       {
         create_output_regions(*outputs);
         if (launcher.predicate != Predicate::TRUE_PRED)
-          REPORT_LEGION_ERROR(
-              ERROR_OUTPUT_REGIONS_IN_PREDICATED_TASK,
-              "Output requirements are disallowed for tasks launched with "
-              "predicates, but preidcated task launch for task %s (%lld) in "
-              "parent task %s (UID %lld) is used with output requirements.",
-              get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Output requirements are disallowed for tasks launched with "
+                << "predicates, but preidcated task launch for task " << *this
+                << " in parent task " << *parent_ctx
+                << " is used with output requirements.";
+          error.raise();
+        }
         if (get_trace() != nullptr)
-          REPORT_LEGION_ERROR(
-              ERROR_OUTPUT_REGIONS_IN_TRACE,
-              "Output requirements are disallowed for tasks launched inside "
-              "traces. Task %s (UID %lld) in parent task %s (UID %lld) has "
-              "output requirements in trace %d.",
-              get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id(), get_trace()->get_trace_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Output requirements are disallowed for tasks launched "
+                << "inside traces. Task " << *this << " in parent task "
+                << *parent_ctx << " has output requirements in trace "
+                << get_trace()->get_trace_id() << ".";
+          error.raise();
+        }
       }
       if (launcher.predicate != Predicate::TRUE_PRED &&
           !launcher.elide_future_return)
@@ -140,13 +142,15 @@ namespace Legion {
       if (launcher.local_function_task)
       {
         if (!regions.empty())
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_LOCAL_FUNCTION_TASK_LAUNCH,
-              "Local function task launch for task %s in parent task %s "
-              "(UID %lld) has %zd region requirements. Local function tasks "
-              "are not permitted to have any region requirements.",
-              get_task_name(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id(), regions.size())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Local function task launch for task " << get_task_name()
+                << " in parent task " << parent_ctx->get_task_name() << " (UID "
+                << parent_ctx->get_unique_id() << ") has " << regions.size()
+                << " region requirements. Local function tasks "
+                << "are not permitted to have any region requirements.";
+          error.raise();
+        }
         local_function = true;
       }
       // Get a future from the parent context to use as the result
@@ -254,13 +258,14 @@ namespace Legion {
         const bool inline_task = select_task_options(false /*prioritize*/);
         if (inline_task)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_MAPPER_REQUESTED_INLINE,
-              "Mapper %s requested to inline task %s "
-              "(UID %lld) but the 'enable_inlining' option was "
-              "not set on the task launcher so the request is "
-              "being ignored",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id());
+          Warning warning;
+          warning << "Mapper " << mapper->get_mapper_name()
+                  << " requested to inline task " << get_task_name() << " (UID "
+                  << get_unique_id()
+                  << ") but the 'enable_inlining' option was "
+                  << "not set on the task launcher so the request is "
+                  << "being ignored.";
+          warning.raise();
         }
       }
       // local function tasks have no region requirements so nothing below
@@ -1243,11 +1248,14 @@ namespace Legion {
             std::numeric_limits<ShardingID>::max(), true};
         mapper->invoke_task_select_sharding_functor(this, *input, output);
         if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s failed to pick a valid sharding functor for "
-              "task %s (UID %lld)",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << mapper->get_mapper_name()
+                << " failed to pick a valid sharding functor for "
+                << "task " << get_task_name() << " (UID " << get_unique_id()
+                << ").";
+          error.raise();
+        }
         this->sharding_functor = output.chosen_functor;
         sharding_function =
             repl_ctx->shard_manager->find_sharding_function(sharding_functor);
@@ -1262,12 +1270,15 @@ namespace Legion {
         sharding_collective->contribute(this->sharding_functor);
         if (sharding_collective->is_target() &&
             !sharding_collective->validate(this->sharding_functor))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s chose different sharding functions "
-              "for individual task %s (UID %lld) in %s (UID %lld)",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id(),
-              parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << mapper->get_mapper_name()
+                << " chose different sharding functions "
+                << "for individual task " << get_task_name() << " (UID "
+                << get_unique_id() << ") in " << parent_ctx->get_task_name()
+                << " (UID " << parent_ctx->get_unique_id() << ").";
+          error.raise();
+        }
       }
       // Now we can do the normal prepipeline stage
       IndividualTask::trigger_prepipeline_stage();

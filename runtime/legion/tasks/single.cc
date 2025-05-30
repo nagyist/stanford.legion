@@ -1627,14 +1627,15 @@ namespace Legion {
           if (!finder->second.is_bounded())
           {
             MemoryManager* manager = runtime->find_memory_manager(it->first);
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_TRACING_UNBOUND_MEMORY_POOL,
-                "Detected unbounded pool in trace. Mapper %s requested to "
-                "trace task %s (UID %lld) with an unbounded memory pool in "
-                "%s memory. Unbounded pools are not permitted in traces and "
-                "will prevent this recording of the trace from being replayed.",
-                mapper->get_mapper_name(), get_task_name(), get_unique_id(),
-                manager->get_name())
+            Warning warning;
+            warning
+                << "Detected unbounded pool in trace. Mapper " << *mapper
+                << " requested to trace task " << *this
+                << " with an unbounded memory pool in " << manager->get_name()
+                << " memory " << manager->memory
+                << ". Unbounded pools are not permitted in traces and will "
+                << "prevent this recording of the trace from being replayed.";
+            warning.raise();
           }
         }
         const TraceLocalID tlid = get_trace_local_id();

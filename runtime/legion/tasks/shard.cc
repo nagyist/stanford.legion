@@ -236,27 +236,31 @@ namespace Legion {
       // mutate the target_processors from the shard processor
       if ((output.target_procs.size() != 1) ||
           (output.target_procs.front() != input.shard_processor))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s provided invalid target_processors from call to "
-            "'map_task' for replicated task %s (UID %lld). Replicated "
-            "tasks are only permitted to have one target processor and "
-            "it must be exactly 'input.shard_procesor' as that is where "
-            "this replicated copy of the task has been assigned to run "
-            "by this same mapper.",
-            mapper->get_mapper_name(), get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Mapper " << mapper->get_mapper_name()
+              << " provided invalid target_processors from call to "
+              << "'map_task' for replicated task " << get_task_name()
+              << " (UID " << get_unique_id()
+              << "). Replicated tasks are only permitted to have one target "
+              << "processor and it must be exactly 'input.shard_procesor' as "
+              << "that is where this replicated copy of the task has been "
+              << "assigned to run by this same mapper.";
+        error.raise();
+      }
       if (output.chosen_variant != input.shard_variant)
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output from invocation of '%s' on "
-            "mapper %s. Mapper specified an invalid task variant "
-            "of ID %d for replicated task %s (ID %lld), which "
-            "differs from the specified 'input.shard_variant' %d "
-            "previously chosen by the mapper in 'replicate_task'. "
-            "The mapper is required to maintain the previously "
-            "selected variant in the output 'map_task'.",
-            "map_task", mapper->get_mapper_name(), output.chosen_variant,
-            get_task_name(), get_unique_id(), input.shard_variant)
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of 'map_task' on "
+              << "mapper " << *mapper << ". Mapper specified an invalid task "
+              << "variant of ID " << output.chosen_variant
+              << " for replicated task " << *this << ", which "
+              << "differs from the specified 'input.shard_variant' "
+              << input.shard_variant << " previously chosen by the mapper "
+              << "in 'replicate_task'. The mapper is required to maintain the "
+              << "previously selected variant in the output of 'map_task'.";
+        error.raise();
+      }
       if (!is_leaf() && !regions.empty() && runtime->safe_mapper)
       {
         legion_assert(mapper != nullptr);
@@ -329,13 +333,14 @@ namespace Legion {
         Processor target, std::vector<SingleTask*>& others)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_INVALID_MAPPER_OUTPUT,
-          "Mapper %s requested that shard task %s (UID %lld) be moved to "
-          "a remote node. Shard tasks must be mapped to the processors "
-          "assigned by replicate_task and therefore cannot be moved to "
-          "a remote node.",
-          mapper->get_mapper_name(), get_task_name(), get_unique_id())
+      Error error(LEGION_MAPPER_EXCEPTION);
+      error << "Mapper " << mapper->get_mapper_name()
+            << " requested that shard task " << get_task_name() << " (UID "
+            << get_unique_id()
+            << ") be moved to a remote node. Shard tasks must be mapped to "
+            << "the processors assigned by replicate_task and therefore cannot "
+            << "be moved to a remote node.";
+      error.raise();
       return false;
     }
 
@@ -426,14 +431,16 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardTask::perform_concurrent_task_barrier(void)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_CONCURRENT_TASK_BARRIER,
-            "Illegal concurrent task barrier performed in replicated task %s "
-            "(UID %lld). Concurrent task barriers are not permitted in "
-            "replicated tasks. They can only be performed in concurrent index "
-            "space tasks.",
-            get_task_name(), get_unique_id())}
+    {
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error
+          << "Illegal concurrent task barrier performed in replicated task "
+          << get_task_name() << " (UID " << get_unique_id()
+          << "). Concurrent task barriers are not permitted in "
+          << "replicated tasks. They can only be performed in concurrent index "
+          << "space tasks.";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     RtEvent ShardTask::convert_collective_views(

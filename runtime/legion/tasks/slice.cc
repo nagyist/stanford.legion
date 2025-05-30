@@ -126,13 +126,15 @@ namespace Legion {
       for (unsigned idx = 1; idx < points.size(); idx++)
       {
         if (target_space != points[idx]->target_proc.address_space())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output: two different points in one "
-              "slice of %s (UID %lld) mapped to processors in two"
-              "different address spaces (%d and %d) which is illegal.",
-              get_task_name(), get_unique_id(), target_space,
-              points[idx]->target_proc.address_space())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output: two different points in one "
+                << "slice of " << *this << " mapped to processors in two "
+                << "different address spaces (" << target_space << " and "
+                << points[idx]->target_proc.address_space()
+                << ") which is illegal.";
+          error.raise();
+        }
       }
     }
 
@@ -1113,18 +1115,13 @@ namespace Legion {
         if (output_extents.find(color) != output_extents.end())
         {
           const OutputRequirement& req = output_regions[index];
-          std::stringstream ss;
-          ss << "(" << color[0];
-          for (int dim = 1; dim < color.dim; ++dim) ss << "," << color[dim];
-          ss << ")";
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_OUTPUT_REGION_PROJECTION,
-              "A projection functor for every output requirement must be "
-              "bijective, but projection functor %u for output requirement %u "
-              "in task %s (UID: %lld) mapped more than one point in the launch "
-              "domain to the same subregion of color %s.",
-              req.projection, index, get_task_name(), get_unique_op_id(),
-              ss.str().c_str());
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "A projection functor for every output requirement must be "
+                << "bijective, but projection functor " << req.projection
+                << " for output requirement " << index << " in " << *this
+                << " mapped more than one point in the launch domain to the "
+                << "same subregion of color " << color << ".";
+          error.raise();
         }
         output_extents[color] = extent;
         legion_assert(output_extents.size() <= points.size());
