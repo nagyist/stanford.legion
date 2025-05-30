@@ -118,13 +118,15 @@ namespace Legion {
       if (output_extents.size() == num_tasks)
         return;
 
-      REPORT_LEGION_ERROR(
-          ERROR_INVALID_OUTPUT_REGION_PROJECTION,
-          "A projection functor for every output requirement must be "
-          "bijective, but projection functor %u for output requirement %u "
-          "in task %s (UID: %lld) mapped more than one point in the launch "
-          "domain to the same subregion.",
-          req.projection, index, get_task_name(), get_unique_op_id());
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "A projection functor for every output requirement must be "
+               "bijective, "
+            << "but projection functor " << req.projection
+            << " for output requirement " << index << " in task "
+            << get_task_name() << " (UID: " << get_unique_op_id()
+            << ") mapped more than one point in the launch domain to the same "
+               "subregion.";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -154,15 +156,16 @@ namespace Legion {
                 for (int dim = 1; dim < color.dim; ++dim)
                   ss << "," << color[dim];
                 ss << ")";
-                REPORT_LEGION_ERROR(
-                    ERROR_INVALID_OUTPUT_REGION_PROJECTION,
-                    "A projection functor for every output requirement must be "
-                    "bijective, but projection functor %u for output "
-                    "requirement "
-                    "%u in task %s (UID: %lld) mapped more than one point "
-                    "in the launch domain to the same subregion of color %s.",
-                    req.projection, idx, get_task_name(), get_unique_op_id(),
-                    ss.str().c_str());
+                Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+                error << "A projection functor for every output requirement "
+                         "must be bijective, "
+                      << "but projection functor " << req.projection
+                      << " for output requirement " << idx << " in task "
+                      << get_task_name() << " (UID: " << get_unique_id()
+                      << ") mapped more than one point in the launch domain to "
+                         "the same subregion of color "
+                      << ss.str() << ".";
+                error.raise();
               }
               target.insert(*it);
             }
@@ -241,14 +244,15 @@ namespace Legion {
             const DomainPoint& neighbor_extent = it->second;
             if (extent[dim] != neighbor_extent[dim])
             {
-              std::stringstream ss;
-              ss << "Point task " << color << " returned an output of extent "
-                 << extent[dim] << " for dimension " << dim
-                 << ", but an adjacent point task returned an output of extent "
-                 << neighbor_extent[dim] << ". Please make sure the outputs "
-                 << "from point tasks are aligned.";
-              REPORT_LEGION_ERROR(
-                  ERROR_UNALIGNED_OUTPUT_REGION, "%s", ss.str().c_str());
+              Error error(LEGION_INTERFACE_EXCEPTION);
+              error << "Point task " << color
+                    << " returned an output of extent " << extent[dim]
+                    << " for dimension " << dim
+                    << ", but an adjacent point task returned an output of "
+                       "extent "
+                    << neighbor_extent[dim] << ". Please make sure the outputs "
+                    << "from point tasks are aligned.";
+              error.raise();
             }
           }
         }
@@ -435,21 +439,29 @@ namespace Legion {
       if (outputs != nullptr)
       {
         if (launcher.predicate != Predicate::TRUE_PRED)
-          REPORT_LEGION_ERROR(
-              ERROR_OUTPUT_REGIONS_IN_PREDICATED_TASK,
-              "Output requirements are disallowed for tasks launched with "
-              "predicates, but preidcated task launch for task %s (%lld) in "
-              "parent task %s (UID %lld) is used with output requirements.",
-              get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Output requirements are disallowed for tasks launched with "
+                   "predicates, "
+                << "but predicated task launch for task " << get_task_name()
+                << " (" << get_unique_id() << ") in parent task "
+                << parent_ctx->get_task_name() << " (UID "
+                << parent_ctx->get_unique_id()
+                << ") is used with output requirements.";
+          error.raise();
+        }
         if (get_trace() != nullptr)
-          REPORT_LEGION_ERROR(
-              ERROR_OUTPUT_REGIONS_IN_TRACE,
-              "Output requirements are disallowed for tasks launched inside "
-              "traces. Task %s (UID %lld) in parent task %s (UID %lld) has "
-              "output requirements in trace %d.",
-              get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id(), get_trace()->get_trace_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Output requirements are disallowed for tasks launched "
+                   "inside traces. "
+                << "Task " << get_task_name() << " (UID " << get_unique_id()
+                << ") in parent task " << parent_ctx->get_task_name()
+                << " (UID " << parent_ctx->get_unique_id()
+                << ") has output requirements in trace "
+                << get_trace()->get_trace_id() << ".";
+          error.raise();
+        }
       }
       if (!launcher.elide_future_return)
       {
@@ -465,13 +477,17 @@ namespace Legion {
       // Make sure you do this after making the output regions
       compute_parent_indexes(false /*force*/);
       if (concurrent_task && parent_ctx->is_concurrent_context())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_CONCURRENT_EXECUTION,
-            "Illegal nested concurrent index space task launch %s (UID %lld) "
-            "inside task %s (UID %lld) which has a concurrent ancesstor (must "
-            "epoch or index task). Nested concurrency is not supported.",
-            get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Illegal nested concurrent index space task launch "
+            << get_task_name() << " (UID " << get_unique_id()
+            << ") inside task " << parent_ctx->get_task_name() << " (UID "
+            << parent_ctx->get_unique_id()
+            << ") which has a concurrent ancestor (must epoch or index task). "
+            << "Nested concurrency is not supported.";
+        error.raise();
+      }
       if (spy_logging_level > NO_SPY_LOGGING)
       {
         // Don't log this yet if we're part of a must epoch operation
@@ -563,30 +579,40 @@ namespace Legion {
       deterministic_redop = deterministic;
       serdez_redop_fns = Runtime::get_serdez_redop_fns(redop);
       if (!reduction_op->identity)
-        REPORT_LEGION_ERROR(
-            ERROR_REDUCTION_OPERATION_INDEX,
-            "Reduction operation %d for index task launch %s "
-            "(ID %lld) is not foldable.",
-            redop, get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Reduction operation " << redop << " for index task launch "
+              << get_task_name() << " (ID " << get_unique_id()
+              << ") is not foldable.";
+        error.raise();
+      }
       initialize_base_task(ctx, launcher.predicate, task_id, provenance);
       if (outputs != nullptr)
       {
         if (launcher.predicate != Predicate::TRUE_PRED)
-          REPORT_LEGION_ERROR(
-              ERROR_OUTPUT_REGIONS_IN_PREDICATED_TASK,
-              "Output requirements are disallowed for tasks launched with "
-              "predicates, but preidcated task launch for task %s (%lld) in "
-              "parent task %s (UID %lld) is used with output requirements.",
-              get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Output requirements are disallowed for tasks launched with "
+                   "predicates, "
+                << "but predicated task launch for task " << get_task_name()
+                << " (" << get_unique_id() << ") in parent task "
+                << parent_ctx->get_task_name() << " (UID "
+                << parent_ctx->get_unique_id()
+                << ") is used with output requirements.";
+          error.raise();
+        }
         if (get_trace() != nullptr)
-          REPORT_LEGION_ERROR(
-              ERROR_OUTPUT_REGIONS_IN_TRACE,
-              "Output requirements are disallowed for tasks launched inside "
-              "traces. Task %s (UID %lld) in parent task %s (UID %lld) has "
-              "output requirements in trace %d.",
-              get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
-              parent_ctx->get_unique_id(), get_trace()->get_trace_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Output requirements are disallowed for tasks launched "
+                   "inside traces. "
+                << "Task " << get_task_name() << " (UID " << get_unique_id()
+                << ") in parent task " << parent_ctx->get_task_name()
+                << " (UID " << parent_ctx->get_unique_id()
+                << ") has output requirements in trace "
+                << get_trace()->get_trace_id() << ".";
+          error.raise();
+        }
       }
       if (launcher.predicate != Predicate::TRUE_PRED)
         initialize_predicate(
@@ -609,13 +635,17 @@ namespace Legion {
       // Make sure you do this after making the output regions
       compute_parent_indexes(false /*force*/);
       if (concurrent_task && parent_ctx->is_concurrent_context())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_CONCURRENT_EXECUTION,
-            "Illegal nested concurrent index space task launch %s (UID %lld) "
-            "inside task %s (UID %lld) which has a concurrent ancesstor (must "
-            "epoch or index task). Nested concurrency is not supported.",
-            get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Illegal nested concurrent index space task launch "
+            << get_task_name() << " (UID " << get_unique_id()
+            << ") inside task " << parent_ctx->get_task_name() << " (UID "
+            << parent_ctx->get_unique_id()
+            << ") which has a concurrent ancestor (must epoch or index task). "
+            << "Nested concurrency is not supported.";
+        error.raise();
+      }
       if ((spy_logging_level > NO_SPY_LOGGING) && track)
       {
         LegionSpy::log_index_task(
@@ -657,29 +687,36 @@ namespace Legion {
           if (IS_WRITE_DISCARD(req))
           {
             if (!IS_COLLECTIVE(req))
-              REPORT_LEGION_ERROR(
-                  ERROR_ALIASED_INTERFERING_REGION,
-                  "Parent task %s (UID %lld) issued index space task %s "
-                  "(UID %lld) with interfering region requirement %d that "
-                  "requested write-discard privileges for all point tasks "
-                  "on the same logical region without indicating that they "
-                  "should be performed concurrently. If you intend for all "
-                  "the point tasks to perform independent writes to the same "
-                  "logical region then you must mark the region requirement "
-                  "as being a collective write.",
-                  parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                  get_task_name(), get_unique_op_id(), idx)
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error
+                  << "Parent task " << *parent_ctx
+                  << " issued index space task " << *this
+                  << " with interfering region requirement " << idx << " that "
+                  << "requested write-discard privileges for all point tasks "
+                  << "on the same logical region without indicating that they "
+                  << "should be performed concurrently. If you intend for all "
+                  << "the point tasks to perform independent writes to the "
+                     "same "
+                  << "logical region then you must mark the region requirement "
+                  << "as being a collective write.";
+              error.raise();
+            }
           }
           else if (runtime->runtime_warnings)
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_NON_SCALABLE_IDENTITY_PROJECTION,
-                "Parent task %s (UID %lld) issued index space task %s "
-                "(UID %lld) with non-scalable projection region requirement %d "
-                "that ensures all point tasks will be reading and writing to "
-                "the same logical region. This implies there will be no task "
-                "parallelism in this index space task launch.",
-                parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                get_task_name(), get_unique_op_id(), idx)
+          {
+            Warning warning;
+            warning << "Parent task " << *parent_ctx
+                    << " issued index space task " << *this
+                    << " with non-scalable projection region requirement "
+                    << idx
+                    << "that ensures all point tasks will be reading and "
+                       "writing to "
+                    << "the same logical region. This implies there will be no "
+                       "task "
+                    << "parallelism in this index space task launch.";
+            warning.raise();
+          }
         }
       }
     }
@@ -720,13 +757,12 @@ namespace Legion {
         const bool inline_task = select_task_options(false /*prioritize*/);
         if (inline_task)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_MAPPER_REQUESTED_INLINE,
-              "Mapper %s requested to inline task %s "
-              "(UID %lld) but the 'enable_inlining' option was "
-              "not set on the task launcher so the request is "
-              "being ignored",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id());
+          Warning warning;
+          warning
+              << "Mapper " << *mapper << " requested to inline task " << *this
+              << " but the 'enable_inlining' option was "
+              << "not set on the task launcher so the request is being ignored";
+          warning.raise();
         }
       }
       if (spy_logging_level > NO_SPY_LOGGING)
@@ -766,33 +802,44 @@ namespace Legion {
           color_space = req.color_space;
 
           if (!color_space.exists())
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_OUTPUT_REGION_PROJECTION,
-                "Output region %u of task %s (UID: %lld) requests projection "
-                "of ID %u but no color space is specified. "
-                "Every output requirement with a non-identity projection must "
-                "have a color space set.",
-                idx, get_task_name(), get_unique_op_id(), req.projection);
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Output region " << idx << " of task " << get_task_name()
+                  << " (UID: " << get_unique_op_id()
+                  << ") requests projection of ID " << req.projection
+                  << " but no color space is specified. Every output "
+                  << "requirement with a non-identity projection must have a "
+                     "color space set.";
+            error.raise();
+          }
 
           IndexSpaceNode* node = runtime->get_node(color_space);
           Domain color_domain = node->get_tight_domain();
           if (req.global_indexing && !color_domain.dense())
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_OUTPUT_REGION_PROJECTION,
-                "The global indexing mode requires the color space of an "
-                "output requirement to be dense, but a sparse color space is "
-                "assigned to output requirement %u of task %s (UID: %lld).",
-                idx, get_task_name(), get_unique_op_id());
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "The global indexing mode requires the color space of an "
+                     "output "
+                  << "requirement to be dense, but a sparse color space is "
+                     "assigned to "
+                  << "output requirement " << idx << " of task "
+                  << get_task_name() << " (UID: " << get_unique_op_id() << ").";
+            error.raise();
+          }
 
           if (color_domain.get_volume() != num_tasks)
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_OUTPUT_REGION_PROJECTION,
-                "Output region %u of task %s (UID: %lld) requests projection "
-                "but the volume of the color space is different from the total "
-                "number of point tasks. "
-                "The mapping between the launch domain and the subregions must "
-                "be bijective.",
-                idx, get_task_name(), get_unique_op_id());
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error
+                << "Output region " << idx << " of task " << get_task_name()
+                << " (UID: " << get_unique_op_id()
+                << ") requests projection but the "
+                << "volume of the color space is different from the total "
+                   "number of "
+                << "point tasks. The mapping between the launch domain and the "
+                << "subregions must be bijective.";
+            error.raise();
+          }
         }
         int color_dim = color_space.get_dim();
 
@@ -804,15 +851,17 @@ namespace Legion {
           if (req.global_indexing)
           {
             if (color_dim != requested_dim)
-              REPORT_LEGION_ERROR(
-                  ERROR_INVALID_OUTPUT_REGION_DOMAIN,
-                  "Output region %u of task %s (UID: %lld) is requested to "
-                  "have "
-                  "%d dimensions, but the color space has %d dimensions. "
-                  "Dimensionalities of output regions must be the same as the "
-                  "color space's in global indexing mode.",
-                  idx, get_task_name(), get_unique_op_id(), requested_dim,
-                  launch_space.get_dim());
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error << "Output region " << idx << " of task " << get_task_name()
+                    << " (UID: " << get_unique_op_id() << ") is requested to "
+                    << "have " << requested_dim
+                    << " dimensions, but the color space has " << color_dim
+                    << " dimensions. Dimensionalities of output regions must "
+                       "be the same as "
+                    << "the color space's in global indexing mode.";
+              error.raise();
+            }
 
             type_tag = req.type_tag;
           }
@@ -824,13 +873,17 @@ namespace Legion {
             // Before creating the index space, we make sure that
             // the dimensionality (N+1) does not exceed LEGION_MAX_DIM.
             if (color_dim + requested_dim > LEGION_MAX_DIM)
-              REPORT_LEGION_ERROR(
-                  ERROR_INVALID_OUTPUT_REGION_DOMAIN,
-                  "Dimensionality of output region %u of task %s (UID: %lld) "
-                  "exceeded LEGION_MAX_DIM. You may rebuild your code with a "
-                  "bigger LEGION_MAX_DIM value or reduce dimensionality of "
-                  "either the color space or the output region.",
-                  idx, get_task_name(), get_unique_op_id());
+            {
+              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+              error << "Dimensionality of output region " << idx << " of task "
+                    << get_task_name() << " (UID: " << get_unique_op_id()
+                    << ") exceeded LEGION_MAX_DIM. You may rebuild your code "
+                       "with a bigger "
+                    << "LEGION_MAX_DIM value or reduce dimensionality of "
+                       "either the color "
+                    << "space or the output region.";
+              error.raise();
+            }
 
             OutputRegionTagCreator creator(&type_tag, color_dim);
             Internal::NT_TemplateHelper::demux<OutputRegionTagCreator>(
@@ -1402,13 +1455,16 @@ namespace Legion {
                /*nothing*/)
           {
             if (!it->exists())
-              REPORT_LEGION_ERROR(
-                  ERROR_INVALID_MAPPER_OUTPUT,
-                  "Invalid mapper output. Mapper %s requested index task "
-                  "reduction future be mapped to a NO_MEMORY for task %s "
-                  "(UID %lld) which is illegal. All requests for mapping "
-                  "output futures must be mapped to actual memories.",
-                  mapper->get_mapper_name(), get_task_name(), unique_op_id)
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Invalid mapper output. Mapper " << *mapper
+                    << " requested index task reduction future be mapped to a "
+                    << "NO_MEMORY for task " << *this
+                    << " which is illegal. All "
+                    << "requests for mapping output futures must be mapped to "
+                    << "actual memories.";
+              error.raise();
+            }
             if (unique_mems.find(*it) == unique_mems.end())
             {
               unique_mems.insert(*it);
@@ -1419,13 +1475,15 @@ namespace Legion {
           }
         }
         else if (!(target_mems.begin()->exists()))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output. Mapper %s requested index task "
-              "reduction future be mapped to a NO_MEMORY for task %s "
-              "(UID %lld) which is illegal. All requests for mapping "
-              "output futures must be mapped to actual memories.",
-              mapper->get_mapper_name(), get_task_name(), unique_op_id)
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Invalid mapper output. Mapper " << *mapper
+                << " requested index task reduction future be mapped to a "
+                << "NO_MEMORY for task " << *this << " which is illegal. "
+                << "All requests for mapping output futures must be mapped "
+                << "to actual memories.";
+          error.raise();
+        }
       }
       else
         target_mems.emplace_back(runtime->runtime_system_memory);
@@ -1588,22 +1646,28 @@ namespace Legion {
           legion_assert(serdez_redop_fns != nullptr);
           Provenance* provenance = get_provenance();
           if (provenance != nullptr)
-            REPORT_LEGION_ERROR(
-                ERROR_FUTURE_SIZE_BOUNDS_EXCEEDED,
-                "Index Task %s (UID %lld, provenance: %.*s) produced a "
-                "reduced future value of %zd bytes which is larger than "
-                "the dynamically specified bounds of %zd bytes.",
-                get_task_name(), get_unique_id(),
-                int(provenance->human.length()), provenance->human.data(),
-                reduction_instances.front()->size, *reduction_future_size)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Index Task " << get_task_name() << " (UID "
+                  << get_unique_id() << ", provenance: " << provenance->human
+                  << ") produced a reduced "
+                  << "future value of " << reduction_instances.front()->size
+                  << " bytes which is larger than the dynamically specified "
+                     "bounds "
+                  << "of " << *reduction_future_size << " bytes.";
+            error.raise();
+          }
           else
-            REPORT_LEGION_ERROR(
-                ERROR_FUTURE_SIZE_BOUNDS_EXCEEDED,
-                "Index Task %s (UID %lld) produced a reduced future value "
-                "of %zd bytes which is larger than the dynamically "
-                "specified bounds of %zd bytes.",
-                get_task_name(), get_unique_id(),
-                reduction_instances.front()->size, *reduction_future_size)
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Index Task " << get_task_name() << " (UID "
+                  << get_unique_id() << ") produced a reduced future value of "
+                  << reduction_instances.front()->size
+                  << " bytes which is larger than "
+                  << "the dynamically specified bounds of "
+                  << *reduction_future_size << " bytes.";
+            error.raise();
+          }
         }
         reduction_future.impl->set_results(
             effects, reduction_instances, reduction_metadata,
@@ -3097,12 +3161,15 @@ namespace Legion {
         sharding_collective->contribute(this->sharding_functor);
         if (sharding_collective->is_target() &&
             !sharding_collective->validate(this->sharding_functor))
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s chose different sharding functions "
-              "for index task %s (UID %lld) in %s (UID %lld)",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id(),
-              parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+        {
+          Error error(LEGION_MAPPER_EXCEPTION);
+          error << "Mapper " << mapper->get_mapper_name()
+                << " chose different sharding functions for index task "
+                << get_task_name() << " (UID " << get_unique_id() << ") in "
+                << parent_ctx->get_task_name() << " (UID "
+                << parent_ctx->get_unique_id() << ").";
+          error.raise();
+        }
       }
       // Now we can do the normal prepipeline stage
       IndexTask::trigger_prepipeline_stage();
@@ -3133,17 +3200,19 @@ namespace Legion {
           size_t num_regions;
           derez.deserialize(num_regions);
           if (num_regions != check_collective_regions.size())
-            REPORT_LEGION_ERROR(
-                ERROR_INVALID_MAPPER_OUTPUT,
-                "Mapper %s provided different number of logical regions to "
-                "check for collective views on shards 0 and %d of task %s "
-                "(UID %lld). Shard 0 provided %zd regions while Shard %d "
-                "provided %zd regions. All shards must provide the same "
-                "logical regions to check for the collective view creation.",
-                mapper->get_mapper_name(), repl_ctx->owner_shard->shard_id,
-                get_task_name(), get_unique_id(), num_regions,
-                repl_ctx->owner_shard->shard_id,
-                check_collective_regions.size())
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error
+                << "Mapper " << *mapper << " provided different number of "
+                << "logical regions to check for collective views on shards 0 "
+                << "and " << repl_ctx->owner_shard->shard_id << " of task "
+                << *this << ". Shard 0 provided " << num_regions
+                << " regions while Shard " << repl_ctx->owner_shard->shard_id
+                << " provided " << check_collective_regions.size()
+                << " regions. All shards must provide the same logical "
+                << "regions to check for the collective view creation.";
+            error.raise();
+          }
           for (unsigned idx = 0; idx < num_regions; idx++)
           {
             unsigned index;
@@ -3151,16 +3220,18 @@ namespace Legion {
             if (!std::binary_search(
                     check_collective_regions.begin(),
                     check_collective_regions.end(), index))
-              REPORT_LEGION_ERROR(
-                  ERROR_INVALID_MAPPER_OUTPUT,
-                  "Mapper %s provided different logical regions to check for "
-                  "collective views on shards 0 and %d of task %s (UID %lld). "
-                  "Shard 0 provided region %d while Shard %d did not. All "
-                  "shards must provide the same logical regions to check for "
-                  "the collective view creation.",
-                  mapper->get_mapper_name(), repl_ctx->owner_shard->shard_id,
-                  get_task_name(), get_unique_id(), index,
-                  repl_ctx->owner_shard->shard_id)
+            {
+              Error error(LEGION_MAPPER_EXCEPTION);
+              error << "Mapper " << *mapper << " provided different logical "
+                    << "regions to check for collective views on shards 0 and "
+                    << repl_ctx->owner_shard->shard_id << " of task " << *this
+                    << ". Shard 0 provided region " << index << " while Shard "
+                    << repl_ctx->owner_shard->shard_id
+                    << " did not. All shards "
+                    << "must provide the same logical regions to check for the "
+                    << "collective view creation.";
+              error.raise();
+            }
           }
         }
       }
@@ -3178,11 +3249,13 @@ namespace Legion {
           std::numeric_limits<ShardingID>::max(), true};
       mapper->invoke_task_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Mapper %s failed to pick a valid sharding functor for "
-            "task %s (UID %lld)",
-            mapper->get_mapper_name(), get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Mapper " << mapper->get_mapper_name()
+              << " failed to pick a valid sharding functor for task "
+              << get_task_name() << " (UID " << get_unique_id() << ").";
+        error.raise();
+      }
       this->sharding_functor = output.chosen_functor;
       sharding_function =
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
