@@ -2664,12 +2664,12 @@ namespace Legion {
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
       {
-        Error err(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        err << "Illegal call to destroy index space " << handle << " in task "
-            << get_task_name() << " (UID " << get_unique_id()
-            << ") which is not a top-level index space. Legion only permits "
-            << "top-level index spaces to be destroyed.";
-        err.raise();
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Illegal call to destroy index space " << handle << " in task "
+              << get_task_name() << " (UID " << get_unique_id()
+              << ") which is not a top-level index space. Legion only permits "
+              << "top-level index spaces to be destroyed.";
+        error.raise();
       }
       // Check to see if this is one that we should be allowed to destory
       std::vector<IndexPartition> sub_partitions;
@@ -2724,12 +2724,16 @@ namespace Legion {
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
         legion_assert(unordered);
-        REPORT_LEGION_ERROR(
-            ERROR_POST_EXECUTION_UNORDERED_OPERATION,
-            "Illegal unordered index space deletion performed after task %s "
-            "(UID %lld) has finished executing. All unordered operations must "
-            "be performed before the end of the execution of the parent task.",
-            get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
+              << "Illegal unordered index space deletion performed after task "
+              << get_task_name() << " (UID " << get_unique_id()
+              << ") has finished executing. All unordered operations must "
+              << "be performed before the end of the execution of the parent "
+                 "task.";
+          error.raise();
+        }
       }
     }
 
@@ -2809,12 +2813,16 @@ namespace Legion {
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
         legion_assert(unordered);
-        REPORT_LEGION_ERROR(
-            ERROR_POST_EXECUTION_UNORDERED_OPERATION,
-            "Illegal unordered index partition deletion performed after task %s"
-            " (UID %lld) has finished executing. All unordered operations must "
-            "be performed before the end of the execution of the parent task.",
-            get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Illegal unordered index partition deletion performed after "
+                   "task "
+                << get_task_name() << " (UID " << get_unique_id()
+                << ") has finished executing. All unordered operations must "
+                << "be performed before the end of the execution of the parent "
+                   "task.";
+          error.raise();
+        }
       }
     }
 
@@ -2885,19 +2893,23 @@ namespace Legion {
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
       if (parent.get_tree_id() != handle1.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %llu is not part of the same "
-            "index tree as IndexSpace %llu in create "
-            "partition by union!",
-            handle1.get_id(), parent.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "IndexPartition " << handle1.get_id()
+              << " is not part of the same "
+              << "index tree as IndexSpace " << parent.get_id() << " in create "
+              << "partition by union!";
+        error.raise();
+      }
       if (parent.get_tree_id() != handle2.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %llu is not part of the same "
-            "index tree as IndexSpace %llu in create "
-            "partition by union!",
-            handle2.get_id(), parent.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "IndexPartition " << handle2.get_id()
+              << " is not part of the same "
+              << "index tree as IndexSpace " << parent.get_id() << " in create "
+              << "partition by union!";
+        error.raise();
+      }
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -2961,19 +2973,25 @@ namespace Legion {
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
       if (parent.get_tree_id() != handle1.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %llu is not part of the same "
-            "index tree as IndexSpace %llu in create partition by "
-            "intersection!",
-            handle1.get_id(), parent.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "IndexPartition " << handle1.get_id()
+              << " is not part of the same "
+              << "index tree as IndexSpace " << parent.get_id()
+              << " in create partition by "
+              << "intersection!";
+        error.raise();
+      }
       if (parent.get_tree_id() != handle2.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %llu is not part of the same "
-            "index tree as IndexSpace %llu in create partition by "
-            "intersection!",
-            handle2.get_id(), parent.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "IndexPartition " << handle2.get_id()
+              << " is not part of the same "
+              << "index tree as IndexSpace " << parent.get_id()
+              << " in create partition by "
+              << "intersection!";
+        error.raise();
+      }
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3035,12 +3053,14 @@ namespace Legion {
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
       if (parent.get_type_tag() != partition.get_type_tag())
-        REPORT_LEGION_ERROR(
-            ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %llu does not have the same type as the "
-            "parent index space %llu in task %s (UID %lld)",
-            partition.get_id(), parent.get_id(), get_task_name(),
-            get_unique_id())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "IndexPartition " << partition.get_id()
+              << " does not have the same type as the parent index space "
+              << parent.get_id() << " in task " << get_task_name() << " (UID "
+              << get_unique_id() << ")";
+        error.raise();
+      }
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3091,19 +3111,23 @@ namespace Legion {
           runtime->get_unique_index_partition_id(), parent.get_tree_id(),
           parent.get_type_tag());
       if (parent.get_tree_id() != handle1.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %llu is not part of the same "
-            "index tree as IndexSpace %llu in create "
-            "partition by difference!",
-            handle1.get_id(), parent.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "IndexPartition " << handle1.get_id()
+              << " is not part of the same "
+              << "index tree as IndexSpace " << parent.get_id() << " in create "
+              << "partition by difference!";
+        error.raise();
+      }
       if (parent.get_tree_id() != handle2.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %llu is not part of the same "
-            "index tree as IndexSpace %llu in create "
-            "partition by difference!",
-            handle2.get_id(), parent.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "IndexPartition " << handle2.get_id()
+              << " is not part of the same "
+              << "index tree as IndexSpace " << parent.get_id() << " in create "
+              << "partition by difference!";
+        error.raise();
+      }
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         partition_color = color;
@@ -3147,12 +3171,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (handle1.get_tree_id() != handle2.get_tree_id())
-        REPORT_LEGION_ERROR(
-            ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %llu is not part of the same "
-            "index tree as IndexPartition %llu in create "
-            "cross product partitions!",
-            handle1.get_id(), handle2.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "IndexPartition " << handle1.get_id()
+              << " is not part of the same "
+              << "index tree as IndexPartition " << handle2.get_id()
+              << " in create "
+              << "cross product partitions!";
+        error.raise();
+      }
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind);
@@ -3238,12 +3265,12 @@ namespace Legion {
       {
         if (runtime->runtime_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around create_association call "
-              "in task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning
+              << "Runtime is unmapping and remapping physical regions around "
+              << "create_association call in task " << get_task_name()
+              << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -3357,12 +3384,12 @@ namespace Legion {
       {
         if (runtime->runtime_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around create_partition_by_field call "
-              "in task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning
+              << "Runtime is unmapping and remapping physical regions around "
+              << "create_partition_by_field call in task " << get_task_name()
+              << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -3415,12 +3442,12 @@ namespace Legion {
       {
         if (runtime->runtime_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around create_partition_by_image call "
-              "in task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning
+              << "Runtime is unmapping and remapping physical regions around "
+              << "create_partition_by_image call in task " << get_task_name()
+              << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -3473,12 +3500,12 @@ namespace Legion {
       {
         if (runtime->runtime_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around create_partition_by_image_range call "
-              "in task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning
+              << "Runtime is unmapping and remapping physical regions around "
+              << "create_partition_by_image_range call in task "
+              << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -3549,12 +3576,12 @@ namespace Legion {
       {
         if (runtime->runtime_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around create_partition_by_preimage call "
-              "in task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning
+              << "Runtime is unmapping and remapping physical regions around "
+              << "create_partition_by_preimage call in task " << get_task_name()
+              << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -3608,12 +3635,12 @@ namespace Legion {
       {
         if (runtime->runtime_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around create_partition_by_preimage_range call "
-              "in task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning
+              << "Runtime is unmapping and remapping physical regions around "
+              << "create_partition_by_preimage_range call in task "
+              << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -3758,80 +3785,11 @@ namespace Legion {
         {
           const DomainPoint bad =
               node->color_space->delinearize_color_to_point(*itr);
-          switch (bad.get_dim())
-          {
-            case 1:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0])
-            case 2:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld,%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0],
-                  bad[1])
-            case 3:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld,%lld,%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0],
-                  bad[1], bad[2])
-            case 4:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld,%lld,"
-                  "%lld,%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0],
-                  bad[1], bad[2], bad[3])
-            case 5:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld,%lld,"
-                  "%lld,%lld,%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0],
-                  bad[1], bad[2], bad[3], bad[4])
-            case 6:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld,%lld,"
-                  "%lld,%lld,%lld,%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0],
-                  bad[1], bad[2], bad[3], bad[4], bad[5])
-            case 7:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld,%lld,"
-                  "%lld,%lld,%lld,%lld,%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0],
-                  bad[1], bad[2], bad[3], bad[4], bad[5], bad[6])
-            case 8:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld,%lld,"
-                  "%lld,%lld,%lld,%lld,%lld,%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0],
-                  bad[1], bad[2], bad[3], bad[4], bad[5], bad[6], bad[7])
-            case 9:
-              REPORT_LEGION_ERROR(
-                  ERROR_PARTITION_VERIFICATION,
-                  "Call to partition function %s in %s (UID %lld) has "
-                  "non-dominated child sub-region at color (%lld,%lld,"
-                  "%lld,%lld,%lld,%lld,%lld,%lld,%lld).",
-                  function_name, get_task_name(), get_unique_id(), bad[0],
-                  bad[1], bad[2], bad[3], bad[4], bad[5], bad[6], bad[7],
-                  bad[8])
-            default:
-              std::abort();
-          }
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Call to partition function " << function_name << " in "
+                << *this << " has non-dominated child sub-region at color "
+                << bad << ".";
+          error.raise();
         }
       }
       // Check disjointness
@@ -3840,15 +3798,18 @@ namespace Legion {
           (kind == LEGION_DISJOINT_INCOMPLETE_KIND))
       {
         if (!node->is_disjoint(true /*from application*/))
-          REPORT_LEGION_ERROR(
-              ERROR_PARTITION_VERIFICATION,
-              "Call to partitioning function %s in %s (UID %lld) specified "
-              "partition was %s but the partition is aliased.",
-              function_name, get_task_name(), get_unique_id(),
-              (kind == LEGION_DISJOINT_KIND) ? "DISJOINT_KIND" :
-              (kind == LEGION_DISJOINT_COMPLETE_KIND) ?
-                                               "DISJOINT_COMPLETE_KIND" :
-                                               "DISJOINT_INCOMPLETE_KIND")
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Call to partitioning function " << function_name << " in "
+                << get_task_name() << " (UID " << get_unique_id()
+                << ") specified partition was "
+                << ((kind == LEGION_DISJOINT_KIND) ? "DISJOINT_KIND" :
+                    (kind == LEGION_DISJOINT_COMPLETE_KIND) ?
+                                                     "DISJOINT_COMPLETE_KIND" :
+                                                     "DISJOINT_INCOMPLETE_KIND")
+                << " but the partition is aliased.";
+          error.raise();
+        }
       }
       else if (
           (kind == LEGION_ALIASED_KIND) ||
@@ -3856,16 +3817,19 @@ namespace Legion {
           (kind == LEGION_ALIASED_INCOMPLETE_KIND))
       {
         if (node->is_disjoint(true /*from application*/))
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_PARTITION_VERIFICATION,
-              "Call to partitioning function %s in %s (UID %lld) specified "
-              "partition was %s but the partition is disjoint. This could "
-              "lead to a performance bug.",
-              function_name, get_task_name(), get_unique_id(),
-              (kind == LEGION_ALIASED_KIND) ? "ALIASED_KIND" :
-              (kind == LEGION_ALIASED_COMPLETE_KIND) ?
-                                              "ALIASED_COMPLETE_KIND" :
-                                              "ALIASED_INCOMPLETE_KIND")
+        {
+          Warning warning;
+          warning << "Call to partitioning function " << function_name << " in "
+                  << get_task_name() << " (UID " << get_unique_id()
+                  << ") specified partition was "
+                  << ((kind == LEGION_ALIASED_KIND) ? "ALIASED_KIND" :
+                      (kind == LEGION_ALIASED_COMPLETE_KIND) ?
+                                                      "ALIASED_COMPLETE_KIND" :
+                                                      "ALIASED_INCOMPLETE_KIND")
+                  << " but the partition is disjoint. This could "
+                  << "lead to a performance bug.";
+          warning.raise();
+        }
       }
       // Check completeness
       if ((kind == LEGION_DISJOINT_COMPLETE_KIND) ||
@@ -3873,15 +3837,19 @@ namespace Legion {
           (kind == LEGION_COMPUTE_COMPLETE_KIND))
       {
         if (!node->is_complete(true /*from application*/))
-          REPORT_LEGION_ERROR(
-              ERROR_PARTITION_VERIFICATION,
-              "Call to partitioning function %s in %s (UID %lld) specified "
-              "partition was %s but the partition is incomplete.",
-              function_name, get_task_name(), get_unique_id(),
-              (kind == LEGION_DISJOINT_COMPLETE_KIND) ?
-                  "DISJOINT_COMPLETE_KIND" :
-              (kind == LEGION_ALIASED_COMPLETE_KIND) ? "ALIASED_COMPLETE_KIND" :
-                                                       "COMPUTE_COMPLETE_KIND")
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Call to partitioning function " << function_name << " in "
+                << get_task_name() << " (UID " << get_unique_id()
+                << ") specified partition was "
+                << ((kind == LEGION_DISJOINT_COMPLETE_KIND) ?
+                        "DISJOINT_COMPLETE_KIND" :
+                    (kind == LEGION_ALIASED_COMPLETE_KIND) ?
+                        "ALIASED_COMPLETE_KIND" :
+                        "COMPUTE_COMPLETE_KIND")
+                << " but the partition is incomplete.";
+          error.raise();
+        }
       }
       else if (
           (kind == LEGION_DISJOINT_INCOMPLETE_KIND) ||
@@ -3889,17 +3857,20 @@ namespace Legion {
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
         if (node->is_complete(true /*from application*/))
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_PARTITION_VERIFICATION,
-              "Call to partitioning function %s in %s (UID %lld) specified "
-              "partition was %s but the partition is complete. This could "
-              "lead to a performance bug.",
-              function_name, get_task_name(), get_unique_id(),
-              (kind == LEGION_DISJOINT_INCOMPLETE_KIND) ?
-                  "DISJOINT_INCOMPLETE_KIND" :
-              (kind == LEGION_ALIASED_INCOMPLETE_KIND) ?
-                  "ALIASED_INCOMPLETE_KIND" :
-                  "COMPUTE_INCOMPLETE_KIND")
+        {
+          Warning warning;
+          warning << "Call to partitioning function " << function_name << " in "
+                  << get_task_name() << " (UID " << get_unique_id()
+                  << ") specified partition was "
+                  << ((kind == LEGION_DISJOINT_INCOMPLETE_KIND) ?
+                          "DISJOINT_INCOMPLETE_KIND" :
+                      (kind == LEGION_ALIASED_INCOMPLETE_KIND) ?
+                          "ALIASED_INCOMPLETE_KIND" :
+                          "COMPUTE_INCOMPLETE_KIND")
+                  << " but the partition is complete. This could "
+                  << "lead to a performance bug.";
+          warning.raise();
+        }
       }
     }
 
@@ -3944,12 +3915,14 @@ namespace Legion {
         if (resulting_fields[idx] == LEGION_AUTO_GENERATE_ID)
           resulting_fields[idx] = runtime->get_unique_field_id();
         else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
-          REPORT_LEGION_ERROR(
-              ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
-              "Task %s (ID %lld) attempted to allocate a field with "
-              "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
-              "bound set in legion_config.h",
-              get_task_name(), get_unique_id(), resulting_fields[idx])
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Task " << *this << " attempted to allocate a field "
+                << "with ID " << resulting_fields[idx] << "which exceeds the "
+                << "LEGION_MAX_APPLICATION_FIELD_ID bound set in "
+                   "legion_config.h.";
+          error.raise();
+        }
         LegionSpy::log_field_creation(
             space.get_id(), resulting_fields[idx], sizes[idx],
             (provenance == nullptr) ? std::string_view() : provenance->human);
@@ -3975,20 +3948,24 @@ namespace Legion {
         if (resulting_fields[idx] == LEGION_AUTO_GENERATE_ID)
           resulting_fields[idx] = runtime->get_unique_field_id();
         else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
-          REPORT_LEGION_ERROR(
-              ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
-              "Task %s (ID %lld) attempted to allocate a field with "
-              "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
-              "bound set in legion_config.h",
-              get_task_name(), get_unique_id(), resulting_fields[idx])
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Task " << *this << " attempted to allocate a field "
+                << "with ID " << resulting_fields[idx] << " which exceeds the "
+                << "LEGION_MAX_APPLICATION_FIELD_ID bound set in "
+                   "legion_config.h.";
+          error.raise();
+        }
       }
       for (unsigned idx = 0; idx < sizes.size(); idx++)
         if (sizes[idx].impl == nullptr)
-          REPORT_LEGION_ERROR(
-              ERROR_REQUEST_FOR_EMPTY_FUTURE,
-              "Invalid empty future passed to field allocation for field %d "
-              "in task %s (UID %lld)",
-              resulting_fields[idx], get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Invalid empty future passed to field allocation for "
+                << "field " << resulting_fields[idx] << " in task " << *this
+                << ".";
+          error.raise();
+        }
       // Get a new creation operation
       CreationOp* creator_op = runtime->get_operation<CreationOp>();
       const ApEvent ready = creator_op->get_completion_event();
@@ -4086,12 +4063,16 @@ namespace Legion {
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
         legion_assert(unordered);
-        REPORT_LEGION_ERROR(
-            ERROR_POST_EXECUTION_UNORDERED_OPERATION,
-            "Illegal unordered field space deletion performed after task %s "
-            "(UID %lld) has finished executing. All unordered operations must "
-            "be performed before the end of the execution of the parent task.",
-            get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
+              << "Illegal unordered field space deletion performed after task "
+              << get_task_name() << " (UID " << get_unique_id()
+              << ") has finished executing. All unordered operations must "
+              << "be performed before the end of the execution of the parent "
+                 "task.";
+          error.raise();
+        }
       }
     }
 
@@ -4146,12 +4127,13 @@ namespace Legion {
       if (fid == LEGION_AUTO_GENERATE_ID)
         fid = runtime->get_unique_field_id();
       else if (fid >= LEGION_MAX_APPLICATION_FIELD_ID)
-        REPORT_LEGION_ERROR(
-            ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
-            "Task %s (ID %lld) attempted to allocate a field with "
-            "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
-            "bound set in legion_config.h",
-            get_task_name(), get_unique_id(), fid)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Task " << *this << " attempted to allocate a field with ID "
+              << fid << " which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
+              << "bound set in legion_config.h.";
+        error.raise();
+      }
       LegionSpy::log_field_creation(
           space.get_id(), fid, field_size,
           (provenance == nullptr) ? std::string_view() : provenance->human);
@@ -4184,12 +4166,14 @@ namespace Legion {
         if (resulting_fields[idx] == LEGION_AUTO_GENERATE_ID)
           resulting_fields[idx] = runtime->get_unique_field_id();
         else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
-          REPORT_LEGION_ERROR(
-              ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
-              "Task %s (ID %lld) attempted to allocate a field with "
-              "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
-              "bound set in legion_config.h",
-              get_task_name(), get_unique_id(), resulting_fields[idx])
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Task " << *this << " attempted to allocate a field "
+                << "with ID " << resulting_fields[idx] << " which exceeds the "
+                << "LEGION_MAX_APPLICATION_FIELD_ID bound set in "
+                   "legion_config.h.";
+          error.raise();
+        }
         LegionSpy::log_field_creation(
             space.get_id(), resulting_fields[idx], sizes[idx],
             (provenance == nullptr) ? std::string_view() : provenance->human);
@@ -4216,24 +4200,30 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (local)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-            "Local fields do no support allocation with future sizes yet.")
+      {
+        Fatal fatal;
+        fatal << "Local fields do no support allocation with future sizes yet.";
+        fatal.raise();
+      }
       if (fid == LEGION_AUTO_GENERATE_ID)
         fid = runtime->get_unique_field_id();
       else if (fid >= LEGION_MAX_APPLICATION_FIELD_ID)
-        REPORT_LEGION_ERROR(
-            ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
-            "Task %s (ID %lld) attempted to allocate a field with "
-            "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID "
-            "bound set in legion_config.h",
-            get_task_name(), get_unique_id(), fid)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Task " << get_task_name() << " (ID " << get_unique_id()
+              << ") attempted to allocate a field with ID " << fid
+              << " which exceeds the LEGION_MAX_APPLICATION_FIELD_ID bound set "
+              << "in legion_config.h";
+        error.raise();
+      }
       if (field_size.impl == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_REQUEST_FOR_EMPTY_FUTURE,
-            "Invalid empty future passed to field allocation for field %d "
-            "in task %s (UID %lld)",
-            fid, get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Invalid empty future passed to field allocation for field "
+              << fid << " in task " << get_task_name() << " (UID "
+              << get_unique_id() << ")";
+        error.raise();
+      }
       // Get a new creation operation
       CreationOp* creator_op = runtime->get_operation<CreationOp>();
       const ApEvent ready = creator_op->get_completion_event();
@@ -4264,13 +4254,13 @@ namespace Legion {
       std::vector<LocalFieldInfo>& infos = local_field_infos[space];
       if (infos.size() == runtime->max_local_fields)
       {
-        Error err(LEGION_INTERFACE_EXCEPTION);
-        err << "Exceeded maximum number of local fields in context of task "
-            << get_task_name() << " (UID " << get_unique_id()
-            << "). The maximum is currently set to "
-            << runtime->max_local_fields
-            << ", but can be modified with the -lg:local flag.";
-        err.raise();
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Exceeded maximum number of local fields in context of task "
+              << get_task_name() << " (UID " << get_unique_id()
+              << "). The maximum is currently set to "
+              << runtime->max_local_fields
+              << ", but can be modified with the -lg:local flag.";
+        error.raise();
       }
       std::set<unsigned> current_indexes;
       for (std::vector<LocalFieldInfo>::const_iterator it = infos.begin();
@@ -4283,13 +4273,13 @@ namespace Legion {
               space, fields, sizes, serdez_id, current_indexes, new_indexes,
               provenance))
       {
-        Error err(LEGION_RESOURCE_EXCEPTION);
-        err << "Unable to allocate local field in context of task "
-            << get_task_name() << " (UID " << get_unique_id()
-            << ") due to local field size fragmentation. This situation can "
-            << "be improved by increasing the maximum number of permitted "
-            << "local fields in a context with the -lg:local flag.";
-        err.raise();
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Unable to allocate local field in context of task "
+              << get_task_name() << " (UID " << get_unique_id()
+              << ") due to local field size fragmentation. This situation can "
+              << "be improved by increasing the maximum number of permitted "
+              << "local fields in a context with the -lg:local flag.";
+        error.raise();
       }
       legion_assert(new_indexes.size() == 1);
       // Only need the lock here when modifying since all writes
@@ -4348,9 +4338,9 @@ namespace Legion {
     {
       if (local)
       {
-        Fatal err;
-        err << "Local fields do no support allocation with future sizes yet.";
-        err.raise();
+        Fatal fatal;
+        fatal << "Local fields do no support allocation with future sizes yet.";
+        fatal.raise();
       }
       if (resulting_fields.size() < sizes.size())
         resulting_fields.resize(sizes.size(), LEGION_AUTO_GENERATE_ID);
@@ -4360,23 +4350,24 @@ namespace Legion {
           resulting_fields[idx] = runtime->get_unique_field_id();
         else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
         {
-          Error err(LEGION_INTERFACE_EXCEPTION);
-          err << "Task " << get_task_name() << " (ID " << get_unique_id()
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error
+              << "Task " << get_task_name() << " (ID " << get_unique_id()
               << ") attempted to allocate a field with ID "
               << resulting_fields[idx]
               << " which exceeds the LEGION_MAX_APPLICATION_FIELD_ID bound set "
               << "in legion_config.h";
-          err.raise();
+          error.raise();
         }
       }
       for (unsigned idx = 0; idx < sizes.size(); idx++)
         if (sizes[idx].impl == nullptr)
         {
-          Error err(LEGION_DYNAMIC_TYPE_EXCEPTION);
-          err << "Invalid empty future passed to field allocation for field "
-              << resulting_fields[idx] << " in task " << get_task_name()
-              << " (UID " << get_unique_id() << ")";
-          err.raise();
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Invalid empty future passed to field allocation for field "
+                << resulting_fields[idx] << " in task " << get_task_name()
+                << " (UID " << get_unique_id() << ")";
+          error.raise();
         }
       // Get a new creation operation
       CreationOp* creator_op = runtime->get_operation<CreationOp>();
@@ -4407,13 +4398,15 @@ namespace Legion {
       AutoLock local_lock(local_field_lock);
       std::vector<LocalFieldInfo>& infos = local_field_infos[space];
       if ((infos.size() + sizes.size()) > runtime->max_local_fields)
-        REPORT_LEGION_ERROR(
-            ERROR_EXCEEDED_MAXIMUM_NUMBER_LOCAL_FIELDS,
-            "Exceeded maximum number of local fields in "
-            "context of task %s (UID %lld). The maximum "
-            "is currently set to %d, but can be modified "
-            "with the -lg:local flag.",
-            get_task_name(), get_unique_id(), runtime->max_local_fields)
+      {
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Exceeded maximum number of local fields in context of task "
+              << get_task_name() << " (UID " << get_unique_id()
+              << "). The maximum is currently set to "
+              << runtime->max_local_fields
+              << ", but can be modified with the -lg:local flag.";
+        error.raise();
+      }
       std::set<unsigned> current_indexes;
       for (std::vector<LocalFieldInfo>::const_iterator it = infos.begin();
            it != infos.end(); it++)
@@ -4422,15 +4415,15 @@ namespace Legion {
       if (!runtime->allocate_local_fields(
               space, resulting_fields, sizes, serdez_id, current_indexes,
               new_indexes, provenance))
-        REPORT_LEGION_ERROR(
-            ERROR_UNABLE_ALLOCATE_LOCAL_FIELD,
-            "Unable to allocate local field in context of "
-            "task %s (UID %lld) due to local field size "
-            "fragmentation. This situation can be improved "
-            "by increasing the maximum number of permitted "
-            "local fields in a context with the -lg:local "
-            "flag.",
-            get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Unable to allocate local field in context of task "
+              << get_task_name() << " (UID " << get_unique_id()
+              << ") due to local field size fragmentation. This situation can "
+              << "be improved by increasing the maximum number of permitted "
+              << "local fields in a context with the -lg:local flag.";
+        error.raise();
+      }
       legion_assert(new_indexes.size() == resulting_fields.size());
       // Only need the lock here when writing since we know all writes
       // are serialized and we only need to worry about interfering readers
@@ -4526,12 +4519,15 @@ namespace Legion {
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
         legion_assert(unordered);
-        REPORT_LEGION_ERROR(
-            ERROR_POST_EXECUTION_UNORDERED_OPERATION,
-            "Illegal unordered field free performed after task %s "
-            "(UID %lld) has finished executing. All unordered operations must "
-            "be performed before the end of the execution of the parent task.",
-            get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Illegal unordered field free performed after task "
+                << get_task_name() << " (UID " << get_unique_id()
+                << ") has finished executing. All unordered operations must "
+                << "be performed before the end of the execution of the parent "
+                   "task.";
+          error.raise();
+        }
       }
     }
 
@@ -4582,12 +4578,15 @@ namespace Legion {
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
         legion_assert(unordered);
-        REPORT_LEGION_ERROR(
-            ERROR_POST_EXECUTION_UNORDERED_OPERATION,
-            "Illegal unordered free fields performed after task %s "
-            "(UID %lld) has finished executing. All unordered operations must "
-            "be performed before the end of the execution of the parent task.",
-            get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Illegal unordered free fields performed after task "
+                << get_task_name() << " (UID " << get_unique_id()
+                << ") has finished executing. All unordered operations must "
+                << "be performed before the end of the execution of the parent "
+                   "task.";
+          error.raise();
+        }
       }
     }
 
@@ -4634,15 +4633,18 @@ namespace Legion {
       if (!handle.exists())
         return;
       if (!runtime->is_top_level_region(handle))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to create shared ownership for logical region "
-            "(%llu,%llu,%llu in task %s (UID %lld) which is not a top-level "
-            "logical "
-            "region. Legion only permits top-level logical regions to have "
-            "shared ownerships.",
-            handle.index_space.get_id(), handle.field_space.get_id(),
-            handle.get_tree_id(), get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Illegal call to create shared ownership for logical region ("
+            << handle.index_space.get_id() << "," << handle.field_space.get_id()
+            << "," << handle.get_tree_id() << ") in task " << get_task_name()
+            << " (UID " << get_unique_id()
+            << ") which is not a top-level logical "
+            << "region. Legion only permits top-level logical regions to have "
+            << "shared ownerships.";
+        error.raise();
+      }
       runtime->create_shared_ownership(handle);
       AutoLock priv_lock(privilege_lock);
       std::map<LogicalRegion, unsigned>::iterator finder =
@@ -4663,67 +4665,72 @@ namespace Legion {
       // Check to see if this is a top-level logical region, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_region(handle))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-            "Illegal call to destroy logical region (%llu,%llu,%llu in task %s "
-            "(UID %lld) which is not a top-level logical region. Legion only "
-            "permits top-level logical regions to be destroyed.",
-            handle.index_space.get_id(), handle.field_space.get_id(),
-            handle.get_tree_id(), get_task_name(), get_unique_id())
-        // Check to see if this is one that we should be allowed to destory
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Illegal call to destroy logical region ("
+              << handle.index_space.get_id() << ","
+              << handle.field_space.get_id() << "," << handle.get_tree_id()
+              << ") in task " << get_task_name() << " (UID " << get_unique_id()
+              << ") which is not a top-level logical "
+              << "region. Legion only permits top-level logical regions to be "
+                 "destroyed.";
+        error.raise();
+      }
+      // Check to see if this is one that we should be allowed to destory
+      {
+        AutoLock priv_lock(privilege_lock, false /*exclusive*/);
+        std::map<LogicalRegion, unsigned>::iterator finder =
+            created_regions.find(handle);
+        if (finder == created_regions.end())
         {
-          AutoLock priv_lock(privilege_lock, false /*exclusive*/);
-          std::map<LogicalRegion, unsigned>::iterator finder =
-              created_regions.find(handle);
-          if (finder == created_regions.end())
+          // Check to see if it is a local region
+          std::map<LogicalRegion, bool>::iterator local_finder =
+              local_regions.find(handle);
+          // Mark that this region is deleted, safe even though this
+          // is a read-only lock because we're not changing the structure
+          // of the map
+          if (local_finder == local_regions.end())
           {
-            // Check to see if it is a local region
-            std::map<LogicalRegion, bool>::iterator local_finder =
-                local_regions.find(handle);
-            // Mark that this region is deleted, safe even though this
-            // is a read-only lock because we're not changing the structure
-            // of the map
-            if (local_finder == local_regions.end())
-            {
-              // Record the deletion for later and propagate it up
-              deleted_regions.emplace_back(DeletedRegion(handle, provenance));
-              return;
-            }
-            else
-              local_finder->second = true;
+            // Record the deletion for later and propagate it up
+            deleted_regions.emplace_back(DeletedRegion(handle, provenance));
+            return;
           }
           else
-          {
-            if (finder->second == 0)
-            {
-              REPORT_LEGION_WARNING(
-                  LEGION_WARNING_DUPLICATE_DELETION,
-                  "Duplicate deletions were performed for region "
-                  "(%llu,%llu,%llu) "
-                  "in task tree rooted by %s",
-                  handle.index_space.get_id(), handle.field_space.get_id(),
-                  handle.get_tree_id(), get_task_name())
-              return;
-            }
-            if (--finder->second > 0)
-              return;
-            // Don't remove anything from created regions yet, we still might
-            // need it as part of the logical dependence analysis for earlier
-            // operations, but the reference count is zero so we're protected
-          }
+            local_finder->second = true;
         }
+        else
+        {
+          if (finder->second == 0)
+          {
+            Warning warning;
+            warning << "Duplicate deletions were performed for region "
+                    << handle << " in task tree rooted by " << *this << ".";
+            warning.raise();
+            return;
+          }
+          if (--finder->second > 0)
+            return;
+          // Don't remove anything from created regions yet, we still might
+          // need it as part of the logical dependence analysis for earlier
+          // operations, but the reference count is zero so we're protected
+        }
+      }
       DeletionOp* op = runtime->get_operation<DeletionOp>();
       op->initialize_logical_region_deletion(
           this, handle, unordered, provenance);
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
         legion_assert(unordered);
-        REPORT_LEGION_ERROR(
-            ERROR_POST_EXECUTION_UNORDERED_OPERATION,
-            "Illegal unordered logical region deletion performed after task %s "
-            "(UID %lld) has finished executing. All unordered operations must "
-            "be performed before the end of the execution of the parent task.",
-            get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Illegal unordered logical region deletion performed after "
+                   "task "
+                << get_task_name() << " (UID " << get_unique_id()
+                << ") has finished executing. All unordered operations must "
+                << "be performed before the end of the execution of the parent "
+                   "task.";
+          error.raise();
+        }
       }
     }
 
@@ -4736,20 +4743,20 @@ namespace Legion {
       // Ignore reset calls inside of traces
       if ((current_trace != nullptr) && current_trace->is_fixed())
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_EQUIVALENCE_SETS_RESET,
-            "Ignoring equivalence sets reset in %s (UID %lld) because "
-            "it was made inside of a trace.",
-            get_task_name(), get_unique_id())
-        return;
+        Warning warning;
+        warning << "Ignoring equivalence sets reset in " << get_task_name()
+                << " (UID " << get_unique_id()
+                << ") because it was made inside "
+                << "of a trace.";
+        warning.raise();
       }
       if (fields.empty())
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_EQUIVALENCE_SETS_RESET,
-            "Ignoring equivalence sets reset in %s (UID %lld) because "
-            "it contains no fields.",
-            get_task_name(), get_unique_id())
+        Warning warning;
+        warning << "Ignoring equivalence sets reset in " << get_task_name()
+                << " (UID " << get_unique_id()
+                << ") because it contains no fields.";
+        warning.raise();
         return;
       }
       ResetOp* reset = runtime->get_operation<ResetOp>();
@@ -4870,12 +4877,6 @@ namespace Legion {
       legion_assert(created_regions.find(handle) == created_regions.end());
       if (task_local)
       {
-        if (is_leaf_context())
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_REGION_CREATION,
-              "Illegal task-local region creation performed in leaf task %s "
-              "(ID %lld)",
-              get_task_name(), get_unique_id())
         local_regions[handle] = false /*not deleted*/;
       }
       else
@@ -4979,16 +4980,20 @@ namespace Legion {
         for (std::vector<DeletedRegion>::const_iterator it =
                  deleted_regions.begin();
              it != deleted_regions.end(); it++)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed for region (%llu,%llu,%llu) "
-              "in task tree rooted by %s (provenance %.*s)",
-              it->region.index_space.get_id(), it->region.field_space.get_id(),
-              it->region.tree_did, get_task_name(),
-              (it->provenance == nullptr) ? 7 :
-                                            int(it->provenance->human.length()),
-              (it->provenance == nullptr) ? "unknown" :
-                                            it->provenance->human.data())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Duplicate deletions were performed for region "
+                << it->region << " in task tree rooted by " << get_task_name()
+                << " (provenance "
+                << ((it->provenance == nullptr) ?
+                        7 :
+                        int(it->provenance->human.length()))
+                << ":"
+                << ((it->provenance == nullptr) ? "unknown" :
+                                                  it->provenance->human.data())
+                << ")";
+          error.raise();
+        }
         deleted_regions.clear();
       }
       if (!deleted_fields.empty())
@@ -4996,16 +5001,20 @@ namespace Legion {
         for (std::vector<DeletedField>::const_iterator it =
                  deleted_fields.begin();
              it != deleted_fields.end(); it++)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed on field %d of "
-              "field space %llu in task tree rooted by %s (provenance %.*s)",
-              it->fid, it->space.get_id(), get_task_name(),
-              (it->provenance != nullptr) ?
-                  int(it->provenance->human.length()) :
-                  7,
-              (it->provenance != nullptr) ? it->provenance->human.data() :
-                                            "unknown")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Duplicate deletions were performed on field " << it->fid
+                << " of field space " << it->space << " in task tree rooted by "
+                << get_task_name() << " (provenance "
+                << ((it->provenance != nullptr) ?
+                        int(it->provenance->human.length()) :
+                        7)
+                << ":"
+                << ((it->provenance != nullptr) ? it->provenance->human.data() :
+                                                  "unknown")
+                << ")";
+          error.raise();
+        }
         deleted_fields.clear();
       }
       if (!deleted_field_spaces.empty())
@@ -5013,15 +5022,20 @@ namespace Legion {
         for (std::vector<DeletedFieldSpace>::const_iterator it =
                  deleted_field_spaces.begin();
              it != deleted_field_spaces.end(); it++)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed on field space %llu "
-              "in task tree rooted by %s (provenance %.*s)",
-              it->space.get_id(), get_task_name(),
-              (it->provenance == nullptr) ? 7 :
-                                            int(it->provenance->human.length()),
-              (it->provenance != nullptr) ? it->provenance->human.data() :
-                                            "unknown")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Duplicate deletions were performed on field space "
+                << it->space << " in task tree rooted by " << get_task_name()
+                << " (provenance "
+                << ((it->provenance == nullptr) ?
+                        7 :
+                        int(it->provenance->human.length()))
+                << ":"
+                << ((it->provenance == nullptr) ? "unknown" :
+                                                  it->provenance->human.data())
+                << ")";
+          error.raise();
+        }
         deleted_field_spaces.clear();
       }
       if (!deleted_index_spaces.empty())
@@ -5029,15 +5043,20 @@ namespace Legion {
         for (std::vector<DeletedIndexSpace>::const_iterator it =
                  deleted_index_spaces.begin();
              it != deleted_index_spaces.end(); it++)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed on index space %llu "
-              "in task tree rooted by %s (provenance %.*s)",
-              it->space.get_id(), get_task_name(),
-              (it->provenance == nullptr) ? 7 :
-                                            int(it->provenance->human.length()),
-              (it->provenance != nullptr) ? it->provenance->human.data() :
-                                            "unknown")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Duplicate deletions were performed on index space "
+                << it->space << " in task tree rooted by " << get_task_name()
+                << " (provenance "
+                << ((it->provenance == nullptr) ?
+                        7 :
+                        int(it->provenance->human.length()))
+                << ":"
+                << ((it->provenance == nullptr) ? "unknown" :
+                                                  it->provenance->human.data())
+                << ")";
+          error.raise();
+        }
         deleted_index_spaces.clear();
       }
       if (!deleted_index_partitions.empty())
@@ -5045,15 +5064,20 @@ namespace Legion {
         for (std::vector<DeletedPartition>::const_iterator it =
                  deleted_index_partitions.begin();
              it != deleted_index_partitions.end(); it++)
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed on index partition %llu "
-              "in task tree rooted by %s (provenance %.*s)",
-              it->partition.get_id(), get_task_name(),
-              (it->provenance == nullptr) ? 7 :
-                                            int(it->provenance->human.length()),
-              (it->provenance != nullptr) ? it->provenance->human.data() :
-                                            "unknown")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Duplicate deletions were performed on index partition "
+                << it->partition << " in task tree rooted by "
+                << get_task_name() << " (provenance "
+                << ((it->provenance == nullptr) ?
+                        7 :
+                        int(it->provenance->human.length()))
+                << ":"
+                << ((it->provenance == nullptr) ? "unknown" :
+                                                  it->provenance->human.data())
+                << ")";
+          error.raise();
+        }
         deleted_index_partitions.clear();
       }
       // Now we go through and delete anything that the user leaked
@@ -5064,14 +5088,13 @@ namespace Legion {
              rit != created_regions.end(); rit++)
         {
           if (runtime->report_leaks)
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_LEAKED_RESOURCE,
-                "Logical region (%llu,%llu,%llu) was leaked out of task tree "
-                "rooted "
-                "by task %s",
-                rit->first.index_space.get_id(),
-                rit->first.field_space.get_id(), rit->first.get_tree_id(),
-                get_task_name())
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Logical region " << rit->first
+                  << " was leaked out of task tree rooted by task "
+                  << get_task_name();
+            error.raise();
+          }
           runtime->destroy_logical_region(rit->first, preconditions);
           // Remove any latent field spaces and therefore any created fields
           // since they might not be able to be cleaned up after this since
@@ -5119,12 +5142,13 @@ namespace Legion {
              it != created_fields.end(); it++)
         {
           if (runtime->report_leaks)
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_LEAKED_RESOURCE,
-                "Field %d of field space %llu was leaked out of task tree "
-                "rooted "
-                "by task %s",
-                it->second, it->first.get_id(), get_task_name())
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Field " << it->second << " of field space " << it->first
+                  << " was leaked out of task tree rooted by task "
+                  << get_task_name();
+            error.raise();
+          }
           std::map<FieldSpace, FieldAllocatorImpl*>::const_iterator finder =
               leak_allocators.find(it->first);
           if (finder == leak_allocators.end())
@@ -5153,11 +5177,13 @@ namespace Legion {
              it != created_field_spaces.end(); it++)
         {
           if (runtime->report_leaks)
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_LEAKED_RESOURCE,
-                "Field space %llu was leaked out of task tree rooted by task "
-                "%s",
-                it->first.get_id(), get_task_name())
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Field space " << it->first
+                  << " was leaked out of task tree rooted by task "
+                  << get_task_name();
+            error.raise();
+          }
           runtime->destroy_field_space(it->first, preconditions);
         }
         created_field_spaces.clear();
@@ -5169,11 +5195,13 @@ namespace Legion {
              it != created_index_partitions.end(); it++)
         {
           if (runtime->report_leaks)
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_LEAKED_RESOURCE,
-                "Index partition %llu was leaked out of task tree rooted by "
-                "task %s",
-                it->first.get_id(), get_task_name())
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Index partition " << it->first
+                  << " was leaked out of task tree rooted by task "
+                  << get_task_name();
+            error.raise();
+          }
           runtime->destroy_index_partition(it->first, preconditions);
         }
         created_index_partitions.clear();
@@ -5185,11 +5213,13 @@ namespace Legion {
              it != created_index_spaces.end(); it++)
         {
           if (runtime->report_leaks)
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_LEAKED_RESOURCE,
-                "Index space %llu was leaked out of task tree rooted by task "
-                "%s",
-                it->first.get_id(), get_task_name())
+          {
+            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+            error << "Index space " << it->first
+                  << " was leaked out of task tree rooted by task "
+                  << get_task_name();
+            error.raise();
+          }
           runtime->destroy_index_space(
               it->first, runtime->address_space, preconditions);
         }
@@ -5481,11 +5511,13 @@ namespace Legion {
           // on the owner node and the checking code wants to see that
           // these instances are already valid when adding the references
           if (!physical_instances.acquire_valid_references(CONTEXT_REF))
-            REPORT_LEGION_FATAL(
-                LEGION_FATAL_GARBAGE_COLLECTION_RACE,
-                "Found an internal garbage collection race. Please "
-                "run with -lg:safe_mapper and see if it reports any "
-                "errors. If not, then please report this as a bug.")
+          {
+            Fatal fatal;
+            fatal << "Found an internal garbage collection race. Please "
+                     "run with -lg:safe_mapper and see if it reports any "
+                     "errors. If not, then please report this as a bug.";
+            fatal.raise();
+          }
           impl->set_references(physical_instances, true /*safe*/);
           // Remove the references we acquired after they've been added
           // by the physical region
@@ -5541,10 +5573,10 @@ namespace Legion {
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_EMPTY_INDEX_TASK_LAUNCH,
-            "Ignoring empty index task launch in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
+        Warning warning;
+        warning << "Ignoring empty index task launch in task "
+                << get_task_name() << " (ID " << get_unique_id() << ")";
+        warning.raise();
         return FutureMap();
       }
       IndexSpace launch_space = launcher.launch_space;
@@ -5584,11 +5616,10 @@ namespace Legion {
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_EMPTY_INDEX_TASK_LAUNCH,
-            "Ignoring empty index task launch in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
-
+        Warning warning;
+        warning << "Ignoring empty index task launch in task "
+                << get_task_name() << " (ID " << get_unique_id() << ")";
+        warning.raise();
         if (!launcher.initial_value.is_empty())
           return launcher.initial_value;
 
@@ -5654,12 +5685,14 @@ namespace Legion {
       Domain domain;
       runtime->find_domain(space, domain);
       if (data.size() != domain.get_volume())
-        REPORT_LEGION_ERROR(
-            ERROR_FUTURE_MAP_COUNT_MISMATCH,
-            "The number of buffers passed into a future map construction (%zd) "
-            "does not match the volume of the domain (%zd) for the future map "
-            "in task %s (UID %lld)",
-            data.size(), domain.get_volume(), get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "The number of buffers passed into a future map construction ("
+              << data.size() << ") does not match the volume of the domain ("
+              << domain.get_volume() << ") for the future map in task "
+              << get_task_name() << " (UID " << get_unique_id() << ").";
+        error.raise();
+      }
       const DistributedID did = runtime->get_available_distributed_id();
       IndexSpaceNode* launch_node = runtime->get_node(space);
       FutureMapImpl* impl = new FutureMapImpl(
@@ -5670,11 +5703,13 @@ namespace Legion {
            it != data.end(); it++)
       {
         if (!domain.contains(it->first))
-          REPORT_LEGION_ERROR(
-              ERROR_FUTURE_MAP_COUNT_MISMATCH,
-              "Point passed into future map construction is not contained "
-              "within the bounds of the domain in task %s (UID %lld)",
-              get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Point passed into future map construction is not contained "
+                   "within the bounds of the domain in task "
+                << get_task_name() << " (UID " << get_unique_id() << ")";
+          error.raise();
+        }
         const size_t future_size = it->second.get_size();
         FutureImpl* future = new FutureImpl(
             this, true /*register*/, runtime->get_available_distributed_id(),
@@ -5712,13 +5747,14 @@ namespace Legion {
       const DistributedID did = runtime->get_available_distributed_id();
       IndexSpaceNode* launch_node = runtime->get_node(space);
       if (futures.size() != launch_node->get_volume())
-        REPORT_LEGION_ERROR(
-            ERROR_FUTURE_MAP_COUNT_MISMATCH,
-            "The number of futures passed into a future map construction (%zd) "
-            "does not match the volume of the domain (%zd) for the future map "
-            "in task %s (UID %lld)",
-            futures.size(), launch_node->get_volume(), get_task_name(),
-            get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "The number of futures passed into a future map construction ("
+              << futures.size() << ") does not match the volume of the domain ("
+              << launch_node->get_volume() << ") for the future map in task "
+              << get_task_name() << " (UID " << get_unique_id() << ").";
+        error.raise();
+      }
       FutureMapImpl* impl =
           new FutureMapImpl(this, creation_op, launch_node, did, provenance);
       add_to_dependence_queue(creation_op);
@@ -5763,45 +5799,52 @@ namespace Legion {
       MapOp* map_op = runtime->get_operation<MapOp>();
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
       if (current_trace != nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
-            "Attempted an inline mapping of region "
-            "(%llu,%llu,%llu) inside of trace %d of parent task %s "
-            "(ID %lld). It is illegal to perform inline mapping "
-            "operations inside of traces.",
-            launcher.requirement.region.index_space.get_id(),
-            launcher.requirement.region.field_space.get_id(),
-            launcher.requirement.region.get_tree_id(), current_trace->tid,
-            get_task_name(), get_unique_id())
+      {
+        Fatal fatal;
+        fatal << "Attempted an inline mapping of region ("
+              << launcher.requirement.region.index_space.get_id() << ","
+              << launcher.requirement.region.field_space.get_id() << ","
+              << launcher.requirement.region.get_tree_id()
+              << ") inside of trace " << current_trace->tid
+              << " of parent task " << get_task_name() << " (ID "
+              << get_unique_id()
+              << "). It is illegal to perform inline mapping operations inside "
+                 "of traces.";
+        fatal.raise();
+      }
       bool parent_conflict = false, inline_conflict = false;
       const int index =
           has_conflicting_regions(map_op, parent_conflict, inline_conflict);
       if (parent_conflict)
-        REPORT_LEGION_ERROR(
-            ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
-            "Attempted an inline mapping of region "
-            "(%llu,%llu,%llu) that conflicts with mapped region "
-            "(%llu,%llu,%llu) at index %d of parent task %s "
-            "(ID %lld) that would ultimately result in "
-            "deadlock. Instead you receive this error message.",
-            launcher.requirement.region.index_space.get_id(),
-            launcher.requirement.region.field_space.get_id(),
-            launcher.requirement.region.get_tree_id(),
-            regions[index].region.index_space.get_id(),
-            regions[index].region.field_space.get_id(),
-            regions[index].region.get_tree_id(), index, get_task_name(),
-            get_unique_id())
+      {
+        Fatal fatal;
+        fatal << "Attempted an inline mapping of region ("
+              << launcher.requirement.region.index_space.get_id() << ","
+              << launcher.requirement.region.field_space.get_id() << ","
+              << launcher.requirement.region.get_tree_id()
+              << ") that conflicts with mapped region ("
+              << regions[index].region.index_space.get_id() << ","
+              << regions[index].region.field_space.get_id() << ","
+              << regions[index].region.get_tree_id() << ") at index " << index
+              << " of parent task " << get_task_name() << " (ID "
+              << get_unique_id()
+              << ") that would ultimately result in deadlock. Instead you "
+                 "receive this error message.";
+        fatal.raise();
+      }
       if (inline_conflict)
-        REPORT_LEGION_ERROR(
-            ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
-            "Attempted an inline mapping of region (%llu,%llu,%llu) "
-            "that conflicts with previous inline mapping in "
-            "task %s (ID %lld) that would ultimately result in "
-            "deadlock.  Instead you receive this error message.",
-            launcher.requirement.region.index_space.get_id(),
-            launcher.requirement.region.field_space.get_id(),
-            launcher.requirement.region.get_tree_id(), get_task_name(),
-            get_unique_id())
+      {
+        Fatal fatal;
+        fatal << "Attempted an inline mapping of region ("
+              << launcher.requirement.region.index_space.get_id() << ","
+              << launcher.requirement.region.field_space.get_id() << ","
+              << launcher.requirement.region.get_tree_id()
+              << ") that conflicts with previous inline mapping in task "
+              << get_task_name() << " (ID " << get_unique_id()
+              << ") that would ultimately result in deadlock.  Instead you "
+                 "receive this error message.";
+        fatal.raise();
+      }
       register_inline_mapped_region(result);
       add_to_dependence_queue(map_op, launcher.static_dependences);
       return result;
@@ -5819,15 +5862,16 @@ namespace Legion {
       if (current_trace != nullptr)
       {
         const RegionRequirement& req = region.impl->get_requirement();
-        REPORT_LEGION_ERROR(
-            ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
-            "Attempted an inline mapping of region "
-            "(%llu,%llu,%llu) inside of trace %d of parent task %s "
-            "(ID %lld). It is illegal to perform inline mapping "
-            "operations inside of traces.",
-            req.region.index_space.get_id(), req.region.field_space.get_id(),
-            req.region.get_tree_id(), current_trace->tid, get_task_name(),
-            get_unique_id())
+        Fatal fatal;
+        fatal << "Attempted an inline mapping of region ("
+              << req.region.index_space.get_id() << ","
+              << req.region.field_space.get_id() << ","
+              << req.region.get_tree_id() << ") inside of trace "
+              << current_trace->tid << " of parent task " << get_task_name()
+              << " (ID " << get_unique_id()
+              << "). It is illegal to perform inline mapping operations inside "
+                 "of traces.";
+        fatal.raise();
       }
       MapOp* map_op = runtime->get_operation<MapOp>();
       map_op->initialize(this, region, provenance);
@@ -5878,10 +5922,10 @@ namespace Legion {
     {
       if (launcher.fields.empty())
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_EMPTY_FILL_FIELDS,
-            "Ignoring fill request with no fields in task %s (UID %lld)",
-            get_task_name(), get_unique_id())
+        Warning warning;
+        warning << "Ignoring fill request with no fields in task "
+                << get_task_name() << " (UID " << get_unique_id() << ")";
+        warning.raise();
         return;
       }
       FillOp* fill_op = runtime->get_operation<FillOp>();
@@ -5895,11 +5939,11 @@ namespace Legion {
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "WARNING: Runtime is unmapping and remapping "
-              "physical regions around fill_fields call in task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning << "Runtime is unmapping and remapping physical regions "
+                     "around fill_fields call in task "
+                  << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
@@ -5919,19 +5963,19 @@ namespace Legion {
     {
       if (launcher.fields.empty())
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_EMPTY_FILL_FIELDS,
-            "Ignoring index fill request with no fields in task %s (UID %lld)",
-            get_task_name(), get_unique_id())
+        Warning warning;
+        warning << "Ignoring index fill request with no fields in task "
+                << get_task_name() << " (UID " << get_unique_id() << ")";
+        warning.raise();
         return;
       }
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_EMPTY_INDEX_SPACE_FILL,
-            "Ignoring empty index space fill in task %s (ID %lld)",
-            get_task_name(), get_unique_id());
+        Warning warning;
+        warning << "Ignoring empty index space fill in task " << get_task_name()
+                << " (ID " << get_unique_id() << ")";
+        warning.raise();
         return;
       }
       IndexSpace launch_space = launcher.launch_space;
@@ -5949,11 +5993,11 @@ namespace Legion {
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around fill_fields call in task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning << "Runtime is unmapping and remapping physical regions "
+                     "around fill_fields call in task "
+                  << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
@@ -5973,10 +6017,10 @@ namespace Legion {
     {
       if (launcher.fields.empty())
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_EMPTY_FILL_FIELDS,
-            "Ignoring discard request with no fields in task %s (UID %lld)",
-            get_task_name(), get_unique_id())
+        Warning warning;
+        warning << "Ignoring discard request with no fields in task "
+                << get_task_name() << " (UID " << get_unique_id() << ")";
+        warning.raise();
         return;
       }
       DiscardOp* discard_op = runtime->get_operation<DiscardOp>();
@@ -5991,12 +6035,11 @@ namespace Legion {
         {
           if (runtime->runtime_warnings && !launcher.silence_warnings)
           {
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-                "Runtime is unmapping and remapping "
-                "physical regions around discard_fields call in "
-                "task %s (UID %lld).",
-                get_task_name(), get_unique_id());
+            Warning warning;
+            warning << "Runtime is unmapping and remapping physical regions "
+                       "around discard_fields call in task "
+                    << get_task_name() << " (UID " << get_unique_id() << ").";
+            warning.raise();
           }
           // Unmap any regions which are conflicting
           for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
@@ -6023,12 +6066,11 @@ namespace Legion {
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around issue_copy_operation call in "
-              "task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning << "Runtime is unmapping and remapping physical regions "
+                     "around issue_copy_operation call in task "
+                  << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
@@ -6049,11 +6091,10 @@ namespace Legion {
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_IGNORING_EMPTY_INDEX_SPACE_COPY,
-            "Ignoring empty index space copy in task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id());
+        Warning warning;
+        warning << "Ignoring empty index space copy in task " << get_task_name()
+                << " (ID " << get_unique_id() << ")";
+        warning.raise();
         return;
       }
       IndexSpace launch_space = launcher.launch_space;
@@ -6071,12 +6112,11 @@ namespace Legion {
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around issue_copy_operation call in "
-              "task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning << "Runtime is unmapping and remapping physical regions "
+                     "around issue_copy_operation call in task "
+                  << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
@@ -6105,12 +6145,11 @@ namespace Legion {
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around issue_acquire call in "
-              "task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning << "Runtime is unmapping and remapping physical regions "
+                     "around issue_acquire call in task "
+                  << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -6138,12 +6177,11 @@ namespace Legion {
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around issue_release call in "
-              "task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning << "Runtime is unmapping and remapping physical regions "
+                     "around issue_release call in task "
+                  << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -6166,32 +6204,30 @@ namespace Legion {
       int index =
           has_conflicting_regions(attach_op, parent_conflict, inline_conflict);
       if (parent_conflict)
-        REPORT_LEGION_ERROR(
-            ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-            "Attempted an external attach operation on region "
-            "(%llu,%llu,%llu) that conflicts with mapped region "
-            "(%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
-            "that would ultimately result in deadlock. Instead you "
-            "receive this error message. Try unmapping the region "
-            "before invoking 'attach_external_resource'.",
-            launcher.handle.index_space.get_id(),
-            launcher.handle.field_space.get_id(), launcher.handle.get_tree_id(),
-            regions[index].region.index_space.get_id(),
-            regions[index].region.field_space.get_id(),
-            regions[index].region.get_tree_id(), index, get_task_name(),
-            get_unique_id())
+      {
+        Fatal fatal;
+        fatal << "Attempted an external attach operation on region "
+              << launcher.handle << " that conflicts with mapped region "
+              << regions[index].region << " at index " << index
+              << " of parent task " << get_task_name() << " (ID "
+              << get_unique_id()
+              << ") that would ultimately result in deadlock. Instead you "
+                 "receive this error message. Try unmapping the region before "
+                 "invoking 'attach_external_resource'.";
+        fatal.raise();
+      }
       if (inline_conflict)
-        REPORT_LEGION_ERROR(
-            ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-            "Attempted an external attach operation on region "
-            "(%llu,%llu,%llu) that conflicts with previous inline "
-            "mapping in task %s (ID %lld) "
-            "that would ultimately result in deadlock. Instead you "
-            "receive this error message. Try unmapping the region "
-            "before invoking 'attach_external_resource'.",
-            launcher.handle.index_space.get_id(),
-            launcher.handle.field_space.get_id(), launcher.handle.get_tree_id(),
-            get_task_name(), get_unique_id())
+      {
+        Fatal fatal;
+        fatal << "Attempted an external attach operation on region "
+              << launcher.handle
+              << " that conflicts with previous inline mapping in task "
+              << get_task_name() << " (ID " << get_unique_id()
+              << ") that would ultimately result in deadlock. Instead you "
+                 "receive this error message. Try unmapping the region before "
+                 "invoking 'attach_external_resource'.";
+        fatal.raise();
+      }
       // Add this region to the list of inline mapped regions if it is mapped
       if (result.is_mapped())
         register_inline_mapped_region(result);
@@ -6225,61 +6261,62 @@ namespace Legion {
       if (parent_conflict)
       {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
-          REPORT_LEGION_ERROR(
-              ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Attempted an index attach operation with upper bound "
-              "partition (%llu,%llu,%llu) that conflicts with mapped region"
-              " (%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
-              "that would ultimately result in deadlock. Instead you "
-              "receive this error message. Try unmapping the region "
-              "before invoking 'attach_external_resources'.",
-              req.partition.index_partition.get_id(),
-              req.partition.field_space.get_id(), req.partition.get_tree_id(),
-              regions[index].region.index_space.get_id(),
-              regions[index].region.field_space.get_id(),
-              regions[index].region.get_tree_id(), index, get_task_name(),
-              get_unique_id())
+        {
+          Fatal fatal;
+          fatal << "Attempted an index attach operation with upper bound "
+                   "partition "
+                << req.partition << " that conflicts with mapped region "
+                << regions[index].region << " at index " << index
+                << " of parent task " << get_task_name() << " (ID "
+                << get_unique_id()
+                << ") that would ultimately result in deadlock. Instead you "
+                   "receive this error message. Try unmapping the region "
+                   "before invoking 'attach_external_resources'.";
+          fatal.raise();
+        }
         else
-          REPORT_LEGION_ERROR(
-              ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Attempted an index attach operation with upper bound "
-              "region (%llu,%llu,%llu) that conflicts with mapped region "
-              "(%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
-              "that would ultimately result in deadlock. Instead you "
-              "receive this error message. Try unmapping the region "
-              "before invoking 'attach_external_resources'.",
-              req.region.index_space.get_id(), req.region.field_space.get_id(),
-              req.region.get_tree_id(),
-              regions[index].region.index_space.get_id(),
-              regions[index].region.field_space.get_id(),
-              regions[index].region.get_tree_id(), index, get_task_name(),
-              get_unique_id())
+        {
+          Fatal fatal;
+          fatal
+              << "Attempted an index attach operation with upper bound region "
+              << req.region << " that conflicts with mapped region "
+              << regions[index].region << " at index " << index
+              << " of parent task " << get_task_name() << " (ID "
+              << get_unique_id()
+              << ") that would ultimately result in deadlock. Instead you "
+                 "receive this error message. Try unmapping the region before "
+                 "invoking 'attach_external_resources'.";
+          fatal.raise();
+        }
       }
       if (inline_conflict)
       {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
-          REPORT_LEGION_ERROR(
-              ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Attempted an index attach operation with upper bound "
-              "partition (%llu,%llu,%llu) that conflicts with previous "
-              "inline mapping in task %s (ID %lld) "
-              "that would ultimately result in deadlock. Instead you "
-              "receive this error message. Try unmapping the region "
-              "before invoking 'attach_external_resources'.",
-              req.partition.index_partition.get_id(),
-              req.partition.field_space.get_id(), req.partition.get_tree_id(),
-              get_task_name(), get_unique_id())
+        {
+          Fatal fatal;
+          fatal << "Attempted an index attach operation with upper bound "
+                   "partition "
+                << req.partition
+                << " that conflicts with previous inline mapping in task "
+                << get_task_name() << " (ID " << get_unique_id()
+                << ") that would ultimately result in deadlock. Instead you "
+                   "receive this error message. Try unmapping the region "
+                   "before invoking 'attach_external_resources'.";
+          fatal.raise();
+        }
         else
-          REPORT_LEGION_ERROR(
-              ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Attempted an index attach operation with upper bound "
-              "region (%llu,%llu,%llu) that conflicts with previous inline "
-              "mapping in task %s (ID %lld) "
-              "that would ultimately result in deadlock. Instead you "
-              "receive this error message. Try unmapping the region "
-              "before invoking 'attach_external_resources'.",
-              req.region.index_space.get_id(), req.region.field_space.get_id(),
-              req.region.get_tree_id(), get_task_name(), get_unique_id())
+        {
+          Fatal fatal;
+          fatal
+              << "Attempted an index attach operation with upper bound region "
+              << req.region
+              << " that conflicts with previous inline mapping in task "
+              << get_task_name() << " (ID " << get_unique_id()
+              << ") that would ultimately result in deadlock. Instead you "
+                 "receive this error message. Try unmapping the region before "
+                 "invoking 'attach_external_resources'.";
+          fatal.raise();
+        }
       }
       add_to_dependence_queue(attach_op, launcher.static_dependences);
       return result;
@@ -6299,18 +6336,18 @@ namespace Legion {
         const unsigned index = indexes[idx];
         LogicalRegion handle = launcher.handles[index];
         if (handle.get_tree_id() != launcher.parent.get_tree_id())
-          REPORT_LEGION_ERROR(
-              ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Handle (%llu,%llu,%llu) of index attach operation in parent "
-              "task %s "
-              "(UID %lld) does not come from the same region tree as the "
-              "parent region (%llu,%llu,%llu). All regions for an index space "
-              "attach must be from the same tree.",
-              handle.index_space.get_id(), handle.field_space.get_id(),
-              handle.get_tree_id(), get_task_name(), get_unique_id(),
-              launcher.parent.index_space.get_id(),
-              launcher.parent.field_space.get_id(),
-              launcher.parent.get_tree_id())
+        {
+          Fatal fatal;
+          fatal << "Handle " << handle
+                << " of index attach operation in parent task "
+                << get_task_name() << " (UID " << get_unique_id()
+                << ") does not come from the same region tree as the parent "
+                   "region "
+                << launcher.parent
+                << ". All regions for an index space attach must be from the "
+                   "same tree.";
+          fatal.raise();
+        }
         previous_nodes[idx] = runtime->get_node(handle);
         depths[idx] = previous_nodes[idx]->get_depth();
         if (max_depth < depths[idx])
@@ -6363,19 +6400,16 @@ namespace Legion {
               continue;
             const LogicalRegion h1 = launcher.handles[it->second.front()];
             const LogicalRegion h2 = launcher.handles[it->second[idx]];
-            REPORT_LEGION_ERROR(
-                ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-                "Logical region handle (%llu,%llu,%llu) from index %d of index "
-                "attach "
-                "operation in parent task %s (UID %lld) is not region-tree "
-                "disjoint with logical region handle (%llu,%llu,%llu) from "
-                "index %d. "
-                "All regions in index space attach operations must be "
-                "region-tree disjoint.",
-                h1.index_space.get_id(), h1.field_space.get_id(),
-                h1.get_tree_id(), it->second.front(), get_task_name(),
-                get_unique_id(), h2.index_space.get_id(),
-                h2.field_space.get_id(), h2.get_tree_id(), it->second[idx])
+            Fatal fatal;
+            fatal << "Logical region handle " << h1 << " from index "
+                  << it->second.front()
+                  << " of index attach operation in parent task "
+                  << get_task_name() << " (UID " << get_unique_id()
+                  << ") is not region-tree disjoint with logical region handle "
+                  << h2 << " from index " << it->second[idx]
+                  << ". All regions in index space attach operations must be "
+                     "region-tree disjoint.";
+            fatal.raise();
           }
         }
         previous_nodes.swap(next_nodes);
@@ -6541,12 +6575,13 @@ namespace Legion {
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
         legion_assert(unordered);
-        REPORT_LEGION_ERROR(
-            ERROR_POST_EXECUTION_UNORDERED_OPERATION,
-            "Illegal unordered detach operation performed after task %s "
-            "(UID %lld) has finished executing. All unordered operations must "
-            "be performed before the end of the execution of the parent task.",
-            get_task_name(), get_unique_id())
+        Fatal fatal;
+        fatal
+            << "Illegal unordered detach operation performed after task "
+            << get_task_name() << " (UID " << get_unique_id()
+            << ") has finished executing. All unordered operations must be "
+               "performed before the end of the execution of the parent task.";
+        fatal.raise();
       }
       return result;
     }
@@ -6565,12 +6600,13 @@ namespace Legion {
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
         legion_assert(unordered);
-        REPORT_LEGION_ERROR(
-            ERROR_POST_EXECUTION_UNORDERED_OPERATION,
-            "Illegal unordered index detach operation performed after task %s "
-            "(UID %lld) has finished executing. All unordered operations must "
-            "be performed before the end of the execution of the parent task.",
-            get_task_name(), get_unique_id())
+        Fatal fatal;
+        fatal
+            << "Illegal unordered index detach operation performed after task "
+            << get_task_name() << " (UID " << get_unique_id()
+            << ") has finished executing. All unordered operations must be "
+               "performed before the end of the execution of the parent task.";
+        fatal.raise();
       }
       return result;
     }
@@ -6608,12 +6644,11 @@ namespace Legion {
       {
         if (runtime->runtime_warnings && !launcher.silence_warnings)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-              "Runtime is unmapping and remapping "
-              "physical regions around issue_release call in "
-              "task %s (UID %lld).",
-              get_task_name(), get_unique_id());
+          Warning warning;
+          warning << "Runtime is unmapping and remapping physical regions "
+                     "around issue_release call in task "
+                  << get_task_name() << " (UID " << get_unique_id() << ").";
+          warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
           unmapped_regions[idx].impl->unmap_region();
@@ -6699,11 +6734,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (f.impl == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_PREDICATE_CREATION,
-            "Illegal predicate creation performed on "
-            "empty future inside of task %s (ID %lld).",
-            get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+        error << "Illegal predicate creation performed on "
+                 "empty future inside of task "
+              << *this << ".";
+        error.raise();
+      }
       FuturePredOp* pred_op = runtime->get_operation<FuturePredOp>();
       // Hold a reference before initialization
       Predicate result = pred_op->initialize(this, f, provenance);
@@ -6733,11 +6770,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (launcher.predicates.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_PREDICATE_CREATION,
-            "Illegal predicate creation performed on a "
-            "set of empty previous predicates in task %s (ID %lld).",
-            get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal predicate creation performed on a "
+              << "set of empty previous predicates in task " << *this << ".";
+        error.raise();
+      }
       else if (launcher.predicates.size() == 1)
         return launcher.predicates[0];
       if (launcher.and_op)
@@ -8545,10 +8583,12 @@ namespace Legion {
       // No need to hold the lock here, this is only ever called
       // by the one thread that is running the task.
       if (current_trace != nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_NESTED_TRACE,
-            "Illegal nested trace with ID %d attempted in task %s (ID %lld)",
-            tid, get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal nested trace with ID " << tid << " attempted in task "
+              << get_task_name() << " (UID " << get_unique_id() << ").";
+        error.raise();
+      }
 
       std::map<TraceID, LogicalTrace*>::const_iterator finder =
           traces.find(tid);
@@ -8636,17 +8676,21 @@ namespace Legion {
         return;
 
       if (current_trace == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_UMATCHED_END_TRACE,
-            "Unmatched end trace for ID %d in task %s "
-            "(ID %lld)",
-            tid, get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Unmatched end trace for ID " << tid << " in task "
+              << get_task_name() << " (UID " << get_unique_id() << ").";
+        error.raise();
+      }
       else if (!deprecated && (current_trace->tid != tid))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_END_TRACE_CALL,
-            "Illegal end trace call on trace ID %d that does not match "
-            "the current trace ID %d in task %s (UID %lld)",
-            tid, current_trace->tid, get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal end trace call on trace ID " << tid
+              << " that does not match the current trace ID "
+              << current_trace->tid << " in task " << get_task_name()
+              << " (UID " << get_unique_id() << ").";
+        error.raise();
+      }
       // Mark that the current trace is now fixed
       if (!current_trace->is_fixed())
         current_trace->fix_trace(provenance);
@@ -8674,13 +8718,17 @@ namespace Legion {
           (current_trace_blocking_index <= blocking_index))
       {
         if (is_replaying_physical_trace())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_PHYSICAL_TRACING,
-              "Physical tracing violation! Trace %d in task %s (UID %lld) "
-              "encountered a blocking API call that was unseen when it was "
-              "recorded. It is required that traces do not change their "
-              "behavior.",
-              current_trace->get_trace_id(), get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Physical tracing violation! Trace "
+                << current_trace->get_trace_id() << " in task "
+                << get_task_name() << " (UID " << get_unique_id()
+                << ") encountered a blocking API call that was unseen when it "
+                   "was "
+                << "recorded. It is required that traces do not change their "
+                   "behavior.";
+          error.raise();
+        }
         else
           current_trace->record_blocking_call();
       }
@@ -8932,14 +8980,18 @@ namespace Legion {
       if ((runtime->profiler != nullptr) &&
           !runtime->profiler->no_critical_paths &&
           !runtime->profiler->all_critical_arrivals)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_NO_CRITICAL_PATH_DYNAMIC_COLLECTIVES,
-            "Task %s (UID %lld) requested the creation of a dynamic "
-            "collective while profiling for critical paths without recording "
-            "all critical barrier arrivals. Critical path analysis with "
-            "dynamic collectives requires that you use the "
-            "'-lg:prof_all_critical_arrivals' flag.",
-            get_task_name(), get_unique_id())
+      {
+        Fatal fatal;
+        fatal << "Task " << *this
+              << " requested the creation of a dynamic collective while "
+                 "profiling "
+              << "for critical paths without recording all critical barrier "
+                 "arrivals. "
+              << "Critical path analysis with dynamic collectives requires "
+                 "that you "
+              << "use the '-lg:prof_all_critical_arrivals' flag.";
+        fatal.raise();
+      }
       return DynamicCollective(
           ApBarrier(Realm::Barrier::create_barrier(
               arrivals, redop, init_value, init_size)),
@@ -10302,26 +10354,36 @@ namespace Legion {
       {
         const size_t remaining = manager->query_available_memory();
         if (size <= remaining)
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate space for a future for task %s (UID %lld) "
-              "in %s memory of size %zd bytes. There are still %zd bytes "
-              "free in the memory, but they are fragmented such that a hole "
-              "of %zd bytes could not be found. We recommend you check the "
-              "order of allocations and alignment requirements to try to "
-              "minimize the amount of padding between instances. Otherwise "
-              "you will need to increase the size of the memory.",
-              get_task_name(), get_unique_id(), manager->get_name(), size,
-              remaining, size)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Failed to allocate space for a future for task "
+                << get_task_name() << " (UID " << get_unique_id() << ") in "
+                << manager->get_name() << " memory of size " << size
+                << " bytes. There are still " << remaining
+                << " bytes free in the memory, but they are fragmented such "
+                   "that a hole "
+                << "of " << size
+                << " bytes could not be found. We recommend you check the "
+                << "order of allocations and alignment requirements to try to "
+                   "minimize the "
+                << "amount of padding between instances. Otherwise you will "
+                   "need to increase "
+                << "the size of the memory.";
+          error.raise();
+        }
         else
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate space for a future for task %s (UID %lld) "
-              "in %s memory of size %zd bytes. If you receive this error then "
-              "you really are out of memory. You have two options: either "
-              "increase the size of this memory when configuring Realm, or "
-              "find a bigger machine.",
-              get_task_name(), get_unique_id(), manager->get_name(), size)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Failed to allocate space for a future for task "
+                << get_task_name() << " (UID " << get_unique_id() << ") in "
+                << manager->get_name() << " memory of size " << size
+                << " bytes. If you receive this error then "
+                << "you really are out of memory. You have two options: either "
+                   "increase "
+                << "the size of this memory when configuring Realm, or find a "
+                   "bigger machine.";
+          error.raise();
+        }
       }
       return instance;
     }
@@ -10344,29 +10406,38 @@ namespace Legion {
       {
         const size_t remaining = manager->query_available_memory();
         if (layout->bytes_used <= remaining)
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate DeferredBuffer/Value/Reduction for task %s "
-              "(UID %lld) in %s memory of size %zd bytes. There are still %zd "
-              "bytes free in the memory, but they are fragmented such that a "
-              "hole of %zd bytes aligned on a %zd byte boundary could not be "
-              "found. We recommend you check the order of allocations and "
-              "alignment requirements to try to minimize the amount of padding "
-              "between instances. Otherwise you will need to increase the size "
-              "of the memory.",
-              get_task_name(), get_unique_id(), manager->get_name(),
-              layout->bytes_used, remaining, layout->bytes_used,
-              layout->alignment_reqd)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Failed to allocate DeferredBuffer/Value/Reduction for task "
+                << get_task_name() << " (UID " << get_unique_id() << ") in "
+                << manager->get_name() << " memory of size "
+                << layout->bytes_used << " bytes. There are still " << remaining
+                << " bytes free in the memory, "
+                << "but they are fragmented such that a hole of "
+                << layout->bytes_used << " bytes aligned on a "
+                << layout->alignment_reqd << " byte boundary "
+                << "could not be found. We recommend you check the order of "
+                   "allocations "
+                << "and alignment requirements to try to minimize the amount "
+                   "of padding "
+                << "between instances. Otherwise you will need to increase the "
+                   "size of "
+                << "the memory.";
+          error.raise();
+        }
         else
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate DeferredBuffer/Value/Reduction for task %s "
-              "(UID %lld) in %s memory of size %zd bytes. If you receive this "
-              "error then you really are out of memory. You have two options: "
-              "increase the size of this memory when configuring Realm, or "
-              "find a bigger machine.",
-              get_task_name(), get_unique_id(), manager->get_name(),
-              layout->bytes_used)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
+              << "Failed to allocate DeferredBuffer/Value/Reduction for task "
+              << get_task_name() << " (UID " << get_unique_id() << ") in "
+              << manager->get_name() << " memory of size " << layout->bytes_used
+              << " bytes. If you receive this error then you really are out of "
+                 "memory. "
+              << "You have two options: increase the size of this memory when "
+              << "configuring Realm, or find a bigger machine.";
+          error.raise();
+        }
       }
       task_local_instances[instance] = unique_event;
       delete layout;
@@ -10384,11 +10455,13 @@ namespace Legion {
       std::map<PhysicalInstance, LgEvent>::iterator finder =
           task_local_instances.find(instance);
       if (finder == task_local_instances.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DEFERRED_BUFFER_DOUBLE_DELETE,
-            "Detected double deletion of deferred buffer " IDFMT
-            "in parent task %s (UID %lld).",
-            instance.id, get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Detected double deletion of deferred buffer " << instance
+              << " in parent task " << get_task_name() << " (UID "
+              << get_unique_id() << ").";
+        error.raise();
+      }
       task_local_instances.erase(finder);
       MemoryManager* manager =
           runtime->find_memory_manager(instance.get_location());
@@ -10447,10 +10520,12 @@ namespace Legion {
       progress_unordered_operations(true /*end task*/);
       // Quick check to make sure the user didn't forget to end a trace
       if (current_trace != nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_TASK_FAILED_END_TRACE,
-            "Task %s (UID %lld) failed to end trace before exiting!",
-            get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Task " << get_task_name() << " (UID " << get_unique_id()
+              << ") failed to end trace before exiting!";
+        error.raise();
+      }
       // See if we have an outstanding previous trace to clean up
       else if (previous_trace != nullptr)
       {
@@ -10520,12 +10595,15 @@ namespace Legion {
           // leaf task then signal a warning
           VariantImpl* impl = runtime->find_variant_impl(
               owner_task->task_id, owner_task->get_selected_variant());
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_VARIANT_TASK_NOT_MARKED,
-              "Variant %s of task %s (UID %lld) was "
-              "not marked as a 'leaf' variant but it didn't execute any "
-              "operations. Did you forget the 'leaf' annotation?",
-              impl->get_name(), get_task_name(), get_unique_id());
+          {
+            Warning warning;
+            warning << "Variant " << impl->get_name() << " of task "
+                    << get_task_name() << " (UID " << get_unique_id()
+                    << ") was not marked as a 'leaf' variant "
+                    << "but it didn't execute any operations. Did you forget "
+                       "the 'leaf' annotation?";
+            warning.raise();
+          }
         }
         else if (!owner_task->is_inner())
         {
@@ -10547,13 +10625,16 @@ namespace Legion {
           {
             VariantImpl* impl = runtime->find_variant_impl(
                 owner_task->task_id, owner_task->get_selected_variant());
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_VARIANT_TASK_NOT_MARKED,
-                "Variant %s of task %s (UID %lld) was "
-                "not marked as an 'inner' variant but it only launched "
-                "operations and did not make any accessors. Did you "
-                "forget the 'inner' annotation?",
-                impl->get_name(), get_task_name(), get_unique_id());
+            {
+              Warning warning;
+              warning << "Variant " << impl->get_name() << " of task "
+                      << get_task_name() << " (UID " << get_unique_id()
+                      << ") was not marked as an 'inner' variant "
+                      << "but it only launched operations and did not make any "
+                         "accessors. Did you "
+                      << "forget the 'inner' annotation?";
+              warning.raise();
+            }
           }
         }
       }
@@ -10820,18 +10901,21 @@ namespace Legion {
         // and return because we couldn't find a mapped physical region
         if (!found)
         {
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_FAILED_INLINING,
-              "Failed to inline task %s (UID %lld) into parent task "
-              "%s (UID %lld) because there was no mapped region for "
-              "region requirement %d to use. Currently all regions "
-              "must be mapped in the parent task in order to allow "
-              "for inlining. If you believe you have a compelling use "
-              "case for inline a task with virtually mapped regions "
-              "then please contact the Legion developers.",
-              child->get_task_name(), child->get_unique_id(),
-              owner_task->get_task_name(), owner_task->get_unique_id(),
-              childidx)
+          Warning warning;
+          warning << "Failed to inline task " << child->get_task_name()
+                  << " (UID " << child->get_unique_id() << ") into parent task "
+                  << owner_task->get_task_name() << " (UID "
+                  << owner_task->get_unique_id()
+                  << ") because there was no mapped "
+                  << "region for region requirement " << childidx
+                  << " to use. Currently all "
+                  << "regions must be mapped in the parent task in order to "
+                     "allow for inlining. "
+                  << "If you believe you have a compelling use case for inline "
+                     "a task with "
+                  << "virtually mapped regions then please contact the Legion "
+                     "developers.";
+          warning.raise();
           return false;
         }
       }
@@ -10930,21 +11014,21 @@ namespace Legion {
           {
             if (index)
             {
-              REPORT_LEGION_WARNING(
-                  LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-                  "WARNING: Runtime is unmapping and remapping "
-                  "physical regions around execute_index_space call in "
-                  "task %s (UID %lld).",
-                  get_task_name(), get_unique_id());
+              Warning warning;
+              warning << "WARNING: Runtime is unmapping and remapping physical "
+                         "regions around "
+                      << "execute_index_space call in task " << get_task_name()
+                      << " (UID " << get_unique_id() << ").";
+              warning.raise();
             }
             else
             {
-              REPORT_LEGION_WARNING(
-                  LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
-                  "WARNING: Runtime is unmapping and remapping "
-                  "physical regions around execute_task call in "
-                  "task %s (UID %lld).",
-                  get_task_name(), get_unique_id());
+              Warning warning;
+              warning << "WARNING: Runtime is unmapping and remapping physical "
+                         "regions around "
+                      << "execute_task call in task " << get_task_name()
+                      << " (UID " << get_unique_id() << ").";
+              warning.raise();
             }
           }
           for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
@@ -10967,12 +11051,13 @@ namespace Legion {
     {
       legion_assert(!unmapped_regions.empty());
       if (trace != nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_RUNTIME_REMAPPING,
-            "Illegal runtime remapping in trace %d inside of "
-            "task %s (UID %lld). Traces must perfectly "
-            "manage their physical mappings with no runtime help.",
-            trace->tid, get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal runtime remapping in trace " << trace->tid
+              << " inside of task " << *this << ". Traces must perfectly "
+              << "manage their physical mappings with no runtime help.";
+        error.raise();
+      }
       std::set<ApEvent> mapped_events;
       for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
       {
