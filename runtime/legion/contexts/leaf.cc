@@ -133,17 +133,19 @@ namespace Legion {
       {
         MapperManager* child_mapper =
             runtime->find_mapper(executing_processor, child->map_id);
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output from invoction of "
-            "'select_task_variant' on mapper %s. Mapper selected "
-            "an invalid variant ID %d for inlining of task %s "
-            "(UID %lld). Parent task %s (UID %lld) is a leaf task "
-            "but mapper selected non-leaf variant %d for task %s.",
-            child_mapper->get_mapper_name(), variant_impl->vid,
-            child->get_task_name(), child->get_unique_id(),
-            owner_task->get_task_name(), owner_task->get_unique_id(),
-            variant_impl->vid, child->get_task_name())
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output from invocation of "
+                 "'select_task_variant' on mapper "
+              << child_mapper->get_mapper_name()
+              << ". Mapper selected an invalid variant ID " << variant_impl->vid
+              << " for inlining of task " << child->get_task_name() << " (UID "
+              << child->get_unique_id() << "). Parent task "
+              << owner_task->get_task_name() << " (UID "
+              << owner_task->get_unique_id()
+              << ") is a leaf task but mapper selected non-leaf variant "
+              << variant_impl->vid << " for task " << child->get_task_name()
+              << ".";
+        error.raise();
       }
       return variant_impl;
     }
@@ -205,11 +207,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal index space creation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index space creation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -217,11 +218,10 @@ namespace Legion {
         const std::vector<DomainPoint>& points, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal index space creation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index space creation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -229,11 +229,10 @@ namespace Legion {
         const std::vector<Domain>& rects, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal index space creation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index space creation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -241,11 +240,10 @@ namespace Legion {
         const Future& f, TypeTag tag, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal index space creation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index space creation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -253,34 +251,32 @@ namespace Legion {
         TypeTag tag, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal unbound index space creation performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal unbound index space creation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::create_shared_ownership(IndexSpace handle)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_LEAF_TASK_VIOLATION,
-            "Illegal index space create shared ownership performed in leaf "
-            "task "
-            "%s (ID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index space create shared ownership performed in leaf "
+               "task "
+            << *this << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     IndexSpace LeafContext::union_index_spaces(
         const std::vector<IndexSpace>& spaces, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal union index spaces performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal union index spaces performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -288,11 +284,10 @@ namespace Legion {
         const std::vector<IndexSpace>& spaces, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal intersect index spaces performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal intersect index spaces performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -300,11 +295,10 @@ namespace Legion {
         IndexSpace left, IndexSpace right, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal subtract index spaces performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal subtract index spaces performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -313,33 +307,34 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal index space destruction performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index space destruction performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::create_shared_ownership(IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal index partition create shared ownership performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index partition create shared ownership performed in "
+               "leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::destroy_index_partition(
         IndexPartition handle, const bool unordered, const bool recurse,
         Provenance* provenance)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_LEAF_TASK_VIOLATION,
-            "Illegal index partition destruction performed in leaf task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index partition destruction performed in leaf task "
+            << *this << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     IndexPartition LeafContext::create_equal_partition(
@@ -347,12 +342,10 @@ namespace Legion {
         Color color, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_EQUAL_PARTITION_CREATION,
-          "Illegal equal partition creation performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal equal partition creation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -361,12 +354,10 @@ namespace Legion {
         size_t granularity, Color color, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_EQUAL_PARTITION_CREATION,
-          "Illegal create partition by weights performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create partition by weights performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -376,12 +367,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_UNION_PARTITION_CREATION,
-          "Illegal union partition creation performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal union partition creation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -391,12 +380,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_INTERSECTION_PARTITION_CREATION,
-          "Illegal intersection partition creation performed in "
-          "leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal intersection partition creation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -405,12 +392,10 @@ namespace Legion {
         Color color, bool dominates, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_INTERSECTION_PARTITION_CREATION,
-          "Illegal intersection partition creation performed in "
-          "leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal intersection partition creation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -420,12 +405,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_DIFFERENCE_PARTITION_CREATION,
-          "Illegal difference partition creation performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal difference partition creation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -435,12 +418,10 @@ namespace Legion {
         Color color, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_CREATE_CROSS_PRODUCT_PARTITION,
-          "Illegal create cross product partitions performed in "
-          "leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return 0;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create cross product partitions performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -448,12 +429,13 @@ namespace Legion {
         LogicalRegion domain, LogicalRegion domain_parent, FieldID domain_fid,
         IndexSpace range, MapperID id, MappingTagID tag,
         const UntypedBuffer& marg, Provenance* provenance)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_CREATE_ASSOCIATION,
-            "Illegal create association performed in leaf task "
-            "%s (ID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create association performed in leaf task " << *this
+            << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     IndexPartition LeafContext::create_restricted_partition(
@@ -462,12 +444,10 @@ namespace Legion {
         PartitionKind part_kind, Color color, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_CREATE_RESTRICTED_PARTITION,
-          "Illegal create restricted partition performed in "
-          "leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create restricted partition performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -477,12 +457,10 @@ namespace Legion {
         Provenance* provenance, bool skip_check)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_PARTITION_BY_DOMAIN,
-          "Illegal create partition by domain performed in leaf "
-          "task %s (UID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create partition by domain performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -493,12 +471,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_PARTITION_FIELD,
-          "Illegal partition by field performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal partition by field performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -509,12 +485,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_PARTITION_IMAGE,
-          "Illegal partition by image performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal partition by image performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -525,12 +499,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_PARTITION_IMAGE_RANGE,
-          "Illegal partition by image range performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal partition by image range performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -541,12 +513,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_PARTITION_PREIMAGE,
-          "Illegal partition by preimage performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal partition by preimage performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -557,12 +527,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_PARTITION_PREIMAGE_RANGE,
-          "Illegal partition by preimage range performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal partition by preimage range performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -571,12 +539,10 @@ namespace Legion {
         Color color, Provenance* prov, bool trust)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_CREATE_PENDING_PARTITION,
-          "Illegal create pending partition performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexPartition::NO_PART;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create pending partition performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -586,12 +552,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_CREATE_INDEX_SPACE_UNION,
-          "Illegal create index space union performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create index space union performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -600,12 +564,10 @@ namespace Legion {
         TypeTag type_tag, IndexPartition handle, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_CREATE_INDEX_SPACE_UNION,
-          "Illegal create index space union performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create index space union performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -615,12 +577,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_CREATE_INDEX_SPACE_INTERSECTION,
-          "Illegal create index space intersection performed in "
-          "leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create index space intersection performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -629,12 +589,10 @@ namespace Legion {
         TypeTag type_tag, IndexPartition handle, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_CREATE_INDEX_SPACE_INTERSECTION,
-          "Illegal create index space intersection performed in "
-          "leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create index space intersection performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -644,23 +602,20 @@ namespace Legion {
         const std::vector<IndexSpace>& handles, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_CREATE_INDEX_SPACE_DIFFERENCE,
-          "Illegal create index space difference performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return IndexSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal create index space difference performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     FieldSpace LeafContext::create_field_space(Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal field space creation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return FieldSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field space creation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -670,11 +625,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal field space creation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return FieldSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field space creation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -684,55 +638,54 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal field space creation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return FieldSpace::NO_SPACE;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field space creation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::create_shared_ownership(FieldSpace handle)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal field space create shared ownership performed in leaf task "
-          "%s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field space create shared ownership performed in leaf "
+               "task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::destroy_field_space(
         FieldSpace handle, const bool unordered, Provenance* provenance)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_LEAF_TASK_VIOLATION,
-            "Illegal field space destruction performed in leaf task %s (ID "
-            "%lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field space destruction performed in leaf task "
+            << *this << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     FieldAllocatorImpl* LeafContext::create_field_allocator(
         FieldSpace handle, bool unordered)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal field allocator creation performed in leaf task %s (ID "
-          "%lld)",
-          get_task_name(), get_unique_id())
-      return nullptr;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field allocator creation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::destroy_field_allocator(FieldSpaceNode* node)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_LEAF_TASK_VIOLATION,
-            "Illegal field allocator destruction performed in leaf task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field allocator destruction performed in leaf task "
+            << *this << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     FieldID LeafContext::allocate_field(
@@ -740,11 +693,10 @@ namespace Legion {
         CustomSerdezID serdez_id, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal field allocation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return 0;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field allocation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -754,10 +706,10 @@ namespace Legion {
         CustomSerdezID serdez_id, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal field allocations performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field allocations performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -766,10 +718,9 @@ namespace Legion {
         const bool unordered, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal field free performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field free performed in leaf task " << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -777,11 +728,12 @@ namespace Legion {
         FieldAllocatorImpl* allocator, FieldSpace space,
         const std::set<FieldID>& to_free, const bool unordered,
         Provenance* provenance)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_LEAF_TASK_VIOLATION,
-            "Illegal field free performed in leaf task %s (ID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal field free performed in leaf task " << *this << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     FieldID LeafContext::allocate_field(
@@ -789,12 +741,10 @@ namespace Legion {
         CustomSerdezID serdez_id, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_NONLOCAL_FIELD_ALLOCATION,
-          "Illegal deferred field allocation performed in leaf task %s (ID "
-          "%lld)",
-          get_task_name(), get_unique_id())
-      return 0;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal deferred field allocation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -804,10 +754,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_NONLOCAL_FIELD_ALLOCATION,
-          "Illegal local field allocation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal local field allocation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -817,11 +767,10 @@ namespace Legion {
         CustomSerdezID serdez_id, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_NONLOCAL_FIELD_ALLOCATION2,
-          "Illegal deferred field allocations performed in leaf task %s (ID "
-          "%lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal deferred field allocations performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -829,12 +778,13 @@ namespace Legion {
         FieldSpace space, const std::vector<size_t>& sizes,
         const std::vector<FieldID>& resuling_fields, CustomSerdezID serdez_id,
         std::set<RtEvent>& done_events, Provenance* provenance)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_NONLOCAL_FIELD_ALLOCATION2,
-            "Illegal local field allocations performed in leaf task %s (ID "
-            "%lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal local field allocations performed in leaf task "
+            << *this << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     LogicalRegion LeafContext::create_logical_region(
@@ -842,23 +792,21 @@ namespace Legion {
         Provenance* provenance, const bool output_region)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal logical region creation performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return LogicalRegion::NO_REGION;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal logical region creation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::create_shared_ownership(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal logical region create shared ownership performed in leaf "
-          "task "
-          "%s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal logical region create shared ownership performed in "
+               "leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -866,10 +814,10 @@ namespace Legion {
         LogicalRegion handle, const bool unordered, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal logical region deletion performed in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal logical region deletion performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -939,12 +887,10 @@ namespace Legion {
       }
       else
       {
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_EXECUTE_TASK_CALL,
-            "Illegal execute task call performed in leaf task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id())
-        return Future();
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal execute task call performed in leaf task " << *this
+              << ".";
+        error.raise();
       }
     }
 
@@ -958,12 +904,14 @@ namespace Legion {
       {
         IndexSpace launch_space = launcher.launch_space;
         if (!launch_space.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-              "Illegal execute index space call performed in leaf task %s "
-              "(ID %lld). All inline leaf task index space launches must "
-              "specify a launch index space.",
-              get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Illegal execute index space call performed in leaf task "
+                << *this
+                << ". All inline leaf task index space launches must specify a "
+                   "launch index space.";
+          error.raise();
+        }
         if (launcher.predicate == Predicate::FALSE_PRED)
           return predicate_index_task_false(launch_space, launcher, provenance);
         IndexTask* task = runtime->get_operation<IndexTask>();
@@ -976,12 +924,10 @@ namespace Legion {
       }
       else
       {
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-            "Illegal execute index space call performed in leaf "
-            "task %s (ID %lld)",
-            get_task_name(), get_unique_id())
-        return FutureMap();
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal execute index space call performed in leaf task "
+              << *this << ".";
+        error.raise();
       }
     }
 
@@ -996,12 +942,14 @@ namespace Legion {
       {
         IndexSpace launch_space = launcher.launch_space;
         if (!launch_space.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-              "Illegal execute index space call performed in leaf task %s "
-              "(ID %lld). All inline leaf task index space launches must "
-              "specify a launch index space.",
-              get_task_name(), get_unique_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Illegal execute index space call performed in leaf task "
+                << *this
+                << ". All inline leaf task index space launches must specify a "
+                   "launch index space.";
+          error.raise();
+        }
         if (launcher.predicate == Predicate::FALSE_PRED)
           return predicate_index_task_reduce_false(
               launcher, launch_space, redop, provenance);
@@ -1015,12 +963,10 @@ namespace Legion {
       }
       else
       {
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-            "Illegal execute index space call performed in leaf "
-            "task %s (ID %lld)",
-            get_task_name(), get_unique_id())
-        return Future();
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal execute index space call performed in leaf task "
+              << *this << ".";
+        error.raise();
       }
     }
 
@@ -1031,12 +977,10 @@ namespace Legion {
         Future initial_value)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-          "Illegal reduce future map call performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return Future();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal reduce future map call performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1046,12 +990,10 @@ namespace Legion {
         bool check_space)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-          "Illegal construct future map call performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return FutureMap();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal construct future map call performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1060,12 +1002,10 @@ namespace Legion {
         bool collective, ShardingID sid, bool implicit)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-          "Illegal construct future map call performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return FutureMap();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal construct future map call performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1075,12 +1015,10 @@ namespace Legion {
         bool check_space)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-          "Illegal construct future map call performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return FutureMap();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal construct future map call performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1089,12 +1027,10 @@ namespace Legion {
         bool collective, ShardingID sid, bool implicit)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
-          "Illegal construct future map call performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return FutureMap();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal construct future map call performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1103,12 +1039,10 @@ namespace Legion {
         PointTransformFunctor* functor, bool own_func, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal transform future map call performed in leaf task %s (ID "
-          "%lld)",
-          get_task_name(), get_unique_id())
-      return FutureMap();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal transform future map call performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1116,12 +1050,10 @@ namespace Legion {
         const InlineLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_MAP_REGION,
-          "Illegal map_region operation performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
-      return PhysicalRegion();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal map_region operation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1129,34 +1061,30 @@ namespace Legion {
         const PhysicalRegion& region, Provenance* provenance, bool internal)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_REMAP_OPERATION,
-          "Illegal remap operation performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
-      return ApEvent::NO_AP_EVENT;
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal remap operation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::unmap_region(PhysicalRegion region)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_UNMAP_OPERATION,
-          "Illegal unmap operation performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal unmap operation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::unmap_all_regions(bool external)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_UNMAP_OPERATION,
-          "Illegal unmap_all_regions call performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal unmap_all_regions call performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1164,11 +1092,10 @@ namespace Legion {
         const FillLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_FILL_OPERATION_CALL,
-          "Illegal fill operation call performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal fill operation call performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1176,11 +1103,10 @@ namespace Legion {
         const IndexFillLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_INDEX_FILL_OPERATION_CALL,
-          "Illegal index fill operation call performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index fill operation call performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1188,11 +1114,10 @@ namespace Legion {
         const DiscardLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal discard operation call performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal discard operation call performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1200,11 +1125,10 @@ namespace Legion {
         const CopyLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_COPY_FILL_OPERATION_CALL,
-          "Illegal copy operation call performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal copy operation call performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1212,11 +1136,10 @@ namespace Legion {
         const IndexCopyLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_INDEX_COPY_OPERATION,
-          "Illegal index copy operation call performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index copy operation call performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1224,34 +1147,32 @@ namespace Legion {
         const AcquireLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_ACQUIRE_OPERATION,
-          "Illegal acquire operation performed in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal acquire operation performed in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::issue_release(
         const ReleaseLauncher& launcher, Provenance* provenance)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_RELEASE_OPERATION,
-            "Illegal release operation performed in leaf task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal release operation performed in leaf task " << *this
+            << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     PhysicalRegion LeafContext::attach_resource(
         const AttachLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_ATTACH_RESOURCE_OPERATION,
-          "Illegal attach resource operation performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return PhysicalRegion();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal attach resource operation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1259,12 +1180,10 @@ namespace Legion {
         const IndexAttachLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_ATTACH_RESOURCE_OPERATION,
-          "Illegal attach resources operation performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return ExternalResources();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal attach resources operation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1273,12 +1192,10 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_DETACH_RESOURCE_OPERATION,
-          "Illegal detach resource operation performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return Future();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal detach resource operation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1287,33 +1204,31 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_DETACH_RESOURCE_OPERATION,
-          "Illegal index detach resource operation performed in leaf "
-          "task %s (ID %lld)",
-          get_task_name(), get_unique_id())
-      return Future();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal index detach resource operation performed in leaf task "
+            << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::progress_unordered_operations(bool end_task)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_DETACH_RESOURCE_OPERATION,
-            "Illegal progress unordered operations performed in leaf "
-            "task %s (ID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal progress unordered operations performed in leaf task "
+            << *this << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     FutureMap LeafContext::execute_must_epoch(
         const MustEpochLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_LEGION_EXECUTE_MUST_EPOCH,
-          "Illegal Legion execute must epoch call in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal Legion execute must epoch call in leaf task " << *this
+            << ".";
+      error.raise();
       return FutureMap();
     }
 
@@ -1390,38 +1305,35 @@ namespace Legion {
     Future LeafContext::issue_mapping_fence(Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_LEGION_MAPPING_FENCE_CALL,
-          "Illegal legion mapping fence call in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
-      return Future();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal Legion mapping fence call in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     Future LeafContext::issue_execution_fence(Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_LEGION_EXECUTION_FENCE_CALL,
-          "Illegal Legion execution fence call in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
-      return Future();
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal Legion execution fence call in leaf task " << *this
+            << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::complete_frame(Provenance* provenance)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_LEGION_COMPLETE_FRAME_CALL,
-            "Illegal Legion complete frame call in leaf task %s "
-            "(ID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal Legion complete frame call in leaf task " << *this
+            << ".";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
-    Predicate
-        LeafContext::create_predicate(const Future& f, Provenance* provenance)
+    Predicate LeafContext::create_predicate(
+        const Future& f, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       if (f.impl == nullptr)
@@ -1454,11 +1366,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (launcher.predicates.empty())
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_PREDICATE_CREATION,
-            "Illegal predicate creation performed on a "
-            "set of empty previous predicates in task %s (ID %lld).",
-            get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal predicate creation performed on a set of empty "
+              << "previous predicates in leaf task " << *this << ".";
+        error.raise();
+      }
       else if (launcher.predicates.size() == 1)
         return launcher.predicates[0];
       if (launcher.and_op)
@@ -1533,11 +1446,9 @@ namespace Legion {
         Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_LEGION_BEGIN_TRACE,
-          "Illegal Legion begin trace call in leaf task %s "
-          "(ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal Legion begin trace call in leaf task " << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1545,10 +1456,9 @@ namespace Legion {
         TraceID tid, bool deprecated, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_ILLEGAL_LEGION_END_TRACE,
-          "Illegal Legion end trace call in leaf task %s (ID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Illegal Legion end trace call in leaf task " << *this << ".";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -1639,62 +1549,64 @@ namespace Legion {
           if (instance->is_immediate())
           {
             if (!silence_warnings)
-              REPORT_LEGION_WARNING(
-                  LEGION_WARNING_MISSING_ALLOCATION_BOUNDS,
-                  "WARNING! Leaf task %s (UID %lld) attempted to allocate a "
-                  "future instance of %zd bytes in %s memory but no space "
-                  "was reserved for dynamic allocations during "
-                  "the lifetime of this task. Legion has managed to procure "
-                  "for you an allocation this time but there is no guarantee "
-                  "that you will be so lucky the next time. We strongly "
-                  "encourage all users to place tight upper bounds on the "
-                  "required memory for all leaf tasks either statically at "
-                  "the point of task variant registration or dynamically at "
-                  "the point that the task is mapped. Warning string: %s",
-                  get_task_name(), get_unique_id(), size, manager->get_name(),
-                  (warning_string == nullptr) ? "" : warning_string)
+            {
+              Warning warning;
+              warning
+                  << "WARNING! Leaf task " << get_task_name() << " (UID "
+                  << get_unique_id()
+                  << ") attempted to allocate a future instance of " << size
+                  << " bytes in " << manager->get_name()
+                  << " memory but no space was reserved for dynamic "
+                     "allocations during "
+                  << "the lifetime of this task. Legion has managed to procure "
+                  << "for you an allocation this time but there is no "
+                     "guarantee "
+                  << "that you will be so lucky the next time. We strongly "
+                  << "encourage all users to place tight upper bounds on the "
+                  << "required memory for all leaf tasks either statically at "
+                  << "the point of task variant registration or dynamically at "
+                  << "the point that the task is mapped. Warning string: "
+                  << ((warning_string == nullptr) ? "" : warning_string) << ".";
+              warning.raise();
+            }
             return instance;
           }
           else
             delete instance;  // Not immediately available so we can't use it
         }
         else if (safe_for_unbounded_pools.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate %zd bytes for a future needed by leaf task %s"
-              " (UID %lld) in %s memory because there was no space reserved at "
-              "the point of mapping the task for dynamic allocations. If you "
-              "designate a task as a leaf task variant then it is your "
-              "responsibility to tell Legion how much memory needs to be "
-              "reserved for satisfying dynamic allocations during the "
-              "execution of the task. Legion did try to allocate an eager "
-              "instance this case but discovered an unbounded pool in the "
-              "memory which prevented us from attempted the eager allocation "
-              "(because it cannot be done safely), so you might not actually "
-              "be out of memory.",
-              size, get_task_name(), get_unique_id(), manager->get_name())
-        else
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate %zd bytes for a future needed by leaf task %s"
-              " (UID %lld) in %s memory because there was no space reserved at "
-              "the point of mapping the task for dynamic allocations. If you "
-              "designate a task as a leaf task variant then it is your "
-              "responsibility to tell Legion how much memory needs to be "
-              "reserved for satisfying dynamic allocations during the "
-              "execution of the task.",
-              size, get_task_name(), get_unique_id(), manager->get_name())
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Failed to allocate " << size
+                << " bytes for a future needed by leaf task " << get_task_name()
+                << " (UID " << get_unique_id() << ") in " << manager->get_name()
+                << " memory because there was no space reserved at "
+                << "the point of mapping the task for dynamic allocations. If "
+                   "you "
+                << "designate a task as a leaf task variant then it is your "
+                << "responsibility to tell Legion how much memory needs to be "
+                << "reserved for satisfying dynamic allocations during the "
+                << "execution of the task. Legion did try to allocate an eager "
+                << "instance this case but discovered an unbounded pool in the "
+                << "memory which prevented us from attempted the eager "
+                   "allocation "
+                << "(because it cannot be done safely), so you might not "
+                   "actually "
+                << "be out of memory.";
+          error.raise();
+        }
       }
       else if (finder->second->is_released())
       {
         MemoryManager* manager = runtime->find_memory_manager(memory);
-        REPORT_LEGION_ERROR(
-            ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "Failed to allocate future in leaf task %s (UID %lld) in %s memory "
-            "because the pool associated with this memory was already released "
-            "by the task. It is illegal to attempt to perform dynamic "
-            "allocations in a memory pool after you released it.",
-            get_task_name(), get_unique_id(), manager->get_name())
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Failed to allocate future in leaf task " << get_task_name()
+              << " (UID " << get_unique_id() << ") in " << manager->get_name()
+              << " memory because the pool associated with this memory was "
+                 "already released "
+              << "by the task. It is illegal to attempt to perform dynamic "
+              << "allocations in a memory pool after you released it.";
+        error.raise();
       }
       FutureInstance* instance =
           finder->second->allocate_future(get_unique_id(), size);
@@ -1707,57 +1619,85 @@ namespace Legion {
           const size_t pool_limit = finder->second->query_memory_limit();
           const size_t remaining = finder->second->query_available_memory();
           if (remaining < size)
-            REPORT_LEGION_ERROR(
-                ERROR_DEFERRED_ALLOCATION_FAILURE,
-                "Failed to allocate %zd bytes for future needed by leaf task %s"
-                " (UID %lld) in %s memory because there was insufficient space "
-                "reserved for dynamic allocations. Only %zd bytes remain of %zd"
-                " reserved bytes. This means that you set your upper bound for "
-                "the amount of dynamic memory required for this task too low.",
-                size, get_task_name(), get_unique_id(), manager->get_name(),
-                remaining, pool_limit)
+          {
+            Error error(LEGION_RESOURCE_EXCEPTION);
+            error << "Failed to allocate " << size
+                  << " bytes for future needed by leaf task " << get_task_name()
+                  << " (UID " << get_unique_id() << ") in "
+                  << manager->get_name()
+                  << " memory because there was insufficient space "
+                  << "reserved for dynamic allocations. Only " << remaining
+                  << " bytes remain of " << pool_limit
+                  << " reserved bytes. This means that "
+                  << "you set your upper bound for the amount of dynamic "
+                     "memory required "
+                  << "for this task too low.";
+            error.raise();
+          }
           else
-            REPORT_LEGION_ERROR(
-                ERROR_DEFERRED_ALLOCATION_FAILURE,
-                "Failed to allocate %zd bytes for future needed by leaf task %s"
-                " (UID %lld) in %s memory because the pool reserved for dynamic"
-                " memory allocations has become fragmented. There are still %zd"
-                " bytes remaining in the pool of %zd bytes, but they are "
-                "fragmented such that a hole of %zd bytes cannot be found. We "
-                "recommend you check the order of allocations and alignment "
-                "requirements to try to minimize the amount of padding between "
-                "instances. Otherwise you will need to request a larger pool "
-                "for dynamic allocations that considers the necessary padding "
-                "required between instances to satisfy your alignment needs.",
-                size, get_task_name(), get_unique_id(), manager->get_name(),
-                remaining, pool_limit, size)
+          {
+            Error error(LEGION_RESOURCE_EXCEPTION);
+            error
+                << "Failed to allocate " << size
+                << " bytes for future needed by leaf task " << get_task_name()
+                << " (UID " << get_unique_id() << ") in " << manager->get_name()
+                << " memory because the pool reserved for dynamic "
+                << "memory allocations has become fragmented. There are still "
+                << remaining << " bytes remaining in the pool of " << pool_limit
+                << " bytes, but they are fragmented such that a hole of "
+                << size
+                << " bytes cannot be found. We recommend you check the order "
+                   "of "
+                << "allocations and alignment requirements to try to minimize "
+                   "the "
+                << "amount of padding between instances. Otherwise you will "
+                   "need to "
+                << "request a larger pool for dynamic allocations that "
+                   "considers the "
+                << "necessary padding required between instances to satisfy "
+                   "your "
+                << "alignment needs.";
+            error.raise();
+          }
         }
         else if (memory_limit < size)
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate %zd bytes for future needed by leaf task %s "
-              "(UID %lld) in %s memory because there was insufficient space "
-              "reserved for dynamic allocations. This was an unbounded memory "
-              "pool which means you're actually out of space in this memory "
-              "because it only has %zd remaining free bytes. We strongly "
-              "recommend all users put bounds on their dynamic memory usage so "
-              "they can detect if space will be available for task execution "
-              "and if not select an alternative mapping.",
-              size, get_task_name(), get_unique_id(), manager->get_name(),
-              memory_limit)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
+              << "Failed to allocate " << size
+              << " bytes for future needed by leaf task " << get_task_name()
+              << " (UID " << get_unique_id() << ") in " << manager->get_name()
+              << " memory because there was insufficient space "
+              << "reserved for dynamic allocations. This was an unbounded "
+                 "memory "
+              << "pool which means you're actually out of space in this memory "
+              << "because it only has " << memory_limit
+              << " remaining free bytes. "
+              << "We strongly recommend all users put bounds on their dynamic "
+                 "memory "
+              << "usage so they can detect if space will be available for task "
+              << "execution and if not select an alternative mapping.";
+          error.raise();
+        }
         else
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate %zd bytes for future needed by leaf task %s "
-              "(UID %lld) in %s memory because the memory is fragmented. This "
-              "was an unbounded memory pool and there are still %zd bytes free "
-              "in the memory but not enough of them are contiguous to allocate "
-              "the future instance. We strongly recommend all users put bounds "
-              "on their dynamic memory usage so they can detect if space will "
-              "be available for task execution and if not select an "
-              "alternative mapping.",
-              size, get_task_name(), get_unique_id(), manager->get_name(),
-              memory_limit)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
+              << "Failed to allocate " << size
+              << " bytes for future needed by leaf task " << get_task_name()
+              << " (UID " << get_unique_id() << ") in " << manager->get_name()
+              << " memory because the memory is fragmented. "
+              << "This was an unbounded memory pool and there are still "
+              << memory_limit
+              << " bytes free in the memory but not enough of them "
+              << "are contiguous to allocate the future instance. We strongly "
+              << "recommend all users put bounds on their dynamic memory usage "
+                 "so "
+              << "they can detect if space will be available for task "
+                 "execution "
+              << "and if not select an alternative mapping.";
+          error.raise();
+        }
       }
       return instance;
     }
@@ -1805,20 +1745,23 @@ namespace Legion {
         {
           if (!use_event.exists() || use_event.has_triggered())
           {
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_MISSING_ALLOCATION_BOUNDS,
-                "WARNING! Leaf task %s (UID %lld) attempted to allocate a "
-                "DeferredBuffer/Value/Reduction of %zd bytes in %s memory "
-                "but no space was reserved for dynamic allocations during "
-                "the lifetime of this task. Legion has managed to procure "
-                "for you an allocation this time but "
-                "there is no guarantee that you will be so lucky the next "
-                "time. We strongly encourage all users to place tight "
-                "upper bounds on the required memory for all leaf tasks "
-                "either statically at the point of task variant registration "
-                "or dynamically at the point that the task is mapped.",
-                get_task_name(), get_unique_id(), footprint,
-                manager->get_name())
+            Warning warning;
+            warning
+                << "WARNING! Leaf task " << get_task_name() << " (UID "
+                << get_unique_id() << ") attempted to allocate a "
+                << "DeferredBuffer/Value/Reduction of " << footprint
+                << " bytes in " << manager->get_name()
+                << " memory but no space was reserved for "
+                << "dynamic allocations during the lifetime of this task. "
+                   "Legion "
+                << "has managed to procure for you an allocation this time but "
+                << "there is no guarantee that you will be so lucky the next "
+                << "time. We strongly encourage all users to place tight "
+                << "upper bounds on the required memory for all leaf tasks "
+                << "either statically at the point of task variant "
+                   "registration "
+                << "or dynamically at the point that the task is mapped.";
+            warning.raise();
             task_local_instances[instance] = unique_event;
             return instance;
           }
@@ -1826,57 +1769,78 @@ namespace Legion {
             instance.destroy(use_event);  // Can't use so destroy immediately
         }
         else if (safe_for_unbounded_pools.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate DeferredBuffer/Value/Reduction of %zd bytes "
-              "for leaf task %s (UID %lld) in %s memory because there was no "
-              "space reserved at the point of mapping the task for dynamic "
-              "allocations. If you designate a task as a leaf task variant "
-              "then it is your responsibility to tell Legion how much memory "
-              "needs to be allocated for satisfying dynamic allocations during "
-              "the execution of the task. Legion did try to allocate an "
-              "eager instance in this case but discovered an unbounded pool "
-              "in the memory which prevented us from attempting the eager "
-              "allocation (because it cannot be done safely), so you might "
-              "not actually be out of memory.",
-              footprint, get_task_name(), get_unique_id(), manager->get_name())
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
+              << "Failed to allocate DeferredBuffer/Value/Reduction of "
+              << footprint << " bytes for leaf task " << get_task_name()
+              << " (UID " << get_unique_id() << ") in " << manager->get_name()
+              << " memory because there was no space reserved at the point of "
+              << "mapping the task for dynamic allocations. If you designate a "
+              << "task as a leaf task variant then it is your responsibility "
+                 "to "
+              << "tell Legion how much memory needs to be allocated for "
+                 "satisfying "
+              << "dynamic allocations during the execution of the task. Legion "
+                 "did "
+              << "try to allocate an eager instance in this case but "
+                 "discovered "
+              << "an unbounded pool in the memory which prevented us from "
+                 "attempting "
+              << "the eager allocation (because it cannot be done safely), so "
+                 "you "
+              << "might not actually be out of memory.";
+          error.raise();
+        }
         else
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate DeferredBuffer/Value/Reduction of %zd bytes "
-              "for leaf task %s (UID %lld) in %s memory because there was no "
-              "space reserved at the point of mapping the task for dynamic "
-              "allocations. If you designate a task as a leaf task variant "
-              "then it is your responsibility to tell Legion how much memory "
-              "needs to be allocated for satisfying dynamic allocations during "
-              "the execution of the task.",
-              footprint, get_task_name(), get_unique_id(), manager->get_name())
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
+              << "Failed to allocate DeferredBuffer/Value/Reduction of "
+              << footprint << " bytes for leaf task " << *this << " in "
+              << manager->get_name() << " memory because there was no "
+              << "space reserved at the point of mapping the task for dynamic "
+              << "allocations. If you designate a task as a leaf task variant "
+              << "then it is your responsibility to tell Legion how much "
+                 "memory "
+              << "needs to be allocated for satisfying dynamic allocations "
+                 "during "
+              << "the execution of the task. Legion did try to allocate an "
+              << "eager instance in this case but discovered an unbounded pool "
+              << "in the memory which prevented us from attempting the eager "
+              << "allocation (because it cannot be done safely), so you might "
+              << "not actually be out of memory.";
+          error.raise();
+        }
       }
       else if (finder->second->is_released())
       {
         MemoryManager* manager = runtime->find_memory_manager(memory);
-        REPORT_LEGION_ERROR(
-            ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "Failed to allocate DeferredBuffer/Value/Reduction in leaf "
-            "task %s (UID %lld) in %s memory because the pool associated "
-            "with this memory was already released by the task. It is "
-            "illegal to attempt to perform dynamic allocations in a memory "
-            "pool after it has been released it.",
-            get_task_name(), get_unique_id(), manager->get_name())
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error
+            << "Failed to allocate DeferredBuffer/Value/Reduction in leaf "
+            << "task " << *this << " in " << manager->get_name()
+            << " memory because the pool associated "
+            << "with this memory was already released by the task. It is "
+            << "illegal to attempt to perform dynamic allocations in a memory "
+            << "pool after it has been released it.";
+        error.raise();
       }
       if (finder->second->max_alignment < layout->alignment_reqd)
       {
         MemoryManager* manager = runtime->find_memory_manager(memory);
-        REPORT_LEGION_ERROR(
-            ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "Failed to allocate DeferredBuffer/Value/Reduction of %zd bytes "
-            "for leaf task %s (UID %lld) in %s memory because the maximum "
-            "alignment required by the instance of %zd bytes is larger the "
-            "reserved alignment for the pool of %zd bytes. You need to ask "
-            "for a larger maximum alignment for the pool if you plan to do "
-            "dynamic allocations that require it.",
-            footprint, get_task_name(), get_unique_id(), manager->get_name(),
-            layout->alignment_reqd, finder->second->max_alignment)
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error
+            << "Failed to allocate DeferredBuffer/Value/Reduction of "
+            << footprint << " bytes for leaf task " << *this << " in "
+            << manager->get_name() << " memory because the maximum "
+            << "alignment required by the instance of "
+            << layout->alignment_reqd
+            << " bytes is larger the reserved alignment for the pool of "
+            << finder->second->max_alignment << " bytes. You need to ask "
+            << "for a larger maximum alignment for the pool if you plan to do "
+            << "dynamic allocations that require it.";
+        error.raise();
       }
       PhysicalInstance instance = finder->second->allocate_instance(
           get_unique_id(), unique_event, layout, use_event);
@@ -1889,63 +1853,77 @@ namespace Legion {
           const size_t pool_limit = finder->second->query_memory_limit();
           const size_t remaining = finder->second->query_available_memory();
           if (remaining < footprint)
-            REPORT_LEGION_ERROR(
-                ERROR_DEFERRED_ALLOCATION_FAILURE,
-                "Failed to allocate DeferredBuffer/Value/Reduction of %zd "
-                "bytes for leaf task %s (UID %lld) in %s memory because "
-                "there was insufficient space reserved for dynamic allocations."
-                " Only %zd bytes remain of %zd reserved bytes. This means that "
-                "you set your upper bound for the amount of dynamic memory "
-                "required for this task too low.",
-                footprint, get_task_name(), get_unique_id(),
-                manager->get_name(), remaining, pool_limit)
+          {
+            Error error(LEGION_RESOURCE_EXCEPTION);
+            error
+                << "Failed to allocate DeferredBuffer/Value/Reduction of "
+                << footprint << " bytes for leaf task " << *this << " in "
+                << manager->get_name() << " memory because there was "
+                << "insufficient space reserved for dynamic allocations."
+                << " Only " << remaining << " bytes remain of " << pool_limit
+                << " reserved bytes. This means that you set your upper bound "
+                << "for the amount of dynamic memory required for this "
+                << "task too low.";
+            error.raise();
+          }
           else
-            REPORT_LEGION_ERROR(
-                ERROR_DEFERRED_ALLOCATION_FAILURE,
-                "Failed to allocate DeferredBuffer/Value/Reduction of %zd "
-                "bytes "
-                "for leaf task %s (UID %lld) in %s memory because the memory "
-                "is "
-                "fragmented. There are still %zd bytes free in the pool of %zd "
-                "bytes but they are sufficiently fragmented such that a hole "
-                "of "
-                "%zd bytes aligned on a %zd byte boundary cannot be found. We "
-                "recommend you check the order of allocations and alignment "
-                "requirements to try to minimize the amount of padding between "
-                "instances. Otherwise you will need to request a larger pool "
-                "for dynamic allocations that considers the necessary padding "
-                "required between instances to satisfy your alignment needs.",
-                footprint, get_task_name(), get_unique_id(),
-                manager->get_name(), remaining, pool_limit, footprint,
-                layout->alignment_reqd)
+          {
+            Error error(LEGION_RESOURCE_EXCEPTION);
+            error
+                << "Failed to allocate DeferredBuffer/Value/Reduction of "
+                << footprint << " bytes for leaf task " << *this << " in "
+                << manager->get_name() << " memory because the memory is "
+                << "fragmented. There are still " << remaining
+                << " bytes free in the pool of " << pool_limit
+                << "bytes but they are sufficiently fragmented such that a "
+                   "hole "
+                << footprint << " bytes aligned on a " << layout->alignment_reqd
+                << " byte boundary cannot be found. We "
+                << "recommend you check the order of allocations and alignment "
+                << "requirements to try to minimize the amount of padding "
+                   "between "
+                << "instances. Otherwise you will need to request a larger "
+                   "pool "
+                << "for dynamic allocations that considers the necessary "
+                   "padding "
+                << "required between instances to satisfy your alignment "
+                   "needs.";
+            error.raise();
+          }
         }
         else if (memory_limit < footprint)
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate DeferredBuffer/Value/Reduction of %zd bytes "
-              "for leaf task %s (UID %lld) in %s memory because there was "
-              "insufficient space reserved for dynamic allocations. This was "
-              "an unbounded memory pool which means you're actually out of "
-              "space in this memory because it only has %zd remaining free "
-              "bytes. We strongly recommend all users put bounds on their "
-              "dynamic memory usage so they can detect if space will be "
-              "available for task execution and if not select an alternative "
-              "mapping.",
-              footprint, get_task_name(), get_unique_id(), manager->get_name(),
-              memory_limit)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
+              << "Failed to allocate DeferredBuffer/Value/Reduction of "
+              << footprint << " bytes for leaf task " << *this << " in "
+              << manager->get_name() << " memory because there was "
+              << "insufficient space reserved for dynamic allocations. This "
+                 "was "
+              << "an unbounded memory pool which means you're actually out of "
+              << "space in this memory because it only has " << memory_limit
+              << " remaining free bytes. We strongly recommend all users put "
+              << "bounds on their dynamic memory usage so they can detect if "
+              << "space will be available for task execution and if not "
+              << "select an alternative mapping.";
+          error.raise();
+        }
         else
-          REPORT_LEGION_ERROR(
-              ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate DeferredBuffer/Value/Reduction of %zd bytes "
-              "for leaf task %s (UID %lld) in %s memory because the memory is "
-              "fragmented. This was an unbounded memory pool and there are "
-              "still %zd bytes free in the memory but not enough are "
-              "contiguous to allocate the instance. We strongly recommend all "
-              "users put bounds on their dynamic memory usage so they can "
-              "detect if space will be available for task execution and if "
-              "not select an alternative mapping.",
-              footprint, get_task_name(), get_unique_id(), manager->get_name(),
-              memory_limit)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
+              << "Failed to allocate DeferredBuffer/Value/Reduction of "
+              << footprint << " bytes for leaf task " << *this << " in "
+              << manager->get_name() << " memory because the memory is "
+              << "fragmented. This was an unbounded memory pool and there are "
+              << "still " << memory_limit
+              << " bytes free in the memory but not "
+              << "enough are contiguous to allocate the instance. We strongly "
+              << "recommend all users put bounds on their dynamic memory usage "
+              << "so they can detect if space will be available for task "
+              << "execution and if not select an alternative mapping.";
+          error.raise();
+        }
       }
       task_local_instances[instance] = unique_event;
       delete layout;
@@ -1962,11 +1940,17 @@ namespace Legion {
       std::map<PhysicalInstance, LgEvent>::iterator finder =
           task_local_instances.find(instance);
       if (finder == task_local_instances.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DEFERRED_BUFFER_DOUBLE_DELETE,
-            "Detected double deletion of deferred buffer " IDFMT
-            "in parent task %s (UID %lld).",
-            instance.id, get_task_name(), get_unique_id())
+      {
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error
+            << "Failed to allocate DeferredBuffer/Value/Reduction in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ") in memory "
+            << "because the pool associated with this memory was already "
+               "released "
+            << "by the task. It is illegal to attempt to perform dynamic "
+            << "allocations in a memory pool after it has been released.";
+        error.raise();
+      }
       std::map<Memory, MemoryPool*>::const_iterator pool_finder =
           memory_pools.find(instance.get_location());
       if (pool_finder == memory_pools.end())
@@ -2146,20 +2130,22 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LeafContext::destroy_lock(Lock l)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_LEAF_TASK_VIOLATION,
-            "Illegal destroy lock performed in leaf task %s (UID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal destroy lock performed in leaf task " << get_task_name()
+            << " (UID " << get_unique_id() << ").";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     Grant LeafContext::acquire_grant(const std::vector<LockRequest>& requests)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal acquire grant performed in leaf task %s (UID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal acquire grant performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
       return Grant();
     }
 
@@ -2167,20 +2153,21 @@ namespace Legion {
     void LeafContext::release_grant(Grant g)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal release grant performed in leaf task %s (UID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal release grant performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::destroy_phase_barrier(PhaseBarrier pb)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_LEAF_TASK_VIOLATION,
-            "Illegal destroy phase barrier performed in leaf task %s (UID "
-            "%lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal destroy phase barrier performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     DynamicCollective LeafContext::create_dynamic_collective(
@@ -2188,11 +2175,10 @@ namespace Legion {
         size_t init_size)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal create dynamic collective performed in leaf task %s "
-          "(UID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal create dynamic collective performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
       return DynamicCollective();
     }
 
@@ -2200,11 +2186,10 @@ namespace Legion {
     void LeafContext::destroy_dynamic_collective(DynamicCollective dc)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal destroy dynamic collective performed in leaf task %s "
-          "(UID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal destroy dynamic collective performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
@@ -2212,32 +2197,32 @@ namespace Legion {
         DynamicCollective dc, const void* buffer, size_t size, unsigned count)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal arrive dynamic collective performed in leaf task %s "
-          "(UID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal arrive dynamic collective performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::defer_dynamic_collective_arrival(
         DynamicCollective dc, const Future& future, unsigned count)
-        //--------------------------------------------------------------------------
-        {REPORT_LEGION_ERROR(
-            ERROR_LEAF_TASK_VIOLATION,
-            "Illegal defer dynamic collective performed in leaf task %s "
-            "(UID %lld)",
-            get_task_name(), get_unique_id())}
+    //--------------------------------------------------------------------------
+    {
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal defer dynamic collective performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
+    }
 
     //--------------------------------------------------------------------------
     Future LeafContext::get_dynamic_collective_result(
         DynamicCollective dc, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal get dynamic collective performed in leaf task %s (UID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal get dynamic collective performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
       return Future();
     }
 
@@ -2246,11 +2231,10 @@ namespace Legion {
         DynamicCollective dc)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(
-          ERROR_LEAF_TASK_VIOLATION,
-          "Illegal advance dynamic collective performed in leaf task %s "
-          "(UID %lld)",
-          get_task_name(), get_unique_id())
+      Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+      error << "Illegal advance dynamic collective performed in leaf task "
+            << get_task_name() << " (UID " << get_unique_id() << ").";
+      error.raise();
       return DynamicCollective();
     }
 
