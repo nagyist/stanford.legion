@@ -416,19 +416,6 @@ namespace Legion {
      */
     class VirtualChannel {
     public:
-      struct MessageHeader : public LgTaskArgs<MessageHeader> {
-      public:
-        static constexpr LgTaskID TASK_ID = LG_MESSAGE_ID;
-      public:
-        MessageHeader(AddressSpaceID local, VirtualChannelKind vc)
-          : sender(local), channel(vc)
-        { }
-        static void handle(const void* data, size_t size);
-      public:
-        AddressSpaceID sender;
-        VirtualChannelKind channel;
-      };
-    public:
       VirtualChannel(
           VirtualChannelKind kind, AddressSpaceID local_address_space,
           size_t max_message_size, bool profile);

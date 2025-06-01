@@ -131,7 +131,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(exists());
-      legion_assert(implicit_profiler != NULL);
+      legion_assert(implicit_profiler != nullptr);
       implicit_profiler->record_event_wait(*this, bt);
     }
 
@@ -140,7 +140,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(exists());
-      legion_assert(implicit_profiler != NULL);
+      legion_assert(implicit_profiler != nullptr);
       implicit_profiler->record_event_trigger(*this, precondition);
     }
 
@@ -10937,7 +10937,7 @@ namespace Legion {
       }
       else
         implicit_fevent = LgEvent::NO_LG_EVENT;
-      implicit_context = NULL;
+      implicit_context = nullptr;
       implicit_provenance = 0;
     }
 
@@ -10970,7 +10970,7 @@ namespace Legion {
         error.raise();
       }
       ctx->end_wait(LgEvent::NO_LG_EVENT, true /*from application*/);
-      if ((profiler != NULL) && (implicit_profiler == NULL))
+      if ((profiler != nullptr) && (implicit_profiler == nullptr))
       {
         implicit_profiler = profiler->find_or_create_profiling_instance();
         Fatal fatal;
@@ -11002,14 +11002,15 @@ namespace Legion {
       }
       // this is just a normal finish operation
       ctx->end_task(
-          NULL, 0, false /*owned*/, PhysicalInstance::NO_INST,
-          NULL /*callback functor*/, NULL /*resource*/, NULL /*freefunc*/,
-          NULL /*metadataptr*/, 0 /*metadatasize*/, effects);
+          nullptr, 0, false /*owned*/, PhysicalInstance::NO_INST,
+          nullptr /*callback functor*/, nullptr /*resource*/,
+          nullptr /*freefunc*/, nullptr /*metadataptr*/, 0 /*metadatasize*/,
+          effects);
       if (implicit_profiler != nullptr)
         implicit_fevent = implicit_profiler->external_fevent;
       else
         implicit_fevent = LgEvent::NO_LG_EVENT;
-      implicit_context = NULL;
+      implicit_context = nullptr;
       implicit_provenance = 0;
     }
 
