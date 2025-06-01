@@ -3130,7 +3130,10 @@ namespace Legion {
         bool can_fail, bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return get_node(handle)->retrieve_semantic_information(
+      IndexSpaceNode* node = get_node(handle, nullptr, can_fail);
+      if (node == nullptr)
+        return false;
+      return node->retrieve_semantic_information(
           tag, result, size, can_fail, wait_until);
     }
 
@@ -3140,7 +3143,10 @@ namespace Legion {
         size_t& size, bool can_fail, bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return get_node(handle)->retrieve_semantic_information(
+      IndexPartNode* node = get_node(handle, nullptr, can_fail);
+      if (node == nullptr)
+        return false;
+      return node->retrieve_semantic_information(
           tag, result, size, can_fail, wait_until);
     }
 
@@ -3150,7 +3156,10 @@ namespace Legion {
         bool can_fail, bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return get_node(handle)->retrieve_semantic_information(
+      FieldSpaceNode* node = get_node(handle, nullptr, can_fail);
+      if (node == nullptr)
+        return false;
+      return node->retrieve_semantic_information(
           tag, result, size, can_fail, wait_until);
     }
 
@@ -3160,7 +3169,10 @@ namespace Legion {
         size_t& size, bool can_fail, bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return get_node(handle)->retrieve_semantic_information(
+      FieldSpaceNode* node = get_node(handle, nullptr, can_fail);
+      if (node == nullptr)
+        return false;
+      return node->retrieve_semantic_information(
           fid, tag, result, size, can_fail, wait_until);
     }
 
@@ -3170,7 +3182,10 @@ namespace Legion {
         size_t& size, bool can_fail, bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return get_node(handle)->retrieve_semantic_information(
+      RegionNode* node = get_node(handle, true /*need check*/, can_fail);
+      if (node == nullptr)
+        return false;
+      return node->retrieve_semantic_information(
           tag, result, size, can_fail, wait_until);
     }
 
@@ -3180,7 +3195,10 @@ namespace Legion {
         size_t& size, bool can_fail, bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return get_node(handle)->retrieve_semantic_information(
+      PartitionNode* node = get_node(handle, true /*need check*/, can_fail);
+      if (node == nullptr)
+        return false;
+      return node->retrieve_semantic_information(
           tag, result, size, can_fail, wait_until);
     }
 
@@ -7748,7 +7766,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldSpaceNode* Runtime::get_node(
-        FieldSpace space, RtEvent* defer /*=nullptr*/, bool first /*=true*/)
+        FieldSpace space, RtEvent* defer /*=nullptr*/, bool can_fail /*=false*/,
+        bool first /*=true*/)
     //--------------------------------------------------------------------------
     {
       if (!space.exists())
@@ -7812,9 +7831,11 @@ namespace Legion {
           else
           {
             pending_wait.wait();
-            return get_node(space, defer, false /*first*/);
+            return get_node(space, defer, can_fail, false /*first*/);
           }
         }
+        else if (can_fail)
+          return nullptr;
         else
           REPORT_LEGION_ERROR(
               ERROR_UNABLE_FIND_ENTRY,
@@ -7868,6 +7889,8 @@ namespace Legion {
             else
               return finder->second;
           }
+          else if (can_fail)
+            return nullptr;
           else
             wait_on = RtEvent::NO_RT_EVENT;
         }
@@ -7878,7 +7901,7 @@ namespace Legion {
               "This is definitely a runtime bug.",
               space.get_id())
         wait_on.wait();
-        return get_node(space, nullptr, false /*first*/);
+        return get_node(space, nullptr, can_fail, false /*first*/);
       }
       else
       {
@@ -7889,7 +7912,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RegionNode* Runtime::get_node(
-        LogicalRegion handle, bool need_check /* = true*/, bool first /*=true*/)
+        LogicalRegion handle, bool need_check /* = true*/,
+        bool can_fail /* = false*/, bool first /*=true*/)
     //--------------------------------------------------------------------------
     {
       if (!handle.exists())
@@ -7930,99 +7954,27 @@ namespace Legion {
       // we go crawling up the tree so we know where to stop
       if (!has_top_level_region)
       {
-        AddressSpaceID owner =
-            RegionTreeNode::get_owner_space(handle.get_tree_id());
-        if (owner == address_space)
+        RegionNode* root = get_tree(handle.get_tree_id(), true /*can fail*/);
+        if (root == nullptr)
         {
-          // See if it is in the set of pending spaces in which case we
-          // can wait for it to be recorded
-          RtEvent pending_wait;
-          if (first)
-          {
-            AutoLock l_lock(lookup_lock);
-            std::map<RegionTreeID, RtUserEvent>::iterator finder =
-                pending_region_trees.find(handle.get_tree_id());
-            if (finder != pending_region_trees.end())
-            {
-              if (!finder->second.exists())
-                finder->second = Runtime::create_rt_user_event();
-              pending_wait = finder->second;
-            }
-          }
-          if (pending_wait.exists())
-          {
-            pending_wait.wait();
-            return get_node(handle, need_check, false /*first*/);
-          }
-          else
-            REPORT_LEGION_ERROR(
-                ERROR_UNABLE_FIND_ENTRY,
-                "Unable to find entry for logical region tree %lld.",
-                handle.get_tree_id());
-        }
-        {
-          // Retake the lock and make sure we didn't loose the race
-          AutoLock l_lock(lookup_lock);
-          if (tree_nodes.find(handle.get_tree_id()) == tree_nodes.end())
-          {
-            // Still don't have it, see if we need to request it
-            std::map<RegionTreeID, RtEvent>::const_iterator finder =
-                region_tree_requests.find(handle.get_tree_id());
-            if (finder == region_tree_requests.end())
-            {
-              RtUserEvent done = Runtime::create_rt_user_event();
-              region_tree_requests[handle.get_tree_id()] = done;
-              TopLevelRegionRequest rez;
-              rez.serialize(handle.get_tree_id());
-              rez.serialize(done);
-              rez.serialize(address_space);
-              rez.dispatch(owner);
-              wait_on = done;
-            }
-            else
-              wait_on = finder->second;
-          }
-          else
-          {
-            // We lost the race and it may be here now
-            std::map<LogicalRegion, RegionNode*>::const_iterator it =
-                region_nodes.find(handle);
-            if (it != region_nodes.end())
-              return it->second;
-          }
-        }
-        // If we did find something to wait on, do that now
-        if (wait_on.exists())
-        {
-          wait_on.wait();
-          RegionNode* result = nullptr;
-          {
-            // Retake the lock and see again if the handle we
-            // were looking for was the top-level node or not
-            AutoLock l_lock(lookup_lock, false /*exclusive*/);
-            std::map<LogicalRegion, RegionNode*>::const_iterator it =
-                region_nodes.find(handle);
-            if (it != region_nodes.end())
-            {
-              result = it->second;
-              wait_on = result->initialized;
-            }
-          }
-          if (result != nullptr)
-          {
-            if (wait_on.exists())
-            {
-              if (!wait_on.has_triggered())
-                wait_on.wait();
-              AutoLock l_lock(lookup_lock);
-              result->initialized = RtEvent::NO_RT_EVENT;
-            }
-            return result;
-          }
+          if (can_fail)
+            return nullptr;
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Unable to find logical region " << handle << ".";
+          error.raise();
         }
       }
       // Otherwise it hasn't been made yet, so make it
-      IndexSpaceNode* index_node = get_node(handle.index_space);
+      IndexSpaceNode* index_node =
+          get_node(handle.index_space, nullptr, true /*can fail*/);
+      if (index_node == nullptr)
+      {
+        if (can_fail)
+          return nullptr;
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Unable to find logical region " << handle << ".";
+        error.raise();
+      }
       if (index_node->parent != nullptr)
       {
         legion_assert(index_node->parent != nullptr);
@@ -8058,7 +8010,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PartitionNode* Runtime::get_node(
-        LogicalPartition handle, bool need_check /* = true*/)
+        LogicalPartition handle, bool need_check /* = true*/,
+        bool can_fail /* = false*/)
     //--------------------------------------------------------------------------
     {
       if (!handle.exists())
@@ -8092,13 +8045,31 @@ namespace Legion {
         return result;
       }
       // Otherwise it hasn't been made yet so make it
-      IndexPartNode* index_node = get_node(handle.index_partition);
+      IndexPartNode* index_node =
+          get_node(handle.index_partition, nullptr, true /*can fail*/);
+      if (index_node == nullptr)
+      {
+        if (can_fail)
+          return nullptr;
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Unable to find logical partition " << handle << ".";
+        error.raise();
+      }
       legion_assert(index_node->parent != nullptr);
       LogicalRegion parent_handle(
           handle.tree_did, index_node->parent->handle, handle.field_space);
       // Note this request can recursively build more nodes, but we
       // are guaranteed that the top level node exists
-      RegionNode* parent = get_node(parent_handle, need_check);
+      RegionNode* parent =
+          get_node(parent_handle, need_check, true /*can fail*/);
+      if (parent == nullptr)
+      {
+        if (can_fail)
+          return nullptr;
+        Error error(LEGION_RESOURCE_EXCEPTION);
+        error << "Unable to find logical partition " << handle << ".";
+        error.raise();
+      }
       // Now create our node and return it
       result = create_node(handle, parent);
       {
@@ -8264,13 +8235,6 @@ namespace Legion {
       }
       else
         return wait_finder->second;
-    }
-
-    //--------------------------------------------------------------------------
-    bool Runtime::has_field(FieldSpace space, FieldID fid)
-    //--------------------------------------------------------------------------
-    {
-      return get_node(space)->has_field(fid);
     }
 
     //--------------------------------------------------------------------------

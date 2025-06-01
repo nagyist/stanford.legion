@@ -3231,7 +3231,13 @@ namespace Legion {
       derez.deserialize(to_trigger);
       AddressSpaceID source;
       derez.deserialize(source);
-      FieldSpaceNode* target = runtime->get_node(handle);
+      FieldSpaceNode* target =
+          runtime->get_node(handle, nullptr, true /*can fail*/);
+      if (target == nullptr)
+      {
+        Runtime::trigger_event(to_trigger);
+        return;
+      }
       // If there is a collective mapping, check to see if we're on the
       // right node and if not forward it on to the right node
       if (target->collective_mapping != nullptr)

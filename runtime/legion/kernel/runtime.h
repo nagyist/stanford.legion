@@ -630,22 +630,18 @@ namespace Legion {
           const bool can_fail = false, const bool first = true,
           const bool local_only = false);
       FieldSpaceNode* get_node(
-          FieldSpace space, RtEvent* defer = nullptr, bool first = true);
+          FieldSpace space, RtEvent* defer = nullptr, bool can_fail = false,
+          bool first = true);
       RegionNode* get_node(
-          LogicalRegion handle, bool need_check = true, bool first = true);
-      PartitionNode* get_node(LogicalPartition handle, bool need_check = true);
+          LogicalRegion handle, bool need_check = true, bool can_fail = false,
+          bool first = true);
+      PartitionNode* get_node(
+          LogicalPartition handle, bool need_check = true,
+          bool can_fail = false);
       RegionNode* get_tree(
           RegionTreeID tid, bool can_fail = false, bool first = true);
       // Request but don't block
       RtEvent find_or_request_node(IndexSpace space, AddressSpaceID target);
-    public:
-      bool has_node(IndexSpace space);
-      bool has_node(IndexPartition part);
-      bool has_node(FieldSpace space);
-      bool has_node(LogicalRegion handle);
-      bool has_node(LogicalPartition handle);
-      bool has_tree(RegionTreeID tid);
-      bool has_field(FieldSpace space, FieldID fid);
     public:
       void remove_node(IndexSpace space);
       void remove_node(IndexPartition part);

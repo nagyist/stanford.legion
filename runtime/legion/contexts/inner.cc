@@ -4981,18 +4981,19 @@ namespace Legion {
                  deleted_regions.begin();
              it != deleted_regions.end(); it++)
         {
-          Error error(LEGION_INTERFACE_EXCEPTION);
-          error << "Duplicate deletions were performed for region "
-                << it->region << " in task tree rooted by " << get_task_name()
-                << " (provenance "
-                << ((it->provenance == nullptr) ?
-                        7 :
-                        int(it->provenance->human.length()))
-                << ":"
-                << ((it->provenance == nullptr) ? "unknown" :
-                                                  it->provenance->human.data())
-                << ")";
-          error.raise();
+          Warning warning;
+          warning << "Duplicate deletions were performed for region "
+                  << it->region << " in task tree rooted by " << get_task_name()
+                  << " (provenance "
+                  << ((it->provenance == nullptr) ?
+                          7 :
+                          int(it->provenance->human.length()))
+                  << ":"
+                  << ((it->provenance == nullptr) ?
+                          "unknown" :
+                          it->provenance->human.data())
+                  << ")";
+          warning.raise();
         }
         deleted_regions.clear();
       }
@@ -5002,18 +5003,20 @@ namespace Legion {
                  deleted_fields.begin();
              it != deleted_fields.end(); it++)
         {
-          Error error(LEGION_INTERFACE_EXCEPTION);
-          error << "Duplicate deletions were performed on field " << it->fid
-                << " of field space " << it->space << " in task tree rooted by "
-                << get_task_name() << " (provenance "
-                << ((it->provenance != nullptr) ?
-                        int(it->provenance->human.length()) :
-                        7)
-                << ":"
-                << ((it->provenance != nullptr) ? it->provenance->human.data() :
-                                                  "unknown")
-                << ")";
-          error.raise();
+          Warning warning;
+          warning << "Duplicate deletions were performed on field " << it->fid
+                  << " of field space " << it->space
+                  << " in task tree rooted by " << get_task_name()
+                  << " (provenance "
+                  << ((it->provenance != nullptr) ?
+                          int(it->provenance->human.length()) :
+                          7)
+                  << ":"
+                  << ((it->provenance != nullptr) ?
+                          it->provenance->human.data() :
+                          "unknown")
+                  << ")";
+          warning.raise();
         }
         deleted_fields.clear();
       }
@@ -5023,18 +5026,19 @@ namespace Legion {
                  deleted_field_spaces.begin();
              it != deleted_field_spaces.end(); it++)
         {
-          Error error(LEGION_INTERFACE_EXCEPTION);
-          error << "Duplicate deletions were performed on field space "
-                << it->space << " in task tree rooted by " << get_task_name()
-                << " (provenance "
-                << ((it->provenance == nullptr) ?
-                        7 :
-                        int(it->provenance->human.length()))
-                << ":"
-                << ((it->provenance == nullptr) ? "unknown" :
-                                                  it->provenance->human.data())
-                << ")";
-          error.raise();
+          Warning warning;
+          warning << "Duplicate deletions were performed on field space "
+                  << it->space << " in task tree rooted by " << get_task_name()
+                  << " (provenance "
+                  << ((it->provenance == nullptr) ?
+                          7 :
+                          int(it->provenance->human.length()))
+                  << ":"
+                  << ((it->provenance == nullptr) ?
+                          "unknown" :
+                          it->provenance->human.data())
+                  << ")";
+          warning.raise();
         }
         deleted_field_spaces.clear();
       }
@@ -5044,18 +5048,19 @@ namespace Legion {
                  deleted_index_spaces.begin();
              it != deleted_index_spaces.end(); it++)
         {
-          Error error(LEGION_INTERFACE_EXCEPTION);
-          error << "Duplicate deletions were performed on index space "
-                << it->space << " in task tree rooted by " << get_task_name()
-                << " (provenance "
-                << ((it->provenance == nullptr) ?
-                        7 :
-                        int(it->provenance->human.length()))
-                << ":"
-                << ((it->provenance == nullptr) ? "unknown" :
-                                                  it->provenance->human.data())
-                << ")";
-          error.raise();
+          Warning warning;
+          warning << "Duplicate deletions were performed on index space "
+                  << it->space << " in task tree rooted by " << get_task_name()
+                  << " (provenance "
+                  << ((it->provenance == nullptr) ?
+                          7 :
+                          int(it->provenance->human.length()))
+                  << ":"
+                  << ((it->provenance == nullptr) ?
+                          "unknown" :
+                          it->provenance->human.data())
+                  << ")";
+          warning.raise();
         }
         deleted_index_spaces.clear();
       }
@@ -5065,18 +5070,19 @@ namespace Legion {
                  deleted_index_partitions.begin();
              it != deleted_index_partitions.end(); it++)
         {
-          Error error(LEGION_INTERFACE_EXCEPTION);
-          error << "Duplicate deletions were performed on index partition "
-                << it->partition << " in task tree rooted by "
-                << get_task_name() << " (provenance "
-                << ((it->provenance == nullptr) ?
-                        7 :
-                        int(it->provenance->human.length()))
-                << ":"
-                << ((it->provenance == nullptr) ? "unknown" :
-                                                  it->provenance->human.data())
-                << ")";
-          error.raise();
+          Warning warning;
+          warning << "Duplicate deletions were performed on index partition "
+                  << it->partition << " in task tree rooted by "
+                  << get_task_name() << " (provenance "
+                  << ((it->provenance == nullptr) ?
+                          7 :
+                          int(it->provenance->human.length()))
+                  << ":"
+                  << ((it->provenance == nullptr) ?
+                          "unknown" :
+                          it->provenance->human.data())
+                  << ")";
+          warning.raise();
         }
         deleted_index_partitions.clear();
       }
@@ -5089,11 +5095,11 @@ namespace Legion {
         {
           if (runtime->report_leaks)
           {
-            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-            error << "Logical region " << rit->first
-                  << " was leaked out of task tree rooted by task "
-                  << get_task_name();
-            error.raise();
+            Warning warning;
+            warning << "Logical region " << rit->first
+                    << " was leaked out of task tree rooted by task "
+                    << get_task_name();
+            warning.raise();
           }
           runtime->destroy_logical_region(rit->first, preconditions);
           // Remove any latent field spaces and therefore any created fields
@@ -5143,11 +5149,11 @@ namespace Legion {
         {
           if (runtime->report_leaks)
           {
-            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-            error << "Field " << it->second << " of field space " << it->first
-                  << " was leaked out of task tree rooted by task "
-                  << get_task_name();
-            error.raise();
+            Warning warning;
+            warning << "Field " << it->second << " of field space " << it->first
+                    << " was leaked out of task tree rooted by task "
+                    << get_task_name();
+            warning.raise();
           }
           std::map<FieldSpace, FieldAllocatorImpl*>::const_iterator finder =
               leak_allocators.find(it->first);
@@ -5178,11 +5184,11 @@ namespace Legion {
         {
           if (runtime->report_leaks)
           {
-            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-            error << "Field space " << it->first
-                  << " was leaked out of task tree rooted by task "
-                  << get_task_name();
-            error.raise();
+            Warning warning;
+            warning << "Field space " << it->first
+                    << " was leaked out of task tree rooted by task "
+                    << get_task_name();
+            warning.raise();
           }
           runtime->destroy_field_space(it->first, preconditions);
         }
@@ -5196,11 +5202,11 @@ namespace Legion {
         {
           if (runtime->report_leaks)
           {
-            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-            error << "Index partition " << it->first
-                  << " was leaked out of task tree rooted by task "
-                  << get_task_name();
-            error.raise();
+            Warning warning;
+            warning << "Index partition " << it->first
+                    << " was leaked out of task tree rooted by task "
+                    << get_task_name();
+            warning.raise();
           }
           runtime->destroy_index_partition(it->first, preconditions);
         }
@@ -5214,11 +5220,11 @@ namespace Legion {
         {
           if (runtime->report_leaks)
           {
-            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-            error << "Index space " << it->first
-                  << " was leaked out of task tree rooted by task "
-                  << get_task_name();
-            error.raise();
+            Warning warning;
+            warning << "Index space " << it->first
+                    << " was leaked out of task tree rooted by task "
+                    << get_task_name();
+            warning.raise();
           }
           runtime->destroy_index_space(
               it->first, runtime->address_space, preconditions);
