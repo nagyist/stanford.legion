@@ -7963,6 +7963,8 @@ namespace Legion {
           error << "Unable to find logical region " << handle << ".";
           error.raise();
         }
+        else if (root->handle == handle)
+          return root;
       }
       // Otherwise it hasn't been made yet, so make it
       IndexSpaceNode* index_node =
