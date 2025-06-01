@@ -139,7 +139,7 @@ namespace Legion {
       public:
         DeferDeletionCommitArgs(void) = default;
         DeferDeletionCommitArgs(ReplDeletionOp* o)
-          : LgTaskArgs(o->get_unique_op_id()), op(o)
+          : LgTaskArgs(false, false), op(o)
         { }
         void execute(void) const;
       public:

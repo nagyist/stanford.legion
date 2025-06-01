@@ -64,8 +64,8 @@ namespace Legion {
       public:
         ContributeCollectiveArgs(void) = default;
         ContributeCollectiveArgs(FutureImpl* i, DynamicCollective d, unsigned c)
-          : LgTaskArgs<ContributeCollectiveArgs>(implicit_provenance), impl(i),
-            dc(d), count(c)
+          : LgTaskArgs<ContributeCollectiveArgs>(false, true), impl(i), dc(d),
+            count(c)
         { }
         void execute(void) const;
       public:
@@ -366,7 +366,7 @@ namespace Legion {
       public:
         DeferDeleteFutureInstanceArgs(void) = default;
         DeferDeleteFutureInstanceArgs(FutureInstance* inst)
-          : LgTaskArgs<DeferDeleteFutureInstanceArgs>(implicit_provenance),
+          : LgTaskArgs<DeferDeleteFutureInstanceArgs>(false, false),
             instance(inst)
         { }
         void execute(void) const;

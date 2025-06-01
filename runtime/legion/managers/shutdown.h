@@ -41,7 +41,7 @@ namespace Legion {
       public:
         RetryShutdownArgs(void);
         RetryShutdownArgs(ShutdownPhase p)
-          : LgTaskArgs<RetryShutdownArgs>(0), phase(p)
+          : LgTaskArgs<RetryShutdownArgs>(true, true), phase(p)
         { }
         void execute(void) const;
       public:

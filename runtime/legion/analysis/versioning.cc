@@ -151,8 +151,7 @@ namespace Legion {
         RtUserEvent done_event = Runtime::create_rt_user_event();
         // Always register with the operation's immediate enclosing context
         FinalizeOutputEquivalenceSetArgs args(
-            this, op->get_unique_op_id(), op->get_context(), parent_req_index,
-            set, done_event);
+            this, op->get_context(), parent_req_index, set, done_event);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY,
             region_node->row_source->get_ready_event());
@@ -276,8 +275,8 @@ namespace Legion {
         {
           // Launch task to finalize the sets once they are ready
           LgFinalizeEqSetsArgs args(
-              this, compute_event, op->get_unique_op_id(), op->get_context(),
-              outermost, parent_req_index, region_node->row_source);
+              this, compute_event, op->get_context(), outermost,
+              parent_req_index, region_node->row_source);
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_DEFERRED_PRIORITY, ready);
         }

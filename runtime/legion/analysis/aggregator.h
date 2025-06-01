@@ -37,8 +37,8 @@ namespace Legion {
         static constexpr LgTaskID TASK_ID = LG_COPY_FILL_DELETION_TASK_ID;
       public:
         CopyFillDeletion(void) = default;
-        CopyFillDeletion(CopyFillGuard* g, UniqueID uid, RtUserEvent r)
-          : LgTaskArgs<CopyFillDeletion>(uid), guard(g), released(r)
+        CopyFillDeletion(CopyFillGuard* g, RtUserEvent r)
+          : LgTaskArgs<CopyFillDeletion>(false, true), guard(g), released(r)
         { }
       public:
         void execute(void) const;
@@ -102,9 +102,9 @@ namespace Legion {
         CopyFillAggregation(void) = default;
         CopyFillAggregation(
             CopyFillAggregator* a, const PhysicalTraceInfo& i, ApEvent p,
-            const bool manage_dst, const bool restricted, UniqueID uid, int s,
+            const bool manage_dst, const bool restricted, int s,
             std::map<InstanceView*, std::vector<ApEvent> >* dsts)
-          : LgTaskArgs<CopyFillAggregation>(uid),
+          : LgTaskArgs<CopyFillAggregation>(false, false),
             dst_events(
                 (dsts == nullptr) ?
                     nullptr :

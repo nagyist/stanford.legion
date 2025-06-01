@@ -10238,7 +10238,7 @@ namespace Legion {
       const RtEvent precondition = perform_collective_wait(false /*block*/);
       if (precondition.exists() && !precondition.has_triggered())
       {
-        ConsensusMatchArgs args(this, context->get_unique_id());
+        ConsensusMatchArgs args(this);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, precondition);
         return false;

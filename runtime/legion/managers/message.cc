@@ -24,8 +24,9 @@ namespace Legion {
   namespace Internal {
 
     //--------------------------------------------------------------------------
-    MessageHeader::MessageHeader(MessageKind k, VirtualChannelKind vc)
-      : LgTaskArgs<MessageHeader>(implicit_provenance), kind(k), channel(vc),
+    MessageHeader::MessageHeader(
+        MessageKind k, VirtualChannelKind vc, bool escape_ctx, bool escape_op)
+      : LgTaskArgs<MessageHeader>(escape_ctx, escape_op), kind(k), channel(vc),
         sender(runtime->address_space)
     //--------------------------------------------------------------------------
     { }
@@ -41,6 +42,8 @@ namespace Legion {
 #ifdef LEGION_DEBUG_CALLERS
       implicit_task_caller = header.lg_call_id;
 #endif
+      implicit_enclosing_context = header.enclosing_context;
+      implicit_operation_index = header.operation_index;
       implicit_provenance = header.provenance;
       // Need to do all this stuff before invoking the handler because if
       // this is a handler for a shutdown message then we could race with
@@ -369,8 +372,8 @@ namespace Legion {
     /*static*/ void MessageManager::register_handlers(void)
     //--------------------------------------------------------------------------
     {
-#define REGISTER_HANDLERS(kind, type, name, response)    \
-  legion_assert(message_handler_table[kind] == nullptr); \
+#define REGISTER_HANDLERS(kind, type, name, response, escape_ctx, escape_op) \
+  legion_assert(message_handler_table[kind] == nullptr);                     \
   message_handler_table[kind] = type::handle;
       LEGION_ACTIVE_MESSAGES(REGISTER_HANDLERS)
 #undef REGISTER_HANDLERS

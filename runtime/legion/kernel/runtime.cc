@@ -812,7 +812,7 @@ namespace Legion {
 #define CTRL_REPL_MESSAGE_NAMES(kind, name) name,
           LEGION_SHARD_COLLECTIVE_ACTIVE_MESSAGES(CTRL_REPL_MESSAGE_NAMES)
 #undef CTRL_REPL_MESSAGE_NAMES
-#define MESSAGE_NAMES(kind, type, name, resp) name,
+#define MESSAGE_NAMES(kind, type, name, resp, escape_ctx, escape_op) name,
               LEGION_ACTIVE_MESSAGES(MESSAGE_NAMES)
 #undef MESSAGE_NAMES
       };
@@ -10940,6 +10940,7 @@ namespace Legion {
       else
         implicit_fevent = LgEvent::NO_LG_EVENT;
       implicit_context = nullptr;
+      implicit_enclosing_context = 0;
       implicit_provenance = 0;
     }
 
@@ -10980,6 +10981,7 @@ namespace Legion {
         fatal.raise();
       }
       implicit_context = ctx;
+      implicit_enclosing_context = ctx->did;
       implicit_fevent = ctx->owner_task->get_completion_event();
       implicit_provenance = ctx->owner_task->get_unique_op_id();
     }

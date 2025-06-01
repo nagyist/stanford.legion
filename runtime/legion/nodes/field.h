@@ -85,8 +85,8 @@ namespace Legion {
         SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             FieldSpaceNode* proxy, SemanticTag t, AddressSpaceID src)
-          : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
-            proxy_this(proxy), tag(t), source(src)
+          : LgTaskArgs<SemanticRequestArgs>(false, false), proxy_this(proxy),
+            tag(t), source(src)
         { }
         void execute(void) const;
       public:
@@ -102,7 +102,7 @@ namespace Legion {
         SemanticFieldRequestArgs(void) = default;
         SemanticFieldRequestArgs(
             FieldSpaceNode* proxy, FieldID f, SemanticTag t, AddressSpaceID src)
-          : LgTaskArgs<SemanticFieldRequestArgs>(implicit_provenance),
+          : LgTaskArgs<SemanticFieldRequestArgs>(false, false),
             proxy_this(proxy), fid(f), tag(t), source(src)
         { }
         void execute(void) const;
@@ -121,8 +121,8 @@ namespace Legion {
         DeferRequestFieldInfoArgs(
             const FieldSpaceNode* n, std::map<FieldID, FieldInfo>* c,
             AddressSpaceID src, RtUserEvent t)
-          : LgTaskArgs<DeferRequestFieldInfoArgs>(implicit_provenance),
-            proxy_this(n), copy(c), source(src), to_trigger(t)
+          : LgTaskArgs<DeferRequestFieldInfoArgs>(false, false), proxy_this(n),
+            copy(c), source(src), to_trigger(t)
         { }
         void execute(void) const;
       public:

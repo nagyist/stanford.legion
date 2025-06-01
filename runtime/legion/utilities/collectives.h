@@ -280,7 +280,7 @@ namespace Legion {
       public:
         DeferCollectiveArgs(void) = default;
         DeferCollectiveArgs(ShardCollective* c)
-          : LgTaskArgs(implicit_provenance), collective(c)
+          : LgTaskArgs(false, false), collective(c)
         { }
         void execute(void) const;
       public:

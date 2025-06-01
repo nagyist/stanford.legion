@@ -74,7 +74,7 @@ namespace Legion {
             RtUserEvent a, InstanceSet* src, InstanceSet* dst,
             InstanceSet* gather, InstanceSet* scatter, const bool preimages,
             const bool shadow)
-          : LgTaskArgs<DeferredCopyAcross>(op->get_unique_op_id()), copy(op),
+          : LgTaskArgs<DeferredCopyAcross>(false, false), copy(op),
             trace_info(new PhysicalTraceInfo(info)), index(idx),
             init_precondition(init), src_ready(sready), dst_ready(dready),
             gather_ready(gready), scatter_ready(cready),

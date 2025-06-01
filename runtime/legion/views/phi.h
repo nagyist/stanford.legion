@@ -45,8 +45,7 @@ namespace Legion {
       public:
         DeferPhiViewRegistrationArgs(void) = default;
         DeferPhiViewRegistrationArgs(PhiView* v)
-          : LgTaskArgs<DeferPhiViewRegistrationArgs>(implicit_provenance),
-            view(v)
+          : LgTaskArgs<DeferPhiViewRegistrationArgs>(false, true), view(v)
         { }
         void execute(void) const;
       public:

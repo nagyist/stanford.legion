@@ -115,8 +115,8 @@ namespace Legion {
       public:
         ReplaySliceArgs(void) = default;
         ReplaySliceArgs(PhysicalTemplate* t, unsigned si, bool recurrent)
-          : LgTaskArgs<ReplaySliceArgs>(implicit_provenance), tpl(t),
-            slice_index(si), recurrent_replay(recurrent)
+          : LgTaskArgs<ReplaySliceArgs>(false, true), tpl(t), slice_index(si),
+            recurrent_replay(recurrent)
         { }
         void execute(void) const;
       public:
@@ -130,7 +130,7 @@ namespace Legion {
       public:
         DeleteTemplateArgs(void) = default;
         DeleteTemplateArgs(PhysicalTemplate* t)
-          : LgTaskArgs<DeleteTemplateArgs>(implicit_provenance), tpl(t)
+          : LgTaskArgs<DeleteTemplateArgs>(true, true), tpl(t)
         { }
         void execute(void) const;
       public:
@@ -229,8 +229,7 @@ namespace Legion {
         TransitiveReductionArgs(void) = default;
         TransitiveReductionArgs(
             PhysicalTemplate* t, TransitiveReductionState* s)
-          : LgTaskArgs<TransitiveReductionArgs>(implicit_provenance), tpl(t),
-            state(s)
+          : LgTaskArgs<TransitiveReductionArgs>(false, true), tpl(t), state(s)
         { }
         void execute(void) const;
       public:

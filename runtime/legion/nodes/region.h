@@ -209,8 +209,8 @@ namespace Legion {
         SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             RegionNode* proxy, SemanticTag t, AddressSpaceID src)
-          : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
-            proxy_this(proxy), tag(t), source(src)
+          : LgTaskArgs<SemanticRequestArgs>(false, false), proxy_this(proxy),
+            tag(t), source(src)
         { }
         void execute(void) const;
       public:
@@ -314,8 +314,8 @@ namespace Legion {
         SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             PartitionNode* proxy, SemanticTag t, AddressSpaceID src)
-          : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
-            proxy_this(proxy), tag(t), source(src)
+          : LgTaskArgs<SemanticRequestArgs>(false, false), proxy_this(proxy),
+            tag(t), source(src)
         { }
         void execute(void) const;
       public:

@@ -672,7 +672,8 @@ namespace Legion {
       return DEFAULT_VIRTUAL_CHANNEL;
     }
 
-#define MAKE_ACTIVE_MESSAGES(kind, type, name, response)            \
+#define MAKE_ACTIVE_MESSAGES(                                       \
+    kind, type, name, response, escape_ctx, escape_op)              \
   class type : public ActiveMessage<type> {                         \
   public:                                                           \
     static constexpr MessageKind KIND = kind;                       \
@@ -680,7 +681,7 @@ namespace Legion {
         MessageManager::find_message_vc(KIND);                      \
     static constexpr bool RESPONSE = response;                      \
   public:                                                           \
-    type(void) : ActiveMessage<type>(KIND)                          \
+    type(void) : ActiveMessage<type>(KIND, escape_ctx, escape_op)   \
     { }                                                             \
   public:                                                           \
     static void handle(Deserializer& derez, AddressSpaceID source); \

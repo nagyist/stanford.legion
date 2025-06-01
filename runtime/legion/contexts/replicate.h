@@ -1254,8 +1254,8 @@ namespace Legion {
         static constexpr LgTaskID TASK_ID = LG_DEFER_CONSENSUS_MATCH_TASK_ID;
       public:
         ConsensusMatchArgs(void) = default;
-        ConsensusMatchArgs(ConsensusMatchBase* b, UniqueID uid)
-          : LgTaskArgs(uid), base(b)
+        ConsensusMatchArgs(ConsensusMatchBase* b)
+          : LgTaskArgs(false, false), base(b)
         { }
         void execute(void) const;
       public:

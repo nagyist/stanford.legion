@@ -119,9 +119,13 @@ namespace Legion {
         static constexpr LgTaskID TASK_ID = LG_TRIGGER_TASK_ID;
       public:
         TriggerTaskArgs(void) = default;
-        TriggerTaskArgs(TaskOp* t)
-          : LgTaskArgs<TriggerTaskArgs>(t->get_unique_op_id()), op(t)
-        { }
+        TriggerTaskArgs(TaskOp* t, DistributedID parent_ctx_did)
+          : LgTaskArgs<TriggerTaskArgs>(false, false), op(t)
+        {
+          enclosing_context = parent_ctx_did;
+          operation_index = t->get_context_index();
+          provenance = t->get_unique_op_id();
+        }
         inline void execute(void) const { op->trigger_mapping(); }
       public:
         TaskOp* op;
@@ -134,9 +138,9 @@ namespace Legion {
         DeferMappingArgs(
             TaskOp* op, MustEpochOp* owner, unsigned cnt,
             std::vector<unsigned>* performed, std::vector<ApEvent>* eff)
-          : LgTaskArgs<DeferMappingArgs>(op->get_unique_op_id()),
-            proxy_this(op), must_op(owner), invocation_count(cnt),
-            performed_regions(performed), effects(eff)
+          : LgTaskArgs<DeferMappingArgs>(false, false), proxy_this(op),
+            must_op(owner), invocation_count(cnt), performed_regions(performed),
+            effects(eff)
         { }
         void execute(void) const;
       public:
@@ -153,7 +157,7 @@ namespace Legion {
       public:
         FinalizeOutputEqKDTreeArgs(void) = default;
         FinalizeOutputEqKDTreeArgs(TaskOp* owner)
-          : LgTaskArgs<FinalizeOutputEqKDTreeArgs>(owner->get_unique_op_id()),
+          : LgTaskArgs<FinalizeOutputEqKDTreeArgs>(false, false),
             proxy_this(owner)
         { }
         inline void execute(void) const
@@ -171,8 +175,7 @@ namespace Legion {
       public:
         DeferTriggerChildrenCommitArgs(void) = default;
         DeferTriggerChildrenCommitArgs(TaskOp* t)
-          : LgTaskArgs<DeferTriggerChildrenCommitArgs>(t->get_unique_op_id()),
-            task(t)
+          : LgTaskArgs<DeferTriggerChildrenCommitArgs>(false, false), task(t)
         { }
         inline void execute(void) const { task->trigger_children_committed(); }
       public:
@@ -375,8 +378,8 @@ namespace Legion {
       public:
         SemanticRequestArgs(void) = default;
         SemanticRequestArgs(TaskImpl* proxy, SemanticTag t, AddressSpaceID src)
-          : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
-            proxy_this(proxy), tag(t), source(src)
+          : LgTaskArgs<SemanticRequestArgs>(false, false), proxy_this(proxy),
+            tag(t), source(src)
         { }
         void execute(void) const;
       public:

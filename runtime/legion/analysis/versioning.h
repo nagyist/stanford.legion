@@ -84,9 +84,9 @@ namespace Legion {
       public:
         FinalizeOutputEquivalenceSetArgs(void) = default;
         FinalizeOutputEquivalenceSetArgs(
-            VersionManager* proxy, UniqueID opid, InnerContext* ctx,
-            unsigned req_index, EquivalenceSet* s, RtUserEvent done)
-          : LgTaskArgs<FinalizeOutputEquivalenceSetArgs>(opid),
+            VersionManager* proxy, InnerContext* ctx, unsigned req_index,
+            EquivalenceSet* s, RtUserEvent done)
+          : LgTaskArgs<FinalizeOutputEquivalenceSetArgs>(false, false),
             proxy_this(proxy), context(ctx), parent_req_index(req_index),
             set(s), done_event(done)
         {

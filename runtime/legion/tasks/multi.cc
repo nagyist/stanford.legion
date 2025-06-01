@@ -250,7 +250,7 @@ namespace Legion {
         // be mapped immediately, mapper be damned
         if (must_epoch != nullptr)
         {
-          TriggerTaskArgs trigger_args(slice);
+          TriggerTaskArgs trigger_args(slice, parent_ctx->did);
           RtEvent done = runtime->issue_runtime_meta_task(
               trigger_args, LG_THROUGHPUT_WORK_PRIORITY);
           wait_for.emplace_back(done);

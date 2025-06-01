@@ -48,291 +48,291 @@ namespace Legion {
     // clang-format off
     // All the different kinds of active mssages 
 #define LEGION_ACTIVE_MESSAGES(__op__) \
-  __op__(SEND_STARTUP_BARRIER, StartupBarrierMessage, "Startup Barrier Message", false) \
-  __op__(TASK_MESSAGE, TaskMessage, "Distribute Task Message", false) \
-  __op__(STEAL_MESSAGE, StealTaskMessage, "Steal Task Message", false) \
-  __op__(ADVERTISEMENT_MESSAGE, AdvertiseTaskMessage, "Advertise Task Message", false) \
-  __op__(SEND_REGISTRATION_CALLBACK, RegistrationCallbackMessage, "Registration Callback Message", false) \
-  __op__(SEND_REMOTE_TASK_REPLAY, RemoteTaskReplay, "Remote Task Replay Message", false) \
-  __op__(SEND_REMOTE_TASK_PROFILING_RESPONSE, RemoteTaskProfilingResponse, "Remote Task Profiling Response", false) \
-  __op__(SEND_SHARED_OWNERSHIP, SharedOwnershipMessage, "Shared Ownership Message", false) \
-  __op__(SEND_INDEX_SPACE_REQUEST, IndexSpaceRequest, "Index Space Request", false) \
-  __op__(SEND_INDEX_SPACE_RESPONSE, IndexSpaceResponse, "Index Space Response", true) \
-  __op__(SEND_INDEX_SPACE_RETURN, IndexSpaceReturn, "Index Space Return Message", true) \
-  __op__(SEND_INDEX_SPACE_SET, IndexSpaceSet, "Index Space Set Message", false) \
-  __op__(SEND_INDEX_SPACE_CHILD_REQUEST, IndexSpaceChildRequest, "Index Space Child Request", false) \
-  __op__(SEND_INDEX_SPACE_CHILD_RESPONSE, IndexSpaceChildResponse, "Index Space Child Response", true) \
-  __op__(SEND_INDEX_SPACE_COLORS_REQUEST, IndexSpaceColorsRequest, "Index Space Colors Request", false) \
-  __op__(SEND_INDEX_SPACE_COLORS_RESPONSE, IndexSpaceColorsResponse, "Index Space Colors Response", true) \
-  __op__(SEND_INDEX_SPACE_GENERATE_COLOR_REQUEST, IndexSpaceGenerateColorRequest, "Index Space Generate Color Request", false) \
-  __op__(SEND_INDEX_SPACE_GENERATE_COLOR_RESPONSE, IndexSpaceGenerateColorResponse, "Index Space Generate Color Response", true) \
-  __op__(SEND_INDEX_SPACE_RELEASE_COLOR, IndexSpaceReleaseColor, "Index Space Release Color Message", false) \
-  __op__(SEND_INDEX_PARTITION_NOTIFICATION, IndexPartitionNotification, "Index Partition Noitification Message", false) \
-  __op__(SEND_INDEX_PARTITION_REQUEST, IndexPartitionRequest, "Index Partition Request", false) \
-  __op__(SEND_INDEX_PARTITION_RESPONSE, IndexPartitionResponse, "Index Partition Response", false) \
-  __op__(SEND_INDEX_PARTITION_RETURN, IndexPartitionReturn, "Index Partition Return", false) \
-  __op__(SEND_INDEX_PARTITION_CHILD_REQUEST, IndexPartitionChildRequest, "Index Partition Child Request", false) \
-  __op__(SEND_INDEX_PARTITION_CHILD_RESPONSE, IndexPartitionChildResponse, "Index Partition Child Response", true) \
-  __op__(SEND_INDEX_PARTITION_CHILD_REPLICATION, IndexPartitionChildReplication, "Index Partition Child Replication Message", false) \
-  __op__(SEND_INDEX_PARTITION_DISJOINT_UPDATE, IndexPartitionDisjointUpdate, "Index Partition Disjoint Update Message", false) \
-  __op__(SEND_INDEX_PARTITION_SHARD_RECTS_REQUEST, IndexPartitionShardRectsRequest, "Index Partition Shard Rectangles Request", false) \
-  __op__(SEND_INDEX_PARTITION_SHARD_RECTS_RESPONSE, IndexPartitionShardRectsResponse, "Index Partitino Shard Rectangles Response", true) \
-  __op__(SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_REQUEST, IndexPartitionRemoteInterferenceRequest, "Index Partition Remote Interference Request", false) \
-  __op__(SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_RESPONSE, IndexPartitionRemoteInterferenceResponse, "Index Partition Remote Interference Response", true) \
-  __op__(SEND_FIELD_SPACE_NODE, FieldSpaceNodeMessage, "Field Space Message", false) \
-  __op__(SEND_FIELD_SPACE_REQUEST, FieldSpaceRequest, "Field Space Request", false) \
-  __op__(SEND_FIELD_SPACE_RETURN, FieldSpaceReturn, "Field Space Return", true) \
-  __op__(SEND_FIELD_SPACE_ALLOCATOR_REQUEST, FieldSpaceAllocatorRequest, "Field Space Allocator Request", false) \
-  __op__(SEND_FIELD_SPACE_ALLOCATOR_RESPONSE, FieldSpaceAllocatorResponse, "Field Space Allocator Response", true) \
-  __op__(SEND_FIELD_SPACE_ALLOCATOR_INVALIDATION, FieldSpaceAllocatorInvalidation, "Field Space Allocator Invalidation", false) \
-  __op__(SEND_FIELD_SPACE_ALLOCATOR_FLUSH, FieldSpaceAllocatorFlush, "Field Space Allocator Flush", true) \
-  __op__(SEND_FIELD_SPACE_ALLOCATOR_FREE, FieldSpaceAllocatorFree, "Field Space Allocator Free", true) \
-  __op__(SEND_FIELD_SPACE_INFOS_REQUEST, FieldSpaceInfosRequest, "Field Space Information Request", false) \
-  __op__(SEND_FIELD_SPACE_INFOS_RESPONSE, FieldSpaceInfosResponse, "Field Space Information Response", true) \
-  __op__(SEND_FIELD_ALLOC_REQUEST, FieldAllocationRequest, "Field Allocation Request", false) \
-  __op__(SEND_FIELD_SIZE_UPDATE, FieldSizeUpdate, "Field Size Update", true) \
-  __op__(SEND_FIELD_FREE, FieldFreeMessage, "Field Free Message", true) \
-  __op__(SEND_FIELD_FREE_INDEXES, FieldFreeIndexes, "Free Field Indexes Message", true) \
-  __op__(SEND_FIELD_SPACE_LAYOUT_INVALIDATION, FieldSpaceLayoutInvalidation, "Invalidate Field Space Layouts Message", true) \
-  __op__(SEND_LOCAL_FIELD_ALLOC_REQUEST, LocalFieldAllocRequest, "Local Field Allocation Request", false) \
-  __op__(SEND_LOCAL_FIELD_ALLOC_RESPONSE, LocalFieldAllocResponse, "Local Field Allocation Response", true) \
-  __op__(SEND_LOCAL_FIELD_FREE, LocalFieldFreeMessage, "Free Local Field Message", true) \
-  __op__(SEND_LOCAL_FIELD_UPDATE, LocalFieldUpdateMessage, "Update Local Field Message", true) \
-  __op__(SEND_TOP_LEVEL_REGION_REQUEST, TopLevelRegionRequest, "Top Level Region Request", false) \
-  __op__(SEND_TOP_LEVEL_REGION_RETURN, TopLevelRegionReturn, "Top Level Region Response", true) \
-  __op__(INDEX_SPACE_DESTRUCTION_MESSAGE, IndexSpaceDestruction, "Destroy Index Space Message", false) \
-  __op__(INDEX_PARTITION_DESTRUCTION_MESSAGE, IndexPartitionDestruction, "Destroy Index Partition Message", false) \
-  __op__(FIELD_SPACE_DESTRUCTION_MESSAGE, FieldSpaceDestruction, "Destroy Field Space Message", false) \
-  __op__(LOGICAL_REGION_DESTRUCTION_MESSAGE, LogicalRegionDestruction, "Destroy Logical Region Message", false) \
-  __op__(INDIVIDUAL_REMOTE_FUTURE_SIZE, IndividualRemoteFutureSize, "Individual Task Set Remote Future Size Message ", true) \
-  __op__(INDIVIDUAL_REMOTE_OUTPUT_REGISTRATION, IndividualRemoteOutputRegistration, "Individual Task Remote Output Registration Message", true) \
-  __op__(INDIVIDUAL_REMOTE_MAPPED, IndividualRemoteMapped, "Individual Task Remote Mapped Message", true) \
-  __op__(INDIVIDUAL_REMOTE_COMPLETE, IndividualRemoteComplete, "Individual Task Remote Complete Message", true) \
-  __op__(INDIVIDUAL_REMOTE_COMMIT, IndividualRemoteCommit, "Individual Task Remote Commit Message", true) \
-  __op__(INDIVIDUAL_CONCURRENT_REQUEST, IndividualTaskConcurrentRequest, "Individual Task Concurrent Request", false) \
-  __op__(INDIVIDUAL_CONCURRENT_RESPONSE, IndividualTaskConcurrentResponse, "Individual Task Concurrent Response", true) \
-  __op__(SLICE_REMOTE_MAPPED, SliceRemoteMapped, "Slice Task Remote Mapped Message", true) \
-  __op__(SLICE_REMOTE_COMPLETE, SliceRemoteComplete, "Slice Task Remote Complete Message", true) \
-  __op__(SLICE_REMOTE_COMMIT, SliceRemoteCommit, "Slice Task Remote Commit Message", true) \
-  __op__(SLICE_RENDEZVOUS_CONCURRENT_MAPPED, SliceConcurrentMapped, "Slice Task Rendezvous Concurrent Mapped Message", false) \
-  __op__(SLICE_COLLECTIVE_ALLREDUCE_REQUEST, SliceCollectiveRequest, "Slice Task Collective Mapping All-Reduce Request", false) \
-  __op__(SLICE_COLLECTIVE_ALLREDUCE_RESPONSE, SliceCollectiveResponse, "Slice Task Collective Mapping All-Reudce Response", true) \
-  __op__(SLICE_CONCURRENT_ALLREDUCE_REQUEST, SliceConcurrentRequest, "Slice Task Concurrent All-Reduce Request", false) \
-  __op__(SLICE_CONCURRENT_ALLREDUCE_RESPONSE, SliceConcurrentResponse, "Slice Task Concurrent All-Reduce Response", true) \
-  __op__(SLICE_FIND_INTRA_DEP, SliceFindIntraDependence, "Slice Task Find Intra-Launch Dependence Message", false) \
-  __op__(SLICE_REMOTE_COLLECTIVE_RENDEZVOUS, SliceRemoteCollective, "Slice Task Remote Collective Rendezvous Message", false) \
-  __op__(SLICE_REMOTE_VERSIONING_COLLECTIVE_RENDEZVOUS, SliceRemoteVersioningCollective, "Slice Task Remote Versioning Collective Message", false) \
-  __op__(SLICE_REMOTE_OUTPUT_EXTENTS, SliceRemoteOutputExtents, "Slice Task Set Remote Output Extents Message", true) \
-  __op__(SLICE_REMOTE_OUTPUT_REGISTRATION, SliceRemoteOutputRegistration, "Slice Task Remote Output Registration Message", true) \
-  __op__(DISTRIBUTED_REMOTE_REGISTRATION, DistributedRemoteRegistration, "Distributed Collectable Remote Registration Message", false) \
-  __op__(DISTRIBUTED_DOWNGRADE_REQUEST, DistributedDowngradeRequest, "Distributed Collectable Downgrade Request", false) \
-  __op__(DISTRIBUTED_DOWNGRADE_RESPONSE, DistributedDowngradeResponse, "Distributed Collectable Downgrade Response", true) \
-  __op__(DISTRIBUTED_DOWNGRADE_SUCCESS, DistributedDowngradeSuccess, "Distributed Collectable Downgrade Success Message", false) \
-  __op__(DISTRIBUTED_DOWNGRADE_UPDATE, DistributedDowngradeUpdate, "Distributed Collectable Downgrade Update Message", false) \
-  __op__(DISTRIBUTED_DOWNGRADE_RESTART, DistributedDowngradeRestart, "Distributed Collectable Downgrade Restart Message", false) \
-  __op__(DISTRIBUTED_GLOBAL_ACQUIRE_REQUEST, DistributedGlobalAcquireRequest, "Distributed Collectable Global Acquire Request", false) \
-  __op__(DISTRIBUTED_GLOBAL_ACQUIRE_RESPONSE, DistributedGlobalAcquireResponse, "Distributed Collectable global Acquire Response", true) \
-  __op__(DISTRIBUTED_VALID_ACQUIRE_REQUEST, DistributedValidAcquireRequest, "Distributed Collectable Valid Acquire Request", false) \
-  __op__(DISTRIBUTED_VALID_ACQUIRE_RESPONSE, DistributedValidAcquireResponse, "Distributed Collectable Valid Acquire Response", true) \
-  __op__(SEND_ATOMIC_RESERVATION_REQUEST, AtomicReservationRequest, "Atomic Reservation Request", false) \
-  __op__(SEND_ATOMIC_RESERVATION_RESPONSE, AtomicReservationResponse, "Atomic Reservation Response", true) \
-  __op__(SEND_PADDED_RESERVATION_REQUEST, PaddedReservationRequest, "Padded Reservation Request", false) \
-  __op__(SEND_PADDED_RESERVATION_RESPONSE, PaddedReservationResponse, "Padded Reservation Response", true) \
-  __op__(SEND_CREATED_REGION_CONTEXTS, CreatedRegionContextsMessage, "Created Region Contexts Message", false) \
-  __op__(SEND_MATERIALIZED_VIEW, MaterializedViewMessage, "Materialized View Message", true) \
-  __op__(SEND_FILL_VIEW, FillViewMessage, "Fill View Message", true) \
-  __op__(SEND_FILL_VIEW_VALUE, FillViewValueMessage, "Fill View Value Message", false) \
-  __op__(SEND_PHI_VIEW, PhiViewMessage, "Phi View Message", false) \
-  __op__(SEND_REDUCTION_VIEW, ReductionViewMessage, "Reduction View Message", true) \
-  __op__(SEND_REPLICATED_VIEW, ReplicatedViewMessage, "Replicated View Message", true) \
-  __op__(SEND_ALLREDUCE_VIEW, AllreduceViewMessage, "Allreduce View Message", true) \
-  __op__(SEND_INSTANCE_MANAGER, InstanceManagerMessage, "Instance Manager Message", true) \
-  __op__(SEND_MANAGER_UPDATE, PhysicalManagerUpdate, "Physical Manager Update Message", true) \
-  __op__(SEND_COLLECTIVE_DISTRIBUTE_FILL, CollectiveDistributeFill, "Collective View Broadcast Fill Message", false) \
-  __op__(SEND_COLLECTIVE_DISTRIBUTE_POINT, CollectiveDistributePoint, "Collective View Broadcast Point Message", false) \
-  __op__(SEND_COLLECTIVE_DISTRIBUTE_POINTWISE, CollectiveDistributePointwise, "Collective View Copy Point-wise Message", false) \
-  __op__(SEND_COLLECTIVE_DISTRIBUTE_REDUCTION, CollectiveDistributeReduction, "Collective View Reduction Tree Message", false) \
-  __op__(SEND_COLLECTIVE_DISTRIBUTE_BROADCAST, CollectiveDistributeBroadcast, "Collective View Broadcast Tree Message", false) \
-  __op__(SEND_COLLECTIVE_DISTRIBUTE_REDUCECAST, CollectiveDistributeReducecast, "Collective View Reducecast Message", false) \
-  __op__(SEND_COLLECTIVE_DISTRIBUTE_HOURGLASS, CollectiveDistributeHourglass, "Collective View Hour-glass Message", false) \
-  __op__(SEND_COLLECTIVE_DISTRIBUTE_ALLREDUCE, CollectiveDistributeAllreduce, "Collective View All-reduce Message", false) \
-  __op__(SEND_COLLECTIVE_HAMMER_REDUCTION, CollectiveHammerReduction, "Collective View Hammer Reduction Message", false) \
-  __op__(SEND_COLLECTIVE_FUSE_GATHER, CollectiveFuseGather, "Collective View Fused Gather Message", false) \
-  __op__(SEND_COLLECTIVE_USER_REQUEST, CollectiveRegisterUserRequest, "Collective View Register User Request", false) \
-  __op__(SEND_COLLECTIVE_USER_RESPONSE, CollectiveRegisterUserResponse, "Collective View Register User Response", true) \
-  __op__(SEND_COLLECTIVE_REGISTER_USER, CollectiveIndividualRegisterUser, "Collective View Individual Register User", false) \
-  __op__(SEND_COLLECTIVE_REMOTE_INSTANCES_REQUEST, CollectiveRemoteInstancesRequest, "Collective View Remote Instances Request", false) \
-  __op__(SEND_COLLECTIVE_REMOTE_INSTANCES_RESPONSE, CollectiveRemoteInstancesResponse, "Collective View Remote Instances Response", true) \
-  __op__(SEND_COLLECTIVE_NEAREST_INSTANCES_REQUEST, CollectiveNearestInstancesRequest, "Collective View Nearest Instances Request", false) \
-  __op__(SEND_COLLECTIVE_NEAREST_INSTANCES_RESPONSE, CollectiveNearestInstancesResponse, "Collective View Nearest Instances Response", true) \
-  __op__(SEND_COLLECTIVE_REMOTE_REGISTRATION, CollectiveRemoteRegistration, "Collective View Remote Registration Message", false) \
-  __op__(SEND_COLLECTIVE_FINALIZE_MAPPING, CollectiveFinalizeMapping, "Collective View Finalize Mapping", false) \
-  __op__(SEND_COLLECTIVE_VIEW_CREATION, CollectiveViewCreation, "Collective View Creation Message", false) \
-  __op__(SEND_COLLECTIVE_VIEW_DELETION, CollectiveViewDeletion, "Collective View Deletion Message", false) \
-  __op__(SEND_COLLECTIVE_VIEW_RELEASE, CollectiveViewRelease, "Collective View Release Message", false) \
-  __op__(SEND_COLLECTIVE_VIEW_NOTIFICATION, CollectiveViewNotification, "Collective View Notification Message", false) \
-  __op__(SEND_COLLECTIVE_VIEW_MAKE_VALID, CollectiveViewMakeValid, "Collective View Make Valid Message", false) \
-  __op__(SEND_COLLECTIVE_VIEW_MAKE_INVALID, CollectiveViewMakeInvalid, "Collective View Make Invalid Message", false) \
-  __op__(SEND_COLLECTIVE_VIEW_INVALIDATE_REQUEST, CollectiveViewInvalidateRequest, "Collective View Invalidation Request", false) \
-  __op__(SEND_COLLECTIVE_VIEW_INVALIDATE_RESPONSE, CollectiveViewInvalidateResponse, "Collective View Invalidation Response", true) \
-  __op__(SEND_COLLECTIVE_VIEW_ADD_REMOTE_REFERENCE, CollectiveViewAddRemoteReference, "Collective View Add Remote Reference Message", false) \
-  __op__(SEND_COLLECTIVE_VIEW_REMOVE_REMOTE_REFERENCE, CollectiveViewRemoveRemoteReference, "Collective View Remove Remote Reference Message", false) \
-  __op__(SEND_CREATE_TOP_VIEW_REQUEST, CreateTopViewRequest, "Create Top Logical View Request", false) \
-  __op__(SEND_CREATE_TOP_VIEW_RESPONSE, CreateTopViewResponse, "Create Top Logical View Respone", false) \
-  __op__(SEND_VIEW_REQUEST, ViewRequestMessage, "Logical View Request", false) \
-  __op__(SEND_VIEW_REGISTER_USER, ViewRegisterUser, "Logical View Register User Message", false) \
-  __op__(SEND_VIEW_FIND_COPY_PRE_REQUEST, ViewFindCopyPreMessage, "Logical View Find Copy Preconditions Message", false) \
-  __op__(SEND_VIEW_ADD_COPY_USER, ViewAddCopyUserMessage, "Logical View Add Copy User Message", true) \
-  __op__(SEND_VIEW_FIND_LAST_USERS_REQUEST, ViewFindLastUsersRequest, "Logical View Find Last Users Request", false) \
-  __op__(SEND_VIEW_FIND_LAST_USERS_RESPONSE, ViewFindLastUsersResponse, "Logical View Find Last Users Response", true) \
-  __op__(SEND_MANAGER_REQUEST, ManagerRequestMessage, "Instance Manager Request", false) \
-  __op__(SEND_FUTURE_RESULT, FutureResultMessage, "Set Future Result Message", true) \
-  __op__(SEND_FUTURE_RESULT_SIZE, FutureSizeMessage, "Set Future Size Message", true) \
-  __op__(SEND_FUTURE_SUBSCRIPTION, FutureSubscription, "Future Subscription Message", false) \
-  __op__(SEND_FUTURE_CREATE_INSTANCE_REQUEST, FutureCreateInstanceRequest, "Future Create Instance Request", false) \
-  __op__(SEND_FUTURE_CREATE_INSTANCE_RESPONSE, FutureCreateInstanceResponse, "Future Create Instance Response", true) \
-  __op__(SEND_FUTURE_MAP_REQUEST, FutureMapFutureRequest, "Future Map Future Request", false) \
-  __op__(SEND_FUTURE_MAP_RESPONSE, FutureMapFutureResponse, "Future Map Future Response", true) \
-  __op__(SEND_FUTURE_MAP_POINTWISE, FutureMapPointwise, "Future Map Pointwise Message", false) \
-  __op__(SEND_REPL_COMPUTE_EQUIVALENCE_SETS, ReplComputeEquivalenceSets, "Replicated Compute Equivalence Sets Message", false) \
-  __op__(SEND_REPL_OUTPUT_EQUIVALENCE_SET, ReplOutputEquivalenceSet, "Replicated Output Equivalence Set Message", false) \
-  __op__(SEND_REPL_REFINE_EQUIVALENCE_SETS, ReplRefineEquivalenceSets, "Replicated Refine Equivalence Sets Message", false) \
-  __op__(SEND_REPL_EQUIVALENCE_SET_NOTIFICATION, ReplEquivalenceSetNotification, "Replicated Equivalence Set Notification Message", false) \
-  __op__(SEND_REPL_BROADCAST_UPDATE, ReplBroadcastUpdate, "Replicated Broadcast Update Message", false) \
-  __op__(SEND_REPL_CREATED_REGIONS, ReplCreatedRegions, "Replicated Created Regions Message", false) \
-  __op__(SEND_REPL_TRACE_EVENT_REQUEST, ReplTraceEventRequest, "Replicated Trace Event Request", false) \
-  __op__(SEND_REPL_TRACE_EVENT_RESPONSE, ReplTraceEventResponse, "Replicated Trace Event Response", true) \
-  __op__(SEND_REPL_TRACE_EVENT_TRIGGER, ReplTraceEventTrigger, "Replicated Trace Event Trigger", false) \
-  __op__(SEND_REPL_TRACE_FRONTIER_REQUEST, ReplTraceFrontierRequest, "Replicated Trace Frontier Request", false) \
-  __op__(SEND_REPL_TRACE_FRONTIER_RESPONSE, ReplTraceFrontierResponse, "Replicated Trace Frontier Response", true) \
-  __op__(SEND_REPL_TRACE_UPDATE, ReplTraceUpdateMessage, "Replicated Trace Update Message", false) \
-  __op__(SEND_REPL_FIND_TRACE_SETS, ReplFindTraceSets, "Replicated Find Trace Sets Message", false) \
-  __op__(SEND_REPL_IMPLICIT_RENDEZVOUS, ReplImplicitRendezvous, "Replicated Implicit Task Rendezvous Message", false) \
-  __op__(SEND_REPL_FIND_COLLECTIVE_VIEW, ReplFindCollectiveView, "Replicated Find Collective View Message", false) \
-  __op__(SEND_REPL_POINTWISE_DEPENDENCE, ReplPointwiseDependence, "Replicated Find Pointwise Dependence Message", false) \
-  __op__(SEND_MAPPER_MESSAGE, MapperMessage, "Mapper Message", false) \
-  __op__(SEND_MAPPER_BROADCAST, MapperBroadcast, "Mapper Broadcast", false) \
-  __op__(SEND_TASK_IMPL_SEMANTIC_REQ, TaskSemanticInfoRequest, "Task Semantic Information Request", false) \
-  __op__(SEND_INDEX_SPACE_SEMANTIC_REQ, IndexSpaceSemanticInfoRequest, "Index Space Semantic Information Request", false) \
-  __op__(SEND_INDEX_PARTITION_SEMANTIC_REQ, IndexPartSemanticInfoRequest, "Index Partition Semantic Information Request", false) \
-  __op__(SEND_FIELD_SPACE_SEMANTIC_REQ, FieldSpaceSemanticInfoRequest, "Field Space Semantic Information Request", false) \
-  __op__(SEND_FIELD_SEMANTIC_REQ, FieldSemanticInfoRequest, "Field Semantic Information Request", false) \
-  __op__(SEND_LOGICAL_REGION_SEMANTIC_REQ, LogicalRegionSemanticInfoRequest, "Logical Region Semantic Information Request", false) \
-  __op__(SEND_LOGICAL_PARTITION_SEMANTIC_REQ, LogicalPartitionSemanticInfoRequest, "Logical Partition Semantic Information Request", false) \
-  __op__(SEND_TASK_IMPL_SEMANTIC_INFO, TaskSemanticInfoResponse, "Task Semantic Information Response", true) \
-  __op__(SEND_INDEX_SPACE_SEMANTIC_INFO, IndexSpaceSemanticInfoResponse, "Index Space Semantic Information Response", true) \
-  __op__(SEND_INDEX_PARTITION_SEMANTIC_INFO, IndexPartSemanticInfoResponse, "Index Space Semantic Information Response", true) \
-  __op__(SEND_FIELD_SPACE_SEMANTIC_INFO, FieldSpaceSemanticInfoResponse, "Field Space Semantic Information Response", true) \
-  __op__(SEND_FIELD_SEMANTIC_INFO, FieldSemanticInfoResponse, "Field Semantic Information Response", true) \
-  __op__(SEND_LOGICAL_REGION_SEMANTIC_INFO, LogicalRegionSemanticInfoResponse, "Logical Region Semantic Information Response", true) \
-  __op__(SEND_LOGICAL_PARTITION_SEMANTIC_INFO, LogicalPartitionSemanticInfoResponse, "Logical Partition Semantic Information Response", true) \
-  __op__(SEND_REMOTE_CONTEXT_REQUEST, RemoteContextRequest, "Remote Context Request", false) \
-  __op__(SEND_REMOTE_CONTEXT_RESPONSE, RemoteContextResponse, "Remote Context Response", true) \
-  __op__(SEND_REMOTE_CONTEXT_PHYSICAL_REQUEST, RemoteContextPhysicalRequest, "Remote Context Physical Request", false) \
-  __op__(SEND_REMOTE_CONTEXT_PHYSICAL_RESPONSE, RemoteContextPhysicalResponse, "Remote Context Physical Response", true) \
-  __op__(SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_REQUEST, RemoteContextFindCollectiveViewRequest, "Remote Context Find Collective View Request", false) \
-  __op__(SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_RESPONSE, RemoteContextFindCollectiveViewResponse, "Remote Context Find Collective View Response", true) \
-  __op__(SEND_REMOTE_CONTEXT_REFINE_EQUIVALENCE_SETS, RemoteContextRefineEquivalenceSets, "Remote Context Refine Equivalence Sets Messages", false) \
-  __op__(SEND_REMOTE_CONTEXT_POINTWISE_DEPENDENCE, RemoteContextPointwiseDependence, "Remote Context Pointwise Dependence Analysis", false) \
-  __op__(SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_REQUEST, RemoteContextFindTraceLocalRequest, "Remote Context Find Trace Local Sets Request", false) \
-  __op__(SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_RESPONSE, RemoteContextFindTraceLocalResponse, "Remote Context Find Trace Local Sets Response", true) \
-  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_REQUEST, ComputeEquivalenceSetsRequest, "Compute Equivalence Sets Request", false) \
-  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_RESPONSE, ComputeEquivalenceSetsResponse, "Compute Equivalence Sets Response", true) \
-  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_PENDING, ComputeEquivalenceSetsPending, "Compute Equivalence Sets Pending Message", false) \
-  __op__(SEND_OUTPUT_EQUIVALENCE_SET_REQUEST, OutputEquivalenceSetRequest, "Output Equivalence Set Request", false) \
-  __op__(SEND_OUTPUT_EQUIVALENCE_SET_RESPONSE, OutputEquivalenceSetResponse, "Output Equivalence Set Response", true) \
-  __op__(SEND_CANCEL_EQUIVALENCE_SETS_SUBSCRIPTION, CancelEquivalenceSetSubscription, "Cance Equivalence Set Subscription Message", false) \
-  __op__(SEND_INVALIDATE_EQUIVALENCE_SETS_SUBSCRIPTION, InvalidateEquivalenceSetSubscription, "Invalidate Equivalence Set Subscription", false) \
-  __op__(SEND_EQUIVALENCE_SET_CREATION, EquivalenceSetCreation, "Equivalence Set Creation Message", false) \
-  __op__(SEND_EQUIVALENCE_SET_REUSE, EquivalenceSetReuse, "Equivalence Set Reuse Message", false) \
-  __op__(SEND_EQUIVALENCE_SET_REQUEST, EquivalenceSetRequest, "Equivalence Set Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_RESPONSE, EquivalenceSetResponse, "Equivalence Set Response", true) \
-  __op__(SEND_EQUIVALENCE_SET_REPLICATION_REQUEST, EquivalenceSetReplicationRequest, "Equivalence Set Replication Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REPLICATION_RESPONSE, EquivalenceSetReplicationResponse, "Equivalence Set Replication Response", true) \
-  __op__(SEND_EQUIVALENCE_SET_MIGRATION, EquivalenceSetMigration, "Equivalence Set Migration Message", false) \
-  __op__(SEND_EQUIVALENCE_SET_OWNER_UPDATE, EquivalenceSetOwnerUpdate, "Equivalence Set Owner Update Message", false) \
-  __op__(SEND_EQUIVALENCE_SET_CLONE_REQUEST, EquivalenceSetCloneRequest, "Equivalence Set Clone Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_CLONE_RESPONSE, EquivalenceSetCloneResponse, "Equivalence Set Clone Response", true) \
-  __op__(SEND_EQUIVALENCE_SET_CAPTURE_REQUEST, EquivalenceSetCaptureRequest, "Equivalence Set Capture Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_CAPTURE_RESPONSE, EquivalenceSetCaptureResponse, "Equivalence Set Capture Response", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INSTANCES, EquivalenceSetRequestInstances, "Equivalence Set Remote Instances Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INVALID, EquivalenceSetRequestInvalid, "Equivalence Set Remote Invalid Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_ANTIVALID, EquivalenceSetRequestAntivalid, "Equivalence Set Remote Antivalid Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_UPDATES, RemoteUpdateAnalysis, "Equivalence Set Remote Updates Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_ACQUIRES, RemoteAcquireAnalysis, "Equivalence Set Remote Acquire Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_RELEASES, RemoteReleaseAnalysis, "Equivalence Set Remote Release Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_COPIES_ACROSS, RemoteCopyAcrossAnalysis, "Equivalence Set Remote Copy Across Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_OVERWRITES, RemoteOverwriteAnalysis, "Equivalence Set Remote Overwrite Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_FILTERS, RemoteFilterAnalysis, "Equivalence Set Remote Filter Request", false) \
-  __op__(SEND_EQUIVALENCE_SET_REMOTE_INSTANCES, EquivalenceSetRemoteInstances, "Physical Analysis Remote Instances Response", true) \
-  __op__(SEND_EQUIVALENCE_SET_FILTER_INVALIDATIONS, EquivalenceSetFilterInvalidations, "Equivalence Set Filter Invalidations Message", false) \
-  __op__(SEND_INSTANCE_REQUEST, InstanceRequest, "Instance Manager Request", false) \
-  __op__(SEND_INSTANCE_RESPONSE, InstanceResponse, "Instance Manager Response", true) \
-  __op__(SEND_EXTERNAL_CREATE_REQUEST, ExternalCreateRequest, "External Instance Request", false) \
-  __op__(SEND_EXTERNAL_CREATE_RESPONSE, ExternalCreateResponse, "External Instance Response", true) \
-  __op__(SEND_EXTERNAL_ATTACH, ExternalAttachRequest, "External Attach Request", false) \
-  __op__(SEND_EXTERNAL_DETACH, ExternalDetachRequest, "External Detach Request", false) \
-  __op__(SEND_GC_PRIORITY_UPDATE, GarbageCollectionPriorityUpdate, "Garbage Collection Priority Update", false) \
-  __op__(SEND_GC_REQUEST, GarbageCollectionRequest, "Garbage Collection Request", false) \
-  __op__(SEND_GC_RESPONSE, GarbageCollectionResponse, "Garbage Collection Response", true) \
-  __op__(SEND_GC_ACQUIRE, GarbageCollectionAcquire, "Garbage Collection Acquire Message", false) \
-  __op__(SEND_GC_FAILED, GarbageCollectionFailed, "Garbage Collection Failed Response", true) \
-  __op__(SEND_GC_MISMATCH, GarbageCollectionMismatch, "Garbage Collection Mismatch Message", false) \
-  __op__(SEND_GC_NOTIFY, GarbageCollectionNotification, "Garbage Collection Notification Message", false) \
-  __op__(SEND_GC_DEBUG_REQUEST, GarbageCollectionDebugRequest, "Garbage Collection Debug Request", false) \
-  __op__(SEND_GC_DEBUG_RESPONSE, GarbageCollectionDebugResponse, "Garbage Collection Debug Response", true) \
-  __op__(SEND_GC_RECORD_EVENT, GarbageCollectionRecordEvent, "Garbage Collection Record Event", false) \
-  __op__(SEND_ACQUIRE_REQUEST, GarbageCollectionAcquireRequest, "Garbage Collection Acquire Request", false) \
-  __op__(SEND_ACQUIRE_RESPONSE, GarbageCollectionAcquireResponse, "Garbage Collection Acquire Response", true) \
-  __op__(SEND_VARIANT_BROADCAST, VariantBroadcast, "Variant Broadcast Message", false) \
-  __op__(SEND_CONSTRAINT_REQUEST, ConstraintRequest, "Layout Constraint Request", false) \
-  __op__(SEND_CONSTRAINT_RESPONSE, ConstraintResponse, "Layout Constraint Response", true) \
-  __op__(SEND_CONSTRAINT_RELEASE, ConstraintRelease, "Layout Constraint Release Message", false) \
-  __op__(SEND_TOP_LEVEL_TASK_COMPLETE, TopLevelTaskComplete, "Top Level Task Complete Message", false) \
-  __op__(SEND_MPI_RANK_EXCHANGE, MPIRankExchange, "MPI Rank Exchange Message", false) \
-  __op__(SEND_REPLICATE_DISTRIBUTION, ReplicateDistribution, "Replicate Task Distribution", false) \
-  __op__(SEND_REPLICATE_COLLECTIVE_VERSIONING, ReplicateVersioning, "Replicate Task Collective Versioning Message", false) \
-  __op__(SEND_REPLICATE_COLLECTIVE_MAPPING, ReplicateCollectiveMapping, "Replicate Task Collective Mapping Message", false) \
-  __op__(SEND_REPLICATE_VIRTUAL_RENDEZVOUS, ReplicateVirtualRendezvous, "Replicate Task Virtual Mapping Message", false) \
-  __op__(SEND_REPLICATE_STARTUP_COMPLETE, ReplicateStartup, "Replicate Task Startup Complete Message", false) \
-  __op__(SEND_REPLICATE_POST_MAPPED, ReplicatePostMapped, "Replicate Task Post Mapped Message", false) \
-  __op__(SEND_REPLICATE_TRIGGER_COMPLETE, ReplicateTriggerComplete, "Replicate Task Trigger Complete Message", false) \
-  __op__(SEND_REPLICATE_TRIGGER_COMMIT, ReplicateTriggerCommit, "Replicate Trigger Commit Message", false) \
-  __op__(SEND_CONTROL_REPLICATE_RENDEZVOUS_MESSAGE, ReplicateRendezvousMessage, "Replicate Task Rendezvous Message", false) \
-  __op__(SEND_LIBRARY_MAPPER_REQUEST, MapperLibraryRequest, "Mapper ID Library Request", false) \
-  __op__(SEND_LIBRARY_MAPPER_RESPONSE, MapperLibraryResponse, "Mapper ID Library Response", true) \
-  __op__(SEND_LIBRARY_TRACE_REQUEST, TraceLibraryRequest, "Trace ID Library Request", false) \
-  __op__(SEND_LIBRARY_TRACE_RESPONSE, TraceLibraryResponse, "Trace ID Library Response", true) \
-  __op__(SEND_LIBRARY_PROJECTION_REQUEST, ProjectionLibraryRequest, "Projection ID Library Request", false) \
-  __op__(SEND_LIBRARY_PROJECTION_RESPONSE, ProjectionLibraryResponse, "Projection ID Library Response", true) \
-  __op__(SEND_LIBRARY_SHARDING_REQUEST, ShardingLibraryRequest, "Sharding ID Library Request", false) \
-  __op__(SEND_LIBRARY_SHARDING_RESPONSE, ShardingLibraryResponse, "Sharding ID Library Response", true) \
-  __op__(SEND_LIBRARY_CONCURRENT_REQUEST, ConcurrentLibraryRequest, "Concurrent ID Library Request", false) \
-  __op__(SEND_LIBRARY_CONCURRENT_RESPONSE, ConcurrentLibraryResponse, "Concurrent ID Library Response", true) \
-  __op__(SEND_LIBRARY_TASK_REQUEST, TaskLibraryRequest, "Task ID Library Request", false) \
-  __op__(SEND_LIBRARY_TASK_RESPONSE, TaskLibraryResponse, "Task ID Library Response", true) \
-  __op__(SEND_LIBRARY_REDOP_REQUEST, RedopLibraryRequest, "Reduction ID Library Request", false) \
-  __op__(SEND_LIBRARY_REDOP_RESPONSE, RedopLibraryResponse, "Reduction ID Library Response", true) \
-  __op__(SEND_LIBRARY_SERDEZ_REQUEST, SerdezLibraryRequest, "Serdez ID Library Request", false) \
-  __op__(SEND_LIBRARY_SERDEZ_RESPONSE, SerdezLibraryResponse, "Serdez ID Library Response", true) \
-  __op__(SEND_REMOTE_OP_REPORT_UNINIT, RemoteOpReportUninit, "Remote Operation Uninitialized Message", false) \
-  __op__(SEND_REMOTE_OP_PROFILING_COUNT_UPDATE, RemoteOpProfilingUpdate, "Remote Operation Profiling Update Message", false) \
-  __op__(SEND_REMOTE_OP_COMPLETION_EFFECT, RemoteOpCompletionEffect, "Remote Operation Completion Effect", false ) \
-  __op__(SEND_REMOTE_TRACE_UPDATE, RemoteTraceUpdate, "Remote Trace Recording Update Message", false) \
-  __op__(SEND_REMOTE_TRACE_RESPONSE, RemoteTraceResponse, "Remote Trace Recording Response", true) \
-  __op__(SEND_FREE_EXTERNAL_ALLOCATION, FreeExternalAllocation, "Free External Allocation Message", false) \
-  __op__(SEND_NOTIFY_COLLECTED_INSTANCES, NotifyCollectedInstances, "Notify Collected Instances Message", false) \
-  __op__(SEND_CREATE_MEMORY_POOL_REQUEST, CreatePoolRequest, "Create Memory Pool Request", false) \
-  __op__(SEND_CREATE_MEMORY_POOL_RESPONSE, CreatePoolResponse, "Create Memory Pool Response", true) \
-  __op__(SEND_CREATE_FUTURE_INSTANCE_REQUEST, CreateFutureInstanceRequest, "Create Future Instance Request", false) \
-  __op__(SEND_CREATE_FUTURE_INSTANCE_RESPONSE, CreateFutureInstanceResponse, "Create Future Instance Response", true) \
-  __op__(SEND_FREE_FUTURE_INSTANCE, FreeFutureInstance, "Free Future Instance Message", false) \
-  __op__(SEND_REMOTE_DISTRIBUTED_ID_REQUEST, DistributedIDRequest, "Distributed Collectable ID Request", false) \
-  __op__(SEND_REMOTE_DISTRIBUTED_ID_RESPONSE, DistributedIDResponse, "Distributed Collectable ID Response", true) \
-  __op__(SEND_PROFILER_EVENT_TRIGGER, ProfilerEventTriggerMessage, "Profiler Record Event Trigger Message", false) \
-  __op__(SEND_PROFILER_EVENT_POISON, ProfilerEventPoisonMessage, "Profiler Record Event Poison Message", false) \
-  __op__(SEND_SHUTDOWN_NOTIFICATION, ShutdownNotification, "Shutdown Notification Message", false) \
-  __op__(SEND_SHUTDOWN_RESPONSE, ShutdownResponse, "Shutdown Response", true)
+  __op__(SEND_STARTUP_BARRIER, StartupBarrierMessage, "Startup Barrier Message", false, true, true) \
+  __op__(TASK_MESSAGE, TaskMessage, "Distribute Task Message", false, true, true) \
+  __op__(STEAL_MESSAGE, StealTaskMessage, "Steal Task Message", false, true, true) \
+  __op__(ADVERTISEMENT_MESSAGE, AdvertiseTaskMessage, "Advertise Task Message", false, true, true) \
+  __op__(SEND_REGISTRATION_CALLBACK, RegistrationCallbackMessage, "Registration Callback Message", false, true, true) \
+  __op__(SEND_REMOTE_TASK_REPLAY, RemoteTaskReplay, "Remote Task Replay Message", false, false, false) \
+  __op__(SEND_REMOTE_TASK_PROFILING_RESPONSE, RemoteTaskProfilingResponse, "Remote Task Profiling Response", false, false, false) \
+  __op__(SEND_SHARED_OWNERSHIP, SharedOwnershipMessage, "Shared Ownership Message", false, false, true) \
+  __op__(SEND_INDEX_SPACE_REQUEST, IndexSpaceRequest, "Index Space Request", false, false, false) \
+  __op__(SEND_INDEX_SPACE_RESPONSE, IndexSpaceResponse, "Index Space Response", true, false, false) \
+  __op__(SEND_INDEX_SPACE_RETURN, IndexSpaceReturn, "Index Space Return Message", true, false, false) \
+  __op__(SEND_INDEX_SPACE_SET, IndexSpaceSet, "Index Space Set Message", false, true, true) \
+  __op__(SEND_INDEX_SPACE_CHILD_REQUEST, IndexSpaceChildRequest, "Index Space Child Request", false, false, false) \
+  __op__(SEND_INDEX_SPACE_CHILD_RESPONSE, IndexSpaceChildResponse, "Index Space Child Response", true, false, false) \
+  __op__(SEND_INDEX_SPACE_COLORS_REQUEST, IndexSpaceColorsRequest, "Index Space Colors Request", false, false, false) \
+  __op__(SEND_INDEX_SPACE_COLORS_RESPONSE, IndexSpaceColorsResponse, "Index Space Colors Response", true, false, false) \
+  __op__(SEND_INDEX_SPACE_GENERATE_COLOR_REQUEST, IndexSpaceGenerateColorRequest, "Index Space Generate Color Request", false, false, false) \
+  __op__(SEND_INDEX_SPACE_GENERATE_COLOR_RESPONSE, IndexSpaceGenerateColorResponse, "Index Space Generate Color Response", true, false, false) \
+  __op__(SEND_INDEX_SPACE_RELEASE_COLOR, IndexSpaceReleaseColor, "Index Space Release Color Message", false, true, true) \
+  __op__(SEND_INDEX_PARTITION_NOTIFICATION, IndexPartitionNotification, "Index Partition Noitification Message", false, true, true) \
+  __op__(SEND_INDEX_PARTITION_REQUEST, IndexPartitionRequest, "Index Partition Request", false, false, false) \
+  __op__(SEND_INDEX_PARTITION_RESPONSE, IndexPartitionResponse, "Index Partition Response", false, false, false) \
+  __op__(SEND_INDEX_PARTITION_RETURN, IndexPartitionReturn, "Index Partition Return", false, false, false) \
+  __op__(SEND_INDEX_PARTITION_CHILD_REQUEST, IndexPartitionChildRequest, "Index Partition Child Request", false, false, false) \
+  __op__(SEND_INDEX_PARTITION_CHILD_RESPONSE, IndexPartitionChildResponse, "Index Partition Child Response", true, false, false) \
+  __op__(SEND_INDEX_PARTITION_CHILD_REPLICATION, IndexPartitionChildReplication, "Index Partition Child Replication Message", false, true, true) \
+  __op__(SEND_INDEX_PARTITION_DISJOINT_UPDATE, IndexPartitionDisjointUpdate, "Index Partition Disjoint Update Message", false, true, true) \
+  __op__(SEND_INDEX_PARTITION_SHARD_RECTS_REQUEST, IndexPartitionShardRectsRequest, "Index Partition Shard Rectangles Request", false, false, false) \
+  __op__(SEND_INDEX_PARTITION_SHARD_RECTS_RESPONSE, IndexPartitionShardRectsResponse, "Index Partitino Shard Rectangles Response", true, false, false) \
+  __op__(SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_REQUEST, IndexPartitionRemoteInterferenceRequest, "Index Partition Remote Interference Request", false, false, false) \
+  __op__(SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_RESPONSE, IndexPartitionRemoteInterferenceResponse, "Index Partition Remote Interference Response", true, false, false) \
+  __op__(SEND_FIELD_SPACE_NODE, FieldSpaceNodeMessage, "Field Space Message", false, false, false) \
+  __op__(SEND_FIELD_SPACE_REQUEST, FieldSpaceRequest, "Field Space Request", false, false, false) \
+  __op__(SEND_FIELD_SPACE_RETURN, FieldSpaceReturn, "Field Space Return", true, false, false) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_REQUEST, FieldSpaceAllocatorRequest, "Field Space Allocator Request", false, false, false) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_RESPONSE, FieldSpaceAllocatorResponse, "Field Space Allocator Response", true, false, false) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_INVALIDATION, FieldSpaceAllocatorInvalidation, "Field Space Allocator Invalidation", false, true, true) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_FLUSH, FieldSpaceAllocatorFlush, "Field Space Allocator Flush", true, true, true) \
+  __op__(SEND_FIELD_SPACE_ALLOCATOR_FREE, FieldSpaceAllocatorFree, "Field Space Allocator Free", true, true, true) \
+  __op__(SEND_FIELD_SPACE_INFOS_REQUEST, FieldSpaceInfosRequest, "Field Space Information Request", false, false, false) \
+  __op__(SEND_FIELD_SPACE_INFOS_RESPONSE, FieldSpaceInfosResponse, "Field Space Information Response", true, false, false) \
+  __op__(SEND_FIELD_ALLOC_REQUEST, FieldAllocationRequest, "Field Allocation Request", false, false, false) \
+  __op__(SEND_FIELD_SIZE_UPDATE, FieldSizeUpdate, "Field Size Update", true, true, true) \
+  __op__(SEND_FIELD_FREE, FieldFreeMessage, "Field Free Message", true, true, true) \
+  __op__(SEND_FIELD_FREE_INDEXES, FieldFreeIndexes, "Free Field Indexes Message", true, true, true) \
+  __op__(SEND_FIELD_SPACE_LAYOUT_INVALIDATION, FieldSpaceLayoutInvalidation, "Invalidate Field Space Layouts Message", true, true, true) \
+  __op__(SEND_LOCAL_FIELD_ALLOC_REQUEST, LocalFieldAllocRequest, "Local Field Allocation Request", false, false, false) \
+  __op__(SEND_LOCAL_FIELD_ALLOC_RESPONSE, LocalFieldAllocResponse, "Local Field Allocation Response", true, false, false) \
+  __op__(SEND_LOCAL_FIELD_FREE, LocalFieldFreeMessage, "Free Local Field Message", true, true, true) \
+  __op__(SEND_LOCAL_FIELD_UPDATE, LocalFieldUpdateMessage, "Update Local Field Message", true, true, true) \
+  __op__(SEND_TOP_LEVEL_REGION_REQUEST, TopLevelRegionRequest, "Top Level Region Request", false, false, false) \
+  __op__(SEND_TOP_LEVEL_REGION_RETURN, TopLevelRegionReturn, "Top Level Region Response", true, false, false) \
+  __op__(INDEX_SPACE_DESTRUCTION_MESSAGE, IndexSpaceDestruction, "Destroy Index Space Message", false, true, true) \
+  __op__(INDEX_PARTITION_DESTRUCTION_MESSAGE, IndexPartitionDestruction, "Destroy Index Partition Message", false, true, true) \
+  __op__(FIELD_SPACE_DESTRUCTION_MESSAGE, FieldSpaceDestruction, "Destroy Field Space Message", false, true, true) \
+  __op__(LOGICAL_REGION_DESTRUCTION_MESSAGE, LogicalRegionDestruction, "Destroy Logical Region Message", false, true, true) \
+  __op__(INDIVIDUAL_REMOTE_FUTURE_SIZE, IndividualRemoteFutureSize, "Individual Task Set Remote Future Size Message ", true, true, true) \
+  __op__(INDIVIDUAL_REMOTE_OUTPUT_REGISTRATION, IndividualRemoteOutputRegistration, "Individual Task Remote Output Registration Message", true, false, false) \
+  __op__(INDIVIDUAL_REMOTE_MAPPED, IndividualRemoteMapped, "Individual Task Remote Mapped Message", true, false, false) \
+  __op__(INDIVIDUAL_REMOTE_COMPLETE, IndividualRemoteComplete, "Individual Task Remote Complete Message", true, false, false) \
+  __op__(INDIVIDUAL_REMOTE_COMMIT, IndividualRemoteCommit, "Individual Task Remote Commit Message", true, false, false) \
+  __op__(INDIVIDUAL_CONCURRENT_REQUEST, IndividualTaskConcurrentRequest, "Individual Task Concurrent Request", false, false, false) \
+  __op__(INDIVIDUAL_CONCURRENT_RESPONSE, IndividualTaskConcurrentResponse, "Individual Task Concurrent Response", true, false, false) \
+  __op__(SLICE_REMOTE_MAPPED, SliceRemoteMapped, "Slice Task Remote Mapped Message", true, false, false) \
+  __op__(SLICE_REMOTE_COMPLETE, SliceRemoteComplete, "Slice Task Remote Complete Message", true, false, false) \
+  __op__(SLICE_REMOTE_COMMIT, SliceRemoteCommit, "Slice Task Remote Commit Message", true, false, false) \
+  __op__(SLICE_RENDEZVOUS_CONCURRENT_MAPPED, SliceConcurrentMapped, "Slice Task Rendezvous Concurrent Mapped Message", false, false, false) \
+  __op__(SLICE_COLLECTIVE_ALLREDUCE_REQUEST, SliceCollectiveRequest, "Slice Task Collective Mapping All-Reduce Request", false, false, false) \
+  __op__(SLICE_COLLECTIVE_ALLREDUCE_RESPONSE, SliceCollectiveResponse, "Slice Task Collective Mapping All-Reudce Response", true, false, false) \
+  __op__(SLICE_CONCURRENT_ALLREDUCE_REQUEST, SliceConcurrentRequest, "Slice Task Concurrent All-Reduce Request", false, false, false) \
+  __op__(SLICE_CONCURRENT_ALLREDUCE_RESPONSE, SliceConcurrentResponse, "Slice Task Concurrent All-Reduce Response", true, false, false) \
+  __op__(SLICE_FIND_INTRA_DEP, SliceFindIntraDependence, "Slice Task Find Intra-Launch Dependence Message", false, false, false) \
+  __op__(SLICE_REMOTE_COLLECTIVE_RENDEZVOUS, SliceRemoteCollective, "Slice Task Remote Collective Rendezvous Message", false, false, false) \
+  __op__(SLICE_REMOTE_VERSIONING_COLLECTIVE_RENDEZVOUS, SliceRemoteVersioningCollective, "Slice Task Remote Versioning Collective Message", false, false, false) \
+  __op__(SLICE_REMOTE_OUTPUT_EXTENTS, SliceRemoteOutputExtents, "Slice Task Set Remote Output Extents Message", true, false, false) \
+  __op__(SLICE_REMOTE_OUTPUT_REGISTRATION, SliceRemoteOutputRegistration, "Slice Task Remote Output Registration Message", true, false, false) \
+  __op__(DISTRIBUTED_REMOTE_REGISTRATION, DistributedRemoteRegistration, "Distributed Collectable Remote Registration Message", false, true, true) \
+  __op__(DISTRIBUTED_DOWNGRADE_REQUEST, DistributedDowngradeRequest, "Distributed Collectable Downgrade Request", false, true, true) \
+  __op__(DISTRIBUTED_DOWNGRADE_RESPONSE, DistributedDowngradeResponse, "Distributed Collectable Downgrade Response", true, true, true) \
+  __op__(DISTRIBUTED_DOWNGRADE_SUCCESS, DistributedDowngradeSuccess, "Distributed Collectable Downgrade Success Message", false, true, true) \
+  __op__(DISTRIBUTED_DOWNGRADE_UPDATE, DistributedDowngradeUpdate, "Distributed Collectable Downgrade Update Message", false, true, true) \
+  __op__(DISTRIBUTED_DOWNGRADE_RESTART, DistributedDowngradeRestart, "Distributed Collectable Downgrade Restart Message", false, true, true) \
+  __op__(DISTRIBUTED_GLOBAL_ACQUIRE_REQUEST, DistributedGlobalAcquireRequest, "Distributed Collectable Global Acquire Request", false, false, false) \
+  __op__(DISTRIBUTED_GLOBAL_ACQUIRE_RESPONSE, DistributedGlobalAcquireResponse, "Distributed Collectable global Acquire Response", true, false, false) \
+  __op__(DISTRIBUTED_VALID_ACQUIRE_REQUEST, DistributedValidAcquireRequest, "Distributed Collectable Valid Acquire Request", false, false, false) \
+  __op__(DISTRIBUTED_VALID_ACQUIRE_RESPONSE, DistributedValidAcquireResponse, "Distributed Collectable Valid Acquire Response", true, false, false) \
+  __op__(SEND_ATOMIC_RESERVATION_REQUEST, AtomicReservationRequest, "Atomic Reservation Request", false, false, false) \
+  __op__(SEND_ATOMIC_RESERVATION_RESPONSE, AtomicReservationResponse, "Atomic Reservation Response", true, false, false) \
+  __op__(SEND_PADDED_RESERVATION_REQUEST, PaddedReservationRequest, "Padded Reservation Request", false, false, false) \
+  __op__(SEND_PADDED_RESERVATION_RESPONSE, PaddedReservationResponse, "Padded Reservation Response", true, false, false) \
+  __op__(SEND_CREATED_REGION_CONTEXTS, CreatedRegionContextsMessage, "Created Region Contexts Message", false, true, true) \
+  __op__(SEND_MATERIALIZED_VIEW, MaterializedViewMessage, "Materialized View Message", true, false, true) \
+  __op__(SEND_FILL_VIEW, FillViewMessage, "Fill View Message", true, false, true) \
+  __op__(SEND_FILL_VIEW_VALUE, FillViewValueMessage, "Fill View Value Message", false, false, true) \
+  __op__(SEND_PHI_VIEW, PhiViewMessage, "Phi View Message", false, false, true) \
+  __op__(SEND_REDUCTION_VIEW, ReductionViewMessage, "Reduction View Message", true, false, true) \
+  __op__(SEND_REPLICATED_VIEW, ReplicatedViewMessage, "Replicated View Message", true, false, true) \
+  __op__(SEND_ALLREDUCE_VIEW, AllreduceViewMessage, "Allreduce View Message", true, false, true) \
+  __op__(SEND_INSTANCE_MANAGER, InstanceManagerMessage, "Instance Manager Message", true, false, true) \
+  __op__(SEND_MANAGER_UPDATE, PhysicalManagerUpdate, "Physical Manager Update Message", true, false, true) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_FILL, CollectiveDistributeFill, "Collective View Broadcast Fill Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_POINT, CollectiveDistributePoint, "Collective View Broadcast Point Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_POINTWISE, CollectiveDistributePointwise, "Collective View Copy Point-wise Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_REDUCTION, CollectiveDistributeReduction, "Collective View Reduction Tree Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_BROADCAST, CollectiveDistributeBroadcast, "Collective View Broadcast Tree Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_REDUCECAST, CollectiveDistributeReducecast, "Collective View Reducecast Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_HOURGLASS, CollectiveDistributeHourglass, "Collective View Hour-glass Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_DISTRIBUTE_ALLREDUCE, CollectiveDistributeAllreduce, "Collective View All-reduce Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_HAMMER_REDUCTION, CollectiveHammerReduction, "Collective View Hammer Reduction Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_FUSE_GATHER, CollectiveFuseGather, "Collective View Fused Gather Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_USER_REQUEST, CollectiveRegisterUserRequest, "Collective View Register User Request", false, false, false) \
+  __op__(SEND_COLLECTIVE_USER_RESPONSE, CollectiveRegisterUserResponse, "Collective View Register User Response", true, false, false) \
+  __op__(SEND_COLLECTIVE_REGISTER_USER, CollectiveIndividualRegisterUser, "Collective View Individual Register User", false, false, false) \
+  __op__(SEND_COLLECTIVE_REMOTE_INSTANCES_REQUEST, CollectiveRemoteInstancesRequest, "Collective View Remote Instances Request", false, false, false) \
+  __op__(SEND_COLLECTIVE_REMOTE_INSTANCES_RESPONSE, CollectiveRemoteInstancesResponse, "Collective View Remote Instances Response", true, false, false) \
+  __op__(SEND_COLLECTIVE_NEAREST_INSTANCES_REQUEST, CollectiveNearestInstancesRequest, "Collective View Nearest Instances Request", false, false, false) \
+  __op__(SEND_COLLECTIVE_NEAREST_INSTANCES_RESPONSE, CollectiveNearestInstancesResponse, "Collective View Nearest Instances Response", true, false, false) \
+  __op__(SEND_COLLECTIVE_REMOTE_REGISTRATION, CollectiveRemoteRegistration, "Collective View Remote Registration Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_FINALIZE_MAPPING, CollectiveFinalizeMapping, "Collective View Finalize Mapping", false, false, false) \
+  __op__(SEND_COLLECTIVE_VIEW_CREATION, CollectiveViewCreation, "Collective View Creation Message", false, false, false) \
+  __op__(SEND_COLLECTIVE_VIEW_DELETION, CollectiveViewDeletion, "Collective View Deletion Message", false, false, true) \
+  __op__(SEND_COLLECTIVE_VIEW_RELEASE, CollectiveViewRelease, "Collective View Release Message", false, true, true) \
+  __op__(SEND_COLLECTIVE_VIEW_NOTIFICATION, CollectiveViewNotification, "Collective View Notification Message", false, true, true) \
+  __op__(SEND_COLLECTIVE_VIEW_MAKE_VALID, CollectiveViewMakeValid, "Collective View Make Valid Message", false, false, true) \
+  __op__(SEND_COLLECTIVE_VIEW_MAKE_INVALID, CollectiveViewMakeInvalid, "Collective View Make Invalid Message", false, false, true) \
+  __op__(SEND_COLLECTIVE_VIEW_INVALIDATE_REQUEST, CollectiveViewInvalidateRequest, "Collective View Invalidation Request", false, false, true) \
+  __op__(SEND_COLLECTIVE_VIEW_INVALIDATE_RESPONSE, CollectiveViewInvalidateResponse, "Collective View Invalidation Response", true, false, true) \
+  __op__(SEND_COLLECTIVE_VIEW_ADD_REMOTE_REFERENCE, CollectiveViewAddRemoteReference, "Collective View Add Remote Reference Message", false, false, true) \
+  __op__(SEND_COLLECTIVE_VIEW_REMOVE_REMOTE_REFERENCE, CollectiveViewRemoveRemoteReference, "Collective View Remove Remote Reference Message", false, false, true) \
+  __op__(SEND_CREATE_TOP_VIEW_REQUEST, CreateTopViewRequest, "Create Top Logical View Request", false, false, false) \
+  __op__(SEND_CREATE_TOP_VIEW_RESPONSE, CreateTopViewResponse, "Create Top Logical View Respone", false, false, false) \
+  __op__(SEND_VIEW_REQUEST, ViewRequestMessage, "Logical View Request", false, false, true) \
+  __op__(SEND_VIEW_REGISTER_USER, ViewRegisterUser, "Logical View Register User Message", false, false, false) \
+  __op__(SEND_VIEW_FIND_COPY_PRE_REQUEST, ViewFindCopyPreMessage, "Logical View Find Copy Preconditions Message", false, false, false) \
+  __op__(SEND_VIEW_ADD_COPY_USER, ViewAddCopyUserMessage, "Logical View Add Copy User Message", true, false, false) \
+  __op__(SEND_VIEW_FIND_LAST_USERS_REQUEST, ViewFindLastUsersRequest, "Logical View Find Last Users Request", false, false, true) \
+  __op__(SEND_VIEW_FIND_LAST_USERS_RESPONSE, ViewFindLastUsersResponse, "Logical View Find Last Users Response", true, false, true) \
+  __op__(SEND_MANAGER_REQUEST, ManagerRequestMessage, "Instance Manager Request", false, false, true) \
+  __op__(SEND_FUTURE_RESULT, FutureResultMessage, "Set Future Result Message", true, true, true) \
+  __op__(SEND_FUTURE_RESULT_SIZE, FutureSizeMessage, "Set Future Size Message", true, true, true) \
+  __op__(SEND_FUTURE_SUBSCRIPTION, FutureSubscription, "Future Subscription Message", false, false, false) \
+  __op__(SEND_FUTURE_CREATE_INSTANCE_REQUEST, FutureCreateInstanceRequest, "Future Create Instance Request", false, false, false) \
+  __op__(SEND_FUTURE_CREATE_INSTANCE_RESPONSE, FutureCreateInstanceResponse, "Future Create Instance Response", true, false, false) \
+  __op__(SEND_FUTURE_MAP_REQUEST, FutureMapFutureRequest, "Future Map Future Request", false, false, false) \
+  __op__(SEND_FUTURE_MAP_RESPONSE, FutureMapFutureResponse, "Future Map Future Response", true, false, false) \
+  __op__(SEND_FUTURE_MAP_POINTWISE, FutureMapPointwise, "Future Map Pointwise Message", false, false, false) \
+  __op__(SEND_REPL_COMPUTE_EQUIVALENCE_SETS, ReplComputeEquivalenceSets, "Replicated Compute Equivalence Sets Message", false, false, false) \
+  __op__(SEND_REPL_OUTPUT_EQUIVALENCE_SET, ReplOutputEquivalenceSet, "Replicated Output Equivalence Set Message", false, false, false) \
+  __op__(SEND_REPL_REFINE_EQUIVALENCE_SETS, ReplRefineEquivalenceSets, "Replicated Refine Equivalence Sets Message", false, false, false) \
+  __op__(SEND_REPL_EQUIVALENCE_SET_NOTIFICATION, ReplEquivalenceSetNotification, "Replicated Equivalence Set Notification Message", false, false, false) \
+  __op__(SEND_REPL_BROADCAST_UPDATE, ReplBroadcastUpdate, "Replicated Broadcast Update Message", false, false, true) \
+  __op__(SEND_REPL_CREATED_REGIONS, ReplCreatedRegions, "Replicated Created Regions Message", false, false, true) \
+  __op__(SEND_REPL_TRACE_EVENT_REQUEST, ReplTraceEventRequest, "Replicated Trace Event Request", false, false, false) \
+  __op__(SEND_REPL_TRACE_EVENT_RESPONSE, ReplTraceEventResponse, "Replicated Trace Event Response", true, false, false) \
+  __op__(SEND_REPL_TRACE_EVENT_TRIGGER, ReplTraceEventTrigger, "Replicated Trace Event Trigger", false, false, false) \
+  __op__(SEND_REPL_TRACE_FRONTIER_REQUEST, ReplTraceFrontierRequest, "Replicated Trace Frontier Request", false, false, false) \
+  __op__(SEND_REPL_TRACE_FRONTIER_RESPONSE, ReplTraceFrontierResponse, "Replicated Trace Frontier Response", true, false, false) \
+  __op__(SEND_REPL_TRACE_UPDATE, ReplTraceUpdateMessage, "Replicated Trace Update Message", false, false, false) \
+  __op__(SEND_REPL_FIND_TRACE_SETS, ReplFindTraceSets, "Replicated Find Trace Sets Message", false, false, false) \
+  __op__(SEND_REPL_IMPLICIT_RENDEZVOUS, ReplImplicitRendezvous, "Replicated Implicit Task Rendezvous Message", false, false, false) \
+  __op__(SEND_REPL_FIND_COLLECTIVE_VIEW, ReplFindCollectiveView, "Replicated Find Collective View Message", false, false, false) \
+  __op__(SEND_REPL_POINTWISE_DEPENDENCE, ReplPointwiseDependence, "Replicated Find Pointwise Dependence Message", false, false, false) \
+  __op__(SEND_MAPPER_MESSAGE, MapperMessage, "Mapper Message", false, true, true) \
+  __op__(SEND_MAPPER_BROADCAST, MapperBroadcast, "Mapper Broadcast", false, true, true) \
+  __op__(SEND_TASK_IMPL_SEMANTIC_REQ, TaskSemanticInfoRequest, "Task Semantic Information Request", false, false, false) \
+  __op__(SEND_INDEX_SPACE_SEMANTIC_REQ, IndexSpaceSemanticInfoRequest, "Index Space Semantic Information Request", false, false, false) \
+  __op__(SEND_INDEX_PARTITION_SEMANTIC_REQ, IndexPartSemanticInfoRequest, "Index Partition Semantic Information Request", false, false, false) \
+  __op__(SEND_FIELD_SPACE_SEMANTIC_REQ, FieldSpaceSemanticInfoRequest, "Field Space Semantic Information Request", false, false, false) \
+  __op__(SEND_FIELD_SEMANTIC_REQ, FieldSemanticInfoRequest, "Field Semantic Information Request", false, false, false) \
+  __op__(SEND_LOGICAL_REGION_SEMANTIC_REQ, LogicalRegionSemanticInfoRequest, "Logical Region Semantic Information Request", false, false, false) \
+  __op__(SEND_LOGICAL_PARTITION_SEMANTIC_REQ, LogicalPartitionSemanticInfoRequest, "Logical Partition Semantic Information Request", false, false, false) \
+  __op__(SEND_TASK_IMPL_SEMANTIC_INFO, TaskSemanticInfoResponse, "Task Semantic Information Response", true, false, false) \
+  __op__(SEND_INDEX_SPACE_SEMANTIC_INFO, IndexSpaceSemanticInfoResponse, "Index Space Semantic Information Response", true, false, false) \
+  __op__(SEND_INDEX_PARTITION_SEMANTIC_INFO, IndexPartSemanticInfoResponse, "Index Space Semantic Information Response", true, false, false) \
+  __op__(SEND_FIELD_SPACE_SEMANTIC_INFO, FieldSpaceSemanticInfoResponse, "Field Space Semantic Information Response", true, false, false) \
+  __op__(SEND_FIELD_SEMANTIC_INFO, FieldSemanticInfoResponse, "Field Semantic Information Response", true, false, false) \
+  __op__(SEND_LOGICAL_REGION_SEMANTIC_INFO, LogicalRegionSemanticInfoResponse, "Logical Region Semantic Information Response", true, false, false) \
+  __op__(SEND_LOGICAL_PARTITION_SEMANTIC_INFO, LogicalPartitionSemanticInfoResponse, "Logical Partition Semantic Information Response", true, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_REQUEST, RemoteContextRequest, "Remote Context Request", false, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_RESPONSE, RemoteContextResponse, "Remote Context Response", true, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_PHYSICAL_REQUEST, RemoteContextPhysicalRequest, "Remote Context Physical Request", false, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_PHYSICAL_RESPONSE, RemoteContextPhysicalResponse, "Remote Context Physical Response", true, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_REQUEST, RemoteContextFindCollectiveViewRequest, "Remote Context Find Collective View Request", false, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_RESPONSE, RemoteContextFindCollectiveViewResponse, "Remote Context Find Collective View Response", true, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_REFINE_EQUIVALENCE_SETS, RemoteContextRefineEquivalenceSets, "Remote Context Refine Equivalence Sets Messages", false, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_POINTWISE_DEPENDENCE, RemoteContextPointwiseDependence, "Remote Context Pointwise Dependence Analysis", false, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_REQUEST, RemoteContextFindTraceLocalRequest, "Remote Context Find Trace Local Sets Request", false, false, false) \
+  __op__(SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_RESPONSE, RemoteContextFindTraceLocalResponse, "Remote Context Find Trace Local Sets Response", true, false, false) \
+  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_REQUEST, ComputeEquivalenceSetsRequest, "Compute Equivalence Sets Request", false, false, false) \
+  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_RESPONSE, ComputeEquivalenceSetsResponse, "Compute Equivalence Sets Response", true, false, false) \
+  __op__(SEND_COMPUTE_EQUIVALENCE_SETS_PENDING, ComputeEquivalenceSetsPending, "Compute Equivalence Sets Pending Message", false, false, false) \
+  __op__(SEND_OUTPUT_EQUIVALENCE_SET_REQUEST, OutputEquivalenceSetRequest, "Output Equivalence Set Request", false, false, false) \
+  __op__(SEND_OUTPUT_EQUIVALENCE_SET_RESPONSE, OutputEquivalenceSetResponse, "Output Equivalence Set Response", true, false, false) \
+  __op__(SEND_CANCEL_EQUIVALENCE_SETS_SUBSCRIPTION, CancelEquivalenceSetSubscription, "Cance Equivalence Set Subscription Message", false, true, true) \
+  __op__(SEND_INVALIDATE_EQUIVALENCE_SETS_SUBSCRIPTION, InvalidateEquivalenceSetSubscription, "Invalidate Equivalence Set Subscription", false, true, true) \
+  __op__(SEND_EQUIVALENCE_SET_CREATION, EquivalenceSetCreation, "Equivalence Set Creation Message", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REUSE, EquivalenceSetReuse, "Equivalence Set Reuse Message", false, false, true) \
+  __op__(SEND_EQUIVALENCE_SET_REQUEST, EquivalenceSetRequest, "Equivalence Set Request", false, false, true) \
+  __op__(SEND_EQUIVALENCE_SET_RESPONSE, EquivalenceSetResponse, "Equivalence Set Response", true, false, true) \
+  __op__(SEND_EQUIVALENCE_SET_REPLICATION_REQUEST, EquivalenceSetReplicationRequest, "Equivalence Set Replication Request", false, false, true) \
+  __op__(SEND_EQUIVALENCE_SET_REPLICATION_RESPONSE, EquivalenceSetReplicationResponse, "Equivalence Set Replication Response", true, false, true) \
+  __op__(SEND_EQUIVALENCE_SET_MIGRATION, EquivalenceSetMigration, "Equivalence Set Migration Message", false, false, true) \
+  __op__(SEND_EQUIVALENCE_SET_OWNER_UPDATE, EquivalenceSetOwnerUpdate, "Equivalence Set Owner Update Message", false, false, true) \
+  __op__(SEND_EQUIVALENCE_SET_CLONE_REQUEST, EquivalenceSetCloneRequest, "Equivalence Set Clone Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_CLONE_RESPONSE, EquivalenceSetCloneResponse, "Equivalence Set Clone Response", true, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_CAPTURE_REQUEST, EquivalenceSetCaptureRequest, "Equivalence Set Capture Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_CAPTURE_RESPONSE, EquivalenceSetCaptureResponse, "Equivalence Set Capture Response", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INSTANCES, EquivalenceSetRequestInstances, "Equivalence Set Remote Instances Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INVALID, EquivalenceSetRequestInvalid, "Equivalence Set Remote Invalid Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_REQUEST_ANTIVALID, EquivalenceSetRequestAntivalid, "Equivalence Set Remote Antivalid Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_UPDATES, RemoteUpdateAnalysis, "Equivalence Set Remote Updates Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_ACQUIRES, RemoteAcquireAnalysis, "Equivalence Set Remote Acquire Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_RELEASES, RemoteReleaseAnalysis, "Equivalence Set Remote Release Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_COPIES_ACROSS, RemoteCopyAcrossAnalysis, "Equivalence Set Remote Copy Across Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_OVERWRITES, RemoteOverwriteAnalysis, "Equivalence Set Remote Overwrite Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_FILTERS, RemoteFilterAnalysis, "Equivalence Set Remote Filter Request", false, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_REMOTE_INSTANCES, EquivalenceSetRemoteInstances, "Physical Analysis Remote Instances Response", true, false, false) \
+  __op__(SEND_EQUIVALENCE_SET_FILTER_INVALIDATIONS, EquivalenceSetFilterInvalidations, "Equivalence Set Filter Invalidations Message", false, false, false) \
+  __op__(SEND_INSTANCE_REQUEST, InstanceRequest, "Instance Manager Request", false, false, false) \
+  __op__(SEND_INSTANCE_RESPONSE, InstanceResponse, "Instance Manager Response", true, false, false) \
+  __op__(SEND_EXTERNAL_CREATE_REQUEST, ExternalCreateRequest, "External Instance Request", false, false, false) \
+  __op__(SEND_EXTERNAL_CREATE_RESPONSE, ExternalCreateResponse, "External Instance Response", true, false, false) \
+  __op__(SEND_EXTERNAL_ATTACH, ExternalAttachRequest, "External Attach Request", false, false, false) \
+  __op__(SEND_EXTERNAL_DETACH, ExternalDetachRequest, "External Detach Request", false, true, true) \
+  __op__(SEND_GC_PRIORITY_UPDATE, GarbageCollectionPriorityUpdate, "Garbage Collection Priority Update", false, true, true) \
+  __op__(SEND_GC_REQUEST, GarbageCollectionRequest, "Garbage Collection Request", false, true, true) \
+  __op__(SEND_GC_RESPONSE, GarbageCollectionResponse, "Garbage Collection Response", true, true, true) \
+  __op__(SEND_GC_ACQUIRE, GarbageCollectionAcquire, "Garbage Collection Acquire Message", false, true, true) \
+  __op__(SEND_GC_FAILED, GarbageCollectionFailed, "Garbage Collection Failed Response", true, true, true) \
+  __op__(SEND_GC_MISMATCH, GarbageCollectionMismatch, "Garbage Collection Mismatch Message", false, true, true) \
+  __op__(SEND_GC_NOTIFY, GarbageCollectionNotification, "Garbage Collection Notification Message", false, true, true) \
+  __op__(SEND_GC_DEBUG_REQUEST, GarbageCollectionDebugRequest, "Garbage Collection Debug Request", false, false, false) \
+  __op__(SEND_GC_DEBUG_RESPONSE, GarbageCollectionDebugResponse, "Garbage Collection Debug Response", true, false, false) \
+  __op__(SEND_GC_RECORD_EVENT, GarbageCollectionRecordEvent, "Garbage Collection Record Event", false, false, false) \
+  __op__(SEND_ACQUIRE_REQUEST, GarbageCollectionAcquireRequest, "Garbage Collection Acquire Request", false, false, false) \
+  __op__(SEND_ACQUIRE_RESPONSE, GarbageCollectionAcquireResponse, "Garbage Collection Acquire Response", true, false, false) \
+  __op__(SEND_VARIANT_BROADCAST, VariantBroadcast, "Variant Broadcast Message", false, true, true) \
+  __op__(SEND_CONSTRAINT_REQUEST, ConstraintRequest, "Layout Constraint Request", false, false, false) \
+  __op__(SEND_CONSTRAINT_RESPONSE, ConstraintResponse, "Layout Constraint Response", true, false, false) \
+  __op__(SEND_CONSTRAINT_RELEASE, ConstraintRelease, "Layout Constraint Release Message", false, true, true) \
+  __op__(SEND_TOP_LEVEL_TASK_COMPLETE, TopLevelTaskComplete, "Top Level Task Complete Message", false, true, true) \
+  __op__(SEND_MPI_RANK_EXCHANGE, MPIRankExchange, "MPI Rank Exchange Message", false, true, true) \
+  __op__(SEND_REPLICATE_DISTRIBUTION, ReplicateDistribution, "Replicate Task Distribution", false, false, false) \
+  __op__(SEND_REPLICATE_COLLECTIVE_VERSIONING, ReplicateVersioning, "Replicate Task Collective Versioning Message", false, false, false) \
+  __op__(SEND_REPLICATE_COLLECTIVE_MAPPING, ReplicateCollectiveMapping, "Replicate Task Collective Mapping Message", false, false, false) \
+  __op__(SEND_REPLICATE_VIRTUAL_RENDEZVOUS, ReplicateVirtualRendezvous, "Replicate Task Virtual Mapping Message", false, false, false) \
+  __op__(SEND_REPLICATE_STARTUP_COMPLETE, ReplicateStartup, "Replicate Task Startup Complete Message", false, false, false) \
+  __op__(SEND_REPLICATE_POST_MAPPED, ReplicatePostMapped, "Replicate Task Post Mapped Message", false, false, false) \
+  __op__(SEND_REPLICATE_TRIGGER_COMPLETE, ReplicateTriggerComplete, "Replicate Task Trigger Complete Message", false, false, false) \
+  __op__(SEND_REPLICATE_TRIGGER_COMMIT, ReplicateTriggerCommit, "Replicate Trigger Commit Message", false, false, false) \
+  __op__(SEND_CONTROL_REPLICATE_RENDEZVOUS_MESSAGE, ReplicateRendezvousMessage, "Replicate Task Rendezvous Message", false, false, false) \
+  __op__(SEND_LIBRARY_MAPPER_REQUEST, MapperLibraryRequest, "Mapper ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_MAPPER_RESPONSE, MapperLibraryResponse, "Mapper ID Library Response", true, false, false) \
+  __op__(SEND_LIBRARY_TRACE_REQUEST, TraceLibraryRequest, "Trace ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_TRACE_RESPONSE, TraceLibraryResponse, "Trace ID Library Response", true, false, false) \
+  __op__(SEND_LIBRARY_PROJECTION_REQUEST, ProjectionLibraryRequest, "Projection ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_PROJECTION_RESPONSE, ProjectionLibraryResponse, "Projection ID Library Response", true, false, false) \
+  __op__(SEND_LIBRARY_SHARDING_REQUEST, ShardingLibraryRequest, "Sharding ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_SHARDING_RESPONSE, ShardingLibraryResponse, "Sharding ID Library Response", true, false, false) \
+  __op__(SEND_LIBRARY_CONCURRENT_REQUEST, ConcurrentLibraryRequest, "Concurrent ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_CONCURRENT_RESPONSE, ConcurrentLibraryResponse, "Concurrent ID Library Response", true, false, false) \
+  __op__(SEND_LIBRARY_TASK_REQUEST, TaskLibraryRequest, "Task ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_TASK_RESPONSE, TaskLibraryResponse, "Task ID Library Response", true, false, false) \
+  __op__(SEND_LIBRARY_REDOP_REQUEST, RedopLibraryRequest, "Reduction ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_REDOP_RESPONSE, RedopLibraryResponse, "Reduction ID Library Response", true, false, false) \
+  __op__(SEND_LIBRARY_SERDEZ_REQUEST, SerdezLibraryRequest, "Serdez ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_SERDEZ_RESPONSE, SerdezLibraryResponse, "Serdez ID Library Response", true, false, false) \
+  __op__(SEND_REMOTE_OP_REPORT_UNINIT, RemoteOpReportUninit, "Remote Operation Uninitialized Message", false, false, false) \
+  __op__(SEND_REMOTE_OP_PROFILING_COUNT_UPDATE, RemoteOpProfilingUpdate, "Remote Operation Profiling Update Message", false, false, false) \
+  __op__(SEND_REMOTE_OP_COMPLETION_EFFECT, RemoteOpCompletionEffect, "Remote Operation Completion Effect", false, false, false ) \
+  __op__(SEND_REMOTE_TRACE_UPDATE, RemoteTraceUpdate, "Remote Trace Recording Update Message", false, false, false) \
+  __op__(SEND_REMOTE_TRACE_RESPONSE, RemoteTraceResponse, "Remote Trace Recording Response", true, false, false) \
+  __op__(SEND_FREE_EXTERNAL_ALLOCATION, FreeExternalAllocation, "Free External Allocation Message", false, true, true) \
+  __op__(SEND_NOTIFY_COLLECTED_INSTANCES, NotifyCollectedInstances, "Notify Collected Instances Message", false, true, true) \
+  __op__(SEND_CREATE_MEMORY_POOL_REQUEST, CreatePoolRequest, "Create Memory Pool Request", false, false, false) \
+  __op__(SEND_CREATE_MEMORY_POOL_RESPONSE, CreatePoolResponse, "Create Memory Pool Response", true, false, false) \
+  __op__(SEND_CREATE_FUTURE_INSTANCE_REQUEST, CreateFutureInstanceRequest, "Create Future Instance Request", false, false, false) \
+  __op__(SEND_CREATE_FUTURE_INSTANCE_RESPONSE, CreateFutureInstanceResponse, "Create Future Instance Response", true, false, false) \
+  __op__(SEND_FREE_FUTURE_INSTANCE, FreeFutureInstance, "Free Future Instance Message", false, true, true) \
+  __op__(SEND_REMOTE_DISTRIBUTED_ID_REQUEST, DistributedIDRequest, "Distributed Collectable ID Request", false, false, false) \
+  __op__(SEND_REMOTE_DISTRIBUTED_ID_RESPONSE, DistributedIDResponse, "Distributed Collectable ID Response", true, false, false) \
+  __op__(SEND_PROFILER_EVENT_TRIGGER, ProfilerEventTriggerMessage, "Profiler Record Event Trigger Message", false, true, true) \
+  __op__(SEND_PROFILER_EVENT_POISON, ProfilerEventPoisonMessage, "Profiler Record Event Poison Message", false, true, true) \
+  __op__(SEND_SHUTDOWN_NOTIFICATION, ShutdownNotification, "Shutdown Notification Message", false, true, true) \
+  __op__(SEND_SHUTDOWN_RESPONSE, ShutdownResponse, "Shutdown Response", true, true, true)
 
 #define LEGION_SHARD_COLLECTIVE_ACTIVE_MESSAGES(__op__) \
   __op__(SEND_CONTROL_REPLICATION_FUTURE_ALLREDUCE, "Control Replication Future All-Reduce Message") \
@@ -385,7 +385,7 @@ namespace Legion {
   __op__(SEND_CONTROL_REPLICATION_SLOW_BARRIER, "Control Replication Slow Barrier Message")
 
 #define CTRL_REPL_KINDS(kind, name) kind,
-#define MESSAGE_KINDS(kind, type, name, resp) kind,
+#define MESSAGE_KINDS(kind, type, name, resp, escape_ctx, escape_op) kind,
     enum MessageKind {
       LEGION_SHARD_COLLECTIVE_ACTIVE_MESSAGES(CTRL_REPL_KINDS)
       LEGION_ACTIVE_MESSAGES(MESSAGE_KINDS)
@@ -400,7 +400,8 @@ namespace Legion {
       static constexpr LgTaskID TASK_ID = LG_MESSAGE_ID;
     public:
       MessageHeader(void) = default;
-      MessageHeader(MessageKind k, VirtualChannelKind c);
+      MessageHeader(
+          MessageKind k, VirtualChannelKind c, bool escape_ctx, bool escape_op);
       // We override handle directly since we're doing the handling
       static void handle(const void* data, size_t size);
     public:
@@ -501,7 +502,8 @@ namespace Legion {
     template<typename T>
     class ActiveMessage : public Serializer {
     public:
-      ActiveMessage(MessageKind kind) : Serializer(), header(kind, T::CHANNEL)
+      ActiveMessage(MessageKind kind, bool escape_ctx, bool escape_op)
+        : Serializer(), header(kind, T::CHANNEL, escape_ctx, escape_op)
       {
         serialize(header);
       }
@@ -539,7 +541,8 @@ namespace Legion {
       static constexpr bool RESPONSE = false;
     public:
       ShardCollectiveMessage(MessageKind k)
-        : ActiveMessage<ShardCollectiveMessage>(k)
+        : ActiveMessage<ShardCollectiveMessage>(
+              k, false /*escape ctx*/, false /*escape op*/)
       { }
     public:
       static void handle(Deserializer& derez, AddressSpaceID source);

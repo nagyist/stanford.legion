@@ -507,9 +507,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalAnalysis::DeferPerformTraversalArgs::DeferPerformTraversalArgs(
         PhysicalAnalysis* ana, const VersionInfo& info)
-      : LgTaskArgs<DeferPerformTraversalArgs>(ana->op->get_unique_op_id()),
-        analysis(ana), version_info(&info),
-        done_event(Runtime::create_rt_user_event())
+      : LgTaskArgs<DeferPerformTraversalArgs>(false, false), analysis(ana),
+        version_info(&info), done_event(Runtime::create_rt_user_event())
     //--------------------------------------------------------------------------
     {
       if (analysis->on_heap)
@@ -534,9 +533,8 @@ namespace Legion {
     PhysicalAnalysis::DeferPerformAnalysisArgs::DeferPerformAnalysisArgs(
         PhysicalAnalysis* ana, EquivalenceSet* s, const FieldMask& m,
         RtUserEvent done, bool def)
-      : LgTaskArgs<DeferPerformAnalysisArgs>(ana->op->get_unique_op_id()),
-        analysis(ana), set(s),
-        mask(new HeapifyBox<FieldMask, OPERATION_LIFETIME>(m)),
+      : LgTaskArgs<DeferPerformAnalysisArgs>(false, false), analysis(ana),
+        set(s), mask(new HeapifyBox<FieldMask, OPERATION_LIFETIME>(m)),
         done_event(done.exists() ? done : Runtime::create_rt_user_event()),
         already_deferred(def)
     //--------------------------------------------------------------------------
@@ -571,8 +569,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalAnalysis::DeferPerformRemoteArgs::DeferPerformRemoteArgs(
         PhysicalAnalysis* ana)
-      : LgTaskArgs<DeferPerformRemoteArgs>(ana->op->get_unique_op_id()),
-        analysis(ana), done_event(Runtime::create_rt_user_event())
+      : LgTaskArgs<DeferPerformRemoteArgs>(false, false), analysis(ana),
+        done_event(Runtime::create_rt_user_event())
     //--------------------------------------------------------------------------
     {
       if (analysis->on_heap)
@@ -598,8 +596,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalAnalysis::DeferPerformUpdateArgs::DeferPerformUpdateArgs(
         PhysicalAnalysis* ana)
-      : LgTaskArgs<DeferPerformUpdateArgs>(ana->op->get_unique_op_id()),
-        analysis(ana), done_event(Runtime::create_rt_user_event())
+      : LgTaskArgs<DeferPerformUpdateArgs>(false, false), analysis(ana),
+        done_event(Runtime::create_rt_user_event())
     //--------------------------------------------------------------------------
     {
       if (analysis->on_heap)
@@ -627,9 +625,8 @@ namespace Legion {
         DeferPerformRegistrationArgs(
             PhysicalAnalysis* ana, const RegionUsage& use,
             const PhysicalTraceInfo& info, ApEvent pre, ApEvent term, bool symb)
-      : LgTaskArgs<DeferPerformRegistrationArgs>(ana->op->get_unique_op_id()),
-        analysis(ana), usage(use), trace_info(&info), precondition(pre),
-        termination(term),
+      : LgTaskArgs<DeferPerformRegistrationArgs>(false, false), analysis(ana),
+        usage(use), trace_info(&info), precondition(pre), termination(term),
         instances_ready(Runtime::create_ap_user_event(&info)),
         done_event(Runtime::create_rt_user_event()), symbolic(symb)
     //--------------------------------------------------------------------------
@@ -659,11 +656,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalAnalysis::DeferPerformOutputArgs::DeferPerformOutputArgs(
         PhysicalAnalysis* ana, bool track, const PhysicalTraceInfo& info)
-      : LgTaskArgs<DeferPerformOutputArgs>(ana->op->get_unique_op_id()),
-        analysis(ana), trace_info(&info),
-        effects_event(
-            track ? Runtime::create_ap_user_event(&info) :
-                    ApUserEvent::NO_AP_USER_EVENT)
+      : LgTaskArgs<DeferPerformOutputArgs>(false, false), analysis(ana),
+        trace_info(&info), effects_event(
+                               track ? Runtime::create_ap_user_event(&info) :
+                                       ApUserEvent::NO_AP_USER_EVENT)
     //--------------------------------------------------------------------------
     {
       if (analysis->on_heap)

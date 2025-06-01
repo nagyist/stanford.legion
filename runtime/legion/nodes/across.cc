@@ -260,8 +260,8 @@ namespace Legion {
     CopyAcrossExecutor::DeferCopyAcrossArgs::DeferCopyAcrossArgs(
         CopyAcrossExecutor* e, Operation* o, PredEvent g, ApEvent copy_pre,
         ApEvent src_pre, ApEvent dst_pre, bool repl, bool recurrent, unsigned s)
-      : LgTaskArgs<DeferCopyAcrossArgs>(o->get_unique_op_id()), executor(e),
-        op(o), guard(g), copy_precondition(copy_pre),
+      : LgTaskArgs<DeferCopyAcrossArgs>(false, false), executor(e), op(o),
+        guard(g), copy_precondition(copy_pre),
         src_indirect_precondition(src_pre), dst_indirect_precondition(dst_pre),
         done_event(Runtime::create_ap_user_event(nullptr)), stage(s + 1),
         replay(repl), recurrent_replay(recurrent)

@@ -857,10 +857,9 @@ namespace Legion {
         ShardedPhysicalTemplate* t, UpdateKind k, RtUserEvent d,
         const UniqueInst& i, Deserializer& derez, IndexSpaceExpression* x,
         RtUserEvent u)
-      : LgTaskArgs<DeferTraceUpdateArgs>(implicit_provenance), target(t),
-        kind(k), done(d), inst(i), expr(x),
-        buffer_size(derez.get_remaining_bytes()), buffer(malloc(buffer_size)),
-        deferral_event(u)
+      : LgTaskArgs<DeferTraceUpdateArgs>(false, false), target(t), kind(k),
+        done(d), inst(i), expr(x), buffer_size(derez.get_remaining_bytes()),
+        buffer(malloc(buffer_size)), deferral_event(u)
     //--------------------------------------------------------------------------
     {
       memcpy(buffer, derez.get_current_pointer(), buffer_size);
@@ -871,7 +870,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ShardedPhysicalTemplate::DeferTraceUpdateArgs::DeferTraceUpdateArgs(
         const DeferTraceUpdateArgs& rhs, RtUserEvent d, IndexSpaceExpression* e)
-      : LgTaskArgs<DeferTraceUpdateArgs>(rhs.provenance), target(rhs.target),
+      : LgTaskArgs<DeferTraceUpdateArgs>(false, false), target(rhs.target),
         kind(rhs.kind), done(rhs.done), inst(rhs.inst), expr(e),
         buffer_size(rhs.buffer_size), buffer(rhs.buffer), deferral_event(d)
     //--------------------------------------------------------------------------

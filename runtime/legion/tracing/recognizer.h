@@ -50,8 +50,8 @@ namespace Legion {
       public:
         FindRepeatsTaskArgs(void) = default;
         FindRepeatsTaskArgs(TraceRecognizer* recog, FindRepeatsResult* res)
-          : LgTaskArgs<FindRepeatsTaskArgs>(implicit_provenance),
-            recognizer(recog), result(res)
+          : LgTaskArgs<FindRepeatsTaskArgs>(false, true), recognizer(recog),
+            result(res)
         { }
         void execute(void) const;
       public:

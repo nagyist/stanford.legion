@@ -36,7 +36,7 @@ namespace Legion {
       public:
         DeferRemoteOpDeletionArgs(void) = default;
         DeferRemoteOpDeletionArgs(Operation* o)
-          : LgTaskArgs<DeferRemoteOpDeletionArgs>(o->get_unique_op_id()), op(o)
+          : LgTaskArgs<DeferRemoteOpDeletionArgs>(true, true), op(o)
         { }
         void execute(void) const;
       public:

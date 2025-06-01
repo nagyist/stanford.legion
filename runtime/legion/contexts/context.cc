@@ -544,6 +544,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       implicit_context = this;
+      implicit_enclosing_context = did;
       implicit_provenance = owner_task->get_unique_op_id();
       if (overhead_profiler != nullptr)
         overhead_profiler->previous_profiling_time =
@@ -754,6 +755,7 @@ namespace Legion {
       // Clear the thread local task context to prevent users from
       // calling back into this context now that the task has finished
       implicit_context = nullptr;
+      implicit_enclosing_context = 0;
     }
 
     //--------------------------------------------------------------------------
@@ -1046,7 +1048,7 @@ namespace Legion {
       if (proc.exists())
       {
         // Normal realm task
-        YieldArgs args(owner_task->get_unique_id());
+        YieldArgs args;
         // Run this as the lowest possible priority task on the same processor
         // which will give all other ready tasks an opportunity to run. Once
         // the meta-task does run though then we know we can wake-up.

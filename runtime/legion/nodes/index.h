@@ -178,8 +178,8 @@ namespace Legion {
         SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             IndexSpaceNode* proxy, SemanticTag t, AddressSpaceID src)
-          : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
-            proxy_this(proxy), tag(t), source(src)
+          : LgTaskArgs<SemanticRequestArgs>(false, false), proxy_this(proxy),
+            tag(t), source(src)
         { }
         void execute(void) const;
       public:
@@ -195,7 +195,7 @@ namespace Legion {
         DeferChildArgs(
             IndexSpaceNode* proxy, LegionColor child, DistributedID* tar,
             RtUserEvent trig, AddressSpaceID src)
-          : LgTaskArgs<DeferChildArgs>(implicit_provenance), proxy_this(proxy),
+          : LgTaskArgs<DeferChildArgs>(false, false), proxy_this(proxy),
             child_color(child), target(tar), to_trigger(trig), source(src)
         { }
         void execute(void) const;
@@ -1218,7 +1218,7 @@ namespace Legion {
       public:
         DisjointnessArgs(void) = default;
         DisjointnessArgs(IndexPartNode* proxy)
-          : LgTaskArgs<DisjointnessArgs>(implicit_provenance), proxy_this(proxy)
+          : LgTaskArgs<DisjointnessArgs>(true, true), proxy_this(proxy)
         { }
         void execute(void) const;
       public:
@@ -1233,8 +1233,8 @@ namespace Legion {
         SemanticRequestArgs(void) = default;
         SemanticRequestArgs(
             IndexPartNode* proxy, SemanticTag t, AddressSpaceID src)
-          : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
-            proxy_this(proxy), tag(t), source(src)
+          : LgTaskArgs<SemanticRequestArgs>(false, false), proxy_this(proxy),
+            tag(t), source(src)
         { }
         void execute(void) const;
       public:
@@ -1249,7 +1249,7 @@ namespace Legion {
         DeferChildArgs(void) = default;
         DeferChildArgs(
             IndexPartNode* proxy, LegionColor child, AddressSpaceID src)
-          : LgTaskArgs<DeferChildArgs>(implicit_provenance), proxy_this(proxy),
+          : LgTaskArgs<DeferChildArgs>(false, false), proxy_this(proxy),
             child_color(child), source(src)
         { }
         void execute(void) const;
@@ -1265,8 +1265,7 @@ namespace Legion {
       public:
         DeferFindShardRects(void) = default;
         DeferFindShardRects(IndexPartNode* proxy)
-          : LgTaskArgs<DeferFindShardRects>(implicit_provenance),
-            proxy_this(proxy)
+          : LgTaskArgs<DeferFindShardRects>(false, false), proxy_this(proxy)
         { }
         void execute(void) const;
       public:

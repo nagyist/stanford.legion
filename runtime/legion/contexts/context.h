@@ -47,8 +47,7 @@ namespace Legion {
         static constexpr LgTaskID TASK_ID = LG_YIELD_TASK_ID;
         static constexpr bool IS_APPLICATION_TASK = true;
       public:
-        YieldArgs(void) = default;
-        YieldArgs(UniqueID uid) : LgTaskArgs<YieldArgs>(uid) { }
+        YieldArgs(void) : LgTaskArgs<YieldArgs>(false, false) { }
         inline void execute(void) const { /*nothing to do*/ }
       };
     public:

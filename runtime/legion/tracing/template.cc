@@ -304,8 +304,8 @@ namespace Legion {
         {
           // Launch a meta-task to finalize this trace condition set
           LgFinalizeEqSetsArgs args(
-              this, compute_event, op->get_unique_op_id(), context, outermost,
-              parent_req_index, condition_expr);
+              this, compute_event, context, outermost, parent_req_index,
+              condition_expr);
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_DEFERRED_PRIORITY, ready);
         }

@@ -264,7 +264,7 @@ namespace Legion {
         MallocInstanceArgs(
             MemoryManager* m, const Realm::InstanceLayoutGeneric* l,
             const Realm::ProfilingRequestSet* r, PhysicalInstance* i, LgEvent u)
-          : LgTaskArgs<MallocInstanceArgs>(implicit_provenance), manager(m),
+          : LgTaskArgs<MallocInstanceArgs>(false, false), manager(m),
             layout(l->clone()), requests(r), instance(i), unique_event(u)
         { }
         void execute(void) const;
@@ -280,8 +280,7 @@ namespace Legion {
         static const LgTaskID TASK_ID = LG_FREE_INSTANCE_TASK_ID;
       public:
         FreeInstanceArgs(MemoryManager* m, PhysicalInstance i)
-          : LgTaskArgs<FreeInstanceArgs>(implicit_provenance), manager(m),
-            instance(i)
+          : LgTaskArgs<FreeInstanceArgs>(true, true), manager(m), instance(i)
         { }
         void execute(void) const;
       public:

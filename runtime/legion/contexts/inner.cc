@@ -6904,7 +6904,7 @@ namespace Legion {
       if (issue_task)
       {
         add_base_resource_ref(META_TASK_REF);
-        PrepipelineArgs args(op, this);
+        PrepipelineArgs args(this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
       }
     }
@@ -6944,7 +6944,7 @@ namespace Legion {
       }
       else
       {
-        PrepipelineArgs args(prepipeline_queue.front().first, this);
+        PrepipelineArgs args(this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
         // Reference keeps flowing with the continuation
         return false;
@@ -7077,7 +7077,7 @@ namespace Legion {
       }
       if (issue_task)
       {
-        DependenceArgs args(op, this);
+        DependenceArgs args(this);
         runtime->issue_runtime_meta_task(args, priority, precondition);
       }
       if (commit_event.exists())
@@ -7133,7 +7133,7 @@ namespace Legion {
       // Then launch the next task if needed
       if (launch_next_op != nullptr)
       {
-        DependenceArgs args(launch_next_op, this);
+        DependenceArgs args(this);
         // Sample currently_active without the lock to try to get our priority
         runtime->issue_runtime_meta_task(
             args, !currently_active_context ? LG_THROUGHPUT_DEFERRED_PRIORITY :
@@ -7182,7 +7182,7 @@ namespace Legion {
       {
         // Add a reference to the context the first time we defer this
         add_base_resource_ref(META_TASK_REF);
-        ARGS args(entry.op, this, precondition, performed);
+        ARGS args(this, precondition, performed);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
       }
@@ -7201,7 +7201,7 @@ namespace Legion {
       if (issue_task)
       {
         add_base_resource_ref(META_TASK_REF);
-        TriggerReadyArgs args(op, this);
+        TriggerReadyArgs args(this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
       }
     }
@@ -7314,12 +7314,14 @@ namespace Legion {
            it != to_perform.end(); it++)
       {
         (*it)->set_execution_fence_event(current_execution_fence_event);
+        implicit_enclosing_context = did;
+        implicit_operation_index = (*it)->get_context_index();
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->trigger_ready();
       }
       if (next != nullptr)
       {
-        TriggerReadyArgs args(next, this);
+        TriggerReadyArgs args(this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
         return false;
       }
@@ -7348,12 +7350,14 @@ namespace Legion {
       for (std::vector<SingleTask*>::const_iterator it = to_perform.begin();
            it != to_perform.end(); it++)
       {
+        implicit_enclosing_context = did;
+        implicit_operation_index = (*it)->get_context_index();
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->enqueue_ready_task(false /*use target*/);
       }
       if (next != nullptr)
       {
-        DeferredEnqueueTaskArgs args(next, this, precondition, performed);
+        DeferredEnqueueTaskArgs args(this, precondition, performed);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
@@ -7384,12 +7388,14 @@ namespace Legion {
       for (std::vector<Operation*>::const_iterator it = to_perform.begin();
            it != to_perform.end(); it++)
       {
+        implicit_enclosing_context = did;
+        implicit_operation_index = (*it)->get_context_index();
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->trigger_execution();
       }
       if (next != nullptr)
       {
-        TriggerExecutionArgs args(next, this, precondition, performed);
+        TriggerExecutionArgs args(this, precondition, performed);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
@@ -7421,12 +7427,14 @@ namespace Legion {
       for (std::vector<Operation*>::const_iterator it = to_perform.begin();
            it != to_perform.end(); it++)
       {
+        implicit_enclosing_context = did;
+        implicit_operation_index = (*it)->get_context_index();
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->complete_execution();
       }
       if (next != nullptr)
       {
-        DeferredExecutionArgs args(next, this, precondition, performed);
+        DeferredExecutionArgs args(this, precondition, performed);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
@@ -7457,12 +7465,14 @@ namespace Legion {
       for (std::vector<Operation*>::const_iterator it = to_perform.begin();
            it != to_perform.end(); it++)
       {
+        implicit_enclosing_context = did;
+        implicit_operation_index = (*it)->get_context_index();
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->complete_mapping();
       }
       if (next != nullptr)
       {
-        DeferredMappedArgs args(next, this, precondition, performed);
+        DeferredMappedArgs args(this, precondition, performed);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
@@ -7514,7 +7524,7 @@ namespace Legion {
       {
         // Add a reference to the context the first time we defer this
         add_base_resource_ref(META_TASK_REF);
-        DeferredCompletionArgs args(op, this, precondition, performed);
+        DeferredCompletionArgs args(this, precondition, performed);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
       }
@@ -7578,12 +7588,14 @@ namespace Legion {
         // TODO: do something with poisoned completion events and resilience
         if (!it->effects.has_triggered_faultaware(poisoned) || poisoned)
           std::abort();
+        implicit_enclosing_context = did;
+        implicit_operation_index = it->op->get_context_index();
         implicit_provenance = it->op->get_unique_op_id();
         it->op->complete_operation(it->effects, false /*first*/);
       }
       if (next != nullptr)
       {
-        DeferredCompletionArgs args(next, this, precondition, performed);
+        DeferredCompletionArgs args(this, precondition, performed);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
@@ -7613,6 +7625,8 @@ namespace Legion {
         previous_index = next.operation_index;
         Operation* op = next.operation;
         child_lock.release();
+        implicit_enclosing_context = did;
+        implicit_operation_index = op->get_context_index();
         implicit_provenance = op->get_unique_op_id();
         op->trigger_commit();
         child_lock.reacquire();
@@ -7626,7 +7640,7 @@ namespace Legion {
       ReorderBufferEntry& next = reorder_buffer.front();
       if (next.complete && (next.operation_index != previous_index))
       {
-        TriggerCommitArgs args(next.operation, this);
+        TriggerCommitArgs args(this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
         return false;
       }
@@ -7666,12 +7680,14 @@ namespace Legion {
                to_perform.begin();
            it != to_perform.end(); it++)
       {
+        implicit_enclosing_context = did;
+        implicit_operation_index = it->first->get_context_index();
         implicit_provenance = it->first->get_unique_op_id();
         it->first->commit_operation(it->second);
       }
       if (next.first != nullptr)
       {
-        DeferredCommitArgs args(next, this, precondition, performed);
+        DeferredCommitArgs args(this, precondition, performed);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
@@ -7745,7 +7761,7 @@ namespace Legion {
           // Release the lock and launch the meta-task
           d_lock.release();
           const RtEvent commit_event = op->get_commit_event();
-          DependenceArgs args(op, this);
+          DependenceArgs args(this);
           const LgPriority priority = LG_THROUGHPUT_WORK_PRIORITY;
           runtime->issue_runtime_meta_task(args, priority, precondition);
           commit_event.wait();
@@ -7783,7 +7799,7 @@ namespace Legion {
           }
           if (dependence_queue.empty())
           {
-            DependenceArgs args(*it, this);
+            DependenceArgs args(this);
             const LgPriority priority = LG_THROUGHPUT_WORK_PRIORITY;
             runtime->issue_runtime_meta_task(
                 args, priority, dependence_precondition);
@@ -7880,7 +7896,7 @@ namespace Legion {
           (entry.operation_index == reorder_buffer.front().operation_index))
       {
         outstanding_commit_task = true;
-        TriggerCommitArgs args(op, this);
+        TriggerCommitArgs args(this);
         add_base_resource_ref(META_TASK_REF);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
       }
@@ -7932,7 +7948,7 @@ namespace Legion {
           if (!outstanding_commit_task && next.complete)
           {
             outstanding_commit_task = true;
-            TriggerCommitArgs args(next.operation, this);
+            TriggerCommitArgs args(this);
             add_base_resource_ref(META_TASK_REF);
             runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
           }

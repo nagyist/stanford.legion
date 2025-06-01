@@ -387,9 +387,8 @@ namespace Legion {
       public:
         DeferMustEpochReturnResourcesArgs(void) = default;
         DeferMustEpochReturnResourcesArgs(ReplMustEpochOp* o)
-          : LgTaskArgs<DeferMustEpochReturnResourcesArgs>(
-                o->get_unique_op_id()),
-            op(o), done(Runtime::create_rt_user_event())
+          : LgTaskArgs<DeferMustEpochReturnResourcesArgs>(false, false), op(o),
+            done(Runtime::create_rt_user_event())
         { }
         void execute(void) const;
       public:

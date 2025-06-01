@@ -240,7 +240,8 @@ namespace Legion {
         static constexpr LgTaskID TASK_ID = LG_TOP_FINISH_TASK_ID;
       public:
         TopFinishArgs(void) = default;
-        TopFinishArgs(TopLevelContext* c) : LgTaskArgs<TopFinishArgs>(0), ctx(c)
+        TopFinishArgs(TopLevelContext* c)
+          : LgTaskArgs<TopFinishArgs>(true, true), ctx(c)
         { }
         void execute(void) const;
       public:
@@ -253,8 +254,8 @@ namespace Legion {
         MapperTaskArgs(void) = default;
         MapperTaskArgs(
             FutureImpl* f, MapperID mid, Processor p, TopLevelContext* c)
-          : LgTaskArgs<MapperTaskArgs>(implicit_provenance), future(f),
-            map_id(mid), proc(p), ctx(c)
+          : LgTaskArgs<MapperTaskArgs>(true, true), future(f), map_id(mid),
+            proc(p), ctx(c)
         { }
         void execute(void) const;
       public:

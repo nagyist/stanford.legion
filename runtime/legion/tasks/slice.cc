@@ -227,7 +227,7 @@ namespace Legion {
         if (is_origin_mapped())
         {
           // We can start the mapping for this point task now
-          TriggerTaskArgs trigger_args(*it);
+          TriggerTaskArgs trigger_args(*it, parent_ctx->did);
           runtime->issue_runtime_meta_task(
               trigger_args, LG_THROUGHPUT_WORK_PRIORITY, point_precondition);
         }

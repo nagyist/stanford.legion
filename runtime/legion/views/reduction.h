@@ -37,8 +37,8 @@ namespace Legion {
         DeferReductionViewArgs(void) = default;
         DeferReductionViewArgs(
             DistributedID d, PhysicalManager* m, AddressSpaceID log)
-          : LgTaskArgs<DeferReductionViewArgs>(implicit_provenance), did(d),
-            manager(m), logical_owner(log)
+          : LgTaskArgs<DeferReductionViewArgs>(false, true), did(d), manager(m),
+            logical_owner(log)
         { }
         void execute(void) const;
       public:

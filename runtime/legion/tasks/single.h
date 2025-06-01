@@ -38,7 +38,7 @@ namespace Legion {
       public:
         MispredicationTaskArgs(void) = default;
         MispredicationTaskArgs(SingleTask* t)
-          : LgTaskArgs<MispredicationTaskArgs>(t->get_unique_op_id()), task(t)
+          : LgTaskArgs<MispredicationTaskArgs>(false, false), task(t)
         { }
         inline void execute(void) const { task->handle_mispredication(); }
       public:
@@ -52,8 +52,8 @@ namespace Legion {
         OrderConcurrentLaunchArgs(void) = default;
         OrderConcurrentLaunchArgs(
             SingleTask* t, Processor p, ApEvent s, VariantID v)
-          : LgTaskArgs<OrderConcurrentLaunchArgs>(t->get_unique_op_id()),
-            task(t), processor(p), vid(v), start(s),
+          : LgTaskArgs<OrderConcurrentLaunchArgs>(false, false), task(t),
+            processor(p), vid(v), start(s),
             ready(Runtime::create_ap_user_event(nullptr))
         { }
         void execute(void) const;

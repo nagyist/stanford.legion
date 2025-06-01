@@ -1044,6 +1044,7 @@ namespace Legion {
 #endif
     // Nasty global variable for TLS support of figuring out
     // our context implicitly
+    // This one is only set for application tasks
     inline thread_local TaskContext* implicit_context = nullptr;
     // Mapper context if we're inside of a mapper call
     inline thread_local MappingCallInfo* implicit_mapper_call = nullptr;
@@ -1052,6 +1053,13 @@ namespace Legion {
     // Another nasty global variable for tracking the fast
     // reservations that we are holding
     inline thread_local AutoLock* local_lock_list = nullptr;
+    // Track the enclosing task context that we're in for error reporting
+    // This is only set for some internal meta-tasks
+    inline thread_local DistributedID implicit_enclosing_context = 0;
+    // The context index for the operation in the enclosing context
+    // (if it exsists), this is only set for some internal meta-tasks
+    inline thread_local uint64_t implicit_operation_index =
+        std::numeric_limits<uint64_t>::max();
     // One more nasty global variable that we use for tracking
     // the provenance of meta-task operations for profiling
     // purposes, this has no bearing on correctness
@@ -1274,6 +1282,12 @@ namespace Legion {
       // Save the context locally
       TaskContext* local_ctx = nullptr;
       std::swap(local_ctx, implicit_context);
+      // Save the operation locally
+      uint64_t local_op = std::numeric_limits<uint64_t>::max();
+      std::swap(local_op, implicit_operation_index);
+      // Save the enclosing context
+      DistributedID local_did = 0;
+      std::swap(local_did, implicit_enclosing_context);
       // Save the implicit fevent
       LgEvent local_fevent;
       std::swap(local_fevent, implicit_fevent);
@@ -1344,6 +1358,10 @@ namespace Legion {
       implicit_context = local_ctx;
       // Write the mapper call back
       implicit_mapper_call = local_call;
+      // Write the operation back
+      implicit_operation_index = local_op;
+      // Write the enclosing context back
+      implicit_enclosing_context = local_did;
       // Write the provenance information back
       implicit_provenance = local_provenance;
 #ifdef DEBUG_LEGION_CALLERS
@@ -1389,6 +1407,12 @@ namespace Legion {
       // Save the context locally
       TaskContext* local_ctx = nullptr;
       std::swap(local_ctx, implicit_context);
+      // Save the operation locally
+      uint64_t local_op = std::numeric_limits<uint64_t>::max();
+      std::swap(local_op, implicit_operation_index);
+      // Save the enclosing context
+      DistributedID local_did = 0;
+      std::swap(local_did, implicit_enclosing_context);
       // Save the fevent
       LgEvent local_fevent;
       std::swap(local_fevent, implicit_fevent);
@@ -1459,6 +1483,10 @@ namespace Legion {
       implicit_context = local_ctx;
       // Write the mapper call back
       implicit_mapper_call = local_call;
+      // Write the operation back
+      implicit_operation_index = local_op;
+      // Write the enclosing context back
+      implicit_enclosing_context = local_did;
       // Write the provenance information back
       implicit_provenance = local_provenance;
 #ifdef DEBUG_LEGION_CALLERS

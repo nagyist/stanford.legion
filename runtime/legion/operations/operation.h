@@ -82,7 +82,7 @@ namespace Legion {
       public:
         TriggerOpArgs(void) = default;
         TriggerOpArgs(Operation* o)
-          : LgTaskArgs<TriggerOpArgs>(o->get_unique_op_id()), op(o)
+          : LgTaskArgs<TriggerOpArgs>(false, false), op(o)
         { }
         inline void execute(void) const { op->trigger_mapping(); }
       public:
@@ -97,8 +97,7 @@ namespace Legion {
         DeferReleaseAcquiredArgs(
             Operation* op,
             std::vector<std::pair<PhysicalManager*, unsigned> >* insts)
-          : LgTaskArgs<DeferReleaseAcquiredArgs>(op->get_unique_op_id()),
-            instances(insts)
+          : LgTaskArgs<DeferReleaseAcquiredArgs>(false, false), instances(insts)
         { }
         void execute(void) const;
       public:

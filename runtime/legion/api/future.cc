@@ -1808,7 +1808,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FutureImpl::FutureCallbackArgs::FutureCallbackArgs(FutureImpl* i)
-      : LgTaskArgs<FutureCallbackArgs>(implicit_provenance), impl(i)
+      : LgTaskArgs<FutureCallbackArgs>(false, false), impl(i)
     //--------------------------------------------------------------------------
     {
       impl->add_base_gc_ref(DEFERRED_TASK_REF);
@@ -1817,14 +1817,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureImpl::CallbackReleaseArgs::CallbackReleaseArgs(
         FutureFunctor* f, bool own)
-      : LgTaskArgs<CallbackReleaseArgs>(implicit_provenance), functor(f),
+      : LgTaskArgs<CallbackReleaseArgs>(true, true), functor(f),
         own_functor(own)
     //--------------------------------------------------------------------------
     { }
 
     //--------------------------------------------------------------------------
     FutureImpl::FutureBroadcastArgs::FutureBroadcastArgs(FutureImpl* i)
-      : LgTaskArgs<FutureBroadcastArgs>(implicit_provenance), impl(i)
+      : LgTaskArgs<FutureBroadcastArgs>(true, true), impl(i)
     //--------------------------------------------------------------------------
     {
       impl->add_base_gc_ref(DEFERRED_TASK_REF);
@@ -3478,7 +3478,7 @@ namespace Legion {
         const Realm::ExternalInstanceResource* r,
         void (*func)(const Realm::ExternalInstanceResource&),
         PhysicalInstance inst)
-      : LgTaskArgs<FreeExternalArgs>(implicit_provenance),
+      : LgTaskArgs<FreeExternalArgs>(true, true),
         resource((r == nullptr) ? r : r->clone()), freefunc(func),
         instance(inst)
     //--------------------------------------------------------------------------

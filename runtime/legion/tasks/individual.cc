@@ -315,7 +315,7 @@ namespace Legion {
       // be mapped immediately, mapper be damned
       if (must_epoch != nullptr)
       {
-        TriggerTaskArgs trigger_args(this);
+        TriggerTaskArgs trigger_args(this, parent_ctx->did);
         runtime->issue_runtime_meta_task(
             trigger_args, LG_THROUGHPUT_WORK_PRIORITY);
       }

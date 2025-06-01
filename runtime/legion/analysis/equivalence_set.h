@@ -237,9 +237,9 @@ namespace Legion {
       public:
         LgFinalizeEqSetsArgs(void) = default;
         LgFinalizeEqSetsArgs(
-            EqSetTracker* t, RtUserEvent c, UniqueID uid,
-            InnerContext* enclosing, InnerContext* outermost,
-            unsigned parent_req_index, IndexSpaceExpression* expr);
+            EqSetTracker* t, RtUserEvent c, InnerContext* enclosing,
+            InnerContext* outermost, unsigned parent_req_index,
+            IndexSpaceExpression* expr);
         void execute(void) const;
       public:
         EqSetTracker* tracker;
@@ -417,7 +417,7 @@ namespace Legion {
       public:
         DeferMakeOwnerArgs(void) = default;
         DeferMakeOwnerArgs(EquivalenceSet* s)
-          : LgTaskArgs<DeferMakeOwnerArgs>(implicit_provenance), set(s)
+          : LgTaskArgs<DeferMakeOwnerArgs>(false, true), set(s)
         { }
         void execute(void) const;
       public:

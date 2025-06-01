@@ -45,8 +45,8 @@ namespace Legion {
         TightenIndexSpaceArgs(void) = default;
         TightenIndexSpaceArgs(
             IndexSpaceExpression* proxy, DistributedCollectable* dc)
-          : LgTaskArgs<TightenIndexSpaceArgs>(implicit_provenance),
-            proxy_this(proxy), proxy_dc(dc)
+          : LgTaskArgs<TightenIndexSpaceArgs>(true, true), proxy_this(proxy),
+            proxy_dc(dc)
         {
           proxy_dc->add_base_resource_ref(META_TASK_REF);
         }

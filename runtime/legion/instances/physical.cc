@@ -2194,8 +2194,8 @@ namespace Legion {
         LayoutConstraintID l, ApEvent use, LgEvent unique, InstanceKind k,
         ReductionOpID r, const void* pl, size_t pl_size,
         GarbageCollectionState gc)
-      : LgTaskArgs<DeferPhysicalManagerArgs>(implicit_provenance), did(d),
-        mem(m), inst(i), footprint(f), local_expr(lx), space(fs), tree_id(tid),
+      : LgTaskArgs<DeferPhysicalManagerArgs>(false, true), did(d), mem(m),
+        inst(i), footprint(f), local_expr(lx), space(fs), tree_id(tid),
         layout_id(l), use_event(use), unique_event(unique), kind(k), redop(r),
         piece_list(pl), piece_list_size(pl_size), state(gc)
     //--------------------------------------------------------------------------
@@ -2206,8 +2206,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalManager::DeferDeletePhysicalManager ::DeferDeletePhysicalManager(
         PhysicalManager* manager_)
-      : LgTaskArgs<DeferDeletePhysicalManager>(implicit_provenance),
-        manager(manager_)
+      : LgTaskArgs<DeferDeletePhysicalManager>(true, true), manager(manager_)
     //--------------------------------------------------------------------------
     { }
 

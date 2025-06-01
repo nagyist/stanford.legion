@@ -46,8 +46,8 @@ namespace Legion {
         DeferMessageArgs(
             MapperManager* man, Processor p, unsigned k, void* m, size_t s,
             bool b)
-          : LgTaskArgs<DeferMessageArgs>(implicit_provenance), manager(man),
-            sender(p), kind(k), message(m), size(s), broadcast(b)
+          : LgTaskArgs<DeferMessageArgs>(true, true), manager(man), sender(p),
+            kind(k), message(m), size(s), broadcast(b)
         { }
         void execute(void) const;
       public:
@@ -65,8 +65,8 @@ namespace Legion {
       public:
         DeferInstanceCollectionArgs(void) = default;
         DeferInstanceCollectionArgs(MapperManager* man, PhysicalManager* inst)
-          : LgTaskArgs<DeferInstanceCollectionArgs>(implicit_provenance),
-            manager(man), instance(inst)
+          : LgTaskArgs<DeferInstanceCollectionArgs>(true, true), manager(man),
+            instance(inst)
         { }
         void execute(void) const;
       public:

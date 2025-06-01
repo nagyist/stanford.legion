@@ -9114,7 +9114,7 @@ namespace Legion {
         TraceViewSet* preconditions, TraceViewSet* anticonditions,
         TraceViewSet* postconditions,
         shrt::FieldMaskMap<IndexSpaceExpression>* dirt)
-      : LgTaskArgs<DeferApplyStateArgs>(implicit_provenance), set(s),
+      : LgTaskArgs<DeferApplyStateArgs>(false, true), set(s),
         valid_updates(
             new shrt::map<
                 IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView> >()),
@@ -11824,8 +11824,7 @@ namespace Legion {
           {
             // Launch task to finalize the sets once they are ready
             LgFinalizeEqSetsArgs args(
-                this, done_event, opid, enclosing, outermost, parent_req_index,
-                expr);
+                this, done_event, enclosing, outermost, parent_req_index, expr);
             runtime->issue_runtime_meta_task(
                 args, LG_LATENCY_DEFERRED_PRIORITY, ready);
             // We did the continuation for this so there's nothing
@@ -12700,9 +12699,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     EqSetTracker::LgFinalizeEqSetsArgs::LgFinalizeEqSetsArgs(
-        EqSetTracker* t, RtUserEvent c, UniqueID uid, InnerContext* enclose,
+        EqSetTracker* t, RtUserEvent c, InnerContext* enclose,
         InnerContext* outer, unsigned index, IndexSpaceExpression* e)
-      : LgTaskArgs<LgFinalizeEqSetsArgs>(uid), tracker(t), compute(c),
+      : LgTaskArgs<LgFinalizeEqSetsArgs>(false, true), tracker(t), compute(c),
         enclosing(enclose), outermost(outer), expr(e), parent_req_index(index)
     //--------------------------------------------------------------------------
     {

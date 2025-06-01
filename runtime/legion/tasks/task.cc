@@ -536,7 +536,8 @@ namespace Legion {
               {
                 if (ready.exists() && !ready.has_triggered())
                 {
-                  TaskOp::TriggerTaskArgs trigger_args(task);
+                  TaskOp::TriggerTaskArgs trigger_args(
+                      task, task->get_context()->did);
                   runtime->issue_runtime_meta_task(
                       trigger_args, LG_THROUGHPUT_WORK_PRIORITY, ready);
                 }
@@ -560,7 +561,8 @@ namespace Legion {
               // Invoke trigger mapping on this slice
               if (ready.exists() && !ready.has_triggered())
               {
-                TaskOp::TriggerTaskArgs trigger_args(task);
+                TaskOp::TriggerTaskArgs trigger_args(
+                    task, task->get_context()->did);
                 runtime->issue_runtime_meta_task(
                     trigger_args, LG_THROUGHPUT_WORK_PRIORITY, ready);
               }

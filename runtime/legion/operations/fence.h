@@ -46,7 +46,7 @@ namespace Legion {
       public:
         DeferTimingMeasurementArgs(void) = default;
         DeferTimingMeasurementArgs(FenceOp* o)
-          : LgTaskArgs<DeferTimingMeasurementArgs>(o->get_unique_op_id()), op(o)
+          : LgTaskArgs<DeferTimingMeasurementArgs>(false, false), op(o)
         { }
         void execute(void) const;
       public:

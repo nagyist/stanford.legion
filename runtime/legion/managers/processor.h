@@ -38,7 +38,7 @@ namespace Legion {
       public:
         SchedulerArgs(void) = default;
         SchedulerArgs(ProcessorManager* m)
-          : LgTaskArgs<SchedulerArgs>(0), manager(m)
+          : LgTaskArgs<SchedulerArgs>(true, true), manager(m)
         { }
         void execute(void) const;
       public:
@@ -52,8 +52,8 @@ namespace Legion {
         DeferMapperSchedulerArgs(void) = default;
         DeferMapperSchedulerArgs(
             ProcessorManager* proxy, MapperID mid, RtEvent defer)
-          : LgTaskArgs<DeferMapperSchedulerArgs>(implicit_provenance),
-            proxy_this(proxy), map_id(mid), deferral_event(defer)
+          : LgTaskArgs<DeferMapperSchedulerArgs>(true, true), proxy_this(proxy),
+            map_id(mid), deferral_event(defer)
         { }
         void execute(void) const;
       public:

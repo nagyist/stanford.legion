@@ -97,7 +97,7 @@ namespace Legion {
             PhysicalManager* man, InnerContext* ctx, AddressSpaceID log,
             CollectiveMapping* map, std::atomic<DistributedID>* tar,
             AddressSpaceID src, RtUserEvent done)
-          : LgTaskArgs<RemoteCreateViewArgs>(implicit_provenance), manager(man),
+          : LgTaskArgs<RemoteCreateViewArgs>(false, false), manager(man),
             context(ctx), logical_owner(log), mapping(map), target(tar),
             source(src), done_event(done)
         { }

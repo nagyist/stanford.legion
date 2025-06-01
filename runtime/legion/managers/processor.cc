@@ -1004,7 +1004,8 @@ namespace Legion {
           }
           else
           {
-            TaskOp::TriggerTaskArgs trigger_args(*it);
+            TaskOp::TriggerTaskArgs trigger_args(
+                *it, (*it)->get_context()->did);
             runtime->issue_runtime_meta_task(
                 trigger_args, LG_THROUGHPUT_WORK_PRIORITY);
           }

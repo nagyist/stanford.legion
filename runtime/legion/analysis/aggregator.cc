@@ -139,7 +139,7 @@ namespace Legion {
       {
         RtUserEvent released = Runtime::create_rt_user_event();
         // Meta-task will take responsibility for deletion
-        CopyFillDeletion args(this, implicit_provenance, released);
+        CopyFillDeletion args(this, released);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, effects_applied);
         applied.insert(released);
@@ -895,8 +895,7 @@ namespace Legion {
           summary_event = Runtime::create_ap_user_event(&trace_info);
         CopyFillAggregation args(
             this, trace_info, precondition, manage_dst_events,
-            restricted_output, analysis->op->get_unique_op_id(), stage,
-            dst_events);
+            restricted_output, stage, dst_events);
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_DEFERRED_PRIORITY, guard_precondition);
         return summary_event;
@@ -967,8 +966,7 @@ namespace Legion {
               // run and registered all of their users
               CopyFillAggregation args(
                   this, trace_info, precondition, manage_dst_events,
-                  restricted_output, analysis->op->get_unique_op_id(), idx,
-                  dst_events);
+                  restricted_output, idx, dst_events);
               runtime->issue_runtime_meta_task(
                   args, LG_THROUGHPUT_DEFERRED_PRIORITY, stage_pre);
               return summary_event;

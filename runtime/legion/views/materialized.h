@@ -39,7 +39,7 @@ namespace Legion {
         DeferMaterializedViewArgs(void) = default;
         DeferMaterializedViewArgs(
             DistributedID d, PhysicalManager* m, AddressSpaceID log)
-          : LgTaskArgs<DeferMaterializedViewArgs>(implicit_provenance), did(d),
+          : LgTaskArgs<DeferMaterializedViewArgs>(false, true), did(d),
             manager(m), logical_owner(log)
         { }
         void execute(void) const;
