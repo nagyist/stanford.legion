@@ -36,7 +36,7 @@ namespace Legion {
     get_layout(field_id, ordering, alignment);
     std::array<DimensionKind, DIM> ord;
     legion_assert(ordering.size() == DIM);
-    std::copy(ordering.begin(), ordering.end(), ord.begin());
+    std::copy_n(ordering.begin(), DIM, ord.begin());
 
     DeferredBuffer<T, DIM, COORD_T, CHECK_BOUNDS> buffer(
         bounds, target_memory(), ord, initial_value, alignment);
