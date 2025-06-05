@@ -123,10 +123,13 @@ namespace Legion {
           : LgTaskArgs<TriggerTaskArgs>(false, false), op(t)
         {
           enclosing_context = parent_ctx_did;
-          operation_index = t->get_context_index();
           provenance = t->get_unique_op_id();
         }
-        inline void execute(void) const { op->trigger_mapping(); }
+        inline void execute(void) const
+        {
+          implicit_operation = op;
+          op->trigger_mapping();
+        }
       public:
         TaskOp* op;
       };

@@ -42,8 +42,8 @@ namespace Legion {
 #ifdef LEGION_DEBUG_CALLERS
       implicit_task_caller = header.lg_call_id;
 #endif
+      implicit_operation = nullptr;
       implicit_enclosing_context = header.enclosing_context;
-      implicit_operation_index = header.operation_index;
       implicit_provenance = header.provenance;
       // Need to do all this stuff before invoking the handler because if
       // this is a handler for a shutdown message then we could race with

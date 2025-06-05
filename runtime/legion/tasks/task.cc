@@ -992,6 +992,7 @@ namespace Legion {
     void TaskOp::DeferMappingArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
+      implicit_operation = proxy_this;
       if (proxy_this->is_origin_mapped())
       {
         if (proxy_this->perform_mapping(must_op, this) &&

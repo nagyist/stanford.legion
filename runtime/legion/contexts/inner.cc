@@ -7315,7 +7315,7 @@ namespace Legion {
       {
         (*it)->set_execution_fence_event(current_execution_fence_event);
         implicit_enclosing_context = did;
-        implicit_operation_index = (*it)->get_context_index();
+        implicit_operation = (*it);
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->trigger_ready();
       }
@@ -7351,7 +7351,7 @@ namespace Legion {
            it != to_perform.end(); it++)
       {
         implicit_enclosing_context = did;
-        implicit_operation_index = (*it)->get_context_index();
+        implicit_operation = (*it);
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->enqueue_ready_task(false /*use target*/);
       }
@@ -7389,7 +7389,7 @@ namespace Legion {
            it != to_perform.end(); it++)
       {
         implicit_enclosing_context = did;
-        implicit_operation_index = (*it)->get_context_index();
+        implicit_operation = (*it);
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->trigger_execution();
       }
@@ -7428,7 +7428,7 @@ namespace Legion {
            it != to_perform.end(); it++)
       {
         implicit_enclosing_context = did;
-        implicit_operation_index = (*it)->get_context_index();
+        implicit_operation = (*it);
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->complete_execution();
       }
@@ -7466,7 +7466,7 @@ namespace Legion {
            it != to_perform.end(); it++)
       {
         implicit_enclosing_context = did;
-        implicit_operation_index = (*it)->get_context_index();
+        implicit_operation = (*it);
         implicit_provenance = (*it)->get_unique_op_id();
         (*it)->complete_mapping();
       }
@@ -7589,7 +7589,7 @@ namespace Legion {
         if (!it->effects.has_triggered_faultaware(poisoned) || poisoned)
           std::abort();
         implicit_enclosing_context = did;
-        implicit_operation_index = it->op->get_context_index();
+        implicit_operation = it->op;
         implicit_provenance = it->op->get_unique_op_id();
         it->op->complete_operation(it->effects, false /*first*/);
       }
@@ -7626,7 +7626,7 @@ namespace Legion {
         Operation* op = next.operation;
         child_lock.release();
         implicit_enclosing_context = did;
-        implicit_operation_index = op->get_context_index();
+        implicit_operation = op;
         implicit_provenance = op->get_unique_op_id();
         op->trigger_commit();
         child_lock.reacquire();
@@ -7681,7 +7681,7 @@ namespace Legion {
            it != to_perform.end(); it++)
       {
         implicit_enclosing_context = did;
-        implicit_operation_index = it->first->get_context_index();
+        implicit_operation = it->first;
         implicit_provenance = it->first->get_unique_op_id();
         it->first->commit_operation(it->second);
       }

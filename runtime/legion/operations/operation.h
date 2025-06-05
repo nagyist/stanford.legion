@@ -84,7 +84,11 @@ namespace Legion {
         TriggerOpArgs(Operation* o)
           : LgTaskArgs<TriggerOpArgs>(false, false), op(o)
         { }
-        inline void execute(void) const { op->trigger_mapping(); }
+        inline void execute(void) const
+        {
+          implicit_operation = op;
+          op->trigger_mapping();
+        }
       public:
         Operation* op;
       };

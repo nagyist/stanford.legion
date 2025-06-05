@@ -1056,10 +1056,10 @@ namespace Legion {
     // Track the enclosing task context that we're in for error reporting
     // This is only set for some internal meta-tasks
     inline thread_local DistributedID implicit_enclosing_context = 0;
-    // The context index for the operation in the enclosing context
-    // (if it exsists), this is only set for some internal meta-tasks
-    inline thread_local uint64_t implicit_operation_index =
-        std::numeric_limits<uint64_t>::max();
+    // The implicit operation if it exists, this is only set for certain
+    // meta-tasks that correspond to pipeline stages that permit us to
+    // take a fault in them so we prune out that operation
+    inline thread_local Operation* implicit_operation = nullptr;
     // One more nasty global variable that we use for tracking
     // the provenance of meta-task operations for profiling
     // purposes, this has no bearing on correctness
@@ -1283,8 +1283,8 @@ namespace Legion {
       TaskContext* local_ctx = nullptr;
       std::swap(local_ctx, implicit_context);
       // Save the operation locally
-      uint64_t local_op = std::numeric_limits<uint64_t>::max();
-      std::swap(local_op, implicit_operation_index);
+      Operation* local_op = nullptr;
+      std::swap(local_op, implicit_operation);
       // Save the enclosing context
       DistributedID local_did = 0;
       std::swap(local_did, implicit_enclosing_context);
@@ -1359,7 +1359,7 @@ namespace Legion {
       // Write the mapper call back
       implicit_mapper_call = local_call;
       // Write the operation back
-      implicit_operation_index = local_op;
+      implicit_operation = local_op;
       // Write the enclosing context back
       implicit_enclosing_context = local_did;
       // Write the provenance information back
@@ -1408,8 +1408,8 @@ namespace Legion {
       TaskContext* local_ctx = nullptr;
       std::swap(local_ctx, implicit_context);
       // Save the operation locally
-      uint64_t local_op = std::numeric_limits<uint64_t>::max();
-      std::swap(local_op, implicit_operation_index);
+      Operation* local_op = nullptr;
+      std::swap(local_op, implicit_operation);
       // Save the enclosing context
       DistributedID local_did = 0;
       std::swap(local_did, implicit_enclosing_context);
@@ -1484,7 +1484,7 @@ namespace Legion {
       // Write the mapper call back
       implicit_mapper_call = local_call;
       // Write the operation back
-      implicit_operation_index = local_op;
+      implicit_operation = local_op;
       // Write the enclosing context back
       implicit_enclosing_context = local_did;
       // Write the provenance information back
