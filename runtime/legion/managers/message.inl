@@ -570,6 +570,10 @@ namespace Legion {
           break;
         case SEND_LIBRARY_CONCURRENT_RESPONSE:
           break;
+        case SEND_LIBRARY_EXCEPTION_REQUEST:
+          break;
+        case SEND_LIBRARY_EXCEPTION_RESPONSE:
+          break;
         case SEND_LIBRARY_TASK_REQUEST:
           break;
         case SEND_LIBRARY_TASK_RESPONSE:

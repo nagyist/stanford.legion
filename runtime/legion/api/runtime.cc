@@ -3082,6 +3082,23 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
+  void Runtime::push_exception_handler(Context ctx, ExceptionHandlerID handler)
+  //--------------------------------------------------------------------------
+  {
+    AutoCall<Internal::RUNTIME_PUSH_EXCEPTION_HANDLER_CALL> call(ctx, __func__);
+    ctx->push_exception_handler(handler);
+  }
+
+  //--------------------------------------------------------------------------
+  Future Runtime::pop_exception_handler(Context ctx, const char* provenance)
+  //--------------------------------------------------------------------------
+  {
+    AutoCall<Internal::RUNTIME_POP_EXCEPTION_HANDLER_CALL> call(
+        provenance, ctx, __func__);
+    return ctx->pop_exception_handler(call);
+  }
+
+  //--------------------------------------------------------------------------
   Mapping::Mapper* Runtime::get_mapper(
       Context ctx, MapperID id, Processor target)
   //--------------------------------------------------------------------------
@@ -3404,6 +3421,53 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     return Internal::Runtime::get_concurrent_functor(cid);
+  }
+
+  //--------------------------------------------------------------------------
+  ExceptionHandlerID Runtime::generate_dynamic_exception_handler_id(void)
+  //--------------------------------------------------------------------------
+  {
+    return runtime->generate_dynamic_exception_handler_id();
+  }
+
+  //--------------------------------------------------------------------------
+  ExceptionHandlerID Runtime::generate_library_exception_handler_ids(
+      const char* name, size_t count)
+  //--------------------------------------------------------------------------
+  {
+    return runtime->generate_library_exception_handler_ids(name, count);
+  }
+
+  //--------------------------------------------------------------------------
+  /*static*/ ExceptionHandlerID Runtime::generate_static_exception_handler_id(
+      void)
+  //--------------------------------------------------------------------------
+  {
+    return Internal::Runtime::generate_static_exception_handler_id();
+  }
+
+  //--------------------------------------------------------------------------
+  void Runtime::register_exception_handler(
+      ExceptionHandlerID hid, ExceptionHandler* handler)
+  //--------------------------------------------------------------------------
+  {
+    runtime->register_exception_handler(hid, handler);
+  }
+
+  //--------------------------------------------------------------------------
+  /*static*/ void Runtime::preregister_exception_handler(
+      ExceptionHandlerID hid, ExceptionHandler* handler)
+  //--------------------------------------------------------------------------
+  {
+    Internal::Runtime::preregister_exception_handler(hid, handler);
+  }
+
+  //--------------------------------------------------------------------------
+  /*static*/ ExceptionHandler* Runtime::get_exception_handler(
+      ExceptionHandlerID hid)
+  //--------------------------------------------------------------------------
+  {
+    return Internal::Runtime::get_exception_handler(hid);
   }
 
   //--------------------------------------------------------------------------

@@ -410,6 +410,8 @@ namespace Legion {
         unique_projection_id(get_current_static_projection_id() + unique),
         unique_sharding_id(get_current_static_sharding_id() + unique),
         unique_concurrent_id(get_current_static_concurrent_id() + unique),
+        unique_exception_handler_id(
+            get_current_static_exception_handler_id() + unique),
         unique_redop_id(get_current_static_reduction_id() + unique),
         unique_serdez_id(get_current_static_serdez_id() + unique),
         unique_library_mapper_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
@@ -3117,6 +3119,290 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    ExceptionHandlerID Runtime::generate_dynamic_exception_handler_id(
+        bool check_context /*true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != nullptr))
+        return implicit_context->generate_dynamic_exception_handler_id();
+      ExceptionHandlerID result =
+          unique_exception_handler_id.fetch_add(runtime_stride);
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Exception Handler IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    ExceptionHandlerID Runtime::generate_library_exception_handler_ids(
+        const char* name, size_t cnt)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (cnt == 0)
+        return LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name);
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock, false /*exclusive*/);
+        std::map<std::string, LibraryExceptionIDs>::const_iterator finder =
+            library_exception_ids.find(library_name);
+        if (finder != library_exception_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ExceptionHandlerID generation counts "
+                  << finder->second.count << " and " << cnt
+                  << " differ for library " << name << ".";
+            error.raise();
+          }
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+          legion_assert(address_space > 0);
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string, LibraryExceptionIDs>::const_iterator finder =
+            library_exception_ids.find(library_name);
+        if (finder != library_exception_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ExceptionHandlerID generation counts "
+                  << finder->second.count << " and " << cnt
+                  << " differ for library " << name << ".";
+            error.raise();
+          }
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+          legion_assert(address_space > 0);
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibraryExceptionIDs& record = library_exception_ids[library_name];
+          record.count = cnt;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_exception_handler_id;
+            unique_library_exception_handler_id += cnt;
+            legion_assert(unique_library_exception_handler_id > record.result);
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+      legion_assert(address_space > 0);
+      legion_assert(wait_on.exists());
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        ExceptionLibraryRequest rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(cnt);
+          rez.serialize(request_event);
+        }
+        rez.dispatch(0 /*target*/);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock, false /*exclusive*/);
+      std::map<std::string, LibraryExceptionIDs>::const_iterator finder =
+          library_exception_ids.find(library_name);
+      legion_assert(finder != library_exception_ids.end());
+      legion_assert(finder->second.result_set);
+      return finder->second.result;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ExceptionHandlerID&
+        Runtime::get_current_static_exception_handler_id(void)
+    //--------------------------------------------------------------------------
+    {
+      static ExceptionHandlerID current_exception_handler_id =
+          LEGION_MAX_APPLICATION_EXCEPTION_HANDLER_ID;
+      return current_exception_handler_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ExceptionHandlerID Runtime::generate_static_exception_handler_id(
+        void)
+    //--------------------------------------------------------------------------
+    {
+      ExceptionHandlerID& next_exception =
+          get_current_static_exception_handler_id();
+      if (runtime_started)
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_exception_handler_id' after "
+                 "the "
+                 "runtime has been started.";
+        error.raise();
+      }
+      return next_exception++;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_exception_handler(
+        ExceptionHandlerID hid, ExceptionHandler* handler, bool need_zero_check,
+        bool preregistered)
+    //--------------------------------------------------------------------------
+    {
+      if (hid == std::numeric_limits<ExceptionHandlerID>::max())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ExceptionHandlerID "
+              << std::numeric_limits<ExceptionHandlerID>::max()
+              << " (UINT_MAX) is a reserved exception handler ID.";
+        error.raise();
+      }
+      if (!preregistered && !inside_registration_callback)
+      {
+        Warning warning;
+        warning << "ExceptionHandler " << hid
+                << " was dynamically registered outside of a registration "
+                   "callback invocation. "
+                << "In the near future this will become an error in order to "
+                   "support task subprocesses. "
+                << "Please use 'perform_registration_callback' to generate a "
+                   "callback where "
+                << "it will be safe to perform dynamic registrations.";
+        warning.raise();
+      }
+      if ((total_address_spaces > 1) &&
+          (inside_registration_callback != GLOBAL_REGISTRATION_CALLBACK))
+      {
+        Warning warning;
+        warning << "ExceptionHandler " << hid
+                << " is being dynamically registered for a multi-node run with "
+                << total_address_spaces
+                << " nodes. It is currently the responsibility "
+                << "of the application to ensure that this exception handler "
+                << "is registered on all nodes where it will be required.";
+        warning.raise();
+      }
+      AutoLock s_lock(exception_handler_lock);
+      std::map<ExceptionHandlerID, ExceptionHandler*>::const_iterator finder =
+          exception_handlers.find(hid);
+      if (finder != exception_handlers.end())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ExceptionHandlerID " << hid
+              << " has already been used by another exception handler.";
+        error.raise();
+      }
+      exception_handlers[hid] = handler;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::preregister_exception_handler(
+        ExceptionHandlerID hid, ExceptionHandler* handler)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime_started)
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'preregister_exception_handler' "
+                 "after the runtime has started.";
+        error.raise();
+      }
+      if (hid == std::numeric_limits<ExceptionHandlerID>::max())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ExceptionHandlerID "
+              << std::numeric_limits<ExceptionHandlerID>::max()
+              << " (UINT_MAX) is a reserved exception handler ID.";
+        error.raise();
+      }
+      std::map<ExceptionHandlerID, ExceptionHandler*>&
+          pending_exception_handlers = get_pending_exception_handler_table();
+      std::map<ExceptionHandlerID, ExceptionHandler*>::const_iterator finder =
+          pending_exception_handlers.find(hid);
+      if (finder != pending_exception_handlers.end())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ExceptionHandlerID " << hid
+              << " has already been used by another exception handler.";
+        error.raise();
+      }
+      pending_exception_handlers[hid] = handler;
+    }
+
+    //--------------------------------------------------------------------------
+    ExceptionHandler* Runtime::find_exception_handler(
+        ExceptionHandlerID hid, bool can_fail)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock c_lock(exception_handler_lock, false /*exclusive*/);
+      std::map<ExceptionHandlerID, ExceptionHandler*>::const_iterator finder =
+          exception_handlers.find(hid);
+      if (finder == exception_handlers.end())
+      {
+        if (can_fail)
+          return nullptr;
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Unable to find registered excpetion handler ID " << hid
+                << ".";
+          error.raise();
+        }
+      }
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ExceptionHandler* Runtime::get_exception_handler(
+        ExceptionHandlerID hid)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started)
+      {
+        std::map<ExceptionHandlerID, ExceptionHandler*>&
+            pending_exception_handlers = get_pending_exception_handler_table();
+        std::map<ExceptionHandlerID, ExceptionHandler*>::const_iterator finder =
+            pending_exception_handlers.find(hid);
+        if (finder == pending_exception_handlers.end())
+          return nullptr;
+        else
+          return finder->second;
+      }
+      else
+        return runtime->find_exception_handler(hid, true /*can fail*/);
+    }
+
+    //--------------------------------------------------------------------------
     void Runtime::attach_semantic_information(
         TaskID task_id, SemanticTag tag, const void* buffer, size_t size,
         bool is_mutable, bool send_to_owner)
@@ -4797,6 +5083,78 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       runtime->handle_library_concurrent_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_exception_request(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      ExceptionHandlerID result =
+          generate_library_exception_handler_ids(name, count);
+      ExceptionLibraryResponse rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      rez.dispatch(source);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ExceptionLibraryRequest::handle(
+        Deserializer& derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_exception_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_exception_response(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char* name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ExceptionHandlerID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock);
+        std::map<std::string, LibraryExceptionIDs>::iterator finder =
+            library_exception_ids.find(library_name);
+        legion_assert(finder != library_exception_ids.end());
+        legion_assert(!finder->second.result_set);
+        legion_assert(finder->second.ready == done);
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ExceptionLibraryResponse::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      runtime->handle_library_exception_response(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -7377,9 +7735,13 @@ namespace Legion {
           color_space->parent->add_nested_valid_ref(result->did);
         else
           color_space->add_nested_valid_ref(result->did);
-        // We know if we're disjonit or yet not so we need to do
-        // the disjoint and complete analysis
-        result->initialize_disjoint_complete_notifications();
+        // We know if we're disjoint or not but if we're not complete we might
+        // still be getting notifications to compute the complete
+        if (complete < 0)
+          result->initialize_disjoint_complete_notifications();
+        else if ((implicit_profiler != nullptr) && result->is_owner())
+          implicit_profiler->register_index_partition(
+              parent->handle.get_id(), p.get_id(), disjoint, result->color);
         result->register_with_runtime();
       }
       return result;
@@ -12230,6 +12592,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    /*static*/ std::map<ExceptionHandlerID, ExceptionHandler*>&
+        Runtime::get_pending_exception_handler_table(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::map<ExceptionHandlerID, ExceptionHandler*>
+          pending_exception_handler_table;
+      return pending_exception_handler_table;
+    }
+
+    //--------------------------------------------------------------------------
     /*static*/ std::vector<LegionHandshake>&
         Runtime::get_pending_handshake_table(void)
     //--------------------------------------------------------------------------
@@ -12365,45 +12737,6 @@ namespace Legion {
           vid, return_size, has_return_size, registrar, user_data,
           user_data_size, code_desc, task_name));
       return vid;
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ void Runtime::report_fatal_message(
-        int id, const char* file_name, const int line, const char* message)
-    //--------------------------------------------------------------------------
-    {
-      log_legion.fatal(
-          "LEGION FATAL: %s (from file %s:%d)", message, file_name, line);
-      abort();
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ void Runtime::report_error_message(
-        int id, const char* file_name, const int line, const char* message)
-    //--------------------------------------------------------------------------
-    {
-      log_legion.error(
-          "LEGION ERROR: %s (from file %s:%d)", message, file_name, line);
-      abort();
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ void Runtime::report_warning_message(
-        int id, const char* file_name, const int line, const char* message)
-    //--------------------------------------------------------------------------
-    {
-      log_legion.warning(
-          "LEGION WARNING: %s (from file %s:%d)", message, file_name, line);
-      if ((runtime != nullptr) && runtime->warnings_backtrace)
-      {
-        Realm::Backtrace bt;
-        bt.capture_backtrace();
-        log_legion.warning() << bt;
-      }
-#ifndef LEGION_WARNINGS_FATAL
-      if (runtime->warnings_are_errors)
-#endif
-        abort();
     }
 
     //--------------------------------------------------------------------------

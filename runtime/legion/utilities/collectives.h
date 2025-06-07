@@ -207,6 +207,7 @@ namespace Legion {
       COLLECTIVE_LOC_107 = 107,
       COLLECTIVE_LOC_108 = 108,
       COLLECTIVE_LOC_109 = 109,
+      COLLECTIVE_LOC_110 = 110,
     };
 
 #ifdef LEGION_DEBUG_COLLECTIVES

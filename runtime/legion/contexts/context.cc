@@ -256,6 +256,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    ExceptionHandlerID TaskContext::generate_dynamic_exception_handler_id(void)
+    //--------------------------------------------------------------------------
+    {
+      return runtime->generate_dynamic_exception_handler_id(
+          false /*check context*/);
+    }
+
+    //--------------------------------------------------------------------------
     TaskID TaskContext::generate_dynamic_task_id(void)
     //--------------------------------------------------------------------------
     {
@@ -291,6 +299,31 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Nothing to do here
+    }
+
+    //--------------------------------------------------------------------------
+    void TaskContext::push_exception_handler(ExceptionHandlerID hid)
+    //--------------------------------------------------------------------------
+    {
+      exception_handlers.push_back(runtime->find_exception_handler(hid));
+    }
+
+    //--------------------------------------------------------------------------
+    Future TaskContext::pop_exception_handler(Provenance* provenance)
+    //--------------------------------------------------------------------------
+    {
+      if (exception_handlers.empty())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "No exception handlers found to pop in " << *this << ".";
+        error.raise();
+      }
+      exception_handlers.pop_back();
+      Future result(new FutureImpl(
+          this, true /*register*/, runtime->get_available_distributed_id(),
+          provenance));
+      result.impl->set_local(nullptr, 0 /*size*/);
+      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -417,70 +450,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       variant->record_padded_fields(regions, physical_regions);
-    }
-
-    //--------------------------------------------------------------------------
-    LegionErrorType TaskContext::check_privilege_internal(
-        const RegionRequirement& req, const RegionRequirement& our_req,
-        std::set<FieldID>& privilege_fields, FieldID& bad_field,
-        int local_index, int& bad_index, bool skip_privilege) const
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(our_req.handle_type == LEGION_SINGULAR_PROJECTION);
-      // Check to see if we found the requirement in the parent
-      if (our_req.region == req.parent)
-      {
-        // If we make it in here then we know we have at least found
-        // the parent name so we can set the bad index
-        bad_index = local_index;
-        bad_field = LEGION_AUTO_GENERATE_ID;  // set it to an invalid field
-        if ((req.handle_type == LEGION_SINGULAR_PROJECTION) ||
-            (req.handle_type == LEGION_REGION_PROJECTION))
-        {
-          if (!runtime->has_index_path(
-                  req.parent.index_space, req.region.index_space))
-            return ERROR_BAD_REGION_PATH;
-        }
-        else
-        {
-          if (!runtime->has_partition_path(
-                  req.parent.index_space, req.partition.index_partition))
-            return ERROR_BAD_PARTITION_PATH;
-        }
-        // Now check that the types are subset of the fields
-        // Note we can use the parent since all the regions/partitions
-        // in the same region tree have the same field space
-        for (std::set<FieldID>::iterator fit = privilege_fields.begin();
-             fit != privilege_fields.end();
-             /*nothing*/)
-        {
-          if (our_req.privilege_fields.find(*fit) !=
-              our_req.privilege_fields.end())
-          {
-            // Only need to do this check if there were overlapping fields
-            if (!skip_privilege && (PRIV_ONLY(req) & (~(our_req.privilege))))
-            {
-              if ((req.handle_type == LEGION_SINGULAR_PROJECTION) ||
-                  (req.handle_type == LEGION_REGION_PROJECTION))
-                return ERROR_BAD_REGION_PRIVILEGES;
-              else
-                return ERROR_BAD_PARTITION_PRIVILEGES;
-            }
-            std::set<FieldID>::iterator to_delete = fit++;
-            privilege_fields.erase(to_delete);
-          }
-          else
-            fit++;
-        }
-      }
-
-      if (!privilege_fields.empty())
-      {
-        bad_field = *(privilege_fields.begin());
-        return ERROR_BAD_PARENT_REGION;
-      }
-      // If we make it here then we are good
-      return LEGION_NO_ERROR;
     }
 
     //--------------------------------------------------------------------------

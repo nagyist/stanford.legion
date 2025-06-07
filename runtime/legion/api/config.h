@@ -260,6 +260,9 @@
 #ifndef LEGION_MAX_APPLICATION_CONCURRENT_ID
 #define LEGION_MAX_APPLICATION_CONCURRENT_ID (1 << 20)
 #endif
+#ifndef LEGION_MAX_APPLICATION_EXCEPTION_HANDLER_ID
+#define LEGION_MAX_APPLICATION_EXCEPTION_HANDLER_ID (1 << 20)
+#endif
 // Maximum ID for an application reduction ID
 #ifndef LEGION_MAX_APPLICATION_REDOP_ID
 #ifdef LEGION_USE_PYTHON_CFFI
@@ -1729,6 +1732,7 @@ typedef unsigned int legion_type_handle;
 typedef unsigned int legion_projection_id_t;
 typedef unsigned int legion_sharding_id_t;
 typedef unsigned int legion_concurrent_id_t;
+typedef unsigned int legion_exception_handler_id_t;
 typedef unsigned int legion_tunable_id_t;
 typedef unsigned int legion_local_variable_id_t;
 typedef unsigned int legion_shard_id_t;

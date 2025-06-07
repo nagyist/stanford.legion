@@ -311,6 +311,8 @@ namespace Legion {
       RUNTIME_LOG_ONCE_CALL,
       RUNTIME_CONSENSUS_MATCH_CALL,
       RUNTIME_GET_MAPPER_CALL,
+      RUNTIME_PUSH_EXCEPTION_HANDLER_CALL,
+      RUNTIME_POP_EXCEPTION_HANDLER_CALL,
       // Mapper runtime call kinds
       MAPPER_SEND_MESSAGE_CALL,
       MAPPER_BROADCAST_CALL,
@@ -672,6 +674,8 @@ namespace Legion {
       "Runtime::log_once",                                   \
       "Runtime::consensus_match",                            \
       "Runtime::get_mapper",                                 \
+      "Runtime::push_exception_handler",                     \
+      "Runtime::pop_exception_handler",                      \
       "MapperRuntime::send_message",                         \
       "MapperRuntime::broadcast",                            \
       "MapperRuntime::unpack_physical_instance",             \

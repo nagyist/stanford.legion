@@ -3290,6 +3290,22 @@ namespace Legion {
     static long long get_zero_time(void);
   public:
     //------------------------------------------------------------------------
+    // Exception Handling
+    //------------------------------------------------------------------------
+
+    /**
+     * Push an exception handler on to the stack for the current task.
+     */
+    void push_exception_handler(Context ctx, ExceptionHandlerID handler);
+
+    /**
+     * Pop an exception handler off the stack of the current task and return
+     * a future. If there was an unhandled exception then it will be stored
+     * in the future, otherwise the future will be empty.
+     */
+    Future pop_exception_handler(Context ctx, const char* provenance = nullptr);
+  public:
+    //------------------------------------------------------------------------
     // Miscellaneous Operations
     //------------------------------------------------------------------------
     /**
@@ -3950,7 +3966,7 @@ namespace Legion {
      * @return a pointer to the projection functor if it exists
      */
     static ProjectionFunctor* get_projection_functor(ProjectionID pid);
-
+  public:
     /**
      * Dynamically generate a unique sharding ID for use across the machine
      * @return a ShardingID that is globally unique across the machine
@@ -4014,7 +4030,7 @@ namespace Legion {
      * @return a pointer o the sharding functor if it exists
      */
     static ShardingFunctor* get_sharding_functor(ShardingID sid);
-
+  public:
     /**
      * Dynamically generate a unique concurrent ID for use across the machine
      * @return a ConcurrentID that is globally unique across the machine
@@ -4080,6 +4096,61 @@ namespace Legion {
      */
     static ConcurrentColoringFunctor* get_concurrent_coloring_functor(
         ConcurrentID cid);
+  public:
+    /**
+     * Dynamically generate a unique exception handler ID for use across the
+     * machine
+     * @return a ExceptionHandlerID that is globally unique across the machine
+     */
+    ExceptionHandlerID generate_dynamic_exception_handler_id(void);
+
+    /**
+     * Generate a contiguous set of ExceptionHandlerIDs for use by a library.
+     * This call will always generate the same answer for the same library
+     * name no many how many times it is called or on how many nodes it
+     * is called. If the count passed in to this method differs for the
+     * same library name the runtime will raise an error.
+     * @param name a unique null-terminated string that names the library
+     * @param count the number of exception handler IDs that should be generated
+     * @return the first exception handler ID that is allocated to the library
+     */
+    ExceptionHandlerID generate_library_exception_handler_ids(
+        const char* name, size_t count);
+
+    /**
+     * Statically generate a unique ExceptionHandler ID for use across the
+     * machine. This can only be called prior to the runtime starting. It must
+     * be invoked symmetrically across all the nodes in the machine prior to
+     * starting the runtime.
+     * @return ExceptionHandlerID that is globally unique across the machine
+     */
+    static ExceptionHandlerID generate_static_exception_handler_id(void);
+
+    /**
+     * Register a exception handler for handling exceptions from tasks.
+     * @param hid the exception handler ID to use for the registration
+     * @param handler the object to register for handling exceptions
+     */
+    void register_exception_handler(
+        ExceptionHandlerID hid, ExceptionHandler* handler);
+
+    /**
+     * Register an exception handler before the runtime has
+     * started only. The runtime take ownership for the handler
+     * and will delete it upon shutdown.
+     * @param hid the exception handler ID to use for the registration
+     * @param handler the object to register for handling exceptions
+     */
+    static void preregister_exception_handler(
+        ExceptionHandlerID cid, ExceptionHandler* handler);
+
+    /**
+     * Return a pointer to a given exception handler object.
+     * The runtime retains ownership of this object.
+     * @param hid ID of the exception handler to find
+     * @return a pointer to the exception handler if it exists
+     */
+    static ExceptionHandler* get_exception_handler(ExceptionHandlerID hid);
   public:
     /**
      * Dynamically generate a unique reduction ID for use across the machine

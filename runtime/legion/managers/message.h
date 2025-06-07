@@ -309,6 +309,8 @@ namespace Legion {
   __op__(SEND_LIBRARY_SHARDING_RESPONSE, ShardingLibraryResponse, "Sharding ID Library Response", true, false, false) \
   __op__(SEND_LIBRARY_CONCURRENT_REQUEST, ConcurrentLibraryRequest, "Concurrent ID Library Request", false, false, false) \
   __op__(SEND_LIBRARY_CONCURRENT_RESPONSE, ConcurrentLibraryResponse, "Concurrent ID Library Response", true, false, false) \
+  __op__(SEND_LIBRARY_EXCEPTION_REQUEST, ExceptionLibraryRequest, "Exception Handler ID Library Request", false, false, false) \
+  __op__(SEND_LIBRARY_EXCEPTION_RESPONSE, ExceptionLibraryResponse, "Exception Handler ID Library Response", true, false, false) \
   __op__(SEND_LIBRARY_TASK_REQUEST, TaskLibraryRequest, "Task ID Library Request", false, false, false) \
   __op__(SEND_LIBRARY_TASK_RESPONSE, TaskLibraryResponse, "Task ID Library Response", true, false, false) \
   __op__(SEND_LIBRARY_REDOP_REQUEST, RedopLibraryRequest, "Reduction ID Library Request", false, false, false) \

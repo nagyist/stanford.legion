@@ -615,7 +615,43 @@ namespace Legion {
           this, dynamic_id_allocator_shard, COLLECTIVE_LOC_68);
       if (owner_shard->shard_id == dynamic_id_allocator_shard)
       {
-        result = runtime->generate_dynamic_sharding_id(false /*check context*/);
+        result =
+            runtime->generate_dynamic_concurrent_id(false /*check context*/);
+        collective.broadcast(result);
+      }
+      else
+        result = collective.get_value();
+      if (++dynamic_id_allocator_shard == total_shards)
+        dynamic_id_allocator_shard = 0;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    ExceptionHandlerID ReplicateContext::generate_dynamic_exception_handler_id(
+        void)
+    //--------------------------------------------------------------------------
+    {
+      // If we're inside a registration callback we don't care
+      if (inside_registration_callback)
+        return TaskContext::generate_dynamic_exception_handler_id();
+      for (int i = 0;
+           runtime->safe_control_replication && (i < 2) &&
+           ((current_trace == nullptr) || !current_trace->is_fixed());
+           i++)
+      {
+        HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
+        hasher.hash(REPLICATE_GENERATE_DYNAMIC_EXCEPTION_HANDLER_ID, __func__);
+        if (hasher.verify(__func__))
+          break;
+      }
+      // Otherwise have one shard make it and broadcast it to everyone else
+      ExceptionHandlerID result;
+      ValueBroadcast<ExceptionHandlerID> collective(
+          this, dynamic_id_allocator_shard, COLLECTIVE_LOC_110);
+      if (owner_shard->shard_id == dynamic_id_allocator_shard)
+      {
+        result = runtime->generate_dynamic_exception_handler_id(
+            false /*check context*/);
         collective.broadcast(result);
       }
       else

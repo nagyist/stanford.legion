@@ -128,6 +128,7 @@ namespace Legion {
       virtual ProjectionID generate_dynamic_projection_id(void);
       virtual ShardingID generate_dynamic_sharding_id(void);
       virtual ConcurrentID generate_dynamic_concurrent_id(void);
+      virtual ExceptionHandlerID generate_dynamic_exception_handler_id(void);
       virtual TaskID generate_dynamic_task_id(void);
       virtual ReductionOpID generate_dynamic_reduction_id(void);
       virtual CustomSerdezID generate_dynamic_serdez_id(void);
@@ -136,6 +137,8 @@ namespace Legion {
           SemanticTag tag, const void* buffer, size_t size, bool is_mutable,
           bool& global, const void* arg2 = nullptr, size_t arg2len = 0);
       virtual void post_semantic_attach(void);
+      virtual void push_exception_handler(ExceptionHandlerID handler);
+      virtual Future pop_exception_handler(Provenance* provenance);
     public:
       virtual RtEvent find_pointwise_dependence(
           uint64_t context_index, const DomainPoint& point, ShardID shard,
@@ -504,10 +507,6 @@ namespace Legion {
       bool is_region_mapped(unsigned idx);
       void record_padded_fields(VariantImpl* variant);
     protected:
-      LegionErrorType check_privilege_internal(
-          const RegionRequirement& req, const RegionRequirement& parent_req,
-          std::set<FieldID>& privilege_fields, FieldID& bad_field, int local,
-          int& bad, bool skip_privileges) const;
       bool check_region_dependence(
           RegionTreeID tid, IndexSpace space, const RegionRequirement& our_req,
           const RegionUsage& our_usage, const RegionRequirement& req,
@@ -604,6 +603,7 @@ namespace Legion {
       // from the profilters perspective
       std::map<PhysicalInstance, LgEvent> task_local_instances;
     protected:
+      std::vector<ExceptionHandler*> exception_handlers;
       std::vector<long long> user_profiling_ranges;
     protected:
       bool task_executed;

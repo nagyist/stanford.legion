@@ -139,6 +139,7 @@ namespace Legion {
   typedef ::legion_projection_id_t ProjectionID;
   typedef ::legion_sharding_id_t ShardingID;
   typedef ::legion_concurrent_id_t ConcurrentID;
+  typedef ::legion_exception_handler_id_t ExceptionHandlerID;
   typedef ::legion_region_tree_id_t RegionTreeID;
   typedef ::legion_distributed_id_t DistributedID;
   typedef ::legion_distributed_id_t IndexSpaceID;
@@ -264,6 +265,7 @@ namespace Legion {
   struct RegistrationCallbackArgs;
   class ProjectionFunctor;
   class ShardingFunctor;
+  class ExceptionHandler;
   class Task;
   class Copy;
   class InlineMapping;
