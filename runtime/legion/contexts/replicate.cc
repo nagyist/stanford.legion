@@ -6161,7 +6161,8 @@ namespace Legion {
         error << "Attempted an external attach operation on region "
               << launcher.requirement.region << " in task " << get_task_name()
               << " (UID " << get_unique_id()
-              << ") which would conflict with mapped parent region.";
+              << ") which would conflict with mapped parent region "
+              << "requirement " << index << ".";
         error.raise();
       }
       if (inline_conflict)
@@ -6210,10 +6211,11 @@ namespace Legion {
       if (current_trace != nullptr)
       {
         const RegionRequirement& req = region.impl->get_requirement();
-        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        error << "Illegal attempt to perform an unordered operation in task "
-              << get_task_name() << " (UID " << get_unique_id()
-              << ") after execution has completed.";
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Attempted an inline mapping of region " << req.region
+              << " inside of trace " << current_trace->tid << " of task "
+              << *this << ". It is illegal to perform inline mappings inside "
+              << "of traces.";
         error.raise();
       }
       ReplMapOp* map_op = runtime->get_operation<ReplMapOp>();
@@ -6837,7 +6839,8 @@ namespace Legion {
         error << "Attempted an external attach operation on region "
               << launcher.handle << " in task " << get_task_name() << " (UID "
               << get_unique_id()
-              << ") which would conflict with mapped parent region.";
+              << ") which would conflict with mapped parent region "
+              << "requirement " << index << ".";
         error.raise();
       }
       if (inline_conflict)

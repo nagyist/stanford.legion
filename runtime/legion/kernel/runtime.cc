@@ -427,13 +427,18 @@ namespace Legion {
       runtime = this;
       legion_assert((unique_constraint_id % runtime_stride) == unique);
       if (LEGION_MAX_NUM_NODES <= address_space)
-        REPORT_LEGION_ERROR(
-            ERROR_MAXIMUM_NODES_EXCEEDED,
-            "Maximum number of nodes exceeded. Detected node %d but "
-            "'LEGION_MAX_NUM_NODES' is set to %d. Change the value of "
-            "'LEGION_MAX_NUM_NODES' in legion_config.h and recompile. "
-            "Please note that 'LEGION_MAX_NUM_NODES' must be a power of two.",
-            address_space, LEGION_MAX_NUM_NODES)
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error
+            << "Maximum number of nodes exceeded. Detected node "
+            << address_space << " but 'LEGION_MAX_NUM_NODES' is set to "
+            << LEGION_MAX_NUM_NODES
+            << ". Change the value of 'LEGION_MAX_NUM_NODES' in "
+               "legion_config.h "
+            << "and recompile. Please note that 'LEGION_MAX_NUM_NODES' must be "
+            << "a power of two.";
+        error.raise();
+      }
       // Construct a local utility processor group
       if (local_utils.empty())
       {
@@ -1213,9 +1218,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (inside_registration_callback)
-        REPORT_LEGION_ERROR(
-            ERROR_NESTED_REGISTRATION_CALLBACKS,
-            "Nested registration callbacks are not permitted in Legion")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Nested registration callbacks are not permitted.";
+        error.raise();
+      }
       RegistrationKey global_key;
 #ifdef LEGION_USE_LIBDL
       Realm::DSOReferenceImplementation* dso = nullptr;
@@ -1233,14 +1240,19 @@ namespace Legion {
                   (void (*)())
                       callback.withoutargs.target<RegistrationCallbackFnptr>());
           if (impl.fnptr == nullptr)
-            REPORT_LEGION_FATAL(
-                LEGION_FATAL_CALLBACK_NOT_PORTABLE,
-                "Global registration callbacks must use a portable "
-                "representation. "
-                "This means they must be a function pointer capable of being "
-                "looked up by an invocation of dladdr. Other kinds of "
-                "functions "
-                "such as lambdas are not permitted.");
+          {
+            Fatal fatal;
+            fatal
+                << "Global registration callback function pointer "
+                << impl.fnptr
+                << " is not portable. All registration callbacks requesting to "
+                   "be "
+                << "performed 'globally' must be able to be recognized by "
+                << "a call to 'dladdr'. This requires that they come from a "
+                << "shared object or the binary is linked with the '-rdynamic' "
+                << "flag.";
+            fatal.raise();
+          }
           // Convert this to it's portable representation or raise an error
           // This is a little scary, we could still be inside of dlopen when
           // we get this call as part of the constructor for a shared object
@@ -1254,15 +1266,19 @@ namespace Legion {
               callback_translator.translate(
                   &impl, typeid(Realm::DSOReferenceImplementation)));
           if (dso == nullptr)
-            REPORT_LEGION_FATAL(
-                LEGION_FATAL_CALLBACK_NOT_PORTABLE,
-                "Global registration callback function pointer %p is not "
-                "portable. All registration callbacks requesting to be "
-                "performed 'globally' must be able to be recognized by "
-                "a call to 'dladdr'. This requires that they come from a "
-                "shared object or the binary is linked with the '-rdynamic' "
-                "flag.",
-                impl.fnptr)
+          {
+            Fatal fatal;
+            fatal
+                << "Global registration callback function pointer "
+                << impl.fnptr
+                << " is not portable. All registration callbacks requesting to "
+                   "be "
+                << "performed 'globally' must be able to be recognized by "
+                << "a call to 'dladdr'. This requires that they come from a "
+                << "shared object or the binary is linked with the '-rdynamic' "
+                << "flag.";
+            fatal.raise();
+          }
           global_key = RegistrationKey(
               callback.dedup_tag, dso->dso_name, dso->symbol_name);
         }
@@ -1273,11 +1289,14 @@ namespace Legion {
       if (global)
       {
         if (total_address_spaces > 1)
-          REPORT_LEGION_ERROR(
-              ERROR_ILLEGAL_PERFORM_REGISTRATION_CALLBACK,
-              "Global registration callbacks are not supported in multi-node "
-              "executions without support for libdl. Please build Legion "
-              "with LEGION_USE_LIBDL defined.")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Global registration callbacks are not supported in "
+                   "multi-node "
+                << "executions without support for libdl. Please build Legion "
+                << "with LEGION_USE_LIBDL defined.";
+          error.raise();
+        }
         else
           global = false;
       }
@@ -1331,12 +1350,16 @@ namespace Legion {
                   (void*)
                       callback.withoutargs.target<RegistrationCallbackFnptr>();
           if (fnptr == nullptr)
-            REPORT_LEGION_FATAL(
-                LEGION_FATAL_CALLBACK_NOT_PORTABLE,
-                "Deduplication of registration callbacks is only permitted on "
-                "callbacks that can be converted to function pointers to "
-                "facilitate "
-                "identification of the same callback from different sources.");
+          {
+            Fatal fatal;
+            fatal << "Deduplication of registration callbacks is only "
+                     "permitted on "
+                  << "callbacks that can be converted to function pointers to "
+                     "facilitate "
+                  << "identification of the same callback from different "
+                     "sources.";
+            fatal.raise();
+          }
           std::map<void*, RtEvent>::const_iterator local_finder =
               local_callbacks_done.find(fnptr);
           if (local_finder == local_callbacks_done.end())
@@ -1517,11 +1540,12 @@ namespace Legion {
     {
       IndexSpaceNode* node = runtime->get_node(handle);
       if (!node->check_valid_and_increment(APPLICATION_REF))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to add shared ownership to index space %llu "
-            "which has already been deleted",
-            handle.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Illegal call to add shared ownership to index space "
+              << handle.get_id() << " which has already been deleted.";
+        error.raise();
+      }
       if (!node->is_owner())
       {
         legion_assert(!unpack_reference);
@@ -1550,11 +1574,12 @@ namespace Legion {
     {
       IndexPartNode* node = runtime->get_node(handle);
       if (!node->check_valid_and_increment(APPLICATION_REF))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to add shared ownership to index partition %llu "
-            "which has already been deleted",
-            handle.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Illegal call to add shared ownership to index partition "
+              << handle.get_id() << " which has already been deleted.";
+        error.raise();
+      }
       if (!node->is_owner())
       {
         legion_assert(!unpack_reference);
@@ -1583,11 +1608,12 @@ namespace Legion {
     {
       FieldSpaceNode* node = runtime->get_node(handle);
       if (!node->check_global_and_increment(APPLICATION_REF))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to add shared ownership to field space %llu "
-            "which has already been deleted",
-            handle.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Illegal call to add shared ownership to field space "
+              << handle.get_id() << " which has already been deleted.";
+        error.raise();
+      }
       if (!node->is_owner())
       {
         legion_assert(!unpack_reference);
@@ -1616,12 +1642,14 @@ namespace Legion {
     {
       RegionNode* node = runtime->get_node(handle);
       if (!node->check_global_and_increment(APPLICATION_REF))
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to add shared ownership to logical region "
-            "(%llu,%llu,%llu) which has already been deleted",
-            handle.index_space.get_id(), handle.field_space.get_id(),
-            handle.get_tree_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Illegal call to add shared ownership to logical region "
+              << "(" << handle.index_space.get_id() << ","
+              << handle.field_space.get_id() << "," << handle.get_tree_id()
+              << ") which has already been deleted.";
+        error.raise();
+      }
       if (!node->is_owner())
       {
         legion_assert(!unpack_reference);
@@ -1651,10 +1679,12 @@ namespace Legion {
       TraceID result = unique_trace_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
       if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
-            "Dynamic Trace IDs exceeded library ID offset %d",
-            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Trace IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
       return result;
     }
 
@@ -1676,10 +1706,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != count)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "TraceID generation counts %zd and %zd differ for library %s",
-                finder->second.count, count, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "TraceID generation counts " << finder->second.count
+                  << " and " << count << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -1698,10 +1730,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != count)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "TraceID generation counts %zd and %zd differ for library %s",
-                finder->second.count, count, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "TraceID generation counts " << finder->second.count
+                  << " and " << count << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -1773,10 +1807,12 @@ namespace Legion {
     {
       TraceID& next_trace = get_current_static_trace_id();
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'generate_static_trace_id' after "
-            "the runtime has been started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_trace_id' after "
+              << "the runtime has been started.";
+        error.raise();
+      }
       return next_trace++;
     }
 
@@ -1787,10 +1823,12 @@ namespace Legion {
       std::map<Processor, ProcessorManager*>::const_iterator finder =
           proc_managers.find(target);
       if (finder == proc_managers.end())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROCESSOR_NAME,
-            "Invalid processor " IDFMT " passed to get mapper call.",
-            target.id);
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid processor " << target
+              << " passed to get mapper call.";
+        error.raise();
+      }
       return finder->second->find_mapper(id)->mapper;
     }
 
@@ -1802,10 +1840,12 @@ namespace Legion {
       std::map<Processor, ProcessorManager*>::const_iterator finder =
           proc_managers.find(target);
       if (finder == proc_managers.end())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROCESSOR_NAME,
-            "Invalid processor " IDFMT " passed to begin mapper call.",
-            target.id)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid processor " << target
+              << " passed to begin mapper call.";
+        error.raise();
+      }
       MapperManager* manager = finder->second->find_mapper(id);
       return new MappingCallInfo(manager, APPLICATION_MAPPER_CALL, op);
     }
@@ -1829,11 +1869,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (mpi_rank_table == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED,
-            "Forward MPI mapping call not supported without "
-            "calling configure_MPI_interoperability during "
-            "start up")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Forward MPI mapping call not supported without "
+              << "calling configure_MPI_interoperability during start up";
+        error.raise();
+      }
       legion_assert(!mpi_rank_table->forward_mapping.empty());
       return mpi_rank_table->forward_mapping;
     }
@@ -1843,11 +1884,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (mpi_rank_table == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED,
-            "Reverse MPI mapping call not supported without "
-            "calling configure_MPI_interoperability during "
-            "start up")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Reverse MPI mapping call not supported without "
+              << "calling configure_MPI_interoperability during start up";
+        error.raise();
+      }
       legion_assert(!mpi_rank_table->reverse_mapping.empty());
       return mpi_rank_table->reverse_mapping;
     }
@@ -1857,11 +1899,12 @@ namespace Legion {
     //-------------------------------------------------------------------------
     {
       if (mpi_rank_table == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED,
-            "Findling local MPI rank not supported without "
-            "calling configure_MPI_interoperability during "
-            "start up")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Findling local MPI rank not supported without "
+              << "calling configure_MPI_interoperability during start up";
+        error.raise();
+      }
       return mpi_rank;
     }
 
@@ -1908,13 +1951,15 @@ namespace Legion {
             map_id, manager, true /*check*/, true /*own*/);
       }
       else
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_MAPPER_PROCESSOR,
-            "Illegal attempt to register mapper %s as mapper %d "
-            "for processor " IDFMT
-            ". That processor is not local to the "
-            "process where 'Runtime::add_mapper' was called.",
-            manager->get_mapper_name(), map_id, proc.id);
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal attempt to register mapper "
+              << mapper->get_mapper_name() << " as mapper " << map_id
+              << " for processor " << proc
+              << ". That processor is not local to the "
+              << "process where 'Runtime::add_mapper' was called.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1933,10 +1978,12 @@ namespace Legion {
       MapperID result = unique_mapper_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
       if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
-            "Dynamic Mapper IDs exceeded library ID offset %d",
-            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Mapper IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
       return result;
     }
 
@@ -1958,10 +2005,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "MapperID generation counts %zd and %zd differ for library %s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "MapperID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -1980,10 +2029,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "MapperID generation counts %zd and %zd differ for library %s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "MapperID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -2055,10 +2106,12 @@ namespace Legion {
     {
       MapperID& next_mapper = get_current_static_mapper_id();
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'generate_static_mapper_id' after "
-            "the runtime has been started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_mapper_id' after "
+                 "the runtime has been started!";
+        error.raise();
+      }
       return next_mapper++;
     }
 
@@ -2104,13 +2157,14 @@ namespace Legion {
         proc_managers[proc]->replace_default_mapper(manager, true /*own*/);
       }
       else
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_MAPPER_PROCESSOR,
-            "Illegal attempt to register mapper %s as the default mapper "
-            "for processor " IDFMT
-            ". That processor is not local to the "
-            "process where 'Runtime::replace_default_mapper' was called.",
-            manager->get_mapper_name(), proc.id);
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal attempt to register mapper " << *manager
+              << "as the default mapper for processor " << proc
+              << ". That processor is not local to the "
+              << "process where 'Runtime::replace_default_mapper' was called.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -2192,10 +2246,12 @@ namespace Legion {
       ProjectionID result = unique_projection_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
       if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
-            "Dynamic Projection IDs exceeded library ID offset %d",
-            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Projection IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
       return result;
     }
 
@@ -2218,11 +2274,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "ProjectionID generation counts %zd and %zd differ for "
-                "library %s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ProjectionID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -2241,11 +2298,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "ProjectionID generation counts %zd and %zd differ for "
-                "library %s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ProjectionID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -2318,10 +2376,12 @@ namespace Legion {
     {
       ProjectionID& next_projection = get_current_static_projection_id();
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'generate_static_projection_id' after "
-            "the runtime has been started!");
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_projection_id' after "
+              << "the runtime has been started!";
+        error.raise();
+      }
       return next_projection++;
     }
 
@@ -2332,39 +2392,49 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (need_zero_check && (pid == 0))
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_PROJECTION_ID, "ProjectionID zero is reserved.\n");
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ProjectionID zero is reserved.";
+        error.raise();
+      }
       if (!preregistered && !inside_registration_callback && !silence_warnings)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_NON_CALLBACK_REGISTRATION,
-            "Projection functor %d was dynamically registered outside of a "
-            "registration callback invocation. In the near future this will "
-            "become an error in order to support task subprocesses. Please "
-            "use 'perform_registration_callback' to generate a callback where "
-            "it will be safe to perform dynamic registrations.",
-            pid)
+      {
+        Warning warning;
+        warning
+            << "Projection functor " << pid
+            << " was dynamically registered outside of a "
+            << "registration callback invocation. In the near future this will "
+            << "become an error in order to support task subprocesses. Please "
+            << "use 'perform_registration_callback' to generate a callback "
+               "where "
+            << "it will be safe to perform dynamic registrations.";
+        warning.raise();
+      }
       if (!silence_warnings && (total_address_spaces > 1) &&
           (inside_registration_callback != GLOBAL_REGISTRATION_CALLBACK))
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_DYNAMIC_PROJECTION_REG,
-            "Projection functor %d is being dynamically "
-            "registered for a multi-node run with %d nodes. It is "
-            "currently the responsibility of the application to "
-            "ensure that this projection functor is registered on "
-            "all nodes where it will be required. "
-            "Warning string: %s",
-            pid, total_address_spaces,
-            (warning_string == nullptr) ? "" : warning_string)
+      {
+        Warning warning;
+        warning << "Projection functor " << pid << " is being dynamically "
+                << "registered for a multi-node run with "
+                << total_address_spaces << " nodes. It is "
+                << "currently the responsibility of the application to "
+                << "ensure that this projection functor is registered on "
+                << "all nodes where it will be required. "
+                << "Warning string: "
+                << (warning_string == nullptr ? "" : warning_string);
+        warning.raise();
+      }
       ProjectionFunction* function = new ProjectionFunction(pid, functor);
       AutoLock p_lock(projection_lock);
       std::map<ProjectionID, ProjectionFunction*>::const_iterator finder =
           projection_functions.find(pid);
       if (finder != projection_functions.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_PROJECTION_ID,
-            "ProjectionID %d has already been used in "
-            "the region projection table\n",
-            pid)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ProjectionID " << pid << " has already been used in "
+              << "the region projection table.";
+        error.raise();
+      }
       projection_functions[pid] = function;
       LegionSpy::log_projection_function(
           pid, function->depth, function->is_invertible);
@@ -2376,23 +2446,29 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'preregister_projection_functor' after "
-            "the runtime has started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'preregister_projection_functor' after "
+              << "the runtime has started!";
+        error.raise();
+      }
       if (pid == 0)
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_PROJECTION_ID, "ProjectionID zero is reserved.\n");
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ProjectionID zero is reserved.";
+        error.raise();
+      }
       std::map<ProjectionID, ProjectionFunctor*>& pending_projection_functors =
           get_pending_projection_table();
       std::map<ProjectionID, ProjectionFunctor*>::const_iterator finder =
           pending_projection_functors.find(pid);
       if (finder != pending_projection_functors.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_PROJECTION_ID,
-            "ProjectionID %d has already been used in "
-            "the region projection table\n",
-            pid)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ProjectionID " << pid << " has already been used in "
+              << "the region projection table.";
+        error.raise();
+      }
       pending_projection_functors[pid] = functor;
     }
 
@@ -2408,11 +2484,11 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_PROJECTION_ID,
-            "Unable to find registered region projection ID %d. "
-            "Please upgrade to using projection functors!",
-            pid);
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Unable to find registered region projection ID " << pid
+              << ". "
+              << "Please upgrade to using projection functors!";
+        error.raise();
       }
       return finder->second;
     }
@@ -2451,10 +2527,12 @@ namespace Legion {
       ShardingID result = unique_sharding_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
       if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
-            "Dynamic Sharding IDs exceeded library ID offset %d",
-            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Sharding IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
       return result;
     }
 
@@ -2477,11 +2555,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "ShardingID generation counts %zd and %zd differ for library "
-                "%s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ShardingID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -2500,11 +2579,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "ShardingID generation counts %zd and %zd differ for library "
-                "%s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ShardingID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -2579,10 +2659,12 @@ namespace Legion {
     {
       ShardingID& next_sharding = get_current_static_sharding_id();
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'generate_static_sharding_id' after "
-            "the runtime has been started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_sharding_id' after "
+              << "the runtime has been started!";
+        error.raise();
+      }
       return next_sharding++;
     }
 
@@ -2593,43 +2675,56 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (sid == std::numeric_limits<ShardingID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_SHARDING_ID,
-            "ERROR: %d (UINT_MAX) is a reserved sharding ID.",
-            std::numeric_limits<ShardingID>::max())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ERROR: " << sid << " (UINT_MAX) is a reserved sharding ID.";
+        error.raise();
+      }
       else if (need_zero_check && (sid == 0))
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_SHARDING_ID, "ERROR: ShardingID zero is reserved.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ERROR: ShardingID zero is reserved.";
+        error.raise();
+      }
       if (!preregistered && !inside_registration_callback && !silence_warnings)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_NON_CALLBACK_REGISTRATION,
-            "Sharding functor %d was dynamically registered outside of a "
-            "registration callback invocation. In the near future this will "
-            "become an error in order to support task subprocesses. Please "
-            "use 'perform_registration_callback' to generate a callback where "
-            "it will be safe to perform dynamic registrations.",
-            sid)
+      {
+        Warning warning;
+        warning
+            << "Sharding functor " << sid
+            << " was dynamically registered outside of a "
+            << "registration callback invocation. In the near future this will "
+            << "become an error in order to support task subprocesses. Please "
+            << "use 'perform_registration_callback' to generate a callback "
+               "where "
+            << "it will be safe to perform dynamic registrations.";
+        warning.raise();
+      }
       if (!silence_warnings && (total_address_spaces > 1) &&
           (inside_registration_callback != GLOBAL_REGISTRATION_CALLBACK))
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_DYNAMIC_SHARDING_REG,
-            "WARNING: Sharding functor %d is being dynamically "
-            "registered for a multi-node run with %d nodes. It is "
-            "currently the responsibility of the application to "
-            "ensure that this sharding functor is registered on "
-            "all nodes where it will be required. "
-            "Warning string: %s",
-            sid, total_address_spaces,
-            (warning_string == nullptr) ? "" : warning_string)
+      {
+        Warning warning;
+        warning << "WARNING: Sharding functor " << sid
+                << " is being dynamically "
+                << "registered for a multi-node run with "
+                << total_address_spaces << " nodes. It is "
+                << "currently the responsibility of the application to "
+                << "ensure that this sharding functor is registered on "
+                << "all nodes where it will be required. "
+                << "Warning string: "
+                << (warning_string == nullptr ? "" : warning_string);
+        warning.raise();
+      }
       AutoLock s_lock(sharding_lock);
       std::map<ShardingID, ShardingFunctor*>::const_iterator finder =
           sharding_functors.find(sid);
       if (finder != sharding_functors.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_SHARDING_ID,
-            "ERROR: ShardingID %d has already been used by another "
-            "sharding functor.",
-            sid)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ERROR: ShardingID " << sid
+              << " has already been used by another "
+              << "sharding functor.";
+        error.raise();
+      }
       sharding_functors[sid] = functor;
     }
 
@@ -2639,28 +2734,36 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'preregister_sharding_functor' after "
-            "the runtime has started!");
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'preregister_sharding_functor' after "
+              << "the runtime has started!";
+        error.raise();
+      }
       if (sid == std::numeric_limits<ShardingID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_SHARDING_ID,
-            "ERROR: %d (UINT_MAX) is a reserved sharding ID.",
-            std::numeric_limits<ShardingID>::max())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ERROR: " << sid << " (UINT_MAX) is a reserved sharding ID.";
+        error.raise();
+      }
       else if (sid == 0)
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_SHARDING_ID, "ERROR: ShardingID zero is reserved.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ERROR: ShardingID zero is reserved.";
+        error.raise();
+      }
       std::map<ShardingID, ShardingFunctor*>& pending_sharding_functors =
           get_pending_sharding_table();
       std::map<ShardID, ShardingFunctor*>::const_iterator finder =
           pending_sharding_functors.find(sid);
       if (finder != pending_sharding_functors.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_SHARDING_ID,
-            "ERROR: ShardingID %d has already been used by another "
-            "sharding functor.",
-            sid)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ERROR: ShardingID " << sid
+              << " has already been used by another "
+              << "sharding functor.";
+        error.raise();
+      }
       pending_sharding_functors[sid] = functor;
     }
 
@@ -2676,9 +2779,9 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_SHARDING_ID,
-            "Unable to find registered sharding functor ID %d.", sid)
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Unable to find registered sharding functor ID " << sid << ".";
+        error.raise();
       }
       return finder->second;
     }
@@ -2712,10 +2815,12 @@ namespace Legion {
       ConcurrentID result = unique_concurrent_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
       if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
-            "Dynamic Concurrent Coloring IDs exceeded library ID offset %d",
-            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Concurrent Coloring IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
       return result;
     }
 
@@ -2738,11 +2843,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "ConcurrentID generation counts %zd and %zd differ for "
-                "library %s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ConcurrentID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -2761,11 +2867,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "ConcurrentID generation counts %zd and %zd differ for "
-                "library %s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ConcurrentID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -2838,10 +2945,12 @@ namespace Legion {
     {
       ConcurrentID& next_concurrent = get_current_static_concurrent_id();
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'generate_static_concurrent_colorin_id' after "
-            "the runtime has been started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_concurrent_id' after the "
+                 "runtime has been started.";
+        error.raise();
+      }
       return next_concurrent++;
     }
 
@@ -2853,44 +2962,57 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (cid == std::numeric_limits<ConcurrentID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_CONCURRENT_ID,
-            "ERROR: %d (UINT_MAX) is a reserved concurrent ID.",
-            std::numeric_limits<ConcurrentID>::max())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ConcurrentID " << std::numeric_limits<ConcurrentID>::max()
+              << " (UINT_MAX) is a reserved concurrent ID.";
+        error.raise();
+      }
       else if (need_zero_check && (cid == 0))
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_CONCURRENT_ID,
-            "ERROR: ConcurrentID zero is reserved.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ConcurrentID zero is reserved.";
+        error.raise();
+      }
       if (!preregistered && !inside_registration_callback && !silence_warnings)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_NON_CALLBACK_REGISTRATION,
-            "Concurrent coloring functor %d was dynamically registered outside "
-            "of a registration callback invocation. In the near future this "
-            "will become an error in order to support task subprocesses. Please"
-            " use 'perform_registration_callback' to generate a callback where "
-            "it will be safe to perform dynamic registrations.",
-            cid)
+      {
+        Warning warning;
+        warning << "Concurrent coloring functor " << cid
+                << " was dynamically registered outside of a registration "
+                   "callback invocation. "
+                << "In the near future this will become an error in order to "
+                   "support task subprocesses. "
+                << "Please use 'perform_registration_callback' to generate a "
+                   "callback where "
+                << "it will be safe to perform dynamic registrations.";
+        warning.raise();
+      }
       if (!silence_warnings && (total_address_spaces > 1) &&
           (inside_registration_callback != GLOBAL_REGISTRATION_CALLBACK))
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_DYNAMIC_CONCURRENT_REG,
-            "WARNING: Concurrent coloring functor %d is being "
-            "dynamically registered for a multi-node run with %d "
-            "nodes. It is currently the responsibility of the "
-            "application to ensure that this concurrent coloring "
-            "functor is registered on all nodes where it will be "
-            "required. Warning string: %s",
-            cid, total_address_spaces,
-            (warning_string == nullptr) ? "" : warning_string)
+      {
+        Warning warning;
+        warning << "Concurrent coloring functor " << cid
+                << " is being dynamically registered for a multi-node run with "
+                << total_address_spaces
+                << " nodes. It is currently the responsibility "
+                << "of the application to ensure that this concurrent coloring "
+                   "functor "
+                << "is registered on all nodes where it will be required. "
+                   "Warning string: "
+                << ((warning_string == nullptr) ? "" : warning_string);
+        warning.raise();
+      }
       AutoLock s_lock(concurrent_lock);
       std::map<ConcurrentID, ConcurrentColoringFunctor*>::const_iterator
           finder = concurrent_functors.find(cid);
       if (finder != concurrent_functors.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_CONCURRENT_ID,
-            "ERROR: ConcurrentID %d has already been used by another "
-            "concurrent coloring functor.",
-            cid)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "ConcurrentID " << cid
+            << " has already been used by another concurrent coloring functor.";
+        error.raise();
+      }
       concurrent_functors[cid] = functor;
     }
 
@@ -2900,29 +3022,37 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'preregister_concurrent_colorin_functor'"
-            " after the runtime has started!");
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'preregister_concurrent_coloring_functor' "
+                 "after the runtime has started.";
+        error.raise();
+      }
       if (cid == std::numeric_limits<ConcurrentID>::max())
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_CONCURRENT_ID,
-            "ERROR: %d (UINT_MAX) is a reserved concurrent ID.",
-            std::numeric_limits<ConcurrentID>::max())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ConcurrentID " << std::numeric_limits<ConcurrentID>::max()
+              << " (UINT_MAX) is a reserved concurrent ID.";
+        error.raise();
+      }
       else if (cid == 0)
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_CONCURRENT_ID,
-            "ERROR: ConcurrentID zero is reserved.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ConcurrentID zero is reserved.";
+        error.raise();
+      }
       std::map<ConcurrentID, ConcurrentColoringFunctor*>&
           pending_concurrent_functors = get_pending_concurrent_table();
       std::map<ConcurrentID, ConcurrentColoringFunctor*>::const_iterator
           finder = pending_concurrent_functors.find(cid);
       if (finder != pending_concurrent_functors.end())
-        REPORT_LEGION_ERROR(
-            ERROR_DUPLICATE_CONCURRENT_ID,
-            "ERROR: ConcurrentID %d has already been used by another "
-            "concurrent coloring functor.",
-            cid)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "ConcurrentID " << cid
+            << " has already been used by another concurrent coloring functor.";
+        error.raise();
+      }
       pending_concurrent_functors[cid] = functor;
     }
 
@@ -2938,9 +3068,12 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_CONCURRENT_ID,
-            "Unable to find registered concurrent coloring functor ID %d.", cid)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Unable to find registered concurrent coloring functor ID "
+                << cid << ".";
+          error.raise();
+        }
       }
       return finder->second;
     }
@@ -3211,10 +3344,12 @@ namespace Legion {
       TaskID result = unique_task_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
       if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
-            "Dynamic Task IDs exceeded library ID offset %d",
-            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Task IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
       return result;
     }
 
@@ -3236,10 +3371,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "TaskID generation counts %zd and %zd differ for library %s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "TaskID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -3258,10 +3395,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != cnt)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "TaskID generation counts %zd and %zd differ for library %s",
-                finder->second.count, cnt, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "TaskID generation counts " << finder->second.count
+                  << " and " << cnt << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -3350,12 +3489,13 @@ namespace Legion {
       if (vid == LEGION_AUTO_GENERATE_ID)  // Make a variant ID to use
         vid = task_impl->get_unique_variant_id();
       else if (vid == 0)
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_VARIANT_ID,
-            "Error registering variant for task ID %d with "
-            "variant ID 0. Variant ID 0 is reserved for task "
-            "generators.",
-            registrar.task_id)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Variant ID 0 is reserved for task generators when "
+                 "registering variant for task ID "
+              << registrar.task_id << ".";
+        error.raise();
+      }
       // Make our variant and add it to the set of variants
       VariantImpl* impl = new VariantImpl(
           vid, task_impl, registrar, return_type_size, has_return_size,
@@ -3434,10 +3574,12 @@ namespace Legion {
       ReductionOpID result = unique_redop_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
       if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
-            "Dynamic Reduction IDs exceeded library ID offset %d",
-            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Reduction IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
       return result;
     }
 
@@ -3460,11 +3602,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != count)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "ReductionOpID generation counts %zd and %zd differ for "
-                "library %s",
-                finder->second.count, count, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ReductionOpID generation counts " << finder->second.count
+                  << " and " << count << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -3483,11 +3626,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != count)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "ReductionOpID generation counts %zd and %zd differ for "
-                "library %s",
-                finder->second.count, count, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "ReductionOpID generation counts " << finder->second.count
+                  << " and " << count << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -3555,10 +3699,12 @@ namespace Legion {
       CustomSerdezID result = unique_serdez_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
       if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
-        REPORT_LEGION_FATAL(
-            LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
-            "Dynamic Custom Serdez IDs exceeded library ID offset %d",
-            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      {
+        Fatal fatal;
+        fatal << "Dynamic Custom Serdez IDs exceeded library ID offset "
+              << LEGION_INITIAL_LIBRARY_ID_OFFSET << ".";
+        fatal.raise();
+      }
       return result;
     }
 
@@ -3581,11 +3727,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != count)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "CustomSerdezID generation counts %zd and %zd differ for "
-                "library %s",
-                finder->second.count, count, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "CustomSerdezID generation counts " << finder->second.count
+                  << " and " << count << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -3604,11 +3751,12 @@ namespace Legion {
         {
           // First do a check to see if the counts match
           if (finder->second.count != count)
-            REPORT_LEGION_ERROR(
-                ERROR_LIBRARY_COUNT_MISMATCH,
-                "CustomSerdezID generation counts %zd and %zd differ for "
-                "library %s",
-                finder->second.count, count, name)
+          {
+            Error error(LEGION_INTERFACE_EXCEPTION);
+            error << "CustomSerdezID generation counts " << finder->second.count
+                  << " and " << count << " differ for library " << name << ".";
+            error.raise();
+          }
           if (finder->second.result_set)
             return finder->second.result;
           // This should never happen unless we are on a node other than 0
@@ -3886,9 +4034,11 @@ namespace Legion {
     {
       Processor target = task->target_proc;
       if (!target.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_TARGET_PROC,
-            "Mapper requested invalid NO_PROC as target proc!");
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Mapper requested invalid NO_PROC as target processor.";
+        error.raise();
+      }
       // Check to see if the target processor is still local
       std::map<Processor, ProcessorManager*>::const_iterator finder =
           proc_managers.find(target);
@@ -5926,12 +6076,16 @@ namespace Legion {
     {
       unsigned previous = outstanding_top_level_tasks.fetch_add(1);
       if (previous == 0)
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_TOP_LEVEL_TASK_CREATION,
-            "Illegal attempt to launch a top-level task after "
-            "Runtime::wait_for_shutdown has been called. All top-level tasks "
-            "must be created on a node before signaling to the runtime that "
-            "the client is ready for Legion to shutdown on that node.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "Illegal attempt to launch a top-level task after "
+            << "Runtime::wait_for_shutdown has been called. All top-level "
+               "tasks "
+            << "must be created on a node before signaling to the runtime that "
+            << "the client is ready for Legion to shutdown on that node.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -6469,9 +6623,11 @@ namespace Legion {
       {
         // We know the answer here
         if (type_tag != NT_TemplateHelper::encode_tag<1, coord_t>())
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in 'get_index_space_color'")
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Dynamic type mismatch in 'get_index_space_color'.";
+          error.raise();
+        }
         Realm::Point<1, coord_t>* color =
             (Realm::Point<1, coord_t>*)realm_color;
         *color = Realm::Point<1, coord_t>(0);
@@ -6520,13 +6676,13 @@ namespace Legion {
     {
       IndexSpaceNode* node = get_node(handle);
       if (node->parent == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_PARENT_INDEX_PARTITION_REQUESTED,
-            "Parent index partition requested for "
-            "index space %llu with no parent. Use "
-            "has_parent_index_partition to check "
-            "before requesting a parent.",
-            handle.get_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Parent index partition requested for index space " << handle
+              << " with no parent. Use has_parent_index_partition to check "
+              << "before requesting a parent.";
+        error.raise();
+      }
       return node->parent->handle;
     }
 
@@ -6784,9 +6940,11 @@ namespace Legion {
     {
       FieldSpaceNode* node = get_node(handle);
       if (!node->has_field(fid))
-        REPORT_LEGION_ERROR(
-            ERROR_FIELD_SPACE_HAS_NO_FIELD, "FieldSpace %llu has no field %d",
-            handle.get_id(), fid)
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "FieldSpace " << handle << " has no field " << fid << ".";
+        error.raise();
+      }
       return node->get_field_size(fid);
     }
 
@@ -6796,9 +6954,11 @@ namespace Legion {
     {
       FieldSpaceNode* node = get_node(handle);
       if (!node->has_field(fid))
-        REPORT_LEGION_ERROR(
-            ERROR_FIELD_SPACE_HAS_NO_FIELD, "FieldSpace %llu has no field %d",
-            handle.get_id(), fid)
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "FieldSpace " << handle << " has no field " << fid << ".";
+        error.raise();
+      }
       return node->get_field_serdez(fid);
     }
 
@@ -6926,12 +7086,13 @@ namespace Legion {
       IndexSpaceNode* color_space = parent_node->row_source->color_space;
       LegionColor color = color_space->linearize_color(realm_color, type_tag);
       if (!color_space->contains_point(realm_color, type_tag))
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_INDEX_SPACE_COLOR,
-            "Invalid color space color for child %lld of "
-            "logical partition (%llu,%llu,%llu)",
-            color, parent.index_partition.get_id(), parent.field_space.get_id(),
-            parent.get_tree_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Invalid color space color for child " << color
+              << " of logical partition (" << parent.index_partition << ", "
+              << parent.field_space << ", " << parent.get_tree_id() << ").";
+        error.raise();
+      }
       IndexSpaceNode* index_node = parent_node->row_source->get_child(color);
       LogicalRegion result(
           parent.tree_did, index_node->handle, parent.field_space);
@@ -6969,9 +7130,11 @@ namespace Legion {
       {
         // We know the answer here
         if (type_tag != NT_TemplateHelper::encode_tag<1, coord_t>())
-          REPORT_LEGION_ERROR(
-              ERROR_DYNAMIC_TYPE_MISMATCH,
-              "Dynamic type mismatch in 'get_logical_region_color'")
+        {
+          Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+          error << "Dynamic type mismatch in 'get_logical_region_color'.";
+          error.raise();
+        }
         Realm::Point<1, coord_t>* color =
             (Realm::Point<1, coord_t>*)realm_color;
         *color = Realm::Point<1, coord_t>(0);
@@ -7020,14 +7183,15 @@ namespace Legion {
     {
       RegionNode* node = get_node(handle);
       if (node->parent == nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_PARENT_LOGICAL_PARTITION_REQUESTED,
-            "Parent logical partition requested for "
-            "logical region (%llu,%llu,%llu) with no parent. "
-            "Use has_parent_logical_partition to check "
-            "before requesting a parent.",
-            handle.index_space.get_id(), handle.field_space.get_id(),
-            handle.get_tree_id())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Parent logical partition requested for logical region ("
+              << handle.index_space << ", " << handle.field_space << ", "
+              << handle.get_tree_id() << ") with no parent. Use "
+              << "has_parent_logical_partition to check before requesting a "
+                 "parent.";
+        error.raise();
+      }
       return node->parent->handle;
     }
 
@@ -7213,13 +7377,9 @@ namespace Legion {
           color_space->parent->add_nested_valid_ref(result->did);
         else
           color_space->add_nested_valid_ref(result->did);
-        // We know if we're disjoint or not but if we're not complete we might
-        // still be getting notifications to compute the complete
-        if (complete < 0)
-          result->initialize_disjoint_complete_notifications();
-        else if ((implicit_profiler != nullptr) && result->is_owner())
-          implicit_profiler->register_index_partition(
-              parent->handle.get_id(), p.get_id(), disjoint, result->color);
+        // We know if we're disjonit or yet not so we need to do
+        // the disjoint and complete analysis
+        result->initialize_disjoint_complete_notifications();
         result->register_with_runtime();
       }
       return result;
@@ -7477,9 +7637,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_REQUEST_FOR_INDEXSPACE,
-            "Invalid request for IndexSpace NO_SPACE.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid request for IndexSpace NO_SPACE.";
+        error.raise();
+      }
       RtEvent wait_on;
       IndexSpaceNode* result = nullptr;
       {
@@ -7509,7 +7671,7 @@ namespace Legion {
         return result;
       }
       // Couldn't find it, so send a request to the owner node
-      AddressSpace owner = IndexSpaceNode::get_owner_space(space);
+      AddressSpaceID owner = IndexSpaceNode::get_owner_space(space);
       if (owner == address_space)
       {
         // See if it is in the set of pending spaces in which case we
@@ -7543,9 +7705,12 @@ namespace Legion {
         else if (can_fail)
           return nullptr;
         else
-          REPORT_LEGION_ERROR(
-              ERROR_UNABLE_FIND_ENTRY,
-              "Unable to find entry for index space %llu.", space.get_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Unable to find entry for index space " << space.get_id()
+                << ".";
+          error.raise();
+        }
       }
       // Retake the lock and get something to wait on
       {
@@ -7601,11 +7766,12 @@ namespace Legion {
             wait_on = RtEvent::NO_RT_EVENT;
         }
         if (!wait_on.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_UNABLE_FIND_ENTRY,
-              "Unable to find entry for index space %llu."
-              "This is definitely a runtime bug.",
-              space.get_id())
+        {
+          Fatal fatal;
+          fatal << "Unable to find entry for index space " << space
+                << ". This is definitely a runtime bug.";
+          fatal.raise();
+        }
         wait_on.wait();
         return get_node(space, nullptr, can_fail, false /*first*/);
       }
@@ -7624,9 +7790,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!part.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_REQUEST_INDEXPARTITION,
-            "Invalid request for IndexPartition NO_PART.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid request for IndexPartition NO_PART.";
+        error.raise();
+      }
       RtEvent wait_on;
       IndexPartNode* result = nullptr;
       {
@@ -7691,9 +7859,11 @@ namespace Legion {
         else if (can_fail)
           return nullptr;
         else
-          REPORT_LEGION_ERROR(
-              ERROR_UNABLE_FIND_ENTRY,
-              "Unable to find entry for index partition %llu.", part.get_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Unable to find entry for index partition " << part << ".";
+          error.raise();
+        }
       }
       {
         // Retake the lock in exclusive mode and make
@@ -7749,11 +7919,12 @@ namespace Legion {
             wait_on = RtEvent::NO_RT_EVENT;
         }
         if (!wait_on.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_UNABLE_FIND_ENTRY,
-              "Unable to find entry for index partition %llu. "
-              "This is definitely a runtime bug.",
-              part.get_id())
+        {
+          Fatal fatal;
+          fatal << "Unable to find entry for index partition " << part << ". "
+                << "This is definitely a runtime bug.";
+          fatal.raise();
+        }
         wait_on.wait();
         return get_node(part, nullptr, can_fail, false /*first*/);
       }
@@ -7771,9 +7942,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_REQUEST_FIELDSPACE,
-            "Invalid request for FieldSpace NO_SPACE.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid request for FieldSpace NO_SPACE.";
+        error.raise();
+      }
       RtEvent wait_on;
       FieldSpaceNode* result = nullptr;
       {
@@ -7837,9 +8010,11 @@ namespace Legion {
         else if (can_fail)
           return nullptr;
         else
-          REPORT_LEGION_ERROR(
-              ERROR_UNABLE_FIND_ENTRY,
-              "Unable to find entry for field space %llu.", space.get_id())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Unable to find entry for field space " << space << ".";
+          error.raise();
+        }
       }
       {
         // Retake the lock in exclusive mode and
@@ -7895,11 +8070,12 @@ namespace Legion {
             wait_on = RtEvent::NO_RT_EVENT;
         }
         if (!wait_on.exists())
-          REPORT_LEGION_ERROR(
-              ERROR_UNABLE_FIND_ENTRY,
-              "Unable to find entry for field space %llu. "
-              "This is definitely a runtime bug.",
-              space.get_id())
+        {
+          Fatal fatal;
+          fatal << "Unable to find entry for field space " << space << ". "
+                << "This is definitely a runtime bug.";
+          fatal.raise();
+        }
         wait_on.wait();
         return get_node(space, nullptr, can_fail, false /*first*/);
       }
@@ -7917,9 +8093,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!handle.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_REQUEST_LOGICALREGION,
-            "Invalid request for LogicalRegion NO_REGION.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid request for LogicalRegion NO_REGION.";
+        error.raise();
+      }
       // Check to see if the node already exists
       RtEvent wait_on;
       RegionNode* result = nullptr;
@@ -7959,7 +8137,7 @@ namespace Legion {
         {
           if (can_fail)
             return nullptr;
-          Error error(LEGION_RESOURCE_EXCEPTION);
+          Error error(LEGION_INTERFACE_EXCEPTION);
           error << "Unable to find logical region " << handle << ".";
           error.raise();
         }
@@ -7973,7 +8151,7 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-        Error error(LEGION_RESOURCE_EXCEPTION);
+        Error error(LEGION_INTERFACE_EXCEPTION);
         error << "Unable to find logical region " << handle << ".";
         error.raise();
       }
@@ -8017,9 +8195,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!handle.exists())
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_REQUEST_LOGICALPARTITION,
-            "Invalid request for LogicalPartition NO_PART.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid request for LogicalPartition NO_PART.";
+        error.raise();
+      }
       RtEvent wait_on;
       PartitionNode* result = nullptr;
       // Check to see if the node already exists
@@ -8053,7 +8233,7 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-        Error error(LEGION_RESOURCE_EXCEPTION);
+        Error error(LEGION_INTERFACE_EXCEPTION);
         error << "Unable to find logical partition " << handle << ".";
         error.raise();
       }
@@ -8068,7 +8248,7 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-        Error error(LEGION_RESOURCE_EXCEPTION);
+        Error error(LEGION_INTERFACE_EXCEPTION);
         error << "Unable to find logical partition " << handle << ".";
         error.raise();
       }
@@ -8096,9 +8276,9 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-        REPORT_LEGION_ERROR(
-            ERROR_INVALID_REQUEST_TREE_ID,
-            "Invalid request for tree ID 0 which is never a tree ID")
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Invalid request for tree ID 0 which is never a tree ID.";
+        error.raise();
       }
       RtEvent wait_on;
       RegionNode* result = nullptr;
@@ -8148,9 +8328,11 @@ namespace Legion {
         else if (can_fail)
           return nullptr;
         else
-          REPORT_LEGION_ERROR(
-              ERROR_UNABLE_FIND_ENTRY,
-              "Unable to find entry for region tree ID %lld", tid)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Unable to find entry for region tree ID " << tid << ".";
+          error.raise();
+        }
       }
       {
         // Retake the lock in exclusive mode and check to
@@ -8185,14 +8367,12 @@ namespace Legion {
       {
         if (can_fail)
           return nullptr;
-        REPORT_LEGION_ERROR(
-            ERROR_UNABLE_FIND_TOPLEVEL_TREE,
-            "Unable to find top-level tree entry for "
-            "region tree %lld.  This is either a runtime "
-            "bug or requires Legion fences if names are "
-            "being returned out of the context in which"
-            "they are being created.",
-            tid)
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Unable to find top-level tree entry for region tree " << tid
+              << ". This is either a runtime bug or requires Legion fences if "
+              << "names are being returned out of the context in which they "
+              << "are being created.";
+        error.raise();
       }
       return finder->second;
     }
@@ -8212,9 +8392,11 @@ namespace Legion {
       // Couldn't find it, so send a request to the owner node
       AddressSpace owner = IndexSpaceNode::get_owner_space(space);
       if (owner == address_space)
-        REPORT_LEGION_ERROR(
-            ERROR_UNABLE_FIND_ENTRY,
-            "Unable to find entry for index space %llu.", space.get_id())
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Unable to find entry for index space " << space << ".";
+        error.raise();
+      }
       AutoLock l_lock(lookup_lock);
       // Check to make sure we didn't loose the race
       std::map<IndexSpace, IndexSpaceNode*>::const_iterator finder =
@@ -9704,19 +9886,10 @@ namespace Legion {
         visible_memories.best_affinity_to(proc);
       if (visible_memories.count() == 0)
       {
-        const char* mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-            REALM_MEMORY_KINDS(MEM_NAMES)
-#undef MEM_NAMES
-        };
-        const char* proc_names[] = {
-#define PROC_NAMES(name, desc) desc,
-            REALM_PROCESSOR_KINDS(PROC_NAMES)
-#undef PROC_NAMES
-        };
-        REPORT_LEGION_ERROR(
-            ERROR_CONFUSED_USER, "%s Processor " IDFMT " has no %s memory",
-            proc_names[proc.kind()], proc.id, mem_names[mem_kind])
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << proc.kind() << " processor " << proc << " has no " << mem_kind
+              << " memory.";
+        error.raise();
       }
       return visible_memories.first();
     }
@@ -10080,10 +10253,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'preregister_layout' after "
-            "the runtime has started!");
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'preregister_layout' after the runtime has "
+                 "started.";
+        error.raise();
+      }
       std::map<LayoutConstraintID, LayoutConstraintRegistrar>&
           pending_constraints = get_pending_constraint_table();
       // See if we have to generate an ID
@@ -10105,23 +10280,30 @@ namespace Legion {
       else
       {
         if (layout_id == 0)
-          REPORT_LEGION_ERROR(
-              ERROR_RESERVED_CONSTRAINT_ID,
-              "Illegal use of reserved constraint ID 0")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Illegal use of reserved constraint ID 0";
+          error.raise();
+        }
         else if (LEGION_MAX_APPLICATION_LAYOUT_ID < layout_id)
-          REPORT_LEGION_ERROR(
-              ERROR_RESERVED_CONSTRAINT_ID,
-              "Illegal application-provided layout constraint ID %ld "
-              "which exceeds the LEGION_MAX_APPLICATION_LAYOUT_ID of %d "
-              "configured in legion_config.h.",
-              layout_id, LEGION_MAX_APPLICATION_LAYOUT_ID)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Illegal application-provided layout constraint ID "
+                << layout_id
+                << " which exceeds the LEGION_MAX_APPLICATION_LAYOUT_ID of "
+                << LEGION_MAX_APPLICATION_LAYOUT_ID
+                << " configured in legion_config.h.";
+          error.raise();
+        }
         // Check to make sure it is not already used
         std::map<LayoutConstraintID, LayoutConstraintRegistrar>::const_iterator
             finder = pending_constraints.find(layout_id);
         if (finder != pending_constraints.end())
-          REPORT_LEGION_ERROR(
-              ERROR_DUPLICATE_CONSTRAINT_ID,
-              "Duplicate use of constraint ID %ld", layout_id);
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Duplicate use of constraint ID " << layout_id;
+          error.raise();
+        }
       }
       pending_constraints[layout_id] = registrar;
       return layout_id;
@@ -10184,9 +10366,9 @@ namespace Legion {
             {
               if (can_fail)
                 return nullptr;
-              REPORT_LEGION_ERROR(
-                  ERROR_INVALID_CONSTRAINT_ID,
-                  "Unable to find layout constraint %ld", layout_id);
+              Error error(LEGION_INTERFACE_EXCEPTION);
+              error << "Unable to find layout constraint " << layout_id;
+              error.raise();
             }
             RtUserEvent to_trigger = Runtime::create_rt_user_event();
             ConstraintRequest rez;
@@ -10609,76 +10791,91 @@ namespace Legion {
           *argc = 1;
       }
       if (config.initial_task_window_hysteresis > 100)
-        REPORT_LEGION_ERROR(
-            ERROR_LEGION_CONFIGURATION,
-            "Illegal task window hysteresis value of %d which is not a value "
-            "between 0 and 100.",
-            config.initial_task_window_hysteresis)
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal task window hysteresis value of "
+              << config.initial_task_window_hysteresis
+              << " which is not a value between 0 and 100.";
+        error.raise();
+      }
       if (config.max_local_fields > LEGION_MAX_FIELDS)
-        REPORT_LEGION_ERROR(
-            ERROR_LEGION_CONFIGURATION,
-            "Illegal max local fields value %d which is larger than the "
-            "value of LEGION_MAX_FIELDS (%d).",
-            config.max_local_fields, LEGION_MAX_FIELDS)
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal max local fields value " << config.max_local_fields
+              << " which is larger than the value of LEGION_MAX_FIELDS ("
+              << LEGION_MAX_FIELDS << ").";
+        error.raise();
+      }
       constexpr Realm::Logger::LoggingLevel compile_time_min_level =
           Realm::Logger::REALM_LOGGING_MIN_LEVEL;
       if ((spy_logging_level > NO_SPY_LOGGING) &&
           (Realm::Logger::LEVEL_PRINT < compile_time_min_level))
-        REPORT_LEGION_ERROR(
-            ERROR_LEGION_CONFIGURATION,
-            "Legion Spy logging requires a COMPILE_TIME_MIN_LEVEL "
-            "of at most LEVEL_PRINT, but current setting is %s",
-            (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
-                "LEVEL_WARNING" :
-            (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
-                "LEVEL_ERROR" :
-            (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
-                "LEVEL_FATAL" :
-                "LEVEL_NONE")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Legion Spy logging requires a COMPILE_TIME_MIN_LEVEL of at "
+                 "most LEVEL_PRINT, but current setting is "
+              << ((compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
+                      "LEVEL_WARNING" :
+                  (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
+                      "LEVEL_ERROR" :
+                  (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
+                      "LEVEL_FATAL" :
+                      "LEVEL_NONE");
+        error.raise();
+      }
       if ((config.num_profiling_nodes > 0) &&
           (strcmp(config.serializer_type.c_str(), "ascii") == 0) &&
           (Realm::Logger::LEVEL_INFO < compile_time_min_level))
-        REPORT_LEGION_ERROR(
-            ERROR_LEGION_CONFIGURATION,
-            "Legion Prof 'ascii' logging requires a COMPILE_TIME_MIN_LEVEL "
-            "of at most LEVEL_INFO, but current setting is %s",
-            (compile_time_min_level == Realm::Logger::LEVEL_PRINT) ?
-                "LEVEL_PRINT" :
-            (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
-                "LEVEL_WARNING" :
-            (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
-                "LEVEL_ERROR" :
-            (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
-                "LEVEL_FATAL" :
-                "LEVEL_NONE")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error
+            << "Legion Prof 'ascii' logging requires a COMPILE_TIME_MIN_LEVEL "
+               "of at most LEVEL_INFO, but current setting is "
+            << ((compile_time_min_level == Realm::Logger::LEVEL_PRINT) ?
+                    "LEVEL_PRINT" :
+                (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
+                    "LEVEL_WARNING" :
+                (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
+                    "LEVEL_ERROR" :
+                (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
+                    "LEVEL_FATAL" :
+                    "LEVEL_NONE");
+        error.raise();
+      }
       if (config.record_registration &&
           (Realm::Logger::LEVEL_PRINT < compile_time_min_level))
-        REPORT_LEGION_ERROR(
-            ERROR_LEGION_CONFIGURATION,
-            "Legion registration logging requires a COMPILE_TIME_MIN_LEVEL "
-            "of at most LEVEL_PRINT, but current setting is %s",
-            (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
-                "LEVEL_WARNING" :
-            (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
-                "LEVEL_ERROR" :
-            (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
-                "LEVEL_FATAL" :
-                "LEVEL_NONE")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error
+            << "Legion registration logging requires a COMPILE_TIME_MIN_LEVEL "
+               "of at most LEVEL_PRINT, but current setting is "
+            << ((compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
+                    "LEVEL_WARNING" :
+                (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
+                    "LEVEL_ERROR" :
+                (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
+                    "LEVEL_FATAL" :
+                    "LEVEL_NONE");
+        error.raise();
+      }
       if (config.dump_physical_traces &&
           (Realm::Logger::LEVEL_INFO < compile_time_min_level))
-        REPORT_LEGION_ERROR(
-            ERROR_LEGION_CONFIGURATION,
-            "Legion physical trace logging requires a COMPILE_TIME_MIN_LEVEL "
-            "of at most LEVEL_INFO, but current setting is %s",
-            (compile_time_min_level == Realm::Logger::LEVEL_PRINT) ?
-                "LEVEL_PRINT" :
-            (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
-                "LEVEL_WARNING" :
-            (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
-                "LEVEL_ERROR" :
-            (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
-                "LEVEL_FATAL" :
-                "LEVEL_NONE")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Legion physical trace logging requires a "
+                 "COMPILE_TIME_MIN_LEVEL of at most LEVEL_INFO, but current "
+                 "setting is "
+              << ((compile_time_min_level == Realm::Logger::LEVEL_PRINT) ?
+                      "LEVEL_PRINT" :
+                  (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
+                      "LEVEL_WARNING" :
+                  (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
+                      "LEVEL_ERROR" :
+                  (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
+                      "LEVEL_FATAL" :
+                      "LEVEL_NONE");
+        error.raise();
+      }
       runtime_cmdline_parsed = true;
       return config;
     }
@@ -10836,17 +11033,21 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_IMPLICIT_TOP_LEVEL_TASK,
-            "Implicit top-level tasks are not allowed to be started before "
-            "the Legion runtime is started.")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Implicit top-level tasks are not allowed to be started "
+                 "before the Legion runtime is started.";
+        error.raise();
+      }
       // Check that we're not inside a task
       if (implicit_context != nullptr)
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_IMPLICIT_TOP_LEVEL_TASK,
-            "Implicit top-level tasks are not allowed to be started inside "
-            "of Legion tasks. Only external computations are permitted "
-            "to create new implicit top-level tasks.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Implicit top-level tasks are not allowed to be started "
+                 "inside of Legion tasks. Only external computations are "
+                 "permitted to create new implicit top-level tasks.";
+        error.raise();
+      }
       // Save the top-level task name if necessary
       // Record a fake variant if we're profiling
       if (task_name != nullptr)
@@ -11213,12 +11414,15 @@ namespace Legion {
         local_proc_query.local_address_space();
         // Check for exceeding the local number of processors
         if (local_proc_query.count() > LEGION_MAX_NUM_PROCS)
-          REPORT_LEGION_ERROR(
-              ERROR_MAXIMUM_PROCS_EXCEEDED,
-              "Maximum number of local processors %zd exceeds "
-              "compile-time maximum of %d.  Change the value "
-              "LEGION_MAX_NUM_PROCS in legion_config.h and recompile.",
-              local_proc_query.count(), LEGION_MAX_NUM_PROCS)
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Maximum number of local processors "
+                << local_proc_query.count()
+                << " exceeds compile-time maximum of " << LEGION_MAX_NUM_PROCS
+                << ".  Change the value LEGION_MAX_NUM_PROCS in "
+                   "legion_config.h and recompile.";
+          error.raise();
+        }
         for (Machine::ProcessorQuery::iterator it = local_proc_query.begin();
              it != local_proc_query.end(); it++)
         {
@@ -11238,17 +11442,21 @@ namespace Legion {
           }
         }
         if (local_procs.empty())
-          REPORT_LEGION_ERROR(
-              ERROR_NO_STARTUP_RESOURCES,
-              "Machine model contains no local processors!")
+        {
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error << "Machine model contains no local processors!";
+          error.raise();
+        }
       }
       // Check to make sure we have something to do startup
       if (startup_kind == Processor::NO_KIND)
-        REPORT_LEGION_ERROR(
-            ERROR_NO_STARTUP_RESOURCES,
-            "Machine model contains"
-            " no CPU processors and no utility processors! At least one "
-            "CPU or one utility processor is required for Legion.")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Machine model contains no CPU processors and no utility "
+                 "processors! At least one CPU or one utility processor is "
+                 "required for Legion.";
+        error.raise();
+      }
       // Find the local system memory for our runtime
       Memory system_memory;
       {
@@ -11256,11 +11464,12 @@ namespace Legion {
         local_sysmems.local_address_space();
         local_sysmems.only_kind(Memory::SYSTEM_MEM);
         if (local_sysmems.count() == 0)
-          REPORT_LEGION_ERROR(
-              ERROR_NO_STARTUP_RESOURCES,
-              "Machine model "
-              "contains no local system memories! At least one system memory "
-              "must exist in each process for Legion.")
+        {
+          Error error(LEGION_STARTUP_EXCEPTION);
+          error << "Machine model contains no local system memories! At least "
+                   "one system memory must exist in each process for Legion.";
+          error.raise();
+        }
         system_memory = local_sysmems.first();
       }
       // Now build the data structures for all processors
@@ -11325,7 +11534,7 @@ namespace Legion {
             if (idx == LG_MESSAGE_ID)
             {
               for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
-                registered_events.emplace_back(RtEvent(it->egister_task(
+                registered_events.emplace_back(RtEvent(it->register_task(
                     LG_TASK_ID + idx + msg, lg_task, no_requests)));
             }
             else
@@ -11456,10 +11665,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!runtime_backgrounded)
-        REPORT_LEGION_ERROR(
-            ERROR_ILLEGAL_WAIT_FOR_SHUTDOWN,
-            "Illegal call to wait_for_shutdown when runtime was "
-            "not launched in background mode!");
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to wait_for_shutdown when runtime was not "
+                 "launched in background mode!";
+        error.raise();
+      }
       // If this is the first time we've called this on this node then
       // we need to remove our reference to allow shutdown to proceed
       if (!background_wait.exchange(true))
@@ -11494,27 +11705,33 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'configure_MPI_interoperability' after "
-            "the runtime has been started!");
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Illegal call to 'configure_MPI_interoperability' after the "
+                 "runtime has been started!";
+        error.raise();
+      }
       legion_assert(rank >= 0);
       // Check to see if it was already set
       if (mpi_rank >= 0)
       {
         if (rank != mpi_rank)
-          REPORT_LEGION_ERROR(
-              ERROR_DUPLICATE_MPI_CONFIG,
-              "multiple calls to "
-              "configure_MPI_interoperability with different ranks "
-              "%d and %d on the same Legion runtime!",
-              mpi_rank, rank)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "multiple calls to configure_MPI_interoperability with "
+                   "different ranks "
+                << mpi_rank << " and " << rank
+                << " on the same Legion runtime!";
+          error.raise();
+        }
         else
-          REPORT_LEGION_WARNING(
-              LEGION_WARNING_DUPLICATE_MPI_CONFIG,
-              "duplicate calls to configure_"
-              "MPI_interoperability on rank %d!",
-              rank);
+        {
+          Warning warning;
+          warning
+              << "duplicate calls to configure_MPI_interoperability on rank "
+              << rank;
+          warning.raise();
+        }
       }
       mpi_rank = rank;
     }
@@ -11543,15 +11760,21 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (redop_id == 0)
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_REDOP_ID, "ReductionOpID zero is reserved.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "ReductionOpID zero is reserved.";
+        error.raise();
+      }
       if (!runtime_started || has_lock)
       {
         ReductionOpTable& red_table =
             Runtime::get_reduction_table(true /*safe*/);
         if (red_table.find(redop_id) == red_table.end())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_REDOP_ID, "Invalid ReductionOpID %d", redop_id)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Invalid ReductionOpID " << redop_id;
+          error.raise();
+        }
         return red_table[redop_id];
       }
       else
@@ -11601,14 +11824,20 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (serdez_id == 0)
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_SERDEZ_ID, "CustomSerdezID zero is reserved.")
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "CustomSerdezID zero is reserved.";
+        error.raise();
+      }
       if (!runtime_started || has_lock)
       {
         SerdezOpTable& serdez_table = Runtime::get_serdez_table(true /*safe*/);
         if (serdez_table.find(serdez_id) == serdez_table.end())
-          REPORT_LEGION_ERROR(
-              ERROR_INVALID_SERDEZ_ID, "Invalid CustomSerdezOpID %d", serdez_id)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Invalid CustomSerdezOpID " << serdez_id;
+          error.raise();
+        }
         return serdez_table[serdez_id];
       }
       else
@@ -11661,12 +11890,14 @@ namespace Legion {
             PendingRegistrationCallback(callback, deduplicate, dedup_tag));
       }
       else
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'add_registration_callback' after "
-            "the runtime has been started! Please use "
-            "'perform_registration_callback' for registration "
-            "calls to be done after the runtime has started.")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'add_registration_callback' after the "
+                 "runtime has been started! Please use "
+                 "'perform_registration_callback' for registration calls to be "
+                 "done after the runtime has started.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -11692,12 +11923,14 @@ namespace Legion {
               callback, buffer, deduplicate, dedup_tag));
       }
       else
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'add_registration_callback' after "
-            "the runtime has been started! Please use "
-            "'perform_registration_callback' for registration "
-            "calls to be done after the runtime has started.")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'add_registration_callback' after the "
+                 "runtime has been started! Please use "
+                 "'perform_registration_callback' for registration calls to be "
+                 "done after the runtime has started.";
+        error.raise();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -11808,8 +12041,11 @@ namespace Legion {
       if (!runtime_started || has_lock)
       {
         if (redop_id == 0)
-          REPORT_LEGION_ERROR(
-              ERROR_RESERVED_REDOP_ID, "ERROR: ReductionOpID zero is reserved.")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "ERROR: ReductionOpID zero is reserved.";
+          error.raise();
+        }
         // TODO: figure out a way to make this safe with dynamic registration
 #if 0
         if (redop_id >= LEGION_MAX_APPLICATION_REDOP_ID)
@@ -11820,20 +12056,23 @@ namespace Legion {
                          LEGION_MAX_APPLICATION_REDOP_ID)
 #endif
         if (redop->identity == nullptr)
-          REPORT_LEGION_ERROR(
-              ERROR_RESERVED_REDOP_ID,
-              "ERROR: Legion does not support reduction operators "
-              "without identity values. All reduction operators must "
-              "have an identity value to support fold operations.")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "ERROR: Legion does not support reduction operators without "
+                   "identity values. All reduction operators must have an "
+                   "identity value to support fold operations.";
+          error.raise();
+        }
         ReductionOpTable& red_table =
             Runtime::get_reduction_table(true /*safe*/);
         // Check to make sure we're not overwriting a prior reduction op
         if (!permit_duplicates && (red_table.find(redop_id) != red_table.end()))
-          REPORT_LEGION_ERROR(
-              ERROR_DUPLICATE_REDOP_ID,
-              "ERROR: ReductionOpID "
-              "%d has already been used in the reduction table",
-              redop_id)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "ERROR: ReductionOpID " << redop_id
+                << " has already been used in the reduction table";
+          error.raise();
+        }
         red_table[redop_id] = redop;
         if ((init_func != nullptr) || (fold_func != nullptr))
         {
@@ -11858,14 +12097,16 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!preregistered && !inside_registration_callback)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_NON_CALLBACK_REGISTRATION,
-            "Reduction operator %d was dynamically registered outside of a "
-            "registration callback invocation. In the near future this will "
-            "become an error in order to support task subprocesses. Please "
-            "use 'perform_registration_callback' to generate a callback where "
-            "it will be safe to perform dynamic registrations.",
-            redop_id)
+      {
+        Warning warning;
+        warning << "Reduction operator " << redop_id
+                << " was dynamically registered outside of a registration "
+                   "callback invocation. In the near future this will become "
+                   "an error in order to support task subprocesses. Please use "
+                   "'perform_registration_callback' to generate a callback "
+                   "where it will be safe to perform dynamic registrations.";
+        warning.raise();
+      }
       // Dynamic registration so do it with realm too
       RealmRuntime realm = RealmRuntime::get_runtime();
       realm.register_reduction(redop_id, redop);
@@ -11882,14 +12123,16 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!preregistered && !inside_registration_callback)
-        REPORT_LEGION_WARNING(
-            LEGION_WARNING_NON_CALLBACK_REGISTRATION,
-            "Custom serdez operator %d was dynamically registered outside of a "
-            "registration callback invocation. In the near future this will "
-            "become an error in order to support task subprocesses. Please "
-            "use 'perform_registration_callback' to generate a callback where "
-            "it will be safe to perform dynamic registrations.",
-            serdez_id)
+      {
+        Warning warning;
+        warning << "Custom serdez operator " << serdez_id
+                << " was dynamically registered outside of a registration "
+                   "callback invocation. In the near future this will become "
+                   "an error in order to support task subprocesses. Please use "
+                   "'perform_registration_callback' to generate a callback "
+                   "where it will be safe to perform dynamic registrations.";
+        warning.raise();
+      }
       // Dynamic registration so do it with realm too
       RealmRuntime realm = RealmRuntime::get_runtime();
       realm.register_custom_serdez(serdez_id, serdez_op);
@@ -11907,9 +12150,11 @@ namespace Legion {
       if (!runtime_started || has_lock)
       {
         if (serdez_id == 0)
-          REPORT_LEGION_ERROR(
-              ERROR_RESERVED_SERDEZ_ID,
-              "ERROR: Custom Serdez ID zero is reserved.\n")
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "ERROR: Custom Serdez ID zero is reserved.";
+          error.raise();
+        }
         // TODO: figure out a way to make this safe with dynamic registration
 #if 0
         if (serdez_id >= LEGION_MAX_APPLICATION_SERDEZ_ID)
@@ -11923,11 +12168,12 @@ namespace Legion {
         // Check to make sure we're not overwriting a prior serdez op
         if (!permit_duplicates &&
             (serdez_table.find(serdez_id) != serdez_table.end()))
-          REPORT_LEGION_ERROR(
-              ERROR_DUPLICATE_SERDEZ_ID,
-              "ERROR: CustomSerdezID %d has already been used "
-              "in the serdez operation table",
-              serdez_id)
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "ERROR: CustomSerdezID " << serdez_id
+                << " has already been used in the serdez operation table";
+          error.raise();
+        }
         serdez_table[serdez_id] = serdez_op;
       }
       else
@@ -12015,10 +12261,12 @@ namespace Legion {
     {
       TaskID& next_task = get_current_static_task_id();
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'generate_static_task_id' after "
-            "the runtime has been started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_task_id' after the runtime "
+                 "has been started!";
+        error.raise();
+      }
       return next_task++;
     }
 
@@ -12038,10 +12286,12 @@ namespace Legion {
     {
       ReductionOpID& next_redop = get_current_static_reduction_id();
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'generate_static_reduction_id' after "
-            "the runtime has been started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_reduction_id' after the "
+                 "runtime has been started!";
+        error.raise();
+      }
       return next_redop++;
     }
 
@@ -12060,10 +12310,12 @@ namespace Legion {
     {
       CustomSerdezID& next_serdez = get_current_static_serdez_id();
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'generate_static_serdez_id' after "
-            "the runtime has been started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'generate_static_serdez_id' after the "
+                 "runtime has been started!";
+        error.raise();
+      }
       return next_serdez++;
     }
 
@@ -12077,30 +12329,37 @@ namespace Legion {
     {
       // Report an error if the runtime has already started
       if (runtime_started)
-        REPORT_LEGION_ERROR(
-            ERROR_STATIC_CALL_POST_RUNTIME_START,
-            "Illegal call to 'preregister_task_variant' after "
-            "the runtime has been started!")
+      {
+        Error error(LEGION_STARTUP_EXCEPTION);
+        error << "Illegal call to 'preregister_task_variant' after the runtime "
+                 "has been started!";
+        error.raise();
+      }
       if (check_id && (registrar.task_id >= get_current_static_task_id()))
-        REPORT_LEGION_ERROR(
-            ERROR_MAX_APPLICATION_TASK_ID_EXCEEDED,
-            "Error preregistering task with ID %d. Exceeds the "
-            "statically set bounds on application task IDs of %d. "
-            "See %s in legion_config.h.",
-            registrar.task_id, LEGION_MAX_APPLICATION_TASK_ID,
-            LEGION_MACRO_TO_STRING(LEGION_MAX_APPLICATION_TASK_ID))
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error
+            << "Error preregistering task with ID " << registrar.task_id
+            << ". Exceeds the statically set bounds on application task IDs of "
+            << LEGION_MAX_APPLICATION_TASK_ID << ". See "
+            << LEGION_MACRO_TO_STRING(LEGION_MAX_APPLICATION_TASK_ID)
+            << " in legion_config.h.";
+        error.raise();
+      }
       std::deque<PendingVariantRegistration*>& pending_table =
           get_pending_variant_table();
       // See if we need to pick a variant
       if (vid == LEGION_AUTO_GENERATE_ID)
         vid = pending_table.size() + 1;
       else if (vid == 0)
-        REPORT_LEGION_ERROR(
-            ERROR_RESERVED_VARIANT_ID,
-            "Error preregistering variant for task ID %d with "
-            "variant ID 0. Variant ID 0 is reserved for task "
-            "generators.",
-            registrar.task_id)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Error preregistering variant for task ID "
+              << registrar.task_id
+              << " with variant ID 0. Variant ID 0 is reserved for task "
+                 "generators.";
+        error.raise();
+      }
       // Offset by the runtime tasks
       pending_table.emplace_back(new PendingVariantRegistration(
           vid, return_size, has_return_size, registrar, user_data,
