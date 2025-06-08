@@ -81,6 +81,7 @@ namespace Legion {
       // Get a new unique ID for this operation
       unique_op_id = runtime->get_unique_operation_id();
       context_index = 0;
+      exception_handler = 0;
       remaining_mapping_dependences.store(0);
       outstanding_mapping_references = 0;
       hardened_notifications = 0;
@@ -214,12 +215,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Operation::set_context_index(uint64_t index)
+    void Operation::set_context_index(
+        uint64_t index, ExceptionHandlerID handler)
     //--------------------------------------------------------------------------
     {
       legion_assert(must_epoch == nullptr);
       track_parent = true;
       context_index = index;
+      exception_handler = handler;
       LegionSpy::log_child_operation_index(
           parent_ctx->get_unique_id(), context_index, unique_op_id);
     }
@@ -389,16 +392,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void Operation::initialize_operation(
-        InnerContext* ctx, Provenance* prov /*= nullptr*/,
-        std::optional<ExceptionHandlerID> handler)
+        InnerContext* ctx, Provenance* prov /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
       legion_assert(ctx != nullptr);
       parent_ctx = ctx;
-      if (handler)
-        exception_handler = *handler;
-      else
-        exception_handler = parent_ctx->get_current_exception_handler();
       provenance = prov;
       if (provenance != nullptr)
       {

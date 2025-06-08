@@ -6923,7 +6923,7 @@ namespace Legion {
         AutoLock child_lock(child_op_lock);
         // Get the context index for this new operation
         const size_t context_index = total_children_count++;
-        op->set_context_index(context_index);
+        op->set_context_index(context_index, get_current_exception_handler());
         legion_assert(
             reorder_buffer.empty() ||
             ((reorder_buffer.back().operation_index + 1) == context_index));
@@ -7692,7 +7692,8 @@ namespace Legion {
           {
             AutoLock child_lock(child_op_lock);
             const size_t context_index = total_children_count++;
-            op->set_context_index(context_index);
+            op->set_context_index(
+                context_index, get_current_exception_handler());
             legion_assert(
                 reorder_buffer.empty() ||
                 ((reorder_buffer.back().operation_index + 1) == context_index));
@@ -7735,7 +7736,8 @@ namespace Legion {
              it != ready_operations.end(); it++)
         {
           const size_t context_index = total_children_count++;
-          (*it)->set_context_index(context_index);
+          (*it)->set_context_index(
+              context_index, get_current_exception_handler());
           legion_assert(
               reorder_buffer.empty() ||
               ((reorder_buffer.back().operation_index + 1) == context_index));
@@ -7797,7 +7799,7 @@ namespace Legion {
     {
       AutoLock child_lock(child_op_lock);
       const size_t context_index = total_children_count++;
-      op->set_context_index(context_index);
+      op->set_context_index(context_index, get_current_exception_handler());
       legion_assert(
           reorder_buffer.empty() ||
           ((reorder_buffer.back().operation_index + 1) == context_index));

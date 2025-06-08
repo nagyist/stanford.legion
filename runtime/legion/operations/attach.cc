@@ -948,11 +948,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(index < launcher.handles.size());
-      initialize_operation(
-          ctx, own->get_provenance(), own->get_exception_handler());
+      initialize_operation(ctx, own->get_provenance());
       owner = own;
       index_point = point;
       context_index = own->get_context_index();
+      exception_handler = own->get_exception_handler();
       layout_constraint_set = launcher.constraints;
       restricted = launcher.restricted;
       requirement = RegionRequirement(

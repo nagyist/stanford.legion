@@ -43,9 +43,7 @@ namespace Legion {
       virtual void deactivate(bool free = true);
     public:
       void initialize_predication(
-          InnerContext* ctx, const Predicate& p, Provenance* provenance,
-          std::optional<ExceptionHandlerID> =
-              std::optional<ExceptionHandlerID>());
+          InnerContext* ctx, const Predicate& p, Provenance* provenance);
       virtual bool is_predicated_op(void) const;
       // Wait until the predicate is valid and then return
       // its value.  Give it the current processor in case it

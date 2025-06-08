@@ -710,12 +710,12 @@ namespace Legion {
         const DomainPoint& point, bool flsh)
     //--------------------------------------------------------------------------
     {
-      initialize_operation(
-          ctx, own->get_provenance(), own->get_exception_handler());
+      initialize_operation(ctx, own->get_provenance());
       index_point = point;
       owner = own;
       flush = flsh;
       context_index = own->get_context_index();
+      exception_handler = own->get_exception_handler();
       // Get a reference to the region to keep it alive
       this->region = region;
       requirement = region.impl->get_requirement();

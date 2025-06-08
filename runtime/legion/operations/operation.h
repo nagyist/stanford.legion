@@ -180,7 +180,7 @@ namespace Legion {
     public:
       uint64_t get_context_index(void) const;
       std::optional<uint64_t> get_context_index(GenerationID gen) const;
-      void set_context_index(uint64_t index);
+      void set_context_index(uint64_t index, ExceptionHandlerID handler);
     public:
       // Be careful using this call as it is only valid when the operation
       // actually has a parent task.  Right now the only place it is used
@@ -216,9 +216,7 @@ namespace Legion {
       // Initialize this operation in a new parent context
       // along with the number of regions this task has
       void initialize_operation(
-          InnerContext* ctx, Provenance* provenance = nullptr,
-          std::optional<ExceptionHandlerID> handler =
-              std::optional<ExceptionHandlerID>());
+          InnerContext* ctx, Provenance* provenance = nullptr);
       void set_provenance(Provenance* provenance, bool has_ref);
     public:
       RtEvent execute_prepipeline_stage(

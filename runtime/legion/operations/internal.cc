@@ -39,10 +39,9 @@ namespace Legion {
     {
       legion_assert(creator != nullptr);
       // We never track internal operations
-      initialize_operation(
-          creator->get_context(), creator->get_provenance(),
-          creator->get_exception_handler());
+      initialize_operation(creator->get_context(), creator->get_provenance());
       context_index = creator->get_context_index();
+      exception_handler = creator->get_exception_handler();
       legion_assert(creator_req_idx == -1);
       legion_assert(create_op == nullptr);
       create_op = creator;

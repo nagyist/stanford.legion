@@ -435,9 +435,7 @@ namespace Legion {
         index_domain = launcher.launch_domain;
       internal_space = launch_space->handle;
       sharding_space = launcher.sharding_space;
-      initialize_base_task(
-          ctx, launcher.predicate, task_id, provenance,
-          ctx->get_current_exception_handler());
+      initialize_base_task(ctx, launcher.predicate, task_id, provenance);
       if (outputs != nullptr)
       {
         if (launcher.predicate != Predicate::TRUE_PRED)
@@ -588,9 +586,7 @@ namespace Legion {
               << ") is not foldable.";
         error.raise();
       }
-      initialize_base_task(
-          ctx, launcher.predicate, task_id, provenance,
-          ctx->get_current_exception_handler());
+      initialize_base_task(ctx, launcher.predicate, task_id, provenance);
       if (outputs != nullptr)
       {
         if (launcher.predicate != Predicate::TRUE_PRED)
@@ -1768,8 +1764,7 @@ namespace Legion {
     {
       SliceTask* result = runtime->get_operation<SliceTask>();
       result->initialize_base_task(
-          parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance(),
-          get_exception_handler());
+          parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance());
       result->clone_multi_from(this, is, p, recurse, stealable);
       result->index_owner = this;
       LegionSpy::log_index_slice(get_unique_id(), result->get_unique_id());

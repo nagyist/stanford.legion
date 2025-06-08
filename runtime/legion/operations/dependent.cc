@@ -1493,12 +1493,11 @@ namespace Legion {
         DependentPartitionOp* own, const DomainPoint& p)
     //--------------------------------------------------------------------------
     {
-      initialize_operation(
-          own->get_context(), own->get_provenance(),
-          own->get_exception_handler());
+      initialize_operation(own->get_context(), own->get_provenance());
       index_point = p;
       owner = own;
       context_index = owner->get_context_index();
+      exception_handler = owner->get_exception_handler();
       index_domain = owner->index_domain;
       requirement = owner->requirement;
       parent_task = owner->parent_task;

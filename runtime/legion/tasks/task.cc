@@ -636,10 +636,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void TaskOp::initialize_base_task(
         InnerContext* ctx, const Predicate& p, Processor::TaskFuncID tid,
-        Provenance* prov, ExceptionHandlerID handler)
+        Provenance* prov)
     //--------------------------------------------------------------------------
     {
-      initialize_predication(ctx, p, prov, handler);
+      initialize_predication(ctx, p, prov);
       parent_task = ctx->get_task();  // initialize the parent task
       // Fill in default values for all of the Task fields
       orig_proc = ctx->get_executing_processor();
@@ -1042,6 +1042,7 @@ namespace Legion {
       // From Operation
       this->parent_ctx = rhs->parent_ctx;
       this->context_index = rhs->get_context_index();
+      this->exception_handler = rhs->get_exception_handler();
       this->execution_fence_event = rhs->get_execution_fence_event();
       // Don't register this an operation when setting the must epoch info
       if (rhs->must_epoch != nullptr)

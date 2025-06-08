@@ -3740,14 +3740,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Initialize the operation
-      initialize_operation(
-          own->get_context(), own->get_provenance(),
-          own->get_exception_handler());
+      initialize_operation(own->get_context(), own->get_provenance());
       index_point = p;
       index_domain = own->index_domain;
       sharding_space = own->sharding_space;
       owner = own;
       context_index = own->get_context_index();
+      exception_handler = own->get_exception_handler();
       execution_fence_event = own->get_execution_fence_event();
       // From Memoizable
       trace_local_id = owner->get_trace_local_id().context_index;

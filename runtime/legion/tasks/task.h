@@ -227,7 +227,7 @@ namespace Legion {
       void mark_stolen(void);
       void initialize_base_task(
           InnerContext* ctx, const Predicate& p, Processor::TaskFuncID tid,
-          Provenance* provenance, ExceptionHandlerID handler);
+          Provenance* provenance);
     public:
       bool select_task_options(bool prioritize);
     public:

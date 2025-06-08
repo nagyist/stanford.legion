@@ -341,11 +341,10 @@ namespace Legion {
     ExceptionHandlerID TaskContext::get_current_exception_handler(void) const
     //--------------------------------------------------------------------------
     {
-      // Better be in the top-level task when this is called
-      legion_assert(implicit_context == this);
       if (exception_handler_stack.empty())
         return 0;  // null exception handler
-      return exception_handler_stack.back();
+      else
+        return exception_handler_stack.back();
     }
 
     //--------------------------------------------------------------------------
