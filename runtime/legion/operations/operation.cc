@@ -228,6 +228,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    ExceptionHandlerID Operation::get_exception_handler(void)
+    //--------------------------------------------------------------------------
+    {
+      if (must_epoch == nullptr)
+        return exception_handler;
+      else
+        return must_epoch->get_exception_handler();
+    }
+
+    //--------------------------------------------------------------------------
     void Operation::set_must_epoch(MustEpochOp* epoch, bool do_registration)
     //--------------------------------------------------------------------------
     {

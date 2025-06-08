@@ -173,14 +173,11 @@ namespace Legion {
       inline LogicalTrace* get_trace(void) const { return trace; }
       inline MustEpochOp* get_must_epoch_op(void) const { return must_epoch; }
       inline Provenance* get_provenance(void) const { return provenance; }
-      inline ExceptionHandlerID get_exception_handler(void) const
-      {
-        return exception_handler;
-      }
     public:
       uint64_t get_context_index(void) const;
       std::optional<uint64_t> get_context_index(GenerationID gen) const;
       void set_context_index(uint64_t index, ExceptionHandlerID handler);
+      ExceptionHandlerID get_exception_handler(void);
     public:
       // Be careful using this call as it is only valid when the operation
       // actually has a parent task.  Right now the only place it is used

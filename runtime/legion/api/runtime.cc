@@ -50,10 +50,9 @@ namespace Legion {
                 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
-                0)
-    {
-      legion_assert(Internal::implicit_provenance == 0);
-    }
+                0),
+        previous_provenance(Internal::implicit_provenance)
+    { }
     inline AutoCall(Internal::TaskContext* ctx, const char* func)
       : AutoProvenance(),
         start(
@@ -61,7 +60,8 @@ namespace Legion {
                 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
-                0)
+                0),
+        previous_provenance(Internal::implicit_provenance)
     {
       legion_assert(Internal::implicit_provenance == 0);
       if (provenance != nullptr)
@@ -81,10 +81,9 @@ namespace Legion {
                 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
-                0)
-    {
-      legion_assert(Internal::implicit_provenance == 0);
-    }
+                0),
+        previous_provenance(Internal::implicit_provenance)
+    { }
     inline AutoCall(
         const char* prov, Internal::TaskContext* ctx, const char* func)
       : AutoProvenance(prov),
@@ -93,7 +92,8 @@ namespace Legion {
                 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
-                0)
+                0),
+        previous_provenance(Internal::implicit_provenance)
     {
       legion_assert(Internal::implicit_provenance == 0);
       if (provenance != nullptr)
@@ -113,10 +113,9 @@ namespace Legion {
                 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
-                0)
-    {
-      legion_assert(Internal::implicit_provenance == 0);
-    }
+                0),
+        previous_provenance(Internal::implicit_provenance)
+    { }
     inline AutoCall(
         const std::string& prov, Internal::TaskContext* ctx, const char* func)
       : AutoProvenance(prov),
@@ -125,9 +124,9 @@ namespace Legion {
                 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
-                0)
+                0),
+        previous_provenance(Internal::implicit_provenance)
     {
-      legion_assert(Internal::implicit_provenance == 0);
       if (provenance != nullptr)
         Internal::implicit_provenance = provenance->pid;
       if (ctx != Internal::implicit_context)
@@ -147,11 +146,12 @@ namespace Legion {
           Internal::implicit_context->end_runtime_call(
               KIND, *this, start, Realm::Clock::current_time_in_nanoseconds());
       }
-      // Reset the implicit provenance back to zero
-      Internal::implicit_provenance = 0;
+      // Reset the implicit provenance back to the way it was
+      Internal::implicit_provenance = previous_provenance;
     }
   private:
     const unsigned long long start;
+    const ProvenanceID previous_provenance;
   };
 
   /////////////////////////////////////////////////////////////

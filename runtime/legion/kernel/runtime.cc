@@ -12802,6 +12802,17 @@ namespace Legion {
             stream << "Provenance: " << provenance->human << '\n';
           }
         }
+        else if (implicit_operation != nullptr)
+        {
+          provenance = implicit_operation->get_provenance();
+          if (provenance != nullptr)
+          {
+            provenance->add_reference();
+            std::ostream stream(&exception);
+            stream << "\n-----------------------------------\n";
+            stream << "Provenance: " << provenance->human << '\n';
+          }
+        }
         // Check to see if the user wants to suppress this warning
         if (implicit_context != nullptr)
         {
@@ -12868,6 +12879,17 @@ namespace Legion {
           // provenance on this node in which case there is nothing to do
           if (provenance != nullptr)
           {
+            std::ostream stream(&exception);
+            stream << "\n-----------------------------------\n";
+            stream << "Provenance: " << provenance->human << '\n';
+          }
+        }
+        else if (implicit_operation != nullptr)
+        {
+          provenance = implicit_operation->get_provenance();
+          if (provenance != nullptr)
+          {
+            provenance->add_reference();
             std::ostream stream(&exception);
             stream << "\n-----------------------------------\n";
             stream << "Provenance: " << provenance->human << '\n';
