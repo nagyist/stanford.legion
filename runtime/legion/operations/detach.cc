@@ -710,7 +710,8 @@ namespace Legion {
         const DomainPoint& point, bool flsh)
     //--------------------------------------------------------------------------
     {
-      initialize_operation(ctx, own->get_provenance());
+      initialize_operation(
+          ctx, own->get_provenance(), own->get_exception_handler());
       index_point = point;
       owner = own;
       flush = flsh;

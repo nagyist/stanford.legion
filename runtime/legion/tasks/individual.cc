@@ -104,7 +104,9 @@ namespace Legion {
       index_domain = Domain(index_point, index_point);
       sharding_space = launcher.sharding_space;
       is_index_space = false;
-      initialize_base_task(ctx, launcher.predicate, task_id, provenance);
+      initialize_base_task(
+          ctx, launcher.predicate, task_id, provenance,
+          ctx->get_current_exception_handler());
       // If the task has any output requirements, we create fresh region names
       // return them back to the user
       if (outputs != nullptr)

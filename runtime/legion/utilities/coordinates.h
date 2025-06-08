@@ -86,6 +86,16 @@ namespace Legion {
       DomainPoint index_point;
     };
 
+    //--------------------------------------------------------------------------
+    inline std::ostream& operator<<(
+        std::ostream& os, const ContextCoordinate& coordinate)
+    //--------------------------------------------------------------------------
+    {
+      os << '<' << coordinate.context_index << ',' << coordinate.index_point
+         << '>';
+      return os;
+    }
+
     /**
      * \class TaskTreeCoordinates
      * This represents a stack of context coordinates at every level of the

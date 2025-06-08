@@ -46,7 +46,7 @@ namespace Legion {
       {
         Realm::ProfilingRequestSet requests;
         profiler->add_meta_request(
-            requests, T::TASK_ID, args.provenance, precondition);
+            requests, T::TASK_ID, args.unique_op_id, precondition);
 #ifdef LEGION_SEPARATE_META_TASKS
         return RtEvent(target.spawn(
             LG_TASK_ID + T::TASK_ID, &args, sizeof(T), requests, precondition,
@@ -89,7 +89,7 @@ namespace Legion {
       {
         Realm::ProfilingRequestSet requests;
         profiler->add_meta_request(
-            requests, T::TASK_ID, args.provenance, precondition);
+            requests, T::TASK_ID, args.unique_op_id, precondition);
 #ifdef LEGION_SEPARATE_META_TASKS
         return RtEvent(target.spawn(
             LG_APP_PROC_TASK_ID + T::TASK_ID, &args, sizeof(T), requests,

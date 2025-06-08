@@ -833,6 +833,43 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void ReplicateContext::push_exception_handler(ExceptionHandlerID handler)
+    //--------------------------------------------------------------------------
+    {
+      for (int i = 0;
+           runtime->safe_control_replication && (i < 2) &&
+           ((current_trace == nullptr) || !current_trace->is_fixed());
+           i++)
+      {
+        HashVerifier hasher(
+            this, runtime->safe_control_replication > 1, (i > 0));
+        hasher.hash(REPLICATE_PUSH_EXCEPTION_HANDLER, __func__);
+        hasher.hash(handler, "exception_handler");
+        if (hasher.verify(__func__))
+          break;
+      }
+      InnerContext::push_exception_handler(handler);
+    }
+
+    //--------------------------------------------------------------------------
+    Future ReplicateContext::pop_exception_handler(Provenance* provenance)
+    //--------------------------------------------------------------------------
+    {
+      for (int i = 0;
+           runtime->safe_control_replication && (i < 2) &&
+           ((current_trace == nullptr) || !current_trace->is_fixed());
+           i++)
+      {
+        HashVerifier hasher(
+            this, runtime->safe_control_replication > 1, (i > 0), provenance);
+        hasher.hash(REPLICATE_POP_EXCEPTION_HANDLER, __func__);
+        if (hasher.verify(__func__))
+          break;
+      }
+      return InnerContext::pop_exception_handler(provenance);
+    }
+
+    //--------------------------------------------------------------------------
     void ReplicateContext::hash_future(
         HashVerifier& hasher, const unsigned safe_level, const Future& future,
         const char* description) const

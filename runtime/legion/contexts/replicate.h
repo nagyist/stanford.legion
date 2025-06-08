@@ -240,6 +240,8 @@ namespace Legion {
         REPLICATE_ATTACH_FIELD_INFO,
         REPLICATE_ATTACH_LOGICAL_REGION_INFO,
         REPLICATE_ATTACH_LOGICAL_PARTITION_INFO,
+        REPLICATE_PUSH_EXCEPTION_HANDLER,
+        REPLICATE_POP_EXCEPTION_HANDLER,
       };
     public:
       class AttachDetachShardingFunctor : public ShardingFunctor {
@@ -472,6 +474,8 @@ namespace Legion {
           SemanticTag tag, const void* buffer, size_t size, bool is_mutable,
           bool& global, const void* arg2 = nullptr, size_t arg2len = 0);
       virtual void post_semantic_attach(void);
+      virtual void push_exception_handler(ExceptionHandlerID handler);
+      virtual Future pop_exception_handler(Provenance* provenance);
     public:
       virtual EquivalenceSet* create_initial_equivalence_set(
           unsigned idx1, const RegionRequirement& req);

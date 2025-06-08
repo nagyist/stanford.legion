@@ -389,11 +389,16 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void Operation::initialize_operation(
-        InnerContext* ctx, Provenance* prov /*= nullptr*/)
+        InnerContext* ctx, Provenance* prov /*= nullptr*/,
+        std::optional<ExceptionHandlerID> handler)
     //--------------------------------------------------------------------------
     {
       legion_assert(ctx != nullptr);
       parent_ctx = ctx;
+      if (handler)
+        exception_handler = *handler;
+      else
+        exception_handler = parent_ctx->get_current_exception_handler();
       provenance = prov;
       if (provenance != nullptr)
       {

@@ -454,6 +454,7 @@ namespace Legion {
       rez.serialize(replicate);
       rez.serialize(true_guard);
       rez.serialize(false_guard);
+      rez.serialize(exception_handler);
     }
 
     //--------------------------------------------------------------------------
@@ -505,6 +506,7 @@ namespace Legion {
       derez.deserialize(replicate);
       derez.deserialize(true_guard);
       derez.deserialize(false_guard);
+      derez.deserialize(exception_handler);
       // Already had our options selected
       options_selected = true;
     }
@@ -634,10 +636,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void TaskOp::initialize_base_task(
         InnerContext* ctx, const Predicate& p, Processor::TaskFuncID tid,
-        Provenance* prov)
+        Provenance* prov, ExceptionHandlerID handler)
     //--------------------------------------------------------------------------
     {
-      initialize_predication(ctx, p, prov);
+      initialize_predication(ctx, p, prov, handler);
       parent_task = ctx->get_task();  // initialize the parent task
       // Fill in default values for all of the Task fields
       orig_proc = ctx->get_executing_processor();

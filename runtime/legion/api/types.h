@@ -1062,10 +1062,14 @@ namespace Legion {
     // meta-tasks that correspond to pipeline stages that permit us to
     // take a fault in them so we prune out that operation
     inline thread_local Operation* implicit_operation = nullptr;
+    // The implicit provenance if we're inside of a call into Legion
+    // from an application task or in a meta-task derviced from a
+    // particular operation
+    inline thread_local ProvenanceID implicit_provenance = 0;
     // One more nasty global variable that we use for tracking
     // the provenance of meta-task operations for profiling
     // purposes, this has no bearing on correctness
-    inline thread_local ::legion_unique_id_t implicit_provenance = 0;
+    inline thread_local ::legion_unique_id_t implicit_unique_op_id = 0;
     // Use this global variable to track name of the "finish event"
     // for whatever (meta-)task we're running on at the moment.
     // It should always be the case that the owner node of the
@@ -1287,6 +1291,9 @@ namespace Legion {
       // Save the operation locally
       Operation* local_op = nullptr;
       std::swap(local_op, implicit_operation);
+      // Save the provenance
+      ProvenanceID local_provenance = 0;
+      std::swap(local_provenance, implicit_provenance);
       // Save the enclosing context
       DistributedID local_did = 0;
       std::swap(local_did, implicit_enclosing_context);
@@ -1294,8 +1301,8 @@ namespace Legion {
       LgEvent local_fevent;
       std::swap(local_fevent, implicit_fevent);
       // Save the task provenance information
-      UniqueID local_provenance = 0;
-      std::swap(local_provenance, implicit_provenance);
+      UniqueID local_uid = 0;
+      std::swap(local_uid, implicit_unique_op_id);
       // Check to see if we have any local locks to notify
       if (local_lock_list != nullptr)
       {
@@ -1362,10 +1369,12 @@ namespace Legion {
       implicit_mapper_call = local_call;
       // Write the operation back
       implicit_operation = local_op;
+      // Write the provenance back
+      implicit_provenance = local_provenance;
       // Write the enclosing context back
       implicit_enclosing_context = local_did;
       // Write the provenance information back
-      implicit_provenance = local_provenance;
+      implicit_unique_op_id = local_uid;
 #ifdef DEBUG_LEGION_CALLERS
       implicit_task_kind = local_kind;
       implicit_task_caller = local_caller;
@@ -1412,6 +1421,9 @@ namespace Legion {
       // Save the operation locally
       Operation* local_op = nullptr;
       std::swap(local_op, implicit_operation);
+      // Save the provenance
+      ProvenanceID local_provenance = 0;
+      std::swap(local_provenance, implicit_provenance);
       // Save the enclosing context
       DistributedID local_did = 0;
       std::swap(local_did, implicit_enclosing_context);
@@ -1419,8 +1431,8 @@ namespace Legion {
       LgEvent local_fevent;
       std::swap(local_fevent, implicit_fevent);
       // Save the task provenance information
-      UniqueID local_provenance = 0;
-      std::swap(local_provenance, implicit_provenance);
+      UniqueID local_uid = 0;
+      std::swap(local_uid, implicit_unique_op_id);
       // Check to see if we have any local locks to notify
       if (local_lock_list != nullptr)
       {
@@ -1487,10 +1499,12 @@ namespace Legion {
       implicit_mapper_call = local_call;
       // Write the operation back
       implicit_operation = local_op;
+      // Write the provenance back
+      implicit_provenance = local_provenance;
       // Write the enclosing context back
       implicit_enclosing_context = local_did;
       // Write the provenance information back
-      implicit_provenance = local_provenance;
+      implicit_unique_op_id = local_uid;
 #ifdef DEBUG_LEGION_CALLERS
       implicit_task_kind = local_kind;
       implicit_task_caller = local_caller;

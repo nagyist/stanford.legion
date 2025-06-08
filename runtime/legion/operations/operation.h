@@ -173,6 +173,10 @@ namespace Legion {
       inline LogicalTrace* get_trace(void) const { return trace; }
       inline MustEpochOp* get_must_epoch_op(void) const { return must_epoch; }
       inline Provenance* get_provenance(void) const { return provenance; }
+      inline ExceptionHandlerID get_exception_handler(void) const
+      {
+        return exception_handler;
+      }
     public:
       uint64_t get_context_index(void) const;
       std::optional<uint64_t> get_context_index(GenerationID gen) const;
@@ -212,7 +216,9 @@ namespace Legion {
       // Initialize this operation in a new parent context
       // along with the number of regions this task has
       void initialize_operation(
-          InnerContext* ctx, Provenance* provenance = nullptr);
+          InnerContext* ctx, Provenance* provenance = nullptr,
+          std::optional<ExceptionHandlerID> handler =
+              std::optional<ExceptionHandlerID>());
       void set_provenance(Provenance* provenance, bool has_ref);
     public:
       RtEvent execute_prepipeline_stage(
@@ -540,6 +546,8 @@ namespace Legion {
       UniqueID unique_op_id;
       // The issue index of this operation in the context
       uint64_t context_index;
+      // The exception handler for this operation if it exists
+      ExceptionHandlerID exception_handler;
     protected:
       // Operations on which this operation depends
       std::map<Operation*, GenerationID> incoming;

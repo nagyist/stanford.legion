@@ -49,10 +49,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PredicatedOp::initialize_predication(
-        InnerContext* ctx, const Predicate& p, Provenance* provenance)
+        InnerContext* ctx, const Predicate& p, Provenance* provenance,
+        std::optional<ExceptionHandlerID> handler)
     //--------------------------------------------------------------------------
     {
-      initialize_operation(ctx, provenance);
+      initialize_operation(ctx, provenance, handler);
       if (p == Predicate::TRUE_PRED)
       {
         predication_state = PREDICATED_TRUE_STATE;

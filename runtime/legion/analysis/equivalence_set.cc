@@ -879,8 +879,7 @@ namespace Legion {
           local_space);
 #endif
       if (is_logical_owner())
-        LegionSpy::log_equivalence_set(
-            did, expr->expr_id, tree_id, implicit_provenance);
+        LegionSpy::log_equivalence_set(did, expr->expr_id, tree_id);
     }
 
     //--------------------------------------------------------------------------
@@ -12715,7 +12714,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       tracker->finalize_equivalence_sets(
-          compute, enclosing, outermost, parent_req_index, expr, provenance);
+          compute, enclosing, outermost, parent_req_index, expr, unique_op_id);
       if (enclosing->remove_base_gc_ref(META_TASK_REF))
         delete enclosing;
       if (outermost->remove_base_gc_ref(META_TASK_REF))

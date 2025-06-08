@@ -948,7 +948,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(index < launcher.handles.size());
-      initialize_operation(ctx, own->get_provenance());
+      initialize_operation(
+          ctx, own->get_provenance(), own->get_exception_handler());
       owner = own;
       index_point = point;
       context_index = own->get_context_index();

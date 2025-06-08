@@ -176,7 +176,7 @@ namespace Legion {
 #ifdef LEGION_DEBUG_CALLERS
           lg_call_id(implicit_task_kind),
 #endif
-          enclosing_context(0), provenance(0)
+          enclosing_context(0), provenance(0), unique_op_id(0)
       { }
       LgTaskArgs(bool escapes_ctx, bool escapes_op)
         : lg_task_id(T::TASK_ID),
@@ -184,7 +184,8 @@ namespace Legion {
           lg_call_id(implicit_task_kind),
 #endif
           enclosing_context(escapes_ctx ? 0 : implicit_enclosing_context),
-          provenance(escapes_op ? 0 : implicit_provenance)
+          provenance(escapes_op ? 0 : implicit_provenance),
+          unique_op_id(escapes_op ? 0 : implicit_unique_op_id)
       {
         static_assert(std::is_trivially_copyable_v<T>);
         // Make sure this is aligned reasonably as well
@@ -198,7 +199,8 @@ namespace Legion {
       LgTaskID lg_call_id;
 #endif
       DistributedID enclosing_context;
-      ::legion_unique_id_t provenance;
+      ProvenanceID provenance;
+      ::legion_unique_id_t unique_op_id;
     public:
       static void handle(const void* data, size_t size)
       {
@@ -220,6 +222,7 @@ namespace Legion {
         implicit_operation = nullptr;
         implicit_enclosing_context = args->enclosing_context;
         implicit_provenance = args->provenance;
+        implicit_unique_op_id = args->unique_op_id;
         args->execute();
       }
     };

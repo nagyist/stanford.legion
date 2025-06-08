@@ -133,7 +133,7 @@ namespace Legion {
   {
     std::ostream stream(this);
     stream << "\n-----------------------------------\n";
-    stream << "Backtrace:\n\n";
+    stream << "Backtrace:\n";
     stream << backtrace;
   }
 
@@ -182,149 +182,11 @@ namespace Legion {
     return 0;
   }
 
-#if 0
-  //--------------------------------------------------------------------------
-  void Exception::initialize(void)
-  //--------------------------------------------------------------------------
-  {
-    if (provenance != nullptr)
-      provenance->add_reference();
-    backtrace.capture_backtrace(2/*to skip*/);
-    (*this)
-        << "\n------------------------------------------------------------\n";
-    switch (type)
-    {
-      case APPLICATION_EXCEPTION:
-        {
-          (*this) << "LEGION ENCOUNTERED AN APPLICATION EXCEPTION";
-          break;
-        }
-      case INTERFACE_EXCEPTION:
-        {
-          (*this) << "LEGION ENCOUNTERED AN API USAGE ERROR";
-          break;
-        }
-      case DYNAMIC_TYPE_EXCEPTION:
-        {
-          (*this) << "LEGION ENCOUNTERED A DYNAMIC TYPE ERROR";
-          break;
-        }
-      case PROGRAMMING_MODEL_EXCEPTION:
-        {
-          (*this) << "LEGION ENCOUNTERED A PROGRAMMING MODEL ERROR";
-          break;
-        }
-      case MAPPER_EXCEPTION:
-        {
-          (*this) << "LEGION ENCOUNTERED A MAPPER ERROR";
-          break;
-        }
-      case STARTUP_EXCEPTION:
-        {
-          (*this) << "LEGION ENCOUNTERED A MAPPER ERROR";
-          break;
-        }
-      case FATAL_EXCEPTION:
-        {
-          (*this) << "LEGION ENCOUNTERED AN INTERNAL FATAL ERROR";
-          break;
-        }
-      case WARNING_EXCEPTION:
-        {
-          if ((Internal::runtime == nullptr) || !Internal::runtime->warnings_are_errors)
-            (*this) << "LEGION_ENCOUNTERED A WARNING";
-          else
-            (*this)
-                << "LEGION ENCOUNTERED A WARNING BEING TREATED AS AN ERROR";
-          break;
-        }
-      default:
-        std::abort();
-    }
-    // Check to see if we can report where this error occurred
-    if (op != nullptr)
-      (*this) << " IN " << op->get_logging_name() << " ("
-              << op->get_unique_op_id() << "):\n";
-    else if (ctx != nullptr)
-      (*this) << " IN " << ctx->get_task_name() << "("
-              << ctx->get_unique_id() << "):\n";
-    else if (Internal::implicit_provenance > 0)
-      (*this) << " IN META-TASK FOR UKNOWN OPERATION " << Internal::implicit_provenance
-              << ":\n";
-    else
-      (*this) << ":\n"; 
-  }
-
-  //--------------------------------------------------------------------------
-  Exception::~Exception(void)
-  //--------------------------------------------------------------------------
-  {
-    // If this is a warning, check to see if we're just going to report
-    // that and be done with it, otherwise we do extra work
-    bool warning = false;
-    if ((type == WARNING_EXCEPTION) &&
-        ((Internal::runtime == nullptr) || !Internal::runtime->warnings_are_errors))
-    {
-      if (Internal::runtime->warnings_backtrace)
-      {
-        (*this) << "\n-----------------------------------\n";
-        (*this) << "Backtrace:\n\n";
-        (*this) << backtrace;
-      }
-      (*this)
-          << "\n------------------------------------------------------------";
-      warning = true;
-    }
-    else
-    {
-      if (provenance != nullptr)
-      {
-        (*this) << "\n-----------------------------------\n";
-        (*this) << "Provenance:\n\n" << provenance->human;
-      }
-      if (op != nullptr)
-      {
-        (*this) << "\n-----------------------------------\n";
-        (*this) << "Task Tree Trace:\n\n";
-        (*this) << op->get_logging_name() << "(" << op->get_unique_op_id()
-                << ")";
-        Internal::InnerContext* context = op->get_context();
-        while (context->owner_task != nullptr)
-        {
-          (*this) << "\n"
-                  << context->get_task_name() << "(" << context->get_unique_id()
-                  << ")";
-          context = context->owner_task->get_context();
-        }
-      }
-      (*this) << "\n-----------------------------------\n";
-      (*this) << "Backtrace:\n\n";
-      (*this) << backtrace;
-      (*this)
-          << "\n------------------------------------------------------------";
-    }
-    const std::string result = str();
-    if (result.size() > 0)
-    {
-      if (warning)
-        Internal::log_legion.warning() << result;
-      else if (type == FATAL_EXCEPTION)
-        Internal::log_legion.fatal() << result;
-      else
-        Internal::log_legion.error() << result;
-    }
-    if ((provenance != nullptr) && provenance->remove_reference())
-      delete provenance;
-  }
-#endif
-
   //--------------------------------------------------------------------------
   Error::Error(ExceptionType t)
     : exception(t), stream(&exception), raised(false)
   //--------------------------------------------------------------------------
-  {
-    backtrace.capture_backtrace(1 /*to skip*/);
-  }
+  { }
 
   //--------------------------------------------------------------------------
   Error::~Error(void)
@@ -340,6 +202,8 @@ namespace Legion {
   {
     legion_assert(!raised);
     raised = true;
+    Realm::Backtrace backtrace;
+    backtrace.capture_backtrace(2 /*to skip*/);
     Internal::Runtime::raise_exception(std::move(exception), backtrace);
   }
 
@@ -347,9 +211,7 @@ namespace Legion {
   Fatal::Fatal(void)
     : exception(LEGION_FATAL_EXCEPTION), stream(&exception), raised(false)
   //--------------------------------------------------------------------------
-  {
-    backtrace.capture_backtrace(1 /*to skip*/);
-  }
+  { }
 
   //--------------------------------------------------------------------------
   Fatal::~Fatal(void)
@@ -365,6 +227,8 @@ namespace Legion {
   {
     legion_assert(!raised);
     raised = true;
+    Realm::Backtrace backtrace;
+    backtrace.capture_backtrace(2 /*to skip*/);
     Internal::Runtime::raise_exception(std::move(exception), backtrace);
   }
 
@@ -375,11 +239,26 @@ namespace Legion {
   { }
 
   //--------------------------------------------------------------------------
+  Warning::~Warning(void)
+  //--------------------------------------------------------------------------
+  {
+    if (active)
+      std::abort();
+  }
+
+  //--------------------------------------------------------------------------
   void Warning::raise(void)
   //--------------------------------------------------------------------------
   {
     if (active)
+    {
+      active = false;
+      Realm::Backtrace backtrace;
+      if ((Internal::runtime != nullptr) &&
+          Internal::runtime->warnings_backtrace)
+        backtrace.capture_backtrace(2 /*to skip*/);
       Internal::Runtime::raise_warning(std::move(exception), backtrace);
+    }
   }
 
 }  // namespace Legion

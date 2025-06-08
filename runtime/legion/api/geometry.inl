@@ -422,7 +422,7 @@ namespace Legion {
       os << ')';
     }
     else
-      os << '[' << dp.point_data[0] << ']';
+      os << "(none)";
     return os;
   }
 

@@ -1050,14 +1050,14 @@ namespace Legion {
       {
         if (spy_logging_level > LIGHT_SPY_LOGGING)
           log_spy.print(
-              "Ap User Event " IDFMT " %llu", event.id, implicit_provenance);
+              "Ap User Event " IDFMT " %llu", event.id, implicit_unique_op_id);
       }
 
       static inline void log_rt_user_event(RtUserEvent event)
       {
         if (spy_logging_level > LIGHT_SPY_LOGGING)
           log_spy.print(
-              "Rt User Event " IDFMT " %llu", event.id, implicit_provenance);
+              "Rt User Event " IDFMT " %llu", event.id, implicit_unique_op_id);
       }
 
       static inline void log_pred_event(PredEvent event)
@@ -1209,13 +1209,12 @@ namespace Legion {
 
       // Logging for equivalence set creation
       static inline void log_equivalence_set(
-          DistributedID did, IndexSpaceExprID expr_id, RegionTreeID tid,
-          UniqueID creator_uid)
+          DistributedID did, IndexSpaceExprID expr_id, RegionTreeID tid)
       {
         if (spy_logging_level > EQ_SPY_LOGGING)
           log_spy.print(
               "Equivalence Set %llx %lld %lld %llu", did, expr_id, tid,
-              creator_uid);
+              implicit_unique_op_id);
       }
 
       static inline void log_equivalence_set_use(

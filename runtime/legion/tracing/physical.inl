@@ -25,23 +25,6 @@ namespace Legion {
     // Utility functions
     /////////////////////////////////////////////////////////////
 
-    inline std::ostream& operator<<(std::ostream& out, const TraceLocalID& key)
-    {
-      out << "(" << key.context_index << ",";
-      if (key.index_point.dim > 1)
-        out << "(";
-      for (int dim = 0; dim < key.index_point.dim; ++dim)
-      {
-        if (dim > 0)
-          out << ",";
-        out << key.index_point[dim];
-      }
-      if (key.index_point.dim > 1)
-        out << ")";
-      out << ")";
-      return out;
-    }
-
     inline std::ostream& operator<<(std::ostream& out, ReplayableStatus status)
     {
       switch (status)

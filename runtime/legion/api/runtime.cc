@@ -51,7 +51,9 @@ namespace Legion {
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
                 0)
-    { }
+    {
+      legion_assert(Internal::implicit_provenance == 0);
+    }
     inline AutoCall(Internal::TaskContext* ctx, const char* func)
       : AutoProvenance(),
         start(
@@ -61,6 +63,9 @@ namespace Legion {
                 Realm::Clock::current_time_in_nanoseconds() :
                 0)
     {
+      legion_assert(Internal::implicit_provenance == 0);
+      if (provenance != nullptr)
+        Internal::implicit_provenance = provenance->pid;
       if (ctx != Internal::implicit_context)
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
@@ -77,7 +82,9 @@ namespace Legion {
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
                 0)
-    { }
+    {
+      legion_assert(Internal::implicit_provenance == 0);
+    }
     inline AutoCall(
         const char* prov, Internal::TaskContext* ctx, const char* func)
       : AutoProvenance(prov),
@@ -88,6 +95,9 @@ namespace Legion {
                 Realm::Clock::current_time_in_nanoseconds() :
                 0)
     {
+      legion_assert(Internal::implicit_provenance == 0);
+      if (provenance != nullptr)
+        Internal::implicit_provenance = provenance->pid;
       if (ctx != Internal::implicit_context)
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
@@ -104,7 +114,9 @@ namespace Legion {
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
                 Realm::Clock::current_time_in_nanoseconds() :
                 0)
-    { }
+    {
+      legion_assert(Internal::implicit_provenance == 0);
+    }
     inline AutoCall(
         const std::string& prov, Internal::TaskContext* ctx, const char* func)
       : AutoProvenance(prov),
@@ -115,6 +127,9 @@ namespace Legion {
                 Realm::Clock::current_time_in_nanoseconds() :
                 0)
     {
+      legion_assert(Internal::implicit_provenance == 0);
+      if (provenance != nullptr)
+        Internal::implicit_provenance = provenance->pid;
       if (ctx != Internal::implicit_context)
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
@@ -132,6 +147,8 @@ namespace Legion {
           Internal::implicit_context->end_runtime_call(
               KIND, *this, start, Realm::Clock::current_time_in_nanoseconds());
       }
+      // Reset the implicit provenance back to zero
+      Internal::implicit_provenance = 0;
     }
   private:
     const unsigned long long start;
@@ -543,6 +560,8 @@ namespace Legion {
           error << "Unsupported dimension " << bf.get_dim() << " for "
                 << "Runtime::create_partition_by_blockify. This probably means "
                 << "you need to build Legion with support for more dimensions.";
+          if (provenance != nullptr)
+            error << "\nProvenance: " << provenance;
           error.raise();
         }
     }
@@ -574,6 +593,8 @@ namespace Legion {
           error << "Unsupported dimension " << bf.get_dim() << " for "
                 << "Runtime::create_partition_by_blockify. This probably means "
                 << "you need to build Legion with support for more dimensions.";
+          if (provenance != nullptr)
+            error << "\nProvenance: " << provenance;
           error.raise();
         }
     }

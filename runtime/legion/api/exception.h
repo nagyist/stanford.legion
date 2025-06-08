@@ -97,7 +97,6 @@ namespace Legion {
     }
     [[noreturn]] void raise(void);
   public:
-    Realm::Backtrace backtrace;
     Exception exception;
     std::ostream stream;
   private:
@@ -127,7 +126,6 @@ namespace Legion {
     }
     [[noreturn]] void raise(void);
   public:
-    Realm::Backtrace backtrace;
     Exception exception;
     std::ostream stream;
   private:
@@ -144,7 +142,7 @@ namespace Legion {
     Warning(void);
     Warning(const Warning& rhs) = delete;
     Warning(Warning&& rhs) = delete;
-    ~Warning(void) = default;
+    ~Warning(void);
   public:
     Warning& operator=(const Warning& rhs) = delete;
     Warning& operator=(Warning&& rhs) = delete;
@@ -157,7 +155,6 @@ namespace Legion {
     }
     void raise(void);
   public:
-    Realm::Backtrace backtrace;
     Exception exception;
     std::ostream stream;
     bool active;
@@ -172,12 +169,18 @@ namespace Legion {
    */
   class ExceptionHandler {
   public:
+    virtual ~ExceptionHandler(void) { }
     // Whether this exception handler can handle exceptions or
     // is only capable of handling warnings
     virtual bool can_handle(ExceptionType type) const { return false; }
     // Handle the kind of the exception and return if the exception
     // was successfaully handled
-    virtual bool handle_exception(Exception& exception) { return false; }
+    virtual bool handle_exception(
+        Exception& exception, const std::string_view& provenance,
+        const Realm::Backtrace& backtrace)
+    {
+      return false;
+    }
   };
 
 }  // namespace Legion

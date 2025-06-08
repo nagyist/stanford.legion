@@ -123,7 +123,7 @@ namespace Legion {
           : LgTaskArgs<TriggerTaskArgs>(false, false), op(t)
         {
           enclosing_context = parent_ctx_did;
-          provenance = t->get_unique_op_id();
+          unique_op_id = t->get_unique_op_id();
         }
         inline void execute(void) const
         {
@@ -227,7 +227,7 @@ namespace Legion {
       void mark_stolen(void);
       void initialize_base_task(
           InnerContext* ctx, const Predicate& p, Processor::TaskFuncID tid,
-          Provenance* provenance);
+          Provenance* provenance, ExceptionHandlerID handler);
     public:
       bool select_task_options(bool prioritize);
     public:

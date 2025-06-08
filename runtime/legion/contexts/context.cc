@@ -305,25 +305,69 @@ namespace Legion {
     void TaskContext::push_exception_handler(ExceptionHandlerID hid)
     //--------------------------------------------------------------------------
     {
-      exception_handlers.push_back(runtime->find_exception_handler(hid));
+      legion_assert(implicit_context == this);
+      // Check to make sure we can find it
+      if (runtime->find_exception_handler(hid, true /*can fail*/) == nullptr)
+      {
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "No exception handler registered with ID " << hid
+              << " for exception handler push in task " << *this << ".";
+        error.raise();
+      }
+      else
+        exception_handler_stack.push_back(hid);
     }
 
     //--------------------------------------------------------------------------
     Future TaskContext::pop_exception_handler(Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      if (exception_handlers.empty())
+      legion_assert(implicit_context == this);
+      if (exception_handler_stack.empty())
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
         error << "No exception handlers found to pop in " << *this << ".";
         error.raise();
       }
-      exception_handlers.pop_back();
+      exception_handler_stack.pop_back();
       Future result(new FutureImpl(
           this, true /*register*/, runtime->get_available_distributed_id(),
           provenance));
       result.impl->set_local(nullptr, 0 /*size*/);
       return result;
+    }
+
+    //--------------------------------------------------------------------------
+    ExceptionHandlerID TaskContext::get_current_exception_handler(void) const
+    //--------------------------------------------------------------------------
+    {
+      // Better be in the top-level task when this is called
+      legion_assert(implicit_context == this);
+      if (exception_handler_stack.empty())
+        return 0;  // null exception handler
+      return exception_handler_stack.back();
+    }
+
+    //--------------------------------------------------------------------------
+    void TaskContext::record_task_tree_trace(
+        Exception& exception, Operation* op) const
+    //--------------------------------------------------------------------------
+    {
+      std::ostream stream(&exception);
+      stream << "\n-----------------------------------\n";
+      stream << "Task Tree Trace:\n";
+      unsigned depth = 0;
+      if (op != nullptr)
+        stream << "[" << depth++ << "]" << op->get_task_tree_coordinate()
+               << ": " << *op << "\n";
+      const TaskContext* context = this;
+      while (context->owner_task != nullptr)
+      {
+        stream << "[" << depth++ << "]"
+               << context->owner_task->get_task_tree_coordinate() << ": "
+               << *context << "\n";
+        context = context->owner_task->get_context();
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -514,7 +558,8 @@ namespace Legion {
     {
       implicit_context = this;
       implicit_enclosing_context = did;
-      implicit_provenance = owner_task->get_unique_op_id();
+      implicit_provenance = 0;
+      implicit_unique_op_id = owner_task->get_unique_op_id();
       if (overhead_profiler != nullptr)
         overhead_profiler->previous_profiling_time =
             Realm::Clock::current_time_in_nanoseconds();

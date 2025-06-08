@@ -565,7 +565,7 @@ namespace Legion {
       {
         info.preconditions[idx] = preconditions[idx];
         if (preconditions[idx].is_barrier())
-          record_barrier_use(preconditions[idx], implicit_provenance);
+          record_barrier_use(preconditions[idx], implicit_unique_op_id);
       }
       info.fevent = implicit_fevent;
       owner->update_footprint(sizeof(info) + count * sizeof(LgEvent), this);
@@ -583,7 +583,7 @@ namespace Legion {
       info.result = result;
       info.precondition = pre;
       if (pre.is_barrier())
-        record_barrier_use(pre, implicit_provenance);
+        record_barrier_use(pre, implicit_unique_op_id);
       info.fevent = implicit_fevent;
       // See if we're triggering this node on the same node where it was made
       // If not we need to eventually notify the node where it was made that
@@ -644,7 +644,7 @@ namespace Legion {
       info.result = result;
       info.precondition = pre;
       if (pre.is_barrier())
-        record_barrier_use(pre, implicit_provenance);
+        record_barrier_use(pre, implicit_unique_op_id);
       legion_assert(implicit_fevent.exists());
       info.fevent = implicit_fevent;
       owner->update_footprint(sizeof(info), this);
@@ -709,7 +709,7 @@ namespace Legion {
       info.result = result;
       info.precondition = precondition;
       if (precondition.is_barrier())
-        record_barrier_use(precondition, implicit_provenance);
+        record_barrier_use(precondition, implicit_unique_op_id);
       info.reservation = r;
       info.fevent = implicit_fevent;
       owner->update_footprint(sizeof(info), this);
@@ -729,7 +729,7 @@ namespace Legion {
       info.unique = unique_event;
       info.precondition = precondition;
       if (precondition.is_barrier())
-        record_barrier_use(precondition, implicit_provenance);
+        record_barrier_use(precondition, implicit_unique_op_id);
       owner->update_footprint(sizeof(info), this);
     }
 
@@ -752,7 +752,7 @@ namespace Legion {
       info.next = next_unique;
       info.precondition = precondition;
       if (precondition.is_barrier())
-        record_barrier_use(precondition, implicit_provenance);
+        record_barrier_use(precondition, implicit_unique_op_id);
       owner->update_footprint(sizeof(info), this);
     }
 
@@ -779,7 +779,7 @@ namespace Legion {
       {
         info.preconditions[idx] = preconditions[idx];
         if (preconditions[idx].is_barrier())
-          record_barrier_use(preconditions[idx], implicit_provenance);
+          record_barrier_use(preconditions[idx], implicit_unique_op_id);
       }
       info.fevent = fevent;
       info.performed = performed;
@@ -1453,7 +1453,7 @@ namespace Legion {
       event_wait_infos.emplace_back(
           EventWaitInfo{local_proc.id, implicit_fevent, event, backtrace_id});
       if (event.is_barrier())
-        record_barrier_use(event, implicit_provenance);
+        record_barrier_use(event, implicit_unique_op_id);
       owner->update_footprint(sizeof(EventWaitInfo), this);
     }
 
@@ -2458,15 +2458,30 @@ namespace Legion {
       std::stringstream ss;
       ss << bt;
       const std::string str = ss.str();
+      // Need this for computing the ID of the backtrace
+      std::vector<std::string> symbols;
+      bt.print_symbols(symbols);
+      // Use the hash of the string for the backtrace so that the profiler
+      // can deduplicate it across different processes, make sure to use
+      // the Murmur3Hasher here and not std::hash because we want the
+      // result to be the same across processes and that is not true
+      // of the std::hash algorithm
+      Murmur3Hasher hasher;
+      for (std::vector<std::string>::const_iterator it = symbols.begin();
+           it != symbols.end(); it++)
+        hasher.hash(it->c_str(), it->size());
+      uint64_t hashes[2];
+      hasher.finalize(hashes);
+      const unsigned long long result = hashes[0] ^ hashes[1];
       // Now retake the lock and see if we lost the race
       AutoLock p_lock(profiler_lock);
       std::map<uintptr_t, unsigned long long>::const_iterator finder =
           backtrace_ids.find(hash);
       if (finder != backtrace_ids.end())
+      {
+        legion_assert(finder->second == result);
         return finder->second;
-      // Use the hash of the string for the backtrace so that the profiler
-      // can deduplicate it across different processes
-      const unsigned long long result = std::hash<std::string>{}(str);
+      }
       // Didn't lose the race so generate a new ID for this backtrace
       const LegionProfDesc::Backtrace backtrace = {result, str.c_str()};
       serializer->serialize(backtrace);
@@ -2685,7 +2700,7 @@ namespace Legion {
     {
       // Don't increment here, we'll increment on the remote side since we
       // that is where we know the profiler is going to handle the results
-      ProfilingInfo info(nullptr, LEGION_PROF_MESSAGE, implicit_provenance);
+      ProfilingInfo info(nullptr, LEGION_PROF_MESSAGE, implicit_unique_op_id);
       info.id = LG_MESSAGE_ID + (int)k;
       info.critical = critical;
       // Record the spawn time which is different than the create_time in
@@ -2925,7 +2940,7 @@ namespace Legion {
       // from its timeline to establish when the precondition has triggered
       // and then we'll use that to feed into the reduction in the barrier
       // to establish the last arrival for the barrier
-      ProfilingInfo info(this, LEGION_PROF_ARRIVAL, implicit_provenance);
+      ProfilingInfo info(this, LEGION_PROF_ARRIVAL, implicit_unique_op_id);
       info.id = bar.id;
       info.extra.id2 = count;
       info.creator = implicit_fevent;

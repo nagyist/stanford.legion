@@ -90,7 +90,7 @@ namespace Legion {
       AutoProvenance& operator=(const AutoProvenance& rhs) = delete;
     public:
       inline operator Provenance*(void) const { return provenance; }
-    private:
+    protected:
       Provenance* const provenance;
     };
 

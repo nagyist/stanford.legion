@@ -45,6 +45,7 @@ namespace Legion {
       implicit_operation = nullptr;
       implicit_enclosing_context = header.enclosing_context;
       implicit_provenance = header.provenance;
+      implicit_unique_op_id = header.unique_op_id;
       // Need to do all this stuff before invoking the handler because if
       // this is a handler for a shutdown message then we could race with
       // the runtime shutdown

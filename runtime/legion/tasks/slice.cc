@@ -645,7 +645,8 @@ namespace Legion {
     {
       SliceTask* result = runtime->get_operation<SliceTask>();
       result->initialize_base_task(
-          parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance());
+          parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance(),
+          get_exception_handler());
       result->clone_multi_from(this, is, p, recurse, stealable);
       result->index_owner = this->index_owner;
       LegionSpy::log_slice_slice(get_unique_id(), result->get_unique_id());
@@ -800,7 +801,8 @@ namespace Legion {
     {
       PointTask* result = runtime->get_operation<PointTask>();
       result->initialize_base_task(
-          parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance());
+          parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance(),
+          get_exception_handler());
       result->clone_task_op_from(
           this, this->target_proc, false /*stealable*/, false /*duplicate*/);
       result->is_index_space = true;

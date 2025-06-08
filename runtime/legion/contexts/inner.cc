@@ -5734,8 +5734,8 @@ namespace Legion {
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
       if (current_trace != nullptr)
       {
-        Fatal fatal;
-        fatal << "Attempted an inline mapping of region ("
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Attempted an inline mapping of region ("
               << launcher.requirement.region.index_space.get_id() << ","
               << launcher.requirement.region.field_space.get_id() << ","
               << launcher.requirement.region.get_tree_id()
@@ -5744,15 +5744,15 @@ namespace Legion {
               << get_unique_id()
               << "). It is illegal to perform inline mapping operations inside "
                  "of traces.";
-        fatal.raise();
+        error.raise();
       }
       bool parent_conflict = false, inline_conflict = false;
       const int index =
           has_conflicting_regions(map_op, parent_conflict, inline_conflict);
       if (parent_conflict)
       {
-        Fatal fatal;
-        fatal << "Attempted an inline mapping of region ("
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Attempted an inline mapping of region ("
               << launcher.requirement.region.index_space.get_id() << ","
               << launcher.requirement.region.field_space.get_id() << ","
               << launcher.requirement.region.get_tree_id()
@@ -5764,12 +5764,12 @@ namespace Legion {
               << get_unique_id()
               << ") that would ultimately result in deadlock. Instead you "
                  "receive this error message.";
-        fatal.raise();
+        error.raise();
       }
       if (inline_conflict)
       {
-        Fatal fatal;
-        fatal << "Attempted an inline mapping of region ("
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Attempted an inline mapping of region ("
               << launcher.requirement.region.index_space.get_id() << ","
               << launcher.requirement.region.field_space.get_id() << ","
               << launcher.requirement.region.get_tree_id()
@@ -5777,7 +5777,7 @@ namespace Legion {
               << get_task_name() << " (ID " << get_unique_id()
               << ") that would ultimately result in deadlock.  Instead you "
                  "receive this error message.";
-        fatal.raise();
+        error.raise();
       }
       register_inline_mapped_region(result);
       add_to_dependence_queue(map_op, launcher.static_dependences);
@@ -5796,8 +5796,8 @@ namespace Legion {
       if (current_trace != nullptr)
       {
         const RegionRequirement& req = region.impl->get_requirement();
-        Fatal fatal;
-        fatal << "Attempted an inline mapping of region ("
+        Error error(LEGION_INTERFACE_EXCEPTION);
+        error << "Attempted an inline mapping of region ("
               << req.region.index_space.get_id() << ","
               << req.region.field_space.get_id() << ","
               << req.region.get_tree_id() << ") inside of trace "
@@ -5805,7 +5805,7 @@ namespace Legion {
               << " (ID " << get_unique_id()
               << "). It is illegal to perform inline mapping operations inside "
                  "of traces.";
-        fatal.raise();
+        error.raise();
       }
       MapOp* map_op = runtime->get_operation<MapOp>();
       map_op->initialize(this, region, provenance);
@@ -7241,12 +7241,15 @@ namespace Legion {
       for (std::vector<Operation*>::const_iterator it = to_perform.begin();
            it != to_perform.end(); it++)
       {
-        (*it)->set_execution_fence_event(current_execution_fence_event);
         implicit_enclosing_context = did;
         implicit_operation = (*it);
-        implicit_provenance = (*it)->get_unique_op_id();
+        Provenance* provenance = (*it)->get_provenance();
+        implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
+        implicit_unique_op_id = (*it)->get_unique_op_id();
+        (*it)->set_execution_fence_event(current_execution_fence_event);
         (*it)->trigger_ready();
       }
+      implicit_operation = nullptr;
       if (next != nullptr)
       {
         TriggerReadyArgs args(this);
@@ -7280,9 +7283,12 @@ namespace Legion {
       {
         implicit_enclosing_context = did;
         implicit_operation = (*it);
-        implicit_provenance = (*it)->get_unique_op_id();
+        Provenance* provenance = (*it)->get_provenance();
+        implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
+        implicit_unique_op_id = (*it)->get_unique_op_id();
         (*it)->enqueue_ready_task(false /*use target*/);
       }
+      implicit_operation = nullptr;
       if (next != nullptr)
       {
         DeferredEnqueueTaskArgs args(this, precondition, performed);
@@ -7318,9 +7324,12 @@ namespace Legion {
       {
         implicit_enclosing_context = did;
         implicit_operation = (*it);
-        implicit_provenance = (*it)->get_unique_op_id();
+        Provenance* provenance = (*it)->get_provenance();
+        implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
+        implicit_unique_op_id = (*it)->get_unique_op_id();
         (*it)->trigger_execution();
       }
+      implicit_operation = nullptr;
       if (next != nullptr)
       {
         TriggerExecutionArgs args(this, precondition, performed);
@@ -7357,9 +7366,12 @@ namespace Legion {
       {
         implicit_enclosing_context = did;
         implicit_operation = (*it);
-        implicit_provenance = (*it)->get_unique_op_id();
+        Provenance* provenance = (*it)->get_provenance();
+        implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
+        implicit_unique_op_id = (*it)->get_unique_op_id();
         (*it)->complete_execution();
       }
+      implicit_operation = nullptr;
       if (next != nullptr)
       {
         DeferredExecutionArgs args(this, precondition, performed);
@@ -7395,9 +7407,12 @@ namespace Legion {
       {
         implicit_enclosing_context = did;
         implicit_operation = (*it);
-        implicit_provenance = (*it)->get_unique_op_id();
+        Provenance* provenance = (*it)->get_provenance();
+        implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
+        implicit_unique_op_id = (*it)->get_unique_op_id();
         (*it)->complete_mapping();
       }
+      implicit_operation = nullptr;
       if (next != nullptr)
       {
         DeferredMappedArgs args(this, precondition, performed);
@@ -7518,9 +7533,12 @@ namespace Legion {
           std::abort();
         implicit_enclosing_context = did;
         implicit_operation = it->op;
-        implicit_provenance = it->op->get_unique_op_id();
+        Provenance* provenance = it->op->get_provenance();
+        implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
+        implicit_unique_op_id = it->op->get_unique_op_id();
         it->op->complete_operation(it->effects, false /*first*/);
       }
+      implicit_operation = nullptr;
       if (next != nullptr)
       {
         DeferredCompletionArgs args(this, precondition, performed);
@@ -7547,6 +7565,7 @@ namespace Legion {
         if (!next.child_complete ||
             ((idx > 0) && (next.operation_index == previous_index)))
         {
+          implicit_operation = nullptr;
           outstanding_commit_task = false;
           return true;
         }
@@ -7555,16 +7574,20 @@ namespace Legion {
         child_lock.release();
         implicit_enclosing_context = did;
         implicit_operation = op;
-        implicit_provenance = op->get_unique_op_id();
+        Provenance* provenance = op->get_provenance();
+        implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
+        implicit_unique_op_id = op->get_unique_op_id();
         op->trigger_commit();
         child_lock.reacquire();
         // If we did the commit and there's no more entries we're done
         if (reorder_buffer.empty())
         {
+          implicit_operation = nullptr;
           outstanding_commit_task = false;
           return true;
         }
       }
+      implicit_operation = nullptr;
       ReorderBufferEntry& next = reorder_buffer.front();
       if (next.complete && (next.operation_index != previous_index))
       {
@@ -7610,9 +7633,12 @@ namespace Legion {
       {
         implicit_enclosing_context = did;
         implicit_operation = it->first;
-        implicit_provenance = it->first->get_unique_op_id();
+        Provenance* provenance = it->first->get_provenance();
+        implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
+        implicit_unique_op_id = it->first->get_unique_op_id();
         it->first->commit_operation(it->second);
       }
+      implicit_operation = nullptr;
       if (next.first != nullptr)
       {
         DeferredCommitArgs args(this, precondition, performed);

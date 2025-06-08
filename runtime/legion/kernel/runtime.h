@@ -361,6 +361,7 @@ namespace Legion {
       void register_static_projections(void);
       void register_static_sharding_functors(void);
       void register_static_concurrent_functors(void);
+      void register_static_exception_handlers(void);
       void initialize_legion_prof(const LegionConfiguration& config);
       void log_local_machine(void) const;
       void initialize_mappers(void);
@@ -1129,6 +1130,7 @@ namespace Legion {
       unsigned get_unique_indirections_id(void);
     public:
       Provenance* find_or_create_provenance(const char* prov, size_t length);
+      Provenance* find_provenance(ProvenanceID pid);
     public:
       // Methods for helping with dumb nested class scoping problems
       IndexSpace help_create_index_space_handle(TypeTag type_tag);
@@ -1280,7 +1282,7 @@ namespace Legion {
       std::unordered_map<uint64_t /*hash*/, CanonicalSet> canonical_expressions;
     private:
       mutable LocalLock provenance_lock;
-      std::unordered_map<size_t, Provenance*> provenances;
+      std::unordered_map<uint64_t, Provenance*> provenances;
     protected:
       mutable LocalLock library_lock;
       struct LibraryMapperIDs {

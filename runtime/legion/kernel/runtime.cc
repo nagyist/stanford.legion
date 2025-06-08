@@ -585,6 +585,11 @@ namespace Legion {
            it != concurrent_functors.end(); it++)
         delete it->second;
       concurrent_functors.clear();
+      for (std::map<ExceptionHandlerID, ExceptionHandler*>::iterator it =
+               exception_handlers.begin();
+           it != exception_handlers.end(); it++)
+        delete it->second;
+      exception_handlers.clear();
       for (std::map<Processor, ProcessorManager*>::const_iterator it =
                proc_managers.begin();
            it != proc_managers.end(); it++)
@@ -650,7 +655,7 @@ namespace Legion {
         delete it->second;
       }
       memory_managers.clear();
-      for (std::unordered_map<size_t, Provenance*>::const_iterator it =
+      for (std::unordered_map<uint64_t, Provenance*>::const_iterator it =
                provenances.begin();
            it != provenances.end(); it++)
         if (it->second->remove_reference())
@@ -780,6 +785,23 @@ namespace Legion {
       register_concurrent_functor(
           0, new ZeroColoringFunctor(), false /*need check*/,
           true /*was preregistered*/, nullptr, true /*preregistered*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_static_exception_handlers(void)
+    //--------------------------------------------------------------------------
+    {
+      std::map<ExceptionHandlerID, ExceptionHandler*>&
+          pending_exception_handlers = get_pending_exception_handler_table();
+      for (std::map<ExceptionHandlerID, ExceptionHandler*>::const_iterator it =
+               pending_exception_handlers.begin();
+           it != pending_exception_handlers.end(); it++)
+        register_exception_handler(
+            it->first, it->second, true /*zero check*/,
+            true /*was preregistered*/);
+      register_exception_handler(
+          0, new ExceptionHandler(), false /*need check*/,
+          true /*was preregistered*/);
     }
 
     //--------------------------------------------------------------------------
@@ -1147,6 +1169,7 @@ namespace Legion {
       register_static_projections();
       register_static_sharding_functors();
       register_static_concurrent_functors();
+      register_static_exception_handlers();
       // Has to come after registring the static constraints
       initialize_virtual_manager(next_static_did, virtual_layout_id, mapping);
       // Initialize the mappers
@@ -3280,12 +3303,11 @@ namespace Legion {
         bool preregistered)
     //--------------------------------------------------------------------------
     {
-      if (hid == std::numeric_limits<ExceptionHandlerID>::max())
+      if (need_zero_check && (hid == 0))
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
-        error << "ExceptionHandlerID "
-              << std::numeric_limits<ExceptionHandlerID>::max()
-              << " (UINT_MAX) is a reserved exception handler ID.";
+        error << "ExceptionHandlerID 0 is a reserved ExceptionHandlerID that "
+              << "is reserved for the null exception handler.";
         error.raise();
       }
       if (!preregistered && !inside_registration_callback)
@@ -3301,7 +3323,7 @@ namespace Legion {
                 << "it will be safe to perform dynamic registrations.";
         warning.raise();
       }
-      if ((total_address_spaces > 1) &&
+      if (!preregistered && (total_address_spaces > 1) &&
           (inside_registration_callback != GLOBAL_REGISTRATION_CALLBACK))
       {
         Warning warning;
@@ -3338,12 +3360,11 @@ namespace Legion {
                  "after the runtime has started.";
         error.raise();
       }
-      if (hid == std::numeric_limits<ExceptionHandlerID>::max())
+      if (hid == 0)
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
-        error << "ExceptionHandlerID "
-              << std::numeric_limits<ExceptionHandlerID>::max()
-              << " (UINT_MAX) is a reserved exception handler ID.";
+        error << "ExceptionHandlerID 0 is a reserved ExceptionHandlerID that "
+              << "is reserved for the null exception handler.";
         error.raise();
       }
       std::map<ExceptionHandlerID, ExceptionHandler*>&
@@ -10389,13 +10410,17 @@ namespace Legion {
     {
       if ((prov == nullptr) || (size == 0))
         return nullptr;
-      const std::string_view view(prov, size);
-      // Compute the hash
-      const size_t hash = std::hash<std::string_view>{}(view);
+      // Compute the hash, use the murmur hasher since we can guarantee that it
+      // is deterministic across the processes which is not true of std::hash
+      Murmur3Hasher hasher;
+      hasher.hash(prov, size);
+      uint64_t hashes[2];
+      hasher.finalize(hashes);
+      const uint64_t hash = hashes[0] ^ hashes[1];
       // Check to see if we can find it in read-only mode first
       {
         AutoLock prov_lock(provenance_lock, false /*exclusive*/);
-        std::unordered_map<size_t, Provenance*>::const_iterator finder =
+        std::unordered_map<uint64_t, Provenance*>::const_iterator finder =
             provenances.find(hash);
         if (finder != provenances.end())
         {
@@ -10406,7 +10431,7 @@ namespace Legion {
       // Retake the lock in exclusive mode
       AutoLock prov_lock(provenance_lock);
       // Check to make sure we didn't lose the race
-      std::unordered_map<size_t, Provenance*>::const_iterator finder =
+      std::unordered_map<uint64_t, Provenance*>::const_iterator finder =
           provenances.find(hash);
       if (finder != provenances.end())
       {
@@ -10421,6 +10446,19 @@ namespace Legion {
       if (profiler != nullptr)
         profiler->record_provenance(hash, prov, size);
       return result;
+    }
+
+    //--------------------------------------------------------------------------
+    Provenance* Runtime::find_provenance(ProvenanceID pid)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock prov_lock(provenance_lock, false /*exclusive*/);
+      std::unordered_map<uint64_t, Provenance*>::const_iterator finder =
+          provenances.find(pid);
+      if (finder == provenances.end())
+        return nullptr;
+      finder->second->add_reference();
+      return finder->second;
     }
 
     //--------------------------------------------------------------------------
@@ -11504,7 +11542,7 @@ namespace Legion {
         implicit_fevent = LgEvent::NO_LG_EVENT;
       implicit_context = nullptr;
       implicit_enclosing_context = 0;
-      implicit_provenance = 0;
+      implicit_unique_op_id = 0;
     }
 
     //--------------------------------------------------------------------------
@@ -11546,7 +11584,7 @@ namespace Legion {
       implicit_context = ctx;
       implicit_enclosing_context = ctx->did;
       implicit_fevent = ctx->owner_task->get_completion_event();
-      implicit_provenance = ctx->owner_task->get_unique_op_id();
+      implicit_unique_op_id = ctx->owner_task->get_unique_op_id();
     }
 
     //--------------------------------------------------------------------------
@@ -11578,7 +11616,7 @@ namespace Legion {
       else
         implicit_fevent = LgEvent::NO_LG_EVENT;
       implicit_context = nullptr;
-      implicit_provenance = 0;
+      implicit_unique_op_id = 0;
     }
 
     //--------------------------------------------------------------------------
@@ -12751,6 +12789,38 @@ namespace Legion {
           raise_exception(std::move(exception), backtrace);
         if (runtime->warnings_backtrace)
           exception.record_backtrace(backtrace);
+        Provenance* provenance = nullptr;
+        if (implicit_provenance != 0)
+        {
+          provenance = runtime->find_provenance(implicit_provenance);
+          // This might still fail if we haven't recorded this
+          // provenance on this node in which case there is nothing to do
+          if (provenance != nullptr)
+          {
+            std::ostream stream(&exception);
+            stream << "\n-----------------------------------\n";
+            stream << "Provenance: " << provenance->human << '\n';
+          }
+        }
+        // Check to see if the user wants to suppress this warning
+        if (implicit_context != nullptr)
+        {
+          ExceptionHandler* handler = runtime->find_exception_handler(
+              implicit_context->get_current_exception_handler());
+          if (handler->can_handle(LEGION_WARNING_EXCEPTION) &&
+              handler->handle_exception(exception, provenance->full, backtrace))
+            return;
+        }
+        else if (implicit_operation != nullptr)
+        {
+          ExceptionHandler* handler = runtime->find_exception_handler(
+              implicit_operation->get_exception_handler());
+          if (handler->can_handle(LEGION_WARNING_EXCEPTION) &&
+              handler->handle_exception(exception, provenance->full, backtrace))
+            return;
+        }
+        if ((provenance != nullptr) && provenance->remove_reference())
+          delete provenance;
       }
 #if 0
       if (runtime == nullptr)
@@ -12788,6 +12858,59 @@ namespace Legion {
       legion_assert(
           (exception.type != LEGION_WARNING_EXCEPTION) ||
           ((runtime != nullptr) && runtime->warnings_are_errors));
+      if (runtime != nullptr)
+      {
+        Provenance* provenance = nullptr;
+        if (implicit_provenance != 0)
+        {
+          provenance = runtime->find_provenance(implicit_provenance);
+          // This might still fail if we haven't recorded this
+          // provenance on this node in which case there is nothing to do
+          if (provenance != nullptr)
+          {
+            std::ostream stream(&exception);
+            stream << "\n-----------------------------------\n";
+            stream << "Provenance: " << provenance->human << '\n';
+          }
+        }
+        if (implicit_context != nullptr)
+        {
+          // Record the task tree context
+          implicit_context->record_task_tree_trace(exception, nullptr);
+          exception.record_backtrace(backtrace);
+          ExceptionHandler* handler = runtime->find_exception_handler(
+              implicit_context->get_current_exception_handler());
+          if (handler->can_handle(exception.type) &&
+              handler->handle_exception(exception, provenance->full, backtrace))
+          {
+            log_legion.warning() << "Ignoring request to handle "
+                                 << "exception in " << *implicit_context
+                                 << " because it is not yet supported";
+          }
+        }
+        else if (implicit_operation != nullptr)
+        {
+          // Record the task tree context
+          implicit_operation->get_context()->record_task_tree_trace(
+              exception, implicit_operation);
+          exception.record_backtrace(backtrace);
+          ExceptionHandler* handler = runtime->find_exception_handler(
+              implicit_context->get_current_exception_handler());
+          if (handler->can_handle(exception.type) &&
+              handler->handle_exception(exception, provenance->full, backtrace))
+          {
+            log_legion.warning() << "Ignoring request to handle "
+                                 << "exception in " << *implicit_operation
+                                 << " because it is not yet supported";
+          }
+        }
+        else
+          exception.record_backtrace(backtrace);
+        if ((provenance != nullptr) && provenance->remove_reference())
+          delete provenance;
+      }
+      else
+        exception.record_backtrace(backtrace);
 #if 0
       if (runtime == nullptr)
       {
@@ -12819,7 +12942,6 @@ namespace Legion {
       // If you get here you've called into Legion from an external thread
       // while it is running. The only optional here is to shutdown Legion
       // safely and then abort because we can't recover from this
-      exception.record_backtrace(backtrace);
       if (exception.type == LEGION_FATAL_EXCEPTION)
         log_legion.fatal() << std::string_view(exception);
       else

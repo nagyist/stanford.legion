@@ -137,8 +137,11 @@ namespace Legion {
           SemanticTag tag, const void* buffer, size_t size, bool is_mutable,
           bool& global, const void* arg2 = nullptr, size_t arg2len = 0);
       virtual void post_semantic_attach(void);
+    public:
       virtual void push_exception_handler(ExceptionHandlerID handler);
       virtual Future pop_exception_handler(Provenance* provenance);
+      ExceptionHandlerID get_current_exception_handler(void) const;
+      void record_task_tree_trace(Exception& exception, Operation* op) const;
     public:
       virtual RtEvent find_pointwise_dependence(
           uint64_t context_index, const DomainPoint& point, ShardID shard,
@@ -603,7 +606,7 @@ namespace Legion {
       // from the profilters perspective
       std::map<PhysicalInstance, LgEvent> task_local_instances;
     protected:
-      std::vector<ExceptionHandler*> exception_handlers;
+      std::vector<ExceptionHandlerID> exception_handler_stack;
       std::vector<long long> user_profiling_ranges;
     protected:
       bool task_executed;

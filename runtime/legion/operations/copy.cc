@@ -3740,7 +3740,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Initialize the operation
-      initialize_operation(own->get_context(), own->get_provenance());
+      initialize_operation(
+          own->get_context(), own->get_provenance(),
+          own->get_exception_handler());
       index_point = p;
       index_domain = own->index_domain;
       sharding_space = own->sharding_space;
