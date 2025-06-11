@@ -12819,7 +12819,11 @@ namespace Legion {
           ExceptionHandler* handler = runtime->find_exception_handler(
               implicit_context->get_current_exception_handler());
           if (handler->can_handle(LEGION_WARNING_EXCEPTION) &&
-              handler->handle_exception(exception, provenance->full, backtrace))
+              handler->handle_exception(
+                  exception,
+                  (provenance == nullptr) ? std::string_view() :
+                                            provenance->full,
+                  backtrace))
             return;
         }
         else if (implicit_operation != nullptr)
@@ -12827,7 +12831,11 @@ namespace Legion {
           ExceptionHandler* handler = runtime->find_exception_handler(
               implicit_operation->get_exception_handler());
           if (handler->can_handle(LEGION_WARNING_EXCEPTION) &&
-              handler->handle_exception(exception, provenance->full, backtrace))
+              handler->handle_exception(
+                  exception,
+                  (provenance == nullptr) ? std::string_view() :
+                                            provenance->full,
+                  backtrace))
             return;
         }
         if ((provenance != nullptr) && provenance->remove_reference())
@@ -12903,7 +12911,11 @@ namespace Legion {
           ExceptionHandler* handler = runtime->find_exception_handler(
               implicit_context->get_current_exception_handler());
           if (handler->can_handle(exception.type) &&
-              handler->handle_exception(exception, provenance->full, backtrace))
+              handler->handle_exception(
+                  exception,
+                  (provenance == nullptr) ? std::string_view() :
+                                            provenance->full,
+                  backtrace))
           {
             log_legion.warning() << "Ignoring request to handle "
                                  << "exception in " << *implicit_context
@@ -12919,7 +12931,11 @@ namespace Legion {
           ExceptionHandler* handler = runtime->find_exception_handler(
               implicit_context->get_current_exception_handler());
           if (handler->can_handle(exception.type) &&
-              handler->handle_exception(exception, provenance->full, backtrace))
+              handler->handle_exception(
+                  exception,
+                  (provenance == nullptr) ? std::string_view() :
+                                            provenance->full,
+                  backtrace))
           {
             log_legion.warning() << "Ignoring request to handle "
                                  << "exception in " << *implicit_operation

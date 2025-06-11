@@ -59,6 +59,7 @@
 #include "legion/api/buffers.h"
 #include "legion/api/constraints.h"
 #include "legion/api/data.h"
+#include "legion/api/exception.h"
 #include "legion/api/functors.h"
 #include "legion/api/future.h"
 #include "legion/api/future_map.h"
