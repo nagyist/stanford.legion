@@ -1303,6 +1303,7 @@ INSTALL_HEADERS += legion.h \
 		   legion/api/constraints.h \
 		   legion/api/data.h \
 		   legion/api/data.inl \
+		   legion/api/exception.h \
 		   legion/api/functors.h \
 		   legion/api/future.h \
 		   legion/api/future.inl \
