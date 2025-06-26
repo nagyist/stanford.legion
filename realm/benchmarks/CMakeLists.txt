@@ -11,7 +11,6 @@
 # the License.
 
 #region Benchmark Properties
-set(BENCHMARK_RESOURCE_LOCK)
 set(BENCHMARK_DEFAULT_ARGS)
 set(BENCHMARK_ARGS
     ""
@@ -33,9 +32,13 @@ if(MPIEXEC_EXECUTABLE)
 endif()
 
 if(REALM_USE_CUDA OR REALM_USE_HIP)
-  set(BENCHMARK_RESOURCE_LOCK gpu)
   set(BENCHMARK_DEFAULT_ARGS -ll:gpu 1)
   set(BENCHMARK_USE_GPU TRUE)
+  set(TEST_GPU_LIBS $<TARGET_NAME_IF_EXISTS:CUDA::cudart> $<TARGET_NAME_IF_EXISTS:hip::host>)
+endif()
+
+if(REALM_USE_KOKKOS AND REALM_USE_OPENMP)
+  list(APPEND BENCHMARK_DEFAULT_ARGS -ll:ocpu 1 -ll:onuma 0)
 endif()
 
 if(NOT BENCHMARK_ARGS)
@@ -64,11 +67,9 @@ set(_bench_list)
 macro(add_benchmark target)
   add_executable(${target} ${ARGN})
   target_link_libraries(${target} Realm::Realm)
-  add_test(NAME ${target} COMMAND $<TARGET_FILE:${target}> ${TEST_ARGS} ${${target}_ARGS})
-  set_property(
-    TEST ${target} PROPERTY RESOURCE_LOCK $<REMOVE_DUPLICATES:${TEST_RESOURCE_LOCK}
-                            ${${target}_RESOURCE_LOCK}>
-  )
+  add_test(NAME ${target} COMMAND $<TARGET_FILE:${target}> ${BENCHMARK_ARGS} ${${target}_ARGS})
+  # Benchmarks need to be run in isolation to get accurate results
+  set_property(TEST ${target} PROPERTY RUN_SERIAL TRUE)
   if(REALM_USE_UCX)
     add_dependencies(${target} realm_ucp_bootstrap_mpi)
   endif()
@@ -81,6 +82,7 @@ add_benchmark(event_throughput "${REALM_BENCH_DIR}/event_throughput/event_throug
 add_benchmark(event_ubench "${REALM_BENCH_DIR}/event_ubench/event_ubench.cc")
 add_benchmark(lock_chains "${REALM_BENCH_DIR}/lock_chains/lock_chains.cc")
 add_benchmark(lock_contention "${REALM_BENCH_DIR}/lock_contention/lock_contention.cc")
+set(reducetest_ARGS -batches 1) # Run short version
 add_benchmark(reducetest "${REALM_BENCH_DIR}/reducetest/reducetest.cc")
 
 add_benchmark(

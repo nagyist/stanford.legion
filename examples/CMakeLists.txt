@@ -48,6 +48,7 @@ add_subdirectory(collective_writes)
 add_subdirectory(concurrent_tasks)
 add_subdirectory(tree_collectives)
 add_subdirectory(warning_suppression)
+add_subdirectory(machine_config)
 
 if(Legion_MPI_INTEROP)
   add_subdirectory(mpi_interop)
