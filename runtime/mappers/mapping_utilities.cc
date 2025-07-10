@@ -1103,6 +1103,7 @@ namespace Legion {
           case LEGION_READ_WRITE: return "READ_WRITE";
           case LEGION_WRITE_ONLY: return "WRITE_ONLY";
           case LEGION_WRITE_DISCARD: return "WRITE_DISCARD";
+          case LEGION_READ_ONLY | LEGION_DISCARD_OUTPUT_MASK: return "READ_DISCARD";
           default: assert(false); return "";
         }
       }

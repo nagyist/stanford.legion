@@ -40,26 +40,25 @@ set(UCX_BOOTSTRAP_ROOT_DIR ../../../../runtime/realm/ucx/bootstrap)
 cmake_path(ABSOLUTE_PATH UCX_BOOTSTRAP_ROOT_DIR NORMALIZE)
 
 set(UCX_BACKENDS)
-macro(add_backend_plugin backend)
-  # Arguments are:
-  # 1) Backend name
-  # 2) List of libraries to link to
+
+function(add_backend_plugin backend)
+  cmake_parse_arguments(PARSE_ARGV 0 arg "" "NAME" "SOURCES;LIBRARIES")
   add_library(
-    realm_ucp_bootstrap_${backend} MODULE "${UCX_BOOTSTRAP_ROOT_DIR}/bootstrap_${backend}.c"
+    ${arg_NAME} MODULE ${arg_SOURCES}
   )
-  target_link_libraries(realm_ucp_bootstrap_${backend} ${ARGN})
+  target_link_libraries(${arg_NAME} ${arg_LIBRARIES})
   set_target_properties(
-    realm_ucp_bootstrap_${backend}
+    ${arg_NAME}
     PROPERTIES PREFIX ""
                VERSION ${PROJECT_VERSION}
                SOVERSION ${PROJECT_VERSION_MAJOR}
   )
-  list(APPEND UCX_BACKENDS ${backend})
-endmacro()
+  list(APPEND UCX_BACKENDS ${arg_NAME})
+endfunction()
 
 if(UCX_BOOTSTRAP_ENABLE_MPI)
   find_package(MPI)
-  add_backend_plugin(mpi MPI::MPI_C)
+  add_backend_plugin(NAME realm_ucp_bootstrap_mpi SOURCES ${UCX_BOOTSTRAP_ROOT_DIR}/bootstrap_mpi.c LIBRARIES MPI::MPI_C)
 endif()
 #endregion
 

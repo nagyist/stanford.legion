@@ -21,35 +21,35 @@
 namespace Legion {
 
   //--------------------------------------------------------------------------
-  inline RegionFlags operator~(RegionFlags f)
+  inline constexpr RegionFlags operator~(RegionFlags f)
   //--------------------------------------------------------------------------
   {
     return static_cast<RegionFlags>(~unsigned(f));
   }
 
   //--------------------------------------------------------------------------
-  inline RegionFlags operator|(RegionFlags left, RegionFlags right)
+  inline constexpr RegionFlags operator|(RegionFlags left, RegionFlags right)
   //--------------------------------------------------------------------------
   {
     return static_cast<RegionFlags>(unsigned(left) | unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline RegionFlags operator&(RegionFlags left, RegionFlags right)
+  inline constexpr RegionFlags operator&(RegionFlags left, RegionFlags right)
   //--------------------------------------------------------------------------
   {
     return static_cast<RegionFlags>(unsigned(left) & unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline RegionFlags operator^(RegionFlags left, RegionFlags right)
+  inline constexpr RegionFlags operator^(RegionFlags left, RegionFlags right)
   //--------------------------------------------------------------------------
   {
     return static_cast<RegionFlags>(unsigned(left) ^ unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline RegionFlags operator|=(RegionFlags& left, RegionFlags right)
+  inline constexpr RegionFlags operator|=(RegionFlags& left, RegionFlags right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);
@@ -59,7 +59,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline RegionFlags operator&=(RegionFlags& left, RegionFlags right)
+  inline constexpr RegionFlags operator&=(RegionFlags& left, RegionFlags right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);
@@ -69,7 +69,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline RegionFlags operator^=(RegionFlags& left, RegionFlags right)
+  inline constexpr RegionFlags operator^=(RegionFlags& left, RegionFlags right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);
@@ -79,35 +79,39 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline PrivilegeMode operator~(PrivilegeMode p)
+  inline constexpr PrivilegeMode operator~(PrivilegeMode p)
   //--------------------------------------------------------------------------
   {
     return static_cast<PrivilegeMode>(~unsigned(p));
   }
 
   //--------------------------------------------------------------------------
-  inline PrivilegeMode operator|(PrivilegeMode left, PrivilegeMode right)
+  inline constexpr PrivilegeMode operator|(
+      PrivilegeMode left, PrivilegeMode right)
   //--------------------------------------------------------------------------
   {
     return static_cast<PrivilegeMode>(unsigned(left) | unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline PrivilegeMode operator&(PrivilegeMode left, PrivilegeMode right)
+  inline constexpr PrivilegeMode operator&(
+      PrivilegeMode left, PrivilegeMode right)
   //--------------------------------------------------------------------------
   {
     return static_cast<PrivilegeMode>(unsigned(left) & unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline PrivilegeMode operator^(PrivilegeMode left, PrivilegeMode right)
+  inline constexpr PrivilegeMode operator^(
+      PrivilegeMode left, PrivilegeMode right)
   //--------------------------------------------------------------------------
   {
     return static_cast<PrivilegeMode>(unsigned(left) ^ unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline PrivilegeMode operator|=(PrivilegeMode& left, PrivilegeMode right)
+  inline constexpr PrivilegeMode operator|=(
+      PrivilegeMode& left, PrivilegeMode right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);
@@ -117,7 +121,8 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline PrivilegeMode operator&=(PrivilegeMode& left, PrivilegeMode right)
+  inline constexpr PrivilegeMode operator&=(
+      PrivilegeMode& left, PrivilegeMode right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);
@@ -127,7 +132,8 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline PrivilegeMode operator^=(PrivilegeMode& left, PrivilegeMode right)
+  inline constexpr PrivilegeMode operator^=(
+      PrivilegeMode& left, PrivilegeMode right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);
@@ -137,14 +143,14 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline CoherenceProperty operator~(CoherenceProperty p)
+  inline constexpr CoherenceProperty operator~(CoherenceProperty p)
   //--------------------------------------------------------------------------
   {
     return static_cast<CoherenceProperty>(~unsigned(p));
   }
 
   //--------------------------------------------------------------------------
-  inline CoherenceProperty operator|(
+  inline constexpr CoherenceProperty operator|(
       CoherenceProperty left, CoherenceProperty right)
   //--------------------------------------------------------------------------
   {
@@ -152,7 +158,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline CoherenceProperty operator&(
+  inline constexpr CoherenceProperty operator&(
       CoherenceProperty left, CoherenceProperty right)
   //--------------------------------------------------------------------------
   {
@@ -160,7 +166,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline CoherenceProperty operator^(
+  inline constexpr CoherenceProperty operator^(
       CoherenceProperty left, CoherenceProperty right)
   //--------------------------------------------------------------------------
   {
@@ -168,7 +174,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline CoherenceProperty operator|=(
+  inline constexpr CoherenceProperty operator|=(
       CoherenceProperty& left, CoherenceProperty right)
   //--------------------------------------------------------------------------
   {
@@ -179,7 +185,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline CoherenceProperty operator&=(
+  inline constexpr CoherenceProperty operator&=(
       CoherenceProperty& left, CoherenceProperty right)
   //--------------------------------------------------------------------------
   {
@@ -190,7 +196,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline CoherenceProperty operator^=(
+  inline constexpr CoherenceProperty operator^=(
       CoherenceProperty& left, CoherenceProperty right)
   //--------------------------------------------------------------------------
   {
@@ -201,35 +207,36 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline AllocateMode operator~(AllocateMode a)
+  inline constexpr AllocateMode operator~(AllocateMode a)
   //--------------------------------------------------------------------------
   {
     return static_cast<AllocateMode>(~unsigned(a));
   }
 
   //--------------------------------------------------------------------------
-  inline AllocateMode operator|(AllocateMode left, AllocateMode right)
+  inline constexpr AllocateMode operator|(AllocateMode left, AllocateMode right)
   //--------------------------------------------------------------------------
   {
     return static_cast<AllocateMode>(unsigned(left) | unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline AllocateMode operator&(AllocateMode left, AllocateMode right)
+  inline constexpr AllocateMode operator&(AllocateMode left, AllocateMode right)
   //--------------------------------------------------------------------------
   {
     return static_cast<AllocateMode>(unsigned(left) & unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline AllocateMode operator^(AllocateMode left, AllocateMode right)
+  inline constexpr AllocateMode operator^(AllocateMode left, AllocateMode right)
   //--------------------------------------------------------------------------
   {
     return static_cast<AllocateMode>(unsigned(left) ^ unsigned(right));
   }
 
   //--------------------------------------------------------------------------
-  inline AllocateMode operator|=(AllocateMode& left, AllocateMode right)
+  inline constexpr AllocateMode operator|=(
+      AllocateMode& left, AllocateMode right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);
@@ -239,7 +246,8 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline AllocateMode operator&=(AllocateMode& left, AllocateMode right)
+  inline constexpr AllocateMode operator&=(
+      AllocateMode& left, AllocateMode right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);
@@ -249,7 +257,8 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  inline AllocateMode operator^=(AllocateMode& left, AllocateMode right)
+  inline constexpr AllocateMode operator^=(
+      AllocateMode& left, AllocateMode right)
   //--------------------------------------------------------------------------
   {
     unsigned l = static_cast<unsigned>(left);

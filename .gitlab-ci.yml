@@ -11,9 +11,12 @@ variables:
   REALM_SYNTHETIC_CORE_MAP: "" # Disable Realm thread pinning.
   TIMELIMIT: "600"  # each test should take less than 10 minutes
   USE_DEFCHECK: "1"
-  CCACHE_BASEDIR: $CI_PROJECT_DIR
-  DEP_CACHE: $CI_PROJECT_DIR/.cache/deps
-  CCACHE_DIR: $CI_PROJECT_DIR/.cache/ccache
+  CCACHE_BASEDIR: "$CI_PROJECT_DIR"
+  DEP_CACHE: "$CI_PROJECT_DIR/.cache/deps"
+  CCACHE_MAXSIZE: "400M"
+  CCACHE_DIR: "$CI_PROJECT_DIR/.cache/ccache"
+  CCACHE_COMPRESS: "true"
+  CCACHE_COMPRESS_LEVEL: "6"
   USE_CCACHE: "1"
   CPM_SOURCE_CACHE: $CI_PROJECT_DIR/.cache/cpm_src
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
@@ -322,6 +325,7 @@ before_script:
       fi
       tar --strip-components=1 -zxf $DEP_CACHE/ucx-$UCX_VERSION.tar.gz
       export UCX_ROOT=$PWD/install
+      export ucx_ROOT=$UCX_ROOT
       if [[ -n "$CUDA" ]]; then
         UCX_CONFIG_OPTS="--with-cuda=$CUDA"
         # CI tests are run on a single node. So disable shared-memory and cuda ipc
@@ -348,6 +352,7 @@ before_script:
       fi
       tar --strip-components=1 -zxf $DEP_CACHE/ucc-$UCC_VERSION.tar.gz
       export UCC_ROOT=$PWD/install
+      export ucc_ROOT=$UCC_ROOT
 
       # Remove offload-arch=native.
       sed -i 's/--offload-arch=native//g' ./cuda_lt.sh
@@ -435,7 +440,7 @@ before_script:
       mv kokkos-$KOKKOS_TAG kokkos
       mkdir -p kokkos/build
       cd kokkos/build
-      KOKKOS_CMAKE_OPTS="-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_CXX_STANDARD=${CXX_STANDARD}"
+      KOKKOS_CMAKE_OPTS="-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_CXX_STANDARD=${CXX_STANDARD} -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
       # the following line is a workaround for Kokkos issue #2652
       KOKKOS_CMAKE_OPTS="$KOKKOS_CMAKE_OPTS -DCMAKE_CXX_FLAGS=-DKOKKOS_IMPL_TURN_OFF_CUDA_HOST_INIT_CHECK"
       if [[ "$USE_OPENMP" -eq 1 ]]; then
@@ -443,9 +448,7 @@ before_script:
       else
         KOKKOS_CMAKE_OPTS="$KOKKOS_CMAKE_OPTS -DKokkos_ENABLE_SERIAL=ON"
       fi
-      if [[ "$SHARED_OBJECTS" -eq 1 ]]; then
-        KOKKOS_CMAKE_OPTS="$KOKKOS_CMAKE_OPTS -DBUILD_SHARED_LIBS=ON"
-      fi
+      KOKKOS_CMAKE_OPTS="$KOKKOS_CMAKE_OPTS -DBUILD_SHARED_LIBS=ON"
       if [[ "$USE_CUDA" -eq 1 ]]; then
         KOKKOS_CMAKE_OPTS="$KOKKOS_CMAKE_OPTS -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ENABLE_CUDA_UVM=OFF"
         # Force Kokkos build to always use the nvcc wrapper (even for clang)
@@ -482,7 +485,7 @@ before_script:
       # now build kokkos-kernels
       mkdir -p kokkos-kernels/build
       cd kokkos-kernels/build
-      KKERNELS_CMAKE_OPTS="-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_CXX_STANDARD=${CXX_STANDARD}"
+      KKERNELS_CMAKE_OPTS="-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_CXX_STANDARD=${CXX_STANDARD} -DCMAKE_CXX_FLAGS='-fPIC'"
       # FIXME (Wei): disable sparse for now because it does not compile
       KKERNELS_CMAKE_OPTS="$KKERNELS_CMAKE_OPTS -DCMAKE_CXX_COMPILER=${KOKKOS_CXX_COMPILER} -DKokkosKernels_ENABLE_ALL_COMPONENTS=OFF -DKokkosKernels_ENABLE_COMPONENT_BLAS=ON -DKokkosKernels_ENABLE_COMPONENT_SPARSE=OFF"
       if [[ "$SHARED_OBJECTS" -eq 1 ]]; then
@@ -503,7 +506,6 @@ before_script:
         # There are warnings when compiling kokkos_interop.cc, so disable WARN_AS_ERROR
         export WARN_AS_ERROR=0
       fi
-
     fi
 
 
@@ -628,6 +630,37 @@ before_script:
     - which $CXX
     - $CXX --version
     - |
+      mkdir -p realm/build realm/install
+      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DHIP_PLATFORM=nvidia"
+      if [[ "${REALM_NETWORKS}" != "ucx" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF"; fi
+      if [[ -z "${GASNET_ROOT}${EMBED_GASNET}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_GASNETEX=OFF"; fi
+      if [[ -z "${Kokkos_DIR}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_KOKKOS=OFF"; else REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_KOKKOS=ON"; fi
+      if [[ "${USE_SPY}" -eq 1 ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_LOG_LEVEL=INFO"; fi
+      if [[ "${TEST_REGENT:-1}" -eq 1 ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_LOG_LEVEL=INFO"; fi
+      if [[ "${DEBUG}" -eq 1 ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Debug"; fi
+      # Don't use ccache with kokkos, as its wrapper scripts can't handle it
+      if [[ "${USE_CCACHE}${Kokkos_DIR}" -eq 1 ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"; fi
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_CPPTRACE=${REALM_BACKTRACE_USE_CPPTRACE:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_PREALM=${USE_PROF:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_CUDA=${USE_CUDA:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_NVTX=${USE_NVTX:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_HIP=${USE_HIP:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_MPI=${USE_MPI:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_HDF5=${USE_HDF:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_OPENMP=${USE_OPENMP:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_PYTHON=${USE_PYTHON:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_MAX_DIM=${MAX_DIM:-3}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DCMAKE_MACOSX_RPATH=OFF -DCMAKE_CXX_FLAGS='${CXXFLAGS}' -DCMAKE_C_FLAGS='${CFLAGS}'"
+      echo cmake -S realm -B realm/build -DCMAKE_INSTALL_PREFIX=realm/install -DBUILD_SHARED_LIBS=ON $REALM_CMAKE_ARGS
+      bash -c "cmake -S realm -B realm/build -DCMAKE_INSTALL_PREFIX=realm/install -DBUILD_SHARED_LIBS=ON $REALM_CMAKE_ARGS"
+      cmake --build realm/build --parallel $THREADS
+      ctest --test-dir realm/build --parallel $THREADS --output-on-failure
+      cmake --install realm/build
+      # Temporary hack for some regent builds that need to be updated to use the correct include paths
+      #cp realm/install/include/realm_defines.h runtime/realm
+      #export Realm_ROOT="$(pwd)/realm/install"
+      #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${Realm_ROOT}/lib
+    - |
       if [[ "$USE_DEFCHECK" -eq 1 ]]; then
         export DEFCHECK_CXX="${CXX}"
         export CXX=`pwd`/tools/cxx_defcheck
@@ -637,7 +670,6 @@ before_script:
         # if we're using kokkos, make sure nvcc_wrapper uses the right compiler too
         export NVCC_WRAPPER_DEFAULT_COMPILER=$CXX
       fi
-    - free || true
     - |
       if [[ -z "$TEST_PYTHON_EXE" ]]; then
         export TEST_PYTHON_EXE=`which python3 python | head -1`
@@ -681,6 +713,34 @@ before_script:
       if [[ -z "$TEST_PYTHON_EXE" ]]; then
         export TEST_PYTHON_EXE=`which python3 python | head -1`
       fi
+    - |
+      mkdir -p realm/build realm/install
+      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DHIP_PLATFORM=nvidia"
+      if [[ "${REALM_NETWORKS}" != "ucx" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF"; fi
+      if [[ -z "${GASNET_ROOT}${EMBED_GASNET}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_GASNETEX=OFF"; fi
+      if [[ -z "${Kokkos_DIR}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_KOKKOS=OFF"; else REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_KOKKOS=ON"; fi
+      if [[ "${USE_SPY}" -eq 1 ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_LOG_LEVEL=INFO"; fi
+      if [[ "${TEST_REGENT:-1}" -eq 1 ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_LOG_LEVEL=INFO"; fi
+      if [[ "${DEBUG}" -eq 1 ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Debug"; fi
+      if [[ "${USE_CCACHE}" -eq 1 ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"; fi
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_CPPTRACE=${REALM_BACKTRACE_USE_CPPTRACE:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_PREALM=${USE_PROF:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_CUDA=${USE_CUDA:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_NVTX=${USE_NVTX:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_HIP=${USE_HIP:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_MPI=${USE_MPI:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_HDF5=${USE_HDF:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_OPENMP=${USE_OPENMP:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_PYTHON=${USE_PYTHON:-0}"
+      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_MAX_DIM=${MAX_DIM:-3}"
+      echo cmake -S realm -B realm/build -DCMAKE_INSTALL_PREFIX=realm/install -DBUILD_SHARED_LIBS=ON $REALM_CMAKE_ARGS
+      bash -c "cmake -S realm -B realm/build -DCMAKE_INSTALL_PREFIX=realm/install -DBUILD_SHARED_LIBS=ON $REALM_CMAKE_ARGS"
+      cmake --build realm/build --parallel $THREADS
+      cmake --install realm/build
+      # Temporary hack for some regent builds that need to be updated to use the correct include paths
+      #cp realm/install/include/realm_defines.h runtime/realm
+      #export Realm_ROOT="$(pwd)/realm/install"
+      #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${Realm_ROOT}/lib
     - $TEST_PYTHON_EXE ./test.py $TEST_PY_ARGS --tmp-dir ${CI_PROJECT_DIR}/tmp
   retry:
     max: 0
@@ -722,6 +782,7 @@ before_script:
 .realm_sanitizer_tests: &realm_sanitizer_tests
   <<: *test_rules
   script:
+    - mkdir -p build
     - |
       REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DHIP_PLATFORM=nvidia"
       if [[ -z "${UCX_ROOT}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF"; fi

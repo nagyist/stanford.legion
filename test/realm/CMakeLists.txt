@@ -23,7 +23,7 @@ if(NOT Legion_SOURCE_DIR)
 endif()
 
 list(APPEND REALM_TESTS
-  version_check
+  #version_check  # Replaced with new build system
   serializing
   test_profiling
   ctxswitch
@@ -181,9 +181,8 @@ if(Legion_ENABLE_TESTING)
     # For verifying the -ll:networks arguments, try each network we've compiled with
     string(REPLACE "," ";" NETWORK_LIST "${Legion_NETWORKS}")
     foreach(ITEM IN LISTS NETWORK_LIST)
-      set(NETWORK_ARGS "-ll:networks ${ITEM}")
-      message(${NETWORK_ARGS})
-      add_test(NAME version_check_network_${ITEM} COMMAND ${Legion_TEST_LAUNCHER} $<TARGET_FILE:version_check> ${NETWORK_ARGS} ${Legion_TEST_ARGS} ${TESTARGS_version_check})
+      set(NETWORK_ARGS -ll:networks ${ITEM})
+      add_test(NAME taskreg_network_${ITEM} COMMAND ${Legion_TEST_LAUNCHER} $<TARGET_FILE:taskreg> ${NETWORK_ARGS} ${Legion_TEST_ARGS} ${TESTARGS_taskreg})
     endforeach()
   endif()
 endif()
