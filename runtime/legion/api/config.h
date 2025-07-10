@@ -964,6 +964,7 @@ typedef enum legion_privilege_mode_t
   LEGION_DISCARD_OUTPUT_MASK = 0x20000000,  // For marking we don't need outputs
   LEGION_WRITE_ONLY = 0x10000002,           // WRITE_PRIV | DISCARD_INPUT_MASK
   LEGION_WRITE_DISCARD = 0x10000007,        // READ_WRITE | DISCARD_INPUT_MASK
+  LEGION_READ_DISCARD = 0x20000001,         // READ_PRIV | DISCARD_OUTPUT_MASK
   // for backwards compatibility
   // clang-format off
   LEGION_DEPRECATED_ENUM(NO_ACCESS)
