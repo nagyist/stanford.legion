@@ -55,22 +55,22 @@ void top_level_task(const Task *task,
   Realm::ModuleConfig *core_config = rt.get_module_config("core");
   assert(core_config != NULL);
   int wrong_config = 0;
-  bool ret_value = false;
+  RealmStatus ret_value = REALM_ERROR;
   int ncpus = 0;
   int nutils = 0;
   int nios = 0;
   size_t sysmem = 0;
   ret_value = core_config->get_property<int>("cpu", ncpus);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   ret_value = core_config->get_property<int>("util", nutils);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   ret_value = core_config->get_property<int>("io", nios);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   ret_value = core_config->get_property<size_t>("sysmem", sysmem);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   // test wrong property
   ret_value = core_config->get_property<int>("get_error_core", wrong_config);
-  assert(ret_value == false);
+  assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
   log_app.print("cpus %d, utils %d, ios %d, sysmem %zu", 
     ncpus, nutils, nios, sysmem);
 
@@ -79,19 +79,19 @@ void top_level_task(const Task *task,
     if (numa_config) {
       std::vector<size_t> numa_mems;
       ret_value = numa_config->get_resource("numa_mems", numa_mems);
-      if (ret_value) {
+      if (ret_value == REALM_SUCCESS) {
         size_t numa_mem_size = 0;
         size_t numa_nocpu_mem_size = 0;
         int num_numa_cpus = 0;
         ret_value = numa_config->get_property("numamem", numa_mem_size);
-        assert(ret_value == true);
+        assert(ret_value == REALM_SUCCESS);
         ret_value = numa_config->get_property("numa_nocpumem", numa_nocpu_mem_size);
-        assert(ret_value == true);
+        assert(ret_value == REALM_SUCCESS);
         ret_value = numa_config->get_property("numacpus", num_numa_cpus);
-        assert(ret_value == true);
+        assert(ret_value == REALM_SUCCESS);
         // test wrong property
         ret_value = numa_config->get_property("get_error_numa", wrong_config);
-        assert(ret_value == false);
+        assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
         log_app.print("numa numamem %zu, numa_nocpumem %zu, numacpsus %d", 
           numa_mem_size, numa_nocpu_mem_size, num_numa_cpus);
       } else {
@@ -109,14 +109,14 @@ void top_level_task(const Task *task,
     Realm::ModuleConfig *cuda_config = rt.get_module_config("cuda");
     if (cuda_config) {
       ret_value = cuda_config->get_property("gpu", ngpus);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       ret_value = cuda_config->get_property("fbmem", fbmem);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       ret_value = cuda_config->get_property("zcmem", zcmem);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       // test wrong property
       ret_value = cuda_config->get_property("get_error_cuda", wrong_config);
-      assert(ret_value == false);
+      assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
       log_app.print("cuda gpus %d, fbmem %zu, zcmem %zu", 
         ngpus, fbmem, zcmem);
     } else {
@@ -131,14 +131,14 @@ void top_level_task(const Task *task,
     Realm::ModuleConfig *hip_config = rt.get_module_config("hip");
     if (hip_config) {
       ret_value = hip_config->get_property("gpu", ngpus);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       ret_value = hip_config->get_property("fbmem", fbmem);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       ret_value = hip_config->get_property("zcmem", zcmem);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       // test wrong property
       ret_value = hip_config->get_property("get_error_hip", wrong_config);
-      assert(ret_value == false);
+      assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
       log_app.print("hip gpus %d, fbmem %zu, zcmem %zu", 
         ngpus, fbmem, zcmem);
     } else {
@@ -151,12 +151,12 @@ void top_level_task(const Task *task,
   Realm::ModuleConfig *openmp_config = rt.get_module_config("openmp");
   if (openmp_config) {
     ret_value = openmp_config->get_property("ocpu", ocpus);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     ret_value = openmp_config->get_property("othr", othr);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     // test wrong property
     ret_value = openmp_config->get_property("get_error_openmp", wrong_config);
-    assert(ret_value == false);
+    assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
     log_app.print("ocpus %d, othr %d", 
       ocpus, othr);
   } else {
@@ -252,40 +252,40 @@ int main(int argc, char **argv)
 
   Realm::ModuleConfig* core_config = rt.get_module_config("core");
   assert(core_config != NULL);
-  bool ret_value = false;
+  RealmStatus ret_value = REALM_ERROR;
   int ncores = 0;
   size_t sysmem = 0;
   ret_value = core_config->get_resource("cpu", ncores);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   ret_value = core_config->get_resource("sysmem", sysmem);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   log_app.print("number of CPU cores %d, sysmem %zu", ncores, sysmem);
   ret_value = core_config->set_property<int>("cpu", TestConfig::ncpus);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   ret_value = core_config->set_property<int>("util", TestConfig::nutils);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   ret_value = core_config->set_property<int>("io", TestConfig::nios);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   ret_value = core_config->set_property<size_t>("sysmem", TestConfig::sysmem);
-  assert(ret_value == true);
+  assert(ret_value == REALM_SUCCESS);
   // test wrong config
   ret_value = core_config->set_property("set_error_core", TestConfig::sysmem);
-  assert(ret_value == false);
+  assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
 
   Realm::ModuleConfig* numa_config = rt.get_module_config("numa");
   if (numa_config) {
     std::vector<size_t> numa_mems;
     ret_value = numa_config->get_resource("numa_mems", numa_mems);
-    if (ret_value) {
+    if (ret_value == REALM_SUCCESS) {
       ret_value = numa_config->set_property<size_t>("numamem", TestConfig::numa_mem_size);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       ret_value = numa_config->set_property<size_t>("numa_nocpumem", TestConfig::numa_nocpu_mem_size);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       ret_value = numa_config->set_property<int>("numacpus", TestConfig::num_numa_cpus);
-      assert(ret_value == true);
+      assert(ret_value == REALM_SUCCESS);
       // test wrong config
       ret_value = numa_config->set_property("set_error_numa", TestConfig::numa_mem_size);
-      assert(ret_value == false);
+      assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
     } else {
       log_app.warning("numa is not available");
     }
@@ -298,19 +298,19 @@ int main(int argc, char **argv)
     int ngpus = 0;
     size_t fbmem = 0;
     ret_value = cuda_config->get_resource("gpu", ngpus);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     ret_value = cuda_config->get_resource("fbmem", fbmem);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     log_app.print("number of cuda GPUs %d, fbmem size %zu", ngpus, fbmem);
     ret_value = cuda_config->set_property<int>("gpu", TestConfig::ngpus);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     ret_value = cuda_config->set_property<size_t>("zcmem", TestConfig::zcmem);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     ret_value = cuda_config->set_property<size_t>("fbmem", TestConfig::fbmem);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     // test wrong config
     ret_value = cuda_config->set_property("set_error_cuda", TestConfig::fbmem);
-    assert(ret_value == false);
+    assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
   } else {
     log_app.print("cuda is not loaded");
   }
@@ -320,19 +320,19 @@ int main(int argc, char **argv)
     int ngpus = 0;
     size_t fbmem = 0;
     ret_value = hip_config->get_resource("gpu", ngpus);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     ret_value = hip_config->get_resource("fbmem", fbmem);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     log_app.print("number of hip GPUs %d, fbmem size %zu", ngpus, fbmem);
     ret_value = hip_config->set_property<int>("gpu", TestConfig::ngpus);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     ret_value = hip_config->set_property<size_t>("zcmem", TestConfig::zcmem);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     ret_value = hip_config->set_property<size_t>("fbmem", TestConfig::fbmem);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     // test wrong config
     ret_value = hip_config->set_property("set_error_hip", TestConfig::fbmem);
-    assert(ret_value == false);
+    assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
   } else {
     log_app.print("hip is not loaded");
   }
@@ -340,12 +340,12 @@ int main(int argc, char **argv)
   Realm::ModuleConfig* openmp_config = rt.get_module_config("openmp");
   if (openmp_config) {
     ret_value = openmp_config->set_property("ocpu", TestConfig::nocpus);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     ret_value = openmp_config->set_property("othr", TestConfig::nothr);
-    assert(ret_value == true);
+    assert(ret_value == REALM_SUCCESS);
     // test wrong config
     ret_value = openmp_config->set_property("set_error_openmp", TestConfig::nothr);
-    assert(ret_value == false);
+    assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
   } else {
     log_app.print("openmp is not loaded");
   }

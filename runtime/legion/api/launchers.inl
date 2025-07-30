@@ -705,7 +705,7 @@ namespace Legion {
       for (std::map<FieldID, size_t>::const_iterator it = alignments->begin();
            it != alignments->end(); it++)
         constraints.add_constraint(
-            AlignmentConstraint(it->first, LEGION_GE_EK, it->second));
+            AlignmentConstraint(it->first, LEGION_EQ_EK, it->second));
   }
 
   //--------------------------------------------------------------------------
@@ -810,7 +810,7 @@ namespace Legion {
       for (std::map<FieldID, size_t>::const_iterator it = alignments->begin();
            it != alignments->end(); it++)
         constraints.add_constraint(
-            AlignmentConstraint(it->first, LEGION_GE_EK, it->second));
+            AlignmentConstraint(it->first, LEGION_EQ_EK, it->second));
   }
 
   //--------------------------------------------------------------------------

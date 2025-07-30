@@ -58,8 +58,11 @@ if use_cmake then
 end
 link_libraries:insertall({"-L" .. lib_dir, "-lregent"})
 if use_cmake then
-  link_libraries:insertall({"-llegion", "-lrealm"})
+  link_libraries:insertall({"-llegion"})
 end
+
+local realm_lib_prefix = os.getenv("Realm_ROOT") .. "/lib"
+link_libraries:insertall({"-L" .. realm_lib_prefix, "-lrealm"})
 
 terra main(argc : int, argv : &rawstring)
   escape

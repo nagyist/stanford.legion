@@ -135,8 +135,8 @@ list(TRANSFORM REALM_CUDA_SOURCES PREPEND "${REALM_SOURCE_DIR}/")
 # Generated sources
 # TODO(cperry): fix path so realm_defines.h lives in realm directory
 configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/realm_defines.h.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/../include/realm_defines.h" @ONLY
+  "${PROJECT_SOURCE_DIR}/cmake/realm_defines.h.in"
+  "${PROJECT_BINARY_DIR}/include/realm_defines.h" @ONLY
 )
 
 # generate per-dimension object files for deppart stuff
@@ -145,7 +145,7 @@ foreach(INST_N1 RANGE 1 ${REALM_MAX_DIM})
     foreach(SRCFILE realm/deppart/image realm/deppart/preimage realm/deppart/byfield)
       set(_result_file "${CMAKE_CURRENT_BINARY_DIR}/${SRCFILE}_${INST_N1}_${INST_N2}.cc")
       # use cmake's configure_file for a portable way of creating wrapper source files
-      configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/deppart_tmpl.cc.in" "${_result_file}")
+      configure_file("${PROJECT_SOURCE_DIR}/cmake/deppart_tmpl.cc.in" "${_result_file}")
       list(APPEND REALM_SOURCES "${_result_file}")
     endforeach()
   endforeach()

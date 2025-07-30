@@ -139,11 +139,9 @@ def build_llvm(source_dir, build_dir, install_dir, is_project_build, cmake_exe, 
     subprocess.check_call(['make', '-j', str(thread_count)], cwd=build_dir)
     subprocess.check_call(['make', 'install'], cwd=build_dir)
 
-def build_terra(terra_dir, terra_branch, terra_lua, use_cmake, cmake_exe, llvm_dir, cache, is_cray, thread_count):
+def build_terra(terra_dir, terra_branch, terra_lua, cmake_exe, llvm_dir, cache, is_cray, thread_count):
     if cache:
-        assert not use_cmake
-        subprocess.check_call(['make', 'download'], cwd=terra_dir)
-        return
+        assert False, "Terra currently cannot be cached when built from source"
 
     env = dict(list(os.environ.items()))
     if is_cray:
@@ -152,36 +150,19 @@ def build_terra(terra_dir, terra_branch, terra_lua, use_cmake, cmake_exe, llvm_d
             ('CXX', os.environ['HOST_CXX']),
         ]))
 
-    if terra_lua is not None:
-        assert use_cmake
-
-    if use_cmake:
-        flags = [
-            '-DCMAKE_PREFIX_PATH=%s' % llvm_dir,
-            '-DCMAKE_INSTALL_PREFIX=%s' % os.path.join(terra_dir, 'release'),
-            '-DTERRA_LUA=%s' % (terra_lua or 'moonjit'),
-        ]
-        subprocess.check_call(
-            [cmake_exe] + flags + [terra_dir],
-            cwd=os.path.join(terra_dir, 'build'),
-            env=env)
-        subprocess.check_call(
-            ['make', 'install', '-j', str(thread_count)],
-            cwd=os.path.join(terra_dir, 'build'),
-            env=env)
-    else:
-        flags = [
-            'LLVM_CONFIG=%s' % os.path.join(llvm_dir, 'bin', 'llvm-config'),
-            'CLANG=%s' % os.path.join(llvm_dir, 'bin', 'clang'),
-        ]
-        if platform.system() != 'Darwin':
-            flags.append('REEXPORT_LLVM_COMPONENTS=irreader mcjit x86')
-        flags.extend(['-j', str(thread_count)])
-
-        subprocess.check_call(
-            ['make'] + flags,
-            cwd=terra_dir,
-            env=env)
+    flags = [
+        '-DCMAKE_PREFIX_PATH=%s' % llvm_dir,
+        '-DCMAKE_INSTALL_PREFIX=%s' % os.path.join(terra_dir, 'release'),
+        '-DTERRA_LUA=%s' % (terra_lua or 'moonjit'),
+    ]
+    subprocess.check_call(
+        [cmake_exe] + flags + [terra_dir],
+        cwd=os.path.join(terra_dir, 'build'),
+        env=env)
+    subprocess.check_call(
+        ['make', 'install', '-j', str(thread_count)],
+        cwd=os.path.join(terra_dir, 'build'),
+        env=env)
 
 def build_hdf(source_dir, install_dir, thread_count, is_cray):
     env = None
@@ -424,7 +405,7 @@ def setup_cmake(legion_use_cmake, terra_binary, prefix_dir, cache, insecure):
 
     return cmake_exe
 
-def setup_terra(llvm_version, terra_url, terra_branch, terra_binary, terra_lua, terra_use_cmake, cmake_exe, prefix_dir, scratch_dir, thread_count, cache, is_cray, insecure):
+def setup_terra(llvm_version, terra_url, terra_branch, terra_binary, terra_lua, cmake_exe, prefix_dir, scratch_dir, thread_count, cache, is_cray, insecure):
     if terra_binary:
         terra_system = platform.system()
         if terra_system == 'Darwin':
@@ -510,7 +491,7 @@ def setup_terra(llvm_version, terra_url, terra_branch, terra_binary, terra_lua, 
         git_clone(terra_dir, terra_url, terra_branch)
     if not os.path.exists(terra_build_result):
         try:
-            build_terra(terra_dir, terra_branch, terra_lua, terra_use_cmake, cmake_exe, llvm_install_dir, cache, is_cray, thread_count)
+            build_terra(terra_dir, terra_branch, terra_lua, cmake_exe, llvm_install_dir, cache, is_cray, thread_count)
         except Exception as e:
             report_build_failure('terra', terra_dir, e)
     else:
@@ -538,10 +519,13 @@ def setup_hdf(prefix_dir, thread_count, cache, is_cray, insecure):
     return hdf_install_dir
 
 def driver(prefix_dir=None, scratch_dir=None, cache=False,
-           legion_use_cmake=False, extra_flags=[], llvm_version=None,
-           terra_url=None, terra_branch=None, terra_binary=None, terra_lua=None, terra_use_cmake=None,
+           legion_use_cmake=None, extra_flags=[], llvm_version=None,
+           terra_url=None, terra_branch=None, terra_binary=None, terra_lua=None,
            gasnet_version=None, gasnet_config_version=None,
            thread_count=None, insecure=False):
+    if legion_use_cmake is None:
+        legion_use_cmake = os.environ.get('USE_CMAKE', '1') == '1'
+
     if not cache:
         if 'CC' not in os.environ:
             raise Exception('Please set CC in your environment')
@@ -574,11 +558,6 @@ def driver(prefix_dir=None, scratch_dir=None, cache=False,
             raise Exception('Must specify a Terra release when using a Terra binary (set --no-terra-binary for a source build)')
         if terra_lua is not None:
             raise Exception('Cannot specify --terra-lua when using a Terra binary (set --no-terra-binary for a source build)')
-        if terra_use_cmake is not None:
-            raise Exception('Cannot specify --terra-cmake or --no-terra-cmake when using a Terra binary (set --no-terra-binary for a source build)')
-
-    if terra_use_cmake is None and not terra_binary:
-        terra_use_cmake = True
 
     root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     legion_dir = os.path.dirname(root_dir)
@@ -600,7 +579,7 @@ def driver(prefix_dir=None, scratch_dir=None, cache=False,
 
     cmake_exe = setup_cmake(legion_use_cmake, terra_binary, prefix_dir, cache, insecure)
 
-    (terra_dir, llvm_install_dir) = setup_terra(llvm_version, terra_url, terra_branch, terra_binary, terra_lua, terra_use_cmake, cmake_exe, prefix_dir, scratch_dir, thread_count, cache, is_cray, insecure)
+    (terra_dir, llvm_install_dir) = setup_terra(llvm_version, terra_url, terra_branch, terra_binary, terra_lua, cmake_exe, prefix_dir, scratch_dir, thread_count, cache, is_cray, insecure)
 
     hdf_install_dir = setup_hdf(prefix_dir, thread_count, cache, is_cray, insecure)
 
@@ -626,9 +605,11 @@ if __name__ == '__main__':
         default=discover_skip_certificate_check(),
         help='Skip certificate checks on downloads.')
     parser.add_argument(
-        '--cmake', dest='legion_use_cmake', action='store_true',
-        default=os.environ.get('USE_CMAKE') == '1',
-        help='Use CMake to build Legion.')
+        '--cmake', dest='legion_use_cmake', action='store_true', default=None,
+        help='Use CMake to build Legion (default).')
+    parser.add_argument(
+        '--no-cmake', dest='legion_use_cmake', action='store_false', default=None,
+        help='Use Make to build Legion.')
     parser.add_argument(
         '--extra', dest='extra_flags', action='append', required=False,
         default=[],
@@ -655,12 +636,6 @@ if __name__ == '__main__':
         '--terra-lua', dest='terra_lua', required=False,
         default=None,
         help='Lua implementation to use for Terra (luajit or moonjit).')
-    parser.add_argument(
-        '--terra-cmake', dest='terra_use_cmake', action='store_true', default=None,
-        help='Use CMake to build Terra.')
-    parser.add_argument(
-        '--no-terra-cmake', dest='terra_use_cmake', action='store_false', default=None,
-        help='Use Make to build Terra.')
     parser.add_argument(
         '--gasnet-version', dest='gasnet_version', required=False,
         default=os.environ.get('GASNET_VERSION', 'GASNet-2024.5.0'),

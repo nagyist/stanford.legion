@@ -9,6 +9,7 @@ rm -rfv language/terra.build gasnet Thrust
 git status
 
 # setup workdir
+umask 002 # Make sure files are group-writable
 mkdir -p $(dirname $EXTERNAL_WORKDIR)
 rm -rf $EXTERNAL_WORKDIR
 mkdir $EXTERNAL_WORKDIR
@@ -29,3 +30,5 @@ git clone https://github.com/ROCmSoftwarePlatform/Thrust.git
 if [[ "$REALM_NETWORKS" == gasnet* ]]; then
     git clone https://github.com/StanfordLegion/gasnet.git
 fi
+
+chmod -R g+w $EXTERNAL_WORKDIR

@@ -56,7 +56,7 @@ cmake_path(CONVERT "${TEST_LIB_PATH}" TO_NATIVE_PATH_LIST TEST_LIB_PATH NORMALIZ
 #endregion
 
 # TODO(cperry): Move these tests to this directory
-set(REALM_BENCH_DIR "../../test/performance/realm")
+set(REALM_BENCH_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 cmake_path(ABSOLUTE_PATH REALM_BENCH_DIR BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
 
 #region Benchmarks
@@ -90,11 +90,13 @@ add_benchmark(
   task_throughput "${REALM_BENCH_DIR}/task_throughput/task_throughput.cc"
   "$<$<BOOL:BENCH_USE_GPU>:${REALM_BENCH_DIR}/task_throughput/task_throughput_gpu.cu>"
 )
+target_link_libraries(task_throughput ${TEST_GPU_LIBS})
 
 add_benchmark(
   task_ubench "${REALM_BENCH_DIR}/task_throughput/task_throughput.cc"
   "$<$<BOOL:BENCH_USE_GPU>:${REALM_BENCH_DIR}/task_throughput/task_throughput_gpu.cu>"
 )
+target_link_libraries(task_ubench ${TEST_GPU_LIBS})
 
 set_tests_properties(
   ${_bench_list}

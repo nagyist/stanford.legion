@@ -17,6 +17,7 @@ set(TEST_ARGS
     ""
     CACHE STRING "Default arguments for tests"
 )
+set(TEST_LAUNCHER ${CMAKE_TEST_LAUNCHER})
 
 if(NOT TEST_PROCESSORS)
   if(MPIEXEC_EXECUTABLE)
@@ -59,7 +60,7 @@ cmake_path(CONVERT "${TEST_LIB_PATH}" TO_NATIVE_PATH_LIST TEST_LIB_PATH NORMALIZ
 #endregion
 
 # TODO(cperry): Move these tests to this directory
-set(REALM_TEST_DIR "${CMAKE}../../test/realm")
+set(REALM_TEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 cmake_path(ABSOLUTE_PATH REALM_TEST_DIR BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
 
 #region Unit Tests
@@ -119,7 +120,7 @@ add_executable(realm_unit_tests ${REALM_UNIT_TESTS})
 # Needed for designated initializers
 # TODO(apriakhin): to be removed
 target_compile_features(realm_unit_tests PUBLIC cxx_std_20)
-target_link_libraries(realm_unit_tests PRIVATE realm_obj GTest::gmock_main ${REALM_LIBRARIES})
+target_link_libraries(realm_unit_tests PRIVATE realm_obj GTest::gmock_main ${REALM_LIBRARIES} ${REALM_EXTRA_OBJS})
 
 # TODO(wei): To be merged into realm_unit_tests once runtime singleton is
 # removed from all unit tests
@@ -130,13 +131,19 @@ list(APPEND
   c_processor_attr.cc
   c_memory_attr.cc
   c_processor_task.cc
-  c_event.cc)
+  c_event.cc
+  c_inst.cc
+  c_external_inst.cc
+  c_inst_copy.cc
+  c_runtime_version.cc
+  c_runtime_attr.cc
+)
 list(TRANSFORM REALM_C_UNIT_TESTS PREPEND "${REALM_TEST_DIR}/unit_tests/")
 add_executable(realm_c_unit_tests ${REALM_C_UNIT_TESTS})
 # Needed for designated initializers
 # TODO(apriakhin): to be removed
 target_compile_features(realm_c_unit_tests PUBLIC cxx_std_20)
-target_link_libraries(realm_c_unit_tests PRIVATE realm_obj GTest::gmock_main ${REALM_LIBRARIES})
+target_link_libraries(realm_c_unit_tests PRIVATE realm_obj GTest::gmock_main ${REALM_LIBRARIES} ${REALM_EXTRA_OBJS})
 
 include(GoogleTest)
 if((NOT REALM_SANITIZER OR REALM_SANITIZER STREQUAL "NONE") AND NOT WIN32)
@@ -194,6 +201,7 @@ if(REALM_ENABLE_COVERAGE)
       unit
       DEPENDENCIES
       realm_unit_tests
+      realm_c_unit_tests
       BASE_DIRECTORY
       "${REALM_TEST_DIR}/../.."
       EXCLUDE
@@ -341,6 +349,7 @@ add_integration_test(
   memspeed "${REALM_TEST_DIR}/memspeed.cc"
   "$<$<BOOL:TEST_USE_GPU>:${REALM_TEST_DIR}/memspeed_gpu.cu>"
 )
+target_link_libraries(memspeed ${TEST_GPU_LIBS})
 set(simple_reduce_ARGS -all)
 if(NOT BUILD_SHARED_LIBS OR NOT REALM_ENABLE_HIP)
   # simple_reduce registers a kernel with the runtime, but uses a different instance of the runtime
@@ -355,6 +364,7 @@ add_integration_test(
   multiaffine "${REALM_TEST_DIR}/multiaffine.cc"
   "$<$<BOOL:TEST_USE_GPU>:${REALM_TEST_DIR}/multiaffine_gpu.cu>"
 )
+target_link_libraries(multiaffine ${TEST_GPU_LIBS})
 if(TEST_USE_GPU)
   if(REALM_USE_CUDA)
     set(cuda_memcpy_test_ARGS
@@ -402,6 +412,9 @@ add_integration_test(c_runtime "${REALM_TEST_DIR}/c/test_runtime.cc")
 add_integration_test(c_processor_query "${REALM_TEST_DIR}/c/test_processor_query.cc")
 add_integration_test(c_memory_query "${REALM_TEST_DIR}/c/test_memory_query.cc")
 add_integration_test(c_event "${REALM_TEST_DIR}/c/test_event.cc")
+add_integration_test(c_inst "${REALM_TEST_DIR}/c/test_c_inst.cc")
+add_integration_test(c_external_inst "${REALM_TEST_DIR}/c/test_c_external_inst.cc")
+target_link_libraries(c_external_inst ${TEST_GPU_LIBS})
 
 target_link_libraries(
   machine_config_test ${TEST_GPU_LIBS} $<TARGET_NAME_IF_EXISTS:CUDA::cuda_driver>

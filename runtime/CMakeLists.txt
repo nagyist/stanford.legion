@@ -24,621 +24,27 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
   FILES_MATCHING PATTERN "*.inl"
 )
 
-# Realm runtime
-list(APPEND REALM_SRC
-  realm/realm_c.h                          realm/realm_c.cc
-  realm/transfer/lowlevel_disk.cc
-  realm/transfer/address_list.h            realm/transfer/address_list.cc
-  realm/transfer/addrsplit_channel.h       realm/transfer/addrsplit_channel.cc
-  realm/fragmented_message.h               realm/fragmented_message.cc
-  realm/transfer/addrsplit_channel.inl
-  realm/transfer/channel.h                 realm/transfer/channel.cc
-  realm/transfer/channel_common.h          realm/transfer/channel_common.cc
-  realm/transfer/memcpy_channel.h          realm/transfer/memcpy_channel.cc
-  realm/transfer/channel_disk.h            realm/transfer/channel_disk.cc
-  realm/transfer/transfer.h                realm/transfer/transfer.cc
-  realm/transfer/lowlevel_dma.h            realm/transfer/lowlevel_dma.cc
-  realm/transfer/ib_memory.h               realm/transfer/ib_memory.cc
-  realm/deppart/byfield.h                  realm/deppart/byfield.cc
-  realm/deppart/deppart_config.h
-  realm/deppart/image.h
-  realm/deppart/inst_helper.h
-  realm/deppart/partitions.h               realm/deppart/partitions.cc
-  realm/deppart/preimage.h
-  realm/deppart/rectlist.h
-  realm/deppart/rectlist.inl
-  realm/deppart/setops.h                   realm/deppart/setops.cc
-  realm/deppart/sparsity_impl.h            realm/deppart/sparsity_impl.cc
-  realm/deppart/sparsity_impl.inl
-  realm/atomics.h           realm/atomics.inl
-  realm/bgwork.h            realm/bgwork.cc
-  realm/comp_queue_impl.h   realm/comp_queue_impl.cc
-  realm/event_impl.h        realm/event_impl.cc
-  realm/event_impl.inl
-  realm/barrier_impl.h        realm/barrier_impl.cc
-  realm/barrier_impl.inl
-  realm/faults.h            realm/faults.cc
-  realm/idx_impl.h          realm/idx_impl.cc
-  realm/inst_impl.h         realm/inst_impl.cc
-  realm/inst_layout.h       realm/inst_layout.inl
-  realm/inst_layout.cc
-  realm/interval_tree.h     realm/interval_tree.inl
-  realm/machine_impl.h      realm/machine_impl.cc
-  realm/mem_impl.h          realm/mem_impl.cc
-  realm/metadata.h          realm/metadata.cc
-  realm/module.h            realm/module.cc
-  realm/module_config.h     realm/module_config.inl realm/module_config.cc
-  realm/nodeset.h           realm/nodeset.inl      realm/nodeset.cc
-  realm/numa/numa_module.h  realm/numa/numa_module.cc
-  realm/numa/numasysif.h    realm/numa/numasysif.cc
-  realm/operation.h         realm/operation.cc
-  realm/operation.inl
-  realm/proc_impl.h         realm/proc_impl.cc
-  realm/procset/procset_module.h realm/procset/procset_module.cc
-  realm/repl_heap.h         realm/repl_heap.cc
-  realm/rsrv_impl.h         realm/rsrv_impl.cc
-  realm/runtime_impl.h      realm/runtime_impl.cc
-  realm/sampling_impl.h     realm/sampling_impl.cc
-  realm/subgraph_impl.h     realm/subgraph_impl.cc
-  realm/tasks.h             realm/tasks.cc
-  realm/threads.h           realm/threads.cc
-  realm/threads.inl
-  realm/shm.h               realm/shm.cc
-  realm/hardware_topology.h          realm/hardware_topology.cc
-)
-
-if(Legion_USE_CUDA)
-  list(APPEND REALM_SRC
-    realm/cuda/cuda_module.h    realm/cuda/cuda_module.cc
-    realm/cuda/cuda_module.inl
-    realm/cuda/cuda_internal.h  realm/cuda/cuda_internal.cc
-    realm/cuda/cuda_access.h    realm/cuda/cuda_access.cc
-  )
-  list(APPEND REALM_CUDA_SRC
-    realm/cuda/cuda_memcpy.cu
-  )
-  if(REALM_USE_CUDART_HIJACK)
-    list(APPEND REALM_SRC
-      realm/cuda/cudart_hijack.h
-    )
-  endif()
+# Cmake cannot create aliases from aliases.  find_package will include
+# Realm::Realm as the main library with no alias, but add_subdirectory (used
+# with cpm) will define Realm as the main library and Realm::Realm as the
+# alias.  So, to support the aliases defined here, detect if Realm::Realm is an
+# alias by looking at the alias target property and if empty, just use the 
+# Realm::Realm target directly
+get_target_property(REALM_TGT Realm::Realm ALIASED_TARGET)
+if("${REALM_TGT}" STREQUAL "REALM_TGT-NOTFOUND")
+  set(REALM_TGT Realm::Realm)
 endif()
+set(REALM_TGT ${REALM_TGT} PARENT_SCOPE)
+add_library(RealmRuntime ALIAS ${REALM_TGT})
+add_library(Legion::RealmRuntime ALIAS ${REALM_TGT})
 
-if(Legion_USE_HIP)
-  list(APPEND REALM_SRC
-    realm/hip/hip_module.h    realm/hip/hip_module.cc
-    realm/hip/hip_module.inl
-    realm/hip/hip_internal.h  realm/hip/hip_internal.cc
-    realm/hip/hip_access.h    realm/hip/hip_access.cc
-    realm/hip/hiphijack_api.h
-  )
-  if(REALM_USE_HIP_HIJACK)
-    list(APPEND REALM_SRC
-      realm/hip/hip_hijack.h
-    )
-  endif()
-endif()
-
-if(Legion_USE_LLVM)
-  list(APPEND REALM_SRC
-    realm/llvmjit/llvmjit.h
-    realm/llvmjit/llvmjit.inl
-    realm/llvmjit/llvmjit_internal.h  realm/llvmjit/llvmjit_internal.cc
-    realm/llvmjit/llvmjit_module.h    realm/llvmjit/llvmjit_module.cc
-  )
-endif()
-
-if(Legion_USE_HDF5)
-  list(APPEND REALM_SRC
-    realm/hdf5/hdf5_module.h realm/hdf5/hdf5_module.cc
-    realm/hdf5/hdf5_internal.h realm/hdf5/hdf5_internal.cc
-    realm/hdf5/hdf5_access.h   realm/hdf5/hdf5_access.inl
-    realm/hdf5/hdf5_access.cc
-  )
-endif()
-
-if (Legion_USE_OpenMP)
-  list(APPEND REALM_SRC
-    realm/openmp/openmp_module.h realm/openmp/openmp_module.cc
-    realm/openmp/openmp_internal.h
-  )
-  if(NOT Legion_OpenMP_SYSTEM_RUNTIME)
-    list(APPEND REALM_SRC
-      realm/openmp/openmp_threadpool.h realm/openmp/openmp_threadpool.cc
-      realm/openmp/openmp_threadpool.inl
-      realm/openmp/openmp_api.cc
-    )
-  endif()
-endif()
-
-if (Legion_USE_Python)
-  list(APPEND REALM_SRC
-    realm/python/python_module.h realm/python/python_module.cc
-    realm/python/python_source.h realm/python/python_source.cc
-    realm/python/python_source.inl
-    realm/python/python_internal.h
-  )
-endif()
-
-if(Legion_EMBED_GASNet_ENABLE_GPU_MEMORY_KINDS)
-  if(Legion_USE_CUDA)
-    list(APPEND GASNet_CONFIG_SETTINGS "USE_CUDA=1")
-  endif()
-  if(Legion_USE_HIP)
-    list(APPEND GASNet_CONFIG_SETTINGS "USE_HIP=1")
-  endif()
-else()
-  list(APPEND GASNet_CONFIG_SETTINGS "GASNET_GPU_CONFIGURE_ARGS=")
-endif()
-
-if(REALM_USE_GASNET1)
-  list(APPEND REALM_SRC
-    realm/gasnet1/gasnet1_module.h
-    realm/gasnet1/gasnet1_module.cc
-    realm/gasnet1/gasnetmsg.h
-    realm/gasnet1/gasnetmsg.cc
-  )
-endif()
-
-if(REALM_USE_GASNETEX)
-  list(APPEND REALM_SRC
-    realm/gasnetex/gasnetex_module.h
-    realm/gasnetex/gasnetex_module.cc
-    realm/gasnetex/gasnetex_internal.h
-    realm/gasnetex/gasnetex_internal.cc
-  )
-  if (NOT REALM_USE_GASNETEX_WRAPPER OR Legion_ENABLE_TESTING)
-    # If we're not using the wrapper (i.e. not dynamically loading it)
-    # or we need it for testing, we need to build it
-    set(LEGION_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
-    set(GEX_WRAPPER_BUILD_SHARED ${REALM_USE_GASNETEX_WRAPPER})
-    set(GEX_DEBUG ${DEBUG_REALM})
-    set(GEX_NO_INSTALL NOT ${REALM_USE_GASNETEX_WRAPPER})
-
-    add_subdirectory(realm/gasnetex/gasnetex_wrapper EXCLUDE_FROM_ALL)
-  endif()
-endif()
-
-if(REALM_USE_MPI)
-  list(APPEND REALM_SRC
-    realm/mpi/mpi_module.h
-    realm/mpi/mpi_module.cc
-    realm/mpi/am_mpi.h
-    realm/mpi/am_mpi.cc
-  )
-endif()
-
-if(REALM_USE_NVTX)
-  list(APPEND REALM_SRC
-    realm/nvtx.h
-    realm/nvtx.cc
-  )
-endif()
-
-if(REALM_USE_PREALM)
-  list(APPEND REALM_SRC
-    realm/prealm/prealm.h
-    realm/prealm/prealm.inl
-    realm/prealm/prealm.cc
-  )
-endif()
-
-if(REALM_USE_UCX)
-  list(APPEND REALM_SRC
-    realm/ucx/ucp_utils.h
-    realm/ucx/ucp_dyn_load.h
-    realm/ucx/ucp_module.h
-    realm/ucx/ucp_module.cc
-    realm/ucx/ucp_internal.h
-    realm/ucx/ucp_internal.cc
-    realm/ucx/ucp_context.h
-    realm/ucx/ucp_context.cc
-    realm/ucx/oob_group_comm.h
-    realm/ucx/oob_group_comm.cc
-    realm/ucx/ucc_comm.h
-    realm/ucx/ucc_comm.cc
-    realm/ucx/mpool.h
-    realm/ucx/mpool.cc
-    realm/ucx/spinlock.h
-    realm/ucx/bootstrap/bootstrap.h
-    realm/ucx/bootstrap/bootstrap.cc
-    realm/ucx/bootstrap/bootstrap_loader.h
-    realm/ucx/bootstrap/bootstrap_loader.cc
-    realm/ucx/bootstrap/bootstrap_internal.h
-    realm/ucx/bootstrap/bootstrap_util.h
-  )
-endif()
-
-list(APPEND REALM_SRC
-  realm.h
-  realm/activemsg.h realm/activemsg.cc
-  realm/network.h          realm/network.cc
-  realm/bytearray.h
-  realm/bytearray.inl
-  realm/circ_queue.h
-  realm/circ_queue.inl
-  realm/cmdline.h
-  realm/cmdline.inl
-  realm/codedesc.h         realm/codedesc.cc
-  realm/codedesc.inl
-  realm/custom_serdez.h
-  realm/custom_serdez.inl
-  realm/dynamic_table.h
-  realm/dynamic_table.inl
-  realm/event.h
-  realm/id.h
-  realm/id.inl
-  realm/indexspace.h
-  realm/instance.h
-  realm/logging.h          realm/logging.cc
-  realm/logging.inl
-  realm/machine.h
-  realm/machine.inl
-  realm/memory.h
-  realm/mutex.h     realm/mutex.inl     realm/mutex.cc
-  realm/pri_queue.h
-  realm/pri_queue.inl
-  realm/processor.h
-  realm/processor.inl
-  realm/profiling.h        realm/profiling.cc
-  realm/profiling.inl
-  realm/realm_config.h
-  realm/redop.h
-  realm/reservation.h
-  realm/reservation.inl
-  realm/runtime.h
-  realm/sampling.h
-  realm/sampling.inl
-  realm/serialize.h
-  realm/serialize.inl
-  realm/subgraph.h
-  realm/subgraph.inl
-  realm/timers.h           realm/timers.cc
-  realm/timers.inl
-  realm/utils.h            realm/utils.cc
-)
-
-# generate per-dimension object files for deppart stuff
-foreach(INST_N1 RANGE 1 ${REALM_MAX_DIM})
-  foreach(INST_N2 RANGE 1 ${REALM_MAX_DIM})
-    foreach(SRCFILE realm/deppart/image realm/deppart/preimage realm/deppart/byfield)
-      # use cmake's configure_file for a portable way of creating wrapper
-      #  source files
-      configure_file(${PROJECT_SOURCE_DIR}/cmake/deppart_tmpl.cc.in ${SRCFILE}_${INST_N1}_${INST_N2}.cc)
-      list(APPEND REALM_SRC ${SRCFILE}_${INST_N1}_${INST_N2}.cc)
-    endforeach()
-  endforeach()
-endforeach()
-
-if(Legion_USE_CUDA)
-
-  add_library(realm_cuda_fatbin OBJECT ${REALM_CUDA_SRC})
-  #TODO(apryakhin): Enable with cmake 3.27
-  #set_property(TARGET realm_cuda_fatbin PROPERTY CUDA_FATBIN_COMPILATION ON)
-  target_compile_options(realm_cuda_fatbin PRIVATE $<$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>:
-                         -Xcudafe=--diag_suppress=boolean_controlling_expr_is_constant
-                         --fatbin>)
-  target_compile_definitions(realm_cuda_fatbin PRIVATE "CUDA_FATBIN_COMPILATION")
-
-  target_include_directories(realm_cuda_fatbin
-                     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-                             ${PROJECT_BINARY_DIR}/runtime)
-
-  set_target_cuda_standard(realm_cuda_fatbin STANDARD ${Legion_CUDA_STANDARD})
-  set_target_cuda_architectures(realm_cuda_fatbin ARCHITECTURES ${Legion_CUDA_ARCH})
-  set_target_cuda_warnings_and_errors(realm_cuda_fatbin WARN_AS_ERROR ${Legion_BUILD_WARN_AS_ERROR})
-
-  set(realm_fatbin_cc "${CMAKE_CURRENT_BINARY_DIR}/realm_fatbin.cc")
-
-  add_custom_command(
-    OUTPUT "${realm_fatbin_cc}"
-    COMMAND ${CMAKE_COMMAND}
-      "-DVAR_NAME=realm_fatbin"
-      "-DDEFINES_HEADER=realm/realm_config.h"
-      "-DIN_FILE=$<TARGET_OBJECTS:realm_cuda_fatbin>"
-      "-DOUT_FILE=${realm_fatbin_cc}"
-      -P ${PROJECT_SOURCE_DIR}/cmake/bin2c.cmake
-    VERBATIM
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    DEPENDS $<TARGET_OBJECTS:realm_cuda_fatbin>
-    COMMENT "Embedding binary objects $<TARGET_OBJECTS:realm_cuda_fatbin> -> ${realm_fatbin_cc}"
-  )
-
-  # Add a direct dependency on realm_fatbin.cc in order to force a rebuild as realm_fatbin.cc changes
-  list(APPEND REALM_SRC ${realm_fatbin_cc})
-endif()
+# Temporary hack since legion installs all of realm's headers too...
+#get_target_property(REALM_INCLUDES ${REALM_TGT} INTERFACE_INCLUDE_DIRECTORIES)
+#find_file(REALM_DEFINES "realm_defines.h" PATHS ${REALM_INCLUDES})
+#install(FILES ${REALM_DEFINES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/realm)
 
 find_package(Threads REQUIRED)
 cmake_policy(SET CMP0063 NEW) # visibility controls in all builds
-add_library(RealmRuntime ${REALM_SRC})
-add_library(RealmStatic STATIC EXCLUDE_FROM_ALL ${REALM_SRC}) # static library for realm unit test
-
-if(TARGET realm_cuda_fatbin)
-  add_dependencies(RealmRuntime realm_cuda_fatbin)
-  # HACK: to avoid compiling two realm_cuda_fatbin concurrent, which causes errors
-  #  we create a control dependency between dynamic and static realm library, such that they will be built in order
-  add_dependencies(RealmStatic RealmRuntime)
-endif()
-
-add_library(Legion::RealmRuntime ALIAS RealmRuntime)
-target_compile_options(RealmRuntime PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CXX_BUILD_WARNING_FLAGS}>)
-
-add_library(Legion::RealmStatic ALIAS RealmStatic)
-target_compile_options(RealmStatic PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CXX_BUILD_WARNING_FLAGS}>)
-
-# turn on warnings about partially-overloaded methods, if supported
-check_cxx_compiler_flag("-Woverloaded-virtual" COMPILER_SUPORTS_OVERLOADED_VIRTUAL_WARNING)
-if(COMPILER_SUPORTS_OVERLOADED_VIRTUAL_WARNING)
-  target_compile_options(RealmRuntime PRIVATE "-Woverloaded-virtual")
-endif()
-
-if(COMPILER_SUPPORTS_DEFCHECK)
-  # use the cxx_defcheck wrapper to make sure realm_defines.h is included
-  #  any place it needs to be
-  target_compile_options(RealmRuntime PRIVATE $<$<COMPILE_LANGUAGE:CXX>:--defcheck;realm_defines.h>)
-endif()
-if(REALM_USE_LIBDL)
-  target_link_libraries(RealmRuntime PRIVATE ${CMAKE_DL_LIBS})
-  if(APPLE)
-    target_link_libraries(RealmRuntime PRIVATE "-undefined dynamic_lookup")
-  endif()
-endif()
-target_link_libraries(RealmRuntime PRIVATE ${CMAKE_THREAD_LIBS_INIT})
-if(UNIX AND NOT APPLE)
-  target_link_libraries(RealmRuntime PRIVATE rt)
-  target_link_libraries(RealmStatic PRIVATE rt)
-endif()
-set_target_properties(RealmRuntime PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(RealmRuntime PROPERTIES SOVERSION ${SOVERSION})
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set_property(TARGET RealmRuntime APPEND PROPERTY BUILD_RPATH "\$ORIGIN")
-  set_property(TARGET RealmRuntime APPEND PROPERTY INSTALL_RPATH "\$ORIGIN")
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set_property(TARGET RealmRuntime APPEND PROPERTY BUILD_RPATH "@loader_path")
-  set_property(TARGET RealmRuntime APPEND PROPERTY INSTALL_RPATH "@loader_path")
-endif ()
-
-if(Legion_USE_Python)
-  # Realm dlopens libpython.so, so we need to add the directory that contains it
-  # to BUILD_RPATH, otherwise build/lib/librealm.so's dlopen will not find it.
-  # We're assuming that libpython.so will be found in the same dir as librealm.so
-  # after installation, so no need to update INSTALL_RPATH.
-  get_filename_component(PYTHON_LIB_DIR "${Python3_LIBRARIES}" DIRECTORY)
-  set_property(TARGET RealmRuntime APPEND PROPERTY BUILD_RPATH "${PYTHON_LIB_DIR}")
-endif ()
-
-if(REALM_LIMIT_SYMBOL_VISIBILITY)
-  set_target_properties(RealmRuntime PROPERTIES CXX_VISIBILITY_PRESET hidden)
-  set_target_properties(RealmRuntime PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
-  set_target_properties(RealmStatic PROPERTIES CXX_VISIBILITY_PRESET hidden)
-  set_target_properties(RealmStatic PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
-endif()
-
-if(Legion_USE_PAPI)
-  target_include_directories(RealmRuntime PRIVATE ${PAPI_INCLUDE_DIRS})
-  target_link_libraries(RealmRuntime PUBLIC ${PAPI_LIBRARIES})
-endif()
-
-if(Legion_USE_HWLOC)
-  target_link_libraries(RealmRuntime PRIVATE HWLOC::HWLOC)
-endif()
-
-if(REALM_USE_PREALM)
-  target_link_libraries(RealmRuntime PRIVATE ZLIB::ZLIB)
-endif()
-
-if(REALM_USE_GASNET1 OR REALM_USE_GASNETEX)
-  if (REALM_USE_GASNET1 OR NOT REALM_USE_GASNETEX_WRAPPER)
-    find_package(GASNet)
-    if (NOT GASNet_FOUND AND Legion_EMBED_GASNet)
-      set(GASNet_BUILD_SHARED ${BUILD_SHARED_LIBS})
-
-      include(${PROJECT_SOURCE_DIR}/cmake/FetchAndBuildGASNet.cmake)
-      find_package(GASNet REQUIRED)
-
-    elseif (NOT GASNet_FOUND)
-      message(FATAL_ERROR "Unable to find GASNet")
-    endif ()
-  endif()
-
-  # cmake won't include GASNet::GASNet in the exported link libraries
-  #  because we're doing a shared build, so force that
-  if(NOT REALM_USE_GASNETEX_WRAPPER AND REALM_USE_GASNETEX)
-    target_sources(RealmRuntime PRIVATE $<TARGET_OBJECTS:realm_gex_wrapper_objs>)
-    target_include_directories(RealmRuntime PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/realm/gasnetex/gasnetex_wrapper/exports")
-    target_link_libraries(RealmRuntime PRIVATE GASNet::GASNet)
-    if (BUILD_SHARED_LIBS)
-      target_link_libraries(RealmRuntime INTERFACE $<LINK_ONLY:GASNet::GASNet>)
-    endif()
-  elseif(NOT REALM_USE_GASNETEX_WRAPPER)
-    target_link_libraries(RealmRuntime PRIVATE GASNet::GASNet)
-    if (BUILD_SHARED_LIBS)
-      target_link_libraries(RealmRuntime INTERFACE $<LINK_ONLY:GASNet::GASNet>)
-    endif()
-  elseif (Legion_ENABLE_TESTING)
-    set_target_properties(realm_gex_wrapper PROPERTIES EXCLUDE_FROM_ALL FALSE)
-  endif()
-
-  # Skip installing gasnet extra libraries if we're using the gasnetex wrapper
-  if (NOT REALM_USE_GASNETEX_WRAPPER)
-    if(BUILD_SHARED_LIBS)
-      # get the list of libraries and filter only those that are not in the
-      #  (gasnet) install dir - the gasnet ones are sucked into librealm.so
-      get_target_property(gasnet_ext_libs GASNet::${GASNet_CONDUIT}-par INTERFACE_LINK_LIBRARIES)
-      list(FILTER gasnet_ext_libs EXCLUDE REGEX "^${GASNet_ROOT_DIR}")
-      set(GASNET_LINK_LIBRARIES_FOR_INSTALL ${gasnet_ext_libs} PARENT_SCOPE)
-    else()
-      # get the list of libraries and filter out those that are not in the
-      #  (gasnet) install dir
-      get_target_property(gasnet_all_libs GASNet::${GASNet_CONDUIT}-par INTERFACE_LINK_LIBRARIES)
-      set(gasnet_libs "${gasnet_all_libs}")
-      list(FILTER gasnet_libs INCLUDE REGEX "^${GASNet_ROOT_DIR}")
-      set(gasnet_installed_libs ${gasnet_libs})
-      string(REGEX REPLACE "${GASNet_ROOT_DIR}/([^/;]*/)*" "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/" gasnet_installed_libs "${gasnet_all_libs}")
-      install(FILES ${gasnet_libs} DESTINATION ${CMAKE_INSTALL_LIBDIR})
-      set(GASNET_LINK_LIBRARIES_FOR_INSTALL ${gasnet_installed_libs} PARENT_SCOPE)
-    endif()
-  endif()
-endif()
-
-if(REALM_USE_MPI)
-   target_link_libraries(RealmRuntime PRIVATE MPI::MPI_CXX)
-endif()
-
-if(REALM_USE_UCX)
-  target_include_directories(RealmRuntime PRIVATE ${UCX_INCLUDE_DIRS})
-  if(NOT REALM_UCX_DYNAMIC_LOAD)
-    target_link_libraries(RealmRuntime PRIVATE ucx::ucp)
-  endif()
-
-  find_package(ucc REQUIRED CONFIG)
-  message(STATUS "Found UCC: ${UCC_INCLUDE_DIRS} ${UCC_LIBRARIES})")
-  target_include_directories(RealmRuntime PRIVATE ${UCC_INCLUDE_DIRS})
-  target_link_libraries(RealmRuntime PRIVATE ucc::ucc)
-
-  if(Legion_UCX_MPI_BOOTSTRAP)
-    # build the MPI bootstrap plugin
-    add_library(realm_ucp_bootstrap_mpi MODULE
-      realm/ucx/bootstrap/bootstrap_mpi.c)
-    target_include_directories(realm_ucp_bootstrap_mpi PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}
-      ${PROJECT_BINARY_DIR}/runtime)
-    target_link_libraries(realm_ucp_bootstrap_mpi PRIVATE MPI::MPI_C)
-    set_target_properties(realm_ucp_bootstrap_mpi PROPERTIES PREFIX "")
-    install(TARGETS realm_ucp_bootstrap_mpi LIBRARY
-      DESTINATION ${CMAKE_INSTALL_LIBDIR})
-  endif()
-  # build the P2P bootstrap plugin
-  add_library(realm_ucp_bootstrap_p2p MODULE
-    realm/ucx/bootstrap/bootstrap_p2p.cc
-	realm/ucx/bootstrap/client.cc
-	realm/ucx/bootstrap/logger.cc
-	realm/ucx/bootstrap/server.cc
-	realm/ucx/bootstrap/p2p_comm.cc
-	realm/ucx/bootstrap/worker.cc)
-  target_include_directories(realm_ucp_bootstrap_p2p PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${PROJECT_BINARY_DIR}/runtime)
-  set_target_properties(realm_ucp_bootstrap_p2p PROPERTIES PREFIX "")
-  install(TARGETS realm_ucp_bootstrap_p2p LIBRARY
-      DESTINATION ${CMAKE_INSTALL_LIBDIR})
-endif()
-
-if(Legion_USE_LLVM)
-  if(Legion_LINK_LLVM_LIBS)
-    target_link_libraries(RealmRuntime PRIVATE LLVM::LLVM)
-    target_link_libraries(RealmStatic PRIVATE LLVM::LLVM)
-  else()
-    # even if we dont link, we still need the LLVM include directories
-    get_target_property(llvm_incdir LLVM::LLVM INTERFACE_INCLUDE_DIRECTORIES)
-    target_include_directories(RealmRuntime PRIVATE ${llvm_incdir})
-    target_include_directories(RealmStatic PRIVATE ${llvm_incdir})
-  endif()
-endif()
-
-if(Legion_USE_CUDA)
-  if(REALM_USE_CUDART_HIJACK)
-    if(Legion_USE_Kokkos)
-      # we need kokkos to depend on the hijack without creating a circular
-      # dependency, so put it in an object library - this works only on newer
-      # cmakes, but we already need cmake 3.13 for Kokkos, so this is ok
-      add_library(realm_cudarthijack OBJECT
-        realm/cuda/cudart_hijack.cc
-        realm/cuda/cudart_hijack.h)
-      set_target_properties(realm_cudarthijack PROPERTIES POSITION_INDEPENDENT_CODE ON)
-      if(REALM_LIMIT_SYMBOL_VISIBILITY)
-        set_target_properties(realm_cudarthijack PROPERTIES CXX_VISIBILITY_PRESET hidden)
-        set_target_properties(realm_cudarthijack PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
-      endif()
-      target_link_libraries(realm_cudarthijack PRIVATE CUDA::toolkit)
-      target_include_directories(realm_cudarthijack
-                         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-                                 ${PROJECT_BINARY_DIR}/runtime)
-      target_link_libraries(RealmRuntime PRIVATE realm_cudarthijack)
-      target_link_libraries(RealmStatic PRIVATE realm_cudarthijack)
-      install(TARGETS realm_cudarthijack EXPORT LegionTargets)
-    else()
-      # without Kokkos interop, we can just add the hijack directly
-      target_sources(RealmRuntime PRIVATE realm/cuda/cudart_hijack.cc)
-      target_sources(RealmStatic PRIVATE realm/cuda/cudart_hijack.cc)
-    endif()
-  else()
-    if(REALM_CUDA_DYNAMIC_LOAD)
-      target_link_libraries(RealmRuntime INTERFACE CUDA::cudart)
-      target_link_libraries(RealmStatic INTERFACE CUDA::cudart)
-    else()
-      target_link_libraries(RealmRuntime INTERFACE CUDA::cudart_static)
-      target_link_libraries(RealmStatic INTERFACE CUDA::cudart_static)
-    endif()
-  endif()
-
-  target_link_libraries(RealmRuntime PUBLIC CUDA::toolkit)
-  target_link_libraries(RealmStatic PUBLIC CUDA::toolkit)
-  # Advertise our driver link to Realm consumers while ensuring libcuda.so isn't in Realm's RPATH
-  target_link_libraries(RealmRuntime INTERFACE CUDA::cuda_driver)
-  target_link_libraries(RealmStatic INTERFACE CUDA::cuda_driver)
-  # for backwards compatibility in applications
-  target_compile_definitions(RealmRuntime INTERFACE USE_CUDA)
-  target_compile_definitions(RealmStatic INTERFACE USE_CUDA)
-
-  target_include_directories(RealmRuntime PRIVATE ${CUDAToolkit_CUPTI_INCLUDE_DIR})
-  target_include_directories(RealmStatic PRIVATE ${CUDAToolkit_CUPTI_INCLUDE_DIR})
-
-  set_target_cuda_standard(RealmRuntime STANDARD ${Legion_CUDA_STANDARD})
-  set_target_cuda_architectures(RealmRuntime ARCHITECTURES ${Legion_CUDA_ARCH})
-  set_target_cuda_standard(RealmStatic STANDARD ${Legion_CUDA_STANDARD})
-  set_target_cuda_architectures(RealmStatic ARCHITECTURES ${Legion_CUDA_ARCH})
-
-  # build cuda hook library
-  option(REALM_BUILD_CUHOOK "Build cuhook sanity checker injection library" OFF)
-  if (REALM_BUILD_CUHOOK)
-    add_library(realm_cuhook SHARED
-      realm/cuda/cuda_hook.cc)
-    set_target_properties(realm_cuhook PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    if(REALM_LIMIT_SYMBOL_VISIBILITY)
-      set_target_properties(realm_cuhook PROPERTIES CXX_VISIBILITY_PRESET hidden)
-      set_target_properties(realm_cuhook PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
-    endif()
-    target_include_directories(realm_cuhook PRIVATE
-                              ${CMAKE_CURRENT_SOURCE_DIR}
-                              ${PROJECT_BINARY_DIR}/runtime
-                              ${CUDAToolkit_CUPTI_INCLUDE_DIR})
-    target_link_libraries(realm_cuhook PUBLIC CUDA::toolkit)
-    install(TARGETS realm_cuhook EXPORT LegionTargets)
-  endif()
-endif()
-
-if(Legion_USE_HIP)
-  if (Legion_HIP_TARGET STREQUAL "CUDA")
-    if(REALM_USE_HIP_HIJACK)
-      target_sources(RealmRuntime PRIVATE realm/hip/hip_hijack.cc)
-    endif()
-
-    target_link_libraries(RealmRuntime PUBLIC CUDA::toolkit)
-    # Advertise our driver link to Realm consumers while ensuring libcuda.so isn't in Realm's RPATH
-    target_link_libraries(RealmRuntime INTERFACE CUDA::cuda_driver)
-    target_include_directories(RealmRuntime PRIVATE ${HIP_ROOT_DIR}/include)
-    # for backwards compatibility in applications
-    target_compile_definitions(RealmRuntime INTERFACE USE_HIP)
-
-    target_compile_definitions(RealmRuntime PRIVATE __HIP_PLATFORM_NVIDIA__)
-  endif()
-
-  if (Legion_HIP_TARGET STREQUAL "ROCM")
-    if(REALM_USE_HIP_HIJACK)
-      target_sources(RealmRuntime PRIVATE realm/hip/hip_hijack.cc)
-    endif()
-
-    set(HIP_LIBRARIES ${HIP_ROOT_DIR}/lib/libamdhip64.so)
-    target_include_directories(RealmRuntime PRIVATE ${HIP_INCLUDE_DIRS})
-    target_link_libraries(RealmRuntime PRIVATE ${HIP_LIBRARIES})
-    # for backwards compatibility in applications
-    target_compile_definitions(RealmRuntime INTERFACE USE_HIP)
-
-    target_compile_definitions(RealmRuntime PRIVATE __HIP_PLATFORM_AMD__)
-  endif()
-endif()
-
 # fetches a specified property list from the target, performs per-element
 #  replacement of the items in the list, and then write the list back to
 #  the target's property
@@ -732,14 +138,6 @@ if(Legion_USE_Kokkos)
                      IMPLICIT_DEPENDS CXX ${CMAKE_CURRENT_SOURCE_DIR}/realm/kokkos_interop.cc
                      VERBATIM)
 
-  # add our object file to the realm library
-  target_sources(RealmRuntime PRIVATE
-                 ${CMAKE_CURRENT_BINARY_DIR}/realm_kokkos_interop.cc.o)
-
-  # and add kokkos libraries to our exported library requirements
-  set_property(TARGET RealmRuntime APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:Kokkos::kokkoscore>")
-
   # Perform various edits on Kokkos' inherited link flags.
 
   # In CMake 3.22+ due to policy CMP0099, we must remove invalid or
@@ -750,12 +148,6 @@ if(Legion_USE_Kokkos)
     edit_target_property(Kokkos::kokkoscore INTERFACE_LINK_OPTIONS ".*gpu-rdc[^>]*" "")
   endif()
 
-  # if Kokkos' CUDA target is enabled, and we're performing runtime hijack,
-  #  rewrite Kokkos' cudart dependency to be on Realm instead
-  if(Kokkos_ENABLE_CUDA AND Legion_HIJACK_CUDART)
-    edit_target_property(Kokkos::CUDA INTERFACE_LINK_LIBRARIES .*cudart.* realm_cudarthijack)
-  endif()
-
   # similarly, if Kokkos' OpenMP target is enabled but we're using Realm's
   #  OpenMP runtime implementation, remove anything mentioning openmp from
   #  the exported link options (don't mess with compile options though)
@@ -764,69 +156,6 @@ if(Legion_USE_Kokkos)
     edit_target_property(Kokkos::kokkoscontainers INTERFACE_LINK_OPTIONS .*openmp.* "")
   endif()
 endif()
-
-if(Legion_USE_HDF5)
-  target_include_directories(RealmRuntime PRIVATE ${HDF5_INCLUDE_DIRS})
-  target_link_libraries(RealmRuntime PRIVATE ${HDF5_LIBRARIES})
-  # for backwards compatibility in applications
-  target_compile_definitions(RealmRuntime INTERFACE USE_HDF)
-endif()
-
-if(Legion_USE_OpenMP)
-  # only include -fopenmp (or equivalent) if we're using the
-  #  system omp runtime libs
-  if(Legion_OpenMP_SYSTEM_RUNTIME)
-    target_link_libraries(RealmRuntime PUBLIC OpenMP::OpenMP_CXX)
-  endif()
-endif()
-
-if(REALM_USE_NVTX)
-  if (NOT TARGET CUDA::nvToolsExt)
-    add_library(CUDA::nvToolsExt ALIAS CUDA::nvtx3)
-  endif()
-  target_link_libraries(RealmRuntime PRIVATE CUDA::nvToolsExt)
-  target_link_libraries(RealmStatic PRIVATE CUDA::nvToolsExt)
-endif()
-
-if(Legion_BACKTRACE_USE_CPPTRACE)
-  target_link_libraries(RealmRuntime PRIVATE cpptrace::cpptrace)
-  target_link_libraries(RealmStatic PRIVATE cpptrace::cpptrace)
-endif()
-
-set_target_properties(RealmRuntime PROPERTIES OUTPUT_NAME "realm${INSTALL_SUFFIX}")
-set_target_properties(RealmStatic PROPERTIES OUTPUT_NAME "realm${INSTALL_SUFFIX}_static")
-
-target_include_directories(RealmRuntime
-  INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-
-  # Include paths for generated header files.
-  INTERFACE
-    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/runtime>
-  PRIVATE
-    ${PROJECT_BINARY_DIR}/runtime
-)
-
-target_include_directories(RealmStatic
-  INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-
-  # Include paths for generated header files.
-  INTERFACE
-    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/runtime>
-  PRIVATE
-    ${PROJECT_BINARY_DIR}/runtime
-)
-
-install(TARGETS RealmRuntime EXPORT LegionTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
 
 # Mapper objects
 list(APPEND MAPPER_SRC
@@ -1038,10 +367,6 @@ list(APPEND LEGION_SRC
   legion/views/replicate.h                legion/views/replicate.cc
 )
 
-if(Legion_USE_HIP)
-  list(APPEND LEGION_SRC hip_cuda_compat/hip_cuda.h)
-endif()
-
 if(Legion_REDOP_HALF)
   list(APPEND LEGION_SRC mathtypes/half.h)
 endif()
@@ -1146,16 +471,27 @@ if(Legion_USE_HIP)
   elseif(Legion_HIP_TARGET STREQUAL "ROCM")
     set(HIP_LIBRARIES ${HIP_ROOT_DIR}/lib/libamdhip64.so)
     set_source_files_properties(${LEGION_HIP_SRC} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+    get_target_property(REALM_INCLUDE_DIRS ${REALM_TGT} INTERFACE_INCLUDE_DIRECTORIES)
+    set(REALM_INCLUDE_FLAGS)
+    foreach(_dir IN LISTS REALM_INCLUDE_DIRS)
+      if(${_dir} MATCHES "\\$<(.*):(.*)>")
+        list(APPEND REALM_INCLUDE_FLAGS "$<${CMAKE_MATCH_1}:-I${CMAKE_MATCH_2}>")
+      else()
+        list(APPEND REALM_INCLUDE_FLAGS "-I${_dir}")
+      endif()
+    endforeach()
     hip_compile(LEGION_HIP_OBJS ${LEGION_HIP_SRC} HIPCC_OPTIONS
       ${HIPCC_FLAGS}
       ${HIP_GENCODE}
       -I ${CMAKE_CURRENT_SOURCE_DIR}
       -I ${CMAKE_CURRENT_SOURCE_DIR}/legion
       -I ${PROJECT_BINARY_DIR}/runtime
+      ${REALM_INCLUDE_FLAGS}
       -fPIC
       DEBUG -g
       RELEASE -O2
       RELWITHDEBINFO -g -O2)
+    add_dependencies(hip_compile RealmRuntime)
     target_sources(LegionRuntime PRIVATE ${LEGION_HIP_OBJS})
     target_link_libraries(LegionRuntime PUBLIC ${HIP_LIBRARIES})
 
@@ -1175,7 +511,7 @@ if(Legion_USE_HIP)
   endif()
 endif()
 
-target_link_libraries(LegionRuntime PUBLIC RealmRuntime)
+target_link_libraries(LegionRuntime PUBLIC RealmRuntime $<TARGET_NAME_IF_EXISTS:CUDA::cuda_driver>)
 if(Legion_USE_ZLIB)
   target_link_libraries(LegionRuntime PRIVATE ZLIB::ZLIB)
 endif()
@@ -1198,18 +534,6 @@ if(COMPILER_SUPPORTS_DEFCHECK)
   target_compile_options(LegionRuntime PRIVATE $<$<COMPILE_LANGUAGE:CXX>:--defcheck;legion_defines.h>)
 endif()
 
-# compiler options' check for realm
-check_cxx_compiler_flag("-Wdeprecated" COMPILER_SUPPORTS_CXX_WDEPRECATED)
-if(COMPILER_SUPPORTS_CXX_WDEPRECATED)
-  target_compile_options(RealmRuntime PRIVATE -Wdeprecated)
-endif()
-check_cxx_compiler_flag("-Wformat-pedantic" COMPILER_SUPPORTS_CXX_FORMAT_PEDENTIC)
-if(COMPILER_SUPPORTS_CXX_FORMAT_PEDENTIC)
-  target_compile_options(RealmRuntime PRIVATE -Wformat-pedantic)
-endif()
-
-
-
 target_include_directories(LegionRuntime
   INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -1231,15 +555,19 @@ install(TARGETS LegionRuntime EXPORT LegionTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+if (Realm_ADDED)
+  install(TARGETS Realm EXPORT LegionTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  )
+endif()
+
 add_library(Legion INTERFACE)
 set_target_properties(Legion PROPERTIES
   INTERFACE_LINK_LIBRARIES LegionRuntime
 )
-add_library(Realm INTERFACE)
-set_target_properties(Realm PROPERTIES
-  INTERFACE_LINK_LIBRARIES RealmRuntime
-)
-install(TARGETS Legion Realm EXPORT LegionTargets)
+install(TARGETS Legion EXPORT LegionTargets)
 
 if (Legion_BUILD_DOCS)
   set(DOXYGEN_STRIP_FROM_INC_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
@@ -1254,27 +582,6 @@ if (Legion_BUILD_DOCS)
       ${CMAKE_CURRENT_BINARY_DIR}/legion_defines.h
       COMMENT "Generating Legion Documentation" ALL)
 
-  set(DOXYGEN_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/realm_docs)
-  set(DOXYGEN_PROJECT_NAME "Realm")
-  set(DOXYGEN_PROJECT_NUMBER ${REALM_VERSION})
-  set(DOXYGEN_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-  set(DOXYGEN_FILE_PATTERNS "*.h")
-  configure_file(${CMAKE_SOURCE_DIR}/doxygen/selectversion.js.in ${CMAKE_BINARY_DIR}/realm_docs/selectversion.js @ONLY)
-  if (NOT DOXYGEN_INTERNAL_DOCS)
-    # TODO(cperry): Remove this when we properly annotate all public and headers
-    set(DOXYGEN_EXCLUDE_SYMBOLS "Realm::*Impl" "Realm::*Internal" "std::*" "*::detail::*")
-    set(DOXYGEN_EXCLUDE_PATTERNS "*_internal.h")
-  else()
-    list(APPEND DOXYGEN_FILE_PATTERNS "*.inl" "*.cc" "*.c")
-  endif()
-  doxygen_add_docs(RealmDocs
-      ${CMAKE_CURRENT_SOURCE_DIR}/realm.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/realm
-      ${CMAKE_CURRENT_BINARY_DIR}/realm_defines.h
-      COMMENT "Generating Realm Documentation" ALL)
-
   install(DIRECTORY "${CMAKE_BINARY_DIR}/legion_docs/html/" DESTINATION "${CMAKE_INSTALL_DOCDIR}/Legion/${LEGION_VERSION}" COMPONENT Legion_doc)
-  install(DIRECTORY "${CMAKE_BINARY_DIR}/realm_docs/html/" DESTINATION "${CMAKE_INSTALL_DOCDIR}/Realm/${REALM_VERSION}" COMPONENT Realm_doc)
-  install(FILES "${CMAKE_BINARY_DIR}/realm_docs/selectversion.js" "${CMAKE_SOURCE_DIR}/doxygen/dropdown.css" DESTINATION "${CMAKE_INSTALL_DOCDIR}/Realm" COMPONENT Realm_doc)
   install(FILES "${CMAKE_BINARY_DIR}/legion_docs/selectversion.js" "${CMAKE_SOURCE_DIR}/doxygen/dropdown.css" DESTINATION "${CMAKE_INSTALL_DOCDIR}/Legion" COMPONENT Legion_doc)
 endif ()

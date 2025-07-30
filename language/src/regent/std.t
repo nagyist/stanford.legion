@@ -4805,8 +4805,10 @@ function std.saveobj(main_task, filename, filetype, extra_setup_thunk, link_flag
   end
   flags:insertall({"-L" .. lib_dir, "-lregent"})
   if legion_install_prefix or use_cmake then
-    flags:insertall({"-llegion", "-lrealm"})
+    flags:insertall({"-llegion"})
   end
+  local realm_dir = os.getenv("Realm_ROOT") .. "/lib"
+  flags:insertall({"-L" .. realm_dir, "-lrealm"})
   if gpuhelper.check_gpu_available() then
     flags:insertall(gpuhelper.driver_library_link_flags())
   end
@@ -4955,8 +4957,10 @@ function std.save_tasks(header_filename, filename, filetype, link_flags, registr
   if link_flags then flags:insertall(link_flags) end
   flags:insertall({"-L" .. lib_dir, "-lregent"})
   if use_cmake then
-    flags:insertall({"-llegion", "-lrealm"})
+    flags:insertall({"-llegion"})
   end
+  local realm_dir = os.getenv("Realm_ROOT") .. "/lib"
+  flags:insertall({"-L" .. realm_dir, "-lrealm"})
   profile('compile', nil, function()
     if filetype ~= nil then
       terralib.saveobj(filename, filetype, names, flags, nil, base.opt_profile)

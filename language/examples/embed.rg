@@ -46,13 +46,15 @@ do
   local libs = "-lregent"
   if use_cmake then
     lib_dir = os.getenv("CMAKE_BUILD_DIR") .. "/lib"
-    libs = libs .. " -llegion -lrealm"
+    libs = libs .. " -llegion"
   end
+  local realm_lib_prefix = os.getenv("Realm_ROOT") .. "/lib"
   local cmd = (cxx .. " " .. cxx_flags .. " " .. include_path .. " " ..
                  embed_cc ..
 		 " -I " .. embed_tasks_dir ..
                  " -L " .. embed_tasks_dir .. " " .. " -lembed_tasks " ..
                  " -L " .. lib_dir .. " " .. libs .. " " ..
+                 " -L " .. realm_lib_prefix .. " -lrealm " ..
                  " -o " .. exe)
   if os.execute(cmd) ~= 0 then
     print("Error: failed to compile " .. embed_cc)
@@ -63,7 +65,8 @@ end
 local env = ""
 if os.getenv("DYLD_LIBRARY_PATH") then
   env = "DYLD_LIBRARY_PATH=" .. os.getenv("DYLD_LIBRARY_PATH") .. ":" .. embed_tasks_dir .. " "
-elseif os.getenv("LD_LIBRARY_PATH") then
+end
+if os.getenv("LD_LIBRARY_PATH") then
   env = "LD_LIBRARY_PATH=" .. os.getenv("LD_LIBRARY_PATH") .. ":" .. embed_tasks_dir .. " "
 end
 

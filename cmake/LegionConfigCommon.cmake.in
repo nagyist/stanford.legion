@@ -1,16 +1,20 @@
+include(CMakeFindDependencyMacro)
+
+# Add this directory to the end of the module search path in order to leverage
+# Legion's installed Find* modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+
 # GASNet is a private dependency and only needs to be pulled in for static
 # builds
 set(Legion_NETWORKS @Legion_NETWORKS@)
 set(Legion_EMBED_GASNet @Legion_EMBED_GASNet@)
-if("${Legion_NETWORKS}" MATCHES ".*gasnet(1|ex).*")
-  if(NOT TARGET GASNet::GASNet)
-    # define a GASNet::GASNet package that just points at:
-    #  gasnet libs (embedded or external) for static builds
-    #  external libs (e.g. mpi) needed in all cases
-    cmake_minimum_required(VERSION 3.11)  # required for adding libs to imported target
-    add_library(GASNet::GASNet INTERFACE IMPORTED)
-    target_link_libraries(GASNet::GASNet INTERFACE @GASNET_LINK_LIBRARIES_FOR_INSTALL@)
+if("@Legion_NETWORKS@" MATCHES ".*gasnet(1|ex).*")
+  if (Legion_EMBED_GASNet AND NOT DEFINED GASNet_ROOT_DIR)
+    if (DEFINED Legion_ROOT)
+      set(GASNet_ROOT_DIR ${Legion_ROOT})
+    endif()
   endif()
+  find_package(GASNet REQUIRED)
 endif()
 
 # LLVM is a private dependency and only needs to be pulled in for static
@@ -34,6 +38,8 @@ if(Legion_USE_CUDA)
     unset(_cuda_stubs_path)
   endif()
 endif()
+
+find_dependency(Realm)
 
 include(${CMAKE_CURRENT_LIST_DIR}/LegionTargets.cmake)
 

@@ -67,6 +67,9 @@ endif
 # Use reduction operators for complex types by default
 USE_COMPLEX = 1
 
+# Disable CUDART_HIJACK, so we always use the latest cudart
+USE_CUDART_HIJACK = 0
+
 # terra already includes LLVM libs, so we don't want them in our .so
 LLVM_LIBS_OPTIONAL = 1
 

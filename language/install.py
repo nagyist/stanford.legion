@@ -80,40 +80,28 @@ def dump_json_config(filename, value):
     with open(filename, 'w') as f:
         return json.dump(value, f)
 
-def build_terra(terra_dir, terra_branch, use_cmake, cmake_exe, thread_count, llvm):
+def build_terra(terra_dir, terra_branch, cmake_exe, thread_count, llvm):
     build_dir = os.path.join(terra_dir, 'build')
     release_dir = os.path.join(terra_dir, 'release')
-    if use_cmake is None:
-        build_detected = os.path.exists(os.path.join(build_dir, 'main.o'))
-        cmake_detected = os.path.exists(os.path.join(build_dir, 'CMakeCache.txt'))
-        use_cmake = cmake_detected or not build_detected
-        if not use_cmake:
-            print('Detected previous Makefile build in Terra, disabling Terra CMake build...')
 
     flags = []
     if llvm:
         assert not use_cmake, "LLVM mode not supported with Terra CMake build, see https://github.com/zdevito/terra/issues/394"
-        flags.extend(['REEXPORT_LLVM_COMPONENTS=irreader mcjit x86'])
 
-    if use_cmake:
-        if not os.path.exists(os.path.join(build_dir, 'CMakeCache.txt')):
-            llvm_cmakedir = None
-            llvm_config = os.environ.get('LLVM_CONFIG')
-            if llvm_config is not None:
-                llvm_cmakedir = subprocess.check_output([llvm_config, '--cmakedir']).decode('utf-8').strip()
-            subprocess.check_call(
-                [cmake_exe, '..', '-DCMAKE_INSTALL_PREFIX=%s' % release_dir] + (
-                    ['-DLLVM_HINTS=%s' % llvm_cmakedir] if llvm_cmakedir is not None else []),
-                cwd=build_dir)
+    if not os.path.exists(os.path.join(build_dir, 'CMakeCache.txt')):
+        llvm_cmakedir = None
+        llvm_config = os.environ.get('LLVM_CONFIG')
+        if llvm_config is not None:
+            llvm_cmakedir = subprocess.check_output([llvm_config, '--cmakedir']).decode('utf-8').strip()
         subprocess.check_call(
-            [make_exe, 'install', '-j', str(thread_count)],
+            [cmake_exe, '..', '-DCMAKE_INSTALL_PREFIX=%s' % release_dir] + (
+                ['-DLLVM_HINTS=%s' % llvm_cmakedir] if llvm_cmakedir is not None else []),
             cwd=build_dir)
-    else:
-        subprocess.check_call(
-            [make_exe, 'all', '-j', str(thread_count)] + flags,
-            cwd=terra_dir)
+    subprocess.check_call(
+        [make_exe, 'install', '-j', str(thread_count)],
+        cwd=build_dir)
 
-def install_terra(terra_dir, terra_url, terra_branch, use_cmake, cmake_exe,
+def install_terra(terra_dir, terra_url, terra_branch, cmake_exe,
                   external_terra_dir, thread_count, llvm):
     if external_terra_dir is not None:
         if terra_url is not None or terra_branch is not None:
@@ -157,7 +145,7 @@ def install_terra(terra_dir, terra_url, terra_branch, use_cmake, cmake_exe,
         if terra_url is not None or terra_branch is not None:
             raise Exception('Terra URL/branch must be set on first install, please delete the terra directory and try again')
         git_update(terra_dir)
-    build_terra(terra_dir, terra_branch, use_cmake, cmake_exe, thread_count, llvm)
+    build_terra(terra_dir, terra_branch, cmake_exe, thread_count, llvm)
 
 def install_luarocks(terra_dir, luarocks_dir):
     if not os.path.exists(luarocks_dir):
@@ -378,13 +366,13 @@ def install(gasnet=False, cuda=False, hip=False, openmp=False, python=False, llv
             spy=False, conduit=None, cmake=None,
             cmake_exe=None, cmake_build_dir=None,
             legion_install_prefix=None, llvm_dir=None,
-            terra_url=None, terra_branch=None, terra_use_cmake=None, external_terra_dir=None,
+            terra_url=None, terra_branch=None, external_terra_dir=None,
             gasnet_dir=None, debug=False, clean_first=True, extra_flags=[],
             thread_count=None, verbose=False):
     regent_dir = os.path.dirname(os.path.realpath(__file__))
     legion_dir = os.path.dirname(regent_dir)
 
-    cmake = get_cmake_config(cmake, regent_dir, default=False)
+    cmake = get_cmake_config(cmake, regent_dir, default=True)
     legion_install_prefix = get_legion_install_prefix(legion_install_prefix, regent_dir)
 
     if clean_first is None:
@@ -417,7 +405,7 @@ def install(gasnet=False, cuda=False, hip=False, openmp=False, python=False, llv
         runtime_dir = os.path.realpath(os.environ['LG_RT_DIR'])
 
     terra_dir = os.path.join(regent_dir, 'terra')
-    install_terra(terra_dir, terra_url, terra_branch, terra_use_cmake, cmake_exe,
+    install_terra(terra_dir, terra_url, terra_branch, cmake_exe,
                   external_terra_dir, thread_count, llvm)
     # luarocks_dir = os.path.join(regent_dir, 'luarocks')
     # install_luarocks(terra_dir, luarocks_dir)
@@ -452,14 +440,6 @@ def driver():
     parser.add_argument(
         '--terra-branch', dest='terra_branch', metavar='BRANCH', required=False,
         help='Name of Terra branch to clone (optional).')
-    parser.add_argument(
-        '--terra-cmake', dest='terra_use_cmake', action='store_true', required=False,
-        default=None,
-        help='Build Terra with CMake.')
-    parser.add_argument(
-        '--no-terra-cmake', dest='terra_use_cmake', action='store_false', required=False,
-        default=None,
-        help="Don't build Terra with CMake (instead use GNU Make).")
     parser.add_argument(
         '--with-terra', dest='external_terra_dir', metavar='DIR', required=False,
         help='Path to Terra installation directory (optional).')

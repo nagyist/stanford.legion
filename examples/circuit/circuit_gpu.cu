@@ -13,14 +13,11 @@
  * limitations under the License.
  */
 
-#include"realm_defines.h"
-
-#ifdef REALM_USE_HIP
-#include "hip_cuda_compat/hip_cuda.h"
-#include "realm/hip/hiphijack_api.h"
-#endif
-
 #include "circuit.h"
+
+#ifdef LEGION_USE_HIP
+#include <realm/hip/hiphijack_api.h>
+#endif
 
 template<typename AT, int SEGMENTS>
 struct SegmentAccessors {

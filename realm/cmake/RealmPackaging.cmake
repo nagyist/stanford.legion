@@ -17,7 +17,7 @@ else()
 endif()
 
 install(
-  TARGETS realm
+  TARGETS Realm
   EXPORT Realm_targets
   RUNTIME COMPONENT Realm_runtime
   LIBRARY COMPONENT Realm_runtime
@@ -29,15 +29,23 @@ install(
 
 # Install the realm_gex_wrapper as well if we have to link directly to it
 if(REALM_USE_GASNETEX
-   AND NOT REALM_USE_GASNETEX_WRAPPER
-   AND NOT BUILD_SHARED_LIBS
+   AND REALM_USE_GASNETEX_WRAPPER
 )
   install(
-    TARGETS realm_gex_wrapper realm_gex_wrapper_objs
+    TARGETS realm_gex_wrapper
     EXPORT Realm_targets
     RUNTIME COMPONENT Realm_runtime
     LIBRARY COMPONENT Realm_runtime
     ARCHIVE COMPONENT Realm_devel
+  )
+endif()
+
+if (REALM_INSTALL_UCX_BOOTSTRAPS)
+  install(
+    TARGETS ${UCX_BACKENDS}
+    EXPORT Realm_targets
+    RUNTIME COMPONENT Realm_runtime DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY COMPONENT Realm_runtime DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   )
 endif()
 
@@ -47,7 +55,12 @@ endif()
 # add the public headers to a cmake FILE_SET
 install(
   FILES "${REALM_SOURCE_DIR}/../realm.h"
-  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/realm"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/"
+  COMPONENT Realm_devel
+)
+install(
+  DIRECTORY "${REALM_SOURCE_DIR}/../hip_cuda_compat"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/"
   COMPONENT Realm_devel
 )
 install(
@@ -74,18 +87,20 @@ install(
   DIRECTORY examples/
   DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/realm/examples"
   COMPONENT Realm_samples
+  PATTERN "examples/CMakeLists.txt" EXCLUDE
 )
 
 install(
   DIRECTORY tutorials/
   DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/realm/tutorials"
   COMPONENT Realm_samples
+  PATTERN "tutorials/CMakeLists.txt" EXCLUDE
 )
 
 #region pkgconfig and supporting cmake files
 write_basic_package_version_file(
   RealmConfigVersion.cmake
-  VERSION ${REALM_SHORT_VERSION}
+  VERSION ${Realm_SHORT_VERSION}
   COMPATIBILITY SameMinorVersion
 )
 
@@ -141,6 +156,8 @@ install(
   FILE Realm-${lib_type}-targets.cmake
   COMPONENT Realm_devel
 )
+
+export(PACKAGE Realm)
 #endregion
 
 #region Documentation
@@ -177,6 +194,7 @@ set(CPACK_PACKAGE_CONTACT "mike@lightsighter.org")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_SOURCE_IGNORE_FILES
     "/\\\\.git/"
+    "/\\\\.github/"
     "/\\\\.vscode/"
     "/\\\\.swp$"
     "/\\\\.gitignore$"

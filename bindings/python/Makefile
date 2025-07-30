@@ -66,10 +66,10 @@ PYTHON_BINDINGS_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 include $(LG_RT_DIR)/runtime.mk
 
-legion_builtin_cffi.py: legion_cffi.py.in legion_cffi_build.py $(LEGION_DEFINES_HEADER) $(REALM_DEFINES_HEADER)
+legion_builtin_cffi.py: legion_cffi.py.in legion_cffi_build.py $(LEGION_DEFINES_HEADER)
 	$(PYTHON_EXE) $(PYTHON_BINDINGS_DIR)/legion_cffi_build.py --defines-dir $(DEFINE_HEADERS_DIR)
 
-legion_canonical_cffi.py: legion_cffi.py.in legion_cffi_build.py $(LEGION_DEFINES_HEADER) $(REALM_DEFINES_HEADER)
+legion_canonical_cffi.py: legion_cffi.py.in legion_cffi_build.py $(LEGION_DEFINES_HEADER)
 	$(PYTHON_EXE) $(PYTHON_BINDINGS_DIR)/legion_cffi_build.py --canonical --defines-dir $(DEFINE_HEADERS_DIR) --libname $(LEGION_CANONICAL_PYTHON_LIB)
 
 legion_info.py: legion_info_build.py
@@ -80,5 +80,5 @@ $(LEGION_CANONICAL_PYTHON_LIB): canonical_python.cc $(SLIB_LEGION) $(SLIB_REALM)
 	$(CXX) $(CC_FLAGS) -fPIC $(INC_FLAGS) -shared $< $(LD_FLAGS) $(LEGION_LIBS) $(LEGION_LD_FLAGS) -o $@
 
 clean::
-	$(RM) -f $(OUTFILE) $(SLIB_LEGION) $(SLIB_REALM) $(GEN_OBJS) $(GEN_GPU_OBJS) $(REALM_OBJS) $(LEGION_OBJS) $(GPU_RUNTIME_OBJS) $(MAPPER_OBJS) $(ASM_OBJS) $(LEGION_CANONICAL_PYTHON_LIB) legion_defines.h realm_defines.h legion_builtin_cffi.py legion_canonical_cffi.py legion_info.py *.pyc
+	$(RM) -f $(OUTFILE) $(SLIB_LEGION) $(SLIB_REALM) $(GEN_OBJS) $(GEN_GPU_OBJS) $(REALM_OBJS) $(LEGION_OBJS) $(GPU_RUNTIME_OBJS) $(MAPPER_OBJS) $(ASM_OBJS) $(LEGION_CANONICAL_PYTHON_LIB) legion_defines.h legion_builtin_cffi.py legion_canonical_cffi.py legion_info.py *.pyc
 	$(RM) -rf build dist *.egg-info

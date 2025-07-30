@@ -22,6 +22,8 @@
 # GASNet_GITREPO:
 # GASNet_GITREF:
 # GASNet_CONFIGURE_ARGS:
+# Setting GASNet_INSTALL=ON will install the runtime and development files in
+# Legion's installation prefix at install time.
 
 
 if (NOT GASNet_CONDUIT)
@@ -48,17 +50,10 @@ set(GASNet_SOURCE_DIR ${PROJECT_BINARY_DIR}/embed-gasnet/source)
 set(GASNet_BUILD_DIR ${PROJECT_BINARY_DIR}/embed-gasnet/build)
 set(GASNet_INSTALL_DIR ${PROJECT_BINARY_DIR}/embed-gasnet/install)
 set(GASNet_BUILD_OUTPUT ${PROJECT_BINARY_DIR}/embed-gasnet/build.log)
+set(GASNet_INSTALL_OUTPUT ${PROJECT_BINARY_DIR}/embed-gasnet/install.log)
 set(GASNet_CONFIG_FILE ${PROJECT_BINARY_DIR}/embed-gasnet/config.txt)
 
-if (GASNet_BUILD_SHARED)
-  set(GASNET_CFLAGS -fPIC)
-  set(GASNET_CXXFLAGS -fPIC)
-else()
-  set(GASNET_CFLAGS "")
-  set(GASNET_CXXFLAGS "")
-endif()
-
-list(APPEND GASNet_CONFIG_SETTINGS "LEGION_GASNET_CONDUIT=${GASNet_CONDUIT}" "LEGION_GASNET_SYSTEM=${GASNet_SYSTEM}" "GASNET_EXTRA_CONFIGURE_ARGS=${GASNet_CONFIGURE_ARGS}" "GASNET_CFLAGS=${GASNET_CFLAGS}" "GASNET_CXXFLAGS=${GASNET_CXXFLAGS}")
+list(APPEND GASNet_CONFIG_SETTINGS "LEGION_GASNET_CONDUIT=${GASNet_CONDUIT}" "LEGION_GASNET_SYSTEM=${GASNet_SYSTEM}" "GASNET_EXTRA_CONFIGURE_ARGS=${GASNet_CONFIGURE_ARGS}")
 if(GASNet_VERSION)
   # make the source directory version-specific
   set(GASNet_SOURCE_DIR ${PROJECT_BINARY_DIR}/embed-gasnet/${GASNet_VERSION})
@@ -115,4 +110,17 @@ if(GASNET_BUILD_NEEDED)
     message(FATAL_ERROR "GASNet build result = ${GASNET_BUILD_STATUS} - see ${GASNet_BUILD_OUTPUT} for more details")
   endif()
   set(GASNet_ROOT_DIR ${GASNet_INSTALL_DIR} CACHE STRING "Root directory for GASNet" FORCE)
+
+  if (GASNet_INSTALL)
+    # This will package the full installation of gasnet into the install prefix at install time.
+    install(CODE "\
+      execute_process(COMMAND make -C \"${GASNet_BUILD_DIR}\" prefix=\"\${CMAKE_INSTALL_PREFIX}\" install
+                      RESULT_VARIABLE GASNET_INSTALL_STATUS
+                      OUTPUT_FILE \"${GASNet_INSTALL_OUTPUT}\"
+                      ERROR_FILE \"${GASNet_INSTALL_OUTPUT}\")
+      if(GASNET_INSTALL_STATUS)
+        message(FATAL_ERROR \"GASNet install result = \${GASNET_INSTALL_STATUS} - see ${GASNet_INSTALL_OUTPUT} for more details\")
+      endif()
+    ")
+  endif()
 endif()

@@ -53,6 +53,10 @@ def build_cffi(libname, source_dir, defines_dir, output_dir, header_files, heade
         # For Make, legion_defines.h is in the source directory:
         build_flags = ['-I', os.path.dirname(os.path.realpath(__file__))]
 
+    realm_install_prefix = os.getenv('Realm_ROOT', None)
+    if realm_install_prefix:
+        build_flags.extend(['-I', os.path.join(realm_install_prefix, 'include')])
+
     # Check to see if the user specified a C compiler with the CC environment variable, if not assume there is a built-in C compiler
     compiler = os.getenv('CC', 'cc')
 

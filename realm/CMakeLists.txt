@@ -13,10 +13,14 @@
 cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
 
 #region Versioning
+
+set(Realm_SHORT_VERSION "")
+set(Realm_VERSION_META "")
+
 find_package(Git)
 if(Git_FOUND)
   execute_process(
-    COMMAND "${GIT_EXECUTABLE}" describe --tags
+    COMMAND "${GIT_EXECUTABLE}" describe --tags --abbrev=0
     OUTPUT_VARIABLE REALM_GIT_VERSION
     ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
@@ -33,8 +37,14 @@ if(Git_FOUND)
     ERROR_QUIET
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
   )
-  string(REGEX REPLACE "legion-([0-9\.]+)-.*" "\\1" Realm_SHORT_VERSION "${REALM_GIT_VERSION}")
-  set(Realm_VERSION_META "+${REALM_VERSION_SHA}")
+  if (REALM_GIT_VERSION MATCHES "legion-([0-9\.]+)")
+    string(REGEX REPLACE "legion-([0-9\.]+)" "\\1" Realm_SHORT_VERSION "${REALM_GIT_VERSION}")
+  elseif(REALM_GIT_VERSION MATCHES "v([0-9\.]+)(-.+)?")
+    string(REGEX MATCH "v([0-9\.]+)(-.+)?" _ "${REALM_GIT_VERSION}")
+    set(Realm_SHORT_VERSION ${CMAKE_MATCH_1})
+    set(Realm_VERSION_META ${CMAKE_MATCH_2})
+  endif()
+  set(Realm_VERSION_META "${Realm_VERSION_META}+${REALM_VERSION_SHA}")
   if(REALM_DIRTY)
     string(APPEND Realm_VERSION_META "-dirty")
   endif()
@@ -47,6 +57,9 @@ if(Realm_SHORT_VERSION STREQUAL "" AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/VERSIO
 else()
   if(Realm_SHORT_VERSION STREQUAL "")
     set(Realm_SHORT_VERSION 0.0.1)
+    if (Realm_VERSION_META STREQUAL "")
+      set(Realm_VERSION_META "-unknown")
+    endif()
   endif()
 endif()
 #endregion
@@ -56,7 +69,7 @@ project(
   VERSION ${Realm_SHORT_VERSION}
   LANGUAGES CXX C
   DESCRIPTION "A distributed, event-based tasking library"
-  HOMEPAGE_URL https://gitlab.com/StanfordLegion/legion/
+  HOMEPAGE_URL https://legion.stanford.edu/realm
 )
 set(REALM_VERSION "${Realm_SHORT_VERSION}${Realm_VERSION_META}")
 
@@ -84,7 +97,9 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CPM.cmake")
 check_ipo_supported(RESULT REALM_SUPPORTS_LTO LANGUAGES CXX C)
 #endregion
 
-#region Build options These should all be prefixed with 'REALM_' to prevent subproject name clashes
+#region Build options
+
+# These should all be prefixed with 'REALM_' to prevent subproject name clashes
 set(REALM_MAX_DIM
     3
     CACHE STRING "Maximum dimension compiled for"
@@ -104,6 +119,7 @@ option(REALM_BUILD_TESTS "Build tests" ${PROJECT_IS_TOPLEVEL})
 option(REALM_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOPLEVEL})
 option(REALM_BUILD_BENCHMARKS "Build benchmarks" ${PROJECT_IS_TOPLEVEL})
 option(REALM_BUILD_TUTORIALS "Build tutorials" ${PROJECT_IS_TOPLEVEL})
+option(REALM_BUILD_DOCS "Build documentation" ${PROJECT_IS_TOPLEVEL})
 
 cmake_dependent_option(REALM_ENABLE_RDTSC "Compile with RDTSC support" ON "NOT WIN32" OFF)
 option(REALM_ENABLE_CUDA "Compile with CUDA support" ON)
@@ -113,13 +129,14 @@ option(REALM_ENABLE_HDF5 "Compile with HDF5 support" ON)
 option(REALM_ENABLE_MPI "Compile with MPI support" OFF)
 option(REALM_ENABLE_OPENMP "Compile with OpenMP support" ON)
 option(REALM_ENABLE_KOKKOS "Compile with kokkos support" OFF)
-cmake_dependent_option(REALM_ENABLE_UCX "Compile with UCX support" ON "NOT WIN32" OFF)
+cmake_dependent_option(REALM_ENABLE_UCX "Compile with UCX support" OFF "NOT WIN32" OFF)
+cmake_dependent_option(REALM_INSTALL_UCX_BOOTSTRAPS "Install UCX bootstraps" ON "REALM_ENABLE_INSTALL; REALM_ENABLE_UCX" OFF)
 option(REALM_ENABLE_HWLOC "Compile with hwloc hardware discovery support" OFF)
 option(REALM_ENABLE_PAPI "Compile with PAPI thread profiling support" ON)
-option(REALM_ENABLE_CPPTRACE "Compile with cpptrace backtrace support" ON)
+option(REALM_ENABLE_CPPTRACE "Compile with cpptrace backtrace support" OFF)
 option(REALM_ENABLE_PREALM "Compile with realm profiler" OFF)
 cmake_dependent_option(REALM_ENABLE_LIBDL "Compile with dynamic runtime linking support" ON "NOT WIN32" OFF)
-cmake_dependent_option(REALM_ENABLE_GASNETEX "Compile with GASNetEx support" ON "NOT WIN32" OFF)
+cmake_dependent_option(REALM_ENABLE_GASNETEX "Compile with GASNetEx support" OFF "NOT WIN32" OFF)
 cmake_dependent_option(
   REALM_ENABLE_GASNETEX_WRAPPER "Compile with dynamic GASNetEx ABI stability wrapper" OFF
   "NOT WIN32; REALM_ENABLE_LIBDL" OFF
@@ -167,8 +184,7 @@ set(REALM_SANITIZER
 set_property(CACHE REALM_SANITIZER PROPERTY STRINGS "NONE;ASAN;UBSAN;TSAN")
 #endregion
 
-# TODO(cperry): move these under the current directory
-set(REALM_SOURCE_DIR "../runtime/realm")
+set(REALM_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/realm")
 cmake_path(ABSOLUTE_PATH REALM_SOURCE_DIR NORMALIZE)
 
 #region Dependencies
@@ -201,6 +217,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 list(APPEND REALM_LIBRARIES Threads::Threads)
+list(APPEND REALM_STATIC_DEPENDS Threads)
 
 if(UNIX AND NOT APPLE)
   find_library(CMAKE_RT_LIBS rt REQUIRED)
@@ -208,7 +225,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 if(REALM_BUILD_DOCS)
-  find_package(Doxygen REQUIRED)
+  find_package(Doxygen)
 endif()
 
 if(UNIX)
@@ -298,6 +315,13 @@ if(REALM_ENABLE_HIP)
   if(hip_FOUND)
     list(APPEND REALM_STATIC_DEPENDS hip)
     list(APPEND REALM_LIBRARIES hip::host)
+    # Deal with an issue on some hip configs where the include directory is not
+    # set in the interface
+    get_target_property(HIPHOST_INC_DIR hip::host INTERFACE_INCLUDE_DIRECTORIES)
+    if (HIPHOST_INC_DIR STREQUAL "HIPHOST_INC_DIR-NOTFOUND")
+      set_target_properties(hip::host PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${HIP_INCLUDE_DIR})
+      #message(FATAL_ERROR ${HIP_INCLUDE_DIR})
+    endif()
   endif()
 endif()
 
@@ -339,13 +363,23 @@ if(REALM_ENABLE_CUDA OR (hip_FOUND AND HIP_PLATFORM STREQUAL "nvidia"))
       PATHS ${CUDAToolkit_LIBRARY_ROOT}
       PATH_SUFFIXES include ../include extras/CUPTI/include ../extras/CUPTI/include
     )
-    # Deal with the library name change in older versions of cmake
-    if(NOT TARGET CUDA::nvToolsExt AND TARGET CUDA::nvtx3)
-      add_library(CUDA::nvToolsExt ALIAS CUDA::nvtx3)
-    endif()
-    if (TARGET CUDA::nvToolsExt)
+
+    # Deal with the library name change in older versions of cmake.
+    #
+    # nvtx3 was added in cmake 3.25, and while later versions (at least 3.30+) claim that
+    # the CUDA::nvtx3 and CUDA::nvToolsExt targets are mutually exclusive, they don't
+    # appear to be so in earlier versions. So if we have nvtx3, prefer that, otherwise
+    # fall back to nvToolsExt.
+    set(REALM_USE_NVTX ON)
+    if(TARGET CUDA::nvtx3)
+      list(APPEND REALM_LIBRARIES CUDA::nvtx3)
+    elseif(TARGET CUDA::nvToolsExt)
       list(APPEND REALM_LIBRARIES CUDA::nvToolsExt)
+    else()
+      # Silently disable NVTX if we cannot find it
+      set(REALM_USE_NVTX OFF)
     endif()
+
     if(NOT REALM_CUDA_DYNAMIC_LOAD)
       list(APPEND REALM_LIBRARIES CUDA::cuda_driver)
     endif()
@@ -385,10 +419,10 @@ endif()
 if(REALM_ENABLE_KOKKOS)
   if(TARGET CUDA::cuda_driver)
     list(APPEND KOKKOS_CONFIG_ARGS "Kokkos_ENABLE_CUDA ON" "Kokkos_ENABLE_CUDA_LAMBDA ON"
-         "Kokkos_ENABLE_CUDA_UVM OFF"
+        "Kokkos_ENABLE_CUDA_UVM OFF"
     )
   endif()
-  if(HIP_FOUND)
+  if(hip_FOUND)
     list(APPEND KOKKOS_CONFIG_ARGS "Kokkos_ENABLE_HIP ON")
   endif()
   if(OpenMP_FOUND)
@@ -517,7 +551,7 @@ if(REALM_ENABLE_UCX)
     find_package(ucc QUIET CONFIG)
     if(NOT ucc_FOUND)
       list(APPEND UCC_CONFIG_ARGS "--with-ucx=${ucx_ROOT_DIR}" "--disable-doxygen-doc" "--with-pic"
-           "--enable-static"
+          "--enable-static"
       )
       if(hip_FOUND)
         list(APPEND UCC_CONFIG_ARGS "--with-rocm=${HIP_ROOT_DIR}")
@@ -568,7 +602,11 @@ if(REALM_ENABLE_UCX)
   if(REALM_BUILD_TESTS OR REALM_BUILD_BENCHMARKS)
     set(UCX_BOOTSTRAP_ENABLE_MPI ON)
   endif()
-  add_subdirectory(src/ucx/bootstrap EXCLUDE_FROM_ALL)
+  if (REALM_INSTALL_UCX_BOOTSTRAPS)
+    add_subdirectory(src/realm/ucx/bootstrap)
+  else()
+    add_subdirectory(src/realm/ucx/bootstrap EXCLUDE_FROM_ALL)
+  endif()
 endif()
 
 if(REALM_ENABLE_GASNETEX)
@@ -600,7 +638,7 @@ if(REALM_ENABLE_GASNETEX)
         get_target_property(_cuda_driver_path CUDA::cuda_driver LOCATION)
         cmake_path(REMOVE_FILENAME _cuda_driver_path)
         list(APPEND GASNet_CONFIG_ARGS "--with-cuda-home=${CUDAToolkit_LIBRARY_ROOT}"
-             "--with-cuda-ldflags=-L${_cuda_driver_path}" --enable-kind-cuda-uva
+            "--with-cuda-ldflags=-L${_cuda_driver_path}" --enable-kind-cuda-uva
         )
       endif()
       if(hip_FOUND)
@@ -608,7 +646,7 @@ if(REALM_ENABLE_GASNETEX)
       endif()
       if(MPI_FOUND)
         list(APPEND GASNet_CONFIG_ARGS --enable-mpi --with-mpi-cc=${MPI_C_COMPILER}
-             --with-mpi-cflags=${MPI_C_COMPILER_FLAGS} --with-mpi-libs=${MPI_C_LIBRARIES}
+            --with-mpi-cflags=${MPI_C_COMPILER_FLAGS} --with-mpi-libs=${MPI_C_LIBRARIES}
         )
       endif()
       if(HWLOC_FOUND)
@@ -670,10 +708,6 @@ if(REALM_ENABLE_GASNETEX)
   if(NOT GASNet_FOUND)
     message(FATAL_ERROR "Failed to find GASNet")
   endif()
-  list(APPEND REALM_STATIC_DEPENDS GASNet)
-  if(NOT REALM_ENABLE_GASNETEX_WRAPPER)
-    list(APPEND REALM_LIBRARIES GASNet::GASNet)
-  endif()
 endif()
 
 if(GASNet_FOUND)
@@ -688,7 +722,8 @@ if(GASNet_FOUND)
     EXCLUDE_FROM_ALL
   )
   if(NOT REALM_ENABLE_GASNETEX_WRAPPER)
-    list(APPEND REALM_LIBRARIES realm_gex_wrapper)
+    list(APPEND REALM_LIBRARIES GASNet::GASNet)
+    list(APPEND REALM_STATIC_DEPENDS GASNet)
   endif()
 endif()
 
@@ -712,9 +747,6 @@ if(TARGET CUDA::cuda_driver AND REALM_ENABLE_CUDA)
   set(REALM_USE_CUDA TRUE)
 endif()
 
-if(TARGET CUDA::nvToolsExt AND REALM_ENABLE_CUDA)
-  set(REALM_USE_NVTX TRUE)
-endif()
 add_feature_info(nvtx REALM_USE_NVTX "Enables NVTX annotations for profiling visibility")
 
 if(TARGET hip::host)
@@ -794,7 +826,7 @@ if(TARGET CUDA::cuda_driver AND REALM_ENABLE_CUDA)
     COMMAND
       ${CMAKE_COMMAND} "-DVAR_NAME=realm_fatbin" "-DDEFINES_HEADER=realm/realm_config.h"
       "-DIN_FILE=$<TARGET_OBJECTS:realm_cuda_fatbin>" "-DOUT_FILE=${realm_fatbin_cc}" -P
-      ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/bin2c.cmake
+      ${PROJECT_SOURCE_DIR}/cmake/bin2c.cmake
     VERBATIM
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDS realm_cuda_fatbin
@@ -806,6 +838,19 @@ endif()
 #endregion
 
 #region Library compilation
+
+# Specifically for adding extra object libraries' target objects to prevent
+# needing to use target_link_libraries, which would add the object libraries
+# to the interface link libraries of the target, which is not what we want.
+set(REALM_EXTRA_OBJS)
+
+if (TARGET realm_gex_wrapper_objs AND NOT REALM_ENABLE_GASNETEX_WRAPPER)
+  # side rant(cperry) : it would be nice if object libraries were a little more
+  # seamless and weren't added part of the interface link libraries for
+  # concrete targets like static and shared libraries.
+  list(APPEND REALM_EXTRA_OBJS $<TARGET_OBJECTS:realm_gex_wrapper_objs>)
+endif()
+
 # Remove NDEBUG from definitions for cxx, c, and cuda release flags.
 # TODO(cperry): remove this once we clean up all the asserts that have side effects
 string(REPLACE "/DNDEBUG" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
@@ -819,67 +864,73 @@ add_library(realm_obj OBJECT ${REALM_SOURCES})
 set_target_properties(
   realm_obj
   PROPERTIES C_VISIBILITY_PRESET hidden
-             CXX_VISIBILITY_PRESET hidden
-             CUDA_VISIBILITY_PRESET hidden
-             VISIBILITY_INLINES_HIDDEN ON
-             POSITION_INDEPENDENT_CODE ON
+            CXX_VISIBILITY_PRESET hidden
+            CUDA_VISIBILITY_PRESET hidden
+            VISIBILITY_INLINES_HIDDEN ON
+            POSITION_INDEPENDENT_CODE ON
 )
-add_library(realm ${REALM_RC_SOURCES} $<TARGET_OBJECTS:realm_obj>)
+add_library(Realm ${REALM_RC_SOURCES} $<TARGET_OBJECTS:realm_obj> ${REALM_EXTRA_OBJS})
+add_library(Realm::Realm ALIAS Realm)
 set_target_properties(
-  realm
+  Realm
   PROPERTIES VERSION ${Realm_VERSION}
-             SOVERSION ${Realm_VERSION_MAJOR}
-             INTERPROCEDURAL_OPTIMIZATION ${REALM_ENABLE_LTO}
-             C_VISIBILITY_PRESET hidden
-             CXX_VISIBILITY_PRESET hidden
-             CUDA_VISIBILITY_PRESET hidden
-             VISIBILITY_INLINES_HIDDEN ON
-             POSITION_INDEPENDENT_CODE ON
+            SOVERSION ${Realm_VERSION_MAJOR}
+            INTERPROCEDURAL_OPTIMIZATION ${REALM_ENABLE_LTO}
+            C_VISIBILITY_PRESET hidden
+            CXX_VISIBILITY_PRESET hidden
+            CUDA_VISIBILITY_PRESET hidden
+            VISIBILITY_INLINES_HIDDEN ON
+            POSITION_INDEPENDENT_CODE ON
+            OUTPUT_NAME "realm"
 )
-add_library(Realm::Realm ALIAS realm)
 
-generate_export_header(realm EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/include/realm_exports.h")
+generate_export_header(Realm EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/include/realm/realm_exports.h")
+
 if(NOT BUILD_SHARED_LIBS)
   target_compile_definitions(realm_obj PUBLIC REALM_STATIC_DEFINE=1)
-  target_compile_definitions(realm PUBLIC REALM_STATIC_DEFINE=1)
+  target_compile_definitions(Realm PUBLIC REALM_STATIC_DEFINE=1)
 endif()
 
 target_link_libraries(realm_obj PRIVATE ${REALM_LIBRARIES})
-target_link_libraries(realm PRIVATE ${REALM_LIBRARIES})
+target_link_libraries(Realm PRIVATE ${REALM_LIBRARIES})
 
 target_include_directories(
   realm_obj
-  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> $<BUILD_INTERFACE:${REALM_SOURCE_DIR}/..>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-         $<$<TARGET_EXISTS:hip::host>:${HIP_INCLUDE_DIR}>
+  PUBLIC  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> $<BUILD_INTERFACE:${REALM_SOURCE_DIR}/..>
+          $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   PRIVATE $<$<TARGET_EXISTS:CUDA::cuda_driver>:${CUDAToolkit_CUPTI_INCLUDE_DIR}>
           $<$<TARGET_EXISTS:CUDA::cuda_driver>:${CUDAToolkit_INCLUDE_DIR}>
           $<$<TARGET_EXISTS:Python3::Python>:${Python_INCLUDE_DIRS}>
+          $<$<TARGET_EXISTS:hip::host>:${HIP_INCLUDE_DIR}>
 )
 target_include_directories(
-  realm
-  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> $<BUILD_INTERFACE:${REALM_SOURCE_DIR}/..>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-         $<$<TARGET_EXISTS:hip::host>:${HIP_INCLUDE_DIR}>
+  Realm
+  PUBLIC  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> $<BUILD_INTERFACE:${REALM_SOURCE_DIR}/..>
+          $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   PRIVATE $<$<TARGET_EXISTS:CUDA::cuda_driver>:${CUDAToolkit_CUPTI_INCLUDE_DIR}>
           $<$<TARGET_EXISTS:CUDA::cuda_driver>:${CUDAToolkit_INCLUDE_DIR}>
           $<$<TARGET_EXISTS:Python3::Python>:${Python_INCLUDE_DIRS}>
+          $<$<TARGET_EXISTS:hip::host>:${HIP_INCLUDE_DIR}>
 )
-if(REALM_ENABLE_GASNETEX_WRAPPER)
+if(REALM_ENABLE_GASNETEX)
   # Force the creation of the export header for the wrapper we need, but nothing else
-  add_dependencies(realm ${CMAKE_CURRENT_BINARY_DIR}/gasnetex_wrapper/exports/gex_export.h)
-  add_dependencies(realm_obj ${CMAKE_CURRENT_BINARY_DIR}/gasnetex_wrapper/exports/gex_export.h)
+  add_dependencies(Realm realm_gex_wrapper_objs)
+  add_dependencies(realm_obj realm_gex_wrapper_objs)
+  target_include_directories(realm_obj
+    PRIVATE $<TARGET_PROPERTY:realm_gex_wrapper_objs,INTERFACE_INCLUDE_DIRECTORIES>)
+  target_include_directories(Realm
+    PRIVATE $<TARGET_PROPERTY:realm_gex_wrapper_objs,INTERFACE_INCLUDE_DIRECTORIES>)
 endif()
 
 if(TARGET realm_fatbin_tgt)
-  add_dependencies(realm realm_fatbin_tgt)
+  add_dependencies(Realm realm_fatbin_tgt)
   add_dependencies(realm_obj realm_fatbin_tgt)
 endif()
 
-target_compile_features(realm PUBLIC cxx_std_${REALM_CXX_STANDARD})
+target_compile_features(Realm PUBLIC cxx_std_${REALM_CXX_STANDARD})
 target_compile_features(realm_obj PUBLIC cxx_std_${REALM_CXX_STANDARD})
 target_compile_options(
-  realm
+  Realm
   PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
           -Wall
           -Wextra
@@ -921,49 +972,68 @@ if(REALM_BUILD_TESTS OR REALM_BUILD_BENCHMARKS)
   if(OPENCPPCOV_PATH)
     list(APPEND CMAKE_TEST_LAUNCHER ${OPENCPPCOV} --sources ${REALM_SOURCE_DIR} --)
   endif()
-  include(CTest)
-  enable_testing()
+  if(PROJECT_IS_TOP_LEVEL)
+    include(CTest)
+    enable_testing()
+  endif()
 endif()
 
 if(REALM_BUILD_TESTS)
   add_subdirectory(tests)
 endif()
+add_feature_info(tests REALM_BUILD_TESTS "Build unit and integration tests")
 
 if(REALM_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
+add_feature_info(examples REALM_BUILD_EXAMPLES "Build examples")
 
 if(REALM_BUILD_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
+add_feature_info(benchmarks REALM_BUILD_BENCHMARKS "Build benchmarks")
 
 if(REALM_BUILD_TUTORIALS)
   add_subdirectory(tutorials)
 endif()
+add_feature_info(tutorials REALM_BUILD_TUTORIALS "Build tutorials")
 
 #endregion
 
 #region Documentation
 # TODO(cperry): fix me
 if(REALM_BUILD_DOCS AND DOXYGEN_FOUND)
+  set(DOXYGEN_PROJECT_LOGO ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/logo.png)
+  set(DOXYGEN_PROJECT_NUMBER ${REALM_VERSION})
   set(DOXYGEN_GENERATE_HTML ${REALM_GENERATE_HTML})
   set(DOXYGEN_GENERATE_MAN ${REALM_GENERATE_MAN})
+  set(DOXYGEN_GENERATE_TREEVIEW YES)
+  set(DOXYGEN_DISABLE_INDEX NO)
+  set(DOXYGEN_FULL_SIDEBAR NO)
   set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/docs")
   set(DOXYGEN_EXTRACT_ALL YES)
   set(DOXYGEN_FULL_PATH_NAMES YES)
+  set(DOXYGEN_HTML_DYNAMIC_MENUS NO)
   set(DOXYGEN_HTML_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/header.html)
   set(DOXYGEN_HTML_FOOTER ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/footer.html)
-  set(DOXYGEN_HTML_EXTRA_STYLESHEET ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/customdoxygen.css)
+  set(DOXYGEN_HTML_EXTRA_STYLESHEET ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/customdoxygen.css
+                                    ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/doxygen-awesome.css
+                                    ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/doxygen-awesome-sidebar-only.css)
+  set(DOXYGEN_HTML_COLORSTYLE LIGHT)
+  set(DOXYGEN_HTML_COLORSTYLE_HUE 209)
+  set(DOXYGEN_HTML_COLORSTYLE_SAT 255)
+  set(DOXYGEN_HTML_COLORSTYLE_GAMMA 113)
+  set(DOXYGEN_DOT_IMAGE_FORMAT svg)
+  set(DOXYGEN_DOT_TRANSPARENT YES)
+  set(DOXYGEN_USE_MDFILE_AS_MAINPAGE ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
   if(NOT REALM_BUILD_INTERNAL_DOCS)
     set(DOXYGEN_STRIP_FROM_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include
                                 ${CMAKE_CURRENT_BINARY_DIR}/include
     )
   endif()
   # This should include all public header files and nothing else.
-  set(REALM_DOC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}/include)
-  if(REALM_BUILD_INTERNAL_DOCS)
-    list(APPEND REALM_DOC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src)
-  endif()
+  file(GLOB_RECURSE REALM_DOC_FILES "src/*.h")
+  list(APPEND REALM_DOC_FILES ${CMAKE_CURRENT_BINARY_DIR}/include)
   doxygen_add_docs(docs ${REALM_DOC_FILES} COMMENT "Generate docs" ALL)
 endif()
 #endregion
@@ -974,4 +1044,6 @@ if(REALM_ENABLE_INSTALL)
 endif()
 #endregion
 
-feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES)
+if(PROJECT_IS_TOP_LEVEL)
+  feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES)
+endif()

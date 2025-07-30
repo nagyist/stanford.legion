@@ -56,7 +56,6 @@ if(Legion_VERSION STREQUAL "")
 endif()
 # these are the actual variables that are written into the headers
 set(LEGION_VERSION "${Legion_VERSION}")
-set(REALM_VERSION "${Legion_VERSION}")
 
 # Parse the major.minor.patch from (potentially non-semver) Legion_VERSION
 if(Legion_VERSION MATCHES "([0-9]+)\\.([0-9]+)\\.([0-9]+)") # get the CMake version
@@ -127,8 +126,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
 endif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
 
 if (CMAKE_BUILD_TYPE AND ( CMAKE_BUILD_TYPE STREQUAL "Debug"))
-  # define variable for realm_defines.h
-  set(DEBUG_REALM ON)
   # define variable for legion_defines.h
   set(LEGION_DEBUG ON)
 endif()
@@ -305,7 +302,6 @@ if(Legion_USE_OpenMP)
   option(Legion_OpenMP_KMP_SUPPORT "Enable KMP support for OpenMP" ON)
 
   # define variable for realm_defines.h
-  set(REALM_USE_OPENMP ON)
   if(Legion_OpenMP_SYSTEM_RUNTIME)
     set(REALM_OPENMP_SYSTEM_RUNTIME ON)
   endif()
@@ -316,6 +312,8 @@ if(Legion_USE_OpenMP)
     set(REALM_OPENMP_KMP_SUPPORT ON)
   endif()
 endif()
+
+set(REALM_ENABLE_OPENMP ${Legion_USE_OpenMP})
 
 #------------------------------------------------------------------------------#
 # Python
@@ -331,10 +329,9 @@ if(Legion_USE_Python)
           unset(${_variableName})
       endif()
   endforeach()
-
-  # define variables for realm_defines.h
-  set(REALM_USE_PYTHON ON)
 endif()
+
+set(REALM_ENABLE_PYTHON ${Legion_USE_Python})
 
 set(BINDINGS_DEFAULT_MODULE "" CACHE STRING "module to load by default in Python bindings, if any")
 
@@ -365,9 +362,9 @@ if(Legion_USE_Kokkos)
   if(NOT KOKKOS_CXX_COMPILER)
     message(FATAL_ERROR "to build correctly with Kokkos, the exact compiler used in the Kokkos build (typically set via CXX=... or -DCMAKE_CXX_COMPILER=...) must be provided in KOKKOS_CXX_COMPILER (either on the command line or from the environment)")
   endif()
-
-  set(REALM_USE_KOKKOS ON)
 endif()
+
+set(REALM_ENABLE_KOKKOS ${Legion_USE_Kokkos})
 
 #------------------------------------------------------------------------------#
 # libdl configuration
@@ -379,8 +376,8 @@ if(Legion_USE_LIBDL)
   # define variable for legion_defines.h
   set(LEGION_USE_LIBDL ON)
   # define variable for realm_defines.h
-  set(REALM_USE_LIBDL ON)
 endif()
+set(REALM_ENABLE_LIBDL ${Legion_USE_LIBDL})
 
 #------------------------------------------------------------------------------#
 # rdtsc configuration
@@ -437,6 +434,11 @@ if("${Legion_NETWORKS}" MATCHES ".*gasnet(1|ex).*")
     set(GASNet_CONFIGURE_ARGS ${Legion_EMBED_GASNet_CONFIGURE_ARGS})
 
     option(Legion_EMBED_GASNet_ENABLE_GPU_MEMORY_KINDS "Enable GASNet memory kinds when Realm has been built with CUDA/HIP/etc." ON)
+
+    # Always install the embedded gasnet library along with Legion, wrapper or not.
+    set(GASNet_INSTALL TRUE)
+
+    include(cmake/FetchAndBuildGASNet.cmake)
   else()
     set(GASNet_THREADING par)
     set(GASNet_PREFERRED_CONDUITS aries gemini ibv)
@@ -448,14 +450,8 @@ if("${Legion_NETWORKS}" MATCHES ".*gasnet(1|ex).*")
 
   # define variable for realm_defines.h
   if("${Legion_NETWORKS}" MATCHES .*gasnetex.*)
-    set(REALM_USE_GASNETEX ON)
     # wether to build gasnetex wrapper as a standalone library
     option(Legion_USE_GASNETEX_WRAPPER "Enable gasnetex wrapper" OFF)
-    if (Legion_USE_GASNETEX_WRAPPER)
-      set(REALM_USE_GASNETEX_WRAPPER ON)
-    endif()
-  else()
-    set(REALM_USE_GASNET1 ON)
   endif()
   string(TOUPPER ${GASNet_CONDUIT} CONDUIT)
   set(GASNET_CONDUIT_${CONDUIT} ON)
@@ -464,6 +460,7 @@ if("${Legion_NETWORKS}" MATCHES ".*gasnet(1|ex).*")
     set(Legion_MPI_INTEROP ON)
   endif()
 endif()
+set(REALM_USE_GASNETEX_WRAPPER ${Legion_USE_GASNETEX_WRAPPER})
 
 #------------------------------------------------------------------------------#
 # MPI configuration
@@ -471,38 +468,21 @@ endif()
 if("${Legion_NETWORKS}" MATCHES .*mpi.*)
   find_package(MPI REQUIRED)
   # define variable for realm_defines.h
-  set(REALM_USE_MPI ON)
+  set(REALM_ENABLE_MPI ON)
   set(Legion_MPI_INTEROP ON)
+else()
+  set(REALM_ENABLE_MPI OFF)
 endif()
 
 #------------------------------------------------------------------------------#
 # UCX configuration
 #------------------------------------------------------------------------------#
 if("${Legion_NETWORKS}" MATCHES .*ucx.*)
-  option(Legion_UCX_MPI_BOOTSTRAP "Use MPI bootstrap plugin for UCX" ON)
-  if (NOT REALM_USE_LIBDL)
-    message(FATAL_ERROR "UCX backend requires run-time support for dynamic shared objects")
-  endif()
-  find_package(ucx 1.14.0 REQUIRED CONFIG)
-  message(STATUS "Found UCX: ${UCX_INCLUDE_DIRS} ${UCX_LIBRARIES})")
-  if (Legion_UCX_MPI_BOOTSTRAP)
-    find_package(MPI REQUIRED) # for MPI bootstrap plugin
-    set(Legion_MPI_INTEROP ON)
-  endif()
   # define variable for realm_defines.h
-  set(REALM_USE_UCX ON)
+  set(Legion_MPI_INTEROP ON)
   option(Legion_UCX_DYNAMIC_LOAD "Load ucx libraries at runtime" OFF)
-  if(Legion_UCX_DYNAMIC_LOAD)
-    set(REALM_UCX_DYNAMIC_LOAD ON)
-  endif()
 endif()
-
-if (MPI_FOUND)
-  list(APPEND CMAKE_REQUIRED_LIBRARIES ${MPI_mpi_LIBRARY})
-  # Check if MPI has comm split type available
-  check_function_exists(MPI_Comm_split_type REALM_MPI_HAS_COMM_SPLIT_TYPE)
-  list(POP_BACK CMAKE_REQUIRED_LIBRARIES)
-endif()
+set(REALM_UCX_DYNAMIC_LOAD ${Legion_UCX_DYNAMIC_LOAD})
 
 #------------------------------------------------------------------------------#
 # GPU configuration
@@ -547,8 +527,7 @@ if(Legion_USE_CUDA OR Legion_USE_HIP)
     #------------------------------------------------------------------------------#
     option(Legion_USE_NVTX "Enable profiling using NVTX" OFF)
     # define variable for realm_defines.h
-    set(REALM_USE_NVTX ${Legion_USE_NVTX})
-    mark_as_advanced(REALM_USE_NVTX)
+    set(REALM_ENABLE_NVTX ${Legion_USE_NVTX})
 
     # Find the CUDA toolkit if we haven't already.
     if(NOT CUDAToolkit_FOUND)
@@ -593,10 +572,11 @@ if(Legion_USE_CUDA)
   # define variable for legion_defines.h
   set(LEGION_USE_CUDA ON)
   # define variable for realm_defines.h
-  set(REALM_USE_CUDA ON)
-  set(REALM_CUDA_DYNAMIC_LOAD ${Legion_CUDA_DYNAMIC_LOAD})
   set(REALM_USE_CUDART_HIJACK ${Legion_HIJACK_CUDART})
 endif()
+
+set(REALM_ENABLE_CUDA ${LEGION_USE_CUDA})
+set(REALM_CUDA_DYNAMIC_LOAD ${Legion_CUDA_DYNAMIC_LOAD})
 
 #------------------------------------------------------------------------------#
 # HIP configuration
@@ -635,10 +615,9 @@ if(Legion_USE_HIP)
 
   # define variable for legion_defines.h
   set(LEGION_USE_HIP ON)
-  # define variable for realm_defines.h
-  set(REALM_USE_HIP ON)
-  set(REALM_USE_HIP_HIJACK ${Legion_HIJACK_HIP})
 endif()
+
+set(REALM_ENABLE_HIP ${LEGION_USE_HIP})
 
 #------------------------------------------------------------------------------#
 # LLVM configuration
@@ -654,11 +633,9 @@ if(Legion_USE_LLVM)
   )
 
   # define variables for realm_defines.h
-  set(REALM_USE_LLVM ON)
-  if(Legion_ALLOW_MISSING_LLVM_LIBS)
-    set(REALM_ALLOW_MISSING_LLVM_LIBS ON)
-  endif()
 endif()
+set(REALM_ENABLE_LLVM ${Legion_USE_LLVM})
+set(REALM_ALLOW_MISSING_LLVM_LIBS ${Legion_ALLOW_MISSING_LLVM_LIBS})
 
 #------------------------------------------------------------------------------#
 # HDF5 configuration
@@ -669,8 +646,9 @@ if(Legion_USE_HDF5)
 
   # define variable for both legion_defines.h and realm_defines.h
   set(LEGION_USE_HDF5 ON)
-  set(REALM_USE_HDF5 ON)
 endif()
+
+set(REALM_ENABLE_HDF5 ${LEGION_USE_HDF5})
 
 #------------------------------------------------------------------------------#
 # HWLOC configuration
@@ -681,29 +659,15 @@ if(Legion_USE_HWLOC)
   install(FILES ${Legion_SOURCE_DIR}/cmake/FindHWLOC.cmake
     DESTINATION ${CMAKE_INSTALL_DATADIR}/Legion/cmake
   )
-  set(REALM_USE_HWLOC ON)
 endif()
+
+set(REALM_ENABLE_HWLOC ${Legion_USE_HWLOC})
 
 #------------------------------------------------------------------------------#
 # PAPI configuration
 #------------------------------------------------------------------------------#
 option(Legion_USE_PAPI "Use PAPI for performance measurements" OFF)
-if(Legion_USE_PAPI)
-  # no FindPAPI in cmake by default, so just find the lib and include path
-  #  ourselves
-  find_library(PAPI_LIBRARIES NAMES libpapi.so libpapi.a papi
-    HINTS ${PAPI_ROOT}/lib $ENV{PAPI_ROOT}/lib ENV PAPI_LIB_DIR)
-  find_path(PAPI_INCLUDE_DIRS NAMES papi.h
-    HINTS ${PAPI_ROOT}/include $ENV{PAPI_ROOT}/include ENV PAPI_INC_DIR)
-  if(PAPI_LIBRARIES AND PAPI_INCLUDE_DIRS)
-    set(REALM_USE_PAPI ON)
-  else()
-    message(FATAL_ERROR
-      " Could not find PAPI - set PAPI_{ROOT,INC_DIR,LIB_DIR} if needed -- got:\n"
-      "   PAPI_LIBRARIES: ${PAPI_LIBRARIES}\n"
-      "   PAPI_INCLUDE_DIRS: ${PAPI_INCLUDE_DIRS}")
-  endif()
-endif()
+set(REALM_ENABLE_PAPI ${Legion_USE_PAPI})
 
 #------------------------------------------------------------------------------#
 # zlib configuration
@@ -830,32 +794,65 @@ set(LEGION_BOUNDS_CHECKS ${Legion_BOUNDS_CHECKS})
 option(Legion_PRIVILEGE_CHECKS "Enable privilege checking in Legion accessors" OFF)
 set(LEGION_PRIVILEGE_CHECKS ${Legion_PRIVILEGE_CHECKS})
 
-# hiding internal symbols is much more complicated in Windows
-if(NOT WIN32)
-  option(REALM_LIMIT_SYMBOL_VISIBILITY "hide private symbols in realm" ON)
-endif()
-
-# Only enable shm on linux and if GASNET1 is not available.
-# OSX is not well tested yet, so disable by default for the time being
-# GASNET1 does not allow communication before network attach, which is needed
-# in order to coordinate a job identifier required to set up named system
-# resources
-if (UNIX AND NOT APPLE AND NOT REALM_USE_GASNET1)
-  option(REALM_USE_SHM "Enable shared memory usage" ON)
-else()
-  option(REALM_USE_SHM "Enable shared memory usage" OFF)
-endif()
-
-if (UNIX)
-  # Look for posix_fallocate64 for better error reporting of file mapping
-  check_function_exists(posix_fallocate64 REALM_HAS_POSIX_FALLOCATE64)
-endif ()
-
 #------------------------------------------------------------------------------#
 # Hacks for building only Realm
 #------------------------------------------------------------------------------#
 option(Legion_BUILD_REALM_ONLY "HACK: only build realm" OFF)
 option(Legion_BUILD_REALM_TESTS "HACK: build realm-only tests" OFF)
+
+#------------------------------------------------------------------------------#
+# Realm configuration
+#------------------------------------------------------------------------------#
+# The options specified here are for backwards compatibility when building realm
+# only if realm is not found.  If realm is found, these options are ignored.
+# To force a build of realm, specify the variable CPM_DOWNLOAD_ALL=1
+if ("${Legion_NETWORKS}" MATCHES .*ucx.*)
+  set(REALM_ENABLE_UCX ON)
+else()
+  set(REALM_ENABLE_UCX OFF)
+endif()
+if ("${Legion_NETWORKS}" MATCHES .*gasnetex.*)
+  set(REALM_ENABLE_GASNETEX ON)
+else()
+  set(REALM_ENABLE_GASNETEX OFF)
+endif()
+if (GASNet_INSTALL_DIR)
+  set(GASNET_ROOT_DIR ${GASNet_INSTALL_DIR})
+endif()
+CPMFindPackage(NAME Realm
+               SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/realm
+               OPTIONS 
+               "REALM_ENABLE_INSTALL ON"
+               "REALM_ENABLE_UCX ${REALM_ENABLE_UCX}"
+               "REALM_ENABLE_GASNETEX ${REALM_ENABLE_GASNETEX}"
+               "GASNET_ROOT_DIR ${GASNET_ROOT_DIR}"
+               "GASNET_CONDUIT ${GASNet_CONDUIT}"
+               "REALM_ENABLE_GASNETEX_WRAPPER ${Legion_USE_GASNETEX_WRAPPER}"
+               "REALM_MAX_DIM ${Legion_MAX_DIM}"
+               "REALM_BUILD_DOCS ${Legion_BUILD_DOCS}"
+               "REALM_BUILD_TESTS ${Legion_BUILD_TESTS}"
+               "REALM_USE_RDTSC ${Legion_USE_RDTSC}"
+               "REALM_ENABLE_LIBDL ${Legion_USE_RDTSC}"
+               "REALM_ENABLE_CUDA ${Legion_USE_CUDA}"
+               "REALM_CUDA_DYNAMIC_LOAD ${Legion_CUDA_DYNAMIC_LOAD}"
+               "REALM_ENABLE_NVTX ${Legion_USE_NVTX}"
+               "REALM_ENABLE_HIP ${Legion_USE_HIP}"
+               "REALM_ENABLE_LLVM ${Legion_USE_LLVM}"
+               "REALM_ENABLE_HDF5 ${Legion_USE_HDF5}"
+               "REALM_ENABLE_MPI ${Legion_USE_MPI}"
+               "REALM_ENABLE_OpenMP ${Legion_USE_OpenMP}"
+               "REALM_OPENMP_SYSTEM_RUNTIME ${Legion_OpenMP_SYSTEM_RUNTIME}"
+               "REALM_OPENMP_GOMP_SUPPORT ${Legion_OpenMP_GOMP_SUPPORT}"
+               "REALM_OPENMP_KMP_SUPPORT ${Legion_OpenMP_KMP_SUPPORT}"
+               "REALM_ENABLE_KOKKOS ${Legion_USE_Kokkos}"
+               "REALM_ENABLE_HWLOC ${Legion_USE_HWLOC}"
+               "REALM_ENABLE_CPPTRACE ${Legion_BACKTRACE_USE_CPPTRACE}"
+               "REALM_ENABLE_PAPI ${Legion_USE_PAPI}"
+               "REALM_ENABLE_PREALM ${Legion_USE_PREALM}"
+               "REALM_ENABLE_LIBDL ${Legion_USE_LIBDL}"
+               "REALM_ENABLE_PYTHON ${Legion_USE_Python}"
+               "REALM_LOG_LEVEL ${Legion_OUTPUT_LEVEL}"
+              )
 
 #------------------------------------------------------------------------------#
 # Runtime library targets
@@ -910,6 +907,11 @@ configure_file(
 install(FILES ${Legion_BINARY_DIR}/LegionConfigCommon.cmake
   DESTINATION ${CMAKE_INSTALL_DATADIR}/Legion/cmake
 )
+
+# Install Find* modules for dependencies
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/cmake
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/Legion
+        FILES_MATCHING PATTERN "Find*.cmake")
 
 configure_file(
   cmake/LegionConfig-build.cmake.in
@@ -970,7 +972,8 @@ if(Legion_ENABLE_TESTING)
 endif()
 
 add_library(Legion::Legion ALIAS Legion)
-add_library(Legion::Realm ALIAS Realm)
+add_library(Legion::Realm ALIAS ${REALM_TGT})
+
 if(Legion_BUILD_ALL OR Legion_BUILD_APPS OR Legion_BUILD_BINDINGS OR Legion_BUILD_EXAMPLES OR Legion_BUILD_TUTORIAL OR Legion_BUILD_TESTS)
   if(Legion_HIP_TARGET STREQUAL "ROCM")
     set(HIP_HIPCC_FLAGS "${HIP_HIPCC_FLAGS} ${HIPCC_FLAGS} ${HIP_GENCODE}")
@@ -994,16 +997,6 @@ if(Legion_BUILD_ALL OR Legion_BUILD_APPS OR Legion_BUILD_BINDINGS OR Legion_BUIL
   if(Legion_BUILD_ALL OR Legion_BUILD_JUPYTER)
     add_subdirectory(jupyter_notebook)
   endif()
-elseif(Legion_BUILD_REALM_TESTS)
-  add_subdirectory(test/realm)
-endif()
-if(Legion_BUILD_REALM_UNIT_TESTS)
-  if (BUILD_SHARED_LIBS)
-    add_library(Legion::RealmTests ALIAS RealmStatic)
-  else()
-    add_library(Legion::RealmTests ALIAS Realm)
-  endif()
-  add_subdirectory(test/realm/unit_tests)
 endif()
 
 #------------------------------------------------------------------------------#
@@ -1079,11 +1072,6 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/legion_defines.h.in
   ${PROJECT_BINARY_DIR}/runtime/legion_defines.h @ONLY)
 install(FILES ${PROJECT_BINARY_DIR}/runtime/legion_defines.h
   DESTINATION  ${CMAKE_INSTALL_INCLUDEDIR})
-
-configure_file(${PROJECT_SOURCE_DIR}/cmake/realm_defines.h.in
-  ${PROJECT_BINARY_DIR}/runtime/realm_defines.h @ONLY)
-install(FILES ${PROJECT_BINARY_DIR}/runtime/realm_defines.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Option to install additional Legion support tools
 option(Legion_INSTALL_TOOLS "Install Legion Tools" ON)
