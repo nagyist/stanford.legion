@@ -561,6 +561,8 @@ namespace Legion {
         increment_active_mappers();
       }
       map_state.ready_queue.emplace_back(task);
+      if (map_state.queue_guard)
+        map_state.queue_dirty = true;
       // Finally if this is a progress task increment it
       if (forward_progress_task)
         increment_progress_tasks();
@@ -819,7 +821,10 @@ namespace Legion {
                 // Set the queue guard so no one else tries to
                 // read the ready queue while we've checked it out
                 if (!input.ready_tasks.empty())
+                {
                   map_state.queue_guard = true;
+                  map_state.queue_dirty = false;
+                }
               }
             }
             else
@@ -850,13 +855,13 @@ namespace Legion {
             // Put this on the list of the deferred mappers
             AutoLock q_lock(queue_lock);
             MapperState& map_state = mapper_states[map_id];
+            legion_assert(!map_state.deferral_event.exists());
+            legion_assert(map_state.queue_guard);
             // We have to check to see if any new tasks were added to
             // the ready queue while we were doing our mapper call, if
             // they were then we need to invoke select_tasks_to_map again
-            if (map_state.ready_queue.empty())
+            if (!map_state.queue_dirty)
             {
-              legion_assert(!map_state.deferral_event.exists());
-              legion_assert(map_state.queue_guard);
               map_state.deferral_event = wait_on;
               // Decrement the number of active mappers
               decrement_active_mappers();

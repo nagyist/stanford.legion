@@ -370,7 +370,7 @@ if(REALM_ENABLE_CUDA OR (hip_FOUND AND HIP_PLATFORM STREQUAL "nvidia"))
     # the CUDA::nvtx3 and CUDA::nvToolsExt targets are mutually exclusive, they don't
     # appear to be so in earlier versions. So if we have nvtx3, prefer that, otherwise
     # fall back to nvToolsExt.
-    set(REALM_USE_NVTX ON)
+    set(REALM_USE_NVTX ${REALM_ENABLE_CUDA})
     if(TARGET CUDA::nvtx3)
       list(APPEND REALM_LIBRARIES CUDA::nvtx3)
     elseif(TARGET CUDA::nvToolsExt)
