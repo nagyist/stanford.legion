@@ -18,6 +18,7 @@
 #include "realm/hip/hiphijack_api.h"
 #endif
 #include "legion/api/redop.h"
+#include "legion/api/types.h"
 
 namespace Legion {
   namespace Internal {
