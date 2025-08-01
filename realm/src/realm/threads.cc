@@ -858,13 +858,20 @@ namespace Realm {
 #ifdef REALM_USE_ALTSTACK
     // uninstall and free our alt stack (if it exists)
     if(thread->altstack_base != 0) {
-      // so MacOS doesn't seem to want to let you disable a stack, returning
-      //  EINVAL even if the stack is not active - free the memory anyway
-#ifndef REALM_ON_MACOS
+      // The manual for sigaltstack states:
+      //
+      // > SS_DISABLE: The stack is to be disabled and ss_sp and ss_size
+      //               are ignored.
+      //
+      // This holds everywhere except macOS, which seemingly does not ignore
+      // ss_sp and ss_size if ss_flags is SS_DISABLE. Instead, it fails with
+      // ENOMEM (perhaps it tries to allocate some temporaries on the stack
+      // before disabling it). So pass in the original values for the disabled
+      // stack to pacify it.
       stack_t disabled;
-      disabled.ss_sp = 0;
+      disabled.ss_sp = thread->altstack_base;
       disabled.ss_flags = SS_DISABLE;
-      disabled.ss_size = 0;
+      disabled.ss_size = thread->altstack_size;
       stack_t oldstack;
       int ret = sigaltstack(&disabled, &oldstack);
       assert(ret == 0);
@@ -873,8 +880,7 @@ namespace Realm {
       //  up properly, so our stack may not have been active anyway
       // either way though, it's not active after the call above, so it's
       //  safe to free the memory now
-      //assert(oldstack.ss_sp == thread->altstack_base);
-#endif
+      // assert(oldstack.ss_sp == thread->altstack_base);
       free(thread->altstack_base);
     }
 #endif

@@ -24,10 +24,21 @@ variables:
   GASNET_SHA256: "f3b379b2c650b8deb24e33ca101303c1af2482e996e603291ebf16c02a708da1"
   GASNET_COMMIT: "3db4ea2f92ea6bfba6fe9538cb001b6a34b2f373"
 
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        CCACHE_POLICY: pull-push
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      variables:
+        CCACHE_POLICY: pull
+
 cache: &global_cache
-  - key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+  - key: "$CI_JOB_NAME"
     paths:
       - $CCACHE_DIR
+    policy: $CCACHE_POLICY
   - key: "cpm_src_cache"
     paths:
       - $CPM_SOURCE_CACHE
@@ -413,6 +424,18 @@ before_script:
   - |
     (find $CI_PROJECT_DIR/tools/legion_prof_rs/target -type f -print0 | perl -0ne 'END {print $.}') || true
   - |
+    # Download (and cache) the requested cmake version and set up the path accordingly 
+    if [[ ! -z "$CMAKE_SHA256" ]]; then
+      if ! echo "$CMAKE_SHA256  $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" | sha256sum -c; then
+        wget -nv https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz -O $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
+        echo "$CMAKE_SHA256  $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" | sha256sum -c
+      fi
+      rm -rf /cmake-${CMAKE_VERSION}-linux-x86_64
+      tar -C / -zxf $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
+      export PATH=/cmake-${CMAKE_VERSION}-linux-x86_64/bin:$PATH
+      which cmake
+    fi
+  - |
     if [[ "$USE_CUDA" -eq 1 ]]; then
       # make sure dynamic loading finds the right libcudart.so
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${CUDA}/lib64"
@@ -562,6 +585,9 @@ before_script:
   IS_NVIDIA_JOB: "1"
   USE_HIP: "1"
   HIP_TARGET: "CUDA"
+  # Unfortunately HIP cmake integration with nvidia backend requires 3.28+
+  CMAKE_VERSION: "4.0.3"
+  CMAKE_SHA256: "585ae9e013107bc8e7c7c9ce872cbdcbdff569e675b07ef57aacfb88c886faac"
   # rocm 6.x requires cuda 12.x
   CUDA: "/usr/local/cuda-12.5"
   CUDA_PATH: "/usr/local/cuda-12.5"
@@ -625,7 +651,7 @@ before_script:
     - $CXX --version
     - |
       mkdir -p realm/build realm/install
-      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DHIP_PLATFORM=nvidia"
+      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DCMAKE_HIP_PLATFORM=nvidia"
       if [[ "${REALM_NETWORKS}" != "ucx" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF";
       else REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=ON"; fi
       if [[ -z "${GASNET_ROOT}${EMBED_GASNET}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_GASNETEX=OFF";
@@ -711,7 +737,7 @@ before_script:
       fi
     - |
       mkdir -p realm/build realm/install
-      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DHIP_PLATFORM=nvidia"
+      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DCMAKE_HIP_PLATFORM=nvidia"
       if [[ "${REALM_NETWORKS}" != "ucx" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF";
       else REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=ON"; fi
       if [[ -z "${GASNET_ROOT}${EMBED_GASNET}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_GASNETEX=OFF";
@@ -754,7 +780,7 @@ before_script:
     - ln -s `pwd` /home/wine/.wine/drive_c/repo
     - cd /home/wine/.wine/drive_c
     - |
-      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DHIP_PLATFORM=nvidia"
+      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DCMAKE_HIP_PLATFORM=nvidia"
       if [[ -z "${UCX_ROOT}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF"; fi
       if [[ -z "${GASNET_ROOT}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_GASNETEX=OFF"; fi
       if [[ -z "${Kokkos_DIR}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_KOKKOS=OFF"; fi
@@ -782,7 +808,7 @@ before_script:
   script:
     - mkdir -p build
     - |
-      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DHIP_PLATFORM=nvidia"
+      REALM_CMAKE_ARGS="-DGASNET_ROOT_DIR="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DCMAKE_HIP_PLATFORM=nvidia"
       if [[ "${REALM_NETWORKS}" != "ucx" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF";
       else REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=ON"; fi
       if [[ -z "${GASNET_ROOT}${EMBED_GASNET}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_GASNETEX=OFF";

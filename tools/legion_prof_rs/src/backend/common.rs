@@ -102,9 +102,10 @@ impl StatePostprocess for State {
             // Do NOT filter empty procs here because they count towards
             // utilization totals
             let nodes = [None, Some(proc.proc_id.node_id())];
-            let devices: &'static [_] = match proc.kind.unwrap() {
-                ProcKind::GPU => &[Some(DeviceKind::Device), Some(DeviceKind::Host)],
-                _ => &[None],
+            let devices: &'static [_] = if proc.has_device_timepoints() {
+                &[Some(DeviceKind::Device), Some(DeviceKind::Host)]
+            } else {
+                &[None]
             };
             for node in nodes {
                 for device in devices {

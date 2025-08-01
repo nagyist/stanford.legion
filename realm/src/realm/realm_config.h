@@ -41,16 +41,6 @@
 #define REALM_USE_USER_THREADS
 #endif
 
-// if set, uses Linux's kernel-level io_submit interface, otherwise uses
-//  POSIX AIO for async file I/O
-#ifdef REALM_ON_LINUX
-//define REALM_USE_KERNEL_AIO
-#define REALM_USE_LIBAIO
-#endif
-#if defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
-#define REALM_USE_LIBAIO
-#endif
-
 // dynamic loading via dlfcn and a not-completely standard dladdr extension
 #ifdef REALM_USE_LIBDL
   #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)

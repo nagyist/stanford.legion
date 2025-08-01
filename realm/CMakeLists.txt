@@ -82,7 +82,7 @@ include(GenerateExportHeader)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CheckIPOSupported)
-include(CheckFunctionExists)
+include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
 include(CMakePushCheckState)
 include(CMakeDependentOption)
@@ -136,6 +136,7 @@ option(REALM_ENABLE_PAPI "Compile with PAPI thread profiling support" ON)
 option(REALM_ENABLE_CPPTRACE "Compile with cpptrace backtrace support" OFF)
 option(REALM_ENABLE_PREALM "Compile with realm profiler" OFF)
 cmake_dependent_option(REALM_ENABLE_LIBDL "Compile with dynamic runtime linking support" ON "NOT WIN32" OFF)
+cmake_dependent_option(REALM_ENABLE_AIO "Compile with AIO transfer support" ON "NOT WIN32" OFF)
 cmake_dependent_option(REALM_ENABLE_GASNETEX "Compile with GASNetEx support" OFF "NOT WIN32" OFF)
 cmake_dependent_option(
   REALM_ENABLE_GASNETEX_WRAPPER "Compile with dynamic GASNetEx ABI stability wrapper" OFF
@@ -220,16 +221,40 @@ list(APPEND REALM_LIBRARIES Threads::Threads)
 list(APPEND REALM_STATIC_DEPENDS Threads)
 
 if(UNIX AND NOT APPLE)
-  find_library(CMAKE_RT_LIBS rt REQUIRED)
-  list(APPEND REALM_LIBRARIES ${CMAKE_RT_LIBS})
+  find_library(RT_LIBS rt)
+  if (RT_LIBS)
+    list(APPEND REALM_LIBRARIES ${RT_LIBS})
+  endif()
 endif()
 
 if(REALM_BUILD_DOCS)
   find_package(Doxygen)
 endif()
 
+if (REALM_ENABLE_AIO)
+  # TODO(cperry): REALM_USE_KERNEL_AIO bitrotted,
+  # the default has been LIBAIO for a while
+  if (NOT REALM_USE_KERNEL_AIO)
+    cmake_push_check_state()
+    if (RT_LIBS)
+      list(APPEND CMAKE_REQUIRED_LIBRARIES ${RT_LIBS})
+    endif()
+    check_symbol_exists(aio_read aio.h REALM_USE_LIBAIO)
+    cmake_pop_check_state()
+  endif()
+endif()
+
+if (REALM_ENABLE_SHM)
+    cmake_push_check_state()
+    if (RT_LIBS)
+      list(APPEND CMAKE_REQUIRED_LIBRARIES ${RT_LIBS})
+    endif()
+    check_symbol_exists(shm_open sys/mman.h REALM_USE_SHM)
+    cmake_pop_check_state()
+endif()
+
 if(UNIX)
-  check_function_exists(posix_fallocate64 REALM_HAS_POSIX_FALLOCATE64)
+  check_symbol_exists(posix_fallocate64 "fcntl.h;unistd.h" REALM_HAS_POSIX_FALLOCATE64)
 endif()
 
 if(REALM_ENABLE_LIBDL)
@@ -287,45 +312,7 @@ if(REALM_ENABLE_COVERAGE)
   endif()
 endif()
 
-if(REALM_ENABLE_HIP)
-  if(NOT DEFINED ROCM_PATH)
-    if(NOT DEFINED ENV{ROCM_PATH})
-      set(ROCM_PATH
-          "/opt/rocm"
-          CACHE PATH "Path to which HIP has been installed"
-      )
-    else()
-      set(ROCM_PATH
-          $ENV{ROCM_PATH}
-          CACHE PATH "Path to which HIP has been installed"
-      )
-    endif()
-  endif()
-  list(APPEND CMAKE_PREFIX_PATH "${ROCM_PATH}")
-  find_package(hip CONFIG)
-  if(HIP_PLATFORM STREQUAL "nvidia")
-    set_target_properties(
-      hip::host PROPERTIES INTERFACE_COMPILE_DEFINITIONS "__HIP_PLATFORM_NVIDIA__"
-      INTERFACE_LINK_LIBRARIES CUDA::cudart
-    )
-  endif()
-  if(NOT HIP_ROOT_DIR)
-    set(HIP_ROOT_DIR "${ROCM_PATH}")
-  endif()
-  if(hip_FOUND)
-    list(APPEND REALM_STATIC_DEPENDS hip)
-    list(APPEND REALM_LIBRARIES hip::host)
-    # Deal with an issue on some hip configs where the include directory is not
-    # set in the interface
-    get_target_property(HIPHOST_INC_DIR hip::host INTERFACE_INCLUDE_DIRECTORIES)
-    if (HIPHOST_INC_DIR STREQUAL "HIPHOST_INC_DIR-NOTFOUND")
-      set_target_properties(hip::host PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${HIP_INCLUDE_DIR})
-      #message(FATAL_ERROR ${HIP_INCLUDE_DIR})
-    endif()
-  endif()
-endif()
-
-if(REALM_ENABLE_CUDA OR (hip_FOUND AND HIP_PLATFORM STREQUAL "nvidia"))
+if(REALM_ENABLE_CUDA OR (REALM_ENABLE_HIP AND CMAKE_HIP_PLATFORM STREQUAL "nvidia"))
   find_package(CUDAToolkit 11.7)
   if(CUDAToolkit_FOUND)
     set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
@@ -354,7 +341,9 @@ if(REALM_ENABLE_CUDA OR (hip_FOUND AND HIP_PLATFORM STREQUAL "nvidia"))
       list(APPEND CMAKE_CUDA_FLAGS "-std=c++${CMAKE_CUDA_STANDARD}")
     endif()
 
-    enable_language(CUDA)
+    if (REALM_ENABLE_CUDA)
+      enable_language(CUDA)
+    endif()
     get_filename_component(CUDAToolkit_LIBRARY_ROOT "${CUDAToolkit_BIN_DIR}" DIRECTORY CACHE)
     # Unfortunately, FindCUDAToolkit doesn't always find CUPTI due to directory changes in the
     # toolkit, so correct it here
@@ -387,12 +376,57 @@ if(REALM_ENABLE_CUDA OR (hip_FOUND AND HIP_PLATFORM STREQUAL "nvidia"))
   endif()
 endif()
 
+if(REALM_ENABLE_HIP)
+  if(NOT DEFINED ROCM_PATH)
+    if(NOT DEFINED ENV{ROCM_PATH})
+      set(ROCM_PATH
+          "/opt/rocm"
+          CACHE PATH "Path to which HIP has been installed"
+      )
+    else()
+      set(ROCM_PATH
+          $ENV{ROCM_PATH}
+          CACHE PATH "Path to which HIP has been installed"
+      )
+    endif()
+  endif()
+  list(APPEND CMAKE_PREFIX_PATH "${ROCM_PATH}")
+  set(HIP_PLATFORM ${CMAKE_HIP_PLATFORM})
+  find_package(hip CONFIG)
+  if(CMAKE_HIP_PLATFORM STREQUAL "nvidia")
+    # nvidia HIP_PLATFORM requies 3.28+ for enable_language(HIP) to work properly
+    cmake_minimum_required(VERSION 3.28 FATAL_ERROR)
+    set_target_properties(
+      hip::host PROPERTIES INTERFACE_COMPILE_DEFINITIONS "__HIP_PLATFORM_NVIDIA__"
+      INTERFACE_LINK_LIBRARIES CUDA::cudart
+    )
+    set(CMAKE_HIP_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
+  endif()
+  if(NOT HIP_ROOT_DIR)
+    set(HIP_ROOT_DIR "${ROCM_PATH}")
+  endif()
+  set(CMAKE_HIP_COMPILER_ROCM_ROOT "${HIP_ROOT_DIR}")
+  if(hip_FOUND)
+    list(APPEND REALM_STATIC_DEPENDS hip)
+    list(APPEND REALM_LIBRARIES hip::host)
+    # Deal with an issue on some hip configs where the include directory is not
+    # set in the interface
+    get_target_property(HIPHOST_INC_DIR hip::host INTERFACE_INCLUDE_DIRECTORIES)
+    if (HIPHOST_INC_DIR STREQUAL "HIPHOST_INC_DIR-NOTFOUND")
+      set_target_properties(hip::host PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${HIP_INCLUDE_DIR})
+      #message(FATAL_ERROR ${HIP_INCLUDE_DIR})
+    endif()
+    enable_language(HIP)
+  endif()
+endif()
+
 if(REALM_ENABLE_MPI)
   find_package(MPI)
   if(MPI_FOUND)
     cmake_push_check_state()
     list(APPEND CMAKE_REQUIRED_LIBRARIES ${MPI_mpi_LIBRARY})
-    check_function_exists(MPI_Comm_split_type REALM_MPI_HAS_COMM_SPLIT_TYPE)
+    list(APPEND CMAKE_REQUIRED_INCLUDES ${MPI_C_INCLUDE_DIRS})
+    check_symbol_exists(MPI_Comm_split_type "mpi.h" REALM_MPI_HAS_COMM_SPLIT_TYPE)
     cmake_pop_check_state()
     list(APPEND REALM_STATIC_DEPENDS MPI)
     list(APPEND REALM_LIBRARIES MPI::MPI_CXX)
@@ -795,7 +829,7 @@ endif()
 
 set(REALM_USE_LIBDL ${REALM_ENABLE_LIBDL})
 add_feature_info(libdl REALM_USE_LIBDL "Enables use of dlopen")
-set(REALM_USE_SHM ${REALM_ENABLE_SHM})
+add_feature_info(aio REALM_USE_LIBAIO "Enables use of AIO for dma transfers")
 add_feature_info(shm REALM_USE_SHM "Enables use of shared memory for CPU IPC")
 set(REALM_TIMERS_USE_RDTSC ${REALM_ENABLE_RDTSC})
 add_feature_info(rdtsc REALM_TIMERS_USE_RDTSC "Enables use of rdtsc for Realm::Clock")

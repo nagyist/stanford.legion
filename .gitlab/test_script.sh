@@ -6,11 +6,7 @@ set -x
 umask 002 # Make sure files are group-writable
 
 # job directory
-JOB_WORKDIR="${EXTERNAL_WORKDIR}_${CI_JOB_ID:-legion${TEST_LEGION_CXX:-1}_regent${TEST_REGENT:-1}}"
-rm -rf $JOB_WORKDIR
-cp -r $CI_PROJECT_DIR $JOB_WORKDIR
-cd $JOB_WORKDIR
-echo "Running tests in $JOB_WORKDIR"
+echo "Running tests in $PWD"
 
 # copy files from shared environment
 if [[ "$REALM_NETWORKS" == gasnet* ]]; then
@@ -53,11 +49,11 @@ fi
 if [[ "$REALM_NETWORKS" == gasnet* ]]; then
     if [[ "$GASNET_DEBUG" -eq 1 ]]; then
         cat >>env.sh <<EOF
-export GASNET_ROOT="\$JOB_WORKDIR/gasnet/debug"
+export GASNET_ROOT="$PWD/gasnet/debug"
 EOF
     else
         cat >>env.sh <<EOF
-export GASNET_ROOT="\$JOB_WORKDIR/gasnet/release"
+export GASNET_ROOT="$PWD/gasnet/release"
 EOF
     fi
 fi
@@ -91,9 +87,9 @@ if [[ -z "$TEST_PYTHON_EXE" ]]; then
     export TEST_PYTHON_EXE=`which python3 python | head -1`
 fi
 
-chmod -R g+w $JOB_WORKDIR
+chmod -R g+w .
 set +e
 $TEST_PYTHON_EXE ./test.py -j${THREADS:-16}
 ok=$?
-chmod -R g+w $JOB_WORKDIR
+chmod -R g+w .
 exit $ok

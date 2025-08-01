@@ -141,6 +141,7 @@ pub enum Record {
     MapperCallInfo { mapper_id: MapperID, mapper_proc: ProcID, kind: MapperCallKindID, op_id: OpID, start: Timestamp, stop: Timestamp, proc_id: ProcID, fevent: Option<EventID> },
     RuntimeCallInfo { kind: RuntimeCallKindID, start: Timestamp, stop: Timestamp, proc_id: ProcID, fevent: Option<EventID> },
     ApplicationCallInfo { provenance: ProvenanceID, start: Timestamp, stop: Timestamp, proc_id: ProcID, fevent: Option<EventID> },
+    AsyncEffectInfo { provenance: ProvenanceID, start: Timestamp, stop: Timestamp, proc_id: ProcID, creator: EventID, fevent: Option<EventID> },
     ProfTaskInfo { proc_id: ProcID, op_id: OpID, start: Timestamp, stop: Timestamp, creator: EventID, fevent: EventID, completion: bool },
     CalibrationErr { calibration_err: i64 },
     BacktraceDesc { backtrace_id: BacktraceID , backtrace: String },
@@ -1148,6 +1149,25 @@ fn parse_application_call_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Re
         },
     ))
 }
+fn parse_async_effect_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
+    let (input, provenance) = parse_provenance_id(input)?;
+    let (input, start) = parse_timestamp(input)?;
+    let (input, stop) = parse_timestamp(input)?;
+    let (input, proc_id) = parse_proc_id(input)?;
+    let (input, creator) = parse_event_id(input)?;
+    let (input, fevent) = parse_option_event_id(input)?;
+    Ok((
+        input,
+        Record::AsyncEffectInfo {
+            provenance,
+            start,
+            stop,
+            proc_id,
+            creator,
+            fevent,
+        },
+    ))
+}
 fn parse_proftask_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, proc_id) = parse_proc_id(input)?;
     let (input, op_id) = parse_op_id(input)?;
@@ -1505,6 +1525,7 @@ fn parse<'a>(
     insert("MapperCallInfo", parse_mapper_call_info);
     insert("RuntimeCallInfo", parse_runtime_call_info);
     insert("ApplicationCallInfo", parse_application_call_info);
+    insert("AsyncEffectInfo", parse_async_effect_info);
     insert("ProfTaskInfo", parse_proftask_info);
     insert("BacktraceDesc", parse_backtrace_desc);
     insert("EventWaitInfo", parse_event_wait_info);

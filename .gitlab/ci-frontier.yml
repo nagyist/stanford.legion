@@ -12,6 +12,7 @@ variables:
 
   OLCF_SERVICE_ACCOUNT: ums036_auser
   EXTERNAL_WORKDIR: /lustre/orion/proj-shared/ums036/ci2/${CI_PIPELINE_ID}
+  CUSTOM_CI_BUILDS_DIR: /lustre/orion/proj-shared/ums036/ci2
   GIT_SUBMODULE_STRATEGY: recursive
 
   THREADS: 32 # for parallel build

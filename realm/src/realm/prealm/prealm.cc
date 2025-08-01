@@ -223,6 +223,7 @@ public:
   void serialize(const ThreadProfiler::InstTimelineInfo &info) const;
   void serialize(const ThreadProfiler::ProfTaskInfo &info) const;
   void serialize(const ThreadProfiler::ApplicationInfo &info) const;
+  void serialize(const ThreadProfiler::AsyncEffectInfo &info) const;
   void serialize(const ThreadProfiler::SpawnInfo &info) const;
 
 #ifdef REALM_USE_CUDA
@@ -313,6 +314,7 @@ enum
   COMPLETION_QUEUE_INFO_ID,
   PROFTASK_INFO_ID,
   APPLICATION_INFO_ID,
+  ASYNC_EFFECT_INFO_ID,
   PROVENANCE_ID,
   SPAWN_INFO_ID,
 };
@@ -653,34 +655,49 @@ void ThreadProfiler::record_event_merger(Event result,
 }
 
 void ThreadProfiler::record_external_event(Realm::Event event,
-                                           const std::string_view &prov)
+                                           const std::string_view &prov,
+                                           std::optional<long long> start_time)
 {
   if(!event.exists())
     return;
   Profiler &profiler = Profiler::get_profiler();
-  if(!profiler.enabled || profiler.no_critical_paths)
+  if(!profiler.enabled || (profiler.no_critical_paths && !start_time))
     return;
   // Check to see if this has already triggered or not
-  if(event.has_triggered()) {
-    // Take the timing measurement of when this happened first
-    ExternalEventInfo &info = external_event_infos.emplace_back(ExternalEventInfo());
-    info.triggered = Realm::Clock::current_time_in_nanoseconds();
-    // Doing created after triggered makes it look like the event was
-    // ready before it was created, which it probably was since it
-    // triggered almost immediately after it was created, so while
-    // not strictly accurate it reflects what actually happened so
-    // the profiler can give good feedback
-    info.created = Realm::Clock::current_time_in_nanoseconds();
-    info.external = event;
-    info.fevent = get_fevent();
-    info.provenance = profiler.find_provenance_id(prov);
-    profiler.update_footprint(sizeof(info), this);
+  bool poisoned = false;
+  if(event.has_triggered_faultaware(poisoned) || poisoned) {
+    if(start_time) {
+      // If we have a start time then this is an async effect
+      AsyncEffectInfo &info = async_effect_infos.emplace_back(AsyncEffectInfo());
+      info.stop = Realm::Clock::current_time_in_nanoseconds();
+      info.start = *start_time;
+      info.proc_id = local_proc;
+      info.creator = get_fevent();
+      info.fevent = profiler.no_critical_paths ? Event::NO_EVENT : event;
+      info.provenance = profiler.find_provenance_id(prov);
+      profiler.update_footprint(sizeof(info), this);
+    } else {
+      // Take the timing measurement of when this happened first
+      ExternalEventInfo &info = external_event_infos.emplace_back(ExternalEventInfo());
+      info.triggered = Realm::Clock::current_time_in_nanoseconds();
+      // Doing created after triggered makes it look like the event was
+      // ready before it was created, which it probably was since it
+      // triggered almost immediately after it was created, so while
+      // not strictly accurate it reflects what actually happened so
+      // the profiler can give good feedback
+      info.created = Realm::Clock::current_time_in_nanoseconds();
+      info.external = event;
+      info.fevent = get_fevent();
+      info.provenance = profiler.find_provenance_id(prov);
+      profiler.update_footprint(sizeof(info), this);
+    }
   } else {
     // Spawn a no-op task with a profiling request that will measure when
     // the external event has triggered, we'll use that to determine
     // the trigger time for the event
-    const ExternalTriggerArgs args{event, get_fevent(),
-                                   profiler.find_provenance_id(prov)};
+    const ExternalTriggerArgs args{profiler.no_critical_paths ? Event::NO_EVENT : event,
+                                   get_fevent(), local_proc,
+                                   profiler.find_provenance_id(prov), start_time};
     // Need to dispatch this on a base realm processor to avoid
     // profiling ourselves when we do this
     const Realm::Processor local = get_callback_processor();
@@ -1137,13 +1154,24 @@ void ThreadProfiler::process_external(ProfilingResponse &response)
   if(!response.get_measurement(timeline))
     std::abort();
 
-  ExternalEventInfo &info = external_event_infos.emplace_back(ExternalEventInfo());
-  info.created = timeline.create_time;
-  info.triggered = timeline.ready_time;
-  info.external = args->external;
-  info.fevent = args->fevent;
-  info.provenance = args->provenance;
-  profiler.update_footprint(sizeof(info), this);
+  if(args->start_time) {
+    AsyncEffectInfo &info = async_effect_infos.emplace_back(AsyncEffectInfo());
+    info.start = *args->start_time;
+    info.stop = timeline.ready_time;
+    info.proc_id = args->proc.id;
+    info.creator = args->fevent;
+    info.fevent = args->external;
+    info.provenance = args->provenance;
+    profiler.update_footprint(sizeof(info), this);
+  } else {
+    ExternalEventInfo &info = external_event_infos.emplace_back(ExternalEventInfo());
+    info.created = timeline.create_time;
+    info.triggered = timeline.ready_time;
+    info.external = args->external;
+    info.fevent = args->fevent;
+    info.provenance = args->provenance;
+    profiler.update_footprint(sizeof(info), this);
+  }
 
   if(profiler.self_profile) {
     const long long stop = Realm::Clock::current_time_in_nanoseconds();
@@ -1162,16 +1190,21 @@ void ThreadProfiler::process_external(ProfilingResponse &response)
 #endif
 }
 
-void ThreadProfiler::record_time_range(long long start, const std::string_view &name)
+void ThreadProfiler::record_time_range(long long start, const std::string_view &name,
+                                       Event external)
 {
-  ApplicationInfo &info = application_infos.emplace_back(ApplicationInfo());
-  info.stop = Realm::Clock::current_time_in_nanoseconds();
-  info.start = start;
-  info.fevent = get_fevent();
-  info.proc_id = local_proc.id;
-  Profiler &profiler = Profiler::get_profiler();
-  info.provenance = profiler.find_provenance_id(name);
-  profiler.update_footprint(sizeof(info), this);
+  if(external.exists()) {
+    record_external_event(external, name, start);
+  } else {
+    ApplicationInfo &info = application_infos.emplace_back(ApplicationInfo());
+    info.stop = Realm::Clock::current_time_in_nanoseconds();
+    info.start = start;
+    info.fevent = get_fevent();
+    info.proc_id = local_proc.id;
+    Profiler &profiler = Profiler::get_profiler();
+    info.provenance = profiler.find_provenance_id(name);
+    profiler.update_footprint(sizeof(info), this);
+  }
 }
 
 size_t ThreadProfiler::dump_inter(long long target_latency) {
@@ -1325,6 +1358,15 @@ size_t ThreadProfiler::dump_inter(long long target_latency) {
     if(t_curr >= t_stop)
       return diff;
   }
+  while(!async_effect_infos.empty()) {
+    AsyncEffectInfo &info = async_effect_infos.front();
+    profiler.serialize(info);
+    diff += sizeof(info);
+    async_effect_infos.pop_front();
+    const long long t_curr = Realm::Clock::current_time_in_microseconds();
+    if(t_curr >= t_stop)
+      return diff;
+  }
   while(!spawn_infos.empty()) {
     SpawnInfo &info = spawn_infos.front();
     profiler.serialize(info);
@@ -1371,6 +1413,8 @@ void ThreadProfiler::finalize(void) {
     profiler.serialize(prof_task_infos[idx]);
   for(unsigned idx = 0; idx < application_infos.size(); idx++)
     profiler.serialize(application_infos[idx]);
+  for(unsigned idx = 0; idx < async_effect_infos.size(); idx++)
+    profiler.serialize(async_effect_infos[idx]);
   for(unsigned idx = 0; idx < spawn_infos.size(); idx++)
     profiler.serialize(spawn_infos[idx]);
   if (is_implicit())
@@ -1803,6 +1847,15 @@ void Profiler::log_preamble(void) const {
      << "proc_id:ProcID:" << sizeof(ProcID) << delim
      << "fevent:unsigned long long:" << sizeof(Event) << "}" << std::endl;
 
+  ss << "AsyncEffectInfo {"
+     << "id:" << ASYNC_EFFECT_INFO_ID << delim
+     << "provenance:unsigned long long:" << sizeof(unsigned long long) << delim
+     << "start:timestamp_t:" << sizeof(timestamp_t) << delim
+     << "stop:timestamp_t:" << sizeof(timestamp_t) << delim
+     << "proc_id:ProcID:" << sizeof(ProcID) << delim
+     << "creator:unsigned long long:" << sizeof(Event) << delim
+     << "fevent:unsigned long long:" << sizeof(Event) << "}" << std::endl;
+
   ss << "Provenance {"
      << "id:" << PROVENANCE_ID << delim
      << "provenance:unsigned long long:" << sizeof(unsigned long long) << delim
@@ -2206,6 +2259,18 @@ void Profiler::serialize(const ThreadProfiler::ApplicationInfo &info) const
   pr_fwrite(f, (char *)&(info.start), sizeof(info.start));
   pr_fwrite(f, (char *)&(info.stop), sizeof(info.stop));
   pr_fwrite(f, (char *)&(info.proc_id), sizeof(info.proc_id));
+  pr_fwrite(f, (char *)&info.fevent.id, sizeof(info.fevent.id));
+}
+
+void Profiler::serialize(const ThreadProfiler::AsyncEffectInfo &info) const
+{
+  int ID = ASYNC_EFFECT_INFO_ID;
+  pr_fwrite(f, (char *)&ID, sizeof(ID));
+  pr_fwrite(f, (char *)&info.provenance, sizeof(info.provenance));
+  pr_fwrite(f, (char *)&(info.start), sizeof(info.start));
+  pr_fwrite(f, (char *)&(info.stop), sizeof(info.stop));
+  pr_fwrite(f, (char *)&(info.proc_id), sizeof(info.proc_id));
+  pr_fwrite(f, (char *)&(info.creator), sizeof(info.creator));
   pr_fwrite(f, (char *)&info.fevent.id, sizeof(info.fevent.id));
 }
 

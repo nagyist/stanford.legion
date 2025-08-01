@@ -33,6 +33,7 @@
 #include "legion/managers/processor.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/expression.h"
+#include "legion/nodes/index.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/copy.h"
 #include "legion/operations/deletion.h"
@@ -7463,15 +7464,30 @@ namespace Legion {
     {
       PartitionNode* parent_node = get_node(parent);
       IndexSpaceNode* color_space = parent_node->row_source->color_space;
-      LegionColor color = color_space->linearize_color(realm_color, type_tag);
       if (!color_space->contains_point(realm_color, type_tag))
       {
+        DomainPoint bad_point;
+        switch (color_space->get_num_dims())
+        {
+#define DIMFUNC(DIM)                                                           \
+  case DIM:                                                                    \
+    {                                                                          \
+      RealmPointConverter<DIM, Realm::DIMTYPES>::convert_from(                 \
+          realm_color, type_tag, bad_point, "get_logical_subregion_by_color"); \
+      break;                                                                   \
+    }
+          LEGION_FOREACH_N(DIMFUNC)
+#undef DIMFUNC
+          default:
+            std::abort();
+        }
         Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-        error << "Invalid color space color for child " << color
+        error << "Invalid color space color for child " << bad_point
               << " of logical partition (" << parent.index_partition << ", "
               << parent.field_space << ", " << parent.get_tree_id() << ").";
         error.raise();
       }
+      LegionColor color = color_space->linearize_color(realm_color, type_tag);
       IndexSpaceNode* index_node = parent_node->row_source->get_child(color);
       LogicalRegion result(
           parent.tree_did, index_node->handle, parent.field_space);

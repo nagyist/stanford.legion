@@ -14,6 +14,7 @@
  */
 
 #include <deque>
+#include <optional>
 
 namespace PRealm {
 
@@ -61,7 +62,9 @@ public:
   struct ExternalTriggerArgs {
     Event external;
     Event fevent;
+    Processor proc;
     unsigned long long provenance;
+    std::optional<long long> start_time;
   };
   struct ProcDesc {
   public:
@@ -228,6 +231,12 @@ public:
     Event fevent;
     unsigned long long provenance;
   };
+  struct AsyncEffectInfo {
+    timestamp_t start, stop;
+    ProcID proc_id;
+    Event creator, fevent;
+    unsigned long long provenance;
+  };
   struct SpawnInfo {
   public:
     Event fevent;
@@ -267,7 +276,8 @@ public:
   void record_barrier_arrival(Event result, Event precondition);
   void record_event_merger(Event result, const Event *preconditions,
                            size_t num_events);
-  void record_external_event(Realm::Event result, const std::string_view &prov);
+  void record_external_event(Realm::Event result, const std::string_view &prov,
+      std::optional<long long> start_time = std::optional<long long>());
   void record_reservation_acquire(Reservation r, Event result,
                                   Event precondition);
   Event record_instance_ready(RegionInstance inst, Event result,
@@ -276,7 +286,7 @@ public:
   void process_response(ProfilingResponse &response);
   void process_trigger(const void *args, size_t arglen);
   void process_external(ProfilingResponse &response);
-  void record_time_range(long long start, const std::string_view& name);
+  void record_time_range(long long start, const std::string_view& name, Event external);
   size_t dump_inter(long long target_latency);
   void finalize(void);
 
@@ -303,6 +313,7 @@ private:
   std::deque<InstTimelineInfo> inst_timeline_infos;
   std::deque<ProfTaskInfo> prof_task_infos;
   std::deque<ApplicationInfo> application_infos;
+  std::deque<AsyncEffectInfo> async_effect_infos;
   std::deque<SpawnInfo> spawn_infos;
   std::vector<ProcID> proc_ids;
   std::vector<MemID> mem_ids;
@@ -1079,8 +1090,8 @@ inline void Machine::get_shared_processors(Memory m, std::set<Processor> &pset,
   return Realm::Machine::get_machine();
 }
 
-inline void prealm_time_range(long long start_time_in_ns, const std::string_view& name) {
-  ThreadProfiler::get_thread_profiler().record_time_range(start_time_in_ns, name);
+inline void prealm_time_range(long long start_time_in_ns, const std::string_view& name, Event external) {
+  ThreadProfiler::get_thread_profiler().record_time_range(start_time_in_ns, name, external);
 }
 
 } // namespace PRealm

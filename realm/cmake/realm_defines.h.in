@@ -96,6 +96,9 @@
 
 #cmakedefine REALM_USE_CPPTRACE
 
+#cmakedefine REALM_USE_KERNEL_AIO
+#cmakedefine REALM_USE_LIBAIO
+
 #cmakedefine REALM_USE_SHM
 #cmakedefine REALM_HAS_POSIX_FALLOCATE64
 #cmakedefine REALM_TIMERS_USE_RDTSC 1

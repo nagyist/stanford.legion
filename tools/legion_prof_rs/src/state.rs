@@ -409,6 +409,7 @@ pub enum ProcEntryKind {
     RuntimeCall(RuntimeCallKindID),
     ApplicationCall(ProvenanceID),
     GPUKernel(TaskID, VariantID),
+    AsyncEffect(ProvenanceID),
     ProfTask,
 }
 
@@ -550,6 +551,7 @@ impl ContainerEntry for ProcEntry {
                     None => format!("GPU Kernel(s) for {}", variant_name.clone()),
                 }
             }
+            ProcEntryKind::AsyncEffect(prov) => state.find_provenance(prov).unwrap().to_owned(),
             ProcEntryKind::ProfTask => {
                 format!("ProfTask <{:?}>", initiation_op.unwrap().0)
             }
@@ -575,6 +577,9 @@ impl ContainerEntry for ProcEntry {
                 state.runtime_call_kinds.get(&kind).unwrap().color.unwrap()
             }
             ProcEntryKind::ApplicationCall(prov) => {
+                state.provenances.get(&prov).unwrap().color.unwrap()
+            }
+            ProcEntryKind::AsyncEffect(prov) => {
                 state.provenances.get(&prov).unwrap().color.unwrap()
             }
             ProcEntryKind::ProfTask => {
@@ -935,7 +940,7 @@ impl Proc {
             for (uid, entry) in &self.entries {
                 let time = &entry.time_range;
                 match entry.kind {
-                    ProcEntryKind::GPUKernel(_, _) => {
+                    ProcEntryKind::GPUKernel(_, _) | ProcEntryKind::AsyncEffect(_) => {
                         add(time, *uid, &mut points_device, &mut util_points_device);
                         add_waiters(&entry.waiters, *uid, &mut util_points_device);
                     }
@@ -1011,6 +1016,10 @@ impl Proc {
 
     pub fn is_visible(&self) -> bool {
         self.visible
+    }
+
+    pub fn has_device_timepoints(&self) -> bool {
+        !self.time_points_device.is_empty()
     }
 
     pub fn find_executing_entry(
@@ -3293,8 +3302,30 @@ impl State {
                 *node_weight =
                     EventEntry::new(kind, Some(creator), Some(creation_time), trigger_time);
             } else if deduplicate {
-                assert!(node_weight.kind == kind);
-                assert!(node_weight.creator.unwrap() == creator);
+                match kind {
+                    EventEntryKind::ExternalEvent(_) => {
+                        // Should still both be external events, but possibly with
+                        // different provenance values
+                        assert!(
+                            std::mem::discriminant(&kind)
+                                == std::mem::discriminant(&node_weight.kind)
+                        );
+                        // Take the earliest creator of external events as being
+                        // the one that actually produced the event
+                        if creation_time < node_weight.creation_time.unwrap() {
+                            *node_weight = EventEntry::new(
+                                kind,
+                                Some(creator),
+                                Some(creation_time),
+                                trigger_time,
+                            );
+                        }
+                    }
+                    _ => {
+                        assert!(node_weight.kind == kind);
+                        assert!(node_weight.creator.unwrap() == creator);
+                    }
+                }
             } else {
                 // Otherwise we should record each fevent exactly once
                 panic!(
@@ -3560,6 +3591,46 @@ impl State {
             None,
             None,
             ProcEntryKind::ApplicationCall(provenance),
+            time_range,
+            creator_uid,
+            None,
+            &mut self.op_prof_uid,
+            &mut self.prof_uid_proc,
+        )
+    }
+
+    fn create_async_effect(
+        &mut self,
+        provenance: ProvenanceID,
+        proc_id: ProcID,
+        time_range: TimeRange,
+        creator: EventID,
+        fevent: Option<EventID>,
+    ) -> &mut ProcEntry {
+        assert!(self.provenances.contains_key(&provenance));
+        let alloc = &mut self.prof_uid_allocator;
+        let creator_uid = Some(alloc.create_reference(creator));
+        let base = if let Some(event) = fevent {
+            let base = Base::from_fevent(alloc, event);
+            assert!(time_range.stop.is_some());
+            self.record_event_node(
+                event,
+                EventEntryKind::ExternalEvent(provenance),
+                base.prof_uid,
+                time_range.start.unwrap(),
+                time_range.stop,
+                true, /*deduplicate*/
+            );
+            base
+        } else {
+            Base::new(alloc)
+        };
+        let proc = self.procs.create_proc(proc_id);
+        proc.create_proc_entry(
+            base,
+            None,
+            None,
+            ProcEntryKind::AsyncEffect(provenance),
             time_range,
             creator_uid,
             None,
@@ -4278,7 +4349,7 @@ impl State {
                     for edge in self.event_graph.edges_directed(vertex, Direction::Incoming) {
                         let src = self.event_graph.node_weight(edge.source()).unwrap();
                         // Check to see if it has a trigger time or whether it
-                        // was tained by something else and therefore has no trigger time
+                        // was tainted by something else and therefore has no trigger time
                         if let Some(trigger_time) = src.trigger_time {
                             if let Some((_, latest_time)) = latest {
                                 if latest_time < trigger_time {
@@ -5058,6 +5129,18 @@ fn process_record(
             state.create_application_call(*provenance, *proc_id, time_range, *fevent);
             state.update_last_time(*stop);
         }
+        Record::AsyncEffectInfo {
+            provenance,
+            start,
+            stop,
+            proc_id,
+            creator,
+            fevent,
+        } => {
+            let time_range = TimeRange::new_call(*start, *stop);
+            state.create_async_effect(*provenance, *proc_id, time_range, *creator, *fevent);
+            state.update_last_time(*stop);
+        }
         Record::ProfTaskInfo {
             proc_id,
             op_id,
@@ -5200,7 +5283,7 @@ fn process_record(
                 creator_uid,
                 *performed,
                 Some(*triggered),
-                false,
+                true, /*deduplicate*/
             );
         }
         Record::BarrierArrivalInfo {

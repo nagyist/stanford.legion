@@ -28,8 +28,12 @@ namespace PRealm {
 
   // You can use this call to record your own time ranges in a PRealm profile
   // It will implicitly capture the stop time when the function is invoked
+  // If you pass an event here, it must be an "external" event corresponding
+  // to a Realm event made from external synchronization primitive like a
+  // CUDA event or stream. If it is not an external event it will not work.
   REALM_PUBLIC_API void prealm_time_range(long long start_time_in_ns,
-                                          const std::string_view &name);
+                                          const std::string_view &name,
+                                          Realm::Event external = Realm::Event::NO_EVENT);
 
   REALM_PUBLIC_API void prealm_task_name(Realm::Processor::TaskFuncID task_id,
                                          const std::string_view &task_name);

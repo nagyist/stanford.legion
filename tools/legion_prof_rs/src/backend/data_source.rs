@@ -1776,6 +1776,7 @@ impl StateDataSource {
                     ProcEntryKind::MapperCall(..)
                     | ProcEntryKind::RuntimeCall(_)
                     | ProcEntryKind::ApplicationCall(_)
+                    | ProcEntryKind::AsyncEffect(_)
                     | ProcEntryKind::GPUKernel(_, _) => {
                         fields.push(ItemField(
                             self.fields.caller,

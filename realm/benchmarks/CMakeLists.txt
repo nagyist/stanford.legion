@@ -66,6 +66,12 @@ set(_bench_list)
 # TODO(cperry): make a cmake script that will allow to override test arguments at runtime
 macro(add_benchmark target)
   add_executable(${target} ${ARGN})
+  if (REALM_USE_HIP)
+    set(SRC_LIST ${ARGN})
+    list(FILTER SRC_LIST INCLUDE REGEX "\.cu")
+    list(TRANSFORM SRC_LIST REPLACE ".*:(.*\.cu)>" "\\1")
+    set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE HIP)
+  endif()
   target_link_libraries(${target} Realm::Realm)
   add_test(NAME ${target} COMMAND $<TARGET_FILE:${target}> ${BENCHMARK_ARGS} ${${target}_ARGS})
   # Benchmarks need to be run in isolation to get accurate results
