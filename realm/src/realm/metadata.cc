@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,209 +32,209 @@ namespace Realm {
   // class MetadataBase
   //
 
-    MetadataBase::MetadataBase(void)
-      : state(STATE_INVALID), valid_event(Event::NO_EVENT)
-      , frag_buffer(0), frag_bytes_received(0)
-    {}
+  MetadataBase::MetadataBase(void)
+    : state(STATE_INVALID)
+    , valid_event(Event::NO_EVENT)
+    , frag_buffer(0)
+    , frag_bytes_received(0)
+  {}
 
-    MetadataBase::~MetadataBase(void)
-    {}
+  MetadataBase::~MetadataBase(void) {}
 
-    void MetadataBase::mark_valid(NodeSet& early_reqs)
+  void MetadataBase::mark_valid(NodeSet &early_reqs)
+  {
+    // take lock so we can make sure we get a precise list of early requestors
+    // if there was an event (i.e. an impatient local reqiest), trigger it too
+    Event to_trigger = Event::NO_EVENT;
     {
-      // take lock so we can make sure we get a precise list of early requestors
-      // if there was an event (i.e. an impatient local reqiest), trigger it too
-      Event to_trigger = Event::NO_EVENT;
-      {
-	AutoLock<> a(mutex);
-	early_reqs = remote_copies;
-	state = STATE_VALID;
-	to_trigger = valid_event;
-	valid_event = Event::NO_EVENT;
-      }
-
-      if(to_trigger.exists())
-	GenEventImpl::trigger(to_trigger, false /*!poisoned*/);
-    }
-
-    bool MetadataBase::handle_request(int requestor)
-    {
-      // just add the requestor to the list of remote nodes with copies, can send
-      //   response if the data is already valid
       AutoLock<> a(mutex);
-
-      assert(!remote_copies.contains(requestor));
-      remote_copies.add(requestor);
-
-      return is_valid();
+      early_reqs = remote_copies;
+      state = STATE_VALID;
+      to_trigger = valid_event;
+      valid_event = Event::NO_EVENT;
     }
 
-    void MetadataBase::handle_response(void)
-    {
-      // update the state, and
-      // if there was an event, we'll trigger it
-      Event to_trigger = Event::NO_EVENT;
-      {
-	AutoLock<> a(mutex);
+    if(to_trigger.exists())
+      GenEventImpl::trigger(to_trigger, false /*!poisoned*/);
+  }
 
-	switch(state) {
-	case STATE_REQUESTED:
-	  {
-	    to_trigger = valid_event;
-	    valid_event = Event::NO_EVENT;
-	    state = STATE_VALID;
-	    break;
-	  }
+  bool MetadataBase::handle_request(int requestor)
+  {
+    // just add the requestor to the list of remote nodes with copies, can send
+    //   response if the data is already valid
+    AutoLock<> a(mutex);
 
-	default:
-	  assert(0);
-	}
-      }
+    assert(!remote_copies.contains(requestor));
+    remote_copies.add(requestor);
 
-      if(to_trigger.exists())
-	GenEventImpl::trigger(to_trigger, false /*!poisoned*/);
-    }
+    return is_valid();
+  }
 
-    Event MetadataBase::request_data(int owner, ID::IDType id)
-    {
-      // early out - valid data need not be re-requested
-      if(state == STATE_VALID) 
-	return Event::NO_EVENT;
-
-      Event e = Event::NO_EVENT;
-      bool issue_request = false;
-      {
-	AutoLock<> a(mutex);
-
-	switch(state) {
-	case STATE_VALID:
-	  {
-	    // possible if the data came in between our early out check
-	    // above and our taking of the lock - nothing more to do
-	    break;
-	  }
-
-	case STATE_INVALID: 
-	  {
-	    // if the current state is invalid, we'll need to issue a request
-	    state = STATE_REQUESTED;
-	    valid_event = GenEventImpl::create_genevent()->current_event();
-            e = valid_event;
-	    // actually, no need to issue a request if we're the owner
-	    issue_request = (owner != Network::my_node_id);
-	    break;
-	  }
-
-	case STATE_REQUESTED:
-	  {
-	    // request has already been issued, but return the event again
-	    assert(valid_event.exists());
-            e = valid_event;
-	    break;
-	  }
-
-	case STATE_INVALIDATE:
-	  assert(0 && "requesting metadata we've been told is invalid!");
-
-	case STATE_CLEANUP:
-	  assert(0 && "requesting metadata in CLEANUP state!");
-	}
-      }
-
-      if(issue_request) {
-	ActiveMessage<MetadataRequestMessage> amsg(owner);
-	amsg->id = id;
-	amsg.commit();
-      }
-
-      return e;
-    }
-
-  bool MetadataBase::initiate_cleanup(ID::IDType id, bool local_only /*= false*/)
-    {
-      NodeSet invals_to_send;
-      {
-	AutoLock<> a(mutex);
-
-	assert(state == STATE_VALID);
-
-	// eagerly invalidate local contents
-	do_invalidate();
-
-	if(remote_copies.empty()) {
-	  state = STATE_INVALID;
-	} else {
-          if(local_only) {
-            // ignore remote copies
-            remote_copies.clear();
-            state = STATE_INVALID;
-          } else {
-            state = STATE_CLEANUP;
-            invals_to_send = remote_copies;
-          }
-	}
-      }
-
-      // send invalidations outside the locked section
-      if(invals_to_send.empty())
-	return true;
-
-      ActiveMessage<MetadataInvalidateMessage> amsg(invals_to_send);
-      amsg->id = id;
-      amsg.commit();
-      // can't free object until we receive all the acks
-      return false;
-    }
-
-    void MetadataBase::handle_invalidate(void)
+  void MetadataBase::handle_response(void)
+  {
+    // update the state, and
+    // if there was an event, we'll trigger it
+    Event to_trigger = Event::NO_EVENT;
     {
       AutoLock<> a(mutex);
 
       switch(state) {
-      case STATE_VALID: 
-	{
-	  // was valid, now invalid (up to app to make sure no races exist)
-	  state = STATE_INVALID;
-	  do_invalidate();
-	  break;
-	}
-
       case STATE_REQUESTED:
-	{
-	  // hopefully rare case where invalidation passes response to initial request
-	  state = STATE_INVALIDATE;
-	  break;
-	}
+      {
+        to_trigger = valid_event;
+        valid_event = Event::NO_EVENT;
+        state = STATE_VALID;
+        break;
+      }
 
       default:
-	assert(0);
+        assert(0);
       }
     }
 
-    bool MetadataBase::handle_inval_ack(int sender)
+    if(to_trigger.exists())
+      GenEventImpl::trigger(to_trigger, false /*!poisoned*/);
+  }
+
+  Event MetadataBase::request_data(int owner, ID::IDType id)
+  {
+    // early out - valid data need not be re-requested
+    if(state == STATE_VALID)
+      return Event::NO_EVENT;
+
+    Event e = Event::NO_EVENT;
+    bool issue_request = false;
     {
-      bool last_copy;
-      {
-	AutoLock<> a(mutex);
+      AutoLock<> a(mutex);
 
-	assert(remote_copies.contains(sender));
-	remote_copies.remove(sender);
-	last_copy = remote_copies.empty();
-	if(last_copy)
-	  state = STATE_INVALID;
+      switch(state) {
+      case STATE_VALID:
+      {
+        // possible if the data came in between our early out check
+        // above and our taking of the lock - nothing more to do
+        break;
       }
 
-      return last_copy;
+      case STATE_INVALID:
+      {
+        // if the current state is invalid, we'll need to issue a request
+        state = STATE_REQUESTED;
+        valid_event = GenEventImpl::create_genevent()->current_event();
+        e = valid_event;
+        // actually, no need to issue a request if we're the owner
+        issue_request = (owner != Network::my_node_id);
+        break;
+      }
+
+      case STATE_REQUESTED:
+      {
+        // request has already been issued, but return the event again
+        assert(valid_event.exists());
+        e = valid_event;
+        break;
+      }
+
+      case STATE_INVALIDATE:
+        assert(0 && "requesting metadata we've been told is invalid!");
+
+      case STATE_CLEANUP:
+        assert(0 && "requesting metadata in CLEANUP state!");
+      }
     }
 
-  
+    if(issue_request) {
+      ActiveMessage<MetadataRequestMessage> amsg(owner);
+      amsg->id = id;
+      amsg.commit();
+    }
+
+    return e;
+  }
+
+  bool MetadataBase::initiate_cleanup(ID::IDType id, bool local_only /*= false*/)
+  {
+    NodeSet invals_to_send;
+    {
+      AutoLock<> a(mutex);
+
+      assert(state == STATE_VALID);
+
+      // eagerly invalidate local contents
+      do_invalidate();
+
+      if(remote_copies.empty()) {
+        state = STATE_INVALID;
+      } else {
+        if(local_only) {
+          // ignore remote copies
+          remote_copies.clear();
+          state = STATE_INVALID;
+        } else {
+          state = STATE_CLEANUP;
+          invals_to_send = remote_copies;
+        }
+      }
+    }
+
+    // send invalidations outside the locked section
+    if(invals_to_send.empty())
+      return true;
+
+    ActiveMessage<MetadataInvalidateMessage> amsg(invals_to_send);
+    amsg->id = id;
+    amsg.commit();
+    // can't free object until we receive all the acks
+    return false;
+  }
+
+  void MetadataBase::handle_invalidate(void)
+  {
+    AutoLock<> a(mutex);
+
+    switch(state) {
+    case STATE_VALID:
+    {
+      // was valid, now invalid (up to app to make sure no races exist)
+      state = STATE_INVALID;
+      do_invalidate();
+      break;
+    }
+
+    case STATE_REQUESTED:
+    {
+      // hopefully rare case where invalidation passes response to initial request
+      state = STATE_INVALIDATE;
+      break;
+    }
+
+    default:
+      assert(0);
+    }
+  }
+
+  bool MetadataBase::handle_inval_ack(int sender)
+  {
+    bool last_copy;
+    {
+      AutoLock<> a(mutex);
+
+      assert(remote_copies.contains(sender));
+      remote_copies.remove(sender);
+      last_copy = remote_copies.empty();
+      if(last_copy)
+        state = STATE_INVALID;
+    }
+
+    return last_copy;
+  }
+
   ////////////////////////////////////////////////////////////////////////
   //
   // class MetadataRequestMessage
   //
 
-  /*static*/ void MetadataRequestMessage::handle_message(NodeID sender, const MetadataRequestMessage &args,
-							 const void *data, size_t datalen)
+  /*static*/ void MetadataRequestMessage::handle_message(
+      NodeID sender, const MetadataRequestMessage &args, const void *data, size_t datalen)
   {
     // switch on different types of objects that can have metadata
     ID id(args.id);
@@ -249,8 +251,7 @@ namespace Realm {
         send_response = true;
         impl->metadata.serialize_msg(dbs);
       }
-    }
-    else {
+    } else {
       assert(0);
     }
 
@@ -259,17 +260,17 @@ namespace Realm {
       size_t total_bytes = dbs.bytes_used();
 
       while(offset < total_bytes) {
-        size_t to_send = std::min(total_bytes - offset,
-                                  ActiveMessage<MetadataResponseMessage>::recommended_max_payload(sender,
-                                                                                                  false /*without congestion*/));
+        size_t to_send =
+            std::min(total_bytes - offset,
+                     ActiveMessage<MetadataResponseMessage>::recommended_max_payload(
+                         sender, false /*without congestion*/));
 
-	ActiveMessage<MetadataResponseMessage> amsg(sender, to_send);
-	amsg->id = args.id;
+        ActiveMessage<MetadataResponseMessage> amsg(sender, to_send);
+        amsg->id = args.id;
         amsg->offset = offset;
         amsg->total_bytes = total_bytes;
-        amsg.add_payload(static_cast<const char *>(dbs.get_buffer()) + offset,
-                         to_send);
-	amsg.commit();
+        amsg.add_payload(static_cast<const char *>(dbs.get_buffer()) + offset, to_send);
+        amsg.commit();
 
         offset += to_send;
       }
@@ -281,12 +282,12 @@ namespace Realm {
   // class MetadataResponseMessage
   //
 
-  /*static*/ void MetadataResponseMessage::handle_message(NodeID sender,
-							  const MetadataResponseMessage &args,
-							  const void *data, size_t datalen)
+  /*static*/ void
+  MetadataResponseMessage::handle_message(NodeID sender,
+                                          const MetadataResponseMessage &args,
+                                          const void *data, size_t datalen)
   {
-    log_metadata.info("metadata for " IDFMT " received - %zd bytes",
-		      args.id, datalen);
+    log_metadata.info("metadata for " IDFMT " received - %zd bytes", args.id, datalen);
 
     // switch on different types of objects that can have metadata
     ID id(args.id);
@@ -330,14 +331,15 @@ namespace Realm {
     }
   }
 
-  
   ////////////////////////////////////////////////////////////////////////
   //
   // class MetadataInvalidateMessage
   //
 
-  /*static*/ void MetadataInvalidateMessage::handle_message(NodeID sender,const MetadataInvalidateMessage &args,
-							    const void *data, size_t datalen)
+  /*static*/ void
+  MetadataInvalidateMessage::handle_message(NodeID sender,
+                                            const MetadataInvalidateMessage &args,
+                                            const void *data, size_t datalen)
   {
     log_metadata.info("received invalidate request for " IDFMT, args.id);
 
@@ -362,9 +364,10 @@ namespace Realm {
   // class MetadataInvalidateAckMessage
   //
 
-  /*static*/ void MetadataInvalidateAckMessage::handle_message(NodeID sender,
-							       const MetadataInvalidateAckMessage &args,
-							       const void *data, size_t datalen)
+  /*static*/ void
+  MetadataInvalidateAckMessage::handle_message(NodeID sender,
+                                               const MetadataInvalidateAckMessage &args,
+                                               const void *data, size_t datalen)
   {
     log_metadata.info("received invalidate ack for " IDFMT, args.id);
 
@@ -375,7 +378,7 @@ namespace Realm {
       RegionInstanceImpl *impl = get_runtime()->get_instance_impl(args.id);
       last_ack = impl->metadata.handle_inval_ack(sender);
       if(last_ack)
-	impl->recycle_instance();
+        impl->recycle_instance();
     } else {
       assert(0);
     }
@@ -388,6 +391,7 @@ namespace Realm {
   ActiveMessageHandlerReg<MetadataRequestMessage> metadata_request_message_handler;
   ActiveMessageHandlerReg<MetadataResponseMessage> metadata_response_message_handler;
   ActiveMessageHandlerReg<MetadataInvalidateMessage> metadata_invalidate_message_handler;
-  ActiveMessageHandlerReg<MetadataInvalidateAckMessage> metadata_invalidate_ack_message_handler;
+  ActiveMessageHandlerReg<MetadataInvalidateAckMessage>
+      metadata_invalidate_ack_message_handler;
 
 }; // namespace Realm

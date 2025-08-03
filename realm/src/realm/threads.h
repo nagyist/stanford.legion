@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +54,7 @@ namespace Realm {
     // calls to initialize and cleanup any global state for the threading subsystem
     bool initialize(void);
     bool cleanup(void);
-  };
+  }; // namespace Threading
 
   class Operation;
 
@@ -67,7 +69,8 @@ namespace Realm {
   //  calls into when it wishes to sleep
   //
   // Threads return a void * on completion, available to any object that "joins" on it.
-  // A thread may also be sent a "signal", which can be delivered either synchronously (i.e.
+  // A thread may also be sent a "signal", which can be delivered either synchronously
+  // (i.e.
   //  upon interaction with the scheduler) or asynchronously (e.g. via POSIX signals).
 
   class ThreadLaunchParameters;
@@ -81,67 +84,70 @@ namespace Realm {
   class PAPICounters;
 #endif
 
-  //template <class CONDTYPE> class ThreadWaker;
+  // template <class CONDTYPE> class ThreadWaker;
 
   class Thread {
   protected:
     // thread objects are not constructed directly
-    Thread(ThreadScheduler *_scheduler);    
+    Thread(ThreadScheduler *_scheduler);
 
     template <typename T, void (T::*START_MTHD)(void)>
     static void thread_entry_wrapper(void *obj);
- 
-    static Thread *create_kernel_thread_untyped(void *target, void (*entry_wrapper)(void *),
-						const ThreadLaunchParameters& params,
-						CoreReservation& rsrv,
-						ThreadScheduler *_scheduler);
-   
+
+    static Thread *create_kernel_thread_untyped(void *target,
+                                                void (*entry_wrapper)(void *),
+                                                const ThreadLaunchParameters &params,
+                                                CoreReservation &rsrv,
+                                                ThreadScheduler *_scheduler);
+
 #ifdef REALM_USE_USER_THREADS
     static Thread *create_user_thread_untyped(void *target, void (*entry_wrapper)(void *),
-					      const ThreadLaunchParameters& params,
-					      const CoreReservation *rsrv,
-					      ThreadScheduler *_scheduler);
+                                              const ThreadLaunchParameters &params,
+                                              const CoreReservation *rsrv,
+                                              ThreadScheduler *_scheduler);
 #endif
-   
+
   public:
     // for kernel threads, the scheduler is optional - however, a thread with no scheduler
     //  is not allowed to wait on a Realm Event or any internal object
     // a kernel thread also requires a core reservation that tells it which core(s) it may
     //  use when executing
     template <typename T, void (T::*START_MTHD)(void)>
-    static Thread *create_kernel_thread(T *target,
-					const ThreadLaunchParameters& params,
-					CoreReservation& rsrv,
-					ThreadScheduler *_scheduler = 0);
+    static Thread *create_kernel_thread(T *target, const ThreadLaunchParameters &params,
+                                        CoreReservation &rsrv,
+                                        ThreadScheduler *_scheduler = 0);
 
 #ifdef REALM_USE_USER_THREADS
     // user threads must specify a scheduler - the whole point is that the OS isn't
     //  controlling them...
     template <typename T, void (T::*START_MTHD)(void)>
-    static Thread *create_user_thread(T *target,
-				      const ThreadLaunchParameters& params,
-				      const CoreReservation *rsrv,
-				      ThreadScheduler *_scheduler);
+    static Thread *create_user_thread(T *target, const ThreadLaunchParameters &params,
+                                      const CoreReservation *rsrv,
+                                      ThreadScheduler *_scheduler);
 #endif
 
     virtual ~Thread(void);
 
-    enum State { STATE_CREATED,
-		 STATE_STARTUP,
-		 STATE_RUNNING,
-		 STATE_BLOCKING,
-		 STATE_BLOCKED,
-		 STATE_ALERTED,
-		 STATE_READY,
-		 STATE_FINISHED,
-		 STATE_DELETED,
-                 };
+    enum State
+    {
+      STATE_CREATED,
+      STATE_STARTUP,
+      STATE_RUNNING,
+      STATE_BLOCKING,
+      STATE_BLOCKED,
+      STATE_ALERTED,
+      STATE_READY,
+      STATE_FINISHED,
+      STATE_DELETED,
+    };
 
     State get_state(void);
 
-    enum Signal { TSIG_NONE,
-		  TSIG_SHOW_BACKTRACE,
-		  TSIG_INTERRUPT,
+    enum Signal
+    {
+      TSIG_NONE,
+      TSIG_SHOW_BACKTRACE,
+      TSIG_INTERRUPT,
     };
 
     // adds a signal to the thread's queue, triggering an asynchronous notification
@@ -162,7 +168,8 @@ namespace Realm {
     static void abort(void);
     static void yield(void);
 
-    // called from within thread to indicate the association of an Operation with the thread
+    // called from within thread to indicate the association of an Operation with the
+    // thread
     //  for cancellation reasons
     void start_operation(Operation *op);
     void stop_operation(Operation *op);
@@ -184,7 +191,7 @@ namespace Realm {
 #endif
 
     template <typename CONDTYPE>
-    static void wait_for_condition(const CONDTYPE& cond, bool& poisoned);
+    static void wait_for_condition(const CONDTYPE &cond, bool &poisoned);
 
     // does this thread have exception handlers installed?
     bool exceptions_permitted(void) const;
@@ -197,10 +204,10 @@ namespace Realm {
     };
 
     // per-thread performance counters
-    void setup_perf_counters(const ProfilingMeasurementCollection& pmc);
+    void setup_perf_counters(const ProfilingMeasurementCollection &pmc);
     void start_perf_counters(void);
     void stop_perf_counters(void);
-    void record_perf_counters(ProfilingMeasurementCollection& pmc);
+    void record_perf_counters(ProfilingMeasurementCollection &pmc);
 
   protected:
     friend class ThreadScheduler;
@@ -238,14 +245,16 @@ namespace Realm {
     // this can be used for logging or to hold a thread before it starts running
     virtual void thread_starting(Thread *thread) = 0;
 
-    // callbacks from a thread when it wants to sleep (i.e. yielding on a co-routine interaction
-    //  or blocking on some condition) or terminate - either will generally result in some other
-    //  thread being woken up)
-    //virtual void thread_yielding(Thread *thread) = 0;
+    // callbacks from a thread when it wants to sleep (i.e. yielding on a co-routine
+    // interaction
+    //  or blocking on some condition) or terminate - either will generally result in some
+    //  other thread being woken up)
+    // virtual void thread_yielding(Thread *thread) = 0;
     virtual void thread_blocking(Thread *thread) = 0;
     virtual void thread_terminating(Thread *thread) = 0;
 
-    // notification that a thread is ready (this will generally come from some thread other
+    // notification that a thread is ready (this will generally come from some thread
+    // other
     //  than the one that's now ready)
     virtual void thread_ready(Thread *thread) = 0;
 
@@ -254,7 +263,8 @@ namespace Realm {
   protected:
     // delegates friendship of Thread with subclasses
     Thread::State update_thread_state(Thread *thread, Thread::State new_state);
-    bool try_update_thread_state(Thread *thread, Thread::State old_state, Thread::State new_state);
+    bool try_update_thread_state(Thread *thread, Thread::State old_state,
+                                 Thread::State new_state);
   };
 
   // any thread (user or kernel) will have its own stack and heap - the size of which can
@@ -272,28 +282,33 @@ namespace Realm {
 
     ThreadLaunchParameters(void);
 
-    ThreadLaunchParameters& set_stack_size(ptrdiff_t new_stack_size);
-    ThreadLaunchParameters& set_heap_size(ptrdiff_t new_heap_size);
-    ThreadLaunchParameters& set_alt_stack_size(ptrdiff_t new_alt_stack_size);
+    ThreadLaunchParameters &set_stack_size(ptrdiff_t new_stack_size);
+    ThreadLaunchParameters &set_heap_size(ptrdiff_t new_heap_size);
+    ThreadLaunchParameters &set_alt_stack_size(ptrdiff_t new_alt_stack_size);
   };
 
   // Kernel threads will generally be much happier if they decide up front which core(s)
-  //  each of them are going to use.  Since this is a global optimization problem, we allow
-  //  different parts of the system to create "reservations", which the runtime will then
-  //  attempt to satisfy.  A thread can be launched before this happens, but will not actually
-  //  run until the reservations are satisfied.
-  
-  // A reservation can request one or more cores, optionally restricted to a particular NUMA
-  //  domain (as numbered by the OS).  The reservation should also indicate how heavily (if at
-  //  all) it intends to use the integer, floating-point, and load/store datapaths of the core(s).
-  //  A reservation with EXCLUSIVE use is compatible with those expecting MINIMAL use of the
-  //  same datapath, but not with any other reservation desiring EXCLUSIVE or SHARED access.
+  //  each of them are going to use.  Since this is a global optimization problem, we
+  //  allow different parts of the system to create "reservations", which the runtime will
+  //  then attempt to satisfy.  A thread can be launched before this happens, but will not
+  //  actually run until the reservations are satisfied.
+
+  // A reservation can request one or more cores, optionally restricted to a particular
+  // NUMA
+  //  domain (as numbered by the OS).  The reservation should also indicate how heavily
+  //  (if at all) it intends to use the integer, floating-point, and load/store datapaths
+  //  of the core(s). A reservation with EXCLUSIVE use is compatible with those expecting
+  //  MINIMAL use of the same datapath, but not with any other reservation desiring
+  //  EXCLUSIVE or SHARED access.
   class CoreReservationParameters {
   public:
-    enum CoreUsage { CORE_USAGE_NONE,
-		     CORE_USAGE_MINIMAL,
-		     CORE_USAGE_SHARED,
-		     CORE_USAGE_EXCLUSIVE };
+    enum CoreUsage
+    {
+      CORE_USAGE_NONE,
+      CORE_USAGE_MINIMAL,
+      CORE_USAGE_SHARED,
+      CORE_USAGE_EXCLUSIVE
+    };
 
     static const int NUMA_DOMAIN_DONTCARE = -1;
     static const ptrdiff_t STACK_SIZE_DEFAULT = -1;
@@ -312,31 +327,32 @@ namespace Realm {
 
     CoreReservationParameters(void);
 
-    CoreReservationParameters& set_num_cores(int new_num_cores);
-    CoreReservationParameters& set_numa_domain(int new_numa_domain);
-    CoreReservationParameters& set_alu_usage(CoreUsage new_alu_usage);
-    CoreReservationParameters& set_fpu_usage(CoreUsage new_fpu_usage);
-    CoreReservationParameters& set_ldst_usage(CoreUsage new_ldst_usage);
-    CoreReservationParameters& set_max_stack_size(ptrdiff_t new_max_stack_size);
-    CoreReservationParameters& set_max_heap_size(ptrdiff_t new_max_heap_size);
-    CoreReservationParameters& set_alt_stack_size(ptrdiff_t new_alt_stack_size);
+    CoreReservationParameters &set_num_cores(int new_num_cores);
+    CoreReservationParameters &set_numa_domain(int new_numa_domain);
+    CoreReservationParameters &set_alu_usage(CoreUsage new_alu_usage);
+    CoreReservationParameters &set_fpu_usage(CoreUsage new_fpu_usage);
+    CoreReservationParameters &set_ldst_usage(CoreUsage new_ldst_usage);
+    CoreReservationParameters &set_max_stack_size(ptrdiff_t new_max_stack_size);
+    CoreReservationParameters &set_max_heap_size(ptrdiff_t new_max_heap_size);
+    CoreReservationParameters &set_alt_stack_size(ptrdiff_t new_alt_stack_size);
   };
 
   class CoreReservationSet;
 
   class CoreReservation {
   public:
-    CoreReservation(const std::string& _name, CoreReservationSet &crs,
-		    const CoreReservationParameters& _params);
+    CoreReservation(const std::string &_name, CoreReservationSet &crs,
+                    const CoreReservationParameters &_params);
 
-    // eventually we'll get an Allocation, which is an opaque type because it's OS-dependent :(
+    // eventually we'll get an Allocation, which is an opaque type because it's
+    // OS-dependent :(
     struct Allocation;
 
     // to be informed of the eventual allocation, you supply one of these:
     class NotificationListener {
     public:
       virtual ~NotificationListener(void) {}
-      virtual void notify_allocation(const CoreReservation& rsrv) = 0;
+      virtual void notify_allocation(const CoreReservation &rsrv) = 0;
     };
 
     void add_listener(NotificationListener *listener);
@@ -354,6 +370,7 @@ namespace Realm {
 
     // no locks needed here because we aren't multi-threaded until the allocation exists
     Allocation *allocation;
+
   protected:
     friend class CoreReservationSet;
     void notify_listeners(void);
@@ -370,13 +387,13 @@ namespace Realm {
 
     const HardwareTopology *get_core_map(void) const;
 
-    void add_reservation(CoreReservation& rsrv);
+    void add_reservation(CoreReservation &rsrv);
 
     // if 'dummy_reservation_ok' is set, a failed reservation will be "satisfied" with
     //  one that uses dummy (i.e. no assign cores) reservations
     bool satisfy_reservations(bool dummy_reservation_ok = false);
 
-    void report_reservations(std::ostream& os) const;
+    void report_reservations(std::ostream &os) const;
 
   protected:
     const HardwareTopology *cm;
@@ -390,14 +407,14 @@ namespace Realm {
     ~PAPICounters(void);
 
   public:
-    static PAPICounters *setup_counters(const ProfilingMeasurementCollection& pmc);
+    static PAPICounters *setup_counters(const ProfilingMeasurementCollection &pmc);
     void cleanup(void);
 
     void start(void);
     void suspend(void);
     void resume(void);
     void stop(void);
-    void record(ProfilingMeasurementCollection& pmc);
+    void record(ProfilingMeasurementCollection &pmc);
 
   protected:
     int papi_event_set;

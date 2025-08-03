@@ -1,14 +1,17 @@
 # Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
-# in compliance with the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software distributed under the License
-# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
-# or implied. See the License for the specific language governing permissions and limitations under
-# the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 #region Global Test Properties
 set(TEST_RESOURCE_LOCK)
@@ -120,11 +123,14 @@ add_executable(realm_unit_tests ${REALM_UNIT_TESTS})
 # Needed for designated initializers
 # TODO(apriakhin): to be removed
 target_compile_features(realm_unit_tests PUBLIC cxx_std_20)
-target_link_libraries(realm_unit_tests PRIVATE realm_obj GTest::gmock_main ${REALM_LIBRARIES} ${REALM_EXTRA_OBJS})
+target_link_libraries(
+  realm_unit_tests PRIVATE realm_obj GTest::gmock_main ${REALM_LIBRARIES} ${REALM_EXTRA_OBJS}
+)
 
 # TODO(wei): To be merged into realm_unit_tests once runtime singleton is
 # removed from all unit tests
-list(APPEND
+list(
+  APPEND
   REALM_C_UNIT_TESTS
   c_processor_query.cc
   c_memory_query.cc
@@ -143,15 +149,18 @@ add_executable(realm_c_unit_tests ${REALM_C_UNIT_TESTS})
 # Needed for designated initializers
 # TODO(apriakhin): to be removed
 target_compile_features(realm_c_unit_tests PUBLIC cxx_std_20)
-target_link_libraries(realm_c_unit_tests PRIVATE realm_obj GTest::gmock_main ${REALM_LIBRARIES} ${REALM_EXTRA_OBJS})
+target_link_libraries(
+  realm_c_unit_tests PRIVATE realm_obj GTest::gmock_main ${REALM_LIBRARIES} ${REALM_EXTRA_OBJS}
+)
 
 include(GoogleTest)
-if((NOT REALM_SANITIZER OR REALM_SANITIZER STREQUAL "NONE") AND NOT WIN32)
+if((NOT REALM_SANITIZER OR REALM_SANITIZER STREQUAL "NONE") AND NOT WIN32 AND NOT CMAKE_CROSSCOMPILING)
   gtest_discover_tests(realm_unit_tests NO_PRETTY_TYPES NO_PRETTY_VALUES PROPERTIES LABELS "unit")
   gtest_discover_tests(realm_c_unit_tests NO_PRETTY_TYPES NO_PRETTY_VALUES PROPERTIES LABELS "unit")
 else()
   add_test(NAME realm_unit_tests COMMAND $<TARGET_FILE:realm_unit_tests>)
   add_test(NAME realm_c_unit_tests COMMAND $<TARGET_FILE:realm_c_unit_tests>)
+  set_tests_properties(realm_unit_tests realm_c_unit_tests PROPERTIES LABELS "unit")
 endif()
 
 if(REALM_SANITIZER STREQUAL "ASAN")
@@ -220,7 +229,7 @@ set(_integ_list)
 # TODO(cperry): make a cmake script that will allow to override test arguments at runtime
 macro(add_integration_test target)
   add_executable(${target} ${ARGN})
-  if (REALM_USE_HIP)
+  if(REALM_USE_HIP)
     set(SRC_LIST ${ARGN})
     list(FILTER SRC_LIST INCLUDE REGEX "\.cu")
     list(TRANSFORM SRC_LIST REPLACE ".*:(.*\.cu)>" "\\1")
@@ -419,7 +428,9 @@ add_integration_test(c_processor_query "${REALM_TEST_DIR}/c/test_processor_query
 add_integration_test(c_memory_query "${REALM_TEST_DIR}/c/test_memory_query.cc")
 add_integration_test(c_event "${REALM_TEST_DIR}/c/test_event.cc")
 add_integration_test(c_inst "${REALM_TEST_DIR}/c/test_c_inst.cc")
+target_compile_features(c_inst PUBLIC cxx_std_20)
 add_integration_test(c_external_inst "${REALM_TEST_DIR}/c/test_c_external_inst.cc")
+add_integration_test(c_event_poisoned "${REALM_TEST_DIR}/c/test_event_poisoned.cc")
 target_link_libraries(c_external_inst ${TEST_GPU_LIBS})
 
 target_link_libraries(

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,24 +34,20 @@ namespace Realm {
     // starts a static loop, blocking if the previous loop in the
     //  work item has any stragglers - returns true if there's work
     //  to do, false if not
-    bool start_static(int64_t start, int64_t end,
-		      int64_t incr, int64_t chunk,
-		      int thread_id,
-		      int64_t& span_start, int64_t& span_end);
+    bool start_static(int64_t start, int64_t end, int64_t incr, int64_t chunk,
+                      int thread_id, int64_t &span_start, int64_t &span_end);
 
     // continues a static loop - span_{start,end} must contain what
     //  they were given from the previous call to start/next_static
-    bool next_static(int64_t& span_start, int64_t& span_end);
+    bool next_static(int64_t &span_start, int64_t &span_end);
 
     // starts a dynamic loop, blocking if the previous loop in the
     //  work item has any stragglers - does not actually request any
     //  work - use next_dynamic for that
-    void start_dynamic(int64_t start, int64_t end,
-		       int64_t incr, int64_t chunk);
+    void start_dynamic(int64_t start, int64_t end, int64_t incr, int64_t chunk);
 
     // continues a dynamic loop
-    bool next_dynamic(int64_t& span_start, int64_t& span_end,
-		      int64_t& stride);
+    bool next_dynamic(int64_t &span_start, int64_t &span_end, int64_t &stride);
 
     // indicates this thread is done with the current loop - blocks
     //  if other threads haven't even entered the loop yet
@@ -67,11 +65,8 @@ namespace Realm {
 
   class ThreadPool {
   public:
-    ThreadPool(Processor _proc,
-               int _num_workers,
-	       const std::string& _name_prefix,
-	       int _numa_node, size_t _stack_size,
-	       CoreReservationSet& crs);
+    ThreadPool(Processor _proc, int _num_workers, const std::string &_name_prefix,
+               int _numa_node, size_t _stack_size, CoreReservationSet &crs);
     ~ThreadPool(void);
 
     // associates the calling thread as the master of the threadpool
@@ -90,27 +85,28 @@ namespace Realm {
       int prev_num_threads;
       WorkItem *parent_work_item;
       atomic<int> remaining_workers;
-      atomic<int> single_winner;  // worker currently assigned as the "single" one
+      atomic<int> single_winner; // worker currently assigned as the "single" one
       atomic<int> barrier_count;
       atomic<uint64_t> critical_flags;
       LoopSchedule schedule;
     };
 
     struct WorkerInfo {
-      enum Status {
-	WORKER_MASTER,
-	WORKER_NOT_RUNNING,
-	WORKER_STARTING,
-	WORKER_IDLE,
-	WORKER_CLAIMED,
-	WORKER_ACTIVE,
-	WORKER_SHUTDOWN,
+      enum Status
+      {
+        WORKER_MASTER,
+        WORKER_NOT_RUNNING,
+        WORKER_STARTING,
+        WORKER_IDLE,
+        WORKER_CLAIMED,
+        WORKER_ACTIVE,
+        WORKER_SHUTDOWN,
       };
       atomic<int> /*Status*/ status; // int allows CAS primitives
       ThreadPool *pool;
-      int thread_id;  // in current team
-      int num_threads; // in current team
-      int app_num_threads;  // num threads requested by app
+      int thread_id;       // in current team
+      int num_threads;     // in current team
+      int app_num_threads; // num threads requested by app
       void (*fnptr)(void *data);
       void *data;
       WorkItem *work_item;
@@ -118,7 +114,7 @@ namespace Realm {
       void push_work_item(WorkItem *new_work);
       WorkItem *pop_work_item(void);
     };
-      
+
     // returns the WorkerInfo (if any) associated with the caller (which
     //  can be master or worker) - optionally warns if this thread is not
     //  associated with a threadpool
@@ -130,12 +126,10 @@ namespace Realm {
     // asks worker threads to shut down and waits for them to complete
     void stop_worker_threads(void);
 
-    void claim_workers(int count, std::set<int>& worker_ids);
+    void claim_workers(int count, std::set<int> &worker_ids);
 
-    void start_worker(int worker_id,
-		      int thread_id, int num_threads,
-		      void (*fnptr)(void *data), void *data,
-		      WorkItem *work_item);
+    void start_worker(int worker_id, int thread_id, int num_threads,
+                      void (*fnptr)(void *data), void *data, WorkItem *work_item);
 
     int get_num_workers() const { return num_workers; }
 

@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef LOWLEVEL_CHANNEL_DISK
 #define LOWLEVEL_CHANNEL_DISK
 
@@ -20,114 +22,99 @@
 
 namespace Realm {
 
-    class FileRequest : public Request {
-    public:
-      int fd;
-      void *mem_base; // could be source or dest
-      off_t file_off;
-    };
-    class DiskRequest : public Request {
-    public:
-      int fd;
-      void *mem_base; // could be source or dest
-      off_t disk_off;
-    };
+  class FileRequest : public Request {
+  public:
+    int fd;
+    void *mem_base; // could be source or dest
+    off_t file_off;
+  };
+  class DiskRequest : public Request {
+  public:
+    int fd;
+    void *mem_base; // could be source or dest
+    off_t disk_off;
+  };
 
-    class FileChannel;
+  class FileChannel;
 
-    class FileXferDes : public XferDes {
-    public:
-      FileXferDes(uintptr_t _dma_op, Channel *_channel,
-		  NodeID _launch_node, XferDesID _guid,
-		  const std::vector<XferDesPortInfo>& inputs_info,
-		  const std::vector<XferDesPortInfo>& outputs_info,
-		  int _priority);
+  class FileXferDes : public XferDes {
+  public:
+    FileXferDes(uintptr_t _dma_op, Channel *_channel, NodeID _launch_node,
+                XferDesID _guid, const std::vector<XferDesPortInfo> &inputs_info,
+                const std::vector<XferDesPortInfo> &outputs_info, int _priority);
 
-      ~FileXferDes()
-      {
-        free(file_reqs);
-      }
+    ~FileXferDes() { free(file_reqs); }
 
-      long get_requests(Request** requests, long nr);
-      void notify_request_read_done(Request* req);
-      void notify_request_write_done(Request* req);
-      void flush();
+    long get_requests(Request **requests, long nr);
+    void notify_request_read_done(Request *req);
+    void notify_request_write_done(Request *req);
+    void flush();
 
-      bool progress_xd(FileChannel *channel, TimeLimit work_until);
+    bool progress_xd(FileChannel *channel, TimeLimit work_until);
 
-    private:
-      FileRequest* file_reqs;
-      FileMemory::OpenFileInfo *file_info;
-    };
+  private:
+    FileRequest *file_reqs;
+    FileMemory::OpenFileInfo *file_info;
+  };
 
-    class DiskChannel;
+  class DiskChannel;
 
-    class DiskXferDes : public XferDes {
-    public:
-      DiskXferDes(uintptr_t _dma_op, Channel *_channel,
-		  NodeID _launch_node, XferDesID _guid,
-		  const std::vector<XferDesPortInfo>& inputs_info,
-		  const std::vector<XferDesPortInfo>& outputs_info,
-		  int _priority);
+  class DiskXferDes : public XferDes {
+  public:
+    DiskXferDes(uintptr_t _dma_op, Channel *_channel, NodeID _launch_node,
+                XferDesID _guid, const std::vector<XferDesPortInfo> &inputs_info,
+                const std::vector<XferDesPortInfo> &outputs_info, int _priority);
 
-      ~DiskXferDes() {
-        free(disk_reqs);
-      }
+    ~DiskXferDes() { free(disk_reqs); }
 
-      long get_requests(Request** requests, long nr);
-      void notify_request_read_done(Request* req);
-      void notify_request_write_done(Request* req);
-      void flush();
+    long get_requests(Request **requests, long nr);
+    void notify_request_read_done(Request *req);
+    void notify_request_write_done(Request *req);
+    void flush();
 
-      bool progress_xd(DiskChannel *channel, TimeLimit work_until);
+    bool progress_xd(DiskChannel *channel, TimeLimit work_until);
 
-    private:
-      int fd;
-      DiskRequest* disk_reqs;
-      //const char *buf_base;
-    };
+  private:
+    int fd;
+    DiskRequest *disk_reqs;
+    // const char *buf_base;
+  };
 
-    class FileChannel : public SingleXDQChannel<FileChannel, FileXferDes> {
-    public:
-      FileChannel(BackgroundWorkManager *bgwork);
-      ~FileChannel();
+  class FileChannel : public SingleXDQChannel<FileChannel, FileXferDes> {
+  public:
+    FileChannel(BackgroundWorkManager *bgwork);
+    ~FileChannel();
 
-      // TODO: farm I/O work off to dedicated threads if needed
-      static const bool is_ordered = true;
+    // TODO: farm I/O work off to dedicated threads if needed
+    static const bool is_ordered = true;
 
-      virtual XferDes *create_xfer_des(uintptr_t dma_op,
-				       NodeID launch_node,
-				       XferDesID guid,
-				       const std::vector<XferDesPortInfo>& inputs_info,
-				       const std::vector<XferDesPortInfo>& outputs_info,
-				       int priority,
-				       XferDesRedopInfo redop_info,
-				       const void *fill_data, size_t fill_size,
-                                       size_t fill_total);
+    virtual XferDes *create_xfer_des(uintptr_t dma_op, NodeID launch_node, XferDesID guid,
+                                     const std::vector<XferDesPortInfo> &inputs_info,
+                                     const std::vector<XferDesPortInfo> &outputs_info,
+                                     int priority, XferDesRedopInfo redop_info,
+                                     const void *fill_data, size_t fill_size,
+                                     size_t fill_total);
 
-      long submit(Request** requests, long nr);
-    };
+    long submit(Request **requests, long nr);
+  };
 
-    class DiskChannel : public SingleXDQChannel<DiskChannel, DiskXferDes> {
-    public:
-      DiskChannel(BackgroundWorkManager *bgwork);
-      ~DiskChannel();
+  class DiskChannel : public SingleXDQChannel<DiskChannel, DiskXferDes> {
+  public:
+    DiskChannel(BackgroundWorkManager *bgwork);
+    ~DiskChannel();
 
-      // TODO: farm I/O work off to dedicated threads if needed
-      static const bool is_ordered = true;
+    // TODO: farm I/O work off to dedicated threads if needed
+    static const bool is_ordered = true;
 
-      virtual XferDes *create_xfer_des(uintptr_t dma_op,
-				       NodeID launch_node,
-				       XferDesID guid,
-				       const std::vector<XferDesPortInfo>& inputs_info,
-				       const std::vector<XferDesPortInfo>& outputs_info,
-				       int priority,
-				       XferDesRedopInfo redop_info,
-				       const void *fill_data, size_t fill_size,
-                                       size_t fill_total);
+    virtual XferDes *create_xfer_des(uintptr_t dma_op, NodeID launch_node, XferDesID guid,
+                                     const std::vector<XferDesPortInfo> &inputs_info,
+                                     const std::vector<XferDesPortInfo> &outputs_info,
+                                     int priority, XferDesRedopInfo redop_info,
+                                     const void *fill_data, size_t fill_size,
+                                     size_t fill_total);
 
-      long submit(Request** requests, long nr);
-    };
+    long submit(Request **requests, long nr);
+  };
 
 }; // namespace Realm
 

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,19 +32,20 @@ namespace Realm {
   {
     // default constructors on fields do all the work
   }
-  
-  inline ThreadLaunchParameters& ThreadLaunchParameters::set_stack_size(ptrdiff_t new_stack_size)
+
+  inline ThreadLaunchParameters &
+  ThreadLaunchParameters::set_stack_size(ptrdiff_t new_stack_size)
   {
     this->stack_size = new_stack_size;
     return *this;
   }
 
-  inline ThreadLaunchParameters& ThreadLaunchParameters::set_heap_size(ptrdiff_t new_heap_size)
+  inline ThreadLaunchParameters &
+  ThreadLaunchParameters::set_heap_size(ptrdiff_t new_heap_size)
   {
     this->heap_size = new_heap_size;
     return *this;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -54,17 +57,11 @@ namespace Realm {
     , current_op(0)
     , exception_handler_count(0)
     , signal_count(0)
-  {
-  }
+  {}
 
-  inline Thread::~Thread(void)
-  {
-  }    
+  inline Thread::~Thread(void) {}
 
-  inline Thread::State Thread::get_state(void)
-  {
-    return state.load();
-  }
+  inline Thread::State Thread::get_state(void) { return state.load(); }
 
   // atomically updates the thread's state, returning the old state
   inline Thread::State Thread::update_state(Thread::State new_state)
@@ -84,11 +81,8 @@ namespace Realm {
   namespace ThreadLocal {
     extern thread_local Thread *current_thread;
   };
-  
-  inline /*static*/ Thread *Thread::self(void)
-  {
-    return ThreadLocal::current_thread;
-  }
+
+  inline /*static*/ Thread *Thread::self(void) { return ThreadLocal::current_thread; }
 
   template <typename T, void (T::*START_MTHD)(void)>
   /*static*/ void Thread::thread_entry_wrapper(void *obj)
@@ -96,37 +90,35 @@ namespace Realm {
     // just calls the actual method on the passed-in object
     (((T *)obj)->*START_MTHD)();
   }
-    
+
   // for kernel threads, the scheduler is optional - the default is one that lets
   //  the OS manage all runnable threads however it wants
   template <typename T, void (T::*START_MTHD)(void)>
-  /*static*/ Thread *Thread::create_kernel_thread(T *target,
-						  const ThreadLaunchParameters& params,
-						  CoreReservation& rsrv,
-						  ThreadScheduler *_scheduler /*= 0*/)
+  /*static*/ Thread *
+  Thread::create_kernel_thread(T *target, const ThreadLaunchParameters &params,
+                               CoreReservation &rsrv, ThreadScheduler *_scheduler /*= 0*/)
   {
     return create_kernel_thread_untyped(target, thread_entry_wrapper<T, START_MTHD>,
-					params, rsrv, _scheduler);
+                                        params, rsrv, _scheduler);
   }
 
 #ifdef REALM_USE_USER_THREADS
   // user threads must specify a scheduler - the whole point is that the OS isn't
   //  controlling them...
   template <typename T, void (T::*START_MTHD)(void)>
-  /*static*/ Thread *Thread::create_user_thread(T *target,
-						const ThreadLaunchParameters& params,
-						const CoreReservation *rsrv,
-						ThreadScheduler *_scheduler)
+  /*static*/ Thread *
+  Thread::create_user_thread(T *target, const ThreadLaunchParameters &params,
+                             const CoreReservation *rsrv, ThreadScheduler *_scheduler)
   {
-    return create_user_thread_untyped(target, thread_entry_wrapper<T, START_MTHD>,
-				      params, rsrv, _scheduler);
+    return create_user_thread_untyped(target, thread_entry_wrapper<T, START_MTHD>, params,
+                                      rsrv, _scheduler);
   }
 #endif
 
   template <typename CONDTYPE>
   class ThreadWaker : public CONDTYPE::Callback {
   public:
-    ThreadWaker(const CONDTYPE& cond, Thread *_thread);
+    ThreadWaker(const CONDTYPE &cond, Thread *_thread);
     ~ThreadWaker();
     void operator()(bool _poisoned);
 
@@ -135,8 +127,10 @@ namespace Realm {
   };
 
   template <typename CONDTYPE>
-  ThreadWaker<CONDTYPE>::ThreadWaker(const CONDTYPE& cond, Thread *_thread)
-    : CONDTYPE::Callback(cond), thread(_thread), called(false)
+  ThreadWaker<CONDTYPE>::ThreadWaker(const CONDTYPE &cond, Thread *_thread)
+    : CONDTYPE::Callback(cond)
+    , thread(_thread)
+    , called(false)
   {
     cond.add_callback(*this);
   }
@@ -158,46 +152,48 @@ namespace Realm {
     poisoned = _poisoned;
     called = true;
 
-    // mark the thread as ready and notify the thread's scheduler if it has already gone to sleep
+    // mark the thread as ready and notify the thread's scheduler if it has already gone
+    // to sleep
     Thread::State old_state = thread->update_state(Thread::STATE_READY);
     switch(old_state) {
     case Thread::STATE_BLOCKING:
-      {
-	// we caught it before it went to sleep, so nothing to do
-	break;
-      }
+    {
+      // we caught it before it went to sleep, so nothing to do
+      break;
+    }
 
     case Thread::STATE_ALERTED:
-      {
-	// it was asleep, but it's being awakened due to an alert, and will 
-	// notice that we've set the state to READY
-	break;
-      }
+    {
+      // it was asleep, but it's being awakened due to an alert, and will
+      // notice that we've set the state to READY
+      break;
+    }
 
     case Thread::STATE_BLOCKED:
-      {
-	// it's asleep - tell the scheduler to wake it upt
-	assert(thread->scheduler);
-	thread->scheduler->thread_ready(thread);
-	break;
-      }
+    {
+      // it's asleep - tell the scheduler to wake it upt
+      assert(thread->scheduler);
+      thread->scheduler->thread_ready(thread);
+      break;
+    }
 
     default:
-      {
-	// all other cases are illegal
-	assert(0);
-      };
+    {
+      // all other cases are illegal
+      assert(0);
+    };
     }
   }
 
   template <typename CONDTYPE>
-  /*static*/ void Thread::wait_for_condition(const CONDTYPE& cond, bool& poisoned)
+  /*static*/ void Thread::wait_for_condition(const CONDTYPE &cond, bool &poisoned)
   {
     Thread *thread = self();
 
     // suspend any performance counters before we do internal stuff
 #ifdef REALM_USE_PAPI
-    if(thread->papi_counters) thread->papi_counters->suspend();
+    if(thread->papi_counters)
+      thread->papi_counters->suspend();
 #endif
 
     // we're interacting with the scheduler, so check for signals first
@@ -227,9 +223,10 @@ namespace Realm {
     if(thread->signal_count.load() > 0)
       thread->process_signals();
 
-    // finally, resume any performance counters
+      // finally, resume any performance counters
 #ifdef REALM_USE_PAPI
-    if(thread->papi_counters) thread->papi_counters->resume();
+    if(thread->papi_counters)
+      thread->papi_counters->resume();
 #endif
   }
 
@@ -250,12 +247,9 @@ namespace Realm {
     current_op = 0;
   }
 
-  inline Operation *Thread::get_operation(void) const
-  {
-    return current_op;
-  }
+  inline Operation *Thread::get_operation(void) const { return current_op; }
 
-  inline void Thread::setup_perf_counters(const ProfilingMeasurementCollection& pmc)
+  inline void Thread::setup_perf_counters(const ProfilingMeasurementCollection &pmc)
   {
 #ifdef REALM_USE_PAPI
     papi_counters = PAPICounters::setup_counters(pmc);
@@ -265,18 +259,20 @@ namespace Realm {
   inline void Thread::start_perf_counters(void)
   {
 #ifdef REALM_USE_PAPI
-    if(papi_counters) papi_counters->start();
+    if(papi_counters)
+      papi_counters->start();
 #endif
   }
 
   inline void Thread::stop_perf_counters(void)
   {
 #ifdef REALM_USE_PAPI
-    if(papi_counters) papi_counters->stop();
+    if(papi_counters)
+      papi_counters->stop();
 #endif
   }
 
-  inline void Thread::record_perf_counters(ProfilingMeasurementCollection& pmc)
+  inline void Thread::record_perf_counters(ProfilingMeasurementCollection &pmc)
   {
 #ifdef REALM_USE_PAPI
     if(papi_counters) {
@@ -286,7 +282,6 @@ namespace Realm {
     }
 #endif
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -304,28 +299,24 @@ namespace Realm {
     Thread::self()->exception_handler_count--;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class ThreadScheduler
 
-  inline ThreadScheduler::~ThreadScheduler(void)
-  {
-  }
+  inline ThreadScheduler::~ThreadScheduler(void) {}
 
-  inline Thread::State ThreadScheduler::update_thread_state(Thread *thread, 
-							    Thread::State new_state)
+  inline Thread::State ThreadScheduler::update_thread_state(Thread *thread,
+                                                            Thread::State new_state)
   {
     return thread->update_state(new_state);
   }
 
   inline bool ThreadScheduler::try_update_thread_state(Thread *thread,
-						       Thread::State old_state,
-						       Thread::State new_state)
+                                                       Thread::State old_state,
+                                                       Thread::State new_state)
   {
     return thread->try_update_state(old_state, new_state);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -335,49 +326,54 @@ namespace Realm {
   {
     // default constructors on fields do all the work
   }
-  
-  inline CoreReservationParameters& CoreReservationParameters::set_num_cores(int new_num_cores)
+
+  inline CoreReservationParameters &
+  CoreReservationParameters::set_num_cores(int new_num_cores)
   {
     this->num_cores = new_num_cores;
     return *this;
   }
 
-  inline CoreReservationParameters& CoreReservationParameters::set_numa_domain(int new_numa_domain)
+  inline CoreReservationParameters &
+  CoreReservationParameters::set_numa_domain(int new_numa_domain)
   {
     this->numa_domain = new_numa_domain;
     return *this;
   }
 
-  inline CoreReservationParameters& CoreReservationParameters::set_alu_usage(CoreUsage new_alu_usage)
+  inline CoreReservationParameters &
+  CoreReservationParameters::set_alu_usage(CoreUsage new_alu_usage)
   {
     this->alu_usage = new_alu_usage;
     return *this;
   }
 
-  inline CoreReservationParameters& CoreReservationParameters::set_fpu_usage(CoreUsage new_fpu_usage)
+  inline CoreReservationParameters &
+  CoreReservationParameters::set_fpu_usage(CoreUsage new_fpu_usage)
   {
     this->fpu_usage = new_fpu_usage;
     return *this;
   }
 
-  inline CoreReservationParameters& CoreReservationParameters::set_ldst_usage(CoreUsage new_ldst_usage)
+  inline CoreReservationParameters &
+  CoreReservationParameters::set_ldst_usage(CoreUsage new_ldst_usage)
   {
     this->ldst_usage = new_ldst_usage;
     return *this;
   }
 
-  inline CoreReservationParameters& CoreReservationParameters::set_max_stack_size(ptrdiff_t new_max_stack_size)
+  inline CoreReservationParameters &
+  CoreReservationParameters::set_max_stack_size(ptrdiff_t new_max_stack_size)
   {
     this->max_stack_size = new_max_stack_size;
     return *this;
   }
 
-  inline CoreReservationParameters& CoreReservationParameters::set_max_heap_size(ptrdiff_t new_max_heap_size)
+  inline CoreReservationParameters &
+  CoreReservationParameters::set_max_heap_size(ptrdiff_t new_max_heap_size)
   {
     this->max_heap_size = new_max_heap_size;
     return *this;
   }
 
-
-};
-
+}; // namespace Realm

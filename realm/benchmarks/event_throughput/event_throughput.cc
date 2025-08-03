@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,16 +26,17 @@
 
 using namespace Realm;
 
-#define DEFAULT_LEVELS 32 
-#define DEFAULT_TRACKS 32 
-#define DEFAULT_FANOUT 16 
+#define DEFAULT_LEVELS 32
+#define DEFAULT_TRACKS 32
+#define DEFAULT_FANOUT 16
 
 // TASK IDs
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0, 
-  LEVEL_BUILDER  = Processor::TASK_ID_FIRST_AVAILABLE+1,
-  SET_REMOTE_EVENT = Processor::TASK_ID_FIRST_AVAILABLE+2,
-  DUMMY_TASK = Processor::TASK_ID_FIRST_AVAILABLE+3,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
+  LEVEL_BUILDER = Processor::TASK_ID_FIRST_AVAILABLE + 1,
+  SET_REMOTE_EVENT = Processor::TASK_ID_FIRST_AVAILABLE + 2,
+  DUMMY_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 3,
 };
 
 struct InputArgs {
@@ -42,7 +44,7 @@ struct InputArgs {
   char **argv;
 };
 
-InputArgs& get_input_args(void)
+InputArgs &get_input_args(void)
 {
   static InputArgs args;
   return args;
@@ -50,7 +52,7 @@ InputArgs& get_input_args(void)
 
 typedef std::set<Event> EventSet;
 
-EventSet& get_event_set(void)
+EventSet &get_event_set(void)
 {
   static EventSet event_set;
   return event_set;
@@ -94,58 +96,61 @@ void send_level_commands(size_t fanout, Processor local, const EventSet &send_ev
   assert(get_event_set().size() == fanout);
 }
 
-void construct_track(int levels, int fanout, Processor local, Event precondition, EventSet &wait_for, const std::set<Processor> &all_procs)
+void construct_track(int levels, int fanout, Processor local, Event precondition,
+                     EventSet &wait_for, const std::set<Processor> &all_procs)
 {
-  EventSet send_events;   
+  EventSet send_events;
   EventSet &receive_events = get_event_set();
   receive_events.clear();
   // For the first level there is only one event that has to be sent
   send_events.insert(precondition);
 #ifdef DEBUG_PRINT
-  fprintf(stdout,"Building first level\n");
+  fprintf(stdout, "Building first level\n");
   fflush(stdout);
 #endif
-  send_level_commands(fanout, local, send_events, all_procs, true/*first*/);
-  for (int i = 1; i < levels; i++)
-  {
+  send_level_commands(fanout, local, send_events, all_procs, true /*first*/);
+  for(int i = 1; i < levels; i++) {
 #ifdef DEBUG_PRINT
     usleep(1000);
-    fprintf(stdout,"Building level %d\n",i);
+    fprintf(stdout, "Building level %d\n", i);
     fflush(stdout);
 #endif
     // Copy the send events from the receive events
     send_events = receive_events;
     receive_events.clear();
-    send_level_commands(fanout, local, send_events, all_procs, false/*first*/);
+    send_level_commands(fanout, local, send_events, all_procs, false /*first*/);
   }
   // Put all the receive events from the last level into the wait for set
-  wait_for.insert(receive_events.begin(),receive_events.end());
+  wait_for.insert(receive_events.begin(), receive_events.end());
   receive_events.clear();
 }
 
-void top_level_task(const void *args, size_t arglen, 
-                    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   int levels = DEFAULT_LEVELS;
   int tracks = DEFAULT_TRACKS;
   int fanout = DEFAULT_FANOUT;
   // Parse the input arguments
-#define INT_ARG(argname, varname) do { \
-        if(!strcmp((argv)[i], argname)) {		\
-          varname = atoi((argv)[++i]);		\
-          continue;					\
-        } } while(0)
+#define INT_ARG(argname, varname)                                                        \
+  do {                                                                                   \
+    if(!strcmp((argv)[i], argname)) {                                                    \
+      varname = atoi((argv)[++i]);                                                       \
+      continue;                                                                          \
+    }                                                                                    \
+  } while(0)
 
-#define BOOL_ARG(argname, varname) do { \
-        if(!strcmp((argv)[i], argname)) {		\
-          varname = true;				\
-          continue;					\
-        } } while(0)
+#define BOOL_ARG(argname, varname)                                                       \
+  do {                                                                                   \
+    if(!strcmp((argv)[i], argname)) {                                                    \
+      varname = true;                                                                    \
+      continue;                                                                          \
+    }                                                                                    \
+  } while(0)
   {
     InputArgs &inputs = get_input_args();
     char **argv = inputs.argv;
-    for (int i = 1; i < inputs.argc; i++)
-    {
+    for(int i = 1; i < inputs.argc; i++) {
       INT_ARG("-l", levels);
       INT_ARG("-t", tracks);
       INT_ARG("-f", fanout);
@@ -156,45 +161,48 @@ void top_level_task(const void *args, size_t arglen,
   }
 #undef INT_ARG
 #undef BOOL_ARG
-  
+
   // Make a user event that will be the trigger
   UserEvent start_event = UserEvent::create_user_event();
   std::set<Event> wait_for_finish;
- 
+
   long total_events;
   long total_triggers;
-  // Initialize a bunch of experiments, each track does an all-to-all event communication for each level
-  fprintf(stdout,"Initializing event throughput experiment with %d tracks and %d levels per track with fanout %d...\n",tracks,levels,fanout);
+  // Initialize a bunch of experiments, each track does an all-to-all event communication
+  // for each level
+  fprintf(stdout,
+          "Initializing event throughput experiment with %d tracks and %d levels per "
+          "track with fanout %d...\n",
+          tracks, levels, fanout);
   fflush(stdout);
   {
     Realm::Machine machine = Realm::Machine::get_machine();
     std::set<Processor> all_procs;
     machine.get_all_processors(all_procs);
-    for (int t = 0; t < tracks; t++)
-    {
+    for(int t = 0; t < tracks; t++) {
       construct_track(levels, fanout, p, start_event, wait_for_finish, all_procs);
     }
     assert(int(wait_for_finish.size()) == (fanout * tracks));
     // Compute the total number of events to be triggered
     total_events = fanout * levels * tracks;
-    total_triggers = total_events * fanout; // each event sends a trigger to every processor
+    total_triggers =
+        total_events * fanout; // each event sends a trigger to every processor
   }
   // Merge all the finish events together into one finish event
 #ifdef DEBUG_PRINT
-  fprintf(stdout,"Merging finish events: ");
-  for (std::set<Event>::const_iterator it = wait_for_finish.begin();
-        it != wait_for_finish.end(); it++)
-  {
-    fprintf(stdout,"%x ",(*it).id);
+  fprintf(stdout, "Merging finish events: ");
+  for(std::set<Event>::const_iterator it = wait_for_finish.begin();
+      it != wait_for_finish.end(); it++) {
+    fprintf(stdout, "%x ", (*it).id);
   }
-  fprintf(stdout,"\n");
+  fprintf(stdout, "\n");
 #endif
   Event finish_event = Event::merge_events(wait_for_finish);
 
   // Now we're ready to start our simulation
-  fprintf(stdout,"Running experiment...\n");
+  fprintf(stdout, "Running experiment...\n");
   {
-    double start, stop; 
+    double start, stop;
     start = Realm::Clock::current_time_in_microseconds();
     // Trigger the start event
     start_event.trigger();
@@ -203,18 +211,20 @@ void top_level_task(const void *args, size_t arglen,
     stop = Realm::Clock::current_time_in_microseconds();
 
     double latency = (stop - start) * 0.001;
-    fprintf(stdout,"Total time: %7.3f ms\n", latency);
-    fprintf(stdout,"Events triggered: %ld\n", total_events);
-    fprintf(stdout,"Events throughput: %7.3f Thousands/s\n",(double(total_events)/latency));
-    fprintf(stdout,"Triggers performed: %ld\n", total_triggers);
-    fprintf(stdout,"Triggers throughput: %7.3f Thousands/s\n",(double(total_triggers)/latency));
+    fprintf(stdout, "Total time: %7.3f ms\n", latency);
+    fprintf(stdout, "Events triggered: %ld\n", total_events);
+    fprintf(stdout, "Events throughput: %7.3f Thousands/s\n",
+            (double(total_events) / latency));
+    fprintf(stdout, "Triggers performed: %ld\n", total_triggers);
+    fprintf(stdout, "Triggers throughput: %7.3f Thousands/s\n",
+            (double(total_triggers) / latency));
   }
 
-  fprintf(stdout,"Cleaning up...\n");
+  fprintf(stdout, "Cleaning up...\n");
 }
 
-void level_builder(const void *args, size_t arglen, 
-                   const void *userdata, size_t userlen, Processor p)
+void level_builder(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                   Processor p)
 {
   // Unpack everything
   const LevelCommand *cmd = reinterpret_cast<const LevelCommand *>(args);
@@ -224,35 +234,32 @@ void level_builder(const void *args, size_t arglen,
   bool first = cmd->first;
   size_t total_events = cmd->num_events;
 #ifdef DEBUG_PRINT
-  fprintf(stdout,"Merging events ");
+  fprintf(stdout, "Merging events ");
 #endif
   for(size_t i = 0; i < total_events; i++) {
     Event wait_event;
     wait_event.id = cmd->events[i];
     wait_for_events.insert(wait_event);
 #ifdef DEBUG_PRINT
-    fprintf(stdout,"%x ",wait_event.id);
+    fprintf(stdout, "%x ", wait_event.id);
 #endif
   }
 #ifdef DEBUG_PRINT
-  fprintf(stdout,"\n");
+  fprintf(stdout, "\n");
 #endif
   // Merge all the wait for events together
   Event finish_event = Event::NO_EVENT;
-  if (first)
-  {
+  if(first) {
     Event launch_event = Event::merge_events(wait_for_events);
     // Launch the task on this processor
-    finish_event = p.spawn(DUMMY_TASK,NULL,0,launch_event);
-  }
-  else
-  {
+    finish_event = p.spawn(DUMMY_TASK, NULL, 0, launch_event);
+  } else {
     finish_event = Event::merge_events(wait_for_events);
   }
   assert(finish_event.exists());
   // Send back the event for this processor
 #ifdef DEBUG_PRINT
-  fprintf(stdout,"Processor %x reporting event %x\n",p.id,finish_event.id);
+  fprintf(stdout, "Processor %x reporting event %x\n", p.id, finish_event.id);
   fflush(stdout);
 #endif
   {
@@ -263,8 +270,8 @@ void level_builder(const void *args, size_t arglen,
   }
 }
 
-void set_remote_event(const void *args, size_t arglen, 
-                      const void *userdata, size_t userlen, Processor p)
+void set_remote_event(const void *args, size_t arglen, const void *userdata,
+                      size_t userlen, Processor p)
 {
   assert(arglen == (sizeof(Event)));
   Event result;
@@ -273,12 +280,11 @@ void set_remote_event(const void *args, size_t arglen,
   event_set.insert(result);
 }
 
-void dummy_task(const void *args, size_t arglen, 
-                const void *userdata, size_t userlen, Processor p)
+void dummy_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                Processor p)
 {
   // Do nothing
 }
-
 
 int main(int argc, char **argv)
 {
@@ -301,12 +307,11 @@ int main(int argc, char **argv)
   {
     std::set<Processor> all_procs;
     Machine::get_machine().get_all_processors(all_procs);
-    for(std::set<Processor>::const_iterator it = all_procs.begin();
-	it != all_procs.end();
-	it++)
+    for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+        it++)
       if(it->kind() == Processor::LOC_PROC) {
-	p = *it;
-	break;
+        p = *it;
+        break;
       }
   }
   assert(p.exists());
@@ -319,6 +324,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   r.wait_for_shutdown();
-  
+
   return 0;
 }

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +24,14 @@ namespace Realm {
   //
   // class Machine::ProcessorQuery
 
-  inline bool Machine::ProcessorQuery::operator==(const Machine::ProcessorQuery& compare_to) const
+  inline bool
+  Machine::ProcessorQuery::operator==(const Machine::ProcessorQuery &compare_to) const
   {
     return (impl == compare_to.impl);
   }
 
-  inline bool Machine::ProcessorQuery::operator!=(const Machine::ProcessorQuery& compare_to) const
+  inline bool
+  Machine::ProcessorQuery::operator!=(const Machine::ProcessorQuery &compare_to) const
   {
     return (impl != compare_to.impl);
   }
@@ -42,17 +46,18 @@ namespace Realm {
     return iterator(*this, Processor::NO_PROC);
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class Machine::MemoryQuery
 
-  inline bool Machine::MemoryQuery::operator==(const Machine::MemoryQuery& compare_to) const
+  inline bool
+  Machine::MemoryQuery::operator==(const Machine::MemoryQuery &compare_to) const
   {
     return (impl == compare_to.impl);
   }
 
-  inline bool Machine::MemoryQuery::operator!=(const Machine::MemoryQuery& compare_to) const
+  inline bool
+  Machine::MemoryQuery::operator!=(const Machine::MemoryQuery &compare_to) const
   {
     return (impl != compare_to.impl);
   }
@@ -67,78 +72,83 @@ namespace Realm {
     return iterator(*this, Memory::NO_MEMORY);
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class MachineQueryIterator<QT,RT>
 
   template <typename QT, typename RT>
-  inline MachineQueryIterator<QT,RT>::MachineQueryIterator(const QT& _query, RT _result)
-    : query(_query), result(_result)
+  inline MachineQueryIterator<QT, RT>::MachineQueryIterator(const QT &_query, RT _result)
+    : query(_query)
+    , result(_result)
   {}
 
   template <typename QT, typename RT>
-  inline MachineQueryIterator<QT,RT>::MachineQueryIterator(const MachineQueryIterator<QT,RT>& copy_from)
-    : query(copy_from.query), result(copy_from.result)
+  inline MachineQueryIterator<QT, RT>::MachineQueryIterator(
+      const MachineQueryIterator<QT, RT> &copy_from)
+    : query(copy_from.query)
+    , result(copy_from.result)
   {}
 
   template <typename QT, typename RT>
-  inline MachineQueryIterator<QT,RT>::~MachineQueryIterator(void)
+  inline MachineQueryIterator<QT, RT>::~MachineQueryIterator(void)
   {}
-	
+
   template <typename QT, typename RT>
-  inline MachineQueryIterator<QT,RT>& MachineQueryIterator<QT,RT>::operator=(const MachineQueryIterator<QT,RT>& copy_from)
+  inline MachineQueryIterator<QT, RT> &
+  MachineQueryIterator<QT, RT>::operator=(const MachineQueryIterator<QT, RT> &copy_from)
   {
     query = copy_from.query;
     result = copy_from.result;
     return *this;
   }
-	
+
   template <typename QT, typename RT>
-  inline bool MachineQueryIterator<QT,RT>::operator==(const MachineQueryIterator<QT,RT>& compare_to) const
+  inline bool MachineQueryIterator<QT, RT>::operator==(
+      const MachineQueryIterator<QT, RT> &compare_to) const
   {
     return (query == compare_to.query) && (result == compare_to.result);
   }
 
   template <typename QT, typename RT>
-  inline bool MachineQueryIterator<QT,RT>::operator!=(const MachineQueryIterator<QT,RT>& compare_to) const
+  inline bool MachineQueryIterator<QT, RT>::operator!=(
+      const MachineQueryIterator<QT, RT> &compare_to) const
   {
     return (query != compare_to.query) || (result != compare_to.result);
   }
-	
+
   template <typename QT, typename RT>
-  inline RT MachineQueryIterator<QT,RT>::operator*(void)
+  inline RT MachineQueryIterator<QT, RT>::operator*(void)
   {
     return result;
   }
 
   template <typename QT, typename RT>
-  inline const RT *MachineQueryIterator<QT,RT>::operator->(void)
+  inline const RT *MachineQueryIterator<QT, RT>::operator->(void)
   {
     return &result;
   }
-	
+
   template <typename QT, typename RT>
-  inline MachineQueryIterator<QT,RT>& MachineQueryIterator<QT,RT>::operator++(/*prefix*/)
+  inline MachineQueryIterator<QT, RT> &
+      MachineQueryIterator<QT, RT>::operator++(/*prefix*/)
   {
     result = query.next(result);
     return *this;
   }
 
   template <typename QT, typename RT>
-  inline MachineQueryIterator<QT,RT> MachineQueryIterator<QT,RT>::operator++(int/*postfix*/)
+  inline MachineQueryIterator<QT, RT>
+  MachineQueryIterator<QT, RT>::operator++(int /*postfix*/)
   {
-    MachineQueryIterator<QT,RT> orig(*this);
+    MachineQueryIterator<QT, RT> orig(*this);
     result = query.next(result);
     return orig;
   }
 
   template <typename QT, typename RT>
-  inline MachineQueryIterator<QT,RT>::operator bool(void) const
+  inline MachineQueryIterator<QT, RT>::operator bool(void) const
   {
     return result.exists();
   }
 
-
 }; // namespace Realm
-

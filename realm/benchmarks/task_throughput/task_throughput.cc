@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,11 +36,12 @@ namespace TestConfig {
   bool use_posttriger_barrier = false;
   bool group_procs = false;
   bool run_immediately = false;
-};
+}; // namespace TestConfig
 
 // TASK IDs
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0, 
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   TASK_LAUNCHER,
   DUMMY_TASK,
   DUMMY_GPU_TASK,
@@ -48,8 +50,10 @@ enum {
 
 Logger log_app("app");
 
-// dummy tasks are marked as either "first", "middle", or "last", and prioritized the same way
-enum TaskOrder {
+// dummy tasks are marked as either "first", "middle", or "last", and prioritized the same
+// way
+enum TaskOrder
+{
   FIRST_TASK = 10,
   MIDDLE_TASK = 9,
   LAST_TASK = 8,
@@ -70,18 +74,20 @@ struct TestTaskData {
 };
 
 namespace FieldIDs {
-  enum {
+  enum
+  {
     TASKDATA,
   };
 };
 
-void dummy_task_body(const void *args, size_t arglen, 
-		     const void *userdata, size_t userlen, Processor p)
+void dummy_task_body(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p)
 {
-  const TestTaskArgs& ta = *(const TestTaskArgs *)args;
+  const TestTaskArgs &ta = *(const TestTaskArgs *)args;
   int task_type = ta.which_task;
   // quick out for most tasks
-  if(task_type == MIDDLE_TASK) return;
+  if(task_type == MIDDLE_TASK)
+    return;
 
   if(TestConfig::use_posttriger_barrier && (task_type == FIRST_TASK)) {
 #if 0
@@ -90,12 +96,13 @@ void dummy_task_body(const void *args, size_t arglen,
     ta.posttrigger_barrier.wait();
     Processor::disable_scheduler_lock();
 #else
-    while(!ta.posttrigger_barrier.has_triggered());
+    while(!ta.posttrigger_barrier.has_triggered())
+      ;
 #endif
   }
 
   AffineAccessor<TestTaskData, 1> ra(ta.instance, FieldIDs::TASKDATA);
-  TestTaskData& mydata = ra[0];
+  TestTaskData &mydata = ra[0];
 
   if(task_type == FIRST_TASK) {
     double t = Clock::current_time();
@@ -112,24 +119,22 @@ void dummy_task_body(const void *args, size_t arglen,
     mydata.last_count++;
     if(mydata.last_count == mydata.first_count) {
       double elapsed = t - mydata.start_time;
-      double per_task = elapsed / (mydata.last_count * 
-				   TestConfig::tasks_per_processor);
-      log_app.print() << "tasks complete on " << p << ": " 
-		      << (1e6 * per_task) << " us/task, "
-		      << (1.0 / per_task) << " tasks/s";
+      double per_task = elapsed / (mydata.last_count * TestConfig::tasks_per_processor);
+      log_app.print() << "tasks complete on " << p << ": " << (1e6 * per_task)
+                      << " us/task, " << (1.0 / per_task) << " tasks/s";
       ta.finish_barrier.arrive();
     }
   }
 }
 
-void dummy_cpu_task(const void *args, size_t arglen, 
-		    const void *userdata, size_t userlen, Processor p)
+void dummy_cpu_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   dummy_task_body(args, arglen, userdata, userlen, p);
 }
 
-void profiler_task(const void *args, size_t arglen, 
-		   const void *userdata, size_t userlen, Processor p)
+void profiler_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                   Processor p)
 {
   // do nothing with the data
 }
@@ -141,18 +146,15 @@ struct LauncherArgs {
   std::map<Processor, RegionInstance> instances;
 };
 
-template<typename S>
-bool serdez(S& s, const LauncherArgs& t)
+template <typename S>
+bool serdez(S &s, const LauncherArgs &t)
 {
-  return ((s & t.start_barrier) &&
-	  (s & t.posttrigger_barrier) &&
-	  (s & t.finish_barrier) &&
-	  (s & t.instances));
+  return ((s & t.start_barrier) && (s & t.posttrigger_barrier) &&
+          (s & t.finish_barrier) && (s & t.instances));
 }
 
-
-void task_launcher(const void *args, size_t arglen, 
-		   const void *userdata, size_t userlen, Processor p)
+void task_launcher(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                   Processor p)
 {
   Serialization::FixedBufferDeserializer fbd(args, arglen);
   LauncherArgs la;
@@ -204,27 +206,28 @@ void task_launcher(const void *args, size_t arglen,
   std::vector<Event> events;
 
   for(int i = 0; i < TestConfig::tasks_per_processor; i++) {
-    int which = ((i == 0) ? FIRST_TASK :
-		 (i == (TestConfig::tasks_per_processor - 1)) ? LAST_TASK :
-		 MIDDLE_TASK);
+    int which = ((i == 0)                                       ? FIRST_TASK
+                 : (i == (TestConfig::tasks_per_processor - 1)) ? LAST_TASK
+                                                                : MIDDLE_TASK);
     tta->which_task = which;
     tta->posttrigger_barrier = la.posttrigger_barrier;
     tta->finish_barrier = la.finish_barrier;
-    
-    for(std::vector<Processor>::const_iterator it = targets.begin(); it != targets.end(); ++it) {
+
+    for(std::vector<Processor>::const_iterator it = targets.begin(); it != targets.end();
+        ++it) {
       tta->instance = la.instances[*it];
       assert(tta->instance.exists());
 
       Processor::TaskFuncID task_id = DUMMY_TASK;
 #if defined(REALM_USE_CUDA) || defined(REALM_USE_HIP)
       if((*it).kind() == Processor::TOC_PROC)
-	task_id = DUMMY_GPU_TASK;
+        task_id = DUMMY_GPU_TASK;
 #endif
       if(i == 0)
-	preconds[*it] = la.start_barrier;
+        preconds[*it] = la.start_barrier;
       Event e = (*it).spawn(task_id, tta, argsize, prs, preconds[*it], which);
       if(TestConfig::chain_tasks)
-	preconds[*it] = e;
+        preconds[*it] = e;
       events.push_back(e);
       total_tasks++;
     }
@@ -247,7 +250,7 @@ void task_launcher(const void *args, size_t arglen,
 
   if(TestConfig::use_posttriger_barrier)
     la.posttrigger_barrier.arrive();
-  
+
   if(TestConfig::skip_launch_procs)
     la.finish_barrier.arrive();
 
@@ -255,14 +258,14 @@ void task_launcher(const void *args, size_t arglen,
   Event::merge_events(events).wait();
 }
 
-void top_level_task(const void *args, size_t arglen, 
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   LauncherArgs launch_args;
 
   // go through all processors and organize by address space
-  std::map<AddressSpace, std::vector<Processor> > all_procs;
-  std::map<AddressSpace, std::vector<Processor> > loc_procs;
+  std::map<AddressSpace, std::vector<Processor>> all_procs;
+  std::map<AddressSpace, std::vector<Processor>> loc_procs;
   int total_procs = 0;
   {
     std::set<Event> events;
@@ -272,29 +275,27 @@ void top_level_task(const void *args, size_t arglen,
       AddressSpace a = p.address_space();
       all_procs[a].push_back(p);
       if(p.kind() == Processor::LOC_PROC)
-	loc_procs[a].push_back(p);
+        loc_procs[a].push_back(p);
       total_procs++;
 
-      Memory m = Machine::MemoryQuery(Machine::get_machine())
-	.has_affinity_to(p)
-	.first();
+      Memory m = Machine::MemoryQuery(Machine::get_machine()).has_affinity_to(p).first();
 #if defined(REALM_USE_CUDA) || defined(REALM_USE_HIP)
       // instance is used by host-side code, so pick a sysmem for GPUs
       if(p.kind() == Processor::TOC_PROC)
-	m = Machine::MemoryQuery(Machine::get_machine())
-	  .same_address_space_as(p)
-	  .only_kind(Memory::SYSTEM_MEM)
-	  .first();
+        m = Machine::MemoryQuery(Machine::get_machine())
+                .same_address_space_as(p)
+                .only_kind(Memory::SYSTEM_MEM)
+                .first();
 #endif
       assert(m.exists());
       Rect<1> r(0, 0);
       RegionInstance i;
       std::map<FieldID, size_t> field_sizes;
       field_sizes[FieldIDs::TASKDATA] = sizeof(TestTaskData);
-      RegionInstance::create_instance(i, m, r,
-				      field_sizes,
-				      0, // SOA
-				      ProfilingRequestSet()).wait();
+      RegionInstance::create_instance(i, m, r, field_sizes,
+                                      0, // SOA
+                                      ProfilingRequestSet())
+          .wait();
       assert(i.exists());
 
       i.fetch_metadata(p).wait();
@@ -319,10 +320,10 @@ void top_level_task(const void *args, size_t arglen,
   if(TestConfig::run_immediately)
     launch_args.start_barrier = Barrier::NO_BARRIER;
   else
-    launch_args.start_barrier = Barrier::create_barrier(all_procs.size() *
-                                                        TestConfig::launching_processors);
-  launch_args.posttrigger_barrier = Barrier::create_barrier(all_procs.size() * 
-							    TestConfig::launching_processors);
+    launch_args.start_barrier =
+        Barrier::create_barrier(all_procs.size() * TestConfig::launching_processors);
+  launch_args.posttrigger_barrier =
+      Barrier::create_barrier(all_procs.size() * TestConfig::launching_processors);
   launch_args.finish_barrier = Barrier::create_barrier(total_procs);
 
   // serialize the launcher args
@@ -334,19 +335,19 @@ void top_level_task(const void *args, size_t arglen,
     assert(ok);
     args_size = dbs.bytes_used();
     args_data = dbs.detach_buffer();
-  }    
+  }
 
   // spawn launcher tasks in each address space
   std::vector<Event> launchers_done;
 
-  for(std::map<AddressSpace, std::vector<Processor> >::const_iterator it = all_procs.begin();
-      it != all_procs.end();
-      ++it) {
-    const std::vector<Processor>& lp = loc_procs[it->first];
+  for(std::map<AddressSpace, std::vector<Processor>>::const_iterator it =
+          all_procs.begin();
+      it != all_procs.end(); ++it) {
+    const std::vector<Processor> &lp = loc_procs[it->first];
     assert(lp.size() >= (size_t)(TestConfig::launching_processors));
     for(int i = 0; i < TestConfig::launching_processors; i++) {
       Processor p = lp[i];
-      
+
       Event e = p.spawn(TASK_LAUNCHER, args_data, args_size);
       launchers_done.push_back(e);
     }
@@ -369,15 +370,15 @@ int main(int argc, char **argv)
 
   CommandLineParser cp;
   cp.add_option_int("-tpp", TestConfig::tasks_per_processor)
-    .add_option_int("-lp", TestConfig::launching_processors)
-    .add_option_int("-args", TestConfig::task_argument_size)
-    .add_option_bool("-remote", TestConfig::remote_tasks)
-    .add_option_bool("-chain", TestConfig::chain_tasks)
-    .add_option_bool("-noself", TestConfig::skip_launch_procs)
-    .add_option_bool("-post", TestConfig::use_posttriger_barrier)
-    .add_option_bool("-prof", TestConfig::with_profiling)
-    .add_option_bool("-group", TestConfig::group_procs)
-    .add_option_bool("-immed", TestConfig::run_immediately);
+      .add_option_int("-lp", TestConfig::launching_processors)
+      .add_option_int("-args", TestConfig::task_argument_size)
+      .add_option_bool("-remote", TestConfig::remote_tasks)
+      .add_option_bool("-chain", TestConfig::chain_tasks)
+      .add_option_bool("-noself", TestConfig::skip_launch_procs)
+      .add_option_bool("-post", TestConfig::use_posttriger_barrier)
+      .add_option_bool("-prof", TestConfig::with_profiling)
+      .add_option_bool("-group", TestConfig::group_procs)
+      .add_option_bool("-immed", TestConfig::run_immediately);
   ok = cp.parse_command_line(argc, (const char **)argv);
   assert(ok);
 
@@ -386,17 +387,15 @@ int main(int argc, char **argv)
   r.register_task(DUMMY_TASK, dummy_cpu_task);
   r.register_task(PROFILER_TASK, profiler_task);
 #if defined(REALM_USE_CUDA) || defined(REALM_USE_HIP)
-  Processor::register_task_by_kind(Processor::TOC_PROC,
-				   false /*!global*/,
-				   DUMMY_GPU_TASK,
-				   CodeDescriptor(dummy_gpu_task),
-				   ProfilingRequestSet()).wait();
+  Processor::register_task_by_kind(Processor::TOC_PROC, false /*!global*/, DUMMY_GPU_TASK,
+                                   CodeDescriptor(dummy_gpu_task), ProfilingRequestSet())
+      .wait();
 #endif
 
   // select a processor to run the top level task on
   Processor p = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::LOC_PROC)
-    .first();
+                    .only_kind(Processor::LOC_PROC)
+                    .first();
   assert(p.exists());
 
   // collective launch of a single task - everybody gets the same finish event
@@ -407,6 +406,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   r.wait_for_shutdown();
-  
+
   return 0;
 }

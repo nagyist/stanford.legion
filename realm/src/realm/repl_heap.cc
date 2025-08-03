@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,14 +47,13 @@ namespace Realm {
 
 #ifdef DEBUG_REALM
   static void sanity_check_metadata(size_t cur_bytes, size_t total_bytes,
-                                    const std::map<uint64_t, uint64_t>& by_start,
-                                    const std::multimap<uint64_t, uint64_t>& by_size)
+                                    const std::map<uint64_t, uint64_t> &by_start,
+                                    const std::multimap<uint64_t, uint64_t> &by_size)
   {
     size_t free_bytes = 0;
     assert(by_start.size() == by_size.size());
     for(std::multimap<uint64_t, uint64_t>::const_iterator it = by_size.begin();
-        it != by_size.end();
-        ++it) {
+        it != by_size.end(); ++it) {
       std::map<uint64_t, uint64_t>::const_iterator it2 = by_start.find(it->second);
       assert(it2 != by_start.end());
       assert(it2->second == it->first);
@@ -95,14 +96,13 @@ namespace Realm {
     free_by_size.insert(std::pair<uint64_t, uint64_t>(chunk_size, 0));
 
 #ifdef DEBUG_REALM
-    sanity_check_metadata(cur_bytes, cur_chunks * chunk_size,
-                          free_by_start, free_by_size);
+    sanity_check_metadata(cur_bytes, cur_chunks * chunk_size, free_by_start,
+                          free_by_size);
 #endif
 
     // listeners may have already been added - if so, notify them
     for(std::set<Listener *>::const_iterator it = listeners.begin();
-        it != listeners.end();
-        ++it)
+        it != listeners.end(); ++it)
       (*it)->chunk_created(reinterpret_cast<void *>(base), chunk_size);
   }
 
@@ -112,11 +112,9 @@ namespace Realm {
 
     // notify any listeners before we actually nuke the memory
     for(std::set<Listener *>::const_iterator it = listeners.begin();
-        it != listeners.end();
-        ++it)
+        it != listeners.end(); ++it)
       for(size_t i = 0; i < cur_chunks; i++)
-        (*it)->chunk_destroyed(reinterpret_cast<void *>(base +
-                                                        (i * chunk_size)),
+        (*it)->chunk_destroyed(reinterpret_cast<void *>(base + (i * chunk_size)),
                                chunk_size);
 
     void *ptr = reinterpret_cast<void *>(base);
@@ -143,12 +141,10 @@ namespace Realm {
     std::multimap<uint64_t, uint64_t>::iterator it = free_by_size.lower_bound(bytes);
     if(it != free_by_size.end()) {
       uint64_t pos = it->second;
-      
+
       ObjectHeader hdr;
-      memcpy(&hdr, reinterpret_cast<const void *>(base + pos),
-	     sizeof(ObjectHeader));
-      assert((hdr.state == ObjectHeader::STATE_FREE) &&
-             (hdr.size == it->first));
+      memcpy(&hdr, reinterpret_cast<const void *>(base + pos), sizeof(ObjectHeader));
+      assert((hdr.state == ObjectHeader::STATE_FREE) && (hdr.size == it->first));
 
       // this range is no longer free
       free_by_size.erase(it);
@@ -162,32 +158,27 @@ namespace Realm {
         ObjectHeader hdr2;
         hdr2.state = ObjectHeader::STATE_FREE;
         hdr2.size = hdr.size - bytes;
-        memcpy(reinterpret_cast<void *>(base + pos + bytes), &hdr2,
-               sizeof(ObjectHeader));
+        memcpy(reinterpret_cast<void *>(base + pos + bytes), &hdr2, sizeof(ObjectHeader));
         hdr.size = bytes; // trim current block
 
-        free_by_start.insert(std::pair<uint64_t, uint64_t>(pos + bytes,
-                                                           hdr2.size));
-        free_by_size.insert(std::pair<uint64_t, uint64_t>(hdr2.size,
-                                                          pos + bytes));
+        free_by_start.insert(std::pair<uint64_t, uint64_t>(pos + bytes, hdr2.size));
+        free_by_size.insert(std::pair<uint64_t, uint64_t>(hdr2.size, pos + bytes));
       }
 
       // mark current block allocated
       hdr.state = ObjectHeader::STATE_ALLOCD;
-      memcpy(reinterpret_cast<void *>(base + pos), &hdr,
-             sizeof(ObjectHeader));
+      memcpy(reinterpret_cast<void *>(base + pos), &hdr, sizeof(ObjectHeader));
 
       cur_bytes += bytes;
       if(cur_bytes > peak_bytes)
         peak_bytes = cur_bytes;
 
-      log_rheap.debug() << "allocated: bytes=" << bytes << " addr="
-                        << std::hex << (base + pos + sizeof(ObjectHeader))
-                        << std::dec;
+      log_rheap.debug() << "allocated: bytes=" << bytes << " addr=" << std::hex
+                        << (base + pos + sizeof(ObjectHeader)) << std::dec;
 
 #ifdef DEBUG_REALM
-      sanity_check_metadata(cur_bytes, cur_chunks * chunk_size,
-                            free_by_start, free_by_size);
+      sanity_check_metadata(cur_bytes, cur_chunks * chunk_size, free_by_start,
+                            free_by_size);
 #endif
 
       return reinterpret_cast<void *>(base + pos + sizeof(ObjectHeader));
@@ -200,7 +191,9 @@ namespace Realm {
       if(!free_by_size.empty())
         needed -= free_by_size.rbegin()->first;
 
-      log_rheap.fatal() << "FATAL: replicated heap exhausted, grow with -ll:replheap - at least " << needed << " bytes required";
+      log_rheap.fatal()
+          << "FATAL: replicated heap exhausted, grow with -ll:replheap - at least "
+          << needed << " bytes required";
       abort();
       return 0;
     }
@@ -211,22 +204,20 @@ namespace Realm {
     AutoLock<> al(mutex);
 
     // some frees might come in after we've cleaned up the heap - ignore those
-    if(base == 0) return;
+    if(base == 0)
+      return;
 
     uint64_t pos = reinterpret_cast<uintptr_t>(ptr) - base;
-    assert((pos >= sizeof(ObjectHeader)) &&
-           (pos < (cur_chunks * chunk_size)) &&
+    assert((pos >= sizeof(ObjectHeader)) && (pos < (cur_chunks * chunk_size)) &&
            ((pos & (sizeof(ObjectHeader) - 1)) == 0));
     pos -= sizeof(ObjectHeader);
     ObjectHeader hdr;
-    memcpy(&hdr, reinterpret_cast<const void *>(base + pos),
-           sizeof(ObjectHeader));
+    memcpy(&hdr, reinterpret_cast<const void *>(base + pos), sizeof(ObjectHeader));
     assert(hdr.state == ObjectHeader::STATE_ALLOCD);
     uint64_t bytes = hdr.size;
 
-    log_rheap.debug() << "freed: bytes=" << bytes << " addr="
-                      << std::hex << (base + pos + sizeof(ObjectHeader))
-                      << std::dec;
+    log_rheap.debug() << "freed: bytes=" << bytes << " addr=" << std::hex
+                      << (base + pos + sizeof(ObjectHeader)) << std::dec;
     cur_bytes -= bytes;
 
     // is there a free block past us?
@@ -235,15 +226,14 @@ namespace Realm {
       ObjectHeader hdr2;
       memcpy(&hdr2, reinterpret_cast<const void *>(base + pos + bytes),
              sizeof(ObjectHeader));
-      assert((hdr2.state == ObjectHeader::STATE_FREE) &&
-             (hdr2.size == it->second));
+      assert((hdr2.state == ObjectHeader::STATE_FREE) && (hdr2.size == it->second));
 
       // remove later block from metadata and invalidate header
       hdr2.state = ObjectHeader::STATE_INVALID;
-      memcpy(reinterpret_cast<void *>(base + pos + bytes), &hdr2,
-             sizeof(ObjectHeader));
+      memcpy(reinterpret_cast<void *>(base + pos + bytes), &hdr2, sizeof(ObjectHeader));
       free_by_start.erase(it);
-      std::multimap<uint64_t, uint64_t>::iterator it2 = free_by_size.lower_bound(hdr2.size);
+      std::multimap<uint64_t, uint64_t>::iterator it2 =
+          free_by_size.lower_bound(hdr2.size);
       while(true) {
         assert(it2 != free_by_size.end());
         if(it2->second == pos + bytes) {
@@ -265,17 +255,15 @@ namespace Realm {
         ObjectHeader hdr3;
         memcpy(&hdr3, reinterpret_cast<const void *>(base + it->first),
                sizeof(ObjectHeader));
-        assert((hdr3.state == ObjectHeader::STATE_FREE) &&
-               (hdr3.size == it->second));
+        assert((hdr3.state == ObjectHeader::STATE_FREE) && (hdr3.size == it->second));
         hdr3.size += bytes;
-        memcpy(reinterpret_cast<void *>(base + it->first), &hdr3,
-               sizeof(ObjectHeader));
+        memcpy(reinterpret_cast<void *>(base + it->first), &hdr3, sizeof(ObjectHeader));
 
         hdr.state = ObjectHeader::STATE_INVALID;
-        memcpy(reinterpret_cast<void *>(base + pos), &hdr,
-               sizeof(ObjectHeader));
+        memcpy(reinterpret_cast<void *>(base + pos), &hdr, sizeof(ObjectHeader));
 
-        std::multimap<uint64_t, uint64_t>::iterator it2 = free_by_size.lower_bound(it->second);
+        std::multimap<uint64_t, uint64_t>::iterator it2 =
+            free_by_size.lower_bound(it->second);
         while(true) {
           assert(it2 != free_by_size.end());
           if(it2->second == it->first) {
@@ -285,12 +273,11 @@ namespace Realm {
           ++it2;
         }
         it->second = hdr3.size;
-        free_by_size.insert(std::pair<uint64_t, uint64_t>(it->second,
-                                                          it->first));
+        free_by_size.insert(std::pair<uint64_t, uint64_t>(it->second, it->first));
 
 #ifdef DEBUG_REALM
-        sanity_check_metadata(cur_bytes, cur_chunks * chunk_size,
-                              free_by_start, free_by_size);
+        sanity_check_metadata(cur_bytes, cur_chunks * chunk_size, free_by_start,
+                              free_by_size);
 #endif
 
         return;
@@ -300,14 +287,13 @@ namespace Realm {
     // mark our block free and add it to the free list
     hdr.state = ObjectHeader::STATE_FREE;
     hdr.size = bytes;
-    memcpy(reinterpret_cast<void *>(base + pos), &hdr,
-           sizeof(ObjectHeader));
+    memcpy(reinterpret_cast<void *>(base + pos), &hdr, sizeof(ObjectHeader));
     free_by_start.insert(std::pair<uint64_t, uint64_t>(pos, bytes));
     free_by_size.insert(std::pair<uint64_t, uint64_t>(bytes, pos));
 
 #ifdef DEBUG_REALM
-    sanity_check_metadata(cur_bytes, cur_chunks * chunk_size,
-                          free_by_start, free_by_size);
+    sanity_check_metadata(cur_bytes, cur_chunks * chunk_size, free_by_start,
+                          free_by_size);
 #endif
   }
 
@@ -319,11 +305,10 @@ namespace Realm {
     AutoLock<> al(mutex);
 
     for(std::set<Listener *>::const_iterator it = listeners.begin();
-        it != listeners.end();
-        ++it)
+        it != listeners.end(); ++it)
       (*it)->data_updated(start, bytes);
   }
-  
+
   void ReplicatedHeap::add_listener(Listener *listener)
   {
     log_rheap.debug() << "adding listener: " << listener;
@@ -339,11 +324,9 @@ namespace Realm {
 
     // now we can call the 'chunk_created' callback without holding the mutex
     for(size_t i = 0; i < count; i++)
-      listener->chunk_created(reinterpret_cast<void *>(base +
-						       (i * chunk_size)),
-			      chunk_size);
+      listener->chunk_created(reinterpret_cast<void *>(base + (i * chunk_size)),
+                              chunk_size);
   }
-
 
   void ReplicatedHeap::remove_listener(Listener *listener)
   {
@@ -360,9 +343,8 @@ namespace Realm {
 
     // now we can call the 'chunk_destroyed' callback without holding the mutex
     for(size_t i = 0; i < count; i++)
-      listener->chunk_destroyed(reinterpret_cast<void *>(base +
-							 (i * chunk_size)),
-				chunk_size);
+      listener->chunk_destroyed(reinterpret_cast<void *>(base + (i * chunk_size)),
+                                chunk_size);
   }
 
-};
+}; // namespace Realm

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,24 +21,26 @@ namespace Realm {
   //
   // class PythonSourceImplementation
 
-  inline void PythonSourceImplementation::print(std::ostream& os) const
+  inline void PythonSourceImplementation::print(std::ostream &os) const
   {
     os << "pyref(" << module_name;
-    for (std::vector<std::string>::const_iterator it = function_name.begin(),
-           ie = function_name.end(); it != ie; ++it) {
+    for(std::vector<std::string>::const_iterator it = function_name.begin(),
+                                                 ie = function_name.end();
+        it != ie; ++it) {
       os << "." << *it;
     }
     os << ")";
   }
 
   template <typename S>
-  inline bool PythonSourceImplementation::serialize(S& serializer) const
+  inline bool PythonSourceImplementation::serialize(S &serializer) const
   {
     return (serializer << module_name) && (serializer << function_name);
   }
 
   template <typename S>
-  inline /*static*/ CodeImplementation *PythonSourceImplementation::deserialize_new(S& deserializer)
+  inline /*static*/ CodeImplementation *
+  PythonSourceImplementation::deserialize_new(S &deserializer)
   {
     PythonSourceImplementation *pyref = new PythonSourceImplementation;
     if((deserializer >> pyref->module_name) && (deserializer >> pyref->function_name)) {

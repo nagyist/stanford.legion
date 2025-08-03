@@ -1,5 +1,6 @@
-
-/* Copyright 2024 NVIDIA Corporation
+/*
+ * Copyright 2025 NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,24 +26,24 @@
 #define BOOTSTRAP_MPI_PLUGIN "realm_ucp_bootstrap_mpi.so"
 #define BOOTSTRAP_P2P_PLUGIN "realm_ucp_bootstrap_p2p.so"
 namespace Realm {
-namespace UCP {
+  namespace UCP {
 
-  enum BootstrapMode
-  {
-    BOOTSTRAP_MPI,
-    BOOTSTRAP_P2P,
-    BOOTSTRAP_PLUGIN
-  };
+    enum BootstrapMode
+    {
+      BOOTSTRAP_MPI,
+      BOOTSTRAP_P2P,
+      BOOTSTRAP_PLUGIN
+    };
 
-  struct BootstrapConfig {
-    BootstrapMode mode;
-    char *plugin_name;
-  };
+    struct BootstrapConfig {
+      BootstrapMode mode;
+      char *plugin_name;
+    };
 
-  int bootstrap_init(const BootstrapConfig *config, bootstrap_handle_t *handle);
-  int bootstrap_finalize(bootstrap_handle_t *handle);
+    int bootstrap_init(const BootstrapConfig *config, bootstrap_handle_t *handle);
+    int bootstrap_finalize(bootstrap_handle_t *handle);
 
-}; // namespace UCP
+  }; // namespace UCP
 
 }; // namespace Realm
 

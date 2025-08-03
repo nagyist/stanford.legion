@@ -1,4 +1,6 @@
-/* Copyright 2025 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,6 +65,8 @@ namespace Realm {
   protected:
     MemoryQueryImpl *impl;
   };
+
+  static const ProfilingRequestSet empty_prs_cxx;
 
 }; // namespace Realm
 
@@ -330,9 +334,8 @@ realm_status_t realm_runtime_collective_spawn(realm_runtime_t runtime,
   }
   // TODO: check the validation of the task id if target_proc is local, if it is not
   // local, we will poison the event.
-  *event =
-      runtime_impl->collective_spawn(Realm::Processor(target_proc), task_id, args, arglen,
-                                     Realm::Event(wait_on), priority);
+  *event = runtime_impl->collective_spawn(Realm::Processor(target_proc), task_id, args,
+                                          arglen, Realm::Event(wait_on), priority);
   return REALM_SUCCESS;
 }
 
@@ -425,16 +428,12 @@ realm_status_t realm_processor_spawn(realm_runtime_t runtime,
 
   Realm::GenEventImpl *finish_event = Realm::GenEventImpl::create_genevent(runtime_impl);
   Realm::Event cxx_event = finish_event->current_event();
-  if(prs == nullptr) {
-    proc_impl->spawn_task(task_id, args, arglen, Realm::ProfilingRequestSet(),
-                          Realm::Event(wait_on), finish_event,
-                          Realm::ID(cxx_event).event_generation(), priority);
-  } else {
-    proc_impl->spawn_task(task_id, args, arglen,
-                          *reinterpret_cast<Realm::ProfilingRequestSet *>(prs),
-                          Realm::Event(wait_on), finish_event,
-                          Realm::ID(cxx_event).event_generation(), priority);
+  const Realm::ProfilingRequestSet *prs_cxx = &Realm::empty_prs_cxx;
+  if(prs != nullptr) {
+    prs_cxx = reinterpret_cast<const Realm::ProfilingRequestSet *>(prs);
   }
+  proc_impl->spawn_task(task_id, args, arglen, *prs_cxx, Realm::Event(wait_on),
+                        finish_event, Realm::ID(cxx_event).event_generation(), priority);
   *event = cxx_event;
   return REALM_SUCCESS;
 }
@@ -733,7 +732,8 @@ realm_status_t realm_memory_query_iter(realm_memory_query_t query,
 
 /* Event API */
 
-realm_status_t realm_event_wait(realm_runtime_t runtime, realm_event_t event)
+realm_status_t realm_event_wait(realm_runtime_t runtime, realm_event_t event,
+                                int *poisoned)
 {
   Realm::RuntimeImpl *runtime_impl = nullptr;
   realm_status_t status = check_runtime_validity_and_assign(runtime, runtime_impl);
@@ -745,12 +745,17 @@ realm_status_t realm_event_wait(realm_runtime_t runtime, realm_event_t event)
     return status;
   }
   Realm::Event cxx_event = Realm::Event(event);
-  cxx_event.wait();
+  bool poisoned_cxx = false;
+  cxx_event.wait_faultaware(poisoned_cxx);
+  if(poisoned != nullptr) {
+    *poisoned = poisoned_cxx ? 1 : 0;
+  }
   return REALM_SUCCESS;
 }
 
 realm_status_t realm_event_merge(realm_runtime_t runtime, const realm_event_t *wait_for,
-                                 size_t num_events, realm_event_t *event)
+                                 size_t num_events, realm_event_t *event,
+                                 int ignore_faults)
 {
   Realm::RuntimeImpl *runtime_impl = nullptr;
   realm_status_t status = check_runtime_validity_and_assign(runtime, runtime_impl);
@@ -762,8 +767,43 @@ realm_status_t realm_event_merge(realm_runtime_t runtime, const realm_event_t *w
   }
   Realm::Event *event_array =
       const_cast<Realm::Event *>(reinterpret_cast<const Realm::Event *>(wait_for));
-  *event = Realm::Event::merge_events(
-      Realm::span<const Realm::Event>(event_array, num_events));
+  *event = Realm::GenEventImpl::merge_events(
+      Realm::span<const Realm::Event>(event_array, num_events), ignore_faults != 0);
+  return REALM_SUCCESS;
+}
+
+realm_status_t realm_event_has_triggered(realm_runtime_t runtime, realm_event_t event,
+                                         int *has_triggered, int *poisoned)
+{
+  Realm::RuntimeImpl *runtime_impl = nullptr;
+  realm_status_t status = check_runtime_validity_and_assign(runtime, runtime_impl);
+  if(status != REALM_SUCCESS) {
+    return status;
+  }
+  status = check_event_validity(event);
+  if(status != REALM_SUCCESS) {
+    return status;
+  }
+  if(has_triggered == nullptr) {
+    return REALM_ERROR_INVALID_PARAMETER;
+  }
+  // special case: NO_EVENT is always triggered
+  if(event == REALM_NO_EVENT) {
+    *has_triggered = 1;
+    if(poisoned != nullptr) {
+      *poisoned = 0;
+    }
+    return REALM_SUCCESS;
+  }
+
+  Realm::EventImpl *event_impl = runtime_impl->get_event_impl(Realm::Event(event));
+  bool poisoned_cxx = false;
+  bool has_triggered_cxx =
+      event_impl->has_triggered(Realm::ID(event).event_generation(), poisoned_cxx);
+  *has_triggered = has_triggered_cxx ? 1 : 0;
+  if(poisoned != nullptr) {
+    *poisoned = poisoned_cxx ? 1 : 0;
+  }
   return REALM_SUCCESS;
 }
 
@@ -788,7 +828,8 @@ realm_status_t realm_user_event_create(realm_runtime_t runtime, realm_user_event
   return REALM_SUCCESS;
 }
 
-realm_status_t realm_user_event_trigger(realm_runtime_t runtime, realm_user_event_t event)
+realm_status_t realm_user_event_trigger(realm_runtime_t runtime, realm_user_event_t event,
+                                        realm_event_t wait_on, int ignore_faults)
 {
   Realm::RuntimeImpl *runtime_impl = nullptr;
   realm_status_t status = check_runtime_validity_and_assign(runtime, runtime_impl);
@@ -799,7 +840,7 @@ realm_status_t realm_user_event_trigger(realm_runtime_t runtime, realm_user_even
   if(status != REALM_SUCCESS) {
     return status;
   }
-  Realm::UserEvent(event).trigger();
+  Realm::UserEvent(event).trigger(Realm::Event(wait_on), ignore_faults != 0);
   return REALM_SUCCESS;
 }
 
@@ -970,11 +1011,9 @@ realm_status_t realm_region_instance_create(
     return REALM_REGION_INSTANCE_ERROR_INVALID_EVENT;
   }
 
-  // TODO: do not copy the prs, need to pass the prs pointer directly.
-  // profiling request set
-  Realm::ProfilingRequestSet prs_set;
+  const Realm::ProfilingRequestSet *prs_cxx = &Realm::empty_prs_cxx;
   if(prs != nullptr) {
-    prs_set = *reinterpret_cast<Realm::ProfilingRequestSet *>(prs);
+    prs_cxx = reinterpret_cast<const Realm::ProfilingRequestSet *>(prs);
   }
 
   Realm::RegionInstance inst = Realm::RegionInstance::NO_INST;
@@ -993,7 +1032,7 @@ realm_status_t realm_region_instance_create(
         upper_bound_long_long, instance_creation_params->field_ids,
         instance_creation_params->field_sizes, instance_creation_params->num_fields,
         instance_creation_params->block_size, instance_creation_params->external_resource,
-        prs_set, Realm::Event(wait_on), inst, out_event);
+        *prs_cxx, Realm::Event(wait_on), inst, out_event);
     break;
   }
   case REALM_COORD_TYPE_INT:
@@ -1007,8 +1046,8 @@ realm_status_t realm_region_instance_create(
         Realm::Memory(instance_creation_params->memory), lower_bound_int, upper_bound_int,
         instance_creation_params->field_ids, instance_creation_params->field_sizes,
         instance_creation_params->num_fields, instance_creation_params->block_size,
-        instance_creation_params->external_resource, prs_set, Realm::Event(wait_on), inst,
-        out_event);
+        instance_creation_params->external_resource, *prs_cxx, Realm::Event(wait_on),
+        inst, out_event);
     break;
   }
   default:
@@ -1080,11 +1119,9 @@ realm_status_t realm_region_instance_copy(
                           instance_copy_params->dsts[i].size);
   }
 
-  // TODO: do not copy the prs, need to pass the prs pointer directly.
-  // profiling request set
-  Realm::ProfilingRequestSet prs_set;
+  const Realm::ProfilingRequestSet *prs_cxx = &Realm::empty_prs_cxx;
   if(prs != nullptr) {
-    prs_set = *reinterpret_cast<Realm::ProfilingRequestSet *>(prs);
+    prs_cxx = reinterpret_cast<const Realm::ProfilingRequestSet *>(prs);
   }
 
   Realm::Event out_event = Realm::Event::NO_EVENT;
@@ -1100,7 +1137,7 @@ realm_status_t realm_region_instance_copy(
         instance_copy_params->num_dims, RealmRegionInstanceCopy(), runtime_impl,
         std::move(srcs_vec), std::move(dsts_vec), instance_copy_params->num_fields,
         lower_bound_long_long, upper_bound_long_long, instance_copy_params->num_dims,
-        instance_copy_params->sparsity_map, prs_set, Realm::Event(wait_on), priority,
+        instance_copy_params->sparsity_map, *prs_cxx, Realm::Event(wait_on), priority,
         out_event);
     break;
   }
@@ -1114,7 +1151,7 @@ realm_status_t realm_region_instance_copy(
         instance_copy_params->num_dims, RealmRegionInstanceCopy(), runtime_impl,
         std::move(srcs_vec), std::move(dsts_vec), instance_copy_params->num_fields,
         lower_bound_int, upper_bound_int, instance_copy_params->num_dims,
-        instance_copy_params->sparsity_map, prs_set, Realm::Event(wait_on), priority,
+        instance_copy_params->sparsity_map, *prs_cxx, Realm::Event(wait_on), priority,
         out_event);
     break;
   }

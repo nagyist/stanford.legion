@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,11 +40,15 @@
 
 namespace Realm {
 
-  template <int N, typename T /*= int*/> struct Point;
-  template <int N, typename T /*= int*/> struct Rect;
-  template <int N, typename T = int> class HierarchicalBitMap;
+  template <int N, typename T /*= int*/>
+  struct Point;
+  template <int N, typename T /*= int*/>
+  struct Rect;
+  template <int N, typename T = int>
+  class HierarchicalBitMap;
 
-  template <int N, typename T> class SparsityMapPublicImpl;
+  template <int N, typename T>
+  class SparsityMapPublicImpl;
 
   /**
    * \class SparistyMap
@@ -60,11 +66,11 @@ namespace Realm {
   public:
     typedef ::realm_id_t id_t;
     id_t id;
-    bool operator<(const SparsityMap<N,T> &rhs) const;
-    bool operator==(const SparsityMap<N,T> &rhs) const;
-    bool operator!=(const SparsityMap<N,T> &rhs) const;
+    bool operator<(const SparsityMap<N, T> &rhs) const;
+    bool operator==(const SparsityMap<N, T> &rhs) const;
+    bool operator!=(const SparsityMap<N, T> &rhs) const;
 
-    //static const SparsityMap<N,T> NO_SPACE;
+    // static const SparsityMap<N,T> NO_SPACE;
 
     /**
      * Check if this sparsity map exists.
@@ -115,7 +121,7 @@ namespace Realm {
      * @return the public implementation object for this sparsity map
      */
     REALM_INTERNAL_API_EXTERNAL_LINKAGE
-    SparsityMapPublicImpl<N,T> *impl(void) const;
+    SparsityMapPublicImpl<N, T> *impl(void) const;
 
     ///@{
     /**
@@ -129,29 +135,27 @@ namespace Realm {
      * @return a sparsity map
      */
     REALM_INTERNAL_API_EXTERNAL_LINKAGE
-    static SparsityMap<N,T> construct(const std::vector<Point<N,T> >& points,
-				      bool always_create, bool disjoint);
+    static SparsityMap<N, T> construct(const std::vector<Point<N, T>> &points,
+                                       bool always_create, bool disjoint);
     REALM_INTERNAL_API_EXTERNAL_LINKAGE
-    static SparsityMap<N,T> construct(const std::vector<Rect<N,T> >& rects,
-				      bool always_create, bool disjoint);
+    static SparsityMap<N, T> construct(const std::vector<Rect<N, T>> &rects,
+                                       bool always_create, bool disjoint);
     ///@}
-
   };
 
   template <int N, typename T>
-  REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, SparsityMap<N,T> s);
+  REALM_PUBLIC_API std::ostream &operator<<(std::ostream &os, SparsityMap<N, T> s);
 
   template <int N, typename T>
   struct SparsityMapEntry {
-    Rect<N,T> bounds;
-    SparsityMap<N,T> sparsity;
-    HierarchicalBitMap<N,T> *bitmap;
+    Rect<N, T> bounds;
+    SparsityMap<N, T> sparsity;
+    HierarchicalBitMap<N, T> *bitmap;
   };
 
   template <int N, typename T>
-  REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, const SparsityMapEntry<N,T>& entry);
+  REALM_PUBLIC_API std::ostream &operator<<(std::ostream &os,
+                                            const SparsityMapEntry<N, T> &entry);
 
   /**
    * \class SparsityMapPublicImpl
@@ -170,17 +174,17 @@ namespace Realm {
     SparsityMapPublicImpl(void);
 
   public:
-   /**
-    * Make this sparsity map valid.
-    * Applications should call this method before attempting to use the contents
-    * of a sparsity map or otherwise defer the actual use until the returned
-    * event has triggered.
-    *
-    * The valid sparsity map is called "completed" and is computed
-    * in a deferred fashion and fetched by other nodes on demand.
-    * @param precise if true, the sparsity map is computed precisely
-    * @return an event that triggers when the sparsity map is valid
-    */
+    /**
+     * Make this sparsity map valid.
+     * Applications should call this method before attempting to use the contents
+     * of a sparsity map or otherwise defer the actual use until the returned
+     * event has triggered.
+     *
+     * The valid sparsity map is called "completed" and is computed
+     * in a deferred fashion and fetched by other nodes on demand.
+     * @param precise if true, the sparsity map is computed precisely
+     * @return an event that triggers when the sparsity map is valid
+     */
     REALM_PUBLIC_API
     Event make_valid(bool precise = true);
 
@@ -242,8 +246,8 @@ namespace Realm {
 
   protected:
     atomic<bool> entries_valid{false}, approx_valid{false};
-    std::vector<SparsityMapEntry<N,T> > entries;
-    std::vector<Rect<N,T> > approx_rects;
+    std::vector<SparsityMapEntry<N, T>> entries;
+    std::vector<Rect<N, T>> approx_rects;
   };
 
 }; // namespace Realm
@@ -251,4 +255,3 @@ namespace Realm {
 #include "realm/sparsity.inl"
 
 #endif // ifndef REALM_SPARSITY_H
-

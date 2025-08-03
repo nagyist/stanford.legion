@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,28 +30,30 @@ namespace Realm {
   //
   // class Processor
 
-inline void
-Processor::get_group_members(std::vector<Processor> &member_list) const {
-  size_t num_members = 0;
-  get_group_members(nullptr, num_members);
-  member_list.resize(num_members);
-  get_group_members(member_list.data(), num_members);
-}
+  inline void Processor::get_group_members(std::vector<Processor> &member_list) const
+  {
+    size_t num_members = 0;
+    get_group_members(nullptr, num_members);
+    member_list.resize(num_members);
+    get_group_members(member_list.data(), num_members);
+  }
 
-inline std::ostream &operator<<(std::ostream &os, Realm::Processor p) {
-  return os << std::hex << p.id << std::dec;
-}
+  inline std::ostream &operator<<(std::ostream &os, Realm::Processor p)
+  {
+    return os << std::hex << p.id << std::dec;
+  }
 
-/*static*/ inline Processor
-Processor::create_group(const span<const Processor> &members) {
-  return ProcessorGroup::create_group(members);
-}
+  /*static*/ inline Processor
+  Processor::create_group(const span<const Processor> &members)
+  {
+    return ProcessorGroup::create_group(members);
+  }
 
 #if defined(REALM_USE_KOKKOS)
   // Kokkos execution policies will accept an "execution instance" to
   //  capture task parallelism - provide those here
   inline Processor::KokkosExecInstance::KokkosExecInstance(Processor _p)
-    : p (_p)
+    : p(_p)
   {}
 
   inline Processor::KokkosExecInstance Processor::kokkos_work_space(void) const
@@ -58,4 +62,4 @@ Processor::create_group(const span<const Processor> &members) {
   }
 #endif
 
-}; // namespace Realm  
+}; // namespace Realm

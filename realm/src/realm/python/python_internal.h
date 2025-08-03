@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +41,11 @@ namespace Realm {
   };
   typedef ssize_t Py_ssize_t;
 #ifdef USE_PYGILSTATE_CALLS
-  enum PyGILState_STATE {PyGILState_LOCKED, PyGILState_UNLOCKED};
+  enum PyGILState_STATE
+  {
+    PyGILState_LOCKED,
+    PyGILState_UNLOCKED
+  };
 #endif
 
   // This class contains interpreter-specific instances of Python API calls.
@@ -48,7 +54,7 @@ namespace Realm {
     PythonAPI(void *handle);
 
   protected:
-    template<typename T>
+    template <typename T>
     void get_symbol(T &fn, const char *symbol, bool missing_ok = false);
 
   protected:
@@ -78,7 +84,7 @@ namespace Realm {
     PyThreadState *(*PyGILState_GetThisThreadState)(void);
     PyThreadState *(*PyThreadState_Swap)(PyThreadState *);
     PyThreadState *(*PyThreadState_Get)(void);
-    PyObject      *(*PyThreadState_GetDict)(void);
+    PyObject *(*PyThreadState_GetDict)(void);
 
     void (*PyErr_PrintEx)(int set_sys_last_vars);
 
@@ -108,8 +114,8 @@ namespace Realm {
 
     PyObject *find_or_import_function(const PythonSourceImplementation *psi);
 
-    void import_module(const std::string& module_name);
-    void run_string(const std::string& script_text);
+    void import_module(const std::string &module_name);
+    void run_string(const std::string &script_text);
     int check_gil_state();
 
   protected:
@@ -117,13 +123,13 @@ namespace Realm {
 #ifdef REALM_USE_DLMOPEN
     void *dlmproxy_handle;
 #endif
-    
+
   public:
     PythonAPI *api;
   };
 
   class PythonThreadTaskScheduler;
-  
+
   // this is nearly identical to a LocalCPUProcessor, but it asks for its thread(s)
   //  to run on the specified numa domain
   class LocalPythonProcessor : public ProcessorImpl {
@@ -138,18 +144,15 @@ namespace Realm {
     virtual ~LocalPythonProcessor(void);
 
     virtual void enqueue_task(Task *task);
-    virtual void enqueue_tasks(Task::TaskList& tasks, size_t num_tasks);
+    virtual void enqueue_tasks(Task::TaskList &tasks, size_t num_tasks);
 
-    virtual void spawn_task(Processor::TaskFuncID func_id,
-			    const void *args, size_t arglen,
-			    const ProfilingRequestSet &reqs,
-			    Event start_event,
-			    GenEventImpl *finish_event,
-			    EventImpl::gen_t finish_gen,
-			    int priority);
-    
+    virtual void spawn_task(Processor::TaskFuncID func_id, const void *args,
+                            size_t arglen, const ProfilingRequestSet &reqs,
+                            Event start_event, GenEventImpl *finish_event,
+                            EventImpl::gen_t finish_gen, int priority);
+
     virtual void execute_task(Processor::TaskFuncID func_id,
-			      const ByteArrayRef& task_args);
+                              const ByteArrayRef &task_args);
 
     // starts worker threads and performs any per-processor initialization
     virtual void start_threads(void);
@@ -157,14 +160,13 @@ namespace Realm {
     virtual void shutdown(void);
 
     virtual void add_to_group(ProcessorGroupImpl *group);
-    
-    virtual void remove_from_group(ProcessorGroupImpl *group);
-    
-    virtual bool register_task(Processor::TaskFuncID func_id,
-                               CodeDescriptor& codedesc,
-                               const ByteArrayRef& user_data);
 
-    //void worker_main(void);
+    virtual void remove_from_group(ProcessorGroupImpl *group);
+
+    virtual bool register_task(Processor::TaskFuncID func_id, CodeDescriptor &codedesc,
+                               const ByteArrayRef &user_data);
+
+    // void worker_main(void);
 
     class TaskRegistration : public InternalTask {
     public:
@@ -172,15 +174,14 @@ namespace Realm {
 
       virtual void execute_on_processor(Processor p)
       {
-	proc->perform_task_registration(this);
+        proc->perform_task_registration(this);
       }
-      
+
       LocalPythonProcessor *proc;
       Processor::TaskFuncID func_id;
       CodeDescriptor *codedesc;
       ByteArray user_data;
     };
-
 
   protected:
     friend class PythonThreadTaskScheduler;
@@ -193,8 +194,8 @@ namespace Realm {
 #if defined(REALM_USE_OPENMP) && !defined(REALM_OPENMP_SYSTEM_RUNTIME)
     ThreadPool *omp_threadpool;
 #endif
-    const std::vector<std::string>& import_modules;
-    const std::vector<std::string>& init_scripts;
+    const std::vector<std::string> &import_modules;
+    const std::vector<std::string> &init_scripts;
 
     PythonThreadTaskScheduler *sched;
     PythonInterpreter *interpreter;
@@ -227,8 +228,7 @@ namespace Realm {
   // that this has been saved onto the stack and restored after the wait ends.
   class PythonThreadTaskScheduler : public KernelThreadTaskScheduler {
   public:
-    PythonThreadTaskScheduler(LocalPythonProcessor *_pyproc,
-			      CoreReservation& _core_rsrv);
+    PythonThreadTaskScheduler(LocalPythonProcessor *_pyproc, CoreReservation &_core_rsrv);
 
     // entry point for python worker threads - falls through to scheduler_loop
     void python_scheduler_loop(void);
@@ -243,7 +243,7 @@ namespace Realm {
     // both real and internal tasks need to be wrapped with acquires of the GIL
     virtual bool execute_task(Task *task);
     virtual void execute_internal_task(InternalTask *task);
-    
+
     virtual Thread *worker_create(bool make_active);
     virtual void worker_terminate(Thread *switch_to);
 

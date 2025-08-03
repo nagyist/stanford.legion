@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +27,13 @@
 #include <string.h>
 
 namespace Realm {
-    
+
   ////////////////////////////////////////////////////////////////////////
   //
   // class shortstringbuf<I,E>
 
   template <size_t I, size_t E>
-  inline shortstringbuf<I,E>::shortstringbuf()
+  inline shortstringbuf<I, E>::shortstringbuf()
     : external_buffer(0)
     , external_buffer_size(0)
   {
@@ -39,26 +41,27 @@ namespace Realm {
   }
 
   template <size_t I, size_t E>
-  inline shortstringbuf<I,E>::~shortstringbuf()
+  inline shortstringbuf<I, E>::~shortstringbuf()
   {
     if(external_buffer)
       free(external_buffer);
   }
 
   template <size_t I, size_t E>
-  inline const char *shortstringbuf<I,E>::data() const
+  inline const char *shortstringbuf<I, E>::data() const
   {
     return (external_buffer ? external_buffer : internal_buffer);
   }
 
   template <size_t I, size_t E>
-  inline size_t shortstringbuf<I,E>::size() const
+  inline size_t shortstringbuf<I, E>::size() const
   {
     return pptr() - data();
   }
 
   template <size_t I, size_t E>
-  inline typename shortstringbuf<I,E>::int_type shortstringbuf<I,E>::overflow(typename shortstringbuf<I,E>::int_type c)
+  inline typename shortstringbuf<I, E>::int_type
+  shortstringbuf<I, E>::overflow(typename shortstringbuf<I, E>::int_type c)
   {
     size_t curlen;
     if(external_buffer) {
@@ -84,7 +87,6 @@ namespace Realm {
     return 0;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class DeferredConstructor<T>
@@ -97,7 +99,8 @@ namespace Realm {
   template <typename T>
   DeferredConstructor<T>::~DeferredConstructor()
   {
-    if(ptr) ptr->~T();
+    if(ptr)
+      ptr->~T();
   }
 
   template <typename T>
@@ -122,7 +125,7 @@ namespace Realm {
   }
 
   template <typename T>
-  T& DeferredConstructor<T>::operator*()
+  T &DeferredConstructor<T>::operator*()
   {
 #ifdef DEBUG_REALM
     assert(ptr != 0);
@@ -140,7 +143,7 @@ namespace Realm {
   }
 
   template <typename T>
-  const T& DeferredConstructor<T>::operator*() const
+  const T &DeferredConstructor<T>::operator*() const
   {
 #ifdef DEBUG_REALM
     assert(ptr != 0);
@@ -156,7 +159,6 @@ namespace Realm {
 #endif
     return ptr;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -184,7 +186,7 @@ namespace Realm {
     if(_BITS < (8 * sizeof(T))) {
       T mask = ((T(1) << _BITS) - 1);
       if(_SHIFT > 0)
-	mask <<= _SHIFT;
+        mask <<= _SHIFT;
       field &= mask;
       target &= ~mask;
       target |= field;
@@ -209,7 +211,6 @@ namespace Realm {
     return (target | field);
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class bitpack<T>
@@ -221,7 +222,7 @@ namespace Realm {
   }
 
   template <typename T>
-  inline bitpack<T>::bitpack(const bitpack<T>& copy_from)
+  inline bitpack<T>::bitpack(const bitpack<T> &copy_from)
     : value(copy_from.value)
   {}
 
@@ -231,14 +232,14 @@ namespace Realm {
   {}
 
   template <typename T>
-  inline bitpack<T>& bitpack<T>::operator=(const bitpack<T>& copy_from)
+  inline bitpack<T> &bitpack<T>::operator=(const bitpack<T> &copy_from)
   {
     value = copy_from.value;
     return *this;
   }
 
   template <typename T>
-  inline bitpack<T>& bitpack<T>::operator=(T new_val)
+  inline bitpack<T> &bitpack<T>::operator=(T new_val)
   {
     value = new_val;
     return *this;
@@ -259,25 +260,27 @@ namespace Realm {
 
   template <typename T>
   template <typename BITFIELD>
-  inline typename bitpack<T>::template constbitsliceref<BITFIELD> bitpack<T>::slice() const
+  inline typename bitpack<T>::template constbitsliceref<BITFIELD>
+  bitpack<T>::slice() const
   {
     return constbitsliceref<BITFIELD>(value);
   }
 
   template <typename T>
   template <typename BITFIELD>
-  inline typename bitpack<T>::template bitsliceref<BITFIELD> bitpack<T>::operator[](const BITFIELD& bitfield)
+  inline typename bitpack<T>::template bitsliceref<BITFIELD>
+  bitpack<T>::operator[](const BITFIELD &bitfield)
   {
     return bitsliceref<BITFIELD>(value);
   }
 
   template <typename T>
   template <typename BITFIELD>
-  inline typename bitpack<T>::template constbitsliceref<BITFIELD> bitpack<T>::operator[](const BITFIELD& bitfield) const
+  inline typename bitpack<T>::template constbitsliceref<BITFIELD>
+  bitpack<T>::operator[](const BITFIELD &bitfield) const
   {
     return constbitsliceref<BITFIELD>(value);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -285,7 +288,7 @@ namespace Realm {
 
   template <typename T>
   template <typename BITFIELD>
-  inline bitpack<T>::bitsliceref<BITFIELD>::bitsliceref(T& _target)
+  inline bitpack<T>::bitsliceref<BITFIELD>::bitsliceref(T &_target)
     : target(_target)
   {}
 
@@ -298,7 +301,8 @@ namespace Realm {
 
   template <typename T>
   template <typename BITFIELD>
-  inline typename bitpack<T>::template bitsliceref<BITFIELD>& bitpack<T>::bitsliceref<BITFIELD>::operator=(T field)
+  inline typename bitpack<T>::template bitsliceref<BITFIELD> &
+  bitpack<T>::bitsliceref<BITFIELD>::operator=(T field)
   {
     target = BITFIELD::insert(target, field);
     return *this;
@@ -306,12 +310,12 @@ namespace Realm {
 
   template <typename T>
   template <typename BITFIELD>
-  inline typename bitpack<T>::template bitsliceref<BITFIELD>& bitpack<T>::bitsliceref<BITFIELD>::operator|=(T field)
+  inline typename bitpack<T>::template bitsliceref<BITFIELD> &
+  bitpack<T>::bitsliceref<BITFIELD>::operator|=(T field)
   {
     target = BITFIELD::bit_or(target, field);
     return *this;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -319,7 +323,7 @@ namespace Realm {
 
   template <typename T>
   template <typename BITFIELD>
-  inline bitpack<T>::constbitsliceref<BITFIELD>::constbitsliceref(const T& _target)
+  inline bitpack<T>::constbitsliceref<BITFIELD>::constbitsliceref(const T &_target)
     : target(_target)
   {}
 
@@ -330,45 +334,51 @@ namespace Realm {
     return BITFIELD::extract(target);
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class PrettyVector<T>
 
   template <typename T>
   inline PrettyVector<T>::PrettyVector(const T *_data, size_t _size,
-				       const char *_delim /*= ", "*/,
-				       const char *_pfx /*= "["*/,
-				       const char *_sfx /*= "]"*/)
-    : data(_data), size(_size), delim(_delim), pfx(_pfx), sfx(_sfx)
-  {}
-
-  template <typename T> template<typename Container>
-  inline PrettyVector<T>::PrettyVector(const Container& _v,
-				       const char *_delim /*= ", "*/,
-				       const char *_pfx /*= "["*/,
-				       const char *_sfx /*= "]"*/)
-    : data(_v.data()), size(_v.size()), delim(_delim), pfx(_pfx), sfx(_sfx)
+                                       const char *_delim /*= ", "*/,
+                                       const char *_pfx /*= "["*/,
+                                       const char *_sfx /*= "]"*/)
+    : data(_data)
+    , size(_size)
+    , delim(_delim)
+    , pfx(_pfx)
+    , sfx(_sfx)
   {}
 
   template <typename T>
-  inline void PrettyVector<T>::print(std::ostream& os) const
+  template <typename Container>
+  inline PrettyVector<T>::PrettyVector(const Container &_v, const char *_delim /*= ", "*/,
+                                       const char *_pfx /*= "["*/,
+                                       const char *_sfx /*= "]"*/)
+    : data(_v.data())
+    , size(_v.size())
+    , delim(_delim)
+    , pfx(_pfx)
+    , sfx(_sfx)
+  {}
+
+  template <typename T>
+  inline void PrettyVector<T>::print(std::ostream &os) const
   {
     os << pfx;
     if(size > 0) {
       os << data[0];
       for(size_t i = 1; i < size; i++)
-	os << delim << data[i];
+        os << delim << data[i];
     }
     os << sfx;
   }
 
   template <typename T>
-  inline std::ostream& operator<<(std::ostream& os, const PrettyVector<T>& pv)
+  inline std::ostream &operator<<(std::ostream &os, const PrettyVector<T> &pv)
   {
     pv.print(os);
     return os;
   }
-  
 
 }; // namespace Realm

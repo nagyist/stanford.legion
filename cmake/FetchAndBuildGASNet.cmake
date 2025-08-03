@@ -109,7 +109,7 @@ if(GASNET_BUILD_NEEDED)
   if(GASNET_BUILD_STATUS)
     message(FATAL_ERROR "GASNet build result = ${GASNET_BUILD_STATUS} - see ${GASNet_BUILD_OUTPUT} for more details")
   endif()
-  set(GASNet_ROOT_DIR ${GASNet_INSTALL_DIR} CACHE STRING "Root directory for GASNet" FORCE)
+  set(GASNet_ROOT ${GASNet_INSTALL_DIR} CACHE STRING "Root directory for GASNet" FORCE)
 
   if (GASNet_INSTALL)
     # This will package the full installation of gasnet into the install prefix at install time.

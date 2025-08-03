@@ -1,5 +1,6 @@
-
-/* Copyright 2024 NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +32,8 @@ using namespace Realm;
 
 Logger log_app("app");
 
-enum {
+enum
+{
   TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   GPU_TASK,
   GPU_TASK_WITH_STREAM,
@@ -43,8 +45,8 @@ void gpu_kernel_wrapper(cudaStream_t stream = 0);
 void gpu_kernel_wrapper(hipStream_t stream = 0);
 #endif
 
-void gpu_task(const void *args, size_t arglen, const void *userdata,
-                    size_t userlen, Processor p) 
+void gpu_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+              Processor p)
 {
   log_app.print() << "Hello from GPU task";
 #ifdef REALM_USE_CUDA
@@ -59,10 +61,10 @@ void gpu_task(const void *args, size_t arglen, const void *userdata,
 
 #ifdef REALM_USE_CUDA
 void gpu_task_with_stream(const void *args, size_t arglen, const void *userdata,
-                          size_t userlen, Processor p, cudaStream_t stream) 
+                          size_t userlen, Processor p, cudaStream_t stream)
 #else
 void gpu_task_with_stream(const void *args, size_t arglen, const void *userdata,
-                          size_t userlen, Processor p, hipStream_t stream) 
+                          size_t userlen, Processor p, hipStream_t stream)
 #endif
 {
   log_app.print() << "Hello from GPU task with stream " << stream;
@@ -77,11 +79,12 @@ void gpu_task_with_stream(const void *args, size_t arglen, const void *userdata,
   gpu_kernel_wrapper(stream);
 }
 
-void top_level_task(const void *args, size_t arglen, const void *userdata,
-               size_t userlen, Processor p) 
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   Processor gpu = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::TOC_PROC).first();
+                      .only_kind(Processor::TOC_PROC)
+                      .first();
   assert(gpu.exists());
 
   gpu.spawn(GPU_TASK, NULL, 0).wait();
@@ -89,31 +92,27 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
   gpu.spawn(GPU_TASK_WITH_STREAM, NULL, 0).wait();
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
   Runtime rt;
   rt.init(&argc, &argv);
-  
-  Processor::register_task_by_kind(Processor::LOC_PROC, false /*!global*/,
-                                   TOP_LEVEL_TASK,
-                                   CodeDescriptor(top_level_task),
-                                   ProfilingRequestSet(),
-                                   0, 0).wait();
-  Processor::register_task_by_kind(Processor::TOC_PROC, false /*!global*/,
-                                   GPU_TASK,
-                                   CodeDescriptor(gpu_task),
-                                   ProfilingRequestSet(),
-                                   0, 0).wait();
-  Processor::register_task_by_kind(Processor::TOC_PROC, false /*!global*/,
-                                   GPU_TASK_WITH_STREAM,
-                                   CodeDescriptor(gpu_task_with_stream),
-                                   ProfilingRequestSet(),
-                                   0, 0).wait();
+
+  Processor::register_task_by_kind(Processor::LOC_PROC, false /*!global*/, TOP_LEVEL_TASK,
+                                   CodeDescriptor(top_level_task), ProfilingRequestSet(),
+                                   0, 0)
+      .wait();
+  Processor::register_task_by_kind(Processor::TOC_PROC, false /*!global*/, GPU_TASK,
+                                   CodeDescriptor(gpu_task), ProfilingRequestSet(), 0, 0)
+      .wait();
+  Processor::register_task_by_kind(
+      Processor::TOC_PROC, false /*!global*/, GPU_TASK_WITH_STREAM,
+      CodeDescriptor(gpu_task_with_stream), ProfilingRequestSet(), 0, 0)
+      .wait();
 
   // select a processor to run the cpu task
   Processor p = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::LOC_PROC)
-    .first();
+                    .only_kind(Processor::LOC_PROC)
+                    .first();
   assert(p.exists());
 
   Event e = rt.collective_spawn(p, TOP_LEVEL_TASK, 0, 0);

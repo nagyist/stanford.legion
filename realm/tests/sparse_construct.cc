@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // tests the ability of realm to clumpify pieces of a sparse index space
 //  (i.e. find points/subrectangles that can be grouped into larger
 //  subrectangles) - the number of subrectangles needed to describe any
@@ -26,47 +43,44 @@ using namespace Realm;
 Logger log_app("app");
 
 // Task IDs, some IDs are reserved so start at first available number
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   DYNAMIC_TASK_START
 };
 
 namespace TestConfig {
-  unsigned dim_mask = 7; // i.e. 1-D, 2-D, 3-D
+  unsigned dim_mask = 7;  // i.e. 1-D, 2-D, 3-D
   unsigned type_mask = 3; // i.e. int, long long
   int log2_maxgrid = 8;
   int random_tests = 200;
   int random_seed = 12345;
   int max_holes = 3;
   bool verbose = false;
-};
+}; // namespace TestConfig
 
 class PRNG {
 public:
   typedef Philox_2x32<> PRNGBase;
 
   PRNG(uint32_t _seed, uint32_t _stream)
-    : seed(_seed), stream(_stream), counter(0)
+    : seed(_seed)
+    , stream(_stream)
+    , counter(0)
   {}
 
-  uint32_t rand_int(uint32_t n)
-  {
-    return PRNGBase::rand_int(seed, stream, counter++, n);
-  }
+  uint32_t rand_int(uint32_t n) { return PRNGBase::rand_int(seed, stream, counter++, n); }
 
-  uint64_t rand_raw()
-  {
-    return PRNGBase::rand_raw(seed, stream, counter++);
-  }
+  uint64_t rand_raw() { return PRNGBase::rand_raw(seed, stream, counter++); }
 
 protected:
   uint32_t seed, stream, counter;
 };
 
 template <int N, typename T, typename T2>
-bool check_space(int seed, int subcase, const Rect<N,T>& grid_size,
-                 const std::vector<T2>& pts_or_rects, IndexSpace<N,T> is,
-                 size_t exp_volume, const Rect<N,T>& exp_bounds, size_t max_pieces)
+bool check_space(int seed, int subcase, const Rect<N, T> &grid_size,
+                 const std::vector<T2> &pts_or_rects, IndexSpace<N, T> is,
+                 size_t exp_volume, const Rect<N, T> &exp_bounds, size_t max_pieces)
 {
   bool ok = true;
 
@@ -78,7 +92,7 @@ bool check_space(int seed, int subcase, const Rect<N,T>& grid_size,
     ok = false;
   }
 
-  Rect<N,T> act_bounds = is.bounds;
+  Rect<N, T> act_bounds = is.bounds;
   if(act_bounds != exp_bounds) {
     log_app.error() << "bounds mismatch: seed=" << seed << " subcase=" << subcase
                     << " is=" << is << " expected=" << exp_bounds
@@ -87,7 +101,7 @@ bool check_space(int seed, int subcase, const Rect<N,T>& grid_size,
   }
 
   size_t act_pieces = 0;
-  for(IndexSpaceIterator<N,T> it(is); it.valid; it.step())
+  for(IndexSpaceIterator<N, T> it(is); it.valid; it.step())
     act_pieces++;
   if(act_pieces > max_pieces) {
     log_app.error() << "pieces mismatch: seed=" << seed << " subcase=" << subcase
@@ -98,9 +112,9 @@ bool check_space(int seed, int subcase, const Rect<N,T>& grid_size,
 
   if(!ok && TestConfig::verbose) {
     log_app.warning() << " computed rects: ";
-    for(IndexSpaceIterator<N,T> it(is); it.valid; it.step())
+    for(IndexSpaceIterator<N, T> it(is); it.valid; it.step())
       log_app.warning() << "  " << it.rect;
-    
+
     log_app.warning() << " original pts/rects: " << PrettyVector<T2>(pts_or_rects);
   }
 
@@ -108,7 +122,7 @@ bool check_space(int seed, int subcase, const Rect<N,T>& grid_size,
 }
 
 template <typename T>
-void random_permute(std::vector<T>& v, PRNG& prng)
+void random_permute(std::vector<T> &v, PRNG &prng)
 {
   size_t n = v.size();
   for(size_t i = 0; i < n; i++) {
@@ -122,7 +136,7 @@ void random_permute(std::vector<T>& v, PRNG& prng)
 }
 
 template <typename T>
-bool in_list(const T& val, const std::vector<T>& vec)
+bool in_list(const T &val, const std::vector<T> &vec)
 {
   for(size_t i = 0; i < vec.size(); i++)
     if(val == vec[i])
@@ -135,11 +149,12 @@ bool test_case(int seed)
 {
   // figure out the grid we'll operate on
   PRNG prng_grid(seed, 0);
-  Rect<N,T> grid_size;
+  Rect<N, T> grid_size;
   for(int i = 0; i < N; i++) {
     grid_size.lo[i] = 0;
-    grid_size.hi[i] = prng_grid.rand_int(1 << ((TestConfig::log2_maxgrid / N) +
-                                               ((i < (TestConfig::log2_maxgrid % N)) ? 1 : 0)));
+    grid_size.hi[i] =
+        prng_grid.rand_int(1 << ((TestConfig::log2_maxgrid / N) +
+                                 ((i < (TestConfig::log2_maxgrid % N)) ? 1 : 0)));
   }
 
   // each grid point corresponds to a subrectangle in T^N
@@ -156,12 +171,14 @@ bool test_case(int seed)
       std::sort(grid_coords[i].begin(), grid_coords[i].end());
       bool ok = true;
       for(int j = 0; j < (grid_size.hi[i] + 1); j++)
-        if(grid_coords[i][j] == grid_coords[i][j+1]) ok = false;
-      if(ok) break;
+        if(grid_coords[i][j] == grid_coords[i][j + 1])
+          ok = false;
+      if(ok)
+        break;
     }
   }
 
-  Rect<N,T> exp_bounds;
+  Rect<N, T> exp_bounds;
   for(int i = 0; i < N; i++) {
     exp_bounds.lo[i] = grid_coords[i][0];
     exp_bounds.hi[i] = grid_coords[i][grid_size.hi[i] + 1] - 1;
@@ -172,7 +189,7 @@ bool test_case(int seed)
 
   // now decide on holes
   size_t num_holes = prng_grid.rand_int(TestConfig::max_holes);
-  std::vector<Point<N,T> > holes;  // using grid indices, not coords!
+  std::vector<Point<N, T>> holes; // using grid indices, not coords!
   holes.reserve(num_holes);
   for(size_t i = 0; i < num_holes; i++) {
     // pick a random point that isn't the lo, hi, or one we've already chosen
@@ -187,7 +204,7 @@ bool test_case(int seed)
 
         exp_pt_volume -= 1;
         {
-          Rect<N,T> r;
+          Rect<N, T> r;
           for(int k = 0; k < N; k++) {
             r.lo[k] = grid_coords[k][p[k]];
             r.hi[k] = grid_coords[k][p[k] + 1] - 1;
@@ -208,32 +225,32 @@ bool test_case(int seed)
   // first test: individual points, no duplicates
   {
     PRNG prng_pts(seed, 1);
-    std::vector<Point<N,T> > pts;
-    for(PointInRectIterator<N,T> it(grid_size); it.valid; it.step())
+    std::vector<Point<N, T>> pts;
+    for(PointInRectIterator<N, T> it(grid_size); it.valid; it.step())
       if(!in_list(it.p, holes)) {
-        Point<N,T> p;
+        Point<N, T> p;
         for(int i = 0; i < N; i++)
           p[i] = /*grid_coords[i][0] +*/ it.p[i];
         pts.push_back(p);
       }
     random_permute(pts, prng_pts);
-    IndexSpace<N,T> is(pts, true /*disjoint*/);
+    IndexSpace<N, T> is(pts, true /*disjoint*/);
     // each hole should require at most 2N-1 more subrectangles to describe
     //  its absense (i.e. one subrectangle for each of the 2N planes, minus
     //  the one we were already planning to use)
     size_t max_pieces = 1 + num_holes * (2 * N - 1);
-    if(!check_space(seed, 1, grid_size, pts, is,
-                    exp_pt_volume, grid_size, max_pieces)) return false;
+    if(!check_space(seed, 1, grid_size, pts, is, exp_pt_volume, grid_size, max_pieces))
+      return false;
     is.destroy();
   }
 
   // second test: individual rectangles, no duplicates
   {
     PRNG prng_pts(seed, 2);
-    std::vector<Rect<N,T> > rects;
-    for(PointInRectIterator<N,T> it(grid_size); it.valid; it.step())
+    std::vector<Rect<N, T>> rects;
+    for(PointInRectIterator<N, T> it(grid_size); it.valid; it.step())
       if(!in_list(it.p, holes)) {
-        Rect<N,T> r;
+        Rect<N, T> r;
         for(int i = 0; i < N; i++) {
           r.lo[i] = grid_coords[i][it.p[i]];
           r.hi[i] = grid_coords[i][it.p[i] + 1] - 1;
@@ -241,7 +258,7 @@ bool test_case(int seed)
         rects.push_back(r);
       }
     random_permute(rects, prng_pts);
-    IndexSpace<N,T> is(rects, true /*disjoint*/);
+    IndexSpace<N, T> is(rects, true /*disjoint*/);
     size_t max_pieces;
     if(N == 1) {
       // each hole should require at most 2N-1 more subrectangles to describe
@@ -253,8 +270,9 @@ bool test_case(int seed)
       //  know that everything will coalesce into the minimal number of rectangles
       max_pieces = rects.size();
     }
-    if(!check_space(seed, 1, grid_size, rects, is,
-                    exp_rect_volume, exp_bounds, max_pieces)) return false;
+    if(!check_space(seed, 1, grid_size, rects, is, exp_rect_volume, exp_bounds,
+                    max_pieces))
+      return false;
     is.destroy();
   }
 
@@ -262,27 +280,28 @@ bool test_case(int seed)
 }
 
 template <int N, typename T>
-bool test_dim_and_type(int& seed)
+bool test_dim_and_type(int &seed)
 {
   for(int i = 0; i < TestConfig::random_tests; i++) {
-    if(!test_case<N,T>(seed++)) return false;
+    if(!test_case<N, T>(seed++))
+      return false;
   }
 
   return true;
 }
 
 template <int N>
-bool test_dim(int& seed)
+bool test_dim(int &seed)
 {
-  if(((TestConfig::type_mask & 1) != 0) && !test_dim_and_type<N,int>(seed))
+  if(((TestConfig::type_mask & 1) != 0) && !test_dim_and_type<N, int>(seed))
     return false;
-  if(((TestConfig::type_mask & 2) != 0) && !test_dim_and_type<N,long long>(seed))
+  if(((TestConfig::type_mask & 2) != 0) && !test_dim_and_type<N, long long>(seed))
     return false;
   return true;
 }
 
-void top_level_task(const void *args, size_t arglen, 
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   log_app.print() << "Realm sparse index space construction test";
 
@@ -302,8 +321,7 @@ void top_level_task(const void *args, size_t arglen,
   else
     log_app.error() << "sparse_construct test finished with errors!";
 
-  Runtime::get_runtime().shutdown(Processor::get_current_finish_event(),
-				  ok ? 0 : 1);
+  Runtime::get_runtime().shutdown(Processor::get_current_finish_event(), ok ? 0 : 1);
 }
 
 int main(int argc, char **argv)
@@ -321,13 +339,13 @@ int main(int argc, char **argv)
   cp.add_option_bool("-verbose", TestConfig::verbose);
   bool ok = cp.parse_command_line(argc, const_cast<const char **>(argv));
   assert(ok);
-  
+
   rt.register_task(TOP_LEVEL_TASK, top_level_task);
 
   // select a processor to run the top level task on
   Processor p = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::LOC_PROC)
-    .first();
+                    .only_kind(Processor::LOC_PROC)
+                    .first();
   assert(p.exists());
 
   // collective launch of a single task - everybody gets the same finish event
@@ -337,6 +355,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   int result = rt.wait_for_shutdown();
-  
+
   return result;
 }

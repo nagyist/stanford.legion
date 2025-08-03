@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "realm.h"
 
 #include <cstdio>
@@ -16,18 +33,21 @@ using namespace Realm;
 Logger log_app("app");
 
 // Task IDs, some IDs are reserved so start at first available number
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   WRITER_TASK,
   READER_TASK,
   CLEANUP_TASK,
 };
 
-enum {
+enum
+{
   FID_DATA = 100,
 };
 
-enum {
+enum
+{
   REDOP_INT_ADD = 60,
 };
 
@@ -37,13 +57,19 @@ public:
   typedef int RHS;
 
   template <bool EXCL>
-  static void apply(LHS& lhs, RHS rhs) { lhs += rhs; }
+  static void apply(LHS &lhs, RHS rhs)
+  {
+    lhs += rhs;
+  }
 
   // both of these are optional
   static const RHS identity;
 
   template <bool EXCL>
-  static void fold(RHS& rhs1, RHS rhs2) { rhs1 += rhs2; }
+  static void fold(RHS &rhs1, RHS rhs2)
+  {
+    rhs1 += rhs2;
+  }
 };
 
 const ReductionOpIntAdd::RHS ReductionOpIntAdd::identity = 0;
@@ -60,10 +86,10 @@ struct ReaderTaskArgs {
   int rdval;
 };
 
-void writer_task(const void *args, size_t arglen, 
-		 const void *userdata, size_t userlen, Processor p)
+void writer_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                 Processor p)
 {
-  const WriterTaskArgs& wargs = *reinterpret_cast<const WriterTaskArgs *>(args);
+  const WriterTaskArgs &wargs = *reinterpret_cast<const WriterTaskArgs *>(args);
   AffineAccessor<int, 1> acc(wargs.inst, FID_DATA);
   for(IndexSpaceIterator<1> it(wargs.is); it.valid; it.step())
     for(PointInRectIterator<1> it2(it.rect); it2.valid; it2.step()) {
@@ -73,19 +99,19 @@ void writer_task(const void *args, size_t arglen,
 
 int correct = 0;
 
-void reader_task(const void *args, size_t arglen, 
-		 const void *userdata, size_t userlen, Processor p)
+void reader_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                 Processor p)
 {
-  const ReaderTaskArgs& rargs = *reinterpret_cast<const ReaderTaskArgs *>(args);
+  const ReaderTaskArgs &rargs = *reinterpret_cast<const ReaderTaskArgs *>(args);
   AffineAccessor<int, 1> acc(rargs.inst, FID_DATA);
   for(IndexSpaceIterator<1> it(rargs.is); it.valid; it.step())
     for(PointInRectIterator<1> it2(it.rect); it2.valid; it2.step()) {
       int expval = it2.p[0] + rargs.rdval;
       int actval = acc[it2.p];
       if(expval == actval)
-	correct++;
+        correct++;
       else
-	log_app.error() << "MISMATCH: " << it2.p << ": " << actval << " != " << expval;
+        log_app.error() << "MISMATCH: " << it2.p << ": " << actval << " != " << expval;
     }
 }
 
@@ -105,10 +131,10 @@ struct SubgraphArgs {
   int arr_inc;
 };
 
-void cleanup_task(const void *args, size_t arglen,
-		    const void *userdata, size_t userlen, Processor p)
+void cleanup_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                  Processor p)
 {
-  const CleanupTaskArgs& cta = *static_cast<const CleanupTaskArgs *>(args);
+  const CleanupTaskArgs &cta = *static_cast<const CleanupTaskArgs *>(args);
 
   SubgraphArgs sg_args;
   sg_args.rdwr_val = 200;
@@ -118,11 +144,8 @@ void cleanup_task(const void *args, size_t arglen,
   //  uses a global precondition
   std::vector<Event> preconditions;
   std::vector<Event> postconditions(1);
-  Event e = cta.subgraph.instantiate(&sg_args, sizeof(sg_args),
-				     ProfilingRequestSet(),
-				     preconditions,
-				     postconditions,
-				     cta.precond);
+  Event e = cta.subgraph.instantiate(&sg_args, sizeof(sg_args), ProfilingRequestSet(),
+                                     preconditions, postconditions, cta.precond);
 
   // technically e already dominates postconditions[0], but do this to make
   //  sure the external postcondition actually triggers
@@ -141,16 +164,15 @@ template <typename T, typename U>
 static size_t compute_offset(U T::*field_ptr)
 {
   T thing;
-  size_t ofs = (reinterpret_cast<size_t>(&(thing.*field_ptr)) -
-		reinterpret_cast<size_t>(&thing));
+  size_t ofs =
+      (reinterpret_cast<size_t>(&(thing.*field_ptr)) - reinterpret_cast<size_t>(&thing));
   return ofs;
 }
 
-#define OFFSETOF(type, field) \
-  compute_offset<type>(&type::field)
+#define OFFSETOF(type, field) compute_offset<type>(&type::field)
 
-void top_level_task(const void *args, size_t arglen, 
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   log_app.print() << "Realm subgraphs test";
 
@@ -164,12 +186,10 @@ void top_level_task(const void *args, size_t arglen,
   field_sizes[FID_DATA] = sizeof(int);
 
   Event e = RegionInstance::create_instance(inst1, m, is, field_sizes,
-					    0 /*block_size=SOA*/,
-					    ProfilingRequestSet());
+                                            0 /*block_size=SOA*/, ProfilingRequestSet());
 
-  e = RegionInstance::create_instance(inst2, m, is, field_sizes,
-				      0 /*block_size=SOA*/,
-				      ProfilingRequestSet(), e);
+  e = RegionInstance::create_instance(inst2, m, is, field_sizes, 0 /*block_size=SOA*/,
+                                      ProfilingRequestSet(), e);
 
   // immediate mode - no subgraph
   WriterTaskArgs w_args;
@@ -188,7 +208,7 @@ void top_level_task(const void *args, size_t arglen,
   r_args.inst = inst2;
   r_args.rdval = 5;
   e = p.spawn(READER_TASK, &r_args, sizeof(r_args), e);
- 
+
   e.wait();
 
   // create an inner subgraph that just does a barrier arrival
@@ -205,28 +225,27 @@ void top_level_task(const void *args, size_t arglen,
     sd_inner.interpolations.resize(2);
     sd_inner.interpolations[0].offset = OFFSETOF(InnerSubgraphArgs, b);
     sd_inner.interpolations[0].bytes = sizeof(Barrier);
-    sd_inner.interpolations[0].target_kind = SubgraphDefinition::Interpolation::TARGET_ARRIVAL_BARRIER;
+    sd_inner.interpolations[0].target_kind =
+        SubgraphDefinition::Interpolation::TARGET_ARRIVAL_BARRIER;
     sd_inner.interpolations[0].target_index = 0;
     sd_inner.interpolations[0].target_offset = 0;
     sd_inner.interpolations[0].redop_id = 0;
 
     sd_inner.interpolations[1].offset = OFFSETOF(InnerSubgraphArgs, arr_value);
     sd_inner.interpolations[1].bytes = sizeof(int);
-    sd_inner.interpolations[1].target_kind = SubgraphDefinition::Interpolation::TARGET_ARRIVAL_VALUE;
+    sd_inner.interpolations[1].target_kind =
+        SubgraphDefinition::Interpolation::TARGET_ARRIVAL_VALUE;
     sd_inner.interpolations[1].target_index = 0;
     sd_inner.interpolations[1].target_offset = 0;
     sd_inner.interpolations[1].redop_id = 0;
 
-    Subgraph::create_subgraph(sg_inner,
-			      sd_inner,
-			      ProfilingRequestSet()).wait();
+    Subgraph::create_subgraph(sg_inner, sd_inner, ProfilingRequestSet()).wait();
   }
 
   Reservation rsrv = Reservation::create_reservation();
 
   int ival = 77;
-  Barrier barrier = Barrier::create_barrier(5, REDOP_INT_ADD,
-					    &ival, sizeof(ival));
+  Barrier barrier = Barrier::create_barrier(5, REDOP_INT_ADD, &ival, sizeof(ival));
 
   SubgraphDefinition sd;
   sd.tasks.resize(2);
@@ -254,7 +273,7 @@ void top_level_task(const void *args, size_t arglen,
 
   sd.acquires.resize(1);
   sd.acquires[0].rsrv = rsrv;
-  
+
   sd.releases.resize(1);
   sd.releases[0].rsrv = rsrv;
 
@@ -310,15 +329,14 @@ void top_level_task(const void *args, size_t arglen,
 
   sd.interpolations[2].offset = OFFSETOF(SubgraphArgs, arr_inc);
   sd.interpolations[2].bytes = sizeof(int);
-  sd.interpolations[2].target_kind = SubgraphDefinition::Interpolation::TARGET_INSTANCE_ARGS;
+  sd.interpolations[2].target_kind =
+      SubgraphDefinition::Interpolation::TARGET_INSTANCE_ARGS;
   sd.interpolations[2].target_index = 0;
   sd.interpolations[2].target_offset = OFFSETOF(InnerSubgraphArgs, arr_value);
   sd.interpolations[2].redop_id = REDOP_INT_ADD;
 
   Subgraph sg;
-  e = Subgraph::create_subgraph(sg,
-				sd,
-				ProfilingRequestSet());
+  e = Subgraph::create_subgraph(sg, sd, ProfilingRequestSet());
 
   std::vector<UserEvent> start_events(4);
   std::vector<Event> acquire_events(4);
@@ -330,11 +348,8 @@ void top_level_task(const void *args, size_t arglen,
     start_events[i] = UserEvent::create_user_event();
     std::vector<Event> preconds(1, start_events[i]);
     std::vector<Event> postconds(1);
-    finish_events[i] = sg.instantiate(&sg_args, sizeof(sg_args),
-				      ProfilingRequestSet(),
-				      preconds,
-				      postconds,
-				      e);
+    finish_events[i] = sg.instantiate(&sg_args, sizeof(sg_args), ProfilingRequestSet(),
+                                      preconds, postconds, e);
     acquire_events[i] = postconds[0];
   }
   e = Event::merge_events(finish_events);
@@ -356,7 +371,7 @@ void top_level_task(const void *args, size_t arglen,
   cleanup_args.subgraph_inner = sg_inner;
   cleanup_args.cleanup_done = UserEvent::create_user_event();
   lastp.spawn(CLEANUP_TASK, &cleanup_args, sizeof(CleanupTaskArgs),
-	      ProfilingRequestSet());
+              ProfilingRequestSet());
 
   // connect up start events
   start_events[0].trigger(acquire_events[1]);
@@ -378,18 +393,17 @@ void top_level_task(const void *args, size_t arglen,
   }
   if(exp_bar_value != act_bar_value) {
     log_app.error() << "barrier value mismatch: exp=" << exp_bar_value
-		    << " act=" << act_bar_value;
+                    << " act=" << act_bar_value;
     ok = false;
   }
 
-  int expcorrect = 60;  // counting the cleanup task
+  int expcorrect = 60; // counting the cleanup task
   if(expcorrect != correct) {
     log_app.error() << correct << " correct comparisons (out of " << expcorrect << ")";
     ok = false;
   }
 
-  Runtime::get_runtime().shutdown(Event::NO_EVENT,
-				  ok ? 0 : 1);
+  Runtime::get_runtime().shutdown(Event::NO_EVENT, ok ? 0 : 1);
 }
 
 int main(int argc, char **argv)
@@ -417,8 +431,8 @@ int main(int argc, char **argv)
 
   // select a processor to run the top level task on
   Processor p = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::LOC_PROC)
-    .first();
+                    .only_kind(Processor::LOC_PROC)
+                    .first();
   assert(p.exists());
 
   // collective launch of a single main task

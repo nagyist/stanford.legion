@@ -1,14 +1,17 @@
 # Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
-# in compliance with the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software distributed under the License
-# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
-# or implied. See the License for the specific language governing permissions and limitations under
-# the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 if(BUILD_SHARED_LIBS)
   set(lib_type "shared")
@@ -28,9 +31,7 @@ install(
 )
 
 # Install the realm_gex_wrapper as well if we have to link directly to it
-if(REALM_USE_GASNETEX
-   AND REALM_USE_GASNETEX_WRAPPER
-)
+if(REALM_USE_GASNETEX AND REALM_USE_GASNETEX_WRAPPER)
   install(
     TARGETS realm_gex_wrapper
     EXPORT Realm_targets
@@ -40,7 +41,7 @@ if(REALM_USE_GASNETEX
   )
 endif()
 
-if (REALM_INSTALL_UCX_BOOTSTRAPS)
+if(REALM_INSTALL_UCX_BOOTSTRAPS)
   install(
     TARGETS ${UCX_BACKENDS}
     EXPORT Realm_targets
@@ -164,13 +165,13 @@ export(PACKAGE Realm)
 if(REALM_BUILD_DOCS)
   install(
     DIRECTORY "${CMAKE_BINARY_DIR}/docs/html/"
-    DESTINATION "${CMAKE_INSTALL_DOCDIR}/realm/realm-${REALM_VERSION}"
+    DESTINATION "${CMAKE_INSTALL_DOCDIR}/realm-${REALM_VERSION}"
     COMPONENT Realm_doc
   )
   install(
     FILES "${CMAKE_CURRENT_SOURCE_DIR}/doxygen/selectversion.js"
           "${CMAKE_CURRENT_SOURCE_DIR}/doxygen/dropdown.css"
-    DESTINATION "${CMAKE_INSTALL_DOCDIR}/realm/"
+    DESTINATION "${CMAKE_INSTALL_DOCDIR}/"
     COMPONENT Realm_doc
   )
 endif()

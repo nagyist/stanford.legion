@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +22,8 @@
 
 #include "cpu_kernels.h"
 
-enum {
+enum
+{
   TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   CREATE_REGION_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 1,
   CREATE_REGION_DONE_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 2,
@@ -30,21 +33,28 @@ enum {
   CHECK_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 6,
 };
 
-enum {
+enum
+{
   REDOP_MIN = 11,
   REDOP_MAX = 12,
 };
 
-enum {
+enum
+{
   FID_INPUT = 101,
   FID_OUTPUT = 102,
 };
 
-template <typename K, typename V> class DefaultMap : public std::map<K, V> {
+template <typename K, typename V>
+class DefaultMap : public std::map<K, V> {
 public:
-  DefaultMap(const V &v) : std::map<K, V>(), def(v) {}
-  V &operator[](const K &k) {
-    if (std::map<K, V>::count(k)) {
+  DefaultMap(const V &v)
+    : std::map<K, V>()
+    , def(v)
+  {}
+  V &operator[](const K &k)
+  {
+    if(std::map<K, V>::count(k)) {
       return std::map<K, V>::operator[](k);
     } else {
       V &result = std::map<K, V>::operator[](k);
@@ -52,8 +62,9 @@ public:
       return result;
     }
   }
-  const V &operator[](const K &k) const {
-    if (std::map<K, V>::count(k)) {
+  const V &operator[](const K &k) const
+  {
+    if(std::map<K, V>::count(k)) {
       return std::map<K, V>::operator[](k);
     } else {
       return def;
@@ -67,7 +78,14 @@ private:
 struct AppConfig {
 public:
   AppConfig()
-      : nx(12), ny(12), ntx(2), nty(2), tsteps(20), tprune(5), init(1000) {}
+    : nx(12)
+    , ny(12)
+    , ntx(2)
+    , nty(2)
+    , tsteps(20)
+    , tprune(5)
+    , init(1000)
+  {}
 
 public:
   coord_t nx;
@@ -79,20 +97,22 @@ public:
   coord_t init;
 };
 
-void get_optional_arg(int argc, char **argv, const char *flag, coord_t &out) {
-  for (int i = 0; i < argc; ++i) {
-    if (strcmp(argv[i], flag) == 0) {
-      if (i + 1 < argc) {
+void get_optional_arg(int argc, char **argv, const char *flag, coord_t &out)
+{
+  for(int i = 0; i < argc; ++i) {
+    if(strcmp(argv[i], flag) == 0) {
+      if(i + 1 < argc) {
         out = atoll(argv[i + 1]);
       }
       return;
-    } else if (argv[i][0] == '-') {
+    } else if(argv[i][0] == '-') {
       i++;
     }
   }
 }
 
-AppConfig parse_config(int argc, char **argv) {
+AppConfig parse_config(int argc, char **argv)
+{
   AppConfig config;
   get_optional_arg(argc, argv, "-nx", config.nx);
   get_optional_arg(argc, argv, "-ny", config.ny);
@@ -105,51 +125,61 @@ AppConfig parse_config(int argc, char **argv) {
 }
 
 #ifdef _MSC_VER
-#define __sync_bool_compare_and_swap(ptr, old, new)                            \
+#define __sync_bool_compare_and_swap(ptr, old, new)                                      \
   _InterlockedCompareExchange64(ptr, new, old)
 #endif
 
-#define DECLARE_REDUCTION(CLASS, T, U, APPLY_OP, FOLD_OP, ID)                  \
-  class CLASS {                                                                \
-  public:                                                                      \
-    typedef T LHS, RHS;                                                        \
-    template <bool EXCLUSIVE> static void apply(LHS &lhs, RHS rhs);            \
-    template <bool EXCLUSIVE> static void fold(RHS &rhs1, RHS rhs2);           \
-    static const T identity;                                                   \
-  };                                                                           \
-                                                                               \
-  const T CLASS::identity = ID;                                                \
-                                                                               \
-  template <> void CLASS::apply<true>(LHS & lhs, RHS rhs) {                    \
-    lhs = APPLY_OP(lhs, rhs);                                                  \
-  }                                                                            \
-                                                                               \
-  template <> void CLASS::apply<false>(LHS & lhs, RHS rhs) {                   \
-    volatile U *target = (U *)&(lhs);                                          \
-    union {                                                                    \
-      U as_U;                                                                  \
-      T as_T;                                                                  \
-    } oldval, newval;                                                          \
-    do {                                                                       \
-      oldval.as_U = *target;                                                   \
-      newval.as_T = APPLY_OP(oldval.as_T, rhs);                                \
-    } while (!__sync_bool_compare_and_swap(target, oldval.as_U, newval.as_U)); \
-  }                                                                            \
-                                                                               \
-  template <> void CLASS::fold<true>(RHS & rhs1, RHS rhs2) {                   \
-    rhs1 = FOLD_OP(rhs1, rhs2);                                                \
-  }                                                                            \
-                                                                               \
-  template <> void CLASS::fold<false>(RHS & rhs1, RHS rhs2) {                  \
-    volatile U *target = (U *)&rhs1;                                           \
-    union {                                                                    \
-      U as_U;                                                                  \
-      T as_T;                                                                  \
-    } oldval, newval;                                                          \
-    do {                                                                       \
-      oldval.as_U = *target;                                                   \
-      newval.as_T = FOLD_OP(oldval.as_T, rhs2);                                \
-    } while (!__sync_bool_compare_and_swap(target, oldval.as_U, newval.as_U)); \
+#define DECLARE_REDUCTION(CLASS, T, U, APPLY_OP, FOLD_OP, ID)                            \
+  class CLASS {                                                                          \
+  public:                                                                                \
+    typedef T LHS, RHS;                                                                  \
+    template <bool EXCLUSIVE>                                                            \
+    static void apply(LHS &lhs, RHS rhs);                                                \
+    template <bool EXCLUSIVE>                                                            \
+    static void fold(RHS &rhs1, RHS rhs2);                                               \
+    static const T identity;                                                             \
+  };                                                                                     \
+                                                                                         \
+  const T CLASS::identity = ID;                                                          \
+                                                                                         \
+  template <>                                                                            \
+  void CLASS::apply<true>(LHS & lhs, RHS rhs)                                            \
+  {                                                                                      \
+    lhs = APPLY_OP(lhs, rhs);                                                            \
+  }                                                                                      \
+                                                                                         \
+  template <>                                                                            \
+  void CLASS::apply<false>(LHS & lhs, RHS rhs)                                           \
+  {                                                                                      \
+    volatile U *target = (U *)&(lhs);                                                    \
+    union {                                                                              \
+      U as_U;                                                                            \
+      T as_T;                                                                            \
+    } oldval, newval;                                                                    \
+    do {                                                                                 \
+      oldval.as_U = *target;                                                             \
+      newval.as_T = APPLY_OP(oldval.as_T, rhs);                                          \
+    } while(!__sync_bool_compare_and_swap(target, oldval.as_U, newval.as_U));            \
+  }                                                                                      \
+                                                                                         \
+  template <>                                                                            \
+  void CLASS::fold<true>(RHS & rhs1, RHS rhs2)                                           \
+  {                                                                                      \
+    rhs1 = FOLD_OP(rhs1, rhs2);                                                          \
+  }                                                                                      \
+                                                                                         \
+  template <>                                                                            \
+  void CLASS::fold<false>(RHS & rhs1, RHS rhs2)                                          \
+  {                                                                                      \
+    volatile U *target = (U *)&rhs1;                                                     \
+    union {                                                                              \
+      U as_U;                                                                            \
+      T as_T;                                                                            \
+    } oldval, newval;                                                                    \
+    do {                                                                                 \
+      oldval.as_U = *target;                                                             \
+      newval.as_T = FOLD_OP(oldval.as_T, rhs2);                                          \
+    } while(!__sync_bool_compare_and_swap(target, oldval.as_U, newval.as_U));            \
   }
 
 DECLARE_REDUCTION(RedopMin, long long, long long, std::min, std::min, LLONG_MAX)
@@ -157,7 +187,8 @@ DECLARE_REDUCTION(RedopMax, long long, long long, std::max, std::max, LLONG_MIN)
 
 #undef DECLARE_REDUCTION
 
-Event fill(RegionInstance inst, FieldID fid, DTYPE value) {
+Event fill(RegionInstance inst, FieldID fid, DTYPE value)
+{
   CopySrcDstField field;
   field.inst = inst;
   field.field_id = fid;
@@ -166,12 +197,12 @@ Event fill(RegionInstance inst, FieldID fid, DTYPE value) {
   std::vector<CopySrcDstField> fields;
   fields.push_back(field);
 
-  return inst.get_indexspace<2, coord_t>().fill(fields, ProfilingRequestSet(),
-                                                &value, sizeof(value));
+  return inst.get_indexspace<2, coord_t>().fill(fields, ProfilingRequestSet(), &value,
+                                                sizeof(value));
 }
 
-Event copy(RegionInstance src_inst, RegionInstance dst_inst, FieldID fid,
-           Event wait_for) {
+Event copy(RegionInstance src_inst, RegionInstance dst_inst, FieldID fid, Event wait_for)
+{
   CopySrcDstField src_field;
   src_field.inst = src_inst;
   src_field.field_id = fid;
@@ -188,42 +219,41 @@ Event copy(RegionInstance src_inst, RegionInstance dst_inst, FieldID fid,
   std::vector<CopySrcDstField> dst_fields;
   dst_fields.push_back(dst_field);
 
-  return dst_inst.get_indexspace<2, coord_t>().copy(
-      src_fields, dst_fields, ProfilingRequestSet(), wait_for);
+  return dst_inst.get_indexspace<2, coord_t>().copy(src_fields, dst_fields,
+                                                    ProfilingRequestSet(), wait_for);
 }
 
-void get_base_and_stride(RegionInstance inst, FieldID fid, DTYPE *&base,
-                         size_t &stride) {
-  AffineAccessor<DTYPE, 2, coord_t> acc =
-      AffineAccessor<DTYPE, 2, coord_t>(inst, fid);
-  base = reinterpret_cast<DTYPE *>(
-      acc.ptr(inst.get_indexspace<2, coord_t>().bounds.lo));
+void get_base_and_stride(RegionInstance inst, FieldID fid, DTYPE *&base, size_t &stride)
+{
+  AffineAccessor<DTYPE, 2, coord_t> acc = AffineAccessor<DTYPE, 2, coord_t>(inst, fid);
+  base = reinterpret_cast<DTYPE *>(acc.ptr(inst.get_indexspace<2, coord_t>().bounds.lo));
   assert(acc.strides[0] == sizeof(DTYPE));
   stride = acc.strides[1];
 }
 
-void dump(RegionInstance inst, FieldID fid, Rect2 bounds, const char *prefix) {
-  AffineAccessor<DTYPE, 2, coord_t> acc =
-      AffineAccessor<DTYPE, 2, coord_t>(inst, fid);
-  for (PointInRectIterator<2, coord_t> it(bounds); it.valid; it.step()) {
-    printf("%s: %2lld %2lld value %8.3f\n", prefix, it.p[0], it.p[1],
-           acc.read(it.p));
+void dump(RegionInstance inst, FieldID fid, Rect2 bounds, const char *prefix)
+{
+  AffineAccessor<DTYPE, 2, coord_t> acc = AffineAccessor<DTYPE, 2, coord_t>(inst, fid);
+  for(PointInRectIterator<2, coord_t> it(bounds); it.valid; it.step()) {
+    printf("%s: %2lld %2lld value %8.3f\n", prefix, it.p[0], it.p[1], acc.read(it.p));
   }
 }
 
 void inline_copy(RegionInstance src_inst, RegionInstance dst_inst, FieldID fid,
-                 Rect2 bounds) {
+                 Rect2 bounds)
+{
   AffineAccessor<DTYPE, 2, coord_t> src_acc =
       AffineAccessor<DTYPE, 2, coord_t>(src_inst, fid);
   AffineAccessor<DTYPE, 2, coord_t> dst_acc =
       AffineAccessor<DTYPE, 2, coord_t>(dst_inst, fid);
-  for (PointInRectIterator<2, coord_t> it(bounds); it.valid; it.step()) {
+  for(PointInRectIterator<2, coord_t> it(bounds); it.valid; it.step()) {
     dst_acc.write(it.p, src_acc.read(it.p));
   }
 }
 
-void inline_copy_raw(RegionInstance src_inst, RegionInstance dst_inst,
-                     FieldID fid, Rect2 bounds) {
+void inline_copy_raw(RegionInstance src_inst, RegionInstance dst_inst, FieldID fid,
+                     Rect2 bounds)
+{
   // FIXME: Something is still wrong in the index arithmetic here
 
   AffineAccessor<DTYPE, 2, coord_t> src_acc =
@@ -251,8 +281,9 @@ void inline_copy_raw(RegionInstance src_inst, RegionInstance dst_inst,
          dst_stride / sizeof(DTYPE), dst_offset[0], dst_offset[1]);
 }
 
-void stencil_task(const void *args, size_t arglen, const void *userdata,
-                  size_t userlen, Processor p) {
+void stencil_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                  Processor p)
+{
   assert(arglen == sizeof(StencilArgs));
   const StencilArgs &a = *reinterpret_cast<const StencilArgs *>(args);
 
@@ -266,19 +297,18 @@ void stencil_task(const void *args, size_t arglen, const void *userdata,
 
   Rect2 private_bounds = a.private_inst.get_indexspace<2, coord_t>().bounds;
   Point2 interior_offset = a.interior_bounds.lo - private_bounds.lo;
-  Point2 interior_size =
-      a.interior_bounds.hi - a.interior_bounds.lo + Point2(1, 1);
+  Point2 interior_size = a.interior_bounds.hi - a.interior_bounds.lo + Point2(1, 1);
 
-  if (a.xp_inst.exists())
+  if(a.xp_inst.exists())
     inline_copy(a.xp_inst, a.private_inst, FID_INPUT,
                 a.xp_inst.get_indexspace<2, coord_t>().bounds);
-  if (a.xm_inst.exists())
+  if(a.xm_inst.exists())
     inline_copy(a.xm_inst, a.private_inst, FID_INPUT,
                 a.xm_inst.get_indexspace<2, coord_t>().bounds);
-  if (a.yp_inst.exists())
+  if(a.yp_inst.exists())
     inline_copy(a.yp_inst, a.private_inst, FID_INPUT,
                 a.yp_inst.get_indexspace<2, coord_t>().bounds);
-  if (a.ym_inst.exists())
+  if(a.ym_inst.exists())
     inline_copy(a.ym_inst, a.private_inst, FID_INPUT,
                 a.ym_inst.get_indexspace<2, coord_t>().bounds);
 
@@ -290,8 +320,9 @@ void stencil_task(const void *args, size_t arglen, const void *userdata,
           interior_offset[1] + interior_size[1]);
 }
 
-void increment_task(const void *args, size_t arglen, const void *userdata,
-                    size_t userlen, Processor p) {
+void increment_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
+{
   assert(arglen == sizeof(IncrementArgs));
   const IncrementArgs &a = *reinterpret_cast<const IncrementArgs *>(args);
 
@@ -304,26 +335,27 @@ void increment_task(const void *args, size_t arglen, const void *userdata,
   Point2 outer_offset = a.outer_bounds.lo - private_bounds.lo;
   Point2 outer_size = a.outer_bounds.hi - a.outer_bounds.lo + Point2(1, 1);
 
-  increment(private_base_input, private_stride_input / sizeof(DTYPE),
-            outer_offset[0], outer_offset[0] + outer_size[0], outer_offset[1],
+  increment(private_base_input, private_stride_input / sizeof(DTYPE), outer_offset[0],
+            outer_offset[0] + outer_size[0], outer_offset[1],
             outer_offset[1] + outer_size[1]);
 
-  if (a.xp_inst.exists())
+  if(a.xp_inst.exists())
     inline_copy(a.private_inst, a.xp_inst, FID_INPUT,
                 a.xp_inst.get_indexspace<2, coord_t>().bounds);
-  if (a.xm_inst.exists())
+  if(a.xm_inst.exists())
     inline_copy(a.private_inst, a.xm_inst, FID_INPUT,
                 a.xm_inst.get_indexspace<2, coord_t>().bounds);
-  if (a.yp_inst.exists())
+  if(a.yp_inst.exists())
     inline_copy(a.private_inst, a.yp_inst, FID_INPUT,
                 a.yp_inst.get_indexspace<2, coord_t>().bounds);
-  if (a.ym_inst.exists())
+  if(a.ym_inst.exists())
     inline_copy(a.private_inst, a.ym_inst, FID_INPUT,
                 a.ym_inst.get_indexspace<2, coord_t>().bounds);
 }
 
-void check_task(const void *args, size_t arglen, const void *userdata,
-                size_t userlen, Processor p) {
+void check_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                Processor p)
+{
   assert(arglen == sizeof(CheckArgs));
   const CheckArgs &a = *reinterpret_cast<const CheckArgs *>(args);
 
@@ -334,9 +366,8 @@ void check_task(const void *args, size_t arglen, const void *userdata,
   {
     AffineAccessor<DTYPE, 2, coord_t> acc =
         AffineAccessor<DTYPE, 2, coord_t>(a.private_inst, FID_INPUT);
-    for (PointInRectIterator<2, coord_t> it(a.interior_bounds); it.valid;
-         it.step()) {
-      if (acc.read(it.p) != expect_input) {
+    for(PointInRectIterator<2, coord_t> it(a.interior_bounds); it.valid; it.step()) {
+      if(acc.read(it.p) != expect_input) {
         printf("bad value: got %f expected %f\n", acc.read(it.p), expect_input);
         assert(false);
         abort(); // if someone compiles with NDEBUG make sure this fails anyway
@@ -348,11 +379,9 @@ void check_task(const void *args, size_t arglen, const void *userdata,
   {
     AffineAccessor<DTYPE, 2, coord_t> acc =
         AffineAccessor<DTYPE, 2, coord_t>(a.private_inst, FID_OUTPUT);
-    for (PointInRectIterator<2, coord_t> it(a.interior_bounds); it.valid;
-         it.step()) {
-      if (acc.read(it.p) != expect_output) {
-        printf("bad value: got %f expected %f\n", acc.read(it.p),
-               expect_output);
+    for(PointInRectIterator<2, coord_t> it(a.interior_bounds); it.valid; it.step()) {
+      if(acc.read(it.p) != expect_output) {
+        printf("bad value: got %f expected %f\n", acc.read(it.p), expect_output);
         assert(false);
         abort(); // if someone compiles with NDEBUG make sure this fails anyway
       }
@@ -361,7 +390,8 @@ void check_task(const void *args, size_t arglen, const void *userdata,
 }
 
 void create_region_task(const void *args, size_t arglen, const void *userdata,
-                        size_t userlen, Processor p) {
+                        size_t userlen, Processor p)
+{
   assert(arglen == sizeof(CreateRegionArgs));
   const CreateRegionArgs &a = *reinterpret_cast<const CreateRegionArgs *>(args);
 
@@ -370,8 +400,8 @@ void create_region_task(const void *args, size_t arglen, const void *userdata,
   field_sizes[FID_OUTPUT] = sizeof(DTYPE);
 
   RegionInstance inst = RegionInstance::NO_INST;
-  RegionInstance::create_instance(inst, a.memory, a.bounds, field_sizes,
-                                  0 /*SOA*/, ProfilingRequestSet())
+  RegionInstance::create_instance(inst, a.memory, a.bounds, field_sizes, 0 /*SOA*/,
+                                  ProfilingRequestSet())
       .wait();
 
   // Send the instance back to the requesting node
@@ -383,12 +413,11 @@ void create_region_task(const void *args, size_t arglen, const void *userdata,
   a.dest_proc.spawn(CREATE_REGION_DONE_TASK, &done, sizeof(done)).wait();
 }
 
-void create_region_done_task(const void *args, size_t arglen,
-                             const void *userdata, size_t userlen,
-                             Processor p) {
+void create_region_done_task(const void *args, size_t arglen, const void *userdata,
+                             size_t userlen, Processor p)
+{
   assert(arglen == sizeof(CreateRegionDoneArgs));
-  const CreateRegionDoneArgs &a =
-      *reinterpret_cast<const CreateRegionDoneArgs *>(args);
+  const CreateRegionDoneArgs &a = *reinterpret_cast<const CreateRegionDoneArgs *>(args);
 
   // We had better be on the destination proc, otherwise these
   // pointer won't be valid.
@@ -397,8 +426,9 @@ void create_region_done_task(const void *args, size_t arglen,
   *a.dest_inst = a.inst;
 }
 
-void shard_task(const void *args, size_t arglen, const void *userdata,
-                size_t userlen, Processor p) {
+void shard_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                Processor p)
+{
   assert(arglen == sizeof(ShardArgs));
   const ShardArgs &a = *reinterpret_cast<const ShardArgs *>(args);
 
@@ -414,40 +444,36 @@ void shard_task(const void *args, size_t arglen, const void *userdata,
     field_sizes[FID_OUTPUT] = sizeof(DTYPE);
 
     std::vector<Event> events;
-    events.push_back(RegionInstance::create_instance(
-        private_inst, a.sysmem, a.exterior_bounds, field_sizes, 0 /*SOA*/,
-        ProfilingRequestSet()));
-    if (a.xp_inst_out.exists()) {
+    events.push_back(RegionInstance::create_instance(private_inst, a.sysmem,
+                                                     a.exterior_bounds, field_sizes,
+                                                     0 /*SOA*/, ProfilingRequestSet()));
+    if(a.xp_inst_out.exists()) {
       Event e = a.xp_inst_out.fetch_metadata(p);
       e.wait();
       events.push_back(RegionInstance::create_instance(
-          xp_inst_out_local, a.regmem,
-          a.xp_inst_out.get_indexspace<2, coord_t>(), field_sizes, 0 /*SOA*/,
-          ProfilingRequestSet()));
+          xp_inst_out_local, a.regmem, a.xp_inst_out.get_indexspace<2, coord_t>(),
+          field_sizes, 0 /*SOA*/, ProfilingRequestSet()));
     }
-    if (a.xm_inst_out.exists()) {
+    if(a.xm_inst_out.exists()) {
       Event e = a.xm_inst_out.fetch_metadata(p);
       e.wait();
       events.push_back(RegionInstance::create_instance(
-          xm_inst_out_local, a.regmem,
-          a.xm_inst_out.get_indexspace<2, coord_t>(), field_sizes, 0 /*SOA*/,
-          ProfilingRequestSet()));
+          xm_inst_out_local, a.regmem, a.xm_inst_out.get_indexspace<2, coord_t>(),
+          field_sizes, 0 /*SOA*/, ProfilingRequestSet()));
     }
-    if (a.yp_inst_out.exists()) {
+    if(a.yp_inst_out.exists()) {
       Event e = a.yp_inst_out.fetch_metadata(p);
       e.wait();
       events.push_back(RegionInstance::create_instance(
-          yp_inst_out_local, a.regmem,
-          a.yp_inst_out.get_indexspace<2, coord_t>(), field_sizes, 0 /*SOA*/,
-          ProfilingRequestSet()));
+          yp_inst_out_local, a.regmem, a.yp_inst_out.get_indexspace<2, coord_t>(),
+          field_sizes, 0 /*SOA*/, ProfilingRequestSet()));
     }
-    if (a.ym_inst_out.exists()) {
+    if(a.ym_inst_out.exists()) {
       Event e = a.ym_inst_out.fetch_metadata(p);
       e.wait();
       events.push_back(RegionInstance::create_instance(
-          ym_inst_out_local, a.regmem,
-          a.ym_inst_out.get_indexspace<2, coord_t>(), field_sizes, 0 /*SOA*/,
-          ProfilingRequestSet()));
+          ym_inst_out_local, a.regmem, a.ym_inst_out.get_indexspace<2, coord_t>(),
+          field_sizes, 0 /*SOA*/, ProfilingRequestSet()));
     }
     Event::merge_events(events).wait();
   }
@@ -456,21 +482,21 @@ void shard_task(const void *args, size_t arglen, const void *userdata,
     std::vector<Event> events;
     events.push_back(fill(private_inst, FID_INPUT, a.init));
     events.push_back(fill(private_inst, FID_OUTPUT, a.init));
-    if (a.xp_inst_in.exists())
+    if(a.xp_inst_in.exists())
       events.push_back(fill(a.xp_inst_in, FID_INPUT, a.init));
-    if (a.xp_inst_in.exists())
+    if(a.xp_inst_in.exists())
       events.push_back(fill(a.xp_inst_in, FID_OUTPUT, a.init));
-    if (a.xm_inst_in.exists())
+    if(a.xm_inst_in.exists())
       events.push_back(fill(a.xm_inst_in, FID_INPUT, a.init));
-    if (a.xm_inst_in.exists())
+    if(a.xm_inst_in.exists())
       events.push_back(fill(a.xm_inst_in, FID_OUTPUT, a.init));
-    if (a.yp_inst_in.exists())
+    if(a.yp_inst_in.exists())
       events.push_back(fill(a.yp_inst_in, FID_INPUT, a.init));
-    if (a.yp_inst_in.exists())
+    if(a.yp_inst_in.exists())
       events.push_back(fill(a.yp_inst_in, FID_OUTPUT, a.init));
-    if (a.ym_inst_in.exists())
+    if(a.ym_inst_in.exists())
       events.push_back(fill(a.ym_inst_in, FID_INPUT, a.init));
-    if (a.ym_inst_in.exists())
+    if(a.ym_inst_in.exists())
       events.push_back(fill(a.ym_inst_in, FID_OUTPUT, a.init));
     Event::merge_events(events).wait();
   }
@@ -481,7 +507,7 @@ void shard_task(const void *args, size_t arglen, const void *userdata,
   memset(weights, 0, sizeof(DTYPE) * weights_size);
 
 #define WEIGHT(i, j) weights[(j + RADIUS) * (2 * RADIUS + 1) + (i + RADIUS)]
-  for (coord_t i = 1; i <= RADIUS; i++) {
+  for(coord_t i = 1; i <= RADIUS; i++) {
     WEIGHT(0, i) = 1.0 / (2.0 * i * RADIUS);
     WEIGHT(i, 0) = 1.0 / (2.0 * i * RADIUS);
     WEIGHT(0, -i) = -1.0 / (2.0 * i * RADIUS);
@@ -525,7 +551,7 @@ void shard_task(const void *args, size_t arglen, const void *userdata,
   Event xm_copy_done = Event::NO_EVENT;
   Event yp_copy_done = Event::NO_EVENT;
   Event ym_copy_done = Event::NO_EVENT;
-  for (coord_t t = 0; t < a.tsteps; t++) {
+  for(coord_t t = 0; t < a.tsteps; t++) {
     {
       StencilArgs args;
       args.private_inst = private_inst;
@@ -537,25 +563,21 @@ void shard_task(const void *args, size_t arglen, const void *userdata,
       args.weights = weights;
       Event precondition = Event::merge_events(
           increment_done,
-          (xp_full_in.exists() ? xp_full_in.get_previous_phase()
-                               : Event::NO_EVENT),
-          (xm_full_in.exists() ? xm_full_in.get_previous_phase()
-                               : Event::NO_EVENT),
-          (yp_full_in.exists() ? yp_full_in.get_previous_phase()
-                               : Event::NO_EVENT),
-          (ym_full_in.exists() ? ym_full_in.get_previous_phase()
-                               : Event::NO_EVENT));
-      if (t == a.tprune) {
+          (xp_full_in.exists() ? xp_full_in.get_previous_phase() : Event::NO_EVENT),
+          (xm_full_in.exists() ? xm_full_in.get_previous_phase() : Event::NO_EVENT),
+          (yp_full_in.exists() ? yp_full_in.get_previous_phase() : Event::NO_EVENT),
+          (ym_full_in.exists() ? ym_full_in.get_previous_phase() : Event::NO_EVENT));
+      if(t == a.tprune) {
         precondition.wait();
       }
       stencil_done = p.spawn(STENCIL_TASK, &args, sizeof(args), precondition);
-      if (xp_empty_out.exists())
+      if(xp_empty_out.exists())
         xp_empty_out.arrive(1, stencil_done);
-      if (xm_empty_out.exists())
+      if(xm_empty_out.exists())
         xm_empty_out.arrive(1, stencil_done);
-      if (yp_empty_out.exists())
+      if(yp_empty_out.exists())
         yp_empty_out.arrive(1, stencil_done);
-      if (ym_empty_out.exists())
+      if(ym_empty_out.exists())
         ym_empty_out.arrive(1, stencil_done);
     }
 
@@ -567,70 +589,69 @@ void shard_task(const void *args, size_t arglen, const void *userdata,
       args.yp_inst = yp_inst_out_local;
       args.ym_inst = ym_inst_out_local;
       args.outer_bounds = a.outer_bounds;
-      Event precondition = Event::merge_events(
-          stencil_done, xp_copy_done, xm_copy_done, yp_copy_done, ym_copy_done);
-      increment_done =
-          p.spawn(INCREMENT_TASK, &args, sizeof(args), precondition);
+      Event precondition = Event::merge_events(stencil_done, xp_copy_done, xm_copy_done,
+                                               yp_copy_done, ym_copy_done);
+      increment_done = p.spawn(INCREMENT_TASK, &args, sizeof(args), precondition);
     }
 
-    if (a.xp_inst_out.exists()) {
+    if(a.xp_inst_out.exists()) {
       xp_copy_done = copy(xp_inst_out_local, a.xp_inst_out, FID_INPUT,
                           Event::merge_events(increment_done, xp_empty_in));
       xp_full_out.arrive(1, xp_copy_done);
     }
 
-    if (a.xm_inst_out.exists()) {
+    if(a.xm_inst_out.exists()) {
       xm_copy_done = copy(xm_inst_out_local, a.xm_inst_out, FID_INPUT,
                           Event::merge_events(increment_done, xm_empty_in));
       xm_full_out.arrive(1, xm_copy_done);
     }
 
-    if (a.yp_inst_out.exists()) {
+    if(a.yp_inst_out.exists()) {
       yp_copy_done = copy(yp_inst_out_local, a.yp_inst_out, FID_INPUT,
                           Event::merge_events(increment_done, yp_empty_in));
       yp_full_out.arrive(1, yp_copy_done);
     }
 
-    if (a.ym_inst_out.exists()) {
+    if(a.ym_inst_out.exists()) {
       ym_copy_done = copy(ym_inst_out_local, a.ym_inst_out, FID_INPUT,
                           Event::merge_events(increment_done, ym_empty_in));
       ym_full_out.arrive(1, ym_copy_done);
     }
 
-    if (xp_empty_in.exists())
+    if(xp_empty_in.exists())
       xp_empty_in = xp_empty_in.advance_barrier();
-    if (xm_empty_in.exists())
+    if(xm_empty_in.exists())
       xm_empty_in = xm_empty_in.advance_barrier();
-    if (yp_empty_in.exists())
+    if(yp_empty_in.exists())
       yp_empty_in = yp_empty_in.advance_barrier();
-    if (ym_empty_in.exists())
+    if(ym_empty_in.exists())
       ym_empty_in = ym_empty_in.advance_barrier();
 
-    if (xp_empty_out.exists())
+    if(xp_empty_out.exists())
       xp_empty_out = xp_empty_out.advance_barrier();
-    if (xm_empty_out.exists())
+    if(xm_empty_out.exists())
       xm_empty_out = xm_empty_out.advance_barrier();
-    if (yp_empty_out.exists())
+    if(yp_empty_out.exists())
       yp_empty_out = yp_empty_out.advance_barrier();
-    if (ym_empty_out.exists())
+    if(ym_empty_out.exists())
       ym_empty_out = ym_empty_out.advance_barrier();
 
-    if (xp_full_in.exists())
+    if(xp_full_in.exists())
       xp_full_in = xp_full_in.advance_barrier();
-    if (xm_full_in.exists())
+    if(xm_full_in.exists())
       xm_full_in = xm_full_in.advance_barrier();
-    if (yp_full_in.exists())
+    if(yp_full_in.exists())
       yp_full_in = yp_full_in.advance_barrier();
-    if (ym_full_in.exists())
+    if(ym_full_in.exists())
       ym_full_in = ym_full_in.advance_barrier();
 
-    if (xp_full_out.exists())
+    if(xp_full_out.exists())
       xp_full_out = xp_full_out.advance_barrier();
-    if (xm_full_out.exists())
+    if(xm_full_out.exists())
       xm_full_out = xm_full_out.advance_barrier();
-    if (yp_full_out.exists())
+    if(yp_full_out.exists())
       yp_full_out = yp_full_out.advance_barrier();
-    if (ym_full_out.exists())
+    if(ym_full_out.exists())
       ym_full_out = ym_full_out.advance_barrier();
   }
 
@@ -658,24 +679,24 @@ void shard_task(const void *args, size_t arglen, const void *userdata,
   }
 
   // Make sure all operations are done before returning
-  Event::merge_events(xp_copy_done, xm_copy_done, yp_copy_done, ym_copy_done)
-      .wait();
+  Event::merge_events(xp_copy_done, xm_copy_done, yp_copy_done, ym_copy_done).wait();
 
   private_inst.destroy();
-  if (xp_inst_out_local.exists())
+  if(xp_inst_out_local.exists())
     xp_inst_out_local.destroy();
-  if (xm_inst_out_local.exists())
+  if(xm_inst_out_local.exists())
     xm_inst_out_local.destroy();
-  if (yp_inst_out_local.exists())
+  if(yp_inst_out_local.exists())
     yp_inst_out_local.destroy();
-  if (ym_inst_out_local.exists())
+  if(ym_inst_out_local.exists())
     ym_inst_out_local.destroy();
 
   free(weights);
 }
 
-void top_level_task(const void *args, size_t arglen, const void *userdata,
-                    size_t userlen, Processor p) {
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
+{
   assert(arglen == sizeof(AppConfig));
   const AppConfig &config = *reinterpret_cast<const AppConfig *>(args);
   printf("Stencil configuration:\n");
@@ -703,19 +724,19 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
     std::vector<Machine::ProcessorMemoryAffinity> proc_mem_affinities;
     machine.get_proc_mem_affinity(proc_mem_affinities);
 
-    for (size_t i = 0; i < proc_mem_affinities.size(); ++i) {
+    for(size_t i = 0; i < proc_mem_affinities.size(); ++i) {
       Machine::ProcessorMemoryAffinity &affinity = proc_mem_affinities[i];
 
       // skip memories with no capacity for creating instances
-      if (affinity.m.capacity() == 0)
+      if(affinity.m.capacity() == 0)
         continue;
 
-      if (affinity.p.kind() == Processor::LOC_PROC) {
-        if (affinity.m.kind() == Memory::SYSTEM_MEM) {
+      if(affinity.p.kind() == Processor::LOC_PROC) {
+        if(affinity.m.kind() == Memory::SYSTEM_MEM) {
           proc_sysmems[affinity.p] = affinity.m;
-          if (proc_regmems.find(affinity.p) == proc_regmems.end())
+          if(proc_regmems.find(affinity.p) == proc_regmems.end())
             proc_regmems[affinity.p] = affinity.m;
-        } else if (affinity.m.kind() == Memory::REGDMA_MEM)
+        } else if(affinity.m.kind() == Memory::REGDMA_MEM)
           proc_regmems[affinity.p] = affinity.m;
       }
     }
@@ -723,13 +744,12 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
 
   // Assign shards to processors
   coord_t nshards = config.ntx * config.nty;
-  assert(procs.size() >=
-         static_cast<size_t>(nshards)); // Expect one core per shard
+  assert(procs.size() >= static_cast<size_t>(nshards)); // Expect one core per shard
   Rect2 shards(Point2(0, 0), Point2(config.ntx - 1, config.nty - 1));
   std::map<Point2, Processor> shard_procs;
   {
     std::vector<Processor>::iterator pit = procs.begin();
-    for (PointInRectIterator<2, coord_t> it(shards); it.valid; it.step()) {
+    for(PointInRectIterator<2, coord_t> it(shards); it.valid; it.step()) {
       assert(pit != procs.end());
       shard_procs[it.p] = *pit++;
     }
@@ -745,13 +765,11 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
   std::vector<Rect1> x_blocks;
   std::vector<Rect1> y_blocks;
 
-  for (coord_t ix = 0; ix < config.ntx; ix++) {
-    x_blocks.push_back(
-        Rect1(ix * nx / config.ntx, (ix + 1) * nx / config.ntx - 1));
+  for(coord_t ix = 0; ix < config.ntx; ix++) {
+    x_blocks.push_back(Rect1(ix * nx / config.ntx, (ix + 1) * nx / config.ntx - 1));
   }
-  for (coord_t iy = 0; iy < config.nty; iy++) {
-    y_blocks.push_back(
-        Rect1(iy * ny / config.nty, (iy + 1) * ny / config.nty - 1));
+  for(coord_t iy = 0; iy < config.nty; iy++) {
+    y_blocks.push_back(Rect1(iy * ny / config.nty, (iy + 1) * ny / config.nty - 1));
   }
 
   // Create incoming exchange buffers
@@ -766,7 +784,7 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
     field_sizes[FID_OUTPUT] = sizeof(DTYPE);
 
     std::vector<Event> events;
-    for (PointInRectIterator<2, coord_t> it(shards); it.valid; it.step()) {
+    for(PointInRectIterator<2, coord_t> it(shards); it.valid; it.step()) {
       Point2 i(it.p);
       Rect2 xp_bounds(Point2(x_blocks[i[0]].hi + 1, y_blocks[i[1]].lo),
                       Point2(x_blocks[i[0]].hi + RADIUS, y_blocks[i[1]].hi));
@@ -781,44 +799,40 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
       Memory memory(proc_regmems[shard_proc]);
 
       // Region allocation has to be done on the remote node
-      if (i[0] != shards.hi[0]) {
+      if(i[0] != shards.hi[0]) {
         CreateRegionArgs args;
         args.bounds = xp_bounds;
         args.memory = memory;
         args.dest_proc = p;
         args.dest_inst = &xp_insts[i];
-        events.push_back(
-            shard_proc.spawn(CREATE_REGION_TASK, &args, sizeof(args)));
+        events.push_back(shard_proc.spawn(CREATE_REGION_TASK, &args, sizeof(args)));
       }
 
-      if (i[0] != shards.lo[0]) {
+      if(i[0] != shards.lo[0]) {
         CreateRegionArgs args;
         args.bounds = xm_bounds;
         args.memory = memory;
         args.dest_proc = p;
         args.dest_inst = &xm_insts[i];
-        events.push_back(
-            shard_proc.spawn(CREATE_REGION_TASK, &args, sizeof(args)));
+        events.push_back(shard_proc.spawn(CREATE_REGION_TASK, &args, sizeof(args)));
       }
 
-      if (i[1] != shards.hi[1]) {
+      if(i[1] != shards.hi[1]) {
         CreateRegionArgs args;
         args.bounds = yp_bounds;
         args.memory = memory;
         args.dest_proc = p;
         args.dest_inst = &yp_insts[i];
-        events.push_back(
-            shard_proc.spawn(CREATE_REGION_TASK, &args, sizeof(args)));
+        events.push_back(shard_proc.spawn(CREATE_REGION_TASK, &args, sizeof(args)));
       }
 
-      if (i[1] != shards.lo[1]) {
+      if(i[1] != shards.lo[1]) {
         CreateRegionArgs args;
         args.bounds = ym_bounds;
         args.memory = memory;
         args.dest_proc = p;
         args.dest_inst = &ym_insts[i];
-        events.push_back(
-            shard_proc.spawn(CREATE_REGION_TASK, &args, sizeof(args)));
+        events.push_back(shard_proc.spawn(CREATE_REGION_TASK, &args, sizeof(args)));
       }
     }
     Event::merge_events(events).wait();
@@ -835,25 +849,25 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
   DefaultMap<Point2, Barrier> yp_bars_full(Barrier::NO_BARRIER);
   DefaultMap<Point2, Barrier> ym_bars_full(Barrier::NO_BARRIER);
 
-  for (PointInRectIterator<2, coord_t> it(shards); it.valid; it.step()) {
+  for(PointInRectIterator<2, coord_t> it(shards); it.valid; it.step()) {
     Point2 i(it.p);
 
-    if (i[0] != shards.hi[0])
+    if(i[0] != shards.hi[0])
       xp_bars_empty[i] = Barrier::create_barrier(1);
-    if (i[0] != shards.lo[0])
+    if(i[0] != shards.lo[0])
       xm_bars_empty[i] = Barrier::create_barrier(1);
-    if (i[1] != shards.hi[1])
+    if(i[1] != shards.hi[1])
       yp_bars_empty[i] = Barrier::create_barrier(1);
-    if (i[1] != shards.lo[1])
+    if(i[1] != shards.lo[1])
       ym_bars_empty[i] = Barrier::create_barrier(1);
 
-    if (i[0] != shards.hi[0])
+    if(i[0] != shards.hi[0])
       xp_bars_full[i] = Barrier::create_barrier(1);
-    if (i[0] != shards.lo[0])
+    if(i[0] != shards.lo[0])
       xm_bars_full[i] = Barrier::create_barrier(1);
-    if (i[1] != shards.hi[1])
+    if(i[1] != shards.hi[1])
       yp_bars_full[i] = Barrier::create_barrier(1);
-    if (i[1] != shards.lo[1])
+    if(i[1] != shards.lo[1])
       ym_bars_full[i] = Barrier::create_barrier(1);
   }
 
@@ -865,13 +879,13 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
       nshards, REDOP_MIN, &RedopMin::identity, sizeof(RedopMin::identity));
   Barrier last_start_bar = Barrier::create_barrier(
       nshards, REDOP_MAX, &RedopMax::identity, sizeof(RedopMax::identity));
-  Barrier last_stop_bar = Barrier::create_barrier(
-      nshards, REDOP_MAX, &RedopMax::identity, sizeof(RedopMax::identity));
+  Barrier last_stop_bar = Barrier::create_barrier(nshards, REDOP_MAX, &RedopMax::identity,
+                                                  sizeof(RedopMax::identity));
 
   // Launch shard tasks
   {
     std::vector<Event> events;
-    for (PointInRectIterator<2, coord_t> it(shards); it.valid; it.step()) {
+    for(PointInRectIterator<2, coord_t> it(shards); it.valid; it.step()) {
       Point2 i(it.p);
 
       Rect2 interior_bounds(Point2(x_blocks[i[0]].lo, y_blocks[i[1]].lo),
@@ -880,11 +894,10 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
           Point2(x_blocks[i[0]].lo - RADIUS, y_blocks[i[1]].lo - RADIUS),
           Point2(x_blocks[i[0]].hi + RADIUS, y_blocks[i[1]].hi + RADIUS));
       // As interior, but bloated only on the outer edges
-      Rect2 outer_bounds(
-          Point2(x_blocks[i[0]].lo - (i[0] == shards.lo[0] ? RADIUS : 0),
-                 y_blocks[i[1]].lo - (i[1] == shards.lo[1] ? RADIUS : 0)),
-          Point2(x_blocks[i[0]].hi + (i[0] == shards.hi[0] ? RADIUS : 0),
-                 y_blocks[i[1]].hi + (i[1] == shards.hi[1] ? RADIUS : 0)));
+      Rect2 outer_bounds(Point2(x_blocks[i[0]].lo - (i[0] == shards.lo[0] ? RADIUS : 0),
+                                y_blocks[i[1]].lo - (i[1] == shards.lo[1] ? RADIUS : 0)),
+                         Point2(x_blocks[i[0]].hi + (i[0] == shards.hi[0] ? RADIUS : 0),
+                                y_blocks[i[1]].hi + (i[1] == shards.hi[1] ? RADIUS : 0)));
 
       // Pack arguments
       ShardArgs args;
@@ -948,62 +961,62 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
       {
         std::vector<Event> events;
 
-        if (args.xp_inst_in.exists())
+        if(args.xp_inst_in.exists())
           events.push_back(args.xp_inst_in.fetch_metadata(p));
-        if (args.xm_inst_in.exists())
+        if(args.xm_inst_in.exists())
           events.push_back(args.xm_inst_in.fetch_metadata(p));
-        if (args.yp_inst_in.exists())
+        if(args.yp_inst_in.exists())
           events.push_back(args.yp_inst_in.fetch_metadata(p));
-        if (args.ym_inst_in.exists())
+        if(args.ym_inst_in.exists())
           events.push_back(args.ym_inst_in.fetch_metadata(p));
 
-        if (args.xp_inst_out.exists())
+        if(args.xp_inst_out.exists())
           events.push_back(args.xp_inst_out.fetch_metadata(p));
-        if (args.xm_inst_out.exists())
+        if(args.xm_inst_out.exists())
           events.push_back(args.xm_inst_out.fetch_metadata(p));
-        if (args.yp_inst_out.exists())
+        if(args.yp_inst_out.exists())
           events.push_back(args.yp_inst_out.fetch_metadata(p));
-        if (args.ym_inst_out.exists())
+        if(args.ym_inst_out.exists())
           events.push_back(args.ym_inst_out.fetch_metadata(p));
         Event::merge_events(events).wait();
       }
 
-      if (args.xp_inst_in.exists())
+      if(args.xp_inst_in.exists())
         assert(exterior_bounds.contains(
             args.xp_inst_in.get_indexspace<2, coord_t>().bounds));
-      if (args.xm_inst_in.exists())
+      if(args.xm_inst_in.exists())
         assert(exterior_bounds.contains(
             args.xm_inst_in.get_indexspace<2, coord_t>().bounds));
-      if (args.yp_inst_in.exists())
+      if(args.yp_inst_in.exists())
         assert(exterior_bounds.contains(
             args.yp_inst_in.get_indexspace<2, coord_t>().bounds));
-      if (args.ym_inst_in.exists())
+      if(args.ym_inst_in.exists())
         assert(exterior_bounds.contains(
             args.ym_inst_in.get_indexspace<2, coord_t>().bounds));
 
-      if (args.xp_inst_in.exists())
+      if(args.xp_inst_in.exists())
         assert(!interior_bounds.contains(
             args.xp_inst_in.get_indexspace<2, coord_t>().bounds));
-      if (args.xm_inst_in.exists())
+      if(args.xm_inst_in.exists())
         assert(!interior_bounds.contains(
             args.xm_inst_in.get_indexspace<2, coord_t>().bounds));
-      if (args.yp_inst_in.exists())
+      if(args.yp_inst_in.exists())
         assert(!interior_bounds.contains(
             args.yp_inst_in.get_indexspace<2, coord_t>().bounds));
-      if (args.ym_inst_in.exists())
+      if(args.ym_inst_in.exists())
         assert(!interior_bounds.contains(
             args.ym_inst_in.get_indexspace<2, coord_t>().bounds));
 
-      if (args.xp_inst_out.exists())
+      if(args.xp_inst_out.exists())
         assert(interior_bounds.contains(
             args.xp_inst_out.get_indexspace<2, coord_t>().bounds));
-      if (args.xm_inst_out.exists())
+      if(args.xm_inst_out.exists())
         assert(interior_bounds.contains(
             args.xm_inst_out.get_indexspace<2, coord_t>().bounds));
-      if (args.yp_inst_out.exists())
+      if(args.yp_inst_out.exists())
         assert(interior_bounds.contains(
             args.yp_inst_out.get_indexspace<2, coord_t>().bounds));
-      if (args.ym_inst_out.exists())
+      if(args.ym_inst_out.exists())
         assert(interior_bounds.contains(
             args.ym_inst_out.get_indexspace<2, coord_t>().bounds));
 
@@ -1056,30 +1069,30 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
   printf("\n");
   printf("Elapsed time: %e seconds\n", (stop - start) / 1e6);
   printf("Iterations: %lld\n", config.tsteps);
-  printf("Time per iteration: %e seconds\n",
-         (stop - start) / 1e6 / config.tsteps);
+  printf("Time per iteration: %e seconds\n", (stop - start) / 1e6 / config.tsteps);
   printf("Start skew: %e seconds\n", (last_start - first_start) / 1e6);
   printf("Stop skew: %e seconds\n", (last_stop - first_stop) / 1e6);
 
-  for (DefaultMap<Point2, RegionInstance>::const_iterator it = xp_insts.begin();
-       it != xp_insts.end(); it++)
-    if (it->second.exists())
+  for(DefaultMap<Point2, RegionInstance>::const_iterator it = xp_insts.begin();
+      it != xp_insts.end(); it++)
+    if(it->second.exists())
       it->second.destroy();
-  for (DefaultMap<Point2, RegionInstance>::const_iterator it = xm_insts.begin();
-       it != xm_insts.end(); it++)
-    if (it->second.exists())
+  for(DefaultMap<Point2, RegionInstance>::const_iterator it = xm_insts.begin();
+      it != xm_insts.end(); it++)
+    if(it->second.exists())
       it->second.destroy();
-  for (DefaultMap<Point2, RegionInstance>::const_iterator it = yp_insts.begin();
-       it != yp_insts.end(); it++)
-    if (it->second.exists())
+  for(DefaultMap<Point2, RegionInstance>::const_iterator it = yp_insts.begin();
+      it != yp_insts.end(); it++)
+    if(it->second.exists())
       it->second.destroy();
-  for (DefaultMap<Point2, RegionInstance>::const_iterator it = ym_insts.begin();
-       it != ym_insts.end(); it++)
-    if (it->second.exists())
+  for(DefaultMap<Point2, RegionInstance>::const_iterator it = ym_insts.begin();
+      it != ym_insts.end(); it++)
+    if(it->second.exists())
       it->second.destroy();
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   Runtime rt;
 
   rt.init(&argc, &argv);

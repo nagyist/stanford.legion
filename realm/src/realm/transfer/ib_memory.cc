@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +26,6 @@ namespace Realm {
   Logger log_ib_alloc("ib_alloc");
   extern Logger log_malloc;
 
-
   void free_intermediate_buffer(Memory mem, off_t offset, size_t size)
   {
     if(NodeID(ID(mem).memory_owner_node()) == Network::my_node_id) {
@@ -37,7 +38,6 @@ namespace Realm {
       amsg.commit();
     }
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -55,9 +55,7 @@ namespace Realm {
     free_blocks[0] = _size;
   }
 
-  IBMemory::~IBMemory()
-  {
-  }
+  IBMemory::~IBMemory() {}
 
   // old-style allocation used by IB memories
   // make bad offsets really obvious (+1 PB)
@@ -83,8 +81,8 @@ namespace Realm {
     if(alignment > 0) {
       off_t leftover = size % alignment;
       if(leftover > 0) {
-        log_malloc.info("padding allocation from %zd to %zd",
-                        size, (size_t)(size + (alignment - leftover)));
+        log_malloc.info("padding allocation from %zd to %zd", size,
+                        (size_t)(size + (alignment - leftover)));
         size += (alignment - leftover);
       }
     }
@@ -96,13 +94,14 @@ namespace Realm {
     if(!free_blocks.empty()) {
       std::map<off_t, off_t>::iterator it = free_blocks.end();
       do {
-        --it;  // predecrement since we started at the end
+        --it; // predecrement since we started at the end
 
         if(it->second == (off_t)size) {
           // perfect match
           off_t retval = it->first;
           free_blocks.erase(it);
-          log_malloc.info("alloc full block: mem=" IDFMT " size=%zd ofs=%zd", me.id, size, (ssize_t)retval);
+          log_malloc.info("alloc full block: mem=" IDFMT " size=%zd ofs=%zd", me.id, size,
+                          (ssize_t)retval);
 #if 0
           usage += size;
           if(usage > peak_usage) peak_usage = usage;
@@ -117,7 +116,8 @@ namespace Realm {
           off_t leftover = it->second - size;
           off_t retval = it->first + leftover;
           it->second = leftover;
-          log_malloc.info("alloc partial block: mem=" IDFMT " size=%zd ofs=%zd", me.id, size, (ssize_t)retval);
+          log_malloc.info("alloc partial block: mem=" IDFMT " size=%zd ofs=%zd", me.id,
+                          size, (ssize_t)retval);
 #if 0
           usage += size;
           if(usage > peak_usage) peak_usage = usage;
@@ -136,7 +136,8 @@ namespace Realm {
 
   void IBMemory::free_bytes_local(off_t offset, size_t size)
   {
-    log_malloc.info() << "free block: mem=" << me << " size=" << size << " ofs=" << offset;
+    log_malloc.info() << "free block: mem=" << me << " size=" << size
+                      << " ofs=" << offset;
 
     PendingIBRequests *satisfied;
     {
@@ -169,8 +170,7 @@ namespace Realm {
       unsigned next_req = reqs->current_req + 1;
       // have to be able to allocate any other requests to the same memory
       bool all_ok = true;
-      while((next_req < reqs->count) &&
-            (reqs->memories[next_req] == me)) {
+      while((next_req < reqs->count) && (reqs->memories[next_req] == me)) {
         offset = do_alloc(reqs->sizes[next_req]);
         if(offset == -1) {
           all_ok = false;
@@ -182,9 +182,8 @@ namespace Realm {
           }
           // check that this could ever succeed
           if(bytes_needed > size) {
-            log_ib_alloc.fatal() << "impossible: op=" << reqs->sender
-                                 << "/0x" << std::hex << reqs->req_op << std::dec
-                                 << " mem=" << me
+            log_ib_alloc.fatal() << "impossible: op=" << reqs->sender << "/0x" << std::hex
+                                 << reqs->req_op << std::dec << " mem=" << me
                                  << " needed=" << bytes_needed << " avail=" << size;
             abort();
           }
@@ -196,11 +195,10 @@ namespace Realm {
       if(!all_ok)
         break;
 
-      log_ib_alloc.debug() << "satisfied: op=" << reqs->sender
-                           << "/0x" << std::hex << reqs->req_op << std::dec
-                           << " index=" << (reqs->first_req + reqs->current_req)
-                           << "+" << (next_req - reqs->current_req)
-                           << " mem=" << me;
+      log_ib_alloc.debug() << "satisfied: op=" << reqs->sender << "/0x" << std::hex
+                           << reqs->req_op << std::dec
+                           << " index=" << (reqs->first_req + reqs->current_req) << "+"
+                           << (next_req - reqs->current_req) << " mem=" << me;
 
       reqs->current_req = next_req;
       last_sat = reqs;
@@ -231,8 +229,7 @@ namespace Realm {
         if(reqs->sender == Network::my_node_id) {
           // oh, hey, that's us!
           TransferOperation *op = reinterpret_cast<TransferOperation *>(reqs->req_op);
-          op->notify_ib_allocations(reqs->count, reqs->first_req,
-                                    reqs->offsets.data());
+          op->notify_ib_allocations(reqs->count, reqs->first_req, reqs->offsets.data());
         } else {
           if(reqs->count == 1) {
             ActiveMessage<RemoteIBAllocResponseSingle> amsg(reqs->sender);
@@ -242,8 +239,7 @@ namespace Realm {
             amsg.commit();
           } else {
             size_t bytes = reqs->count * sizeof(off_t);
-            ActiveMessage<RemoteIBAllocResponseMultiple> amsg(reqs->sender,
-                                                              bytes);
+            ActiveMessage<RemoteIBAllocResponseMultiple> amsg(reqs->sender, bytes);
             amsg->req_op = reqs->req_op;
             amsg->count = reqs->count;
             amsg->first_index = reqs->first_req;
@@ -299,8 +295,8 @@ namespace Realm {
     if(alignment > 0) {
       off_t leftover = size % alignment;
       if(leftover > 0) {
-        log_malloc.info("padding free from %zd to %zd",
-                        size, (size_t)(size + (alignment - leftover)));
+        log_malloc.info("padding free from %zd to %zd", size,
+                        (size_t)(size + (alignment - leftover)));
         size += (alignment - leftover);
       }
     }
@@ -326,7 +322,8 @@ namespace Realm {
           free_blocks[offset] = size;
         } else {
           // no, get range that comes before us too
-          std::map<off_t, off_t>::iterator before = after; before--;
+          std::map<off_t, off_t>::iterator before = after;
+          before--;
 
           // if we're adjacent to the after, merge with it
           assert((offset + (off_t)size) <= after->first); // no overlap!
@@ -349,7 +346,8 @@ namespace Realm {
         // nothing's after us, so just see if we can merge with the range
         //  that's before us
 
-        std::map<off_t, off_t>::iterator before = after; before--;
+        std::map<off_t, off_t>::iterator before = after;
+        before--;
 
         // if we're adjacent with the before, grow it instead of adding
         //  a new range
@@ -374,35 +372,25 @@ namespace Realm {
   }
 
   // not used by IB memories
-  MemoryImpl::AllocationResult IBMemory::allocate_storage_immediate(RegionInstanceImpl *inst,
-                                                                    bool need_alloc_result,
-                                                                    bool poisoned,
-                                                                    TimeLimit work_until)
+  MemoryImpl::AllocationResult
+  IBMemory::allocate_storage_immediate(RegionInstanceImpl *inst, bool need_alloc_result,
+                                       bool poisoned, TimeLimit work_until)
   {
     abort();
   }
 
-  void IBMemory::release_storage_immediate(RegionInstanceImpl *inst,
-                                           bool poisoned,
+  void IBMemory::release_storage_immediate(RegionInstanceImpl *inst, bool poisoned,
                                            TimeLimit work_until)
   {
     abort();
   }
 
-  void IBMemory::get_bytes(off_t offset, void *dst, size_t size)
-  {
-    abort();
-  }
+  void IBMemory::get_bytes(off_t offset, void *dst, size_t size) { abort(); }
 
-  void IBMemory::put_bytes(off_t offset, const void *src, size_t size)
-  {
-    abort();
-  }
+  void IBMemory::put_bytes(off_t offset, const void *src, size_t size) { abort(); }
 
-  bool IBMemory::attempt_immediate_allocation(NodeID requestor,
-                                              uintptr_t req_op,
-                                              size_t count,
-                                              const size_t *sizes,
+  bool IBMemory::attempt_immediate_allocation(NodeID requestor, uintptr_t req_op,
+                                              size_t count, const size_t *sizes,
                                               off_t *offsets)
   {
     assert(NodeID(ID(me).memory_owner_node()) == Network::my_node_id);
@@ -424,9 +412,8 @@ namespace Realm {
         }
         // check that this could ever succeed
         if(bytes_needed > size) {
-          log_ib_alloc.fatal() << "impossible: op=" << requestor
-                               << "/0x" << std::hex << req_op << std::dec
-                               << " mem=" << me
+          log_ib_alloc.fatal() << "impossible: op=" << requestor << "/0x" << std::hex
+                               << req_op << std::dec << " mem=" << me
                                << " needed=" << bytes_needed << " avail=" << size;
           abort();
         }
@@ -440,12 +427,12 @@ namespace Realm {
 
   void IBMemory::enqueue_requests(PendingIBRequests *reqs)
   {
-    assert(NodeID(ID(reqs->memories[reqs->current_req]).memory_owner_node()) == Network::my_node_id);
-    log_ib_alloc.debug() << "pending: op=" << reqs->sender
-                         << "/0x" << std::hex << reqs->req_op << std::dec
-                         << " index=" << (reqs->first_req + reqs->current_req)
-                         << "+" << (reqs->count - reqs->current_req)
-                         << " mem=" << me;
+    assert(NodeID(ID(reqs->memories[reqs->current_req]).memory_owner_node()) ==
+           Network::my_node_id);
+    log_ib_alloc.debug() << "pending: op=" << reqs->sender << "/0x" << std::hex
+                         << reqs->req_op << std::dec
+                         << " index=" << (reqs->first_req + reqs->current_req) << "+"
+                         << (reqs->count - reqs->current_req) << " mem=" << me;
 
     PendingIBRequests *satisfied = 0;
     {
@@ -463,8 +450,7 @@ namespace Realm {
       forward_satisfied_reqs(satisfied);
   }
 
-  void IBMemory::free_multiple(size_t count,
-                               const off_t *offsets, const size_t *sizes)
+  void IBMemory::free_multiple(size_t count, const off_t *offsets, const size_t *sizes)
   {
     PendingIBRequests *satisfied;
     {
@@ -480,14 +466,12 @@ namespace Realm {
       forward_satisfied_reqs(satisfied);
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class PendingIBRequests
   //
 
-  PendingIBRequests::PendingIBRequests(NodeID _sender, uintptr_t _req_op,
-                                       unsigned _count,
+  PendingIBRequests::PendingIBRequests(NodeID _sender, uintptr_t _req_op, unsigned _count,
                                        unsigned _first_req, unsigned _current_req)
     : next_req(0)
     , sender(_sender)
@@ -502,11 +486,9 @@ namespace Realm {
     offsets.resize(_count, -1);
   }
 
-  PendingIBRequests::PendingIBRequests(NodeID _sender, uintptr_t _req_op,
-                                       unsigned _count,
+  PendingIBRequests::PendingIBRequests(NodeID _sender, uintptr_t _req_op, unsigned _count,
                                        unsigned _first_req, unsigned _current_req,
-                                       const Memory *_memories,
-                                       const size_t *_sizes,
+                                       const Memory *_memories, const size_t *_sizes,
                                        const off_t *_offsets)
     : next_req(0)
     , sender(_sender)
@@ -524,28 +506,27 @@ namespace Realm {
     }
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // struct RemoteIBAllocRequestSingle
   //
 
-  /*static*/ void RemoteIBAllocRequestSingle::handle_message(NodeID sender,
-                                                             const RemoteIBAllocRequestSingle &args,
-                                                             const void *data,
-                                                             size_t msglen)
+  /*static*/ void
+  RemoteIBAllocRequestSingle::handle_message(NodeID sender,
+                                             const RemoteIBAllocRequestSingle &args,
+                                             const void *data, size_t msglen)
   {
     IBMemory *ib_mem = get_runtime()->get_ib_memory_impl(args.memory);
 
     // always attempt immediate first - return offset on success or even on
     //  failure if sender insisted on an immediate response
     off_t offset = -1;
-    if(ib_mem->attempt_immediate_allocation(sender, args.req_op,
-                                            1, &args.size, &offset) ||
+    if(ib_mem->attempt_immediate_allocation(sender, args.req_op, 1, &args.size,
+                                            &offset) ||
        args.immediate) {
-      log_ib_alloc.debug() << "satisfied: op=" << sender
-                           << "/0x" << std::hex << args.req_op << std::dec
-                           << " index=" << args.req_index << "+1"
+      log_ib_alloc.debug() << "satisfied: op=" << sender << "/0x" << std::hex
+                           << args.req_op << std::dec << " index=" << args.req_index
+                           << "+1"
                            << " mem=" << args.memory;
 
       ActiveMessage<RemoteIBAllocResponseSingle> amsg(sender);
@@ -557,42 +538,38 @@ namespace Realm {
     }
 
     // create a PendingIBRequests block and enqueue it
-    PendingIBRequests *reqs = new PendingIBRequests(sender, args.req_op,
-                                                    1, args.req_index, 0,
-                                                    &args.memory, &args.size,
-                                                    0);
+    PendingIBRequests *reqs = new PendingIBRequests(
+        sender, args.req_op, 1, args.req_index, 0, &args.memory, &args.size, 0);
     ib_mem->enqueue_requests(reqs);
   }
 
   ActiveMessageHandlerReg<RemoteIBAllocRequestSingle> remote_ib_alloc_req_single_handler;
-
 
   ////////////////////////////////////////////////////////////////////////
   //
   // struct RemoteIBAllocRequestMultiple
   //
 
-  /*static*/ void RemoteIBAllocRequestMultiple::handle_message(NodeID sender,
-                                                               const RemoteIBAllocRequestMultiple &args,
-                                                               const void *data,
-                                                               size_t msglen)
+  /*static*/ void
+  RemoteIBAllocRequestMultiple::handle_message(NodeID sender,
+                                               const RemoteIBAllocRequestMultiple &args,
+                                               const void *data, size_t msglen)
   {
     assert(msglen == ((args.count * (sizeof(Memory) + sizeof(size_t))) +
                       (args.curr_index * sizeof(off_t))));
     const Memory *memories = static_cast<const Memory *>(data);
-    const size_t *sizes = reinterpret_cast<const size_t *>(static_cast<const char *>(data) +
-                                                           (args.count * sizeof(Memory)));
-    const off_t *offsets = reinterpret_cast<const off_t *>(static_cast<const char *>(data) +
-                                                           (args.count * (sizeof(Memory) +
-                                                                          sizeof(size_t))));
+    const size_t *sizes = reinterpret_cast<const size_t *>(
+        static_cast<const char *>(data) + (args.count * sizeof(Memory)));
+    const off_t *offsets =
+        reinterpret_cast<const off_t *>(static_cast<const char *>(data) +
+                                        (args.count * (sizeof(Memory) + sizeof(size_t))));
 
     unsigned rem_count = args.count - args.curr_index;
     assert(rem_count > 0);
 
     // see what we can satisfy immediately
     unsigned immed_count = 0;
-    off_t *immed_offsets = static_cast<off_t *>(alloca(rem_count *
-                                                       sizeof(off_t)));
+    off_t *immed_offsets = static_cast<off_t *>(alloca(rem_count * sizeof(off_t)));
     while(true) {
       Memory tgt_mem = memories[args.curr_index + immed_count];
       NodeID owner = ID(tgt_mem).memory_owner_node();
@@ -608,15 +585,13 @@ namespace Realm {
         same_mem += 1;
 
       IBMemory *ib_mem = get_runtime()->get_ib_memory_impl(tgt_mem);
-      if(ib_mem->attempt_immediate_allocation(args.requestor, args.req_op,
-                                              same_mem,
+      if(ib_mem->attempt_immediate_allocation(args.requestor, args.req_op, same_mem,
                                               sizes + args.curr_index + immed_count,
                                               immed_offsets + immed_count)) {
-        log_ib_alloc.debug() << "satisfied: op=" << args.requestor
-                             << "/0x" << std::hex << args.req_op << std::dec
-                             << " index=" << (args.first_index + args.curr_index + immed_count)
-                             << "+" << same_mem
-                             << " mem=" << tgt_mem;
+        log_ib_alloc.debug() << "satisfied: op=" << args.requestor << "/0x" << std::hex
+                             << args.req_op << std::dec << " index="
+                             << (args.first_index + args.curr_index + immed_count) << "+"
+                             << same_mem << " mem=" << tgt_mem;
 
         immed_count += same_mem;
         assert(immed_count <= rem_count);
@@ -625,11 +600,9 @@ namespace Realm {
             // local notification - do in two parts because the offsets are in
             //  two different arrays
             TransferOperation *op = reinterpret_cast<TransferOperation *>(args.req_op);
-            assert(args.curr_index > 0);  // shouldn't be here if all ibs were local
-            op->notify_ib_allocations(args.curr_index, args.first_index,
-                                      offsets);
-            op->notify_ib_allocations(immed_count,
-                                      args.first_index + args.curr_index,
+            assert(args.curr_index > 0); // shouldn't be here if all ibs were local
+            op->notify_ib_allocations(args.curr_index, args.first_index, offsets);
+            op->notify_ib_allocations(immed_count, args.first_index + args.curr_index,
                                       immed_offsets);
           } else {
             ActiveMessage<RemoteIBAllocResponseMultiple> amsg(args.requestor,
@@ -657,14 +630,9 @@ namespace Realm {
     if(owner == Network::my_node_id) {
       // initialize the PendingIBRequests with the data from the incoming
       //  message, and then add any immediate successes we had
-      PendingIBRequests *reqs = new PendingIBRequests(args.requestor,
-                                                      args.req_op,
-                                                      args.count,
-                                                      args.first_index,
-                                                      args.curr_index,
-                                                      memories,
-                                                      sizes,
-                                                      offsets);
+      PendingIBRequests *reqs =
+          new PendingIBRequests(args.requestor, args.req_op, args.count, args.first_index,
+                                args.curr_index, memories, sizes, offsets);
       if(immed_count) {
         for(unsigned i = 0; i < immed_count; i++)
           reqs->offsets[args.curr_index + i] = immed_offsets[i];
@@ -692,42 +660,40 @@ namespace Realm {
 
   ActiveMessageHandlerReg<RemoteIBAllocRequestMultiple> remote_ib_alloc_req_multi_handler;
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // struct RemoteIBAllocResponseSingle
   //
 
-  /*static*/ void RemoteIBAllocResponseSingle::handle_message(NodeID sender,
-                                                              const RemoteIBAllocResponseSingle &args,
-                                                              const void *data,
-                                                              size_t msglen)
+  /*static*/ void
+  RemoteIBAllocResponseSingle::handle_message(NodeID sender,
+                                              const RemoteIBAllocResponseSingle &args,
+                                              const void *data, size_t msglen)
   {
     TransferOperation *op = reinterpret_cast<TransferOperation *>(args.req_op);
     op->notify_ib_allocation(args.req_index, args.offset);
   }
 
-  ActiveMessageHandlerReg<RemoteIBAllocResponseSingle> remote_ib_alloc_resp_single_handler;
-
+  ActiveMessageHandlerReg<RemoteIBAllocResponseSingle>
+      remote_ib_alloc_resp_single_handler;
 
   ////////////////////////////////////////////////////////////////////////
   //
   // struct RemoteIBAllocResponseMultiple
   //
 
-  /*static*/ void RemoteIBAllocResponseMultiple::handle_message(NodeID sender,
-                                                                const RemoteIBAllocResponseMultiple &args,
-                                                                const void *data,
-                                                                size_t msglen)
+  /*static*/ void
+  RemoteIBAllocResponseMultiple::handle_message(NodeID sender,
+                                                const RemoteIBAllocResponseMultiple &args,
+                                                const void *data, size_t msglen)
   {
     TransferOperation *op = reinterpret_cast<TransferOperation *>(args.req_op);
     op->notify_ib_allocations(args.count, args.first_index,
-                              ((msglen > 0) ? static_cast<const off_t *>(data) :
-                                              0));
+                              ((msglen > 0) ? static_cast<const off_t *>(data) : 0));
   }
 
-  ActiveMessageHandlerReg<RemoteIBAllocResponseMultiple> remote_ib_alloc_resp_multi_handler;
-
+  ActiveMessageHandlerReg<RemoteIBAllocResponseMultiple>
+      remote_ib_alloc_resp_multi_handler;
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -736,8 +702,7 @@ namespace Realm {
 
   /*static*/ void RemoteIBReleaseSingle::handle_message(NodeID sender,
                                                         const RemoteIBReleaseSingle &args,
-                                                        const void *data,
-                                                        size_t msglen)
+                                                        const void *data, size_t msglen)
   {
     IBMemory *ib_mem = get_runtime()->get_ib_memory_impl(args.memory);
     ib_mem->free_bytes_local(args.offset, args.size);
@@ -745,35 +710,31 @@ namespace Realm {
 
   ActiveMessageHandlerReg<RemoteIBReleaseSingle> remote_ib_release_single_handler;
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // struct RemoteIBReleaseMultiple
   //
 
-  /*static*/ void RemoteIBReleaseMultiple::handle_message(NodeID sender,
-                                                          const RemoteIBReleaseMultiple &args,
-                                                          const void *data,
-                                                          size_t msglen)
+  /*static*/ void RemoteIBReleaseMultiple::handle_message(
+      NodeID sender, const RemoteIBReleaseMultiple &args, const void *data, size_t msglen)
   {
     assert(msglen == (args.count * (sizeof(Memory) + sizeof(size_t) + sizeof(off_t))));
     const Memory *memories = static_cast<const Memory *>(data);
-    const size_t *sizes = reinterpret_cast<const size_t *>(static_cast<const char *>(data) +
-                                                           (args.count * sizeof(Memory)));
-    const off_t *offsets = reinterpret_cast<const off_t *>(static_cast<const char *>(data) +
-                                                           (args.count * (sizeof(Memory) +
-                                                                          sizeof(size_t))));
+    const size_t *sizes = reinterpret_cast<const size_t *>(
+        static_cast<const char *>(data) + (args.count * sizeof(Memory)));
+    const off_t *offsets =
+        reinterpret_cast<const off_t *>(static_cast<const char *>(data) +
+                                        (args.count * (sizeof(Memory) + sizeof(size_t))));
 
     unsigned i = 0;
     while(i < args.count) {
       // count how many (consecutive) entries are for the same ibmem
       unsigned same_mem = 1;
-      while(((i + same_mem) < args.count) &&
-            (memories[i] == memories[i + same_mem]))
+      while(((i + same_mem) < args.count) && (memories[i] == memories[i + same_mem]))
         same_mem++;
 
       IBMemory *ib_mem = get_runtime()->get_ib_memory_impl(memories[i]);
-      ib_mem->free_multiple(same_mem, offsets+i, sizes+i);
+      ib_mem->free_multiple(same_mem, offsets + i, sizes + i);
 
       i += same_mem;
     }
@@ -781,5 +742,4 @@ namespace Realm {
 
   ActiveMessageHandlerReg<RemoteIBReleaseMultiple> remote_ib_release_multi_handler;
 
-
-};
+}; // namespace Realm

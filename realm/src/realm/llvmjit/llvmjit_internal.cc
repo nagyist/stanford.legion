@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +60,7 @@
 
 namespace Realm {
 
-  extern Logger log_llvmjit;  // defined in llvmjit_module.cc
+  extern Logger log_llvmjit; // defined in llvmjit_module.cc
 
   namespace LLVMJit {
 
@@ -68,37 +70,46 @@ namespace Realm {
     //  (e.g. mmap, mprotect, ...)
     class MemoryManagerWrap : public llvm::SectionMemoryManager {
     public:
-      virtual uint8_t *allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName) override
+      virtual uint8_t *allocateCodeSection(uintptr_t Size, unsigned Alignment,
+                                           unsigned SectionID,
+                                           llvm::StringRef SectionName) override
       {
-	std::cout << "allocateCodeSection(" << Size << ", " << Alignment << ", " << SectionID << ", " << SectionName.str() << ")";
-	std::cout.flush();
-	uint8_t *ret = llvm::SectionMemoryManager::allocateCodeSection(Size, Alignment, SectionID, SectionName);
-	std::cout << " -> " << ((void *)ret) << "\n";
-	return ret;
+        std::cout << "allocateCodeSection(" << Size << ", " << Alignment << ", "
+                  << SectionID << ", " << SectionName.str() << ")";
+        std::cout.flush();
+        uint8_t *ret = llvm::SectionMemoryManager::allocateCodeSection(
+            Size, Alignment, SectionID, SectionName);
+        std::cout << " -> " << ((void *)ret) << "\n";
+        return ret;
       }
 
-      virtual uint8_t *allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, llvm::StringRef SectionName, bool isReadOnly) override
+      virtual uint8_t *allocateDataSection(uintptr_t Size, unsigned Alignment,
+                                           unsigned SectionID,
+                                           llvm::StringRef SectionName,
+                                           bool isReadOnly) override
       {
-	std::cout << "allocateDataSection(" << Size << ", " << Alignment << ", " << SectionID << ", " << SectionName.str() << ", " << isReadOnly << ")";
-	std::cout.flush();
-	uint8_t *ret = llvm::SectionMemoryManager::allocateDataSection(Size, Alignment, SectionID, SectionName, isReadOnly);
-	std::cout << " -> " << ((void *)ret) << "\n";
-	return ret;
+        std::cout << "allocateDataSection(" << Size << ", " << Alignment << ", "
+                  << SectionID << ", " << SectionName.str() << ", " << isReadOnly << ")";
+        std::cout.flush();
+        uint8_t *ret = llvm::SectionMemoryManager::allocateDataSection(
+            Size, Alignment, SectionID, SectionName, isReadOnly);
+        std::cout << " -> " << ((void *)ret) << "\n";
+        return ret;
       }
 
-      bool finalizeMemory (std::string *ErrMsg=nullptr) override
+      bool finalizeMemory(std::string *ErrMsg = nullptr) override
       {
-	std::cout << "finalizeMemory()";
-	std::cout.flush();
-	bool ret = llvm::SectionMemoryManager::finalizeMemory(ErrMsg);
-	std::cout << " -> " << ret << "\n";
-	return ret;
+        std::cout << "finalizeMemory()";
+        std::cout.flush();
+        bool ret = llvm::SectionMemoryManager::finalizeMemory(ErrMsg);
+        std::cout << " -> " << ret << "\n";
+        return ret;
       }
 
       void invalidateInstructionCache() override
       {
-	std::cout << "invalidateInstructionCache()\n";
-	llvm::SectionMemoryManager::invalidateInstructionCache();
+        std::cout << "invalidateInstructionCache()\n";
+        llvm::SectionMemoryManager::invalidateInstructionCache();
       }
     };
 #endif
@@ -123,82 +134,75 @@ namespace Realm {
 
       // generative native target
       {
-	LLVMInitializeNativeTarget();
+        LLVMInitializeNativeTarget();
 #ifndef USE_OLD_JIT
-	LLVMInitializeNativeAsmParser();
-	LLVMInitializeNativeAsmPrinter();
+        LLVMInitializeNativeAsmParser();
+        LLVMInitializeNativeAsmPrinter();
 #endif
 
-	char *triple = LLVMGetDefaultTargetTriple();
-	log_llvmjit.debug() << "default target triple = " << triple;
+        char *triple = LLVMGetDefaultTargetTriple();
+        log_llvmjit.debug() << "default target triple = " << triple;
 
-	LLVMTargetRef target;
-	char *errmsg = 0;
-	if(LLVMGetTargetFromTriple(triple, &target, &errmsg)) {
-	  log_llvmjit.fatal() << "target not found: triple='" << triple << "': " << errmsg;
-	  LLVMDisposeMessage(errmsg);
-	  assert(0);
-	}
+        LLVMTargetRef target;
+        char *errmsg = 0;
+        if(LLVMGetTargetFromTriple(triple, &target, &errmsg)) {
+          log_llvmjit.fatal() << "target not found: triple='" << triple
+                              << "': " << errmsg;
+          LLVMDisposeMessage(errmsg);
+          assert(0);
+        }
 
-	// TODO - allow configuration options to steer these
-	LLVMRelocMode reloc_model = LLVMRelocStatic;
-	LLVMCodeModel code_model = LLVMCodeModelLarge;
-	LLVMCodeGenOptLevel opt_level = LLVMCodeGenLevelAggressive;
+        // TODO - allow configuration options to steer these
+        LLVMRelocMode reloc_model = LLVMRelocStatic;
+        LLVMCodeModel code_model = LLVMCodeModelLarge;
+        LLVMCodeGenOptLevel opt_level = LLVMCodeGenLevelAggressive;
 
-	LLVMTargetMachineRef host_cpu_machine = LLVMCreateTargetMachine(target,
-									triple,
-									"",
-									0/*HostHasAVX()*/ ? "+avx" : "", 
-									opt_level,
-									reloc_model,
-									code_model);
-	assert(host_cpu_machine != 0);
+        LLVMTargetMachineRef host_cpu_machine =
+            LLVMCreateTargetMachine(target, triple, "", 0 /*HostHasAVX()*/ ? "+avx" : "",
+                                    opt_level, reloc_model, code_model);
+        assert(host_cpu_machine != 0);
 
-	// you have to have a module to build an execution engine, so create
-	//  a dummy one
-	{
-	  LLVMModuleRef m = LLVMModuleCreateWithNameInContext("eebuilder",
-							      context);
-	  LLVMSetTarget(m, triple);
-	  // an empty data layout string causes it to be obtained from the target
-	  //  machine, which is nice because they have to match anyway
-	  LLVMSetDataLayout(m, "");
+        // you have to have a module to build an execution engine, so create
+        //  a dummy one
+        {
+          LLVMModuleRef m = LLVMModuleCreateWithNameInContext("eebuilder", context);
+          LLVMSetTarget(m, triple);
+          // an empty data layout string causes it to be obtained from the target
+          //  machine, which is nice because they have to match anyway
+          LLVMSetDataLayout(m, "");
 
 #ifdef USE_OLD_JIT
-	  char *errmsg = 0;
-	  LLVMLinkInJIT();
-	  if(LLVMCreateJITCompilerForModule(&host_exec_engine, m,
-					    opt_level,
-					    &errmsg)) {
+          char *errmsg = 0;
+          LLVMLinkInJIT();
+          if(LLVMCreateJITCompilerForModule(&host_exec_engine, m, opt_level, &errmsg)) {
             log_llvmjit.fatal() << "failed to create execution engine: " << errmsg;
-	    LLVMDisposeMessage(errmsg);
-	    assert(0);
-	  }
+            LLVMDisposeMessage(errmsg);
+            assert(0);
+          }
 #else
-	  struct LLVMMCJITCompilerOptions options;
-	  LLVMInitializeMCJITCompilerOptions(&options, sizeof(options));
-	  options.OptLevel = opt_level;
-	  options.CodeModel = code_model;
-	  options.NoFramePointerElim = true;
+          struct LLVMMCJITCompilerOptions options;
+          LLVMInitializeMCJITCompilerOptions(&options, sizeof(options));
+          options.OptLevel = opt_level;
+          options.CodeModel = code_model;
+          options.NoFramePointerElim = true;
 #ifdef DEBUG_MEMORY_MANAGEMENT
-	  options.MCJMM = ...;
-	  //eb.setMCJITMemoryManager(new MemoryManagerWrap);
+          options.MCJMM = ...;
+          // eb.setMCJITMemoryManager(new MemoryManagerWrap);
 #endif
-	  
-	  char *errmsg = 0;
-	  LLVMLinkInMCJIT();
-	  if(LLVMCreateMCJITCompilerForModule(&host_exec_engine, m,
-					      &options, sizeof(options),
-					      &errmsg)) {
-	    log_llvmjit.fatal() << "failed to create execution engine: " << errmsg;
-	    LLVMDisposeMessage(errmsg);
-	    assert(0);
-	  }
-#endif
-	}
 
-	// should be safe to dispose of triple now?
-	LLVMDisposeMessage(triple);
+          char *errmsg = 0;
+          LLVMLinkInMCJIT();
+          if(LLVMCreateMCJITCompilerForModule(&host_exec_engine, m, &options,
+                                              sizeof(options), &errmsg)) {
+            log_llvmjit.fatal() << "failed to create execution engine: " << errmsg;
+            LLVMDisposeMessage(errmsg);
+            assert(0);
+          }
+#endif
+        }
+
+        // should be safe to dispose of triple now?
+        LLVMDisposeMessage(triple);
       }
 
       nvptx_machine = 0;
@@ -210,48 +214,47 @@ namespace Realm {
       LLVMContextDispose(context);
     }
 
-    void *LLVMJitInternal::llvmir_to_fnptr(const ByteArray& ir,
-					   const std::string& entry_symbol)
+    void *LLVMJitInternal::llvmir_to_fnptr(const ByteArray &ir,
+                                           const std::string &entry_symbol)
     {
       // do we even know how to jit?
       if(!host_exec_engine)
-	return 0;
+        return 0;
 
       // may need to manually add null-termination here
       LLVMMemoryBufferRef mb;
       if((ir.size() == 0) || (((const char *)(ir.base()))[ir.size() - 1] != 0)) {
-	char *nullterm = new char[ir.size() + 1];
-	assert(nullterm != 0);
-	memcpy(nullterm, ir.base(), ir.size());
-	nullterm[ir.size()] = 0;
-	mb = LLVMCreateMemoryBufferWithMemoryRangeCopy(nullterm,
-	                                               ir.size()+1,
-	                                               "membuf");
-	delete[] nullterm;
+        char *nullterm = new char[ir.size() + 1];
+        assert(nullterm != 0);
+        memcpy(nullterm, ir.base(), ir.size());
+        nullterm[ir.size()] = 0;
+        mb = LLVMCreateMemoryBufferWithMemoryRangeCopy(nullterm, ir.size() + 1, "membuf");
+        delete[] nullterm;
       } else {
-	mb = LLVMCreateMemoryBufferWithMemoryRange((const char *)(ir.base()),
-						   ir.size() - 1, // do not count null byte at end
-						   "membuf",
-						   true /*RequiresTerminator*/);
+        mb = LLVMCreateMemoryBufferWithMemoryRange((const char *)(ir.base()),
+                                                   ir.size() -
+                                                       1, // do not count null byte at end
+                                                   "membuf", true /*RequiresTerminator*/);
       }
 
       char *errmsg = 0;
       LLVMModuleRef m;
       if(LLVMParseIRInContext(context, mb, &m, &errmsg)) {
-	// TODO: return this via profiling interface
-	log_llvmjit.fatal() << "LLVM IR PARSE ERROR:\n" << errmsg;
-	log_llvmjit.fatal() << "IR source=\n" << std::string((const char *)(ir.base()),
-	    ir.size());
-	LLVMDisposeMessage(errmsg);
-	assert(0);
+        // TODO: return this via profiling interface
+        log_llvmjit.fatal() << "LLVM IR PARSE ERROR:\n" << errmsg;
+        log_llvmjit.fatal() << "IR source=\n"
+                            << std::string((const char *)(ir.base()), ir.size());
+        LLVMDisposeMessage(errmsg);
+        assert(0);
       }
 
-      // get the entry function from the module before we add it to the exec engine - that way
+      // get the entry function from the module before we add it to the exec engine - that
+      // way
       //  we're sure to get the one we want
       LLVMValueRef func = LLVMGetNamedFunction(m, entry_symbol.c_str());
       if(!func) {
-	log_llvmjit.fatal() << "entry symbol not found: " << entry_symbol;
-	assert(0);
+        log_llvmjit.fatal() << "entry symbol not found: " << entry_symbol;
+        assert(0);
       }
 
       LLVMAddModule(host_exec_engine, m);
@@ -268,7 +271,7 @@ namespace Realm {
 #endif
 
       // do NOT dispose the memory buffer - it belongs to the module now
-      //LLVMDisposeMemoryBuffer(mb);
+      // LLVMDisposeMemoryBuffer(mb);
 
       return fnptr;
     }

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -15,9 +32,10 @@ using namespace Realm;
 Logger log_app("app");
 
 // Task IDs, some IDs are reserved so start at first available number
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
-  DELAY_TASK     = Processor::TASK_ID_FIRST_AVAILABLE+1,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
+  DELAY_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 1,
 };
 
 struct DelayTaskArgs {
@@ -26,17 +44,18 @@ struct DelayTaskArgs {
   RegionInstance inst;
 };
 
-enum {
+enum
+{
   FID_TASK_COUNT, // int
   FID_TASK_PROC,  // Processor
   FID_TASK_START, // double
   FID_TASK_END,   // double
 };
 
-void delay_task(const void *args, size_t arglen, 
-		const void *userdata, size_t userlen, Processor p)
+void delay_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                Processor p)
 {
-  const DelayTaskArgs& d_args = *(const DelayTaskArgs *)args;
+  const DelayTaskArgs &d_args = *(const DelayTaskArgs *)args;
 
   AffineAccessor<int, 1> task_counts(d_args.inst, FID_TASK_COUNT);
   AffineAccessor<Processor, 1> task_procs(d_args.inst, FID_TASK_PROC);
@@ -48,9 +67,9 @@ void delay_task(const void *args, size_t arglen,
   task_procs[d_args.id] = p;
   task_start_times[d_args.id] = Clock::current_time();
 
-  //printf("starting task %d on processor " IDFMT "\n", d_args.id, p.id);
+  // printf("starting task %d on processor " IDFMT "\n", d_args.id, p.id);
   accurate_sleep(d_args.sleep_useconds);
-  //printf("ending task %d on processor " IDFMT "\n", d_args.id, p.id);
+  // printf("ending task %d on processor " IDFMT "\n", d_args.id, p.id);
 
   task_end_times[d_args.id] = Clock::current_time();
 }
@@ -76,25 +95,23 @@ static int check_task_ordering(int start1, int end1, int start2, int end2,
 
   int incorrect = 0;
   if(max1 > min2) {
-    if (create_max1 > min2) {
-      log_app.warning() << "WARNING: At least one task in ["
-                      << start1 << "," << end1 << "] started after a task in ["
-                      << start2 << "," << end2 << "], which is due to create "
-                      << create_max1 << " > start " << min2;
+    if(create_max1 > min2) {
+      log_app.warning() << "WARNING: At least one task in [" << start1 << "," << end1
+                        << "] started after a task in [" << start2 << "," << end2
+                        << "], which is due to create " << create_max1 << " > start "
+                        << min2;
     } else {
-      log_app.error() << "ERROR: At least one task in ["
-                      << start1 << "," << end1 << "] started after a task in ["
-                      << start2 << "," << end2 << "]";
+      log_app.error() << "ERROR: At least one task in [" << start1 << "," << end1
+                      << "] started after a task in [" << start2 << "," << end2 << "]";
       incorrect = 1;
     }
-
   }
 
   return incorrect;
-}    
+}
 
-void top_level_task(const void *args, size_t arglen, 
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   int errors = 0;
   bool top_level_proc_reused = false;
@@ -109,8 +126,8 @@ void top_level_task(const void *args, size_t arglen,
     // workaround for issue 892 - use the current processor (guaranteed local)
     //  rather than trying to get a remote one
     lastp = p;
-    //for(Machine::ProcessorQuery::iterator it = pq.begin(); it != pq.end(); ++it)
-    //  lastp = *it;
+    // for(Machine::ProcessorQuery::iterator it = pq.begin(); it != pq.end(); ++it)
+    //   lastp = *it;
   }
   assert(lastp.exists());
 
@@ -141,8 +158,8 @@ void top_level_task(const void *args, size_t arglen,
   else {
     errors++;
     log_app.error() << "member list MISMATCHES: "
-		    << " expected=" << PrettyVector<Processor>(all_cpus)
-		    << " actual=" << PrettyVector<Processor>(members);
+                    << " expected=" << PrettyVector<Processor>(all_cpus)
+                    << " actual=" << PrettyVector<Processor>(members);
   }
 
   // we're going to launch 4 groups of tasks, each with one per CPU
@@ -180,12 +197,12 @@ void top_level_task(const void *args, size_t arglen,
   fields[FID_TASK_END] = sizeof(double);
 
   RegionInstance local_inst, tgt_inst;
-  RegionInstance::create_instance(local_inst, local_mem, is_tasks,
-				  fields, 0 /*SOA*/,
-				  ProfilingRequestSet()).wait();
-  RegionInstance::create_instance(tgt_inst, tgt_mem, is_tasks,
-				  fields, 0 /*SOA*/,
-				  ProfilingRequestSet()).wait();
+  RegionInstance::create_instance(local_inst, local_mem, is_tasks, fields, 0 /*SOA*/,
+                                  ProfilingRequestSet())
+      .wait();
+  RegionInstance::create_instance(tgt_inst, tgt_mem, is_tasks, fields, 0 /*SOA*/,
+                                  ProfilingRequestSet())
+      .wait();
 
   // clear the task counts to 0 in the remote instance
   {
@@ -207,12 +224,13 @@ void top_level_task(const void *args, size_t arglen,
       d_args.id = count++;
       d_args.sleep_useconds = 1000000;
       d_args.inst = tgt_inst;
-      Event e = (to_group ? pgrp : all_cpus[i]).spawn(DELAY_TASK, &d_args, sizeof(d_args),
-						      Event::NO_EVENT, priority);
+      Event e =
+          (to_group ? pgrp : all_cpus[i])
+              .spawn(DELAY_TASK, &d_args, sizeof(d_args), Event::NO_EVENT, priority);
       task_create_times.push_back(Clock::current_time());
       task_events.insert(e);
       if(to_group)
-	pgrp_events.insert(e);
+        pgrp_events.insert(e);
     }
     // small delay after each batch to make sure the tasks are all enqueued
     accurate_sleep(400000);
@@ -248,7 +266,8 @@ void top_level_task(const void *args, size_t arglen,
   // now check the results
   for(int i = 0; i < total_tasks; i++) {
     if(task_counts[i] != 1) {
-      log_app.error() << "ERROR: task count for " << i << " is " << task_counts[i] << ", not 1";
+      log_app.error() << "ERROR: task count for " << i << " is " << task_counts[i]
+                      << ", not 1";
       errors++;
     }
   }
@@ -256,30 +275,32 @@ void top_level_task(const void *args, size_t arglen,
   for(int i = 0; i < total_tasks; i++)
     proc_counts[task_procs[i]] += 1;
   for(std::map<Processor, int>::iterator it = proc_counts.begin();
-      it != proc_counts.end();
-      it++)
+      it != proc_counts.end(); it++)
     if(it->second != 4) {
-      log_app.error() << "ERROR: processor " << it->first << " ran " << it->second << " tasks, not 4";
+      log_app.error() << "ERROR: processor " << it->first << " ran " << it->second
+                      << " tasks, not 4";
       errors++;
     }
 
   for(int i = 0; i < 3; i++) {
     int start1 = (expected_order[i] - 1) * num_cpus;
     int end1 = start1 + (num_cpus - 1);
-    int start2 = (expected_order[i+1] - 1) * num_cpus;
+    int start2 = (expected_order[i + 1] - 1) * num_cpus;
     int end2 = start2 + (num_cpus - 1);
 
-    errors += check_task_ordering(start1, end1, start2, end2, task_create_times, task_start_times);
+    errors += check_task_ordering(start1, end1, start2, end2, task_create_times,
+                                  task_start_times);
   }
 
   if(errors) {
     log_app.error() << "Raw data:";
     for(int i = 0; i < total_tasks; i++) {
-      log_app.error("%2d: %d " IDFMT " %4.3f %4.3f %4.3f\n",
-		    i, task_counts[i], task_procs[i].id, task_create_times[i], task_start_times[i], task_end_times[i]);
+      log_app.error("%2d: %d " IDFMT " %4.3f %4.3f %4.3f\n", i, task_counts[i],
+                    task_procs[i].id, task_create_times[i], task_start_times[i],
+                    task_end_times[i]);
     }
 
-    log_app.error() <<  "Exiting with errors.";
+    log_app.error() << "Exiting with errors.";
     exit(1);
   }
 
@@ -309,12 +330,11 @@ int main(int argc, char **argv)
   {
     std::set<Processor> all_procs;
     Machine::get_machine().get_all_processors(all_procs);
-    for(std::set<Processor>::const_iterator it = all_procs.begin();
-	it != all_procs.end();
-	it++)
+    for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+        it++)
       if(it->kind() == Processor::LOC_PROC) {
-	p = *it;
-	break;
+        p = *it;
+        break;
       }
   }
   assert(p.exists());
@@ -327,6 +347,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   rt.wait_for_shutdown();
-  
+
   return 0;
 }

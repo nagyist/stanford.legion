@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,19 +44,13 @@ namespace Realm {
   {}
 
   template <typename S>
-  bool serdez(S& serdez, const SubgraphDefinition& s)
+  bool serdez(S &serdez, const SubgraphDefinition &s)
   {
-    return ((serdez & s.tasks) &&
-	    (serdez & s.copies) &&
-	    (serdez & s.arrivals) &&
-	    (serdez & s.instantiations) &&
-	    (serdez & s.acquires) &&
-	    (serdez & s.releases) &&
-	    (serdez & s.dependencies) &&
-	    (serdez & s.interpolations) &&
-	    (serdez & s.concurrency_mode));
+    return ((serdez & s.tasks) && (serdez & s.copies) && (serdez & s.arrivals) &&
+            (serdez & s.instantiations) && (serdez & s.acquires) &&
+            (serdez & s.releases) && (serdez & s.dependencies) &&
+            (serdez & s.interpolations) && (serdez & s.concurrency_mode));
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -66,7 +62,6 @@ namespace Realm {
     , priority(0)
   {}
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // struct SubgraphDefinition::CopyDesc
@@ -77,7 +72,6 @@ namespace Realm {
     , priority(0)
   {}
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // struct SubgraphDefinition::ArrivalDesc
@@ -87,7 +81,6 @@ namespace Realm {
     , count(1)
   {}
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // struct SubgraphDefinition::InstantiationDesc
@@ -96,7 +89,6 @@ namespace Realm {
     : subgraph(Subgraph::NO_SUBGRAPH)
     , priority_adjust(0)
   {}
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -108,7 +100,6 @@ namespace Realm {
     , exclusive(true)
   {}
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // struct SubgraphDefinition::ReleaseDesc
@@ -116,7 +107,6 @@ namespace Realm {
   inline SubgraphDefinition::ReleaseDesc::ReleaseDesc()
     : rsrv(Reservation::NO_RESERVATION)
   {}
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -131,7 +121,6 @@ namespace Realm {
     , tgt_op_port(0)
   {}
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // struct SubgraphDefinition::Interpolation
@@ -144,6 +133,5 @@ namespace Realm {
     , target_offset(0)
     , redop_id(0)
   {}
-
 
 }; // namespace Realm

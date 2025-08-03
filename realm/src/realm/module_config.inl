@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,12 +38,13 @@ namespace Realm {
   template <typename T>
   RealmStatus ModuleConfig::set_property(const std::string &name, T value)
   {
-    std::unordered_map<std::string, void* const>::iterator it = config_map.find(name);
-    if (it == config_map.end()) {
-      log_moduleconfig.warning("Module %s does not have the configuration: %s", module_name.c_str(), name.c_str());
+    std::unordered_map<std::string, void *const>::iterator it = config_map.find(name);
+    if(it == config_map.end()) {
+      log_moduleconfig.warning("Module %s does not have the configuration: %s",
+                               module_name.c_str(), name.c_str());
       return REALM_MODULE_CONFIG_ERROR_INVALID_NAME;
     } else {
-      *reinterpret_cast<T*>(it->second) = value;
+      *reinterpret_cast<T *>(it->second) = value;
       return REALM_SUCCESS;
     }
   }
@@ -49,13 +52,15 @@ namespace Realm {
   template <typename T>
   RealmStatus ModuleConfig::get_property(const std::string &name, T &value) const
   {
-    std::unordered_map<std::string, void* const>::const_iterator it = config_map.find(name);
-    if (it == config_map.cend()) {
-      log_moduleconfig.warning("Module %s does not have the configuration: %s", module_name.c_str(), name.c_str());
+    std::unordered_map<std::string, void *const>::const_iterator it =
+        config_map.find(name);
+    if(it == config_map.cend()) {
+      log_moduleconfig.warning("Module %s does not have the configuration: %s",
+                               module_name.c_str(), name.c_str());
       value = 0;
       return REALM_MODULE_CONFIG_ERROR_INVALID_NAME;
     } else {
-      value = *reinterpret_cast<T*>(it->second);
+      value = *reinterpret_cast<T *>(it->second);
       return REALM_SUCCESS;
     }
   }
@@ -63,22 +68,23 @@ namespace Realm {
   template <typename T>
   RealmStatus ModuleConfig::get_resource(const std::string &name, T &value) const
   {
-    if (!resource_discover_finished) {
-      log_moduleconfig.info("Module %s can not detect resources.",
-                             module_name.c_str());
+    if(!resource_discover_finished) {
+      log_moduleconfig.info("Module %s can not detect resources.", module_name.c_str());
       return REALM_MODULE_CONFIG_ERROR_NO_RESOURCE;
     }
 
-    std::unordered_map<std::string, void* const>::const_iterator it = resource_map.find(name);
-    if (it == resource_map.cend()) {
-      log_moduleconfig.warning("Module %s does not have the resource: %s", module_name.c_str(), name.c_str());
+    std::unordered_map<std::string, void *const>::const_iterator it =
+        resource_map.find(name);
+    if(it == resource_map.cend()) {
+      log_moduleconfig.warning("Module %s does not have the resource: %s",
+                               module_name.c_str(), name.c_str());
       return REALM_MODULE_CONFIG_ERROR_INVALID_NAME;
     } else {
-      value = *reinterpret_cast<T*>(it->second);
+      value = *reinterpret_cast<T *>(it->second);
       return REALM_SUCCESS;
     }
   }
 
-};
+}; // namespace Realm
 
 #endif // ifndef REALM_MODULECONFIG_INL

@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 NVIDIA Corp
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -106,8 +107,8 @@ std::ostream &operator<<(std::ostream &os, const Stat &s)
 }
 
 #if defined(REALM_USE_CUDA) || defined(REALM_USE_HIP)
-void dummy_gpu_task(const void *args, size_t arglen, 
-		                const void *userdata, size_t userlen, Processor p);
+void dummy_gpu_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p);
 #endif
 
 static void display_processor_info(Processor p) {}
@@ -155,7 +156,7 @@ static void bench_timing_task(const void *args, size_t arglen, const void *userd
   launcher_args.chain = self_args.chain;
 
   Processor::Kind proc_kind = Processor::Kind::NO_KIND;
-  if (self_args.test_gpu) {
+  if(self_args.test_gpu) {
     proc_kind = Processor::TOC_PROC;
   } else {
     proc_kind = Processor::LOC_PROC;
@@ -171,7 +172,7 @@ static void bench_timing_task(const void *args, size_t arglen, const void *userd
     processors.assign(processors_to_test.begin(), processors_to_test.end());
     proc_num = processors.size();
 
-    if (self_args.use_proc_group) {
+    if(self_args.use_proc_group) {
       ProcessorGroup proc_group = ProcessorGroup::create_group(processors);
       processors.clear();
       processors.push_back(proc_group);
@@ -245,27 +246,21 @@ int main(int argc, char **argv)
   assert(ok);
 
   r.register_task(BENCH_TIMING_TASK, bench_timing_task);
-  Processor::register_task_by_kind(Processor::LOC_PROC,
-				   false /*!global*/,
-				   DUMMY_TASK_LAUNCHER,
-				   CodeDescriptor(dummy_task_launcher),
-				   ProfilingRequestSet()).wait();
-  Processor::register_task_by_kind(Processor::LOC_PROC,
-				   false /*!global*/,
-				   DUMMY_TASK,
-				   CodeDescriptor(dummy_task),
-				   ProfilingRequestSet()).wait();
+  Processor::register_task_by_kind(
+      Processor::LOC_PROC, false /*!global*/, DUMMY_TASK_LAUNCHER,
+      CodeDescriptor(dummy_task_launcher), ProfilingRequestSet())
+      .wait();
+  Processor::register_task_by_kind(Processor::LOC_PROC, false /*!global*/, DUMMY_TASK,
+                                   CodeDescriptor(dummy_task), ProfilingRequestSet())
+      .wait();
 #if defined(REALM_USE_CUDA) || defined(REALM_USE_HIP)
-  Processor::register_task_by_kind(Processor::TOC_PROC,
-				   false /*!global*/,
-				   DUMMY_TASK_LAUNCHER,
-				   CodeDescriptor(dummy_task_launcher),
-				   ProfilingRequestSet()).wait();
-  Processor::register_task_by_kind(Processor::TOC_PROC,
-				   false /*!global*/,
-				   DUMMY_TASK,
-				   CodeDescriptor(dummy_gpu_task),
-				   ProfilingRequestSet()).wait();
+  Processor::register_task_by_kind(
+      Processor::TOC_PROC, false /*!global*/, DUMMY_TASK_LAUNCHER,
+      CodeDescriptor(dummy_task_launcher), ProfilingRequestSet())
+      .wait();
+  Processor::register_task_by_kind(Processor::TOC_PROC, false /*!global*/, DUMMY_TASK,
+                                   CodeDescriptor(dummy_gpu_task), ProfilingRequestSet())
+      .wait();
 #endif
 
   BenchTimingTaskArgs args;

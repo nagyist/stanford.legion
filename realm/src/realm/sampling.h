@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,22 +47,23 @@ namespace Realm {
     // parent class for all gauges
     class Gauge {
     public:
-      enum GaugeType {
-	GTYPE_UNKNOWN = 0,
-	GTYPE_ABSOLUTE = 1,
-	GTYPE_ABSOLUTERANGE = 2,
-	GTYPE_EVENTCOUNT = 3,
+      enum GaugeType
+      {
+        GTYPE_UNKNOWN = 0,
+        GTYPE_ABSOLUTE = 1,
+        GTYPE_ABSOLUTERANGE = 2,
+        GTYPE_EVENTCOUNT = 3,
       };
 
       // if profiler==0, the gauge will be connected to the global default profiler
-      Gauge(const std::string& _name);
+      Gauge(const std::string &_name);
       ~Gauge(void);
 
       const std::string name;
 
     private:
-      Gauge(const Gauge& copy_from) {}
-      Gauge& operator=(const Gauge& copy_from) { return *this; }
+      Gauge(const Gauge &copy_from) {}
+      Gauge &operator=(const Gauge &copy_from) { return *this; }
 
     protected:
       // add_gauge is templated to preserve static type info during delayed construction
@@ -82,26 +85,26 @@ namespace Realm {
       typedef T DATA_TYPE;
 
       // if profiler==0, the gauge will be connected to the global default profiler
-      AbsoluteGauge(const std::string& _name, T initval = T(),
-		    SamplingProfiler *_profiler = 0);
+      AbsoluteGauge(const std::string &_name, T initval = T(),
+                    SamplingProfiler *_profiler = 0);
 
-      AbsoluteGauge<T>& operator=(const AbsoluteGauge<T>& copy_from);
+      AbsoluteGauge<T> &operator=(const AbsoluteGauge<T> &copy_from);
 
       operator T(void) const;
-      AbsoluteGauge<T>& operator=(T to_set);
-      AbsoluteGauge<T>& operator+=(T to_add);
-      AbsoluteGauge<T>& operator-=(T to_sub);
+      AbsoluteGauge<T> &operator=(T to_set);
+      AbsoluteGauge<T> &operator+=(T to_add);
+      AbsoluteGauge<T> &operator-=(T to_sub);
 
       struct Sample {
-	bool operator==(const Sample& other) const { return value == other.value; }
+        bool operator==(const Sample &other) const { return value == other.value; }
 
-	T value;
+        T value;
       };
-	
+
     protected:
       friend class Realm::GaugeSampler;
 
-      atomic<T> curval;  // current gauge value
+      atomic<T> curval; // current gauge value
     };
 
     template <typename T>
@@ -111,35 +114,34 @@ namespace Realm {
       typedef T DATA_TYPE;
 
       // if profiler==0, the gauge will be connected to the global default profiler
-      AbsoluteRangeGauge(const std::string& _name, T initval = T(),
-			 SamplingProfiler *_profiler = 0);
+      AbsoluteRangeGauge(const std::string &_name, T initval = T(),
+                         SamplingProfiler *_profiler = 0);
 
-      AbsoluteRangeGauge<T>& operator=(const AbsoluteRangeGauge<T>& copy_from);
+      AbsoluteRangeGauge<T> &operator=(const AbsoluteRangeGauge<T> &copy_from);
 
       operator T(void) const;
-      AbsoluteRangeGauge<T>& operator=(T to_set);
-      AbsoluteRangeGauge<T>& operator+=(T to_add);
-      AbsoluteRangeGauge<T>& operator-=(T to_sub);
-	
-      struct Sample {
-	bool operator==(const Sample& other) const
-	{ 
-	  return ((value == other.value) && 
-		  (minval == other.minval) && 
-		  (maxval == other.maxval));
-	}
+      AbsoluteRangeGauge<T> &operator=(T to_set);
+      AbsoluteRangeGauge<T> &operator+=(T to_add);
+      AbsoluteRangeGauge<T> &operator-=(T to_sub);
 
-	T value;
-	T minval;
-	T maxval;
+      struct Sample {
+        bool operator==(const Sample &other) const
+        {
+          return ((value == other.value) && (minval == other.minval) &&
+                  (maxval == other.maxval));
+        }
+
+        T value;
+        T minval;
+        T maxval;
       };
 
     protected:
       friend class Realm::GaugeSampler;
 
-      atomic<T> curval;  // current gauge value
-      atomic<T> minval;  // max value seen since last sample
-      atomic<T> maxval;  // min value seen since last sample
+      atomic<T> curval; // current gauge value
+      atomic<T> minval; // max value seen since last sample
+      atomic<T> maxval; // min value seen since last sample
     };
 
     template <typename T = int>
@@ -149,21 +151,21 @@ namespace Realm {
       typedef T DATA_TYPE;
 
       // if profiler==0, the gauge will be connected to the global default profiler
-      EventCounter(const std::string& _name, SamplingProfiler *_profiler = 0);
+      EventCounter(const std::string &_name, SamplingProfiler *_profiler = 0);
 
       operator T(void) const;
-      EventCounter<T>& operator+=(T to_add);
-	
-      struct Sample {
-	bool operator==(const Sample& other) const { return count == other.count; }
+      EventCounter<T> &operator+=(T to_add);
 
-	T count;
+      struct Sample {
+        bool operator==(const Sample &other) const { return count == other.count; }
+
+        T count;
       };
-	
+
     protected:
       friend class Realm::GaugeSampler;
 
-      atomic<T> events;  // events recorded since last sample
+      atomic<T> events; // events recorded since last sample
     };
 
   }; // namespace ProfilingGauges
@@ -175,8 +177,8 @@ namespace Realm {
     SamplingProfiler(bool is_default);
     ~SamplingProfiler(void);
 
-    void configure_from_cmdline(std::vector<std::string>& cmdline,
-				CoreReservationSet& crs);
+    void configure_from_cmdline(std::vector<std::string> &cmdline,
+                                CoreReservationSet &crs);
     void flush_data(void);
     void shutdown(void);
 
@@ -195,19 +197,20 @@ namespace Realm {
     //  gets written by the sampling profiler
 
     struct PacketHeader {
-      enum PacketTypes {
-	PACKET_EMPTY = 0,
-	PACKET_NEWGAUGE = 1,
-	PACKET_SAMPLES = 2,
+      enum PacketTypes
+      {
+        PACKET_EMPTY = 0,
+        PACKET_NEWGAUGE = 1,
+        PACKET_SAMPLES = 2,
       };
       unsigned packet_type;
-      unsigned packet_size;  // individual packets <= 4GB
+      unsigned packet_size; // individual packets <= 4GB
       // size does NOT include this 8 byte header
     };
 
     struct PacketNewGauge {
-      int gauge_id;    // assigned by the profiler
-      int gauge_type;  // from ProfilingGauges::Gauge::GaugeType
+      int gauge_id;   // assigned by the profiler
+      int gauge_type; // from ProfilingGauges::Gauge::GaugeType
       char gauge_dtype[8];
       char name[48];
     };

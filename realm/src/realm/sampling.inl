@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +31,7 @@ namespace Realm {
     // class Gauge
     //
 
-    inline Gauge::Gauge(const std::string& _name)
+    inline Gauge::Gauge(const std::string &_name)
       : name(_name)
       , sampler(0) // initialized by subclasses
     {}
@@ -37,9 +39,8 @@ namespace Realm {
     inline Gauge::~Gauge(void)
     {
       if(sampler)
-	remove_gauge();
+        remove_gauge();
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -47,16 +48,16 @@ namespace Realm {
     //
 
     template <typename T>
-    inline AbsoluteGauge<T>::AbsoluteGauge(const std::string& _name, T _initval,
-					   SamplingProfiler *_profiler /*= 0*/)
+    inline AbsoluteGauge<T>::AbsoluteGauge(const std::string &_name, T _initval,
+                                           SamplingProfiler *_profiler /*= 0*/)
       : Gauge(_name)
       , curval(_initval)
     {
-      add_gauge(this, _profiler);  // may (eventually) set sampler as a side-effect
+      add_gauge(this, _profiler); // may (eventually) set sampler as a side-effect
     }
 
     template <typename T>
-    AbsoluteGauge<T>& AbsoluteGauge<T>::operator=(const AbsoluteGauge<T>& copy_from)
+    AbsoluteGauge<T> &AbsoluteGauge<T>::operator=(const AbsoluteGauge<T> &copy_from)
     {
       curval.store(copy_from.curval.load());
       return *this;
@@ -69,26 +70,25 @@ namespace Realm {
     }
 
     template <typename T>
-    inline AbsoluteGauge<T>& AbsoluteGauge<T>::operator=(T to_set)
+    inline AbsoluteGauge<T> &AbsoluteGauge<T>::operator=(T to_set)
     {
       curval.store(to_set);
       return *this;
     }
 
     template <typename T>
-    inline AbsoluteGauge<T>& AbsoluteGauge<T>::operator+=(T to_add)
+    inline AbsoluteGauge<T> &AbsoluteGauge<T>::operator+=(T to_add)
     {
       curval.fetch_add(to_add);
       return *this;
     }
 
     template <typename T>
-    inline AbsoluteGauge<T>& AbsoluteGauge<T>::operator-=(T to_sub)
+    inline AbsoluteGauge<T> &AbsoluteGauge<T>::operator-=(T to_sub)
     {
       curval.fetch_sub(to_sub);
       return *this;
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -96,18 +96,19 @@ namespace Realm {
     //
 
     template <typename T>
-    inline AbsoluteRangeGauge<T>::AbsoluteRangeGauge(const std::string& _name, T _initval,
-						     SamplingProfiler *_profiler /*= 0*/)
+    inline AbsoluteRangeGauge<T>::AbsoluteRangeGauge(const std::string &_name, T _initval,
+                                                     SamplingProfiler *_profiler /*= 0*/)
       : Gauge(_name)
       , curval(_initval)
       , minval(_initval)
       , maxval(_initval)
     {
-      add_gauge(this, _profiler);  // may (eventually) set sampler as a side-effect
+      add_gauge(this, _profiler); // may (eventually) set sampler as a side-effect
     }
 
     template <typename T>
-    AbsoluteRangeGauge<T>& AbsoluteRangeGauge<T>::operator=(const AbsoluteRangeGauge<T>& copy_from)
+    AbsoluteRangeGauge<T> &
+    AbsoluteRangeGauge<T>::operator=(const AbsoluteRangeGauge<T> &copy_from)
     {
       T newval = copy_from.curval.load();
       curval.store(newval);
@@ -123,7 +124,7 @@ namespace Realm {
     }
 
     template <typename T>
-    inline AbsoluteRangeGauge<T>& AbsoluteRangeGauge<T>::operator=(T to_set)
+    inline AbsoluteRangeGauge<T> &AbsoluteRangeGauge<T>::operator=(T to_set)
     {
       curval.store(to_set);
       minval.fetch_min(to_set);
@@ -132,27 +133,26 @@ namespace Realm {
     }
 
     template <typename T>
-    inline AbsoluteRangeGauge<T>& AbsoluteRangeGauge<T>::operator+=(T to_add)
+    inline AbsoluteRangeGauge<T> &AbsoluteRangeGauge<T>::operator+=(T to_add)
     {
       T newval = curval.fetch_add(to_add) + to_add;
       if(to_add < 0)
-	minval.fetch_min(newval);
+        minval.fetch_min(newval);
       if(to_add > 0)
-	maxval.fetch_max(newval);
+        maxval.fetch_max(newval);
       return *this;
     }
 
     template <typename T>
-    inline AbsoluteRangeGauge<T>& AbsoluteRangeGauge<T>::operator-=(T to_sub)
+    inline AbsoluteRangeGauge<T> &AbsoluteRangeGauge<T>::operator-=(T to_sub)
     {
       T newval = curval.fetch_sub(to_sub) + to_sub;
       if(to_sub > 0)
-	minval.fetch_min(newval);
+        minval.fetch_min(newval);
       if(to_sub < 0)
-	maxval.fetch_max(newval);
+        maxval.fetch_max(newval);
       return *this;
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -160,21 +160,20 @@ namespace Realm {
     //
 
     template <typename T>
-    inline EventCounter<T>::EventCounter(const std::string& _name,
-					 SamplingProfiler *_profiler /*= 0*/)
+    inline EventCounter<T>::EventCounter(const std::string &_name,
+                                         SamplingProfiler *_profiler /*= 0*/)
       : Gauge(_name)
       , events(0)
     {
-      add_gauge(this, _profiler);  // may (eventually) set sampler as a side-effect
+      add_gauge(this, _profiler); // may (eventually) set sampler as a side-effect
     }
 
     template <typename T>
-    inline EventCounter<T>& EventCounter<T>::operator+=(T to_add)
+    inline EventCounter<T> &EventCounter<T>::operator+=(T to_add)
     {
       events.fetch_add(to_add);
       return *this;
     }
-
 
   }; // namespace ProfilingGauges
 

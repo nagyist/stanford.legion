@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef CHANNEL_COMMON
 #define CHANNEL_COMMON
 

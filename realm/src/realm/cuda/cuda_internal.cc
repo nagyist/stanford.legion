@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,11 +33,9 @@ namespace Realm {
       extern thread_local GPUStream *current_gpu_stream;
     }
 
-    typedef int (*PFN_cudaLaunchKernel)(const void *func, dim3 gridDim,
-                                        dim3 blockDim, void **args,
-                                        size_t sharedMem, CUstream stream);
-    typedef int (*PFN_cudaGetFuncBySymbol)(void *functionPtr,
-                                           const void *symbolPtr);
+    typedef int (*PFN_cudaLaunchKernel)(const void *func, dim3 gridDim, dim3 blockDim,
+                                        void **args, size_t sharedMem, CUstream stream);
+    typedef int (*PFN_cudaGetFuncBySymbol)(void *functionPtr, const void *symbolPtr);
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -50,8 +50,7 @@ namespace Realm {
       CudaModule *mod = get_runtime()->get_module<CudaModule>("cuda");
       if(mod) {
         for(std::vector<GPU *>::const_iterator it = mod->gpus.begin();
-            it != mod->gpus.end();
-            ++it)
+            it != mod->gpus.end(); ++it)
           if((*it)->context == _context) {
             gpu = *it;
             break;
@@ -68,11 +67,7 @@ namespace Realm {
       : array(_array)
     {}
 
-    MemSpecificCudaArray::~MemSpecificCudaArray()
-    {
-      assert(array == 0);
-    }
-
+    MemSpecificCudaArray::~MemSpecificCudaArray() { assert(array == 0); }
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -80,14 +75,14 @@ namespace Realm {
 
     int AddressInfoCudaArray::set_rect(const RegionInstanceImpl *inst,
                                        const InstanceLayoutPieceBase *piece,
-                                       size_t field_size, size_t field_offset,
-                                       int ndims,
+                                       size_t field_size, size_t field_offset, int ndims,
                                        const int64_t lo[/*ndims*/],
                                        const int64_t hi[/*ndims*/],
                                        const int order[/*ndims*/])
     {
       assert(ndims <= 3);
-      const MemSpecificCudaArray *ms = inst->metadata.find_mem_specific<MemSpecificCudaArray>();
+      const MemSpecificCudaArray *ms =
+          inst->metadata.find_mem_specific<MemSpecificCudaArray>();
       assert(ms);
       array = ms->array;
       dim = ndims;
@@ -103,13 +98,21 @@ namespace Realm {
       while(ok_dims < ndims) {
         int di = order[ok_dims];
         if(hi[di] != lo[di]) {
-          if(di <= prev_dim) break;
+          if(di <= prev_dim)
+            break;
           prev_dim = di;
           switch(di) {
-          case 0: width_in_bytes *= (hi[0] - lo[0] + 1); break;
-          case 1: height = hi[1] - lo[1] + 1; break;
-          case 2: depth = hi[2] - lo[2] + 1; break;
-          default: assert(0);
+          case 0:
+            width_in_bytes *= (hi[0] - lo[0] + 1);
+            break;
+          case 1:
+            height = hi[1] - lo[1] + 1;
+            break;
+          case 2:
+            depth = hi[2] - lo[2] + 1;
+            break;
+          default:
+            assert(0);
           }
         }
         ok_dims++;
@@ -117,7 +120,6 @@ namespace Realm {
 
       return ok_dims;
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -135,13 +137,12 @@ namespace Realm {
       return nullptr;
     }
 
-    GPUXferDes::GPUXferDes(uintptr_t _dma_op, Channel *_channel,
-                           NodeID _launch_node, XferDesID _guid,
-                           const std::vector<XferDesPortInfo>& inputs_info,
-                           const std::vector<XferDesPortInfo>& outputs_info,
+    GPUXferDes::GPUXferDes(uintptr_t _dma_op, Channel *_channel, NodeID _launch_node,
+                           XferDesID _guid,
+                           const std::vector<XferDesPortInfo> &inputs_info,
+                           const std::vector<XferDesPortInfo> &outputs_info,
                            int _priority)
-      : XferDes(_dma_op, _channel, _launch_node, _guid,
-                inputs_info, outputs_info,
+      : XferDes(_dma_op, _channel, _launch_node, _guid, inputs_info, outputs_info,
                 _priority, 0, 0)
     {
       kind = XFER_GPU_IN_FB; // TODO: is this needed at all?
@@ -150,7 +151,7 @@ namespace Realm {
       for(size_t i = 0; i < input_ports.size(); i++) {
         src_gpus[i] = mem_to_gpu(input_ports[i].mem);
         // sanity-check
-	if(input_ports[i].mem->kind == MemoryImpl::MKIND_GPUFB)
+        if(input_ports[i].mem->kind == MemoryImpl::MKIND_GPUFB)
           assert(src_gpus[i]);
       }
 
@@ -158,18 +159,19 @@ namespace Realm {
       dst_is_ipc.resize(outputs_info.size(), false);
       for(size_t i = 0; i < output_ports.size(); i++) {
         dst_gpus[i] = mem_to_gpu(output_ports[i].mem);
-	if(output_ports[i].mem->kind == MemoryImpl::MKIND_GPUFB) {
+        if(output_ports[i].mem->kind == MemoryImpl::MKIND_GPUFB) {
           // sanity-check
           assert(dst_gpus[i]);
         } else {
           // assume a memory owned by another node is ipc
-          if(NodeID(ID(output_ports[i].mem->me).memory_owner_node()) != Network::my_node_id)
+          if(NodeID(ID(output_ports[i].mem->me).memory_owner_node()) !=
+             Network::my_node_id)
             dst_is_ipc[i] = true;
         }
       }
     }
-	
-    long GPUXferDes::get_requests(Request** requests, long nr)
+
+    long GPUXferDes::get_requests(Request **requests, long nr)
     {
       // unused
       assert(0);
@@ -187,27 +189,27 @@ namespace Realm {
       if(src == nullptr) {
         src = channel_gpu;
       }
-      if (dst == nullptr) {
+      if(dst == nullptr) {
         dst = channel_gpu;
       }
 
       // IPC copy
-      if (dst_mapping != nullptr) {
+      if(dst_mapping != nullptr) {
         return src->cudaipc_streams[dst_mapping->owner];
       }
 
       const bool src_gpu_mem = src->is_accessible_gpu_mem(src_mem);
       const bool dst_gpu_mem = src->is_accessible_gpu_mem(dst_mem);
-      if (src_gpu_mem && dst_gpu_mem) {
+      if(src_gpu_mem && dst_gpu_mem) {
         // Intra-GPU copy
-        if (src == dst) {
+        if(src == dst) {
           return src->get_next_d2d_stream();
         }
         // P2P copy
         return src->peer_to_peer_streams[dst->info->index];
       }
       // D2H copy
-      if (src_gpu_mem) {
+      if(src_gpu_mem) {
         return src->device_to_host_stream;
       }
       // H2D or H2H copy.  We use the destination gpu here instead, since it does not
@@ -216,15 +218,16 @@ namespace Realm {
       return dst->host_to_device_stream;
     }
 
-    static void get_nonaffine_strides(size_t &pitch, size_t &height, AddressInfoCudaArray &ainfo, AddressListCursor &alc, size_t bytes)
+    static void get_nonaffine_strides(size_t &pitch, size_t &height,
+                                      AddressInfoCudaArray &ainfo, AddressListCursor &alc,
+                                      size_t bytes)
     {
       bool shape_ok = false;
       pitch = 1;  // Set a default for pitch and height
       height = 1; // Don't set these to zero, as the driver will patch a pitch that may be
                   // non-sensical
       if(ainfo.dim <= 2) {
-        if((alc.get_dim() == 1) ||
-            (alc.remaining(0) >= bytes)) {
+        if((alc.get_dim() == 1) || (alc.remaining(0) >= bytes)) {
           // contiguous input range
           pitch = ainfo.width_in_bytes;
           height = ainfo.height;
@@ -239,8 +242,7 @@ namespace Realm {
         }
         shape_ok = true;
       } else {
-        if((alc.get_dim() == 1) ||
-            (alc.remaining(0) >= bytes)) {
+        if((alc.get_dim() == 1) || (alc.remaining(0) >= bytes)) {
           // contiguous input range
           pitch = ainfo.width_in_bytes;
           height = ainfo.height;
@@ -250,7 +252,8 @@ namespace Realm {
           // if it's not contiguous, width must be exactly what
           // we need for either 1 or 2 leading dimensions
           if(alc.remaining(0) == ainfo.width_in_bytes) {
-            if((alc.get_dim() == 2) || (alc.remaining(1) >= (ainfo.height * ainfo.depth))) {
+            if((alc.get_dim() == 2) ||
+               (alc.remaining(1) >= (ainfo.height * ainfo.depth))) {
               // input dim 1 covers output 1 and 2
               pitch = alc.get_stride(1);
               height = ainfo.height;
@@ -261,10 +264,9 @@ namespace Realm {
               // match exactly AND the stride for dim 2 has to
               // be a multiple of dim 1's stride due to
               // cuMemcpy3D restrictions
-              if((alc.remaining(1) == ainfo.height) &&
-                  (alc.get_dim() >= 3) &&
-                  (alc.remaining(2) >= ainfo.depth) &&
-                  ((alc.get_stride(2) % alc.get_stride(1)) == 0)) {
+              if((alc.remaining(1) == ainfo.height) && (alc.get_dim() >= 3) &&
+                 (alc.remaining(2) >= ainfo.depth) &&
+                 ((alc.get_stride(2) % alc.get_stride(1)) == 0)) {
                 pitch = alc.get_stride(1);
                 height = (alc.get_stride(2) / alc.get_stride(1));
                 alc.advance(2, ainfo.depth);
@@ -273,8 +275,8 @@ namespace Realm {
             }
           } else {
             if((alc.remaining(0) == (ainfo.width_in_bytes * ainfo.height)) &&
-                (alc.remaining(1) >= ainfo.depth) &&
-                ((alc.get_stride(1) % ainfo.width_in_bytes) == 0)) {
+               (alc.remaining(1) >= ainfo.depth) &&
+               ((alc.get_stride(1) % ainfo.width_in_bytes) == 0)) {
               pitch = ainfo.width_in_bytes;
               height = (alc.get_stride(1) / ainfo.width_in_bytes);
               alc.advance(1, ainfo.depth);
@@ -284,11 +286,9 @@ namespace Realm {
         }
       }
       if(!shape_ok) {
-        log_gpudma.fatal() << "array copy shape mismatch: alc="
-                        << alc << " ainfo="
-                        << ainfo.width_in_bytes << "x"
-                        << ainfo.height << "x"
-                        << ainfo.depth;
+        log_gpudma.fatal() << "array copy shape mismatch: alc=" << alc
+                           << " ainfo=" << ainfo.width_in_bytes << "x" << ainfo.height
+                           << "x" << ainfo.depth;
         abort();
       }
     }
@@ -574,7 +574,7 @@ namespace Realm {
       // 3) Copy loop  - Based on the batch, descide the best copy to push.
 
       // 1) Outer loop - iterate over all the addresses for each request
-      while (true) {
+      while(true) {
         XferPort *in_port = 0, *out_port = 0;
         size_t in_span_start = 0, out_span_start = 0;
         GPU *in_gpu = 0, *out_gpu = 0;
@@ -585,18 +585,20 @@ namespace Realm {
 
         const InstanceLayoutPieceBase *in_nonaffine, *out_nonaffine;
 
-        if (((total_bytes >= MIN_XFER_SIZE) && work_until.is_expired()) || (total_bytes >= flow_control_bytes)) {
-          log_gpudma.info() << "Flow control hit, copied " << total_bytes << " leave the rest for later!";
+        if(((total_bytes >= MIN_XFER_SIZE) && work_until.is_expired()) ||
+           (total_bytes >= flow_control_bytes)) {
+          log_gpudma.info() << "Flow control hit, copied " << total_bytes
+                            << " leave the rest for later!";
           break;
         }
 
-        const size_t max_bytes = get_addresses(MIN_XFER_SIZE, &rseqcache,
-                                                       in_nonaffine, out_nonaffine);
-        if (max_bytes == 0) {
+        const size_t max_bytes =
+            get_addresses(MIN_XFER_SIZE, &rseqcache, in_nonaffine, out_nonaffine);
+        if(max_bytes == 0) {
           break;
         }
 
-        if (input_control.current_io_port >= 0) {
+        if(input_control.current_io_port >= 0) {
           in_port = &input_ports[input_control.current_io_port];
           in_span_start = in_port->local_bytes_total;
           in_gpu = src_gpus[input_control.current_io_port];
@@ -604,7 +606,7 @@ namespace Realm {
             in_gpu = channel->get_gpu();
           }
         }
-        if (output_control.current_io_port >= 0) {
+        if(output_control.current_io_port >= 0) {
           out_port = &output_ports[output_control.current_io_port];
           out_span_start = out_port->local_bytes_total;
           out_gpu = dst_gpus[output_control.current_io_port];
@@ -622,28 +624,26 @@ namespace Realm {
             (in_port != nullptr) && (in_gpu->is_accessible_host_mem(in_port->mem)) &&
             (out_port != nullptr) && (out_gpu->is_accessible_host_mem(out_port->mem));
 
-        if (in_port == 0 || out_port == 0) {
-          if (in_port) {
+        if(in_port == 0 || out_port == 0) {
+          if(in_port) {
             in_port->addrcursor.skip_bytes(max_bytes);
-            rseqcache.add_span(input_control.current_io_port, in_span_start,
-                               max_bytes);
-          } else if (out_port) {
+            rseqcache.add_span(input_control.current_io_port, in_span_start, max_bytes);
+          } else if(out_port) {
             out_port->addrcursor.skip_bytes(max_bytes);
           } else {
-            wseqcache.add_span(output_control.current_io_port, out_span_start,
-                               max_bytes);
+            wseqcache.add_span(output_control.current_io_port, out_span_start, max_bytes);
           }
           // No in- or out- port here, so skip these bytes and move on to the next!
           continue;
         }
 
         assert(in_port && out_port);
-        if (!in_nonaffine) {
+        if(!in_nonaffine) {
           in_base = reinterpret_cast<uintptr_t>(in_port->mem->get_direct_ptr(0, 0));
         }
 
-        if (!out_nonaffine) {
-          if (out_is_ipc) {
+        if(!out_nonaffine) {
+          if(out_is_ipc) {
             out_mapping = in_gpu->find_ipc_mapping(out_port->mem->me);
             assert(out_mapping);
             out_base = out_mapping->local_base;
@@ -652,12 +652,13 @@ namespace Realm {
           }
         }
 
-        stream = select_stream(out_gpu, in_gpu, channel->get_gpu(), out_mapping, in_port->mem, out_port->mem);
+        stream = select_stream(out_gpu, in_gpu, channel->get_gpu(), out_mapping,
+                               in_port->mem, out_port->mem);
         assert(stream != NULL);
 
         AutoGPUContext agc(stream->get_gpu());
         size_t copy_info_total = 0;
-        size_t min_align = 16;  // Hope for the highest type alignment we can get, 16 bytes
+        size_t min_align = 16; // Hope for the highest type alignment we can get, 16 bytes
         copy_infos.num_rects = 0;
         size_t bytes_left = std::min(flow_control_bytes - total_bytes, max_bytes);
 
@@ -671,15 +672,16 @@ namespace Realm {
         // 2) Batch loop - Collect all the rectangles for this inport/outport pair by
         // iterating the address list cursor for each and figure out what copy we can do
         // that best fits the layout of the source and destinations
-        while (bytes_left > 0 && copy_infos.num_rects < AffineCopyInfo<3>::MAX_NUM_RECTS) {
+        while(bytes_left > 0 && copy_infos.num_rects < AffineCopyInfo<3>::MAX_NUM_RECTS) {
           AddressListCursor &in_alc = in_port->addrcursor;
           AddressListCursor &out_alc = out_port->addrcursor;
-          if (!in_nonaffine && !out_nonaffine) {
+          if(!in_nonaffine && !out_nonaffine) {
             log_gpudma.info() << "Affine -> Affine";
             // limit transfer size for host<->device copies
-            // this is because CUDA stages these copies through a staging buffer and is a blocking call.
-            // Thus to limit the amount of time spent within the cuda driver and to allow us to time out early if needed,
-            // split these larger copies into smaller ones ourselves
+            // this is because CUDA stages these copies through a staging buffer and is a
+            // blocking call. Thus to limit the amount of time spent within the cuda
+            // driver and to allow us to time out early if needed, split these larger
+            // copies into smaller ones ourselves
             if(!in_gpu || (!out_gpu && !out_is_ipc)) {
               bytes_left = std::min(bytes_left, (size_t)(4U << 20U));
             }
@@ -700,15 +702,15 @@ namespace Realm {
             assert(bytes_to_copy <= bytes_left);
             copy_info_total += bytes_to_copy;
             bytes_left -= bytes_to_copy;
-          } else {  // Non-affine transfers
+          } else { // Non-affine transfers
             AddressInfoCudaArray ainfo;
 
-            if (in_nonaffine) {
+            if(in_nonaffine) {
               assert(!out_nonaffine);
               log_gpudma.info() << "Array -> Affine";
-              size_t bytes = in_port->iter->step_custom(bytes_left, ainfo,
-                                                 false);
-              if(bytes == 0) break;  // flow control or end of array
+              size_t bytes = in_port->iter->step_custom(bytes_left, ainfo, false);
+              if(bytes == 0)
+                break; // flow control or end of array
               cuda_copy.srcMemoryType = CU_MEMORYTYPE_ARRAY;
               cuda_copy.srcArray = ainfo.array;
               cuda_copy.srcXInBytes = ainfo.pos[0];
@@ -718,13 +720,13 @@ namespace Realm {
               cuda_copy.dstDevice =
                   static_cast<CUdeviceptr>(out_base + out_alc.get_offset());
               get_nonaffine_strides(cuda_copy.dstPitch, cuda_copy.dstHeight, ainfo,
-                                 out_alc, bytes);
+                                    out_alc, bytes);
             } else {
               assert(!in_nonaffine);
               log_gpudma.info() << "Affine -> Array";
-              size_t bytes = out_port->iter->step_custom(bytes_left, ainfo,
-                                                  false);
-              if(bytes == 0) break;  // flow control or end of array
+              size_t bytes = out_port->iter->step_custom(bytes_left, ainfo, false);
+              if(bytes == 0)
+                break; // flow control or end of array
               cuda_copy.dstMemoryType = CU_MEMORYTYPE_ARRAY;
               cuda_copy.dstArray = ainfo.array;
               cuda_copy.dstXInBytes = ainfo.pos[0];
@@ -734,16 +736,16 @@ namespace Realm {
               cuda_copy.srcDevice =
                   static_cast<CUdeviceptr>(in_base + in_alc.get_offset());
               get_nonaffine_strides(cuda_copy.srcPitch, cuda_copy.srcHeight, ainfo,
-                                 in_alc, bytes);
+                                    in_alc, bytes);
             }
             cuda_copy.WidthInBytes = ainfo.width_in_bytes;
             cuda_copy.Height = ainfo.height;
             cuda_copy.Depth = ainfo.depth;
-            assert(bytes_left >= cuda_copy.WidthInBytes * cuda_copy.Height * cuda_copy.Depth);
+            assert(bytes_left >=
+                   cuda_copy.WidthInBytes * cuda_copy.Height * cuda_copy.Depth);
             bytes_left -= cuda_copy.WidthInBytes * cuda_copy.Height * cuda_copy.Depth;
-            break;    // TODO: buffer these non-affine transfers
+            break; // TODO: buffer these non-affine transfers
           }
-
         }
         // 3) Copy loop - Actually perform the copies enumerated earlier and track their
         // completion This logic will determine which path was ultimately chosen based on
@@ -751,9 +753,10 @@ namespace Realm {
         // size of the batch.  These copies *must* be submitted and cannot be interrupted,
         // as we've already updated the addresslistcursor and committed to submitting them
         size_t bytes_to_fence = 0;
-        if (cuda_copy.WidthInBytes != 0) {
+        if(cuda_copy.WidthInBytes != 0) {
           // First the non-affine copies
-          const size_t bytes = cuda_copy.WidthInBytes * cuda_copy.Height * cuda_copy.Depth;
+          const size_t bytes =
+              cuda_copy.WidthInBytes * cuda_copy.Height * cuda_copy.Depth;
           CHECK_CU(CUDA_DRIVER_FNPTR(cuMemcpy3DAsync)(&cuda_copy, stream->get_stream()));
           bytes_to_fence += bytes;
         }
@@ -804,11 +807,12 @@ namespace Realm {
         }
 
         if((copy_infos.num_rects > 1) || needs_kernel_copy) {
-          // Adjust all the rectangles' sizes to account for the element size based on the calculated alignment
-          for (size_t i = 0; (min_align > 1) && (i < copy_infos.num_rects); i++) {
+          // Adjust all the rectangles' sizes to account for the element size based on the
+          // calculated alignment
+          for(size_t i = 0; (min_align > 1) && (i < copy_infos.num_rects); i++) {
             copy_infos.subrects[i].dst.strides[0] /= min_align;
             copy_infos.subrects[i].src.strides[0] /= min_align;
-            copy_infos.subrects[i].extents[0]     /= min_align;
+            copy_infos.subrects[i].extents[0] /= min_align;
             copy_infos.subrects[i].volume /= min_align;
           }
           // TODO: add some heuristics here, like if some rectangles are very large, do a
@@ -853,7 +857,8 @@ namespace Realm {
 
           CHECK_CU(CUDA_DRIVER_FNPTR(cuMemcpy3DAsync)(&cuda_copy, stream->get_stream()));
 
-          bytes_to_fence += copy_info.extents[0] * copy_info.extents[1] * copy_info.extents[2];
+          bytes_to_fence +=
+              copy_info.extents[0] * copy_info.extents[1] * copy_info.extents[2];
         }
 
         if(bytes_to_fence > 0) {
@@ -1443,14 +1448,15 @@ namespace Realm {
 
     GPUChannel::GPUChannel(GPU *_src_gpu, XferDesKind _kind,
                            BackgroundWorkManager *bgwork)
-        : SingleXDQChannel<GPUChannel, GPUXferDes>(
-              bgwork, _kind,
-              stringbuilder() << "cuda channel (gpu=" << _src_gpu->info->index
-                              << " kind=" << (int)_kind << ")") {
+      : SingleXDQChannel<GPUChannel, GPUXferDes>(
+            bgwork, _kind,
+            stringbuilder() << "cuda channel (gpu=" << _src_gpu->info->index
+                            << " kind=" << (int)_kind << ")")
+    {
       src_gpu = _src_gpu;
 
       // switch out of ordered mode if multi-threaded dma is requested
-      if (_src_gpu->module->config->cfg_multithread_dma)
+      if(_src_gpu->module->config->cfg_multithread_dma)
         xdq.ordered_mode = false;
 
       std::vector<Memory> local_gpu_mems;
@@ -1465,16 +1471,15 @@ namespace Realm {
       }
 
       std::vector<Memory> mapped_cpu_mems;
-      mapped_cpu_mems.insert(mapped_cpu_mems.end(),
-                             src_gpu->pinned_sysmems.begin(),
+      mapped_cpu_mems.insert(mapped_cpu_mems.end(), src_gpu->pinned_sysmems.begin(),
                              src_gpu->pinned_sysmems.end());
       // treat managed memory as usually being on the host as well
-      mapped_cpu_mems.insert(mapped_cpu_mems.end(),
-                             src_gpu->managed_mems.begin(),
+      mapped_cpu_mems.insert(mapped_cpu_mems.end(), src_gpu->managed_mems.begin(),
                              src_gpu->managed_mems.end());
 
-      switch (_kind) {
-      case XFER_GPU_TO_FB: {
+      switch(_kind) {
+      case XFER_GPU_TO_FB:
+      {
         unsigned bw =
             std::max(src_gpu->info->c2c_bandwidth, src_gpu->info->pci_bandwidth);
         unsigned latency = 1000;       // HACK - estimate at 1 us
@@ -1522,11 +1527,12 @@ namespace Realm {
         break;
       }
 
-      case XFER_GPU_FROM_FB: {
+      case XFER_GPU_FROM_FB:
+      {
         unsigned bw =
             std::max(src_gpu->info->c2c_bandwidth, src_gpu->info->pci_bandwidth);
-        unsigned latency = 1000;          // HACK - estimate at 1 us
-        unsigned frag_overhead = 2000;    // HACK - estimate at 2 us
+        unsigned latency = 1000;       // HACK - estimate at 1 us
+        unsigned frag_overhead = 2000; // HACK - estimate at 2 us
 
         if(src_gpu->info->pageable_access_supported &&
            (src_gpu->module->config->cfg_pageable_access != 0)) {
@@ -1559,12 +1565,11 @@ namespace Realm {
         break;
       }
 
-      case XFER_GPU_IN_FB: {
+      case XFER_GPU_IN_FB:
+      {
         // self-path
-        unsigned bw =
-            src_gpu->info->logical_peer_bandwidth[_src_gpu->info->index];
-        unsigned latency =
-            src_gpu->info->logical_peer_latency[_src_gpu->info->index];
+        unsigned bw = src_gpu->info->logical_peer_bandwidth[_src_gpu->info->index];
+        unsigned latency = src_gpu->info->logical_peer_latency[_src_gpu->info->index];
         unsigned frag_overhead = 2000; // HACK - estimate at 2 us
 
         add_path(local_gpu_mems, local_gpu_mems, bw, latency, frag_overhead,
@@ -1644,115 +1649,104 @@ namespace Realm {
       }
     }
 
-    GPUChannel::~GPUChannel()
-    {
-    }
+    GPUChannel::~GPUChannel() {}
 
-    XferDes *GPUChannel::create_xfer_des(uintptr_t dma_op,
-                                         NodeID launch_node,
+    XferDes *GPUChannel::create_xfer_des(uintptr_t dma_op, NodeID launch_node,
                                          XferDesID guid,
-                                         const std::vector<XferDesPortInfo>& inputs_info,
-                                         const std::vector<XferDesPortInfo>& outputs_info,
-                                         int priority,
-                                         XferDesRedopInfo redop_info,
-                                         const void *fill_data,
-                                         size_t fill_size,
+                                         const std::vector<XferDesPortInfo> &inputs_info,
+                                         const std::vector<XferDesPortInfo> &outputs_info,
+                                         int priority, XferDesRedopInfo redop_info,
+                                         const void *fill_data, size_t fill_size,
                                          size_t fill_total)
     {
       assert(redop_info.id == 0);
       assert(fill_size == 0);
-      return new GPUXferDes(dma_op, this, launch_node, guid,
-                            inputs_info, outputs_info,
+      return new GPUXferDes(dma_op, this, launch_node, guid, inputs_info, outputs_info,
                             priority);
     }
 
-    long GPUChannel::submit(Request** requests, long nr)
+    long GPUChannel::submit(Request **requests, long nr)
     {
       // unused
       assert(0);
       return 0;
     }
 
-
     ////////////////////////////////////////////////////////////////////////
     //
     // class GPUCompletionEvent
 
-      void GPUCompletionEvent::request_completed(void)
-      {
-	req->xd->notify_request_read_done(req);
-	req->xd->notify_request_write_done(req);
+    void GPUCompletionEvent::request_completed(void)
+    {
+      req->xd->notify_request_read_done(req);
+      req->xd->notify_request_write_done(req);
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    //
+    // class GPUIndirectTransferCompletion
+
+    GPUIndirectTransferCompletion::GPUIndirectTransferCompletion(
+        XferDes *_xd, int _read_port_idx, size_t _read_offset, size_t _read_size,
+        int _write_port_idx, size_t _write_offset, size_t _write_size,
+        int _read_ind_port_idx, size_t _read_ind_offset, size_t _read_ind_size,
+        int _write_ind_port_idx, size_t _write_ind_offset, size_t _write_ind_size)
+      : xd(_xd)
+      , read_port_idx(_read_port_idx)
+      , read_offset(_read_offset)
+      , read_size(_read_size)
+      , read_ind_port_idx(_read_ind_port_idx)
+      , read_ind_offset(_read_ind_offset)
+      , read_ind_size(_read_ind_size)
+      , write_port_idx(_write_port_idx)
+      , write_offset(_write_offset)
+      , write_size(_write_size)
+      , write_ind_port_idx(_write_ind_port_idx)
+      , write_ind_offset(_write_ind_offset)
+      , write_ind_size(_write_ind_size)
+    {}
+
+    void GPUIndirectTransferCompletion::request_completed(void)
+    {
+
+      log_gpudma.info() << "gpu gather complete: xd=" << std::hex << xd->guid << std::dec
+                        << " read=" << read_port_idx << "/" << read_offset
+                        << " write=" << write_port_idx << "/" << write_offset
+                        << " bytes=" << write_size;
+
+      if(read_ind_port_idx >= 0) {
+        XferDes::XferPort &iip = xd->input_ports[read_ind_port_idx];
+        xd->update_bytes_read(read_ind_port_idx, iip.local_bytes_total, read_ind_size);
+        iip.local_bytes_total += read_ind_size;
       }
 
-      ////////////////////////////////////////////////////////////////////////
-      //
-      // class GPUIndirectTransferCompletion
-
-      GPUIndirectTransferCompletion::GPUIndirectTransferCompletion(
-          XferDes *_xd, int _read_port_idx, size_t _read_offset, size_t _read_size,
-          int _write_port_idx, size_t _write_offset, size_t _write_size,
-          int _read_ind_port_idx, size_t _read_ind_offset, size_t _read_ind_size,
-          int _write_ind_port_idx, size_t _write_ind_offset, size_t _write_ind_size)
-        : xd(_xd)
-        , read_port_idx(_read_port_idx)
-        , read_offset(_read_offset)
-        , read_size(_read_size)
-        , read_ind_port_idx(_read_ind_port_idx)
-        , read_ind_offset(_read_ind_offset)
-        , read_ind_size(_read_ind_size)
-        , write_port_idx(_write_port_idx)
-        , write_offset(_write_offset)
-        , write_size(_write_size)
-        , write_ind_port_idx(_write_ind_port_idx)
-        , write_ind_offset(_write_ind_offset)
-        , write_ind_size(_write_ind_size)
-      {}
-
-      void GPUIndirectTransferCompletion::request_completed(void)
-      {
-
-        log_gpudma.info() << "gpu gather complete: xd=" << std::hex << xd->guid
-                          << std::dec << " read=" << read_port_idx << "/" << read_offset
-                          << " write=" << write_port_idx << "/" << write_offset
-                          << " bytes=" << write_size;
-
-        if(read_ind_port_idx >= 0) {
-          XferDes::XferPort &iip = xd->input_ports[read_ind_port_idx];
-          xd->update_bytes_read(read_ind_port_idx, iip.local_bytes_total, read_ind_size);
-          iip.local_bytes_total += read_ind_size;
-        }
-
-        if(write_ind_port_idx >= 0) {
-          XferDes::XferPort &iip = xd->input_ports[write_ind_port_idx];
-          xd->update_bytes_read(write_ind_port_idx, iip.local_bytes_total,
-                                write_ind_size);
-          iip.local_bytes_total += write_ind_size;
-        }
-
-        if(read_port_idx >= 0) {
-          xd->update_bytes_read(read_port_idx, read_offset, read_size);
-        }
-        if(write_port_idx >= 0) {
-          xd->update_bytes_write(write_port_idx, write_offset, write_size);
-        }
-
-        xd->update_progress();
-        xd->remove_reference();
-        // TODO(apryakhin@): Do we need to update this?
-        delete this;
+      if(write_ind_port_idx >= 0) {
+        XferDes::XferPort &iip = xd->input_ports[write_ind_port_idx];
+        xd->update_bytes_read(write_ind_port_idx, iip.local_bytes_total, write_ind_size);
+        iip.local_bytes_total += write_ind_size;
       }
+
+      if(read_port_idx >= 0) {
+        xd->update_bytes_read(read_port_idx, read_offset, read_size);
+      }
+      if(write_port_idx >= 0) {
+        xd->update_bytes_write(write_port_idx, write_offset, write_size);
+      }
+
+      xd->update_progress();
+      xd->remove_reference();
+      // TODO(apryakhin@): Do we need to update this?
+      delete this;
+    }
 
     ////////////////////////////////////////////////////////////////////////
     //
     // class GPUTransferCompletion
 
-    GPUTransferCompletion::GPUTransferCompletion(XferDes *_xd,
-                                                 int _read_port_idx,
-                                                 size_t _read_offset,
-                                                 size_t _read_size,
+    GPUTransferCompletion::GPUTransferCompletion(XferDes *_xd, int _read_port_idx,
+                                                 size_t _read_offset, size_t _read_size,
                                                  int _write_port_idx,
-                                                 size_t _write_offset,
-                                                 size_t _write_size)
+                                                 size_t _write_offset, size_t _write_size)
       : xd(_xd)
       , read_port_idx(_read_port_idx)
       , read_offset(_read_offset)
@@ -1773,9 +1767,8 @@ namespace Realm {
       if(write_port_idx >= 0)
         xd->update_bytes_write(write_port_idx, write_offset, write_size);
       xd->remove_reference();
-      delete this;  // TODO: recycle these!
+      delete this; // TODO: recycle these!
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -1783,13 +1776,11 @@ namespace Realm {
 
     GPUfillXferDes::GPUfillXferDes(uintptr_t _dma_op, Channel *_channel,
                                    NodeID _launch_node, XferDesID _guid,
-                                   const std::vector<XferDesPortInfo>& inputs_info,
-                                   const std::vector<XferDesPortInfo>& outputs_info,
-                                   int _priority,
-                                   const void *_fill_data, size_t _fill_size,
-                                   size_t _fill_total)
-      : XferDes(_dma_op, _channel, _launch_node, _guid,
-                inputs_info, outputs_info,
+                                   const std::vector<XferDesPortInfo> &inputs_info,
+                                   const std::vector<XferDesPortInfo> &outputs_info,
+                                   int _priority, const void *_fill_data,
+                                   size_t _fill_size, size_t _fill_total)
+      : XferDes(_dma_op, _channel, _launch_node, _guid, inputs_info, outputs_info,
                 _priority, _fill_data, _fill_size)
     {
       kind = XFER_GPU_IN_FB;
@@ -1822,7 +1813,7 @@ namespace Realm {
       }
     }
 
-    long GPUfillXferDes::get_requests(Request** requests, long nr)
+    long GPUfillXferDes::get_requests(Request **requests, long nr)
     {
       // unused
       assert(0);
@@ -2112,9 +2103,9 @@ namespace Realm {
     // class GPUfillChannel
 
     GPUfillChannel::GPUfillChannel(GPU *_gpu, BackgroundWorkManager *bgwork)
-      : SingleXDQChannel<GPUfillChannel,GPUfillXferDes>(bgwork,
-                                                        XFER_GPU_IN_FB,
-                                                        stringbuilder() << "cuda fill channel (gpu=" << _gpu->info->index << ")")
+      : SingleXDQChannel<GPUfillChannel, GPUfillXferDes>(
+            bgwork, XFER_GPU_IN_FB,
+            stringbuilder() << "cuda fill channel (gpu=" << _gpu->info->index << ")")
       , gpu(_gpu)
     {
       std::vector<Memory> mapped_cpu_mems;
@@ -2131,7 +2122,7 @@ namespace Realm {
 
       unsigned bw = gpu->info->logical_peer_bandwidth[gpu->info->index];
       unsigned latency = gpu->info->logical_peer_latency[gpu->info->index];
-      unsigned frag_overhead = 2000;  // HACK - estimate at 2 us
+      unsigned frag_overhead = 2000; // HACK - estimate at 2 us
 
       mapped_cpu_mems.insert(mapped_cpu_mems.end(), gpu->pinned_sysmems.begin(),
                              gpu->pinned_sysmems.end());
@@ -2139,9 +2130,9 @@ namespace Realm {
       mapped_cpu_mems.insert(mapped_cpu_mems.end(), gpu->managed_mems.begin(),
                              gpu->managed_mems.end());
 
-      add_path(Memory::NO_MEMORY, local_gpu_mems,
-               bw, latency, frag_overhead, XFER_GPU_IN_FB)
-        .set_max_dim(2);
+      add_path(Memory::NO_MEMORY, local_gpu_mems, bw, latency, frag_overhead,
+               XFER_GPU_IN_FB)
+          .set_max_dim(2);
       bw = std::max(gpu->info->c2c_bandwidth, gpu->info->pci_bandwidth);
 
       // TODO(cperry): Even though this is a HOST fill, mark it as a GPU_TO_FB xfer kind.
@@ -2175,31 +2166,25 @@ namespace Realm {
       xdq.add_to_manager(bgwork);
     }
 
-    XferDes *GPUfillChannel::create_xfer_des(uintptr_t dma_op,
-                                             NodeID launch_node,
-                                             XferDesID guid,
-                                             const std::vector<XferDesPortInfo>& inputs_info,
-                                             const std::vector<XferDesPortInfo>& outputs_info,
-                                             int priority,
-                                             XferDesRedopInfo redop_info,
-                                             const void *fill_data,
-                                             size_t fill_size,
-                                             size_t fill_total)
+    XferDes *
+    GPUfillChannel::create_xfer_des(uintptr_t dma_op, NodeID launch_node, XferDesID guid,
+                                    const std::vector<XferDesPortInfo> &inputs_info,
+                                    const std::vector<XferDesPortInfo> &outputs_info,
+                                    int priority, XferDesRedopInfo redop_info,
+                                    const void *fill_data, size_t fill_size,
+                                    size_t fill_total)
     {
       assert(redop_info.id == 0);
-      return new GPUfillXferDes(dma_op, this, launch_node, guid,
-                                inputs_info, outputs_info,
-                                priority,
-                                fill_data, fill_size, fill_total);
+      return new GPUfillXferDes(dma_op, this, launch_node, guid, inputs_info,
+                                outputs_info, priority, fill_data, fill_size, fill_total);
     }
 
-    long GPUfillChannel::submit(Request** requests, long nr)
+    long GPUfillChannel::submit(Request **requests, long nr)
     {
       // unused
       assert(0);
       return 0;
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -2207,12 +2192,10 @@ namespace Realm {
 
     GPUreduceXferDes::GPUreduceXferDes(uintptr_t _dma_op, Channel *_channel,
                                        NodeID _launch_node, XferDesID _guid,
-                                       const std::vector<XferDesPortInfo>& inputs_info,
-                                       const std::vector<XferDesPortInfo>& outputs_info,
-                                       int _priority,
-                                       XferDesRedopInfo _redop_info)
-      : XferDes(_dma_op, _channel, _launch_node, _guid,
-                inputs_info, outputs_info,
+                                       const std::vector<XferDesPortInfo> &inputs_info,
+                                       const std::vector<XferDesPortInfo> &outputs_info,
+                                       int _priority, XferDesRedopInfo _redop_info)
+      : XferDes(_dma_op, _channel, _launch_node, _guid, inputs_info, outputs_info,
                 _priority, 0, 0)
       , redop_info(_redop_info)
     {
@@ -2277,23 +2260,23 @@ namespace Realm {
       }
     }
 
-    long GPUreduceXferDes::get_requests(Request** requests, long nr)
+    long GPUreduceXferDes::get_requests(Request **requests, long nr)
     {
       // unused
       assert(0);
       return 0;
     }
 
-    bool GPUreduceXferDes::progress_xd(GPUreduceChannel *channel,
-                                     TimeLimit work_until)
+    bool GPUreduceXferDes::progress_xd(GPUreduceChannel *channel, TimeLimit work_until)
     {
       bool did_work = false;
       ReadSequenceCache rseqcache(this, 2 << 20);
       ReadSequenceCache wseqcache(this, 2 << 20);
 
       const size_t in_elem_size = redop->sizeof_rhs;
-      const size_t out_elem_size = (redop_info.is_fold ? redop->sizeof_rhs : redop->sizeof_lhs);
-      assert(redop_info.in_place);  // TODO: support for out-of-place reduces
+      const size_t out_elem_size =
+          (redop_info.is_fold ? redop->sizeof_rhs : redop->sizeof_lhs);
+      assert(redop_info.in_place); // TODO: support for out-of-place reduces
 
       struct KernelArgs {
         uintptr_t dst_base, dst_stride;
@@ -2304,7 +2287,7 @@ namespace Realm {
       size_t args_size = sizeof(KernelArgs) + redop->sizeof_userdata;
 
       while(true) {
-        size_t min_xfer_size = 4096;  // TODO: make controllable
+        size_t min_xfer_size = 4096; // TODO: make controllable
         size_t max_bytes = get_addresses(min_xfer_size, &rseqcache);
         if(max_bytes == 0)
           break;
@@ -2329,18 +2312,17 @@ namespace Realm {
           max_elems = std::min(input_control.remaining_count / in_elem_size,
                                output_control.remaining_count / out_elem_size);
           if(in_port != 0) {
-            max_elems = std::min(max_elems,
-                                 in_port->addrlist.bytes_pending() / in_elem_size);
+            max_elems =
+                std::min(max_elems, in_port->addrlist.bytes_pending() / in_elem_size);
             if(in_port->peer_guid != XFERDES_NO_GUID) {
-              size_t read_bytes_avail = in_port->seq_remote.span_exists(in_port->local_bytes_total,
-                                                                        (max_elems * in_elem_size));
-              max_elems = std::min(max_elems,
-                                   (read_bytes_avail / in_elem_size));
+              size_t read_bytes_avail = in_port->seq_remote.span_exists(
+                  in_port->local_bytes_total, (max_elems * in_elem_size));
+              max_elems = std::min(max_elems, (read_bytes_avail / in_elem_size));
             }
           }
           if(out_port != 0) {
-            max_elems = std::min(max_elems,
-                                 out_port->addrlist.bytes_pending() / out_elem_size);
+            max_elems =
+                std::min(max_elems, out_port->addrlist.bytes_pending() / out_elem_size);
             // no support for reducing into an intermediate buffer
             assert(out_port->peer_guid == XFERDES_NO_GUID);
           }
@@ -2354,7 +2336,8 @@ namespace Realm {
                           << " max_elems=" << max_elems;
 
             uintptr_t in_base = 0;
-            uintptr_t out_base = reinterpret_cast<uintptr_t>(out_port->mem->get_direct_ptr(0, 0));
+            uintptr_t out_base =
+                reinterpret_cast<uintptr_t>(out_port->mem->get_direct_ptr(0, 0));
 
             GPU *in_gpu = nullptr;
 
@@ -2379,8 +2362,8 @@ namespace Realm {
             assert(channel->gpu->can_access_peer(in_gpu));
 
             while(total_elems < max_elems) {
-              AddressListCursor& in_alc = in_port->addrcursor;
-              AddressListCursor& out_alc = out_port->addrcursor;
+              AddressListCursor &in_alc = in_port->addrcursor;
+              AddressListCursor &out_alc = out_port->addrcursor;
 
               uintptr_t in_offset = in_alc.get_offset();
               uintptr_t out_offset = out_alc.get_offset();
@@ -2422,7 +2405,7 @@ namespace Realm {
               if(!args) {
                 args = static_cast<KernelArgs *>(alloca(args_size));
                 if(redop->sizeof_userdata)
-                  memcpy(args+1, redop->userdata, redop->sizeof_userdata);
+                  memcpy(args + 1, redop->userdata, redop->sizeof_userdata);
               }
 
               args->dst_base = out_base + out_offset;
@@ -2437,45 +2420,38 @@ namespace Realm {
               {
                 AutoGPUContext agc(channel->gpu);
 
-                if (kernel != 0) {
+                if(kernel != 0) {
                   void *extra[] = {CU_LAUNCH_PARAM_BUFFER_POINTER, args,
                                    CU_LAUNCH_PARAM_BUFFER_SIZE, &args_size,
                                    CU_LAUNCH_PARAM_END};
 
                   CHECK_CU(CUDA_DRIVER_FNPTR(cuLaunchKernel)(
                       kernel, blocks_per_grid, 1, 1, threads_per_block, 1, 1,
-                      0 /*sharedmem*/, stream->get_stream(), 0 /*params*/,
-                      extra));
+                      0 /*sharedmem*/, stream->get_stream(), 0 /*params*/, extra));
                 } else {
-                  void *params[] = {&args->dst_base, &args->dst_stride,
-                                    &args->src_base, &args->src_stride,
-                                    &args->count,    args + 1};
+                  void *params[] = {&args->dst_base,   &args->dst_stride, &args->src_base,
+                                    &args->src_stride, &args->count,      args + 1};
                   assert(redop->cudaLaunchKernel_fn != 0);
                   CHECK_CUDART(reinterpret_cast<PFN_cudaLaunchKernel>(
-                      redop->cudaLaunchKernel_fn)(
-                      kernel_host_proxy, dim3(blocks_per_grid, 1, 1),
-                      dim3(threads_per_block, 1, 1), params, 0 /*sharedMem*/,
-                      stream->get_stream()));
+                      redop->cudaLaunchKernel_fn)(kernel_host_proxy,
+                                                  dim3(blocks_per_grid, 1, 1),
+                                                  dim3(threads_per_block, 1, 1), params,
+                                                  0 /*sharedMem*/, stream->get_stream()));
                 }
 
                 // insert fence to track completion of reduction kernel
                 add_reference(); // released by transfer completion
-                stream->add_notification(new GPUTransferCompletion(this,
-                                                                   input_control.current_io_port,
-                                                                   in_span_start,
-                                                                   elems * in_elem_size,
-                                                                   output_control.current_io_port,
-                                                                   out_span_start,
-                                                                   elems * out_elem_size));
+                stream->add_notification(new GPUTransferCompletion(
+                    this, input_control.current_io_port, in_span_start,
+                    elems * in_elem_size, output_control.current_io_port, out_span_start,
+                    elems * out_elem_size));
               }
 
               in_span_start += elems * in_elem_size;
               out_span_start += elems * out_elem_size;
 
-              in_alc.advance(in_dim-1,
-                             elems * ((in_dim == 1) ? in_elem_size : 1));
-              out_alc.advance(out_dim-1,
-                              elems * ((out_dim == 1) ? out_elem_size : 1));
+              in_alc.advance(in_dim - 1, elems * ((in_dim == 1) ? in_elem_size : 1));
+              out_alc.advance(out_dim - 1, elems * ((out_dim == 1) ? out_elem_size : 1));
 
 #ifdef DEBUG_REALM
               assert(elems <= elems_left);
@@ -2485,15 +2461,16 @@ namespace Realm {
               // stop if it's been too long, but make sure we do at least the
               //  minimum number of bytes
               if(((total_elems * in_elem_size) >= min_xfer_size) &&
-                 work_until.is_expired()) break;
+                 work_until.is_expired())
+                break;
             }
           } else {
             // input but no output, so skip input bytes
             total_elems = max_elems;
             in_port->addrcursor.skip_bytes(total_elems * in_elem_size);
 
-            rseqcache.add_span(input_control.current_io_port,
-                               in_span_start, total_elems * in_elem_size);
+            rseqcache.add_span(input_control.current_io_port, in_span_start,
+                               total_elems * in_elem_size);
             in_span_start += total_elems * in_elem_size;
           }
         } else {
@@ -2502,8 +2479,8 @@ namespace Realm {
             total_elems = max_elems;
             out_port->addrcursor.skip_bytes(total_elems * out_elem_size);
 
-            wseqcache.add_span(output_control.current_io_port,
-                               out_span_start, total_elems * out_elem_size);
+            wseqcache.add_span(output_control.current_io_port, out_span_start,
+                               total_elems * out_elem_size);
             out_span_start += total_elems * out_elem_size;
           } else {
             // skipping both input and output is possible for simultaneous
@@ -2527,7 +2504,6 @@ namespace Realm {
       return did_work;
     }
 
-
     ////////////////////////////////////////////////////////////////////////
     //
     // class GPUreduceChannel
@@ -2550,24 +2526,21 @@ namespace Realm {
       }
 
       std::vector<Memory> mapped_cpu_mems;
-      mapped_cpu_mems.insert(mapped_cpu_mems.end(),
-                             gpu->pinned_sysmems.begin(),
+      mapped_cpu_mems.insert(mapped_cpu_mems.end(), gpu->pinned_sysmems.begin(),
                              gpu->pinned_sysmems.end());
       // treat managed memory as usually being on the host as well
-      mapped_cpu_mems.insert(mapped_cpu_mems.end(),
-                             gpu->managed_mems.begin(),
+      mapped_cpu_mems.insert(mapped_cpu_mems.end(), gpu->managed_mems.begin(),
                              gpu->managed_mems.end());
 
       // intra-FB reduction
       {
         unsigned bw = gpu->info->logical_peer_bandwidth[gpu->info->index];
         unsigned latency = gpu->info->logical_peer_latency[gpu->info->index];
-        unsigned frag_overhead = 2000;  // HACK - estimate at 2 us
+        unsigned frag_overhead = 2000; // HACK - estimate at 2 us
 
-        add_path(local_gpu_mems,
-                 local_gpu_mems,
-                 bw, latency, frag_overhead, XFER_GPU_IN_FB)
-          .allow_redops();
+        add_path(local_gpu_mems, local_gpu_mems, bw, latency, frag_overhead,
+                 XFER_GPU_IN_FB)
+            .allow_redops();
       }
 
       // zero-copy to FB (no need for intermediate buffer in FB)
@@ -2663,46 +2636,37 @@ namespace Realm {
 
     RemoteChannelInfo *GPUreduceChannel::construct_remote_info() const
     {
-      return new GPUreduceRemoteChannelInfo(node, kind,
-                                            reinterpret_cast<uintptr_t>(this),
+      return new GPUreduceRemoteChannelInfo(node, kind, reinterpret_cast<uintptr_t>(this),
                                             paths);
     }
 
-    XferDes *GPUreduceChannel::create_xfer_des(uintptr_t dma_op,
-                                               NodeID launch_node,
-                                               XferDesID guid,
-                                               const std::vector<XferDesPortInfo>& inputs_info,
-                                               const std::vector<XferDesPortInfo>& outputs_info,
-                                               int priority,
-                                               XferDesRedopInfo redop_info,
-                                               const void *fill_data,
-                                               size_t fill_size,
-                                               size_t fill_total)
+    XferDes *GPUreduceChannel::create_xfer_des(
+        uintptr_t dma_op, NodeID launch_node, XferDesID guid,
+        const std::vector<XferDesPortInfo> &inputs_info,
+        const std::vector<XferDesPortInfo> &outputs_info, int priority,
+        XferDesRedopInfo redop_info, const void *fill_data, size_t fill_size,
+        size_t fill_total)
     {
       assert(fill_size == 0);
-      return new GPUreduceXferDes(dma_op, this, launch_node, guid,
-                                  inputs_info, outputs_info,
-                                  priority,
-                                  redop_info);
+      return new GPUreduceXferDes(dma_op, this, launch_node, guid, inputs_info,
+                                  outputs_info, priority, redop_info);
     }
 
-    long GPUreduceChannel::submit(Request** requests, long nr)
+    long GPUreduceChannel::submit(Request **requests, long nr)
     {
       // unused
       assert(0);
       return 0;
     }
 
-
     ////////////////////////////////////////////////////////////////////////
     //
     // class GPUreduceRemoteChannelInfo
     //
 
-    GPUreduceRemoteChannelInfo::GPUreduceRemoteChannelInfo(NodeID _owner,
-                                                           XferDesKind _kind,
-                                                           uintptr_t _remote_ptr,
-                                                           const std::vector<Channel::SupportedPath>& _paths)
+    GPUreduceRemoteChannelInfo::GPUreduceRemoteChannelInfo(
+        NodeID _owner, XferDesKind _kind, uintptr_t _remote_ptr,
+        const std::vector<Channel::SupportedPath> &_paths)
       : SimpleRemoteChannelInfo(_owner, _kind, _remote_ptr, _paths)
     {}
 
@@ -2717,26 +2681,23 @@ namespace Realm {
 
     // these templates can go here because they're only used by the helper below
     template <typename S>
-    bool GPUreduceRemoteChannelInfo::serialize(S& serializer) const
+    bool GPUreduceRemoteChannelInfo::serialize(S &serializer) const
     {
-      return ((serializer << owner) &&
-              (serializer << kind) &&
-              (serializer << remote_ptr) &&
-              (serializer << paths));
+      return ((serializer << owner) && (serializer << kind) &&
+              (serializer << remote_ptr) && (serializer << paths));
     }
 
     template <typename S>
-    /*static*/ RemoteChannelInfo *GPUreduceRemoteChannelInfo::deserialize_new(S& deserializer)
+    /*static*/ RemoteChannelInfo *
+    GPUreduceRemoteChannelInfo::deserialize_new(S &deserializer)
     {
       NodeID owner;
       XferDesKind kind;
       uintptr_t remote_ptr;
       std::vector<Channel::SupportedPath> paths;
 
-      if((deserializer >> owner) &&
-         (deserializer >> kind) &&
-         (deserializer >> remote_ptr) &&
-         (deserializer >> paths)) {
+      if((deserializer >> owner) && (deserializer >> kind) &&
+         (deserializer >> remote_ptr) && (deserializer >> paths)) {
         return new GPUreduceRemoteChannelInfo(owner, kind, remote_ptr, paths);
       } else {
         return 0;
@@ -2744,8 +2705,8 @@ namespace Realm {
     }
 
     /*static*/ Serialization::PolymorphicSerdezSubclass<RemoteChannelInfo,
-                                                        GPUreduceRemoteChannelInfo> GPUreduceRemoteChannelInfo::serdez_subclass;
-
+                                                        GPUreduceRemoteChannelInfo>
+        GPUreduceRemoteChannelInfo::serdez_subclass;
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -2768,41 +2729,39 @@ namespace Realm {
     void GPUReplHeapListener::chunk_created(void *base, size_t bytes)
     {
       if(!module->gpus.empty()) {
-	log_gpu.info() << "registering replicated heap chunk: base=" << base
+        log_gpu.info() << "registering replicated heap chunk: base=" << base
                        << " size=" << bytes;
 
-	CUresult ret;
-	{
-	  AutoGPUContext agc(module->gpus[0]);
-	  ret = CUDA_DRIVER_FNPTR(cuMemHostRegister)(base, bytes,
-						     CU_MEMHOSTREGISTER_PORTABLE |
-						     CU_MEMHOSTREGISTER_DEVICEMAP);
-	}
-	if(ret != CUDA_SUCCESS) {
-	  log_gpu.fatal() << "failed to register replicated heap chunk: base=" << base
-			  << " size=" << bytes << " ret=" << ret;
-	  abort();
-	}
+        CUresult ret;
+        {
+          AutoGPUContext agc(module->gpus[0]);
+          ret = CUDA_DRIVER_FNPTR(cuMemHostRegister)(
+              base, bytes, CU_MEMHOSTREGISTER_PORTABLE | CU_MEMHOSTREGISTER_DEVICEMAP);
+        }
+        if(ret != CUDA_SUCCESS) {
+          log_gpu.fatal() << "failed to register replicated heap chunk: base=" << base
+                          << " size=" << bytes << " ret=" << ret;
+          abort();
+        }
       }
     }
 
     void GPUReplHeapListener::chunk_destroyed(void *base, size_t bytes)
     {
       if(!module->gpus.empty()) {
-	log_gpu.info() << "unregistering replicated heap chunk: base=" << base
+        log_gpu.info() << "unregistering replicated heap chunk: base=" << base
                        << " size=" << bytes;
 
-	CUresult ret;
-	{
-	  AutoGPUContext agc(module->gpus[0]);
-	  ret = CUDA_DRIVER_FNPTR(cuMemHostUnregister)(base);
-	}
-	if(ret != CUDA_SUCCESS)
-	  log_gpu.warning() << "failed to unregister replicated heap chunk: base=" << base
-			    << " size=" << bytes << " ret=" << ret;
+        CUresult ret;
+        {
+          AutoGPUContext agc(module->gpus[0]);
+          ret = CUDA_DRIVER_FNPTR(cuMemHostUnregister)(base);
+        }
+        if(ret != CUDA_SUCCESS)
+          log_gpu.warning() << "failed to unregister replicated heap chunk: base=" << base
+                            << " size=" << bytes << " ret=" << ret;
       }
     }
-
 
   }; // namespace Cuda
 

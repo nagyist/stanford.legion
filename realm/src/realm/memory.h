@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,66 +27,69 @@
 
 namespace Realm {
 
-    typedef ::realm_address_space_t AddressSpace;
+  typedef ::realm_address_space_t AddressSpace;
 
-    class REALM_PUBLIC_API Memory {
-    public:
-      typedef ::realm_id_t id_t;
-      id_t id{REALM_NO_MEM};
+  class REALM_PUBLIC_API Memory {
+  public:
+    typedef ::realm_id_t id_t;
+    id_t id{REALM_NO_MEM};
 
-      Memory() = default;
-      constexpr explicit Memory(id_t id)
-        : id(id)
-      {}
+    Memory() = default;
+    constexpr explicit Memory(id_t id)
+      : id(id)
+    {}
 
-      constexpr operator id_t() const { return id; }
+    constexpr operator id_t() const { return id; }
 
-      bool operator<(const Memory &rhs) const { return id < rhs.id; }
-      bool operator==(const Memory &rhs) const { return id == rhs.id; }
-      bool operator!=(const Memory &rhs) const { return id != rhs.id; }
+    bool operator<(const Memory &rhs) const { return id < rhs.id; }
+    bool operator==(const Memory &rhs) const { return id == rhs.id; }
+    bool operator!=(const Memory &rhs) const { return id != rhs.id; }
 
-      static const Memory NO_MEMORY;
+    static const Memory NO_MEMORY;
 
-      bool exists(void) const { return id != 0; }
+    bool exists(void) const { return id != 0; }
 
-      // Return the address space for this memory
-      AddressSpace address_space(void) const;
+    // Return the address space for this memory
+    AddressSpace address_space(void) const;
 
-      // Different Memory types (defined in realm_c.h)
-      // can't just typedef the kind because of C/C++ enum scope rules
-      enum Kind {
+    // Different Memory types (defined in realm_c.h)
+    // can't just typedef the kind because of C/C++ enum scope rules
+    enum Kind
+    {
 #define C_ENUMS(name, desc) name,
-  REALM_MEMORY_KINDS(C_ENUMS)
+      REALM_MEMORY_KINDS(C_ENUMS)
 #undef C_ENUMS
-      };
-
-      // Return what kind of memory this is
-      Kind kind(void) const;
-      // Return the maximum capacity of this memory
-      size_t capacity(void) const;
-
-      // reports a problem with a memory in general (this is primarily for fault injection)
-      void report_memory_fault(int reason,
-			       const void *reason_data, size_t reason_size) const;
     };
 
-    inline std::ostream& operator<<(std::ostream& os, Memory m) { return os << std::hex << m.id << std::dec; }
+    // Return what kind of memory this is
+    Kind kind(void) const;
+    // Return the maximum capacity of this memory
+    size_t capacity(void) const;
 
-    inline std::ostream &operator<<(std::ostream &os, Memory::Kind kind)
-    {
+    // reports a problem with a memory in general (this is primarily for fault injection)
+    void report_memory_fault(int reason, const void *reason_data,
+                             size_t reason_size) const;
+  };
+
+  inline std::ostream &operator<<(std::ostream &os, Memory m)
+  {
+    return os << std::hex << m.id << std::dec;
+  }
+
+  inline std::ostream &operator<<(std::ostream &os, Memory::Kind kind)
+  {
 #define STRING_KIND_CASE(kind, desc)                                                     \
   case Memory::Kind::kind:                                                               \
     return os << #kind;
-      switch(kind) {
-        REALM_MEMORY_KINDS(STRING_KIND_CASE)
-      }
-#undef STRING_KIND_CASE
-      return os << "UNKNOWN_KIND";
+    switch(kind) {
+      REALM_MEMORY_KINDS(STRING_KIND_CASE)
     }
+#undef STRING_KIND_CASE
+    return os << "UNKNOWN_KIND";
+  }
 
 }; // namespace Realm
 
-//include "memory.inl"
+  // include "memory.inl"
 
 #endif // ifndef REALM_MEMORY_H
-

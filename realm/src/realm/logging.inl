@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,20 +85,14 @@
 #pragma pop_macro("LEVEL_NONE")
 
 namespace Realm {
-  
+
   ////////////////////////////////////////////////////////////////////////
   //
   // class Logger
-  
-  inline const std::string& Logger::get_name(void) const
-  {
-    return name;
-  }
-  
-  inline Logger::LoggingLevel Logger::get_level(void) const
-  {
-    return log_level;
-  }
+
+  inline const std::string &Logger::get_name(void) const { return name; }
+
+  inline Logger::LoggingLevel Logger::get_level(void) const { return log_level; }
 
   inline bool Logger::want_spew(void) const
   {
@@ -163,217 +159,223 @@ namespace Realm {
 
   inline LoggerMessage Logger::spew(void)
   {
-#ifndef REALM_LOGGING_DO_SPEW           // static early out
+#ifndef REALM_LOGGING_DO_SPEW // static early out
     return LoggerMessage();
 #else
-    if(log_level > LEVEL_SPEW)          // dynamic early out
+    if(log_level > LEVEL_SPEW) // dynamic early out
       return LoggerMessage();
-    
+
     return LoggerMessage(this, true, LEVEL_SPEW);
 #endif
   }
-  
+
   inline LoggerMessage Logger::debug(void)
   {
-#ifndef REALM_LOGGING_DO_DEBUG            // static early out
+#ifndef REALM_LOGGING_DO_DEBUG // static early out
     return LoggerMessage();
 #else
-    if(log_level > LEVEL_DEBUG)           // dynamic early out
+    if(log_level > LEVEL_DEBUG) // dynamic early out
       return LoggerMessage();
-    
+
     return LoggerMessage(this, true, LEVEL_DEBUG);
 #endif
   }
-  
+
   inline LoggerMessage Logger::info(void)
   {
-#ifndef REALM_LOGGING_DO_INFO            // static early out
+#ifndef REALM_LOGGING_DO_INFO // static early out
     return LoggerMessage();
 #else
-    if(log_level > LEVEL_INFO)           // dynamic early out
+    if(log_level > LEVEL_INFO) // dynamic early out
       return LoggerMessage();
-    
+
     return LoggerMessage(this, true, LEVEL_INFO);
 #endif
   }
-  
+
   inline LoggerMessage Logger::print(void)
   {
-#ifndef REALM_LOGGING_DO_PRINT           // static early out
+#ifndef REALM_LOGGING_DO_PRINT // static early out
     return LoggerMessage();
 #else
-    if(log_level > LEVEL_PRINT)          // dynamic early out
+    if(log_level > LEVEL_PRINT) // dynamic early out
       return LoggerMessage();
-    
+
     return LoggerMessage(this, true, LEVEL_PRINT);
 #endif
   }
-  
+
   inline LoggerMessage Logger::warning(void)
   {
-#ifndef REALM_LOGGING_DO_WARNING            // static early out
+#ifndef REALM_LOGGING_DO_WARNING // static early out
     return LoggerMessage();
 #else
-    if(log_level > LEVEL_WARNING)           // dynamic early out
+    if(log_level > LEVEL_WARNING) // dynamic early out
       return LoggerMessage();
-    
+
     return LoggerMessage(this, true, LEVEL_WARNING);
 #endif
   }
-  
+
   inline LoggerMessage Logger::error(void)
   {
-#ifndef REALM_LOGGING_DO_ERROR            // static early out
+#ifndef REALM_LOGGING_DO_ERROR // static early out
     return LoggerMessage();
 #else
-    if(log_level > LEVEL_ERROR)           // dynamic early out
+    if(log_level > LEVEL_ERROR) // dynamic early out
       return LoggerMessage();
-    
+
     return LoggerMessage(this, true, LEVEL_ERROR);
 #endif
   }
-  
+
   inline LoggerMessage Logger::fatal(void)
   {
-#ifndef REALM_LOGGING_DO_FATAL            // static early out
+#ifndef REALM_LOGGING_DO_FATAL // static early out
     return LoggerMessage();
 #else
-    if(log_level > LEVEL_FATAL)           // dynamic early out
+    if(log_level > LEVEL_FATAL) // dynamic early out
       return LoggerMessage();
-    
+
     return LoggerMessage(this, true, LEVEL_FATAL);
 #endif
   }
-  
+
   // use this only if you want a dynamic level for some reason
   inline LoggerMessage Logger::newmsg(LoggingLevel level)
   {
-#ifndef REALM_LOGGING_DO_FATAL            // static early out (fatal is highest)
+#ifndef REALM_LOGGING_DO_FATAL // static early out (fatal is highest)
     return LoggerMessage();
 #else
-    if((REALM_LOGGING_MIN_LEVEL > level) ||
-       (log_level > level))
-    return LoggerMessage();
-    
+    if((REALM_LOGGING_MIN_LEVEL > level) || (log_level > level))
+      return LoggerMessage();
+
     return LoggerMessage(this, true, level);
 #endif
   }
-  
+
   // old printf-style interface
   inline void Logger::spew(const char *fmt, ...)
   {
-#ifdef REALM_LOGGING_DO_SPEW              // static early out
-    if(log_level > LEVEL_SPEW)            // dynamic early out
+#ifdef REALM_LOGGING_DO_SPEW   // static early out
+    if(log_level > LEVEL_SPEW) // dynamic early out
       return;
-    
+
     va_list args;
     va_start(args, fmt);
     spew().vprintf(fmt, args);
     va_end(args);
 #endif
   }
-    
+
   inline void Logger::debug(const char *fmt, ...)
   {
-#ifdef REALM_LOGGING_DO_DEBUG              // static early out
-    if(log_level > LEVEL_DEBUG)            // dynamic early out
+#ifdef REALM_LOGGING_DO_DEBUG   // static early out
+    if(log_level > LEVEL_DEBUG) // dynamic early out
       return;
-    
+
     va_list args;
     va_start(args, fmt);
     debug().vprintf(fmt, args);
     va_end(args);
 #endif
   }
-  
+
   inline void Logger::info(const char *fmt, ...)
   {
-#ifdef REALM_LOGGING_DO_INFO              // static early out
-    if(log_level > LEVEL_INFO)            // dynamic early out
+#ifdef REALM_LOGGING_DO_INFO   // static early out
+    if(log_level > LEVEL_INFO) // dynamic early out
       return;
-    
+
     va_list args;
     va_start(args, fmt);
     info().vprintf(fmt, args);
     va_end(args);
 #endif
   }
-  
+
   inline void Logger::print(const char *fmt, ...)
   {
-#ifdef REALM_LOGGING_DO_PRINT              // static early out
-    if(log_level > LEVEL_PRINT)            // dynamic early out
+#ifdef REALM_LOGGING_DO_PRINT   // static early out
+    if(log_level > LEVEL_PRINT) // dynamic early out
       return;
-    
+
     va_list args;
     va_start(args, fmt);
     print().vprintf(fmt, args);
     va_end(args);
 #endif
   }
-  
+
   inline void Logger::warning(const char *fmt, ...)
   {
-#ifdef REALM_LOGGING_DO_WARNING              // static early out
-    if(log_level > LEVEL_WARNING)            // dynamic early out
+#ifdef REALM_LOGGING_DO_WARNING   // static early out
+    if(log_level > LEVEL_WARNING) // dynamic early out
       return;
-    
+
     va_list args;
     va_start(args, fmt);
     warning().vprintf(fmt, args);
     va_end(args);
 #endif
   }
-  
+
   inline void Logger::error(const char *fmt, ...)
   {
-#ifdef REALM_LOGGING_DO_ERROR              // static early out
-    if(log_level > LEVEL_ERROR)            // dynamic early out
+#ifdef REALM_LOGGING_DO_ERROR   // static early out
+    if(log_level > LEVEL_ERROR) // dynamic early out
       return;
-    
+
     va_list args;
     va_start(args, fmt);
     error().vprintf(fmt, args);
     va_end(args);
 #endif
   }
-  
+
   inline void Logger::fatal(const char *fmt, ...)
   {
-#ifdef REALM_LOGGING_DO_FATAL              // static early out
-    if(log_level > LEVEL_FATAL)            // dynamic early out
+#ifdef REALM_LOGGING_DO_FATAL   // static early out
+    if(log_level > LEVEL_FATAL) // dynamic early out
       return;
-    
+
     va_list args;
     va_start(args, fmt);
     fatal().vprintf(fmt, args);
     va_end(args);
 #endif
   }
-  
+
   ////////////////////////////////////////////////////////////////////////
   //
   // class LoggerMessage
-  
+
   // default constructor makes an inactive message
   inline LoggerMessage::LoggerMessage(void)
-    : logger(0), active(false), level(Logger::LEVEL_NONE)
+    : logger(0)
+    , active(false)
+    , level(Logger::LEVEL_NONE)
   {}
-  
-  inline LoggerMessage::LoggerMessage(Logger *_logger, bool _active, Logger::LoggingLevel _level)
-    : logger(_logger), active(_active), level(_level)
+
+  inline LoggerMessage::LoggerMessage(Logger *_logger, bool _active,
+                                      Logger::LoggingLevel _level)
+    : logger(_logger)
+    , active(_active)
+    , level(_level)
   {
     if(active)
       stream.construct(buffer.construct());
   }
-  
-  inline LoggerMessage::LoggerMessage(const LoggerMessage& to_copy)
-    : logger(to_copy.logger), active(to_copy.active), level(to_copy.level)
+
+  inline LoggerMessage::LoggerMessage(const LoggerMessage &to_copy)
+    : logger(to_copy.logger)
+    , active(to_copy.active)
+    , level(to_copy.level)
   {
     if(active)
       stream.construct(buffer.construct());
   }
-  
+
   inline LoggerMessage::~LoggerMessage(void)
   {
     if(active) {
@@ -381,33 +383,26 @@ namespace Realm {
       active = false;
     }
   }
-  
+
   template <typename T>
-  inline LoggerMessage& LoggerMessage::operator<<(const T& val)
+  inline LoggerMessage &LoggerMessage::operator<<(const T &val)
   {
     // send through to normal ostringstream formatting routines if active
     if(active)
       get_stream() << val;
     return *this;
   }
-  
-  inline bool LoggerMessage::is_active(void) const
-  {
-    return active;
-  }
 
-  inline void LoggerMessage::deactivate(void)
-  {
-    active = false;
-  }
-  
-  inline std::ostream& LoggerMessage::get_stream(void)
+  inline bool LoggerMessage::is_active(void) const { return active; }
+
+  inline void LoggerMessage::deactivate(void) { active = false; }
+
+  inline std::ostream &LoggerMessage::get_stream(void)
   {
 #ifdef DEBUG_REALM
     assert(active);
 #endif
     return *stream;
   }
-  
 
 }; // namespace Realm

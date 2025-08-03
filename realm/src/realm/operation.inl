@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +27,7 @@ namespace Realm {
   // class Operation
   //
 
-  inline void Operation::add_reference(void)
-  {
-    refcount.fetch_add_acqrel(1);
-  }
+  inline void Operation::add_reference(void) { refcount.fetch_add_acqrel(1); }
 
   inline void Operation::remove_reference(void)
   {
@@ -50,7 +49,7 @@ namespace Realm {
       AsyncWorkItem *prev_head = all_work_items.load();
       item->next_item = prev_head;
       if(all_work_items.compare_exchange(prev_head, item))
-	break;
+        break;
     }
   }
 
@@ -58,7 +57,7 @@ namespace Realm {
   inline void Operation::work_item_finished(AsyncWorkItem *item, bool successful)
   {
     // update this count first
-    if (!successful)
+    if(!successful)
       failed_work_items.fetch_add(1);
 
     // no per-work-item data to record, so just decrement the count, and if it goes
@@ -67,7 +66,7 @@ namespace Realm {
 
     if(remaining == 0) {
       mark_completed();
-   }
+    }
   }
 
   inline bool Operation::cancellation_requested(void) const
@@ -77,42 +76,38 @@ namespace Realm {
 
   inline Event Operation::get_finish_event(void) const
   {
-    return finish_event != nullptr ? finish_event->make_event(finish_gen) : Event::NO_EVENT;
+    return finish_event != nullptr ? finish_event->make_event(finish_gen)
+                                   : Event::NO_EVENT;
   }
 
   // used to record event wait intervals, if desired
-  inline ProfilingMeasurements::OperationEventWaits::WaitInterval *Operation::create_wait_interval(Event e)
+  inline ProfilingMeasurements::OperationEventWaits::WaitInterval *
+  Operation::create_wait_interval(Event e)
   {
     if(wants_event_waits) {
       size_t idx = waits.intervals.size();
       waits.intervals.resize(idx + 1);
-      ProfilingMeasurements::OperationEventWaits::WaitInterval *interval = &waits.intervals[idx];
+      ProfilingMeasurements::OperationEventWaits::WaitInterval *interval =
+          &waits.intervals[idx];
       interval->wait_event = e;
       return interval;
-    } else 
+    } else
       return 0;
   }
 
-  inline bool Operation::wants_gpu_work_start() const
-  {
-    return wants_gpu_timeline;
-  }
-
+  inline bool Operation::wants_gpu_work_start() const { return wants_gpu_timeline; }
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class Operation::AsyncWorkItem
   //
-  
+
   inline Operation::AsyncWorkItem::AsyncWorkItem(Operation *_op)
     : op(_op)
     , next_item(0)
-  {
-  }
+  {}
 
-  inline Operation::AsyncWorkItem::~AsyncWorkItem(void)
-  {
-  }
+  inline Operation::AsyncWorkItem::~AsyncWorkItem(void) {}
 
   inline void Operation::AsyncWorkItem::mark_finished(bool successful)
   {

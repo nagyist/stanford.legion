@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +27,7 @@
 #include "realm/utils.h"
 
 #ifndef REALM_USE_LIBDL
-  #error the Realm python module currently requires DSO support
+#error the Realm python module currently requires DSO support
 #endif
 
 #ifdef REALM_USE_DLFCN
@@ -97,9 +99,8 @@ namespace Realm {
     get_symbol(this->PyTuple_SetItem, "PyTuple_SetItem");
   }
 
-  template<typename T>
-  void PythonAPI::get_symbol(T &fn, const char *symbol,
-                             bool missing_ok /*= false*/)
+  template <typename T>
+  void PythonAPI::get_symbol(T &fn, const char *symbol, bool missing_ok /*= false*/)
   {
     fn = reinterpret_cast<T>(dlsym(handle, symbol));
     if(!fn && !missing_ok) {
@@ -118,15 +119,15 @@ namespace Realm {
   //  dl[v]sym searches in the right place
   static void *dlmproxy_lookup(const char *symname, const char *symver)
   {
-    
+
     void *handle = 0;
-    void *sym = (symver ?
-		   dlvsym(handle, symname, symver) :
-		   dlsym(handle, symname));
+    void *sym = (symver ? dlvsym(handle, symname, symver) : dlsym(handle, symname));
     if(sym)
-      log_py.debug() << "found symbol: name=" << symname << " ver=" << (symver ? symver : "(none)") << " ptr=" << sym;
+      log_py.debug() << "found symbol: name=" << symname
+                     << " ver=" << (symver ? symver : "(none)") << " ptr=" << sym;
     else
-      log_py.warning() << "missing symbol: name=" << symname << " ver=" << (symver ? symver : "(none)");
+      log_py.warning() << "missing symbol: name=" << symname
+                       << " ver=" << (symver ? symver : "(none)");
     return sym;
   }
 #endif
@@ -183,7 +184,7 @@ namespace Realm {
 #ifdef REALM_USE_DLMOPEN
     // loading libpython into its own namespace will cause it to try to bring
     //   in a second copy of libpthread.so.0, which is fairly disastrous
-    // we deal with it by loading a "dlmproxy" of pthreads that tunnels all 
+    // we deal with it by loading a "dlmproxy" of pthreads that tunnels all
     //   pthreads calls back to the (only) version in the main executable
     const char *dlmproxy_filename = getenv("DLMPROXY_LIBPTHREAD");
     if(!dlmproxy_filename)
@@ -218,7 +219,7 @@ namespace Realm {
     handle = dlopen(python_lib.c_str(), RTLD_GLOBAL | RTLD_LAZY);
 #endif
 
-    if (!handle) {
+    if(!handle) {
       const char *error = dlerror();
       log_py.fatal() << "libpython not loaded, dlerror: " << error;
       abort();
@@ -230,14 +231,14 @@ namespace Realm {
     (api->PyEval_InitThreads)();
     //(api->Py_Finalize)();
 
-    //PyThreadState *state;
-    //state = (api->PyEval_SaveThread)();
+    // PyThreadState *state;
+    // state = (api->PyEval_SaveThread)();
     //(api->PyEval_RestoreThread)(state);
 
     //(api->PyRun_SimpleString)("print 'hello Python world!'");
 
-    //PythonSourceImplementation psi("taskreg_helper", "task1");
-    //find_or_import_function(&psi);
+    // PythonSourceImplementation psi("taskreg_helper", "task1");
+    // find_or_import_function(&psi);
   }
 
   PythonInterpreter::~PythonInterpreter()
@@ -246,14 +247,14 @@ namespace Realm {
 
     delete api;
 
-    if (dlclose(handle)) {
+    if(dlclose(handle)) {
       const char *error = dlerror();
       log_py.fatal() << "libpython dlclose error: " << error;
       assert(false);
     }
 
 #ifdef REALM_USE_DLMOPEN
-    if (dlclose(dlmproxy_handle)) {
+    if(dlclose(dlmproxy_handle)) {
       const char *error = dlerror();
       log_py.fatal() << "dlmproxy dlclose error: " << error;
       assert(false);
@@ -261,17 +262,18 @@ namespace Realm {
 #endif
   }
 
-  PyObject *PythonInterpreter::find_or_import_function(const PythonSourceImplementation *psi)
+  PyObject *
+  PythonInterpreter::find_or_import_function(const PythonSourceImplementation *psi)
   {
-    //log_py.print() << "attempting to acquire python lock";
+    // log_py.print() << "attempting to acquire python lock";
     //(api->PyEval_AcquireLock)();
-    //log_py.print() << "lock acquired";
+    // log_py.print() << "lock acquired";
 
     // not calling PythonInterpreter::import_module here because we want the
     //  PyObject result
     log_py.debug() << "attempting to import module: " << psi->module_name;
     PyObject *module = (api->PyImport_ImportModule)(psi->module_name.c_str());
-    if (!module) {
+    if(!module) {
       log_py.fatal() << "unable to import Python module " << psi->module_name;
       (api->PyErr_PrintEx)(0);
       (api->Py_Finalize)(); // otherwise Python doesn't flush its buffers
@@ -280,18 +282,20 @@ namespace Realm {
     //(api->PyObject_Print)(module, stdout, 0); printf("\n");
 
     PyObject *function = module;
-    for (std::vector<std::string>::const_iterator it = psi->function_name.begin(),
-           ie = psi->function_name.end(); function && it != ie; ++it) {
+    for(std::vector<std::string>::const_iterator it = psi->function_name.begin(),
+                                                 ie = psi->function_name.end();
+        function && it != ie; ++it) {
       function = (api->PyObject_GetAttrString)(function, it->c_str());
     }
-    if (!function) {
+    if(!function) {
       {
         LoggerMessage m = log_py.fatal();
         m << "unable to import Python function ";
-        for (std::vector<std::string>::const_iterator it = psi->function_name.begin(),
-               ie = psi->function_name.begin(); it != ie; ++it) {
+        for(std::vector<std::string>::const_iterator it = psi->function_name.begin(),
+                                                     ie = psi->function_name.begin();
+            it != ie; ++it) {
           m << *it;
-          if (it + 1 != ie) {
+          if(it + 1 != ie) {
             m << ".";
           }
         }
@@ -310,11 +314,11 @@ namespace Realm {
     return function;
   }
 
-  void PythonInterpreter::import_module(const std::string& module_name)
+  void PythonInterpreter::import_module(const std::string &module_name)
   {
     log_py.debug() << "attempting to import module: " << module_name;
     PyObject *module = (api->PyImport_ImportModule)(module_name.c_str());
-    if (!module) {
+    if(!module) {
       log_py.fatal() << "unable to import Python module " << module_name;
       (api->PyErr_PrintEx)(0);
       (api->Py_Finalize)(); // otherwise Python doesn't flush its buffers
@@ -323,7 +327,7 @@ namespace Realm {
     (api->Py_DecRef)(module);
   }
 
-  void PythonInterpreter::run_string(const std::string& script_text)
+  void PythonInterpreter::run_string(const std::string &script_text)
   {
     // from Python.h
     const int Py_file_input = 257;
@@ -334,7 +338,8 @@ namespace Realm {
     PyObject *globals = (api->PyModule_GetDict)(mainmod);
     assert(globals != 0);
 
-    PyObject *compiled = (api->Py_CompileString)(script_text.c_str(), "realm", Py_file_input);
+    PyObject *compiled =
+        (api->Py_CompileString)(script_text.c_str(), "realm", Py_file_input);
     if(!compiled) {
       log_py.fatal() << "unable to compile python string: " << script_text;
       (api->PyErr_PrintEx)(0);
@@ -365,7 +370,7 @@ namespace Realm {
   // class PythonThreadTaskScheduler
 
   PythonThreadTaskScheduler::PythonThreadTaskScheduler(LocalPythonProcessor *_pyproc,
-						       CoreReservation& _core_rsrv)
+                                                       CoreReservation &_core_rsrv)
     : KernelThreadTaskScheduler(_pyproc->me, _core_rsrv)
     , pyproc(_pyproc)
     , interpreter_ready(false)
@@ -396,7 +401,7 @@ namespace Realm {
 
     return ok;
   }
-  
+
   void PythonThreadTaskScheduler::execute_internal_task(InternalTask *task)
   {
     // make our python thread state active, acquiring the GIL
@@ -419,7 +424,7 @@ namespace Realm {
     assert(saved == pythread);
 #endif
   }
-    
+
   void PythonThreadTaskScheduler::python_scheduler_loop(void)
   {
     // global startup of python interpreter if needed
@@ -441,9 +446,10 @@ namespace Realm {
     pythreads[Thread::self()] = 0;
 #else
     // always create and remember our own python thread - does NOT require GIL
-    PyThreadState *pythread = (pyproc->interpreter->api->PyThreadState_New)(pyproc->master_thread->interp);
+    PyThreadState *pythread =
+        (pyproc->interpreter->api->PyThreadState_New)(pyproc->master_thread->interp);
     log_py.debug() << "created python thread: " << pythread;
-    
+
     assert(pythread != 0);
     assert(pythreads.count(Thread::self()) == 0);
     pythreads[Thread::self()] = pythread;
@@ -599,17 +605,16 @@ namespace Realm {
   {
     // lock is held by caller
     ThreadLaunchParameters tlp;
-    Thread *t = Thread::create_kernel_thread<PythonThreadTaskScheduler,
-					     &PythonThreadTaskScheduler::python_scheduler_loop>(this,
-												tlp,
-												core_rsrv,
-												this);
+    Thread *t =
+        Thread::create_kernel_thread<PythonThreadTaskScheduler,
+                                     &PythonThreadTaskScheduler::python_scheduler_loop>(
+            this, tlp, core_rsrv, this);
     all_workers.insert(t);
     if(make_active)
       active_workers.insert(t);
     return t;
   }
- 
+
   // called by a worker thread when it needs to wait for something (and we
   //   should release the GIL)
   void PythonThreadTaskScheduler::thread_blocking(Thread *thread)
@@ -620,29 +625,29 @@ namespace Realm {
       AutoLock<FIFOMutex> al(lock);
 
       log_py.debug() << "waiting during initialization";
-      bool really_blocked = try_update_thread_state(thread,
-						    Thread::STATE_BLOCKING,
-						    Thread::STATE_BLOCKED);
-      if(!really_blocked) return;
+      bool really_blocked =
+          try_update_thread_state(thread, Thread::STATE_BLOCKING, Thread::STATE_BLOCKED);
+      if(!really_blocked)
+        return;
 
       while(true) {
-	long long old_work_counter = work_counter.read_counter();
+        long long old_work_counter = work_counter.read_counter();
 
-	if(!resumable_workers.empty()) {
-	  Thread *t = resumable_workers.get(0);
-	  assert(t == thread);
-	  log_py.debug() << "awake again";
-	  return;
-	}
+        if(!resumable_workers.empty()) {
+          Thread *t = resumable_workers.get(0);
+          assert(t == thread);
+          log_py.debug() << "awake again";
+          return;
+        }
 
-	wait_for_work(old_work_counter);
+        wait_for_work(old_work_counter);
       }
     }
 
     // if we got here through a cffi call, the GIL has already been released,
     //  so try to handle that case here - first, we need to check if the GIL
     //  is still held, if yes, we call PyEval_SaveThread to save the thread
-    //  and release the GIL; if not, the GIL has been released by cffi. 
+    //  and release the GIL; if not, the GIL has been released by cffi.
     // NOTE: we use PyEval_{Save,Restore}Thread here even if USE_PYGILSTATE_CALLS
     //  is defined, as a call to PyGILState_Release will destroy a thread
     //  context - the Save/Restore take care of the actual lock, and since we
@@ -657,13 +662,13 @@ namespace Realm {
       log_py.debug() << "SaveThread -> " << saved;
     } else
       log_py.info() << "python worker sleeping - GIL already released";
-    
+
     KernelThreadTaskScheduler::thread_blocking(thread);
 
     if(saved) {
       log_py.info() << "python worker awake - acquiring GIL";
       log_py.debug() << "RestoreThread <- " << saved;
-      assert( pyproc->interpreter->check_gil_state() == 0);
+      assert(pyproc->interpreter->check_gil_state() == 0);
       (pyproc->interpreter->api->PyEval_RestoreThread)(saved);
     } else
       log_py.info() << "python worker awake - not acquiring GIL";
@@ -697,7 +702,7 @@ namespace Realm {
     pythreads.erase(it);
 
     log_py.debug() << "destroying python thread: " << pythread;
-    
+
     // our thread should not be active
     assert((pyproc->interpreter->api->PyThreadState_Swap)(0) == 0);
 
@@ -722,7 +727,6 @@ namespace Realm {
     KernelThreadTaskScheduler::worker_terminate(switch_to);
   }
 
-  
   ////////////////////////////////////////////////////////////////////////
   //
   // class LocalPythonProcessor
@@ -766,8 +770,8 @@ namespace Realm {
 #if defined(REALM_USE_OPENMP) && !defined(REALM_OPENMP_SYSTEM_RUNTIME)
     if(_omp_workers > 0) {
       // create a pool (except for one thread, which is the main task thread)
-      omp_threadpool = new ThreadPool(me, _omp_workers - 1,
-				      name, -1 /*numa_node*/, _stack_size, crs);
+      omp_threadpool =
+          new ThreadPool(me, _omp_workers - 1, name, -1 /*numa_node*/, _stack_size, crs);
     } else
       omp_threadpool = 0;
 #endif
@@ -808,26 +812,24 @@ namespace Realm {
   void LocalPythonProcessor::create_interpreter(void)
   {
     assert(interpreter == 0);
-  
+
     // create a python interpreter that stays entirely within this thread
     interpreter = new PythonInterpreter;
     // the call to PyEval_InitThreads in the PythonInterpreter constructor
     //  acquired the GIL on our behalf already
-    assert( interpreter->check_gil_state() == 1);
+    assert(interpreter->check_gil_state() == 1);
     master_thread = (interpreter->api->PyThreadState_Get)();
 
     // always need the python threading module
     interpreter->import_module("threading");
-    
+
     // perform requested initialization
     for(std::vector<std::string>::const_iterator it = import_modules.begin();
-	it != import_modules.end();
-	++it)
+        it != import_modules.end(); ++it)
       interpreter->import_module(*it);
 
     for(std::vector<std::string>::const_iterator it = init_scripts.begin();
-	it != init_scripts.end();
-	++it)
+        it != init_scripts.end(); ++it)
       interpreter->run_string(*it);
 
     // default state is GIL _released_ - even if using PyGILState_* calls,
@@ -871,24 +873,27 @@ namespace Realm {
     // be a deadlock. See this GitHub issue for the detail:
     //   https://github.com/nv-legate/cunumeric/issues/187
     interpreter->run_string(
-      "[main_thread._tstate_lock.release() "
-      "if (v.major > 3 or v.major == 3 and (v.minor > 10 or (v.minor == 10 and v.micro > 0) or (v.minor == 9 and v.micro > 7))) "
-      "and main_thread != curr_thread "
-      "else None "
-      "for main_thread in (__import__('threading').main_thread(),) "
-      "for curr_thread in (__import__('threading').current_thread(),) "
-      "for v in (__import__('sys').version_info,)]");
+        "[main_thread._tstate_lock.release() "
+        "if (v.major > 3 or v.major == 3 and (v.minor > 10 or (v.minor == 10 and v.micro "
+        "> 0) or (v.minor == 9 and v.micro > 7))) "
+        "and main_thread != curr_thread "
+        "else None "
+        "for main_thread in (__import__('threading').main_thread(),) "
+        "for curr_thread in (__import__('threading').current_thread(),) "
+        "for v in (__import__('sys').version_info,)]");
 
     delete interpreter;
     interpreter = 0;
     master_thread = 0;
   }
-  
-  bool LocalPythonProcessor::perform_task_registration(LocalPythonProcessor::TaskRegistration *treg)
+
+  bool LocalPythonProcessor::perform_task_registration(
+      LocalPythonProcessor::TaskRegistration *treg)
   {
     // first, make sure we haven't seen this task id before
     if(task_table.count(treg->func_id) > 0) {
-      log_py.fatal() << "duplicate task registration: proc=" << me << " func=" << treg->func_id;
+      log_py.fatal() << "duplicate task registration: proc=" << me
+                     << " func=" << treg->func_id;
       assert(0);
     }
 
@@ -903,46 +908,51 @@ namespace Realm {
     do {
       // prefer a python function, if it's available
       {
-	const PythonSourceImplementation *psi = treg->codedesc->find_impl<PythonSourceImplementation>();
-	if(psi) {
-	  python_fnptr = interpreter->find_or_import_function(psi);
-	  assert(python_fnptr != 0);
-	  break;
-	}
+        const PythonSourceImplementation *psi =
+            treg->codedesc->find_impl<PythonSourceImplementation>();
+        if(psi) {
+          python_fnptr = interpreter->find_or_import_function(psi);
+          assert(python_fnptr != 0);
+          break;
+        }
       }
 
       // take a function pointer, if that's available
       {
-	const FunctionPointerImplementation *fpi = treg->codedesc->find_impl<FunctionPointerImplementation>();
-	if(fpi) {
-	  cpp_fnptr = (Processor::TaskFuncPtr)(fpi->fnptr);
-	  break;
-	}
+        const FunctionPointerImplementation *fpi =
+            treg->codedesc->find_impl<FunctionPointerImplementation>();
+        if(fpi) {
+          cpp_fnptr = (Processor::TaskFuncPtr)(fpi->fnptr);
+          break;
+        }
       }
 
       // last try: can we convert something to a function pointer?
       {
-	const std::vector<CodeTranslator *>& translators = get_runtime()->get_code_translators();
-	bool ok = false;
-	for(std::vector<CodeTranslator *>::const_iterator it = translators.begin();
-	    it != translators.end();
-	    it++)
-	  if((*it)->can_translate<FunctionPointerImplementation>(*(treg->codedesc))) {
-	    FunctionPointerImplementation *fpi = (*it)->translate<FunctionPointerImplementation>(*(treg->codedesc));
-	    if(fpi) {
-	      cpp_fnptr = (Processor::TaskFuncPtr)(fpi->fnptr);
-	      ok = true;
-	      break;
-	    }
-	  }
-	if(ok) break;
+        const std::vector<CodeTranslator *> &translators =
+            get_runtime()->get_code_translators();
+        bool ok = false;
+        for(std::vector<CodeTranslator *>::const_iterator it = translators.begin();
+            it != translators.end(); it++)
+          if((*it)->can_translate<FunctionPointerImplementation>(*(treg->codedesc))) {
+            FunctionPointerImplementation *fpi =
+                (*it)->translate<FunctionPointerImplementation>(*(treg->codedesc));
+            if(fpi) {
+              cpp_fnptr = (Processor::TaskFuncPtr)(fpi->fnptr);
+              ok = true;
+              break;
+            }
+          }
+        if(ok)
+          break;
       }
 
       log_py.fatal() << "invalid code descriptor for python proc: " << *(treg->codedesc);
       assert(0);
     } while(0);
 
-    log_py.info() << "task " << treg->func_id << " registered on " << me << ": " << *(treg->codedesc);
+    log_py.info() << "task " << treg->func_id << " registered on " << me << ": "
+                  << *(treg->codedesc);
 
     TaskTableEntry &tte = task_table[treg->func_id];
     tte.python_fnptr = python_fnptr;
@@ -955,27 +965,21 @@ namespace Realm {
     return true;
   }
 
-  void LocalPythonProcessor::enqueue_task(Task *task)
-  {
-    task_queue.enqueue_task(task);
-  }
+  void LocalPythonProcessor::enqueue_task(Task *task) { task_queue.enqueue_task(task); }
 
-  void LocalPythonProcessor::enqueue_tasks(Task::TaskList& tasks, size_t num_tasks)
+  void LocalPythonProcessor::enqueue_tasks(Task::TaskList &tasks, size_t num_tasks)
   {
     task_queue.enqueue_tasks(tasks, num_tasks);
   }
 
-  void LocalPythonProcessor::spawn_task(Processor::TaskFuncID func_id,
-					const void *args, size_t arglen,
-					const ProfilingRequestSet &reqs,
-					Event start_event,
-					GenEventImpl *finish_event,
-					EventImpl::gen_t finish_gen,
-					int priority)
+  void LocalPythonProcessor::spawn_task(Processor::TaskFuncID func_id, const void *args,
+                                        size_t arglen, const ProfilingRequestSet &reqs,
+                                        Event start_event, GenEventImpl *finish_event,
+                                        EventImpl::gen_t finish_gen, int priority)
   {
     // create a task object for this
-    Task *task = new Task(me, func_id, args, arglen, reqs,
-			  start_event, finish_event, finish_gen, priority);
+    Task *task = new Task(me, func_id, args, arglen, reqs, start_event, finish_event,
+                          finish_gen, priority);
 
     enqueue_or_defer_task(task, start_event, &deferred_spawn_cache);
   }
@@ -993,12 +997,13 @@ namespace Realm {
   }
 
   bool LocalPythonProcessor::register_task(Processor::TaskFuncID func_id,
-                                           CodeDescriptor& codedesc,
-                                           const ByteArrayRef& user_data)
+                                           CodeDescriptor &codedesc,
+                                           const ByteArrayRef &user_data)
   {
     // make sure we have a function of the right type
     if(codedesc.type() != TypeConv::from_cpp_type<Processor::TaskFuncPtr>()) {
-      log_taskreg.fatal() << "attempt to register a task function of improper type: " << codedesc.type();
+      log_taskreg.fatal() << "attempt to register a task function of improper type: "
+                          << codedesc.type();
       assert(0);
     }
 
@@ -1013,32 +1018,34 @@ namespace Realm {
   }
 
   void LocalPythonProcessor::execute_task(Processor::TaskFuncID func_id,
-					  const ByteArrayRef& task_args)
+                                          const ByteArrayRef &task_args)
   {
-    std::map<Processor::TaskFuncID, TaskTableEntry>::const_iterator it = task_table.find(func_id);
+    std::map<Processor::TaskFuncID, TaskTableEntry>::const_iterator it =
+        task_table.find(func_id);
     if(it == task_table.end()) {
-      // TODO: remove this hack once the tools are available to the HLR to call these directly
+      // TODO: remove this hack once the tools are available to the HLR to call these
+      // directly
       if(func_id < Processor::TASK_ID_FIRST_AVAILABLE) {
-	log_py.info() << "task " << func_id << " not registered on " << me << ": ignoring missing legacy setup/shutdown task";
-	return;
+        log_py.info() << "task " << func_id << " not registered on " << me
+                      << ": ignoring missing legacy setup/shutdown task";
+        return;
       }
       log_py.fatal() << "task " << func_id << " not registered on " << me;
       assert(0);
     }
 
-    const TaskTableEntry& tte = it->second;
+    const TaskTableEntry &tte = it->second;
 
     if(tte.python_fnptr != 0) {
       // task is a python function - wrap arguments in python objects and call
-      log_py.debug() << "task " << func_id << " executing on " << me << ": python function " << ((void *)(tte.python_fnptr));
+      log_py.debug() << "task " << func_id << " executing on " << me
+                     << ": python function " << ((void *)(tte.python_fnptr));
 
       PyObject *arg1 = (interpreter->api->PyByteArray_FromStringAndSize)(
-                                                   (const char *)task_args.base(),
-						   task_args.size());
+          (const char *)task_args.base(), task_args.size());
       assert(arg1 != 0);
       PyObject *arg2 = (interpreter->api->PyByteArray_FromStringAndSize)(
-                                                   (const char *)tte.user_data.base(),
-						   tte.user_data.size());
+          (const char *)tte.user_data.base(), tte.user_data.size());
       assert(arg2 != 0);
       // TODO: make into a Python realm.Processor object
       PyObject *arg3 = (interpreter->api->PyLong_FromUnsignedLong)(me.id);
@@ -1050,30 +1057,31 @@ namespace Realm {
       (interpreter->api->PyTuple_SetItem)(args, 1, arg2);
       (interpreter->api->PyTuple_SetItem)(args, 2, arg3);
 
-      //printf("args = "); (interpreter->api->PyObject_Print)(args, stdout, 0); printf("\n");
+      // printf("args = "); (interpreter->api->PyObject_Print)(args, stdout, 0);
+      // printf("\n");
 
       PyObject *res = (interpreter->api->PyObject_CallObject)(tte.python_fnptr, args);
 
       (interpreter->api->Py_DecRef)(args);
 
-      //printf("res = "); PyObject_Print(res, stdout, 0); printf("\n");
+      // printf("res = "); PyObject_Print(res, stdout, 0); printf("\n");
       if(res != 0) {
-	(interpreter->api->Py_DecRef)(res);
+        (interpreter->api->Py_DecRef)(res);
       } else {
-	log_py.fatal() << "python exception occurred within task:";
-	(interpreter->api->PyErr_PrintEx)(0);
-	(interpreter->api->Py_Finalize)(); // otherwise Python doesn't flush its buffers
-	assert(0);
+        log_py.fatal() << "python exception occurred within task:";
+        (interpreter->api->PyErr_PrintEx)(0);
+        (interpreter->api->Py_Finalize)(); // otherwise Python doesn't flush its buffers
+        assert(0);
       }
     } else {
       // no python function - better have a cpp function
       assert(tte.cpp_fnptr != 0);
 
-      log_py.debug() << "task " << func_id << " executing on " << me << ": cpp function " << ((void *)(tte.cpp_fnptr));
+      log_py.debug() << "task " << func_id << " executing on " << me << ": cpp function "
+                     << ((void *)(tte.cpp_fnptr));
 
-      (tte.cpp_fnptr)(task_args.base(), task_args.size(),
-		      tte.user_data.base(), tte.user_data.size(),
-		      me);
+      (tte.cpp_fnptr)(task_args.base(), task_args.size(), tte.user_data.base(),
+                      tte.user_data.size(), me);
     }
   }
 
@@ -1090,7 +1098,7 @@ namespace Realm {
       config_map.insert({"pystack", &cfg_stack_size});
     }
 
-    void PythonModuleConfig::configure_from_cmdline(std::vector<std::string>& cmdline)
+    void PythonModuleConfig::configure_from_cmdline(std::vector<std::string> &cmdline)
     {
       // first order of business - read command line parameters
       CommandLineParser cp;
@@ -1100,7 +1108,7 @@ namespace Realm {
           .add_option_stringlist("-ll:pyimport", cfg_import_modules)
           .add_option_stringlist("-ll:pyinit", cfg_init_scripts);
 #ifdef REALM_USE_OPENMP
-        cp.add_option_int("-ll:pyomp", cfg_pyomp_threads);
+      cp.add_option_int("-ll:pyomp", cfg_pyomp_threads);
 #endif
 
       bool ok = cp.parse_command_line(cmdline);
@@ -1119,8 +1127,7 @@ namespace Realm {
     PythonModule::PythonModule(void)
       : Module("python")
       , config(nullptr)
-    {
-    }
+    {}
 
     PythonModule::~PythonModule(void)
     {
@@ -1155,8 +1162,8 @@ namespace Realm {
 
       // add extra module imports requested by the application
       m->config->cfg_import_modules.insert(m->config->cfg_import_modules.end(),
-                                   extra_import_modules.begin(),
-                                   extra_import_modules.end());
+                                           extra_import_modules.begin(),
+                                           extra_import_modules.end());
 
       // if no cpus were requested, there's no point
       if(m->config->cfg_num_python_cpus == 0) {
@@ -1168,7 +1175,8 @@ namespace Realm {
 #ifndef REALM_USE_DLMOPEN
       // Multiple CPUs are only allowed if we're using dlmopen.
       if(m->config->cfg_num_python_cpus > 1) {
-        log_py.fatal() << "support for multiple Python CPUs is not available: recompile with USE_DLMOPEN";
+        log_py.fatal() << "support for multiple Python CPUs is not available: recompile "
+                          "with USE_DLMOPEN";
         assert(false);
       }
 #endif
@@ -1178,10 +1186,7 @@ namespace Realm {
 
     // do any general initialization - this is called after all configuration is
     //  complete
-    void PythonModule::initialize(RuntimeImpl *runtime)
-    {
-      Module::initialize(runtime);
-    }
+    void PythonModule::initialize(RuntimeImpl *runtime) { Module::initialize(runtime); }
 
     // create any processors provided by the module (default == do nothing)
     //  (each new ProcessorImpl should use a Processor from
@@ -1234,10 +1239,7 @@ namespace Realm {
 
     // clean up any common resources created by the module - this will be called
     //  after all memories/processors/etc. have been shut down and destroyed
-    void PythonModule::cleanup(void)
-    {
-      Module::cleanup();
-    }
+    void PythonModule::cleanup(void) { Module::cleanup(); }
 
   }; // namespace Python
 

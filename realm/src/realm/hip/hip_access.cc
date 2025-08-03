@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +29,6 @@ namespace Realm {
   };
   using Hip::log_gpu;
 
-
   // helper routine used by both ExternalHipMemoryResource and
   //  ExternalHipArrayResource(not implemented) - chooses an appropriate memory for
   //  external instances on a given gpu (by device id)
@@ -38,8 +39,7 @@ namespace Realm {
 
     Hip::GPU *gpu = 0;
     for(std::vector<Hip::GPU *>::const_iterator it = mod->gpus.begin();
-        it != mod->gpus.end();
-        ++it)
+        it != mod->gpus.end(); ++it)
       if((*it)->info->index == hip_device_id) {
         gpu = *it;
         break;
@@ -51,15 +51,17 @@ namespace Realm {
 
     // now look through memories that belong to that gpu - prefer a dynamic
     //  FB if exists, but use a normal FB as long is it isn't registered?
-    const Node& n = get_runtime()->nodes[Network::my_node_id];
+    const Node &n = get_runtime()->nodes[Network::my_node_id];
     MemoryImpl *fbmem = 0;
     for(std::vector<MemoryImpl *>::const_iterator it = n.memories.begin();
-        it != n.memories.end();
-        ++it) {
-      const Hip::HipDeviceMemoryInfo *spec = (*it)->find_module_specific<Hip::HipDeviceMemoryInfo>();
-      if(!spec) continue;
+        it != n.memories.end(); ++it) {
+      const Hip::HipDeviceMemoryInfo *spec =
+          (*it)->find_module_specific<Hip::HipDeviceMemoryInfo>();
+      if(!spec)
+        continue;
 
-      if(spec->gpu != gpu) continue;
+      if(spec->gpu != gpu)
+        continue;
 
       // we can return a dynamic fb as soon as we find it
       if((*it)->get_kind() == Memory::GPU_DYNAMIC_MEM)
@@ -77,13 +79,14 @@ namespace Realm {
       if(!fbmem->segment || fbmem->segment->networks.empty()) {
         return fbmem->me;
       } else {
-        log_gpu.info() << "memory " << fbmem->me << " is unsuitable for external instances because it is registered with one or more networks";
+        log_gpu.info() << "memory " << fbmem->me
+                       << " is unsuitable for external instances because it is "
+                          "registered with one or more networks";
       }
     }
 
     return Memory::NO_MEMORY;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -144,22 +147,21 @@ namespace Realm {
 
   ExternalInstanceResource *ExternalHipMemoryResource::clone(void) const
   {
-    return new ExternalHipMemoryResource(hip_device_id,
-                                         base, size_in_bytes, read_only);
+    return new ExternalHipMemoryResource(hip_device_id, base, size_in_bytes, read_only);
   }
 
-  void ExternalHipMemoryResource::print(std::ostream& os) const
+  void ExternalHipMemoryResource::print(std::ostream &os) const
   {
-    os << "hipmem(dev=" << hip_device_id
-       << ", base=" << std::hex << base << std::dec
+    os << "hipmem(dev=" << hip_device_id << ", base=" << std::hex << base << std::dec
        << ", size=" << size_in_bytes;
     if(read_only)
       os << ", readonly";
     os << ")";
   }
 
-  /*static*/ Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource, ExternalHipMemoryResource> ExternalHipMemoryResource::serdez_subclass;
-
+  /*static*/ Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource,
+                                                      ExternalHipMemoryResource>
+      ExternalHipMemoryResource::serdez_subclass;
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -202,7 +204,9 @@ namespace Realm {
       // can't use the zcmem if it's registered and we aren't in the segment
       if(mod->zcmem->segment && mod->zcmem->segment->is_registered() &&
          !mod->zcmem->segment->in_segment(base, size_in_bytes)) {
-        log_gpu.info() << "memory " << mod->zcmem->me << " is unsuitable for external instances because it is registered with one or more networks";
+        log_gpu.info() << "memory " << mod->zcmem->me
+                       << " is unsuitable for external instances because it is "
+                          "registered with one or more networks";
       } else {
         return mod->zcmem->me;
       }
@@ -218,7 +222,7 @@ namespace Realm {
     return new ExternalHipPinnedHostResource(base, size_in_bytes, read_only);
   }
 
-  void ExternalHipPinnedHostResource::print(std::ostream& os) const
+  void ExternalHipPinnedHostResource::print(std::ostream &os) const
   {
     os << "hiphost(base=" << std::hex << base << std::dec;
     os << ", size=" << size_in_bytes;
@@ -227,7 +231,8 @@ namespace Realm {
     os << ")";
   }
 
-  /*static*/ Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource, ExternalHipPinnedHostResource> ExternalHipPinnedHostResource::serdez_subclass;
-
+  /*static*/ Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource,
+                                                      ExternalHipPinnedHostResource>
+      ExternalHipPinnedHostResource::serdez_subclass;
 
 }; // namespace Realm

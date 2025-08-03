@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +67,6 @@ namespace Realm {
 
   Logger log_mutex("mutex");
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class MutexChecker
@@ -76,15 +77,14 @@ namespace Realm {
     //  that we don't mess up attempts to dump stack traces (which can take
     //  quite a while)
     atomic<int> abort_count(0);
-  };
+  }; // namespace
 
   void MutexChecker::lock_fail(int actval, CheckedScope *cs)
   {
     {
       LoggerMessage msg = log_mutex.fatal();
-      msg << "over limit on entry into MutexChecker("
-          << (name ? name : "") << "," << object << ") limit="
-          << limit << " actval=" << actval;
+      msg << "over limit on entry into MutexChecker(" << (name ? name : "") << ","
+          << object << ") limit=" << limit << " actval=" << actval;
       if(cs)
         msg << " on scope(" << (cs->name ? cs->name : "") << "," << cs->object << ")";
       Backtrace bt;
@@ -105,9 +105,8 @@ namespace Realm {
   {
     {
       LoggerMessage msg = log_mutex.fatal();
-      msg << "over limit on exit of MutexChecker("
-          << (name ? name : "") << "," << object << ") limit="
-          << limit << " actval=" << actval;
+      msg << "over limit on exit of MutexChecker(" << (name ? name : "") << "," << object
+          << ") limit=" << limit << " actval=" << actval;
       if(cs)
         msg << " on scope(" << (cs->name ? cs->name : "") << "," << cs->object << ")";
       Backtrace bt;
@@ -124,7 +123,6 @@ namespace Realm {
     abort();
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class Doorbell
@@ -138,22 +136,20 @@ namespace Realm {
     // use Win32 Event object
     DoorbellImpl()
     {
-      event = CreateEvent(NULL /*default security*/,
-                          FALSE /*!manual reset*/,
-                          FALSE /*initial state*/,
-                          NULL /*unnamed*/);
+      event = CreateEvent(NULL /*default security*/, FALSE /*!manual reset*/,
+                          FALSE /*initial state*/, NULL /*unnamed*/);
       assert(event);
     }
 
-    ~DoorbellImpl()
-    {
-      CloseHandle(event);
-    }
+    ~DoorbellImpl() { CloseHandle(event); }
 
     HANDLE event;
 #else
     // generic fallback using kernel mutex/condvar pair
-    DoorbellImpl() : condvar(mutex), asleep(false) {}
+    DoorbellImpl()
+      : condvar(mutex)
+      , asleep(false)
+    {}
 
     KernelMutex mutex;
     KernelCondVar condvar;
@@ -164,7 +160,7 @@ namespace Realm {
   namespace ThreadLocal {
     thread_local Doorbell *my_doorbell = 0;
     thread_local char doorbell_storage[sizeof(DoorbellImpl)];
-  };
+  }; // namespace ThreadLocal
 
   Doorbell::Doorbell()
     : state(STATE_IDLE)
@@ -214,38 +210,37 @@ namespace Realm {
       bool spin;
       switch(val) {
       case STATE_PENDING_PREWAKE:
-        {
-          // we've been told that a signal is imminent, so no sleeping
-          spin = true;
-          break;
-        }
+      {
+        // we've been told that a signal is imminent, so no sleeping
+        spin = true;
+        break;
+      }
 
       case STATE_PENDING_AWAKE:
-        {
-          if(sleep_timeout == DOORBELL_SLEEP_IMMEDIATE) {
-            spin = false;
-          } else if(sleep_timeout == DOORBELL_SLEEP_NEVER) {
+      {
+        if(sleep_timeout == DOORBELL_SLEEP_IMMEDIATE) {
+          spin = false;
+        } else if(sleep_timeout == DOORBELL_SLEEP_NEVER) {
+          spin = true;
+        } else {
+          // on the first iteration, set the next_sleep_time - on others,
+          //  check it
+          if(next_sleep_time == -1) {
+            next_sleep_time = (Clock::current_time_in_nanoseconds() + sleep_timeout);
             spin = true;
           } else {
-            // on the first iteration, set the next_sleep_time - on others,
-            //  check it
-            if(next_sleep_time == -1) {
-              next_sleep_time = (Clock::current_time_in_nanoseconds() +
-                                 sleep_timeout);
-              spin = true;
-            } else {
-              spin = (Clock::current_time_in_nanoseconds() >= next_sleep_time);
-            }
+            spin = (Clock::current_time_in_nanoseconds() >= next_sleep_time);
           }
-          break;
         }
+        break;
+      }
 
       default:
-        {
-          fprintf(stderr, "FATAL: unexpected doorbell state: this=%p val=%d\n",
-                  static_cast<void *>(this), val);
-          abort();
-        }
+      {
+        fprintf(stderr, "FATAL: unexpected doorbell state: this=%p val=%d\n",
+                static_cast<void *>(this), val);
+        abort();
+      }
       }
 
       if(spin) {
@@ -260,8 +255,7 @@ namespace Realm {
       //   we'll get EAGAIN)
       if(dbi->state.compare_exchange(val, STATE_PENDING_ASLEEP)) {
         errno = 0;
-        int ret = syscall(SYS_futex,
-                          &dbi->state, FUTEX_WAIT, STATE_PENDING_ASLEEP,
+        int ret = syscall(SYS_futex, &dbi->state, FUTEX_WAIT, STATE_PENDING_ASLEEP,
                           nullptr, nullptr, 0);
         // acceptable results are:
         //  ret==0 (_probably_ woken up by another thread, but have to check)
@@ -270,7 +264,8 @@ namespace Realm {
         //                 state but no harm in it either)
         if(ret < 0) {
           if((errno != EINTR) && (errno != EAGAIN)) {
-            log_mutex.fatal() << "unexpected futex_wait return: ret=" << ret << " errno=" << errno;
+            log_mutex.fatal() << "unexpected futex_wait return: ret=" << ret
+                              << " errno=" << errno;
             abort();
           }
           errno = 0;
@@ -322,8 +317,7 @@ namespace Realm {
 
 #if defined(REALM_ON_LINUX) && !defined(REALM_NO_USE_FUTEX)
     // tell kernel to wake up sleeper (or not, if we get there first)
-    int ret = syscall(SYS_futex, &dbi->state, FUTEX_WAKE, 1,
-                      nullptr, nullptr, 0);
+    int ret = syscall(SYS_futex, &dbi->state, FUTEX_WAKE, 1, nullptr, nullptr, 0);
     assert(ret >= 0);
 #elif defined(REALM_ON_WINDOWS)
     // set the sleeper's event
@@ -356,20 +350,17 @@ namespace Realm {
     int cur_limit = starvation_limit.load();
     if(starvation_count > cur_limit) {
       // only print a warning if we can double the limit
-      if(starvation_limit.compare_exchange_relaxed(cur_limit, 2*cur_limit)) {
+      if(starvation_limit.compare_exchange_relaxed(cur_limit, 2 * cur_limit)) {
         Backtrace bt;
         bt.capture_backtrace();
         bt.lookup_symbols();
-        log_mutex.warning() << "doorbell starvation limit reached: list="
-                            << db_list << " db=" << this << " owner="
-                            << std::hex << owner_tid << std::dec
-                            << " count=" << starvation_count
-                            << " at " << bt;
+        log_mutex.warning() << "doorbell starvation limit reached: list=" << db_list
+                            << " db=" << this << " owner=" << std::hex << owner_tid
+                            << std::dec << " count=" << starvation_count << " at " << bt;
       }
     }
   }
 #endif
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -561,8 +552,7 @@ namespace Realm {
     }
 #ifdef REALM_ENABLE_STARVATION_CHECKS
     if(head->next_doorbell)
-      head->next_doorbell->increase_starvation_count(1 + head->starvation_count,
-                                                     this);
+      head->next_doorbell->increase_starvation_count(1 + head->starvation_count, this);
 #endif
     head->next_doorbell = nullptr;
     return head;
@@ -588,7 +578,6 @@ namespace Realm {
     }
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class DelegatingMutex
@@ -598,7 +587,7 @@ namespace Realm {
     : state(0)
   {}
 
-  uint64_t DelegatingMutex::attempt_enter(uint64_t work_units, uint64_t& tstate)
+  uint64_t DelegatingMutex::attempt_enter(uint64_t work_units, uint64_t &tstate)
   {
     // step 1: attempt to set LSB - if successful, we've entered mutual
     //  exclusion zone - maintain "tstate" to be the expected contents of
@@ -644,7 +633,7 @@ namespace Realm {
     return (orig_state >> 1);
   }
 
-  uint64_t DelegatingMutex::attempt_exit(uint64_t& tstate)
+  uint64_t DelegatingMutex::attempt_exit(uint64_t &tstate)
   {
     // tstate is tracking the last value we observed (or put) in 'state' - if
     //   we can CAS that back to 0, we're done
@@ -663,7 +652,6 @@ namespace Realm {
     return new_work;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class UnfairMutex
@@ -678,7 +666,7 @@ namespace Realm {
     uint32_t val = state.load();
     while(true) {
       if((val & 1) != 0) {
-        if(state.compare_exchange(val, val+2)) {
+        if(state.compare_exchange(val, val + 2)) {
           // successfully added ourselves as a waiter - add our doorbell
           //  to the list
           Doorbell *db = Doorbell::get_thread_doorbell();
@@ -731,8 +719,8 @@ namespace Realm {
     //  are asleep (in which case we don't), so try to grab a doorbell off the
     //  list but do NOT add an extra token yet, since we have to update the
     //  state before the ownership can be transferred
-    Doorbell *db = db_list.extract_newest(true /*prefer_spinning*/,
-                                          false /*!allow_extra*/);
+    Doorbell *db =
+        db_list.extract_newest(true /*prefer_spinning*/, false /*!allow_extra*/);
 
     // if we got a sleeping waiter, we're not actually going to transfer the
     //  mutex ownership (because it might take them a while to wake up), so
@@ -754,14 +742,12 @@ namespace Realm {
 
       // reattempt extract if we didn't get one before
       if(!db)
-        db = db_list.extract_newest(true /*prefer_spinning*/,
-                                    true /*allow_extra*/);
+        db = db_list.extract_newest(true /*prefer_spinning*/, true /*allow_extra*/);
       // an extra token implicitly carried the lock_transfer bit
       if(db)
         db->notify(1 /*lock_transfer*/);
     }
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -777,7 +763,7 @@ namespace Realm {
     uint32_t val = state.load();
     while(true) {
       if((val & 1) != 0) {
-        if(state.compare_exchange(val, val+2)) {
+        if(state.compare_exchange(val, val + 2)) {
           // successfully added ourselves as a waiter - add our doorbell
           //  to the list, and when we wake, we have the lock
           Doorbell *db = Doorbell::get_thread_doorbell();
@@ -806,12 +792,11 @@ namespace Realm {
     assert(((prev & 1) != 0) && (prev >= 3));
     (void)prev;
 
-    Doorbell *db = db_list.extract_oldest(false /*!prefer_spinning*/,
-                                          true /*allow_extra*/);
+    Doorbell *db =
+        db_list.extract_oldest(false /*!prefer_spinning*/, true /*allow_extra*/);
     if(db)
       db->notify(0);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -820,7 +805,7 @@ namespace Realm {
 
   KernelMutex::KernelMutex(void)
   {
-    NativeMutex *mutex = reinterpret_cast<NativeMutex*>(&placeholder);
+    NativeMutex *mutex = reinterpret_cast<NativeMutex *>(&placeholder);
     assert(sizeof(NativeMutex) <= sizeof(placeholder));
 #ifdef REALM_ON_WINDOWS
     InitializeCriticalSection(mutex);
@@ -831,7 +816,7 @@ namespace Realm {
 
   KernelMutex::~KernelMutex(void)
   {
-    NativeMutex *mutex = reinterpret_cast<NativeMutex*>(&placeholder);
+    NativeMutex *mutex = reinterpret_cast<NativeMutex *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     DeleteCriticalSection(mutex);
 #else
@@ -841,7 +826,7 @@ namespace Realm {
 
   void KernelMutex::lock(void)
   {
-    NativeMutex *mutex = reinterpret_cast<NativeMutex*>(&placeholder);
+    NativeMutex *mutex = reinterpret_cast<NativeMutex *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     EnterCriticalSection(mutex);
 #else
@@ -851,7 +836,7 @@ namespace Realm {
 
   void KernelMutex::unlock(void)
   {
-    NativeMutex *mutex = reinterpret_cast<NativeMutex*>(&placeholder);
+    NativeMutex *mutex = reinterpret_cast<NativeMutex *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     LeaveCriticalSection(mutex);
 #else
@@ -861,7 +846,7 @@ namespace Realm {
 
   bool KernelMutex::trylock(void)
   {
-    NativeMutex *mutex = reinterpret_cast<NativeMutex*>(&placeholder);
+    NativeMutex *mutex = reinterpret_cast<NativeMutex *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     BOOL ret = TryEnterCriticalSection(mutex);
     return (ret != 0);
@@ -870,7 +855,6 @@ namespace Realm {
     return (ret == 0);
 #endif
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -887,8 +871,8 @@ namespace Realm {
     // we hold the lock, so both 'num_waiters' are stable
     if(num_waiters > 0) {
       num_waiters--;
-      Doorbell *db = db_list.extract_newest(true /*prefer_spinning*/,
-                                            false /*!allow_extra*/);
+      Doorbell *db =
+          db_list.extract_newest(true /*prefer_spinning*/, false /*!allow_extra*/);
       // a waiter had to add themselves before letting go of the lock, so
       //  this should never fail
       assert(db);
@@ -913,8 +897,8 @@ namespace Realm {
       num_waiters--;
       // NOTE: dequeue oldest-first so that the newest thing in our list
       //  becomes the newest thing in the mutex's list
-      Doorbell *db = db_list.extract_oldest(false /*!prefer_spinning*/,
-                                            false /*!allow_extra*/);
+      Doorbell *db =
+          db_list.extract_oldest(false /*!prefer_spinning*/, false /*!allow_extra*/);
       // a waiter had to add themselves before letting go of the lock, so
       //  this should never fail
       assert(db);
@@ -952,7 +936,6 @@ namespace Realm {
     }
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class FIFOCondVar
@@ -968,8 +951,8 @@ namespace Realm {
     // we hold the lock, so both 'num_waiters' are stable
     if(num_waiters > 0) {
       num_waiters--;
-      Doorbell *db = db_list.extract_oldest(false /*!prefer_spinning*/,
-                                            false /*!allow_extra*/);
+      Doorbell *db =
+          db_list.extract_oldest(false /*!prefer_spinning*/, false /*!allow_extra*/);
       // a waiter had to add themselves before letting go of the lock, so
       //  this should never fail
       assert(db);
@@ -992,8 +975,8 @@ namespace Realm {
     //  thread waitingon the condvar on the mutex instead
     while(num_waiters > 0) {
       num_waiters--;
-      Doorbell *db = db_list.extract_oldest(false /*!prefer_spinning*/,
-                                            false /*!allow_extra*/);
+      Doorbell *db =
+          db_list.extract_oldest(false /*!prefer_spinning*/, false /*!allow_extra*/);
       // a waiter had to add themselves before letting go of the lock, so
       //  this should never fail
       assert(db);
@@ -1027,7 +1010,6 @@ namespace Realm {
     db->wait();
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class KernelCondVar
@@ -1036,7 +1018,8 @@ namespace Realm {
   KernelCondVar::KernelCondVar(KernelMutex &_mutex)
     : mutex(_mutex)
   {
-    NativeConditionVariable *condvar = reinterpret_cast<NativeConditionVariable*>(&placeholder);
+    NativeConditionVariable *condvar =
+        reinterpret_cast<NativeConditionVariable *>(&placeholder);
     assert(sizeof(NativeConditionVariable) <= sizeof(placeholder));
 #ifdef REALM_ON_WINDOWS
     InitializeConditionVariable(condvar);
@@ -1047,7 +1030,8 @@ namespace Realm {
 
   KernelCondVar::~KernelCondVar(void)
   {
-    NativeConditionVariable *condvar = reinterpret_cast<NativeConditionVariable*>(&placeholder);
+    NativeConditionVariable *condvar =
+        reinterpret_cast<NativeConditionVariable *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     // no destructor on windows?
     (void)condvar;
@@ -1059,7 +1043,8 @@ namespace Realm {
   // these require that you hold the lock when you call
   void KernelCondVar::signal(void)
   {
-    NativeConditionVariable *condvar = reinterpret_cast<NativeConditionVariable*>(&placeholder);
+    NativeConditionVariable *condvar =
+        reinterpret_cast<NativeConditionVariable *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     WakeConditionVariable(condvar);
 #else
@@ -1069,7 +1054,8 @@ namespace Realm {
 
   void KernelCondVar::broadcast(void)
   {
-    NativeConditionVariable *condvar = reinterpret_cast<NativeConditionVariable*>(&placeholder);
+    NativeConditionVariable *condvar =
+        reinterpret_cast<NativeConditionVariable *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     WakeAllConditionVariable(condvar);
 #else
@@ -1079,8 +1065,9 @@ namespace Realm {
 
   void KernelCondVar::wait(void)
   {
-    NativeMutex *native_mutex = reinterpret_cast<NativeMutex*>(&mutex.placeholder);
-    NativeConditionVariable *condvar = reinterpret_cast<NativeConditionVariable*>(&placeholder);
+    NativeMutex *native_mutex = reinterpret_cast<NativeMutex *>(&mutex.placeholder);
+    NativeConditionVariable *condvar =
+        reinterpret_cast<NativeConditionVariable *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     SleepConditionVariableCS(condvar, native_mutex, INFINITE);
 #else
@@ -1092,8 +1079,9 @@ namespace Realm {
   //  false if the timeout expires first
   bool KernelCondVar::timedwait(long long max_nsec)
   {
-    NativeMutex *native_mutex = reinterpret_cast<NativeMutex*>(&mutex.placeholder);
-    NativeConditionVariable *condvar = reinterpret_cast<NativeConditionVariable*>(&placeholder);
+    NativeMutex *native_mutex = reinterpret_cast<NativeMutex *>(&mutex.placeholder);
+    NativeConditionVariable *condvar =
+        reinterpret_cast<NativeConditionVariable *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     BOOL ret = SleepConditionVariableCS(condvar, native_mutex, max_nsec / 1000000LL);
     return (ret != 0);
@@ -1103,12 +1091,12 @@ namespace Realm {
     ts.tv_sec += (ts.tv_nsec + max_nsec) / 1000000000LL;
     ts.tv_nsec = (ts.tv_nsec + max_nsec) % 1000000000LL;
     int ret = pthread_cond_timedwait(condvar, native_mutex, &ts);
-    if(ret == ETIMEDOUT) return false;
+    if(ret == ETIMEDOUT)
+      return false;
     // TODO: check other error codes?
     return true;
 #endif
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -1119,7 +1107,7 @@ namespace Realm {
     : writer(*this)
     , reader(*this)
   {
-    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock*>(&placeholder);
+    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock *>(&placeholder);
     assert(sizeof(NativeRWLock) <= sizeof(placeholder));
 #ifdef REALM_ON_WINDOWS
     InitializeSRWLock(&rwlock->rwlock);
@@ -1130,7 +1118,7 @@ namespace Realm {
 
   RWLock::~RWLock(void)
   {
-    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock*>(&placeholder);
+    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     // no destructor on windows?
     (void)rwlock;
@@ -1141,7 +1129,7 @@ namespace Realm {
 
   void RWLock::wrlock(void)
   {
-    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock*>(&placeholder);
+    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     AcquireSRWLockExclusive(&rwlock->rwlock);
     rwlock->exclusive = true;
@@ -1152,7 +1140,7 @@ namespace Realm {
 
   void RWLock::rdlock(void)
   {
-    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock*>(&placeholder);
+    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     AcquireSRWLockShared(&rwlock->rwlock);
     rwlock->exclusive = false;
@@ -1163,7 +1151,7 @@ namespace Realm {
 
   void RWLock::unlock(void)
   {
-    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock*>(&placeholder);
+    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     if(rwlock->exclusive)
       ReleaseSRWLockExclusive(&rwlock->rwlock);
@@ -1176,7 +1164,7 @@ namespace Realm {
 
   bool RWLock::trywrlock(void)
   {
-    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock*>(&placeholder);
+    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     BOOL ret = TryAcquireSRWLockExclusive(&rwlock->rwlock);
     if(ret != 0) {
@@ -1192,7 +1180,7 @@ namespace Realm {
 
   bool RWLock::tryrdlock(void)
   {
-    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock*>(&placeholder);
+    NativeRWLock *rwlock = reinterpret_cast<NativeRWLock *>(&placeholder);
 #ifdef REALM_ON_WINDOWS
     BOOL ret = TryAcquireSRWLockShared(&rwlock->rwlock);
     if(ret != 0) {
@@ -1206,5 +1194,4 @@ namespace Realm {
 #endif
   }
 
-
-};
+}; // namespace Realm

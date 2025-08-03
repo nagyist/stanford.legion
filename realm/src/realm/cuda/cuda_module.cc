@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +35,7 @@
 #endif
 
 #ifdef REALM_USE_DLFCN
-  #include <dlfcn.h>
+#include <dlfcn.h>
 #endif
 
 #include "realm/mutex.h"
@@ -50,12 +52,6 @@
 #include <iomanip>
 #include <algorithm>
 #include <utility>
-
-#if CUDA_VERSION < 11030
-// Define cuGetProcAddress if it isn't defined, so we can query for it's existence later
-typedef CUresult CUDAAPI (*PFN_cuGetProcAddress)(const char *, void **, int, int);
-#define CU_GET_PROC_ADDRESS_DEFAULT 0
-#endif
 
 // The embedded fat binary that holds all the internal
 // realm cuda kernels (see generated file realm_fatbin.c)
@@ -112,27 +108,25 @@ namespace Realm {
 
     bool cuda_api_fnptrs_loaded = false;
 
-#if CUDA_VERSION >= 11030
-// cuda 11.3+ gives us handy PFN_... types
-#define DEFINE_FNPTR(name, ver) PFN_##name name##_fnptr = 0;
-#else
-// before cuda 11.3, we have to rely on typeof/decltype
+// Make sure to only use decltype here, to ensure it matches the cuda.h definition
 #define DEFINE_FNPTR(name, ver) decltype(&name) name##_fnptr = 0;
-#endif
+
     CUDA_DRIVER_APIS(DEFINE_FNPTR);
 #undef DEFINE_FNPTR
 
-    static unsigned ctz(uint64_t v) {
+    static unsigned ctz(uint64_t v)
+    {
 #ifdef REALM_ON_WINDOWS
       unsigned long index;
 #ifdef _WIN64
-      if (_BitScanForward64(&index, v)) return index;
+      if(_BitScanForward64(&index, v))
+        return index;
 #else
       unsigned v_lo = v;
       unsigned v_hi = v >> 32;
-      if (_BitScanForward(&index, v_lo))
+      if(_BitScanForward(&index, v_lo))
         return index;
-      else if (_BitScanForward(&index, v_hi))
+      else if(_BitScanForward(&index, v_hi))
         return index + 32;
 #endif
       else
@@ -177,53 +171,49 @@ namespace Realm {
       // the math here is designed to balance the context's priority range
       //  around a relative priority of 0, favoring an extra negative (higher
       //  priority) option
-      int abs_priority = (gpu->greatest_stream_priority +
-                          rel_priority +
-                          ((gpu->least_stream_priority -
-                            gpu->greatest_stream_priority + 1) / 2));
+      int abs_priority =
+          (gpu->greatest_stream_priority + rel_priority +
+           ((gpu->least_stream_priority - gpu->greatest_stream_priority + 1) / 2));
       // CUDA promises to clamp to the actual range, so we don't have to
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuStreamCreateWithPriority)
-                (&stream, CU_STREAM_NON_BLOCKING, abs_priority) );
-      log_stream.info() << "stream created: gpu=" << gpu
-                        << " stream=" << stream << " priority=" << abs_priority;
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuStreamCreateWithPriority)(
+          &stream, CU_STREAM_NON_BLOCKING, abs_priority));
+      log_stream.info() << "stream created: gpu=" << gpu << " stream=" << stream
+                        << " priority=" << abs_priority;
     }
 
     GPUStream::~GPUStream(void)
     {
-      // log_stream.info() << "CUDA stream " << stream << " destroyed - max copies = " 
-      // 			<< pending_copies.capacity() << ", max events = " << pending_events.capacity();
+      // log_stream.info() << "CUDA stream " << stream << " destroyed - max copies = "
+      // 			<< pending_copies.capacity() << ", max events = " <<
+      // pending_events.capacity();
 
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuStreamDestroy)(stream) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuStreamDestroy)(stream));
     }
 
-    GPU *GPUStream::get_gpu(void) const
-    {
-      return gpu;
-    }
-    
-    CUstream GPUStream::get_stream(void) const
-    {
-      return stream;
-    }
+    GPU *GPUStream::get_gpu(void) const { return gpu; }
+
+    CUstream GPUStream::get_stream(void) const { return stream; }
 
     void GPUStream::add_fence(GPUWorkFence *fence)
     {
       CUevent e = gpu->event_pool.get_event();
 
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuEventRecord)(e, stream) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuEventRecord)(e, stream));
 
-      log_stream.debug() << "CUDA fence event " << e << " recorded on stream " << stream << " (GPU " << gpu << ")";
+      log_stream.debug() << "CUDA fence event " << e << " recorded on stream " << stream
+                         << " (GPU " << gpu << ")";
 
       add_event(e, fence, 0);
-    } 
+    }
 
     void GPUStream::add_start_event(GPUWorkStart *start)
     {
       CUevent e = gpu->event_pool.get_event();
 
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuEventRecord)(e, stream) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuEventRecord)(e, stream));
 
-      log_stream.debug() << "CUDA start event " << e << " recorded on stream " << stream << " (GPU " << gpu << ")";
+      log_stream.debug() << "CUDA start event " << e << " recorded on stream " << stream
+                         << " (GPU " << gpu << ")";
 
       // record this as a start event
       add_event(e, 0, 0, start);
@@ -233,7 +223,7 @@ namespace Realm {
     {
       CUevent e = gpu->event_pool.get_event();
 
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuEventRecord)(e, stream) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuEventRecord)(e, stream));
 
       add_event(e, 0, notification);
     }
@@ -263,22 +253,21 @@ namespace Realm {
         worker->add_stream(this);
     }
 
-    void GPUStream::wait_on_streams(const std::set<GPUStream*> &other_streams)
+    void GPUStream::wait_on_streams(const std::set<GPUStream *> &other_streams)
     {
       assert(!other_streams.empty());
-      for (std::set<GPUStream*>::const_iterator it = 
-            other_streams.begin(); it != other_streams.end(); it++)
-      {
-        if (*it == this)
+      for(std::set<GPUStream *>::const_iterator it = other_streams.begin();
+          it != other_streams.end(); it++) {
+        if(*it == this)
           continue;
         CUevent e = gpu->event_pool.get_event();
 
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuEventRecord)(e, (*it)->get_stream()) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuEventRecord)(e, (*it)->get_stream()));
 
-        log_stream.debug() << "CUDA stream " << stream << " waiting on stream " 
+        log_stream.debug() << "CUDA stream " << stream << " waiting on stream "
                            << (*it)->get_stream() << " (GPU " << gpu << ")";
 
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuStreamWaitEvent)(stream, e, 0) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuStreamWaitEvent)(stream, e, 0));
 
         // record this event on our stream
         add_event(e, 0);
@@ -291,10 +280,7 @@ namespace Realm {
     //  worth of copies can be submitted or false if not (in which case
     //  the progress counter on the xd will be updated when it should try
     //  again)
-    bool GPUStream::ok_to_submit_copy(size_t bytes, XferDes *xd)
-    {
-      return true;
-    }
+    bool GPUStream::ok_to_submit_copy(size_t bytes, XferDes *xd) { return true; }
 
     bool GPUStream::reap_events(TimeLimit work_until)
     {
@@ -302,74 +288,76 @@ namespace Realm {
       CUevent event;
       bool event_valid = false;
       {
-	AutoLock<> al(mutex);
+        AutoLock<> al(mutex);
 
-	if(pending_events.empty())
-	  // no events left, but stream might have other work left
-	  return has_work();
+        if(pending_events.empty())
+          // no events left, but stream might have other work left
+          return has_work();
 
-	event = pending_events.front().event;
-	event_valid = true;
+        event = pending_events.front().event;
+        event_valid = true;
       }
 
       // we'll keep looking at events until we find one that hasn't triggered
       bool work_left = true;
       while(event_valid) {
-	CUresult res = CUDA_DRIVER_FNPTR(cuEventQuery)(event);
+        CUresult res = CUDA_DRIVER_FNPTR(cuEventQuery)(event);
 
-	if(res == CUDA_ERROR_NOT_READY)
-	  return true; // oldest event hasn't triggered - check again later
+        if(res == CUDA_ERROR_NOT_READY)
+          return true; // oldest event hasn't triggered - check again later
 
-	// no other kind of error is expected
-	if(res != CUDA_SUCCESS) {
-	  const char *ename = 0;
-	  const char *estr = 0;
-	  CUDA_DRIVER_FNPTR(cuGetErrorName)(res, &ename);
-	  CUDA_DRIVER_FNPTR(cuGetErrorString)(res, &estr);
-	  log_gpu.fatal() << "CUDA error reported on GPU " << gpu->info->index << ": " << estr << " (" << ename << ")";
-	  assert(0);
-	}
+        // no other kind of error is expected
+        if(res != CUDA_SUCCESS) {
+          const char *ename = 0;
+          const char *estr = 0;
+          CUDA_DRIVER_FNPTR(cuGetErrorName)(res, &ename);
+          CUDA_DRIVER_FNPTR(cuGetErrorString)(res, &estr);
+          log_gpu.fatal() << "CUDA error reported on GPU " << gpu->info->index << ": "
+                          << estr << " (" << ename << ")";
+          assert(0);
+        }
 
-	log_stream.debug() << "CUDA event " << event << " triggered on stream " << stream << " (GPU " << gpu << ")";
+        log_stream.debug() << "CUDA event " << event << " triggered on stream " << stream
+                           << " (GPU " << gpu << ")";
 
-	// give event back to GPU for reuse
-	gpu->event_pool.return_event(event);
+        // give event back to GPU for reuse
+        gpu->event_pool.return_event(event);
 
-	// this event has triggered, so figure out the fence/notification to trigger
-	//  and also peek at the next event
-	GPUWorkFence *fence = 0;
+        // this event has triggered, so figure out the fence/notification to trigger
+        //  and also peek at the next event
+        GPUWorkFence *fence = 0;
         GPUWorkStart *start = 0;
-	GPUCompletionNotification *notification = 0;
+        GPUCompletionNotification *notification = 0;
 
-	{
-	  AutoLock<> al(mutex);
+        {
+          AutoLock<> al(mutex);
 
-	  const PendingEvent &e = pending_events.front();
-	  assert(e.event == event);
-	  fence = e.fence;
+          const PendingEvent &e = pending_events.front();
+          assert(e.event == event);
+          fence = e.fence;
           start = e.start;
-	  notification = e.notification;
-	  pending_events.pop_front();
+          notification = e.notification;
+          pending_events.pop_front();
 
-	  if(pending_events.empty()) {
-	    event_valid = false;
-	    work_left = has_work();
-	  } else
-	    event = pending_events.front().event;
-	}
+          if(pending_events.empty()) {
+            event_valid = false;
+            work_left = has_work();
+          } else
+            event = pending_events.front().event;
+        }
 
-        if (start) {
+        if(start) {
           start->mark_gpu_work_start();
         }
-	if(fence)
-	  fence->mark_finished(true /*successful*/);
+        if(fence)
+          fence->mark_finished(true /*successful*/);
 
-	if(notification)
-	  notification->request_completed();
+        if(notification)
+          notification->request_completed();
 
-	// don't repeat if we're out of time
-	if(event_valid && work_until.is_expired())
-	  return true;
+        // don't repeat if we're out of time
+        if(event_valid && work_until.is_expired())
+          return true;
       }
 
       // if we get here, we ran out of events, but there might have been
@@ -452,17 +440,15 @@ namespace Realm {
       // ignored - no way to shoot down CUDA work
     }
 
-    void GPUWorkFence::print(std::ostream& os) const
-    {
-      os << "GPUWorkFence";
-    }
+    void GPUWorkFence::print(std::ostream &os) const { os << "GPUWorkFence"; }
 
     void GPUWorkFence::enqueue_on_stream(GPUStream *stream)
     {
       if(stream->get_gpu()->module->config->cfg_fences_use_callbacks) {
-	CHECK_CU( CUDA_DRIVER_FNPTR(cuStreamAddCallback)(stream->get_stream(), &cuda_callback, (void *)this, 0) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuStreamAddCallback)(stream->get_stream(),
+                                                        &cuda_callback, (void *)this, 0));
       } else {
-	stream->add_fence(this);
+        stream->add_fence(this);
       }
     }
 
@@ -479,20 +465,17 @@ namespace Realm {
     // class GPUWorkStart
     GPUWorkStart::GPUWorkStart(Realm::Operation *op)
       : Realm::Operation::AsyncWorkItem(op)
-    {
-    }
+    {}
 
-    void GPUWorkStart::print(std::ostream& os) const
-    {
-      os << "GPUWorkStart";
-    }
+    void GPUWorkStart::print(std::ostream &os) const { os << "GPUWorkStart"; }
 
     void GPUWorkStart::enqueue_on_stream(GPUStream *stream)
     {
       if(stream->get_gpu()->module->config->cfg_fences_use_callbacks) {
-	CHECK_CU( CUDA_DRIVER_FNPTR(cuStreamAddCallback)(stream->get_stream(), &cuda_start_callback, (void *)this, 0) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuStreamAddCallback)(
+            stream->get_stream(), &cuda_start_callback, (void *)this, 0));
       } else {
-	stream->add_start_event(this);
+        stream->add_start_event(this);
       }
     }
 
@@ -502,7 +485,8 @@ namespace Realm {
       mark_finished(true);
     }
 
-    /*static*/ void GPUWorkStart::cuda_start_callback(CUstream stream, CUresult res, void *data)
+    /*static*/ void GPUWorkStart::cuda_start_callback(CUstream stream, CUresult res,
+                                                      void *data)
     {
       GPUWorkStart *me = (GPUWorkStart *)data;
       assert(res == CUDA_SUCCESS);
@@ -515,7 +499,10 @@ namespace Realm {
     // class GPUEventPool
 
     GPUEventPool::GPUEventPool(int _batch_size)
-      : batch_size(_batch_size), current_size(0), total_size(0), external_count(0)
+      : batch_size(_batch_size)
+      , current_size(0)
+      , total_size(0)
+      , external_count(0)
     {
       // don't immediately fill the pool because we're not managing the context ourselves
     }
@@ -528,7 +515,7 @@ namespace Realm {
       assert(available_events.empty());
 
       if(init_size == 0)
-	init_size = batch_size;
+        init_size = batch_size;
 
       available_events.resize(init_size);
 
@@ -536,7 +523,8 @@ namespace Realm {
       total_size = init_size;
 
       for(int i = 0; i < init_size; i++)
-	CHECK_CU( CUDA_DRIVER_FNPTR(cuEventCreate)(&available_events[i], CU_EVENT_DISABLE_TIMING) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuEventCreate)(&available_events[i],
+                                                  CU_EVENT_DISABLE_TIMING));
     }
 
     void GPUEventPool::empty_pool(void)
@@ -544,10 +532,11 @@ namespace Realm {
       // shouldn't be any events running around still
       assert((current_size + external_count) == total_size);
       if(external_count)
-        log_stream.warning() << "Application leaking " << external_count << " cuda events";
+        log_stream.warning() << "Application leaking " << external_count
+                             << " cuda events";
 
       for(int i = 0; i < current_size; i++)
-	CHECK_CU( CUDA_DRIVER_FNPTR(cuEventDestroy)(available_events[i]) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuEventDestroy)(available_events[i]));
 
       current_size = 0;
       total_size = 0;
@@ -561,17 +550,19 @@ namespace Realm {
       AutoLock<> al(mutex);
 
       if(current_size == 0) {
-	// if we need to make an event, make a bunch
-	current_size = batch_size;
-	total_size += batch_size;
+        // if we need to make an event, make a bunch
+        current_size = batch_size;
+        total_size += batch_size;
 
-	log_stream.info() << "event pool " << this << " depleted - adding " << batch_size << " events";
-      
-	// resize the vector (considering all events that might come back)
-	available_events.resize(total_size);
+        log_stream.info() << "event pool " << this << " depleted - adding " << batch_size
+                          << " events";
 
-	for(int i = 0; i < batch_size; i++)
-	  CHECK_CU( CUDA_DRIVER_FNPTR(cuEventCreate)(&available_events[i], CU_EVENT_DISABLE_TIMING) );
+        // resize the vector (considering all events that might come back)
+        available_events.resize(total_size);
+
+        for(int i = 0; i < batch_size; i++)
+          CHECK_CU(CUDA_DRIVER_FNPTR(cuEventCreate)(&available_events[i],
+                                                    CU_EVENT_DISABLE_TIMING));
       }
 
       if(external)
@@ -594,15 +585,12 @@ namespace Realm {
       available_events[current_size++] = e;
     }
 
-
     ////////////////////////////////////////////////////////////////////////
     //
     // class ContextSynchronizer
 
-    ContextSynchronizer::ContextSynchronizer(GPU *_gpu,
-					     CUcontext _context,
-					     CoreReservationSet& crs,
-					     int _max_threads)
+    ContextSynchronizer::ContextSynchronizer(GPU *_gpu, CUcontext _context,
+                                             CoreReservationSet &crs, int _max_threads)
       : gpu(_gpu)
       , context(_context)
       , max_threads(_max_threads)
@@ -831,8 +819,7 @@ namespace Realm {
       // if the user could have put work on any other streams then make our
       // stream wait on those streams as well
       // TODO: update this so that it works when GPU tasks suspend
-      if(ThreadLocal::created_gpu_streams)
-      {
+      if(ThreadLocal::created_gpu_streams) {
         s->wait_on_streams(*ThreadLocal::created_gpu_streams);
         delete ThreadLocal::created_gpu_streams;
         ThreadLocal::created_gpu_streams = 0;
@@ -854,8 +841,9 @@ namespace Realm {
             gpu->module->config->cfg_task_context_sync = 0;
           } else {
             if(!gpu->module->config->cfg_suppress_hijack_warning)
-              log_gpu.warning() << "CUDART hijack code not active"
-                                << " - device synchronizations required after every GPU task!";
+              log_gpu.warning()
+                  << "CUDART hijack code not active"
+                  << " - device synchronizations required after every GPU task!";
             gpu->module->config->cfg_task_context_sync = 1;
           }
 #else
@@ -869,8 +857,8 @@ namespace Realm {
       //  the current task's stream
       if(gpu->module->config->cfg_task_legacy_sync) {
         CUevent e = gpu->event_pool.get_event();
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuEventRecord)(e, CU_STREAM_LEGACY) );
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuStreamWaitEvent)(s->get_stream(), e, 0) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuEventRecord)(e, CU_STREAM_LEGACY));
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuStreamWaitEvent)(s->get_stream(), e, 0));
         gpu->event_pool.return_event(e);
       }
 
@@ -899,7 +887,7 @@ namespace Realm {
       }
       // A useful debugging macro
 #ifdef FORCE_GPU_STREAM_SYNCHRONIZE
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuStreamSynchronize)(s->get_stream()) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuStreamSynchronize)(s->get_stream()));
 #endif
 
       // Pop the finish event as the unique ID for this task for correlation later.
@@ -951,7 +939,7 @@ namespace Realm {
       }
 
       // we didn't use streams here, so synchronize the whole context
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuCtxSynchronize)() );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuCtxSynchronize)());
       ThreadLocal::block_on_synchronize = false;
 
       // pop the CUDA context for this GPU back off
@@ -970,22 +958,24 @@ namespace Realm {
     {
       Realm::CoreReservationParameters params;
 
-      if (_gpu->info->has_numa_preference) {
+      if(_gpu->info->has_numa_preference) {
         // Pick the first numa domain in the retrieved numa mask that is available
         // TODO: pass the mask directly to params instead of picking the first one
         const Realm::HardwareTopology *topology = crs.get_core_map();
-        for (size_t numa_idx = 0; numa_idx < _gpu->info->MAX_NUMA_NODE_LEN; numa_idx++) {
+        for(size_t numa_idx = 0; numa_idx < _gpu->info->MAX_NUMA_NODE_LEN; numa_idx++) {
           int numa_domain = 0;
           bool found_numa = false;
-          for (size_t numa_offset = 0; numa_offset < sizeof(_gpu->info->numa_node_affinity[0]); numa_offset++) {
-            numa_domain = numa_offset + numa_idx * sizeof(_gpu->info->numa_node_affinity[0]);
+          for(size_t numa_offset = 0;
+              numa_offset < sizeof(_gpu->info->numa_node_affinity[0]); numa_offset++) {
+            numa_domain =
+                numa_offset + numa_idx * sizeof(_gpu->info->numa_node_affinity[0]);
             if((_gpu->info->numa_node_affinity[numa_idx] & (1UL << numa_offset)) &&
                topology->numa_domain_has_processors(numa_domain)) {
               found_numa = true;
               break;
             }
           }
-          if (found_numa) {
+          if(found_numa) {
             params.set_numa_domain(numa_domain);
             break;
           }
@@ -1013,58 +1003,55 @@ namespace Realm {
       set_scheduler(sched);
     }
 
-    GPUProcessor::~GPUProcessor(void)
-    {
-      delete core_rsrv;
-    }
+    GPUProcessor::~GPUProcessor(void) { delete core_rsrv; }
 
-    GPUStream* GPU::find_stream(CUstream stream) const
+    GPUStream *GPU::find_stream(CUstream stream) const
     {
-      for (std::vector<GPUStream*>::const_iterator it = 
-            task_streams.begin(); it != task_streams.end(); it++)
-        if ((*it)->get_stream() == stream)
+      for(std::vector<GPUStream *>::const_iterator it = task_streams.begin();
+          it != task_streams.end(); it++)
+        if((*it)->get_stream() == stream)
           return *it;
       return NULL;
     }
 
-    bool GPU::can_access_peer(const GPU *peer) const {
+    bool GPU::can_access_peer(const GPU *peer) const
+    {
       return (peer != NULL) &&
              (info->peers.find(peer->info->device) != info->peers.end());
     }
 
-    GPUStream* GPU::get_null_task_stream(void) const
+    GPUStream *GPU::get_null_task_stream(void) const
     {
       GPUStream *stream = ThreadLocal::current_gpu_stream;
       assert(stream != NULL);
       return stream;
     }
 
-    GPUStream* GPU::get_next_task_stream(bool create)
+    GPUStream *GPU::get_next_task_stream(bool create)
     {
-      if(create && !ThreadLocal::created_gpu_streams)
-      {
+      if(create && !ThreadLocal::created_gpu_streams) {
         // First time we get asked to create, user our current stream
-        ThreadLocal::created_gpu_streams = new std::set<GPUStream*>();
+        ThreadLocal::created_gpu_streams = new std::set<GPUStream *>();
         assert(ThreadLocal::current_gpu_stream);
         ThreadLocal::created_gpu_streams->insert(ThreadLocal::current_gpu_stream);
         return ThreadLocal::current_gpu_stream;
       }
       unsigned index = next_task_stream.fetch_add(1) % task_streams.size();
       GPUStream *result = task_streams[index];
-      if (create)
+      if(create)
         ThreadLocal::created_gpu_streams->insert(result);
       return result;
     }
 
     GPUStream *GPU::get_next_d2d_stream()
     {
-      unsigned d2d_stream_index = (next_d2d_stream.fetch_add(1) %
-                                   module->config->cfg_d2d_streams);
+      unsigned d2d_stream_index =
+          (next_d2d_stream.fetch_add(1) % module->config->cfg_d2d_streams);
       return device_to_device_streams[d2d_stream_index];
     }
 
-    static void launch_kernel(const Realm::Cuda::GPU::GPUFuncInfo &func_info, void *params,
-                              size_t num_elems, GPUStream *stream)
+    static void launch_kernel(const Realm::Cuda::GPU::GPUFuncInfo &func_info,
+                              void *params, size_t num_elems, GPUStream *stream)
     {
       unsigned int num_blocks = 0, num_threads = 0;
       void *args[] = {params};
@@ -1146,9 +1133,9 @@ namespace Realm {
       launch_kernel(func_info, fill_info, volume, stream);
     }
 
-    void GPU::launch_batch_affine_kernel(void *copy_info, size_t dim,
-                                         size_t elem_size, size_t volume,
-                                         GPUStream *stream) {
+    void GPU::launch_batch_affine_kernel(void *copy_info, size_t dim, size_t elem_size,
+                                         size_t volume, GPUStream *stream)
+    {
       size_t log_elem_size = std::min(static_cast<size_t>(ctz(elem_size)),
                                       CUDA_MEMCPY_KERNEL_MAX2_LOG2_BYTES - 1);
 
@@ -1310,7 +1297,8 @@ namespace Realm {
     GPUWorker::GPUWorker(void)
       : BackgroundWorkItem("gpu worker")
       , condvar(lock)
-      , core_rsrv(0), worker_thread(0)
+      , core_rsrv(0)
+      , worker_thread(0)
       , thread_sleeping(false)
       , worker_shutdown_requested(false)
     {}
@@ -1322,32 +1310,30 @@ namespace Realm {
     }
 
     void GPUWorker::start_background_thread(Realm::CoreReservationSet &crs,
-					    size_t stack_size)
+                                            size_t stack_size)
     {
       // shouldn't be doing this if we've registered as a background work item
       assert(manager == 0);
 
       core_rsrv = new Realm::CoreReservation("GPU worker thread", crs,
-					     Realm::CoreReservationParameters());
+                                             Realm::CoreReservationParameters());
 
       Realm::ThreadLaunchParameters tlp;
 
-      worker_thread = Realm::Thread::create_kernel_thread<GPUWorker,
-							  &GPUWorker::thread_main>(this,
-										   tlp,
-										   *core_rsrv,
-										   0);
+      worker_thread =
+          Realm::Thread::create_kernel_thread<GPUWorker, &GPUWorker::thread_main>(
+              this, tlp, *core_rsrv, 0);
     }
 
     void GPUWorker::shutdown_background_thread(void)
     {
       {
-	AutoLock<> al(lock);
-	worker_shutdown_requested.store(true);
-	if(thread_sleeping) {
-	  thread_sleeping = false;
-	  condvar.broadcast();
-	}
+        AutoLock<> al(lock);
+        worker_shutdown_requested.store(true);
+        if(thread_sleeping) {
+          thread_sleeping = false;
+          condvar.broadcast();
+        }
       }
 
       worker_thread->join();
@@ -1362,27 +1348,26 @@ namespace Realm {
     {
       bool was_empty = false;
       {
-	AutoLock<> al(lock);
+        AutoLock<> al(lock);
 
 #ifdef DEBUG_REALM
-	// insist that the caller de-duplicate these
-	for(ActiveStreamQueue::iterator it = active_streams.begin();
-	    it != active_streams.end();
-	    ++it)
-	  assert(*it != stream);
+        // insist that the caller de-duplicate these
+        for(ActiveStreamQueue::iterator it = active_streams.begin();
+            it != active_streams.end(); ++it)
+          assert(*it != stream);
 #endif
-	was_empty = active_streams.empty();
-	active_streams.push_back(stream);
+        was_empty = active_streams.empty();
+        active_streams.push_back(stream);
 
-	if(thread_sleeping) {
-	  thread_sleeping = false;
-	  condvar.broadcast();
-	}
+        if(thread_sleeping) {
+          thread_sleeping = false;
+          condvar.broadcast();
+        }
       }
 
       // if we're a background work item, request attention if needed
       if(was_empty && (manager != 0))
-	make_active();
+        make_active();
     }
 
     bool GPUWorker::do_work(TimeLimit work_until)
@@ -1423,37 +1408,37 @@ namespace Realm {
       bool requeue_stream = false;
 
       while(true) {
-	// grab the front stream in the list
-	{
-	  AutoLock<> al(lock);
+        // grab the front stream in the list
+        {
+          AutoLock<> al(lock);
 
-	  // if we didn't finish work on the stream from the previous
-	  //  iteration, add it back to the end
-	  if(requeue_stream)
-	    active_streams.push_back(cur_stream);
+          // if we didn't finish work on the stream from the previous
+          //  iteration, add it back to the end
+          if(requeue_stream)
+            active_streams.push_back(cur_stream);
 
-	  while(active_streams.empty()) {
-	    // sleep only if this was the first attempt to get a stream
-	    if(sleep_on_empty && (first_stream == 0) &&
-	       !worker_shutdown_requested.load()) {
-	      thread_sleeping = true;
-	      condvar.wait();
-	    } else
-	      return false;
-	  }
+          while(active_streams.empty()) {
+            // sleep only if this was the first attempt to get a stream
+            if(sleep_on_empty && (first_stream == 0) &&
+               !worker_shutdown_requested.load()) {
+              thread_sleeping = true;
+              condvar.wait();
+            } else
+              return false;
+          }
 
-	  cur_stream = active_streams.front();
-	  // did we wrap around?  if so, stop for now
-	  if(cur_stream == first_stream)
-	    return true;
+          cur_stream = active_streams.front();
+          // did we wrap around?  if so, stop for now
+          if(cur_stream == first_stream)
+            return true;
 
-	  active_streams.pop_front();
-	  if(!first_stream)
-	    first_stream = cur_stream;
-	}
+          active_streams.pop_front();
+          if(!first_stream)
+            first_stream = cur_stream;
+        }
 
-	// and do some work for it
-	requeue_stream = false;
+        // and do some work for it
+        requeue_stream = false;
 
         //  reap_events report whether any kind of work
         //  remains, so we have to be careful to avoid double-requeueing -
@@ -1473,16 +1458,15 @@ namespace Realm {
     {
       // TODO: consider busy-waiting in some cases to reduce latency?
       while(!worker_shutdown_requested.load()) {
-	bool work_left = process_streams(true);
+        bool work_left = process_streams(true);
 
-	// if there was work left, yield our thread for now to avoid a tight spin loop
-	// TODO: enqueue a callback so we can go to sleep and wake up sooner than a kernel
-	//  timeslice?
-	if(work_left)
-	  Realm::Thread::yield();
+        // if there was work left, yield our thread for now to avoid a tight spin loop
+        // TODO: enqueue a callback so we can go to sleep and wake up sooner than a kernel
+        //  timeslice?
+        if(work_left)
+          Realm::Thread::yield();
       }
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -1505,8 +1489,7 @@ namespace Realm {
       : completed(false)
     {}
 
-    BlockingCompletionNotification::~BlockingCompletionNotification(void)
-    {}
+    BlockingCompletionNotification::~BlockingCompletionNotification(void) {}
 
     void BlockingCompletionNotification::request_completed(void)
     {
@@ -1526,10 +1509,8 @@ namespace Realm {
       worker.set_manager(&(get_runtime()->bgwork));
 
       while(!completed.load())
-	worker.do_work(-1 /* as long as it takes */,
-		       &completed /* until this is set */);
+        worker.do_work(-1 /* as long as it takes */, &completed /* until this is set */);
     }
-	
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -1547,8 +1528,8 @@ namespace Realm {
 
       // advertise for potential gpudirect support
       local_segment.assign(NetworkSegmentInfo::CudaDeviceMem,
-			   reinterpret_cast<void *>(base), size,
-			   reinterpret_cast<uintptr_t>(gpu));
+                           reinterpret_cast<void *>(base), size,
+                           reinterpret_cast<uintptr_t>(gpu));
       segment = &local_segment;
     }
 
@@ -1560,8 +1541,8 @@ namespace Realm {
       // use a blocking copy - host memory probably isn't pinned anyway
       {
         AutoGPUContext agc(gpu);
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuMemcpyDtoH)
-                  (dst, reinterpret_cast<CUdeviceptr>(base + offset), size) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuMemcpyDtoH)(
+            dst, reinterpret_cast<CUdeviceptr>(base + offset), size));
       }
     }
 
@@ -1570,8 +1551,8 @@ namespace Realm {
       // use a blocking copy - host memory probably isn't pinned anyway
       {
         AutoGPUContext agc(gpu);
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuMemcpyHtoD)
-                  (reinterpret_cast<CUdeviceptr>(base + offset), src, size) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuMemcpyHtoD)(
+            reinterpret_cast<CUdeviceptr>(base + offset), src, size));
       }
     }
 
@@ -1583,7 +1564,7 @@ namespace Realm {
     // GPUFBMemory supports ExternalCudaMemoryResource and
     //  ExternalCudaArrayResource
     bool GPUFBMemory::attempt_register_external_resource(RegionInstanceImpl *inst,
-                                                         size_t& inst_offset)
+                                                         size_t &inst_offset)
     {
       switch(inst->metadata.ext_resource->get_type_id()) {
       case REALM_HASH_TOKEN(ExternalCudaMemoryResource):
@@ -1621,10 +1602,10 @@ namespace Realm {
 
     // for re-registration purposes, generate an ExternalInstanceResource *
     //  (if possible) for a given instance, or a subset of one
-    ExternalInstanceResource *GPUFBMemory::generate_resource_info(RegionInstanceImpl *inst,
-                                                                  const IndexSpaceGeneric *subspace,
-                                                                  span<const FieldID> fields,
-                                                                  bool read_only)
+    ExternalInstanceResource *
+    GPUFBMemory::generate_resource_info(RegionInstanceImpl *inst,
+                                        const IndexSpaceGeneric *subspace,
+                                        span<const FieldID> fields, bool read_only)
     {
       // compute the bounds of the instance relative to our base
       assert(inst->metadata.is_valid() &&
@@ -1656,10 +1637,9 @@ namespace Realm {
 
       uintptr_t abs_base = (this->base + inst->metadata.inst_offset + rel_base);
 
-      return new ExternalCudaMemoryResource(gpu->info->index,
-                                            abs_base, extent, read_only);
+      return new ExternalCudaMemoryResource(gpu->info->index, abs_base, extent,
+                                            read_only);
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -1681,10 +1661,7 @@ namespace Realm {
       segment = &local_segment;
     }
 
-    GPUDynamicFBMemory::~GPUDynamicFBMemory(void)
-    {
-      cleanup();
-    }
+    GPUDynamicFBMemory::~GPUDynamicFBMemory(void) { cleanup(); }
 
     void GPUDynamicFBMemory::cleanup(void)
     {
@@ -1701,15 +1678,14 @@ namespace Realm {
       alloc_bases.clear();
     }
 
-    MemoryImpl::AllocationResult GPUDynamicFBMemory::allocate_storage_immediate(RegionInstanceImpl *inst,
-                                                                                bool need_alloc_result,
-                                                                                bool poisoned,
-                                                                                TimeLimit work_until)
+    MemoryImpl::AllocationResult
+    GPUDynamicFBMemory::allocate_storage_immediate(RegionInstanceImpl *inst,
+                                                   bool need_alloc_result, bool poisoned,
+                                                   TimeLimit work_until)
     {
       // poisoned allocations are cancellled
       if(poisoned) {
-        inst->notify_allocation(ALLOC_CANCELLED,
-                                RegionInstanceImpl::INSTOFFSET_FAILED,
+        inst->notify_allocation(ALLOC_CANCELLED, RegionInstanceImpl::INSTOFFSET_FAILED,
                                 work_until);
         return ALLOC_CANCELLED;
       }
@@ -1734,11 +1710,10 @@ namespace Realm {
 
         if(!limit_ok) {
           log_gpu.warning() << "dynamic allocation limit reached: mem=" << me
-                            << " cur_size=" << cur_snapshot
-                            << " bytes=" << bytes << " limit=" << size;
+                            << " cur_size=" << cur_snapshot << " bytes=" << bytes
+                            << " limit=" << size;
           inst->notify_allocation(ALLOC_INSTANT_FAILURE,
-                                  RegionInstanceImpl::INSTOFFSET_FAILED,
-                                  work_until);
+                                  RegionInstanceImpl::INSTOFFSET_FAILED, work_until);
           return ALLOC_INSTANT_FAILURE;
         }
 
@@ -1755,8 +1730,7 @@ namespace Realm {
         if(ret == CUDA_ERROR_OUT_OF_MEMORY) {
           log_gpu.warning() << "out of memory in cuMemAlloc: bytes=" << bytes;
           inst->notify_allocation(ALLOC_INSTANT_FAILURE,
-                                  RegionInstanceImpl::INSTOFFSET_FAILED,
-                                  work_until);
+                                  RegionInstanceImpl::INSTOFFSET_FAILED, work_until);
           return ALLOC_INSTANT_FAILURE;
         }
       }
@@ -1783,13 +1757,14 @@ namespace Realm {
       if(inst->metadata.ext_resource != 0) {
         unregister_external_resource(inst);
         inst->notify_deallocation();
-	return;
+        return;
       }
 
       CUdeviceptr base;
       {
         AutoLock<> al(mutex);
-        std::map<RegionInstance, std::pair<CUdeviceptr, size_t> >::iterator it = alloc_bases.find(inst->me);
+        std::map<RegionInstance, std::pair<CUdeviceptr, size_t>>::iterator it =
+            alloc_bases.find(inst->me);
         if(it == alloc_bases.end()) {
           log_gpu.fatal() << "attempt to release unknown instance: inst=" << inst->me;
           abort();
@@ -1802,7 +1777,7 @@ namespace Realm {
 
       if(base != 0) {
         AutoGPUContext agc(gpu);
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuMemFree)(base) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuMemFree)(base));
       }
 
       inst->notify_deallocation();
@@ -1814,8 +1789,7 @@ namespace Realm {
       // use a blocking copy - host memory probably isn't pinned anyway
       {
         AutoGPUContext agc(gpu);
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuMemcpyDtoH)
-                  (dst, CUdeviceptr(offset), size) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuMemcpyDtoH)(dst, CUdeviceptr(offset), size));
       }
     }
 
@@ -1824,8 +1798,7 @@ namespace Realm {
       // use a blocking copy - host memory probably isn't pinned anyway
       {
         AutoGPUContext agc(gpu);
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuMemcpyHtoD)
-                  (CUdeviceptr(offset), src, size) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuMemcpyHtoD)(CUdeviceptr(offset), src, size));
       }
     }
 
@@ -1838,10 +1811,11 @@ namespace Realm {
     // GPUFBMemory supports ExternalCudaMemoryResource and
     //  ExternalCudaArrayResource
     bool GPUDynamicFBMemory::attempt_register_external_resource(RegionInstanceImpl *inst,
-                                                                size_t& inst_offset)
+                                                                size_t &inst_offset)
     {
       {
-        ExternalCudaMemoryResource *res = dynamic_cast<ExternalCudaMemoryResource *>(inst->metadata.ext_resource);
+        ExternalCudaMemoryResource *res =
+            dynamic_cast<ExternalCudaMemoryResource *>(inst->metadata.ext_resource);
         if(res) {
           // automatic success
           inst_offset = res->base; // "offsets" are absolute in dynamic fbmem
@@ -1850,7 +1824,8 @@ namespace Realm {
       }
 
       {
-        ExternalCudaArrayResource *res = dynamic_cast<ExternalCudaArrayResource *>(inst->metadata.ext_resource);
+        ExternalCudaArrayResource *res =
+            dynamic_cast<ExternalCudaArrayResource *>(inst->metadata.ext_resource);
         if(res) {
           // automatic success
           inst_offset = 0;
@@ -1875,10 +1850,10 @@ namespace Realm {
 
     // for re-registration purposes, generate an ExternalInstanceResource *
     //  (if possible) for a given instance, or a subset of one
-    ExternalInstanceResource *GPUDynamicFBMemory::generate_resource_info(RegionInstanceImpl *inst,
-                                                                         const IndexSpaceGeneric *subspace,
-                                                                         span<const FieldID> fields,
-                                                                         bool read_only)
+    ExternalInstanceResource *
+    GPUDynamicFBMemory::generate_resource_info(RegionInstanceImpl *inst,
+                                               const IndexSpaceGeneric *subspace,
+                                               span<const FieldID> fields, bool read_only)
     {
       // compute the bounds of the instance relative to our base
       assert(inst->metadata.is_valid() &&
@@ -1910,10 +1885,9 @@ namespace Realm {
 
       uintptr_t abs_base = (inst->metadata.inst_offset + rel_base);
 
-      return new ExternalCudaMemoryResource(gpu->info->index,
-                                            abs_base, extent, read_only);
+      return new ExternalCudaMemoryResource(gpu->info->index, abs_base, extent,
+                                            read_only);
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -1941,12 +1915,12 @@ namespace Realm {
 
     void GPUZCMemory::get_bytes(off_t offset, void *dst, size_t size)
     {
-      memcpy(dst, cpu_base+offset, size);
+      memcpy(dst, cpu_base + offset, size);
     }
 
     void GPUZCMemory::put_bytes(off_t offset, const void *src, size_t size)
     {
-      memcpy(cpu_base+offset, src, size);
+      memcpy(cpu_base + offset, src, size);
     }
 
     void *GPUZCMemory::get_direct_ptr(off_t offset, size_t size)
@@ -1956,10 +1930,11 @@ namespace Realm {
 
     // GPUZCMemory supports ExternalCudaPinnedHostResource
     bool GPUZCMemory::attempt_register_external_resource(RegionInstanceImpl *inst,
-                                                         size_t& inst_offset)
+                                                         size_t &inst_offset)
     {
       {
-        ExternalCudaPinnedHostResource *res = dynamic_cast<ExternalCudaPinnedHostResource *>(inst->metadata.ext_resource);
+        ExternalCudaPinnedHostResource *res =
+            dynamic_cast<ExternalCudaPinnedHostResource *>(inst->metadata.ext_resource);
         if(res) {
           // automatic success - offset relative to our base
           inst_offset = res->base - reinterpret_cast<uintptr_t>(cpu_base);
@@ -1978,10 +1953,10 @@ namespace Realm {
 
     // for re-registration purposes, generate an ExternalInstanceResource *
     //  (if possible) for a given instance, or a subset of one
-    ExternalInstanceResource *GPUZCMemory::generate_resource_info(RegionInstanceImpl *inst,
-                                                                  const IndexSpaceGeneric *subspace,
-                                                                  span<const FieldID> fields,
-                                                                  bool read_only)
+    ExternalInstanceResource *
+    GPUZCMemory::generate_resource_info(RegionInstanceImpl *inst,
+                                        const IndexSpaceGeneric *subspace,
+                                        span<const FieldID> fields, bool read_only)
     {
       // compute the bounds of the instance relative to our base
       assert(inst->metadata.is_valid() &&
@@ -2011,14 +1986,11 @@ namespace Realm {
         extent = limit - rel_base;
       }
 
-      void *mem_base = (this->cpu_base +
-                        inst->metadata.inst_offset +
-                        rel_base);
+      void *mem_base = (this->cpu_base + inst->metadata.inst_offset + rel_base);
 
       return new ExternalCudaPinnedHostResource(reinterpret_cast<uintptr_t>(mem_base),
                                                 extent, read_only);
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -2034,8 +2006,8 @@ namespace Realm {
       add_module_specific(new CudaDeviceMemoryInfo(gpu->context));
       // advertise for potential gpudirect support
       local_segment.assign(NetworkSegmentInfo::CudaDeviceMem,
-			   reinterpret_cast<void *>(_base), _size,
-			   reinterpret_cast<uintptr_t>(_gpu));
+                           reinterpret_cast<void *>(_base), _size,
+                           reinterpret_cast<uintptr_t>(_gpu));
       segment = &local_segment;
     }
 
@@ -2053,8 +2025,8 @@ namespace Realm {
     {
       push_context();
 
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuCtxGetStreamPriorityRange)
-                (&least_stream_priority, &greatest_stream_priority) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuCtxGetStreamPriorityRange)(&least_stream_priority,
+                                                              &greatest_stream_priority));
 
       event_pool.init_pool();
 
@@ -2068,16 +2040,16 @@ namespace Realm {
       CHECK_CU(CUDA_DRIVER_FNPTR(cuDeviceGetAttribute)(
           &numSMs, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, dev));
 
-      CHECK_CU(CUDA_DRIVER_FNPTR(cuModuleLoadDataEx)(
-          &device_module, realm_fatbin, 0, NULL, NULL));
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuModuleLoadDataEx)(&device_module, realm_fatbin, 0,
+                                                     NULL, NULL));
       for(unsigned int log_bit_sz = 0; log_bit_sz < CUDA_MEMCPY_KERNEL_MAX2_LOG2_BYTES;
           log_bit_sz++) {
         const unsigned int bit_sz = 8U << log_bit_sz;
         GPUFuncInfo func_info;
         char name[30];
         std::snprintf(name, sizeof(name), "memcpy_transpose%u", bit_sz);
-        CHECK_CU(CUDA_DRIVER_FNPTR(cuModuleGetFunction)(&func_info.func,
-                                                        device_module, name));
+        CHECK_CU(
+            CUDA_DRIVER_FNPTR(cuModuleGetFunction)(&func_info.func, device_module, name));
 
         auto blocksize_to_sharedmem = [](int block_size) -> size_t {
           int tile_size = sqrt(block_size);
@@ -2149,15 +2121,15 @@ namespace Realm {
       // Create a peer_to_peer stream for all our known devices.  This will isolate the
       // DMA requests for each GPU
       peer_to_peer_streams.resize(module->gpu_info.size(), nullptr);
-      for (const GPUInfo *gpu_info : module->gpu_info) {
-        if (gpu_info->index != info->index) {
-	        peer_to_peer_streams[gpu_info->index] = new GPUStream(this, worker);
+      for(const GPUInfo *gpu_info : module->gpu_info) {
+        if(gpu_info->index != info->index) {
+          peer_to_peer_streams[gpu_info->index] = new GPUStream(this, worker);
         }
       }
 
       task_streams.resize(module->config->cfg_task_streams);
       for(size_t i = 0; i < task_streams.size(); i++) {
-	      task_streams[i] = new GPUStream(this, worker);
+        task_streams[i] = new GPUStream(this, worker);
       }
 
       pop_context();
@@ -2187,7 +2159,7 @@ namespace Realm {
       delete_container_contents(cudaipc_streams);
       delete_container_contents(task_streams);
 
-      if (fb_dmem) {
+      if(fb_dmem) {
         fb_dmem->cleanup();
       }
 
@@ -2197,19 +2169,19 @@ namespace Realm {
 
       pop_context();
 
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuDevicePrimaryCtxRelease)(info->device) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuDevicePrimaryCtxRelease)(info->device));
     }
 
     void GPU::push_context(void)
     {
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuCtxPushCurrent)(context) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuCtxPushCurrent)(context));
     }
 
     void GPU::pop_context(void)
     {
       // the context we pop had better be ours...
       CUcontext popped;
-      CHECK_CU( CUDA_DRIVER_FNPTR(cuCtxPopCurrent)(&popped) );
+      CHECK_CU(CUDA_DRIVER_FNPTR(cuCtxPopCurrent)(&popped));
       assert(popped == context);
     }
 
@@ -2234,7 +2206,7 @@ namespace Realm {
         pma.p = p;
         pma.m = fbmem->me;
         pma.bandwidth = info->logical_peer_bandwidth[info->index];
-        pma.latency   = info->logical_peer_latency[info->index];
+        pma.latency = info->logical_peer_latency[info->index];
         runtime->add_proc_mem_affinity(pma);
       }
 
@@ -2305,7 +2277,7 @@ namespace Realm {
         log_gpu.info() << "peer access enabled from GPU " << p << " to FB "
                        << peer_gpu->fbmem->me;
         peer_fbs.insert(peer_gpu->fbmem->me);
-        
+
         {
           Machine::ProcessorMemoryAffinity pma;
           pma.p = p;
@@ -2431,10 +2403,10 @@ namespace Realm {
       // if the max_size is non-zero, also limit by what appears to be
       //  currently available
       if(max_size > 0) {
-	AutoGPUContext agc(this);
+        AutoGPUContext agc(this);
 
         size_t free_bytes, total_bytes;
-        CHECK_CU( CUDA_DRIVER_FNPTR(cuMemGetInfo)(&free_bytes, &total_bytes) );
+        CHECK_CU(CUDA_DRIVER_FNPTR(cuMemGetInfo)(&free_bytes, &total_bytes));
         if(total_bytes < max_size)
           max_size = total_bytes;
       }
@@ -2496,7 +2468,7 @@ namespace Realm {
     //
     // class AutoGPUContext
 
-    AutoGPUContext::AutoGPUContext(GPU& _gpu)
+    AutoGPUContext::AutoGPUContext(GPU &_gpu)
       : gpu(&_gpu)
     {
       gpu->push_context();
@@ -2514,7 +2486,6 @@ namespace Realm {
       if(gpu)
         gpu->pop_context();
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -2542,21 +2513,19 @@ namespace Realm {
     {
       CUresult ret = CUDA_DRIVER_FNPTR(cuInit)(0);
       cuda_init_code = ret;
-      if (ret != CUDA_SUCCESS) {
+      if(ret != CUDA_SUCCESS) {
         const char *err_name, *err_str;
         CUDA_DRIVER_FNPTR(cuGetErrorName)(ret, &err_name);
         CUDA_DRIVER_FNPTR(cuGetErrorString)(ret, &err_str);
-        log_gpu.warning() << "cuInit(0) returned " << ret << " ("
-                          << err_name << "): " << err_str
-                          << ", resource discovery failed";
+        log_gpu.warning() << "cuInit(0) returned " << ret << " (" << err_name
+                          << "): " << err_str << ", resource discovery failed";
       } else {
         CHECK_CU(CUDA_DRIVER_FNPTR(cuDeviceGetCount)(&res_num_gpus));
         res_fbmem_sizes.resize(res_num_gpus);
         for(int i = 0; i < res_num_gpus; i++) {
           CUdevice device;
           CHECK_CU(CUDA_DRIVER_FNPTR(cuDeviceGet)(&device, i));
-          CHECK_CU(
-              CUDA_DRIVER_FNPTR(cuDeviceTotalMem)(&res_fbmem_sizes[i], device));
+          CHECK_CU(CUDA_DRIVER_FNPTR(cuDeviceTotalMem)(&res_fbmem_sizes[i], device));
         }
         res_min_fbmem_size =
             *std::min_element(res_fbmem_sizes.begin(), res_fbmem_sizes.end());
@@ -2565,7 +2534,7 @@ namespace Realm {
       return resource_discover_finished;
     }
 
-    void CudaModuleConfig::configure_from_cmdline(std::vector<std::string>& cmdline)
+    void CudaModuleConfig::configure_from_cmdline(std::vector<std::string> &cmdline)
     {
       assert(finish_configured == false);
       // first order of business - read command line parameters
@@ -2611,7 +2580,6 @@ namespace Realm {
       }
     }
 
-
     ////////////////////////////////////////////////////////////////////////
     //
     // class CudaModule
@@ -2638,7 +2606,7 @@ namespace Realm {
       cuda_module_singleton = this;
       rh_listener = new GPUReplHeapListener(this);
     }
-      
+
     CudaModule::~CudaModule(void)
     {
       assert(config != nullptr);
@@ -2653,19 +2621,20 @@ namespace Realm {
       delete rh_listener;
     }
 
-    static std::string convert_uuid(CUuuid& cu_uuid)
+    static std::string convert_uuid(CUuuid &cu_uuid)
     {
       stringbuilder ss;
       ss << "GPU-";
-      for (size_t i = 0; i < 16; i++) {
-        switch (i) {
+      for(size_t i = 0; i < 16; i++) {
+        switch(i) {
         case 4:
         case 6:
         case 8:
         case 10:
           ss << '-';
         }
-        ss << std::hex << std::setfill('0') << std::setw(2) << (0xFF & (int)cu_uuid.bytes[i]);
+        ss << std::hex << std::setfill('0') << std::setw(2)
+           << (0xFF & (int)cu_uuid.bytes[i]);
       }
       return ss;
     }
@@ -2674,25 +2643,35 @@ namespace Realm {
 #define STRINGIFY(s) #s
 #endif
 
-    template <typename Fn>
-    static void cuGetProcAddress_stable(PFN_cuGetProcAddress loader, Fn &fnptr,
-                                        const char *name, int version,
-                                        const char *err_msg)
+    // Small rant: this is arguably more effort than it's worth, especially since there is
+    // a maintaince burden on us to keep tabs on what version each new API we want to use
+    // is introduced in order to properly retrieve the correct function.  We could just
+    // use dlopen/dlsym and not use cuGetProcAddress altogether.  We already cannot use
+    // the PFN_ types that cuda defines since they won't match with what we expect.
+    // Unfortunately, due to cuda's loader chain issues on some platforms,
+    // cuGetProcAddress has better performance as it requires the fewest jumps to get to
+    // the real driver.  If we had a cleaner version of cuGetProcAddress, this wouldn't be
+    // a problem.
+    template <typename LoaderFn, typename Fn>
+    static void cuGetProcAddress_stable(LoaderFn loader, Fn &fnptr, const char *name,
+                                        int version, const char *err_msg)
     {
       CUresult ret = CUDA_SUCCESS;
       // When using cuGetProcAddress, we need to make sure to specify the either the
-      // version the API was introduced, or the current compilation version, whichever is
-      // newer.  This is to deal with CUDA changing the API signature for the same API,
-      // but allows us to retrieve APIs from drivers newer than what we're compiling with
+      // version the API was introduced, or the current compatible compilation version,
+      // whichever is newer.  This is to deal with CUDA changing the API signature for
+      // the same API, but also allows us to retrieve APIs from drivers newer than what
+      // we're compiling with We need to use CUDA_VERSION_COMPAT as the minimum here in
+      // order to ensure the function pointer returned matches what is in cuda.h
 #if CUDA_VERSION < 12000
       ret = (loader)(name, reinterpret_cast<void **>(&fnptr),
-                     std::max(CUDA_VERSION, version), CU_GET_PROC_ADDRESS_DEFAULT);
+                     std::max(CUDA_VERSION_COMPAT, version), CU_GET_PROC_ADDRESS_DEFAULT);
 #else
       // cuGetProcAddress changed signature in 12.0+ to include more diagnostic
       // information we don't need.
-      ret =
-          (loader)(name, reinterpret_cast<void **>(&fnptr),
-                   std::max(CUDA_VERSION, version), CU_GET_PROC_ADDRESS_DEFAULT, nullptr);
+      ret = (loader)(name, reinterpret_cast<void **>(&fnptr),
+                     std::max(CUDA_VERSION_COMPAT, version), CU_GET_PROC_ADDRESS_DEFAULT,
+                     nullptr);
 #endif
       if(ret != CUDA_SUCCESS) {
         REPORT_CU_ERROR(Logger::LEVEL_INFO, err_msg, ret);
@@ -2705,7 +2684,7 @@ namespace Realm {
         return true;
       }
 
-      PFN_cuGetProcAddress cuGetProcAddress_fnptr = nullptr;
+      decltype(&cuGetProcAddress) cuGetProcAddress_fnptr = nullptr;
 
 #if defined(REALM_USE_LIBDL)
       log_gpu.info() << "dynamically loading libcuda.so";
@@ -2715,7 +2694,7 @@ namespace Realm {
         return false;
       }
       // Use the symbol we get from the dynamically loaded library
-      cuGetProcAddress_fnptr = reinterpret_cast<PFN_cuGetProcAddress>(
+      cuGetProcAddress_fnptr = reinterpret_cast<decltype(cuGetProcAddress_fnptr)>(
           dlsym(libcuda, STRINGIFY(cuGetProcAddress)));
 #elif CUDA_VERSION >= 11030
       // Use the statically available symbol
@@ -2732,7 +2711,7 @@ namespace Realm {
       } else {
 #if defined(REALM_USE_LIBDL)
 #define DRIVER_GET_FNPTR(name, ver)                                                      \
-  if(CUDA_SUCCESS != (nullptr != (name##_fnptr = reinterpret_cast<PFN_##name>(           \
+  if(CUDA_SUCCESS != (nullptr != (name##_fnptr = reinterpret_cast<decltype(&name)>(      \
                                       dlsym(libcuda, STRINGIFY(name)))))) {              \
     log_gpu.info() << "Could not retrieve symbol " #name;                                \
   }
@@ -2756,11 +2735,11 @@ namespace Realm {
     {
 #ifdef REALM_USE_LIBDL
       void *libnvml = NULL;
-      if (nvml_api_fnptrs_loaded)
+      if(nvml_api_fnptrs_loaded)
         return true;
       log_gpu.info() << "dynamically loading libnvidia-ml.so";
       libnvml = dlopen("libnvidia-ml.so.1", RTLD_NOW);
-      if (libnvml == NULL) {
+      if(libnvml == NULL) {
         log_gpu.info() << "could not open libnvidia-ml.so" << strerror(errno);
         return false;
       }
@@ -3098,7 +3077,8 @@ namespace Realm {
       m->config = config;
 
       // check if gpus have been requested
-      bool init_required = ((m->config->cfg_num_gpus > 0) || !m->config->cfg_gpu_idxs.empty());
+      bool init_required =
+          ((m->config->cfg_num_gpus > 0) || !m->config->cfg_gpu_idxs.empty());
 
       // check if cuda can be initialized
       if(cuda_init_code != CUDA_SUCCESS && init_required) {
@@ -3274,7 +3254,7 @@ namespace Realm {
           infos.push_back(info);
         }
 
-        if (nvml_initialized) {
+        if(nvml_initialized) {
           for(GPUInfo *info : infos) {
             nvmlFieldValue_t values[] = {
 #if CUDA_VERSION >= 12000
@@ -3321,7 +3301,7 @@ namespace Realm {
 
               if(NVML_FNPTR(nvmlDeviceGetNvLinkRemoteDeviceType) != nullptr) {
                 CHECK_NVML(NVML_FNPTR(nvmlDeviceGetNvLinkRemoteDeviceType)(info->nvml_dev,
-                                                                          i, &dev_type));
+                                                                           i, &dev_type));
               } else {
                 // GetNvLinkRemoteDeviceType not found, probably an older nvml driver, so
                 // assume GPU
@@ -3331,16 +3311,19 @@ namespace Realm {
               if(dev_type == NVML_NVLINK_DEVICE_TYPE_GPU) {
                 CHECK_NVML(NVML_FNPTR(nvmlDeviceGetNvLinkRemotePciInfo)(info->nvml_dev, i,
                                                                         &pci_info));
-                // Unfortunately NVML doesn't give a way to return a GPU handle for a remote
-                // end point, so we have to search for the remote GPU using the PCIe
-                // information...
+                // Unfortunately NVML doesn't give a way to return a GPU handle for a
+                // remote end point, so we have to search for the remote GPU using the
+                // PCIe information...
                 int peer_gpu_idx = 0;
-                for(peer_gpu_idx = 0; peer_gpu_idx < config->res_num_gpus; peer_gpu_idx++) {
+                for(peer_gpu_idx = 0; peer_gpu_idx < config->res_num_gpus;
+                    peer_gpu_idx++) {
                   if(infos[peer_gpu_idx]->pci_busid == static_cast<int>(pci_info.bus) &&
-                    infos[peer_gpu_idx]->pci_deviceid == static_cast<int>(pci_info.device) &&
-                    infos[peer_gpu_idx]->pci_domainid == static_cast<int>(pci_info.domain)) {
-                    // Found the peer device on the other end of the link!  Add this link's
-                    // bandwidth to the logical peer link
+                     infos[peer_gpu_idx]->pci_deviceid ==
+                         static_cast<int>(pci_info.device) &&
+                     infos[peer_gpu_idx]->pci_domainid ==
+                         static_cast<int>(pci_info.domain)) {
+                    // Found the peer device on the other end of the link!  Add this
+                    // link's bandwidth to the logical peer link
                     info->logical_peer_bandwidth[peer_gpu_idx] += nvlink_rate;
                     info->logical_peer_latency[peer_gpu_idx] = 100;
                     break;
@@ -3350,12 +3333,12 @@ namespace Realm {
                 if(peer_gpu_idx == config->res_num_gpus) {
                   // We can't make any assumptions about this link, since we don't know
                   // what's on the other side.  This could be a GPU that was removed via
-                  // CUDA_VISIBLE_DEVICES, or NVSWITCH / P9 NPU on a system with an slightly
-                  // older driver that doesn't support "GetNvlinkRemotePciInfo"
-                  log_gpu.info() << "GPU " << info->index
-                                << " has active NVLINK to unknown device "
-                                << pci_info.busId << "(" << std::hex
-                                << pci_info.pciDeviceId << "), ignoring...";
+                  // CUDA_VISIBLE_DEVICES, or NVSWITCH / P9 NPU on a system with an
+                  // slightly older driver that doesn't support "GetNvlinkRemotePciInfo"
+                  log_gpu.info()
+                      << "GPU " << info->index << " has active NVLINK to unknown device "
+                      << pci_info.busId << "(" << std::hex << pci_info.pciDeviceId
+                      << "), ignoring...";
                 }
               } else if(dev_type == NVML_NVLINK_DEVICE_TYPE_SWITCH) {
                 // Accumulate the link bandwidth for one gpu and assume symmetry
@@ -3378,8 +3361,7 @@ namespace Realm {
             // Gather the framebuffer bandwidth and latency from CUDA
             int memclk /*kHz*/, buswidth;
             CHECK_CU(CUDA_DRIVER_FNPTR(cuDeviceGetAttribute)(
-                &memclk, CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE,
-                infos[i]->device));
+                &memclk, CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, infos[i]->device));
             CHECK_CU(CUDA_DRIVER_FNPTR(cuDeviceGetAttribute)(
                 &buswidth, CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH,
                 infos[i]->device));
@@ -3395,20 +3377,20 @@ namespace Realm {
               infos[i]->logical_peer_bandwidth[i] = infos[i]->c2c_bandwidth;
               infos[i]->logical_peer_latency[i] = 200;
             }
-            log_gpu.info() << "GPU #" << i << " local memory: "
-                           << infos[i]->logical_peer_bandwidth[i] << " MB/s, "
-                           << infos[i]->logical_peer_latency[i] << " ns";
+            log_gpu.info() << "GPU #" << i
+                           << " local memory: " << infos[i]->logical_peer_bandwidth[i]
+                           << " MB/s, " << infos[i]->logical_peer_latency[i] << " ns";
           }
-          for (size_t j = 0; j < infos.size(); j++) {
+          for(size_t j = 0; j < infos.size(); j++) {
             int can_access;
-            if (i == j) {
+            if(i == j) {
               continue;
             }
             CHECK_CU(CUDA_DRIVER_FNPTR(cuDeviceCanAccessPeer)(
                 &can_access, infos[i]->device, infos[j]->device));
-            if (can_access) {
+            if(can_access) {
               infos[i]->peers.insert(infos[j]->index);
-              if (infos[i]->logical_peer_bandwidth[j] == 0) {
+              if(infos[i]->logical_peer_bandwidth[j] == 0) {
                 // Not nvlink (otherwise this would have been enumerated
                 // earlier), so assume this is NVSWITCH (if we detected nvswitch
                 // earlier) or PCIe
@@ -3417,12 +3399,12 @@ namespace Realm {
                              std::min(infos[i]->pci_bandwidth, infos[j]->pci_bandwidth));
                 infos[i]->logical_peer_latency[j] = 400;
               }
-              log_gpu.info()
-                  << "p2p access from device " << infos[i]->index
-                  << " to device " << infos[j]->index
-                  << " bandwidth: " << infos[i]->logical_peer_bandwidth[j]
-                  << " MB/s"
-                  << " latency: " << infos[i]->logical_peer_latency[j] << " ns";
+              log_gpu.info() << "p2p access from device " << infos[i]->index
+                             << " to device " << infos[j]->index
+                             << " bandwidth: " << infos[i]->logical_peer_bandwidth[j]
+                             << " MB/s"
+                             << " latency: " << infos[i]->logical_peer_latency[j]
+                             << " ns";
             }
           }
         }
@@ -3497,7 +3479,8 @@ namespace Realm {
       unsigned gpu_count = 0;
       // try to get cfg_num_gpus, working through the list in order
       for(size_t i = config->cfg_skip_gpu_count;
-          (i < gpu_info.size()) && (static_cast<int>(gpu_count) < config->cfg_num_gpus); i++) {
+          (i < gpu_info.size()) && (static_cast<int>(gpu_count) < config->cfg_num_gpus);
+          i++) {
         int idx = (fixed_indices.empty() ? i : fixed_indices[i]);
 
         // try to create a context and possibly check available memory - in order
@@ -3593,8 +3576,8 @@ namespace Realm {
 
       // did we actually get the requested number of GPUs?
       if(static_cast<int>(gpu_count) < config->cfg_num_gpus) {
-        log_gpu.fatal() << config->cfg_num_gpus << " GPUs requested, but only " << gpu_count
-                        << " available!";
+        log_gpu.fatal() << config->cfg_num_gpus << " GPUs requested, but only "
+                        << gpu_count << " available!";
         assert(false);
       }
 
@@ -3623,7 +3606,8 @@ namespace Realm {
       // each GPU needs its FB memory
       if(config->cfg_fb_mem_size > 0)
         for(std::vector<GPU *>::iterator it = gpus.begin(); it != gpus.end(); it++)
-          (*it)->create_fb_memory(runtime, config->cfg_fb_mem_size, config->cfg_fb_ib_size);
+          (*it)->create_fb_memory(runtime, config->cfg_fb_mem_size,
+                                  config->cfg_fb_ib_size);
 
       if(config->cfg_use_dynamic_fb)
         for(std::vector<GPU *>::iterator it = gpus.begin(); it != gpus.end(); it++)
@@ -3781,11 +3765,9 @@ namespace Realm {
       Module::create_processors(runtime);
 
       // each GPU needs a processor
-      for(std::vector<GPU *>::iterator it = gpus.begin();
-	  it != gpus.end();
-	  it++)
-	(*it)->create_processor(runtime,
-				2 << 20); // TODO: don't use hardcoded stack size...
+      for(std::vector<GPU *>::iterator it = gpus.begin(); it != gpus.end(); it++)
+        (*it)->create_processor(runtime,
+                                2 << 20); // TODO: don't use hardcoded stack size...
     }
 
     template <typename MemoryType>
@@ -3804,17 +3786,12 @@ namespace Realm {
             // pageeable memory access that cuMemAdvise will work with pageeable memory.
             // It does on some systems, not on others.  Either way, make the attempt and
             // move on
-#if CUDA_VERSION < 12090
+#if CUDA_VERSION < 13000
             (void)CUDA_DRIVER_FNPTR(cuMemAdvise)(
                 reinterpret_cast<CUdeviceptr>(ptr), mem->size,
                 CU_MEM_ADVISE_SET_PREFERRED_LOCATION, CU_DEVICE_CPU);
 #else
-            // In cuda 12.9, there's some confusion about what function type for the
-            // loader should be, which forces an early deprecation of the original
-            // cuMemAdvise.  Since we'll need to make this update for 13.0 anyway,
-            // implement a quick implementation for now.
-            // TODO(cperry): pick a numa node closest to the owning GPU instead of the
-            // calling numa node
+            // Prepare for the default function change for 13.0
             CUmemLocation location;
             location.type = CU_MEM_LOCATION_TYPE_HOST_NUMA_CURRENT;
             location.id = 0;
@@ -3988,42 +3965,39 @@ namespace Realm {
       // clean up worker(s)
       if(shared_worker) {
 #ifdef DEBUG_REALM
-	shared_worker->shutdown_work_item();
+        shared_worker->shutdown_work_item();
 #endif
-	if(config->cfg_use_worker_threads)
-	  shared_worker->shutdown_background_thread();
+        if(config->cfg_use_worker_threads)
+          shared_worker->shutdown_background_thread();
 
-	delete shared_worker;
-	shared_worker = 0;
+        delete shared_worker;
+        shared_worker = 0;
       }
       for(std::map<GPU *, GPUWorker *>::iterator it = dedicated_workers.begin();
-	  it != dedicated_workers.end();
-	  it++) {
-	GPUWorker *worker = it->second;
+          it != dedicated_workers.end(); it++) {
+        GPUWorker *worker = it->second;
 
 #ifdef DEBUG_REALM
-	worker->shutdown_work_item();
+        worker->shutdown_work_item();
 #endif
-	if(config->cfg_use_worker_threads)
-	  worker->shutdown_background_thread();
+        if(config->cfg_use_worker_threads)
+          worker->shutdown_background_thread();
 
-	delete worker;
+        delete worker;
       }
       dedicated_workers.clear();
 
       // and clean up anything that was needed for the replicated heap
       runtime->repl_heap.remove_listener(rh_listener);
 
-      for(std::vector<GPU *>::iterator it = gpus.begin();
-	  it != gpus.end();
-	  it++) {
+      for(std::vector<GPU *>::iterator it = gpus.begin(); it != gpus.end(); it++) {
 #ifdef REALM_USE_CUDART_HIJACK
         GlobalRegistrations::remove_gpu_context(*it);
 #endif
-	delete *it;
+        delete *it;
       }
       gpus.clear();
-      
+
       Module::cleanup();
     }
 
@@ -4031,9 +4005,9 @@ namespace Realm {
     {
       // if we're not in a gpu task, this'll be null
       if(ThreadLocal::current_gpu_stream)
-	return ThreadLocal::current_gpu_stream->get_stream();
+        return ThreadLocal::current_gpu_stream->get_stream();
       else
-	return 0;
+        return 0;
     }
 
     void CudaModule::set_task_ctxsync_required(bool is_required)
@@ -4042,7 +4016,8 @@ namespace Realm {
       ThreadLocal::context_sync_required = (is_required ? 1 : 0);
     }
 
-    static void CUDA_CB event_trigger_callback(void *userData) {
+    static void CUDA_CB event_trigger_callback(void *userData)
+    {
       UserEvent realm_event;
       realm_event.id = reinterpret_cast<Realm::Event::id_t>(userData);
       realm_event.trigger();
@@ -4075,24 +4050,22 @@ namespace Realm {
       if(free_stream) {
         CHECK_CU(CUDA_DRIVER_FNPTR(cuStreamDestroy)(cuda_stream));
       }
-      
+
       return realm_event;
     }
 
     Event CudaModule::make_realm_event(CUstream_st *cuda_stream)
     {
       CUresult res = CUDA_DRIVER_FNPTR(cuStreamQuery)(cuda_stream);
-      if (res == CUDA_SUCCESS) {
+      if(res == CUDA_SUCCESS) {
         // This CUDA stream is already completed, no need to create a new event.
         return Event::NO_EVENT;
-      }
-      else if (res != CUDA_ERROR_NOT_READY) {
+      } else if(res != CUDA_ERROR_NOT_READY) {
         CHECK_CU(res);
       }
       UserEvent realm_event = UserEvent::create_user_event();
       CHECK_CU(CUDA_DRIVER_FNPTR(cuLaunchHostFunc)(
-          cuda_stream, event_trigger_callback,
-          reinterpret_cast<void *>(realm_event.id)));
+          cuda_stream, event_trigger_callback, reinterpret_cast<void *>(realm_event.id)));
       return realm_event;
     }
 
@@ -4898,4 +4871,4 @@ namespace Realm {
 #endif
 
   }; // namespace Cuda
-}; // namespace Realm
+};   // namespace Realm

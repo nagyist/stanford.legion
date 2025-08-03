@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +34,8 @@
 
 // To add serializability for a new data type, do one of the following:
 //
-// 1) If your type can be copied bit for bit (i.e. C++11's is_trivially_copyable), just do:
+// 1) If your type can be copied bit for bit (i.e. C++11's is_trivially_copyable), just
+// do:
 //  TYPE_IS_SERIALIZABLE(my_type);
 //
 // 2) If your type is just a struct with a bunch of members, do:
@@ -42,7 +45,8 @@
 //    return (s & t.field1) && (s & t.field2) ... ;
 //  }
 //
-// 3) If your type needs to serialize and deserialize in a complicated way, define them separately:
+// 3) If your type needs to serialize and deserialize in a complicated way, define them
+// separately:
 //
 //  template<typename S>
 //  bool serialize(S& s, const my_type& t)
@@ -56,39 +60,48 @@
 //    // deserialization code here...
 //  }
 
-
 // helper template tells us which types can be directly copied into serialized streams
 // (this is similar to C++11's is_trivially_copyable, but does not include pointers since
 // their values are not meaningful to other nodes)
 //
-// The implementation is a bit weird, because we need to be able to add new serializable types
-// from other namespaces.  This prevents us from doing a simple specialization of a base template
-// because you can only specialize in the same namespace in which the template was originally
-// declared.  Instead, we use the ability to overload operators with different return types and
-// test the sizeof() the return type to see if a given type T has been specifically listed as
-// serializable.  To make it extremely unlikely that it'll break any actual code, we use the comma
-// operator and an unconstructable type on the left hand side.
+// The implementation is a bit weird, because we need to be able to add new serializable
+// types from other namespaces.  This prevents us from doing a simple specialization of a
+// base template because you can only specialize in the same namespace in which the
+// template was originally declared.  Instead, we use the ability to overload operators
+// with different return types and test the sizeof() the return type to see if a given
+// type T has been specifically listed as serializable.  To make it extremely unlikely
+// that it'll break any actual code, we use the comma operator and an unconstructable type
+// on the left hand side.
 //
-// Addendum: It turns out namespaces are still problematic and this particular part needs to be in the
-//   global namespace (unless you want to force everybody to import Realm::Serialization), even though
-//   calls to TYPE_IS_SERIALIZABLE() _can_ be done from other namespaces.
+// Addendum: It turns out namespaces are still problematic and this particular part needs
+// to be in the
+//   global namespace (unless you want to force everybody to import Realm::Serialization),
+//   even though calls to TYPE_IS_SERIALIZABLE() _can_ be done from other namespaces.
 struct is_copy_serializable {
 public:
-  class inner { public: inner(void) {} };
+  class inner {
+  public:
+    inner(void) {}
+  };
+
 public:
   template <typename T>
-  struct test { static const bool value = sizeof(inner(),*reinterpret_cast<T*>(0)) != sizeof(char); };
+  struct test {
+    static const bool value = sizeof(inner(), *reinterpret_cast<T *>(0)) != sizeof(char);
+  };
 };
 template <typename T>
-char operator,(const is_copy_serializable::inner&, const T&);
+char operator,(const is_copy_serializable::inner &, const T &);
 
-#define TYPE_IS_SERIALIZABLE(T) \
-  void *operator,(const is_copy_serializable::inner&, const T&);
+#define TYPE_IS_SERIALIZABLE(T)                                                          \
+  void *operator,(const is_copy_serializable::inner &, const T &);
 
-#define TEMPLATE_TYPE_IS_SERIALIZABLE(P,T)				\
-  template <P> void *operator,(const is_copy_serializable::inner&, const T&);
-#define TEMPLATE_TYPE_IS_SERIALIZABLE2(P1,P2,T1,T2)			\
-  template <P1,P2> void *operator,(const is_copy_serializable::inner&, const T1,T2&);
+#define TEMPLATE_TYPE_IS_SERIALIZABLE(P, T)                                              \
+  template <P>                                                                           \
+  void *operator,(const is_copy_serializable::inner &, const T &);
+#define TEMPLATE_TYPE_IS_SERIALIZABLE2(P1, P2, T1, T2)                                   \
+  template <P1, P2>                                                                      \
+  void *operator,(const is_copy_serializable::inner &, const T1, T2 &);
 #define TEMPLATE_TYPE_IS_SERIALIZABLE3(P1, P2, P3, T1, T2, T3)                           \
   template <P1, P2, P3>                                                                  \
   void *operator,(const is_copy_serializable::inner &, const T1, T2, T3 &);
@@ -96,10 +109,11 @@ char operator,(const is_copy_serializable::inner&, const T&);
 namespace Realm {
   namespace Serialization {
     // there are three kinds of serializer we use and a single deserializer:
-    //  a) FixedBufferSerializer - accepts a fixed-size buffer and fills into while preventing overflow
-    //  b) DynamicBufferSerializer - serializes data into an automatically-regrowing buffer
-    //  c) ByteCountSerializer - doesn't actually store data, just counts how big it would be
-    //  d) FixedBufferDeserializer - deserializes from a fixed-size buffer
+    //  a) FixedBufferSerializer - accepts a fixed-size buffer and fills into while
+    //  preventing overflow b) DynamicBufferSerializer - serializes data into an
+    //  automatically-regrowing buffer c) ByteCountSerializer - doesn't actually store
+    //  data, just counts how big it would be d) FixedBufferDeserializer - deserializes
+    //  from a fixed-size buffer
 
     class FixedBufferSerializer {
     public:
@@ -114,10 +128,13 @@ namespace Realm {
       ptrdiff_t bytes_left(void) const;
 
       bool append_bytes(const void *data, size_t datalen);
-      template <typename T> bool append_serializable(const T& data);
+      template <typename T>
+      bool append_serializable(const T &data);
 
-      template <typename T> bool operator<<(const T& val);
-      template <typename T> bool operator&(const T& val);
+      template <typename T>
+      bool operator<<(const T &val);
+      template <typename T>
+      bool operator&(const T &val);
 
     protected:
       char *pos;
@@ -137,10 +154,13 @@ namespace Realm {
       ByteArray detach_bytearray(ptrdiff_t max_wasted_bytes = 0);
 
       bool append_bytes(const void *data, size_t datalen);
-      template <typename T> bool append_serializable(const T& data);
+      template <typename T>
+      bool append_serializable(const T &data);
 
-      template <typename T> bool operator<<(const T& val);
-      template <typename T> bool operator&(const T& val);
+      template <typename T>
+      bool operator<<(const T &val);
+      template <typename T>
+      bool operator&(const T &val);
 
     protected:
       char *base;
@@ -156,10 +176,13 @@ namespace Realm {
       size_t bytes_used(void) const;
 
       bool append_bytes(const void *data, size_t datalen);
-      template <typename T> bool append_serializable(const T& data);
+      template <typename T>
+      bool append_serializable(const T &data);
 
-      template <typename T> bool operator<<(const T& val);
-      template <typename T> bool operator&(const T& val);
+      template <typename T>
+      bool operator<<(const T &val);
+      template <typename T>
+      bool operator&(const T &val);
 
     protected:
       size_t count;
@@ -168,17 +191,20 @@ namespace Realm {
     class FixedBufferDeserializer {
     public:
       FixedBufferDeserializer(const void *buffer, size_t size);
-      FixedBufferDeserializer(const ByteArrayRef& array);
+      FixedBufferDeserializer(const ByteArrayRef &array);
       ~FixedBufferDeserializer(void);
 
       ptrdiff_t bytes_left(void) const;
 
       bool extract_bytes(void *data, size_t datalen);
       const void *peek_bytes(size_t datalen);
-      template <typename T> bool extract_serializable(T& data);
+      template <typename T>
+      bool extract_serializable(T &data);
 
-      template <typename T> bool operator>>(T& val);
-      template <typename T> bool operator&(const T& val);
+      template <typename T>
+      bool operator>>(T &val);
+      template <typename T>
+      bool operator&(const T &val);
 
     protected:
       const char *pos;
@@ -187,98 +213,105 @@ namespace Realm {
 
     // defaults if custom serializers/deserializers are not defined
     template <typename S, typename T>
-      bool serdez(S&, const T&); // not implemented
-    
-    template <typename S, typename T>
-      inline bool serialize(S& s, const T& t) { return serdez(s, t); }
-    
-    template <typename S, typename T>
-      inline bool deserialize(S& s, T& t) { return serdez(s, t); }
+    bool serdez(S &, const T &); // not implemented
 
-    template <typename T, bool IS_COPY_SERIALIZABLE> struct SerializationHelper;
+    template <typename S, typename T>
+    inline bool serialize(S &s, const T &t)
+    {
+      return serdez(s, t);
+    }
+
+    template <typename S, typename T>
+    inline bool deserialize(S &s, T &t)
+    {
+      return serdez(s, t);
+    }
+
+    template <typename T, bool IS_COPY_SERIALIZABLE>
+    struct SerializationHelper;
 
     template <typename T>
     struct SerializationHelper<T, true> {
       // this is the special case where we can copy bits directly, even for vectors
       template <typename S>
-      static bool serialize_scalar(S& s, const T& data);
+      static bool serialize_scalar(S &s, const T &data);
       template <typename S>
-      static bool deserialize_scalar(S& s, T& data);
+      static bool deserialize_scalar(S &s, T &data);
       template <typename S>
-      static bool serialize_vector(S& s, const std::vector<T>& v);
+      static bool serialize_vector(S &s, const std::vector<T> &v);
       template <typename S>
-      static bool deserialize_vector(S& s, std::vector<T>& v);
+      static bool deserialize_vector(S &s, std::vector<T> &v);
       template <typename S, size_t Extent>
-      static bool serialize_span(S& s, span<T, Extent> sp);
+      static bool serialize_span(S &s, span<T, Extent> sp);
       template <typename S, size_t Extent>
-      static bool deserialize_span(S& s, span<T, Extent>& sp);
+      static bool deserialize_span(S &s, span<T, Extent> &sp);
     };
 
     template <typename T>
     struct SerializationHelper<T, false> {
       // in this case, we have to fall through to custom-defined serializers
       template <typename S>
-      static bool serialize_scalar(S& s, const T& data);
+      static bool serialize_scalar(S &s, const T &data);
       template <typename S>
-      static bool deserialize_scalar(S& s, T& data);
+      static bool deserialize_scalar(S &s, T &data);
       template <typename S>
-      static bool serialize_vector(S& s, const std::vector<T>& v);
+      static bool serialize_vector(S &s, const std::vector<T> &v);
       template <typename S>
-      static bool deserialize_vector(S& s, std::vector<T>& v);
+      static bool deserialize_vector(S &s, std::vector<T> &v);
       template <typename S, size_t Extent>
-      static bool serialize_span(S& s, span<T, Extent> sp);
+      static bool serialize_span(S &s, span<T, Extent> sp);
       // no deserialization of spans for non-copy-serializable types
     };
 
     // support for static arrays
     template <typename S, typename T, size_t N>
-      bool serialize(S& s, T (&a)[N]);
+    bool serialize(S &s, T (&a)[N]);
 
     template <typename S, typename T, size_t N>
-      bool deserialize(S& s, T (&a)[N]);
+    bool deserialize(S &s, T (&a)[N]);
 
     // support for some STL containers
     template <typename S, typename T1, typename T2>
-      bool serialize(S& s, const std::pair<T1, T2>& p);
+    bool serialize(S &s, const std::pair<T1, T2> &p);
 
     template <typename S, typename T1, typename T2>
-      bool deserialize(S& s, std::pair<T1, T2>& p);
+    bool deserialize(S &s, std::pair<T1, T2> &p);
 
     template <typename S, typename T>
-      bool serialize(S& s, const std::vector<T>& v);
+    bool serialize(S &s, const std::vector<T> &v);
 
     template <typename S, typename T>
-      bool deserialize(S& s, std::vector<T>& v);
+    bool deserialize(S &s, std::vector<T> &v);
 
     template <typename S, typename T>
-      bool serialize(S& s, const std::list<T>& l);
+    bool serialize(S &s, const std::list<T> &l);
 
     template <typename S, typename T>
-      bool deserialize(S& s, std::list<T>& l);
+    bool deserialize(S &s, std::list<T> &l);
 
     template <typename S, typename T>
-      bool serialize(S& s, const std::set<T>& ss);
+    bool serialize(S &s, const std::set<T> &ss);
 
     template <typename S, typename T>
-      bool deserialize(S& s, std::set<T>& ss);
+    bool deserialize(S &s, std::set<T> &ss);
 
     template <typename S, typename T1, typename T2>
-      bool serialize(S& s, const std::map<T1, T2>& m);
+    bool serialize(S &s, const std::map<T1, T2> &m);
 
     template <typename S, typename T1, typename T2>
-      bool deserialize(S& s, std::map<T1, T2>& m);
+    bool deserialize(S &s, std::map<T1, T2> &m);
 
     template <typename S>
-      bool serialize(S& s, const std::string& str);
+    bool serialize(S &s, const std::string &str);
 
     template <typename S>
-      bool deserialize(S& s, std::string& str);
+    bool deserialize(S &s, std::string &str);
 
     template <typename S, typename T, size_t Extent>
-      bool serialize(S& s, span<T, Extent> sp);
+    bool serialize(S &s, span<T, Extent> sp);
 
     template <typename S, typename T, size_t Extent>
-      bool deserialize(S& s, span<T, Extent>& sp);
+    bool deserialize(S &s, span<T, Extent> &sp);
 
     template <typename T>
     class PolymorphicSerdezIntfc;
@@ -287,17 +320,17 @@ namespace Realm {
     class REALM_INTERNAL_API_EXTERNAL_LINKAGE PolymorphicSerdezHelper {
     public:
       // not templated because we have to get through a virtual method
-      static bool serialize(FixedBufferSerializer& serializer, const T& obj);
-      static bool serialize(DynamicBufferSerializer& serializer, const T& obj);
-      static bool serialize(ByteCountSerializer& serializer, const T& obj);
+      static bool serialize(FixedBufferSerializer &serializer, const T &obj);
+      static bool serialize(DynamicBufferSerializer &serializer, const T &obj);
+      static bool serialize(ByteCountSerializer &serializer, const T &obj);
 
-      static T *deserialize_new(FixedBufferDeserializer& deserializer);
+      static T *deserialize_new(FixedBufferDeserializer &deserializer);
 
     protected:
       typedef unsigned TypeTag;
       struct SubclassMap {
-	std::map<const char *, const PolymorphicSerdezIntfc<T> *> by_typename;
-	std::map<TypeTag, const PolymorphicSerdezIntfc<T> *> by_tag;
+        std::map<const char *, const PolymorphicSerdezIntfc<T> *> by_typename;
+        std::map<TypeTag, const PolymorphicSerdezIntfc<T> *> by_tag;
       };
 
       friend class PolymorphicSerdezIntfc<T>;
@@ -305,7 +338,7 @@ namespace Realm {
       template <typename T1, typename T2>
       friend class PolymorphicSerdezSubclass;
 
-      static SubclassMap& get_subclasses(void);
+      static SubclassMap &get_subclasses(void);
     };
 
     template <typename T>
@@ -314,11 +347,11 @@ namespace Realm {
       PolymorphicSerdezIntfc(const char *type_name);
       virtual ~PolymorphicSerdezIntfc(void);
 
-      virtual bool serialize(FixedBufferSerializer& serializer, const T& obj) const = 0;
-      virtual bool serialize(DynamicBufferSerializer& serializer, const T& obj) const = 0;
-      virtual bool serialize(ByteCountSerializer& serializer, const T& obj) const = 0;
-      
-      virtual T *deserialize_new(FixedBufferDeserializer& deserializer) const = 0;
+      virtual bool serialize(FixedBufferSerializer &serializer, const T &obj) const = 0;
+      virtual bool serialize(DynamicBufferSerializer &serializer, const T &obj) const = 0;
+      virtual bool serialize(ByteCountSerializer &serializer, const T &obj) const = 0;
+
+      virtual T *deserialize_new(FixedBufferDeserializer &deserializer) const = 0;
 
     protected:
       friend class PolymorphicSerdezHelper<T>;
@@ -330,12 +363,12 @@ namespace Realm {
     class PolymorphicSerdezSubclass : public PolymorphicSerdezIntfc<T1> {
     public:
       PolymorphicSerdezSubclass(void);
-      
-      virtual bool serialize(FixedBufferSerializer& serializer, const T1& obj) const;
-      virtual bool serialize(DynamicBufferSerializer& serializer, const T1& obj) const;
-      virtual bool serialize(ByteCountSerializer& serializer, const T1& obj) const;
-      
-      virtual T1 *deserialize_new(FixedBufferDeserializer& deserializer) const;
+
+      virtual bool serialize(FixedBufferSerializer &serializer, const T1 &obj) const;
+      virtual bool serialize(DynamicBufferSerializer &serializer, const T1 &obj) const;
+      virtual bool serialize(ByteCountSerializer &serializer, const T1 &obj) const;
+
+      virtual T1 *deserialize_new(FixedBufferDeserializer &deserializer) const;
     };
 
   }; // namespace Serialization

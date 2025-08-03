@@ -1,18 +1,17 @@
-#=============================================================================
-# Copyright 2025 Kitware, Inc.
+# Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#=============================================================================
 
 # This module produces the "LLVM" link target which carries with it all the
 # necessary interface properties.  The following options guide the search
@@ -26,36 +25,37 @@ if(NOT LLVM_FOUND AND NOT TARGET_LLVM)
   if(NOT LLVM_CONFIG_EXECUTABLE)
     # if an explicitly-versioned llvm-config (that we've tested with) is
     #  available, use that
-    find_program(LLVM_CONFIG_EXECUTABLE NAMES llvm-config-20
-                                              llvm-config-19
-                                              llvm-config-18
-                                              llvm-config-17
-                                              llvm-config-16
-                                              llvm-config-15
-                                              llvm-config-14
-                                              llvm-config-13
-                                              llvm-config-12
-                                              llvm-config-11
-                                              llvm-config-10
-                                              llvm-config-9
-                                              llvm-config)
+    find_program(
+      LLVM_CONFIG_EXECUTABLE
+      NAMES llvm-config-20
+            llvm-config-19
+            llvm-config-18
+            llvm-config-17
+            llvm-config-16
+            llvm-config-15
+            llvm-config-14
+            llvm-config-13
+            llvm-config-12
+            llvm-config-11
+            llvm-config-10
+            llvm-config-9
+            llvm-config
+    )
   endif(NOT LLVM_CONFIG_EXECUTABLE)
   if(LLVM_CONFIG_EXECUTABLE)
     # Check components
-    execute_process(COMMAND ${LLVM_CONFIG_EXECUTABLE} --version
+    execute_process(
+      COMMAND ${LLVM_CONFIG_EXECUTABLE} --version
       OUTPUT_VARIABLE LLVM_VERSION
       OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET
     )
-    execute_process(COMMAND ${LLVM_CONFIG_EXECUTABLE} --components
+    execute_process(
+      COMMAND ${LLVM_CONFIG_EXECUTABLE} --components
       OUTPUT_VARIABLE LLVM_AVAILABLE_COMPONENTS
       OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET
     )
-    string(REGEX REPLACE "^ +" ""
-      LLVM_AVAILABLE_COMPONENTS "${LLVM_AVAILABLE_COMPONENTS}"
-    )
-    string(REPLACE " " ";"
-      LLVM_AVAILABLE_COMPONENTS "${LLVM_AVAILABLE_COMPONENTS}"
-    )
+    string(REGEX REPLACE "^ +" "" LLVM_AVAILABLE_COMPONENTS "${LLVM_AVAILABLE_COMPONENTS}")
+    string(REPLACE " " ";" LLVM_AVAILABLE_COMPONENTS "${LLVM_AVAILABLE_COMPONENTS}")
     # for LLVM 3.6 and above, ignore jit in requested components
     if(${LLVM_VERSION} VERSION_GREATER 3.5.99)
       list(REMOVE_ITEM LLVM_FIND_COMPONENTS jit)
@@ -63,7 +63,10 @@ if(NOT LLVM_FOUND AND NOT TARGET_LLVM)
     foreach(_component IN LISTS LLVM_FIND_COMPONENTS)
       list(FIND LLVM_AVAILABLE_COMPONENTS ${_component} C_IDX)
       if(C_IDX EQUAL -1)
-        message(FATAL_ERROR "${_component} is not an available component for LLVM found at ${LLVM_CONFIG_EXECUTABLE}")
+        message(
+          FATAL_ERROR
+            "${_component} is not an available component for LLVM found at ${LLVM_CONFIG_EXECUTABLE}"
+        )
       endif()
     endforeach()
 
@@ -103,7 +106,8 @@ if(NOT LLVM_FOUND AND NOT TARGET_LLVM)
   endif()
 
   include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(LLVM
+  find_package_handle_standard_args(
+    LLVM
     FOUND_VAR LLVM_FOUND
     REQUIRED_VARS LLVM_CONFIG_EXECUTABLE
   )
@@ -111,8 +115,8 @@ endif()
 
 if(LLVM_FOUND AND NOT TARGET LLVM::LLVM)
   add_library(LLVM::LLVM INTERFACE IMPORTED)
-  set_target_properties(LLVM::LLVM PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${_LLVM_INCLUDE}"
-    INTERFACE_LINK_LIBRARIES "${_LLVM_LIBS}"
+  set_target_properties(
+    LLVM::LLVM PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${_LLVM_INCLUDE}" INTERFACE_LINK_LIBRARIES
+                                                                           "${_LLVM_LIBS}"
   )
 endif()

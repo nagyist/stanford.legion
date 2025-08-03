@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +30,7 @@ namespace Realm {
     : module_name(name)
   {}
 
-  ModuleConfig::~ModuleConfig(void)
-  {}
+  ModuleConfig::~ModuleConfig(void) {}
 
   void ModuleConfig::finish_configure(void)
   {
@@ -37,15 +38,14 @@ namespace Realm {
     finish_configured = true;
   }
 
-  const std::string& ModuleConfig::get_name(void) const
-  {
-    return module_name;
-  }
+  const std::string &ModuleConfig::get_name(void) const { return module_name; }
 
-  void ModuleConfig::configure_from_cmdline(std::vector<std::string>& cmdline)
+  void ModuleConfig::configure_from_cmdline(std::vector<std::string> &cmdline)
   {
-    log_moduleconfig.error("Module %s does not have implemented for configure_cmdline size_t", module_name.c_str());
+    log_moduleconfig.error(
+        "Module %s does not have implemented for configure_cmdline size_t",
+        module_name.c_str());
     abort();
   }
 
-};
+}; // namespace Realm

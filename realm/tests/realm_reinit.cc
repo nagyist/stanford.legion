@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,26 +24,27 @@
 
 using namespace Realm;
 
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   EMPTY_TASK,
 };
 
 Logger log_app("app");
 
-void empty_task(const void *args, size_t arglen,
-                const void *userdata, size_t userlen, Processor p)
+void empty_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                Processor p)
 {
   log_app.info() << "empty task executed on processor " << p;
 }
 
-void top_level_task(const void *args, size_t arglen,
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   int iteration = *static_cast<const int *>(args);
 
   log_app.print() << "runtime reinit test: iteration=" << iteration;
-  
+
   Machine::ProcessorQuery pq(Machine::get_machine());
   pq.only_kind(p.kind());
   std::vector<Processor> procs(pq.begin(), pq.end());
@@ -52,7 +55,7 @@ void top_level_task(const void *args, size_t arglen,
   e.wait();
 
   log_app.info() << "completed successfully";
-  
+
   Runtime::get_runtime().shutdown(Event::NO_EVENT, 0 /*success*/);
 }
 
@@ -69,7 +72,7 @@ int main(int argc, const char **argv)
 
     int my_argc = argc;
     const char **my_argv = argv;
-    
+
     Runtime rt;
 
     {
@@ -85,29 +88,30 @@ int main(int argc, const char **argv)
     }
 
     // TODO: Realm network modules do not generally support reinitialization
-#if defined(REALM_USE_UCX) || defined(REALM_USE_GASNET1) || defined(REALM_USE_GASNETEX) || defined(REALM_USE_MPI) || defined(REALM_USE_KOKKOS)
+#if defined(REALM_USE_UCX) || defined(REALM_USE_GASNET1) ||                              \
+    defined(REALM_USE_GASNETEX) || defined(REALM_USE_MPI) || defined(REALM_USE_KOKKOS)
     if(max_iterations > 1) {
-      log_app.warning() << "network layers and/or kokkos do not support reinitialization - clamping iteration count to 1";
+      log_app.warning() << "network layers and/or kokkos do not support reinitialization "
+                           "- clamping iteration count to 1";
       max_iterations = 1;
     }
 #endif
 
     // try to use a cpu proc, but if that doesn't exist, take whatever we can get
     Processor p = Machine::ProcessorQuery(Machine::get_machine())
-      .only_kind(Processor::LOC_PROC)
-      .first();
+                      .only_kind(Processor::LOC_PROC)
+                      .first();
     if(!p.exists())
       p = Machine::ProcessorQuery(Machine::get_machine()).first();
     assert(p.exists());
 
-    Processor::register_task_by_kind(p.kind(), false /*!global*/,
-                                     TOP_LEVEL_TASK,
+    Processor::register_task_by_kind(p.kind(), false /*!global*/, TOP_LEVEL_TASK,
                                      CodeDescriptor(top_level_task),
-                                     ProfilingRequestSet()).external_wait();
-    Processor::register_task_by_kind(p.kind(), false /*!global*/,
-                                     EMPTY_TASK,
-                                     CodeDescriptor(empty_task),
-                                     ProfilingRequestSet()).external_wait();
+                                     ProfilingRequestSet())
+        .external_wait();
+    Processor::register_task_by_kind(p.kind(), false /*!global*/, EMPTY_TASK,
+                                     CodeDescriptor(empty_task), ProfilingRequestSet())
+        .external_wait();
 
     // collective launch of a single top level task
     rt.collective_spawn(p, TOP_LEVEL_TASK, &iterations, sizeof(iterations));

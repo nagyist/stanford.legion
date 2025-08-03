@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +28,6 @@
 #include <string>
 #include <sstream>
 
-
 namespace Realm {
   // this can be set at compile time to eliminate instructions for some/all logging
 #ifndef REALM_LOGGING_MIN_LEVEL
@@ -50,10 +51,11 @@ namespace Realm {
 
   class REALM_PUBLIC_API Logger {
   public:
-    Logger(const std::string& _name);
+    Logger(const std::string &_name);
     ~Logger(void);
-    
-    enum LoggingLevel {
+
+    enum LoggingLevel
+    {
       LEVEL_SPEW, // LOTS of stuff
       LEVEL_DEBUG,
       LEVEL_INFO,
@@ -61,14 +63,14 @@ namespace Realm {
       LEVEL_WARNING,
       LEVEL_ERROR,
       LEVEL_FATAL,
-      LEVEL_NONE,  // if you really want to turn EVERYTHING off
+      LEVEL_NONE, // if you really want to turn EVERYTHING off
     };
-    
-    static void configure_from_cmdline(std::vector<std::string>& cmdline);
+
+    static void configure_from_cmdline(std::vector<std::string> &cmdline);
     static void set_default_output(LoggerOutputStream *s);
-    static void set_logger_output(const std::string& name, LoggerOutputStream *s);
-    
-    const std::string& get_name(void) const;
+    static void set_logger_output(const std::string &name, LoggerOutputStream *s);
+
+    const std::string &get_name(void) const;
     LoggingLevel get_level(void) const;
 
     // boolean tests to see if the specified logging level is active - lets
@@ -106,64 +108,64 @@ namespace Realm {
 
     REALM_INTERNAL_API_EXTERNAL_LINKAGE
     void log_msg(LoggingLevel level, const char *msgdata, size_t msglen);
-    
+
     friend class LoggerConfig;
 
     REALM_INTERNAL_API
-    void add_stream(LoggerOutputStream *s, LoggingLevel min_level,
-                    bool delete_when_done, bool flush_each_write);
+    void add_stream(LoggerOutputStream *s, LoggingLevel min_level, bool delete_when_done,
+                    bool flush_each_write);
     REALM_INTERNAL_API
     void configure_done(void);
-    
+
     struct LogStream {
       LoggerOutputStream *s;
       LoggingLevel min_level;
       bool delete_when_done;
       bool flush_each_write;
     };
-    
+
     std::string name;
     std::vector<LogStream> streams;
-    LoggingLevel log_level;  // the min level of any stream
+    LoggingLevel log_level; // the min level of any stream
     bool configured;
     // remember messages that are emitted before we're configured
     DelayedMessage *delayed_message_head;
     DelayedMessage **delayed_message_tail;
   };
-  
+
   class REALM_PUBLIC_API LoggerMessage {
   protected:
     // can only be created by a Logger
     friend class Logger;
 
-    LoggerMessage(void);  // default constructor makes an inactive message
+    LoggerMessage(void); // default constructor makes an inactive message
     LoggerMessage(Logger *_logger, bool _active, Logger::LoggingLevel _level);
 
   public:
-    LoggerMessage(const LoggerMessage& to_copy);
+    LoggerMessage(const LoggerMessage &to_copy);
     ~LoggerMessage(void);
 
     template <typename T>
-    LoggerMessage& operator<<(const T& val);
+    LoggerMessage &operator<<(const T &val);
 
     // vprintf-style
-    LoggerMessage& vprintf(const char *fmt, va_list ap);
+    LoggerMessage &vprintf(const char *fmt, va_list ap);
 
     bool is_active(void) const;
 
     void deactivate(void);
 
-    std::ostream& get_stream(void);
+    std::ostream &get_stream(void);
 
   protected:
     Logger *logger;
     bool active;
     Logger::LoggingLevel level;
     // contain messages shorter than 160 characters entirely inline
-    DeferredConstructor<shortstringbuf<160, 256> > buffer;
+    DeferredConstructor<shortstringbuf<160, 256>> buffer;
     DeferredConstructor<std::ostream> stream;
   };
-  
+
   class REALM_PUBLIC_API LoggerOutputStream {
   public:
     virtual ~LoggerOutputStream() {}

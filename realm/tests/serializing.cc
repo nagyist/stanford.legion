@@ -1,17 +1,19 @@
-// Copyright 2024 Stanford University
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 // test for Realm's serializing code
 
@@ -45,45 +47,37 @@ static void parse_args(int argc, const char *argv[])
 
 // helper functions to print out containers
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
 {
   os << '[' << v.size() << ']';
-  for(typename std::vector<T>::const_iterator it = v.begin();
-      it != v.end();
-      it++)
+  for(typename std::vector<T>::const_iterator it = v.begin(); it != v.end(); it++)
     os << ' ' << *it;
   return os;
 }
 
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::list<T>& l)
+std::ostream &operator<<(std::ostream &os, const std::list<T> &l)
 {
   os << '[' << l.size() << ']';
-  for(typename std::list<T>::const_iterator it = l.begin();
-      it != l.end();
-      it++)
+  for(typename std::list<T>::const_iterator it = l.begin(); it != l.end(); it++)
     os << ' ' << *it;
   return os;
 }
 
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::set<T>& s)
+std::ostream &operator<<(std::ostream &os, const std::set<T> &s)
 {
   os << '[' << s.size() << ']';
-  for(typename std::set<T>::const_iterator it = s.begin();
-      it != s.end();
-      it++)
+  for(typename std::set<T>::const_iterator it = s.begin(); it != s.end(); it++)
     os << ' ' << *it;
   return os;
 }
 
 template <typename T1, typename T2>
-std::ostream& operator<<(std::ostream& os, const std::map<T1, T2>& m)
+std::ostream &operator<<(std::ostream &os, const std::map<T1, T2> &m)
 {
   os << '[' << m.size() << ']';
-  for(typename std::map<T1, T2>::const_iterator it = m.begin();
-      it != m.end();
-      it++)
+  for(typename std::map<T1, T2>::const_iterator it = m.begin(); it != m.end(); it++)
     os << ' ' << it->first << '=' << it->second;
   return os;
 }
@@ -101,14 +95,15 @@ size_t test_dynamic(const char *name, const T &input, T &output, size_t exp_size
   }
 
   size_t act_size = dbs.bytes_used();
-  
+
   if(exp_size > 0) {
     if(act_size != exp_size) {
-      std::cout << "ERROR: " << name << "dynamic size = " << act_size << " (should be " << exp_size << ")" << std::endl;
+      std::cout << "ERROR: " << name << "dynamic size = " << act_size << " (should be "
+                << exp_size << ")" << std::endl;
       error_count++;
     } else {
       if(verbose)
-	std::cout << "OK: " << name << " dynamic size = " << act_size << std::endl;
+        std::cout << "OK: " << name << " dynamic size = " << act_size << std::endl;
     }
   }
 
@@ -139,7 +134,8 @@ size_t test_dynamic(const char *name, const T &input, T &output, size_t exp_size
     std::cout << "Buffer: [" << act_size << "]";
     std::cout << std::hex;
     for(size_t i = 0; i < act_size; i++)
-      std::cout << ' ' << std::setfill('0') << std::setw(2) << (int)((unsigned char *)buffer)[i];
+      std::cout << ' ' << std::setfill('0') << std::setw(2)
+                << (int)((unsigned char *)buffer)[i];
     std::cout << std::dec << std::endl;
     std::cout << "Output: " << output << std::endl;
     error_count++;
@@ -151,7 +147,7 @@ size_t test_dynamic(const char *name, const T &input, T &output, size_t exp_size
 }
 
 template <typename T>
-void test_size(const char *name, const T& input, size_t exp_size)
+void test_size(const char *name, const T &input, size_t exp_size)
 {
   Realm::Serialization::ByteCountSerializer bcs;
 
@@ -163,7 +159,8 @@ void test_size(const char *name, const T& input, size_t exp_size)
 
   size_t act_size = bcs.bytes_used();
   if(act_size != exp_size) {
-    std::cout << "ERROR: " << name << "bytecount size = " << act_size << " (should be " << exp_size << ")" << std::endl;
+    std::cout << "ERROR: " << name << "bytecount size = " << act_size << " (should be "
+              << exp_size << ")" << std::endl;
     error_count++;
   } else {
     if(verbose)
@@ -219,7 +216,8 @@ void test_fixed(const char *name, const T &input, T &output, size_t exp_size)
     std::cout << "Buffer: [" << exp_size << "]";
     std::cout << std::hex;
     for(size_t i = 0; i < exp_size; i++)
-      std::cout << ' ' << std::setfill('0') << std::setw(2) << (int)((unsigned char *)buffer)[i];
+      std::cout << ' ' << std::setfill('0') << std::setw(2)
+                << (int)((unsigned char *)buffer)[i];
     std::cout << std::dec << std::endl;
     std::cout << "Output: " << output << std::endl;
     error_count++;
@@ -241,15 +239,18 @@ struct Pair {
   T1 x;
   T2 y;
 
-  Pair(void) : x(), y() {}
-  Pair(T1 _x, T2 _y) : x(_x), y(_y) {}
+  Pair(void)
+    : x()
+    , y()
+  {}
+  Pair(T1 _x, T2 _y)
+    : x(_x)
+    , y(_y)
+  {}
 
-  bool operator==(const Pair<T1,T2>& rhs) const
-  {
-    return (x == rhs.x) && (y == rhs.y);
-  }
+  bool operator==(const Pair<T1, T2> &rhs) const { return (x == rhs.x) && (y == rhs.y); }
 
-  friend std::ostream& operator<<(std::ostream& os, const Pair<T1, T2>& p)
+  friend std::ostream &operator<<(std::ostream &os, const Pair<T1, T2> &p)
   {
     return os << '<' << p.x << ',' << p.y << '>';
   }
@@ -268,17 +269,29 @@ TYPE_IS_SERIALIZABLE(PODStruct);
 
 typedef Pair<double, float> PODPacked;
 template <typename S>
-bool serialize(S& s, const PODPacked& p) { return (s << p.x) && (s << p.y); }
+bool serialize(S &s, const PODPacked &p)
+{
+  return (s << p.x) && (s << p.y);
+}
 template <typename S>
-bool deserialize(S& s, PODPacked& p) { return (s >> p.x) && (s >> p.y); }
+bool deserialize(S &s, PODPacked &p)
+{
+  return (s >> p.x) && (s >> p.y);
+}
 
 typedef Pair<double, char> PODPacked2;
 template <typename S>
-bool serdez(S& s, const PODPacked2& p) { return (s & p.x) && (s & p.y); }
+bool serdez(S &s, const PODPacked2 &p)
+{
+  return (s & p.x) && (s & p.y);
+}
 
 typedef Pair<PODPacked, int> PP2;
 template <typename S>
-bool serdez(S& s, const PP2& p) { return (s & p.x) && (s & p.y); }
+bool serdez(S &s, const PP2 &p)
+{
+  return (s & p.x) && (s & p.y);
+}
 
 int main(int argc, const char *argv[])
 {
@@ -292,13 +305,13 @@ int main(int argc, const char *argv[])
     int ret;
 #if defined(__APPLE__) && (defined(__arm64__) || defined(__aarch64__))
     // macOS on ARM requires higher limit
-    rl.rlim_cur = rl.rlim_max = 131072;  // 128KB
+    rl.rlim_cur = rl.rlim_max = 131072; // 128KB
 #else
-    rl.rlim_cur = rl.rlim_max = 16384;  // 16KB
+    rl.rlim_cur = rl.rlim_max = 16384; // 16KB
 #endif
     ret = setrlimit(RLIMIT_STACK, &rl);
     assert(ret == 0);
-    rl.rlim_cur = rl.rlim_max = 5;  // 5 seconds
+    rl.rlim_cur = rl.rlim_max = 5; // 5 seconds
     ret = setrlimit(RLIMIT_CPU, &rl);
     assert(ret == 0);
   }
@@ -311,8 +324,8 @@ int main(int argc, const char *argv[])
   double double_output = 0.0;
   do_test("double", double(4.5), double_output, sizeof(double));
 
-  //void *f = &x;
-  //do_test("void*", f, sizeof(void *));
+  // void *f = &x;
+  // do_test("void*", f, sizeof(void *));
 
   PODStruct PODStruct_output(0.0, 0);
   do_test("pod struct", PODStruct(6.5, 7), PODStruct_output, sizeof(PODStruct));

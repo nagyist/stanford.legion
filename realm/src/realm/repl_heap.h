@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +43,7 @@ namespace Realm {
     //  and be followed by a call to commit_writes for the appropriate address
     //  range
     void commit_writes(void *start, size_t bytes);
-  
+
     // heap listeners are told when new chunks are created and when data is
     //  updated (e.g. allowing software-managed coherency of mirrors of the
     //  heap)
@@ -77,6 +79,6 @@ namespace Realm {
     std::set<Listener *> listeners;
   };
 
-};
+}; // namespace Realm
 
 #endif

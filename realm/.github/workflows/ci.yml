@@ -1,3 +1,18 @@
+# Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 name: ci
 
 on:
@@ -10,7 +25,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref_name != 'main' && ! startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
   build:
@@ -30,59 +45,70 @@ jobs:
               build: Release,
               cc: "cl", cxx: "cl",
               ccache: sccache,
-              cuda: ''
+              cuda: '',
+              shared_lib: 'OFF'
             }
           - {
               os: ubuntu-24.04-arm,
               build: Release,
               cc: "gcc", cxx: "g++",
               ccache: ccache,
-              cuda: ''
+              cuda: '',
+              shared_lib: 'OFF'
             }
           - {
               os: ubuntu-24.04-arm,
               build: Release,
               cc: "clang", cxx: "clang++",
               ccache: ccache,
-              cuda: ''
+              cuda: '',
+              shared_lib: 'OFF'
             }
           - {
               os: ubuntu-latest,
               build: Release,
               cc: "gcc", cxx: "g++",
               ccache: ccache,
-              cuda: ''
+              cuda: '',
+              shared_lib: 'OFF'
             }
           - {
               os: ubuntu-latest,
               build: Release,
               cc: "gcc", cxx: "g++",
               ccache: ccache,
-              cuda: '12.9.0'
+              cuda: '12.9.0',
+              shared_lib: 'OFF'
             }
           - {
               os: ubuntu-latest,
               build: Release,
               cc: "clang", cxx: "clang++",
               ccache: ccache,
-              cuda: ''
+              cuda: '',
+              shared_lib: 'OFF'
             }
           - {
               os: ubuntu-latest,
               build: Debug,
               cc: "gcc", cxx: "g++",
               ccache: ccache,
-              cuda: ''
+              cuda: '',
+              shared_lib: 'ON'
             }
           - {
               os: macos-latest,
               build: Release,
               cc: "clang", cxx: "clang++",
               ccache: ccache,
-              cuda: ''
+              cuda: '',
+              shared_lib: 'OFF'
             }
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          fetch-tags: true
+          fetch-depth: 100
 
       - uses: Kaven-Universe/github-action-current-date-time@v1
         name: Get Timestamp
@@ -94,7 +120,7 @@ jobs:
         name: Get Linux Packages
         if: ${{ matrix.config.os == 'ubuntu-latest' }}
         with:
-          packages: ${{ matrix.config.cc }} ${{ matrix.config.cxx }} ccache
+          packages: ${{ matrix.config.cc }} ${{ matrix.config.cxx }} ccache libopenmpi-dev abi-compliance-checker abi-dumper
 
       - uses: Jimver/cuda-toolkit@v0.2.25
         name: Get CUDA
@@ -104,7 +130,7 @@ jobs:
           sub-packages: '["nvcc", "cudart-dev", "cupti-dev", "nvtx", "nvml-dev"]'
           method: 'network'
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v4.2.2
         name: Restore CPM source cache
         with:
           path: .cache/cpm
@@ -112,7 +138,7 @@ jobs:
           restore-keys: |
             cpm-
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v4.2.2
         name: Restore deps cache
         with:
           path: |
@@ -156,17 +182,20 @@ jobs:
                 -DCMAKE_C_COMPILER_LAUNCHER=${{ matrix.config.ccache }}
                 -DCMAKE_CXX_COMPILER_LAUNCHER=${{ matrix.config.ccache }}
                 -DCMAKE_BUILD_TYPE=${{ matrix.config.build }}
+                -DBUILD_SHARED_LIBS=${{ matrix.config.shared_lib }}
                 -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DREALM_BUILD_TUTORIALS=ON -DREALM_BUILD_EXAMPLES=ON
+                -DREALM_ENABLE_UCX=OFF
                 -DREALM_ENABLE_GASNETEX=OFF
 
       - name: Build
         run: |
-          cmake --build build --parallel 4 --config ${{ matrix.config.build }}
+          cmake --build build --parallel 4 --config ${{ matrix.config.build }} --verbose 
 
       - name: Run Tests
+        id: run-tests
         if: matrix.config.cuda == '' || steps.check_gpu.outputs.no_gpu != '1'
         run:
-          ctest --output-junit ${{ github.workspace }}/${{ github.sha }}-results.xml
+          ctest --output-junit ${{ github.workspace }}/test-results.xml
                 --test-dir build
                 --build-config ${{ matrix.config.build }}
                 --output-on-failure
@@ -175,18 +204,180 @@ jobs:
       
       - uses: test-summary/action@v2
         name: Upload Test Results
-        if: always() && (matrix.config.cuda == '' || steps.check_gpu.outputs.no_gpu == '0')
+        if: always() && hashFiles('test-results.xml')
         with:
-          paths: "${{ github.workspace }}/${{ github.sha }}-results.xml"
+          paths: "test-results.xml"
 
-      - name: Test Install
-        run: |
+      - name: Run Install
+        run:
           cmake --install build --parallel 4 --prefix install --config ${{ matrix.config.build }}
+
+      # Check there are no ABI regressions on the installed librealm.so
+
+      - name: Dump ABI
+        if: runner.os == 'Linux' && matrix.config.build == 'Debug' && matrix.config.shared_lib == 'ON'
+        id: dump-abi
+        run:
+          abi-dumper ${{ github.workspace }}/install/lib/librealm.so -o abi-new.dump
+
+      - name: Retrieve Current ABI
+        id: cache-abi
+        if: steps.dump-abi.conclusion == 'success'
+        uses: actions/cache@v4.2.2
+        with:
+          path: ${{ github.workspace }}/abi.dump
+          key: ${{ runner.os }}-abi-dump
+
+      - name: Compare ABI dumps
+        id: compare-abi
+        if: steps.cache-abi.outputs.cache-hit == 'true'
+        # Temporarily ignore errors here
+        continue-on-error: true
+        run:
+          abi-compliance-checker -lib realm -old ${{ github.workspace }}/abi.dump -new ${{ github.workspace }}/abi-new.dump
+
+      - name: Update ABI dump
+        if: steps.compare-abi.outcome == 'success'
+        run:
+          mv ${{ github.workspace }}/abi-new.dump ${{ github.workspace }}/abi.dump
+
+      - name: Upload ABI failure artifact
+        if: steps.compare-abi.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: abi-failure-log
+          path: compat_reports/**/compat_report.html
+
+  cross_build:
+    # Job for cross compiling non-native architectures and basic testing with qemu
+    name: ubuntu-24.04-${{ matrix.config.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+              arch: ppc64le,
+              gcc_arch: powerpc64le
+            }
+    env:
+      CPM_SOURCE_CACHE: "${{ github.workspace }}/.cache/cpm"
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPRESS: "true"
+      CCACHE_COMPRESS_LEVEL: "6"
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-tags: true
+          fetch-depth: 100
+
+      - uses: Kaven-Universe/github-action-current-date-time@v1
+        name: Get Timestamp
+        id: timestamp
+        with:
+          format: "yyyy-MM-dd-HH-mm-ss-SSS"
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        name: Get Linux Packages
+        with:
+          packages: gcc-${{ matrix.config.gcc_arch }}-linux-gnu g++-${{ matrix.config.gcc_arch }}-linux-gnu ccache
+
+      - uses: actions/cache@v4.2.2
+        name: Restore CPM source cache
+        with:
+          path: .cache/cpm
+          key: cpm-${{ steps.timestamp.outputs.time }}
+          restore-keys: |
+            cpm-
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        name: Restore ccache Cache
+        with:
+          variant: ccache
+          append-timestamp: true
+
+          key: ubuntu-24.04-${{ matrix.config.arch }}-${{ github.ref_name }}
+          restore-keys: |
+            ubuntu-24.04-${{ matrix.config.arch }}-${{ github.ref_name }}
+            ubuntu-24.04-${{ matrix.config.arch }}-main
+
+      - uses: lukka/get-cmake@latest
+
+      - uses: docker/setup-qemu-action@v3.6.0
+        name: Setup qemu
+        with:
+          platforms: linux/${{ matrix.config.arch }}
+
+      - name: Configure
+        run:
+          cmake -S . -B build
+                -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/${{ matrix.config.gcc_arch }}-linux-gnu.cmake
+                -DCMAKE_BUILD_TYPE=Release
+                -DCMAKE_C_COMPILER_LAUNCHER=ccache
+                -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+                -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON
+                -DCPPTRACE_UNWIND_WITH_NOTHING=ON
+                -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DREALM_BUILD_TUTORIALS=ON -DREALM_BUILD_EXAMPLES=ON
+                -DREALM_ENABLE_UCX=OFF
+                -DREALM_ENABLE_GASNETEX=OFF
+                -DREALM_ENABLE_HIP=OFF
+
+      - name: Build
+        run: |
+          cmake --build build --parallel 4 --config Release
+
+      - name: Run Tests
+        id: run-tests
+        env:
+          QEMU_LD_PREFIX: "/usr/${{ matrix.config.gcc_arch }}-linux-gnu"
+        run:
+          ctest --output-junit ${{ github.workspace }}/test-results.xml
+                --test-dir build
+                --build-config Release
+                --output-on-failure
+                --timeout 240
+                --parallel 4
+
+      - uses: test-summary/action@v2
+        name: Upload Test Results
+        if: always() && hashFiles('test-results.xml')
+        with:
+          paths: "test-results.xml"
+
+      - name: Run Install
+        run:
+          cmake --install build --parallel 4 --prefix install --config Release
+
+  reuse:
+    # https://reuse.software/
+    name: Check REUSE & Copyright compliance
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: REUSE Compliance Check
+        uses: fsfe/reuse-action@v4
+
+      - uses: tj-actions/changed-files@v46.0.5
+        id: changed-files
+
+      - name: Check copyright year is current for changed files
+        if: steps.changed-files.outputs.test_any_changed
+        run: |
+          grep -H "Copyright " ${{ steps.changed-files.outputs.all_changed_files }} | grep -v $(date +%Y) > /tmp/copyright_lines.txt
+          if [ -s copyright_lines.txt ]; then
+            echo "Copyright information out of date for files:";
+            cut -d':' -f1 /tmp/copyright_lines.txt | sort | uniq
+            exit 1
+          fi
 
   docs:
     name: Build Docs
     runs-on: ubuntu-latest
-    needs: build
+    needs: [ build, cross_build ]
     permissions:
       contents: write
     strategy:
@@ -199,6 +390,8 @@ jobs:
 
       - uses: actions/checkout@v4.2.2
         with:
+          fetch-tags: true
+          fetch-depth: 100
           path: realm-src
 
       - name: Get Safe Ref Name

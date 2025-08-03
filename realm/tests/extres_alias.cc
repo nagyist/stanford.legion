@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // test ability to generically create ExternalInstanceResources and use them
 //  to create aliases of existing instances
 
@@ -22,12 +39,14 @@ using namespace Realm;
 Logger log_app("app");
 
 // Task IDs, some IDs are reserved so start at first available number
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   POKE_TASK,
 };
 
-enum {
+enum
+{
   FID_DATA = 77,
   FID_ALIAS = 88,
 };
@@ -35,16 +54,16 @@ enum {
 template <int N>
 struct LayoutPermutation {
   int dim_order[N];
-  char name[N+1];
+  char name[N + 1];
 };
 
 namespace TestConfig {
-  size_t min_size = 8;  // min extent in any dimension
-  size_t max_size = 16; // max extent in any dimension
+  size_t min_size = 8;     // min extent in any dimension
+  size_t max_size = 16;    // max extent in any dimension
   unsigned dim_mask = ~0U; // i.e. all the dimensions
   unsigned random_seed = 12345;
   bool continue_on_error = false;
-};
+}; // namespace TestConfig
 
 template <int N, typename T>
 AffineLayoutPiece<N, T> *extract_piece(InstanceLayoutGeneric *layout)
@@ -65,21 +84,20 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
 {
   // figure out absolute, shrunk (abs and rel) dimensions and
   //  flat dimensions
-  Rect<N,T> abs_extent, rel_extent, shrunk_extent;
+  Rect<N, T> abs_extent, rel_extent, shrunk_extent;
   size_t elements = 1;
 
-  unsigned ctr = 0;  // for reproducible random values
+  unsigned ctr = 0; // for reproducible random values
   for(int i = 0; i < N; i++) {
     T offset = Philox_2x32<>::rand_int(TestConfig::random_seed, seq_no, ctr++,
                                        TestConfig::max_size);
     T extent = (TestConfig::min_size + 1 +
                 Philox_2x32<>::rand_int(TestConfig::random_seed, seq_no, ctr++,
-                                        (TestConfig::max_size -
-                                         TestConfig::min_size)));
-    T shrink_lo = Philox_2x32<>::rand_int(TestConfig::random_seed, seq_no, ctr++,
-                                          extent + 1);
-    T shrink_hi = Philox_2x32<>::rand_int(TestConfig::random_seed, seq_no, ctr++,
-                                          extent + 1);
+                                        (TestConfig::max_size - TestConfig::min_size)));
+    T shrink_lo =
+        Philox_2x32<>::rand_int(TestConfig::random_seed, seq_no, ctr++, extent + 1);
+    T shrink_hi =
+        Philox_2x32<>::rand_int(TestConfig::random_seed, seq_no, ctr++, extent + 1);
     if(shrink_lo > shrink_hi)
       std::swap(shrink_lo, shrink_hi);
 
@@ -93,7 +111,7 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
     elements *= (extent + 1);
   }
 
-  Rect<1,T> flat_extent(0, elements-1);
+  Rect<1, T> flat_extent(0, elements - 1);
   size_t bytes_needed = elements * sizeof(FT);
 
   // create starting and ending instances to be used for all tests
@@ -105,10 +123,10 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
     fields[FID_DATA] = sizeof(FT);
     InstanceLayoutConstraints ilc(fields, 0 /*block size*/);
     int dim_order[N];
-    for(int i = 0; i < N; i++) dim_order[i] = i;
-    abs_layout = InstanceLayoutGeneric::choose_instance_layout<N,T>(abs_extent,
-                                                                    ilc,
-                                                                    dim_order);
+    for(int i = 0; i < N; i++)
+      dim_order[i] = i;
+    abs_layout =
+        InstanceLayoutGeneric::choose_instance_layout<N, T>(abs_extent, ilc, dim_order);
     abs_layout->alignment_reqd = alignof(FT);
   }
   {
@@ -146,7 +164,8 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
   // create a relatively-indexed alias for the start instance
   RegionInstance start_inst_rel;
   {
-    ExternalInstanceResource *extres = start_inst.generate_resource_info(shrunk_extent, FID_DATA, true /*read_only*/);
+    ExternalInstanceResource *extres =
+        start_inst.generate_resource_info(shrunk_extent, FID_DATA, true /*read_only*/);
     if(!extres) {
       log_app.fatal() << "could not generate resource info for instance " << start_inst;
       abort();
@@ -166,14 +185,15 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
     InstanceLayoutConstraints ilc(fields, 0 /*block size*/);
     int dim_order[1];
     dim_order[0] = 0;
-    flat_layout = InstanceLayoutGeneric::choose_instance_layout<1,T>(flat_extent,
-                                                                     ilc,
-                                                                     dim_order);
+    flat_layout =
+        InstanceLayoutGeneric::choose_instance_layout<1, T>(flat_extent, ilc, dim_order);
     flat_layout->alignment_reqd = alignof(FT);
 
-    ExternalInstanceResource *extres = start_inst.generate_resource_info(true /*read_only*/);
+    ExternalInstanceResource *extres =
+        start_inst.generate_resource_info(true /*read_only*/);
     if(!extres) {
-      log_app.fatal() << "could not generate subset resource info for instance " << start_inst;
+      log_app.fatal() << "could not generate subset resource info for instance "
+                      << start_inst;
       abort();
     }
     RegionInstance::create_external_instance(start_inst_flat, extres->suggested_memory(),
@@ -184,9 +204,9 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
 
   // fill the starting instance with something interesting
   {
-    GenericAccessor<FT,N,T> ga(start_inst, FID_DATA);
+    GenericAccessor<FT, N, T> ga(start_inst, FID_DATA);
     T val = 100;
-    for(PointInRectIterator<N,T> pir(abs_extent); pir.valid; pir.step()) {
+    for(PointInRectIterator<N, T> pir(abs_extent); pir.valid; pir.step()) {
       ga[pir.p] = val;
       val += 1;
     }
@@ -225,9 +245,11 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
     // create a relatively-indexed alias for the target instance
     RegionInstance tgt_inst_rel;
     {
-      ExternalInstanceResource *extres = tgt_inst_abs.generate_resource_info(shrunk_extent, FID_DATA, false /*!read_only*/);
+      ExternalInstanceResource *extres = tgt_inst_abs.generate_resource_info(
+          shrunk_extent, FID_DATA, false /*!read_only*/);
       if(!extres) {
-        log_app.fatal() << "could not generate resource info for instance " << tgt_inst_abs;
+        log_app.fatal() << "could not generate resource info for instance "
+                        << tgt_inst_abs;
         abort();
       }
       RegionInstance::create_external_instance(tgt_inst_rel, extres->suggested_memory(),
@@ -277,16 +299,17 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
 
     // now check results
     {
-      GenericAccessor<FT,N,T> ga(check_inst, FID_DATA);
+      GenericAccessor<FT, N, T> ga(check_inst, FID_DATA);
       T rawval = 100;
-      for(PointInRectIterator<N,T> pir(abs_extent); pir.valid; pir.step()) {
+      for(PointInRectIterator<N, T> pir(abs_extent); pir.valid; pir.step()) {
         T expval = (shrunk_extent.contains(pir.p) ? rawval : 1);
         T actval = ga[pir.p];
         if(actval == expval) {
           // good
         } else {
           if(!errors)
-            log_app.error() << "mismatch: inst=" << tgt_inst_abs << " abs=" << abs_extent << " shrink=" << shrunk_extent << " rel=" << rel_extent;
+            log_app.error() << "mismatch: inst=" << tgt_inst_abs << " abs=" << abs_extent
+                            << " shrink=" << shrunk_extent << " rel=" << rel_extent;
           log_app.print() << "at " << pir.p << ": exp=" << expval << " act=" << actval;
           errors++;
         }
@@ -304,9 +327,11 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
     // now same routine with the flattened alias
     RegionInstance tgt_inst_flat;
     {
-      ExternalInstanceResource *extres = tgt_inst_abs.generate_resource_info(false /*!read_only*/);
+      ExternalInstanceResource *extres =
+          tgt_inst_abs.generate_resource_info(false /*!read_only*/);
       if(!extres) {
-        log_app.fatal() << "could not generate subset resource info for instance " << tgt_inst_abs;
+        log_app.fatal() << "could not generate subset resource info for instance "
+                        << tgt_inst_abs;
         abort();
       }
       RegionInstance::create_external_instance(tgt_inst_flat, extres->suggested_memory(),
@@ -355,15 +380,16 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
 
     // now check results
     {
-      GenericAccessor<FT,N,T> ga(check_inst, FID_DATA);
+      GenericAccessor<FT, N, T> ga(check_inst, FID_DATA);
       T expval = 100;
-      for(PointInRectIterator<N,T> pir(abs_extent); pir.valid; pir.step()) {
+      for(PointInRectIterator<N, T> pir(abs_extent); pir.valid; pir.step()) {
         T actval = ga[pir.p];
         if(actval == expval) {
           // good
         } else {
           if(!errors)
-            log_app.error() << "mismatch: inst=" << tgt_inst_abs << " abs=" << abs_extent << " flat=" << flat_extent;
+            log_app.error() << "mismatch: inst=" << tgt_inst_abs << " abs=" << abs_extent
+                            << " flat=" << flat_extent;
           log_app.print() << "at " << pir.p << ": exp=" << expval << " act=" << actval;
           errors++;
         }
@@ -391,8 +417,8 @@ size_t do_single_dim(Memory src_mem, unsigned seq_no)
 
 std::set<Processor::Kind> supported_proc_kinds;
 
-void top_level_task(const void *args, size_t arglen, 
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   // pick a system memory we can see to be our starting memory
   Machine::MemoryQuery mq(Machine::get_machine());
@@ -405,17 +431,17 @@ void top_level_task(const void *args, size_t arglen,
   size_t errors = 0;
   typedef int FT;
 
-#define DOIT(N,T) \
-  { \
-    if(((errors == 0) || TestConfig::continue_on_error) && (TestConfig::dim_mask & (1 << (N - 1))) != 0) \
-      errors += do_single_dim<N, T, FT>(src_mem, seq_no); \
-    seq_no++; /* increment sequence number even if we don't do a test */ \
+#define DOIT(N, T)                                                                       \
+  {                                                                                      \
+    if(((errors == 0) || TestConfig::continue_on_error) &&                               \
+       (TestConfig::dim_mask & (1 << (N - 1))) != 0)                                     \
+      errors += do_single_dim<N, T, FT>(src_mem, seq_no);                                \
+    seq_no++; /* increment sequence number even if we don't do a test */                 \
   }
   FOREACH_NT(DOIT)
 #undef DOIT
 
-  Runtime::get_runtime().shutdown(Event::NO_EVENT,
-                                  (errors ? 1 : 0));
+  Runtime::get_runtime().shutdown(Event::NO_EVENT, (errors ? 1 : 0));
 }
 
 int main(int argc, char **argv)
@@ -426,10 +452,10 @@ int main(int argc, char **argv)
 
   CommandLineParser cp;
   cp.add_option_int("-maxsize", TestConfig::max_size)
-    .add_option_int("-minsize", TestConfig::min_size)
-    .add_option_int("-dims", TestConfig::dim_mask)
-    .add_option_int("-seed", TestConfig::random_seed)
-    .add_option_bool("-cont", TestConfig::continue_on_error);
+      .add_option_int("-minsize", TestConfig::min_size)
+      .add_option_int("-dims", TestConfig::dim_mask)
+      .add_option_int("-seed", TestConfig::random_seed)
+      .add_option_bool("-cont", TestConfig::continue_on_error);
   bool ok = cp.parse_command_line(argc, const_cast<const char **>(argv));
   assert(ok);
 
@@ -445,8 +471,8 @@ int main(int argc, char **argv)
 
   // select a processor to run the top level task on
   Processor p = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::LOC_PROC)
-    .first();
+                    .only_kind(Processor::LOC_PROC)
+                    .first();
   assert(p.exists());
 
   // collective launch of a single task
@@ -456,6 +482,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   int result = rt.wait_for_shutdown();
-  
+
   return result;
 }

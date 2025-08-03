@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,18 +37,22 @@
 #include <gasnet.h>
 #include <gasnet_coll.h>
 // eliminate GASNet warnings for unused static functions
-REALM_ATTR_UNUSED(static const void *ignore_gasnet_warning1) = (void *)_gasneti_threadkey_init;
+REALM_ATTR_UNUSED(static const void *ignore_gasnet_warning1) = (void *)
+    _gasneti_threadkey_init;
 #ifdef _INCLUDED_GASNET_TOOLS_H
-REALM_ATTR_UNUSED(static const void *ignore_gasnet_warning2) = (void *)_gasnett_trace_printf_noop;
+REALM_ATTR_UNUSED(static const void *ignore_gasnet_warning2) = (void *)
+    _gasnett_trace_printf_noop;
 #endif
 
-#define CHECK_GASNET(cmd) do { \
-  int ret = (cmd); \
-  if(ret != GASNET_OK) { \
-    fprintf(stderr, "GASNET: %s = %d (%s, %s)\n", #cmd, ret, gasnet_ErrorName(ret), gasnet_ErrorDesc(ret)); \
-    exit(1); \
-  } \
-} while(0)
+#define CHECK_GASNET(cmd)                                                                \
+  do {                                                                                   \
+    int ret = (cmd);                                                                     \
+    if(ret != GASNET_OK) {                                                               \
+      fprintf(stderr, "GASNET: %s = %d (%s, %s)\n", #cmd, ret, gasnet_ErrorName(ret),    \
+              gasnet_ErrorDesc(ret));                                                    \
+      exit(1);                                                                           \
+    }                                                                                    \
+  } while(0)
 
 #define REALM_GEX_API ((10000 * GEX_SPEC_VERSION_MAJOR) + (100 * GEX_SPEC_VERSION_MINOR))
 #if REALM_GEX_API < 500
@@ -73,16 +79,14 @@ namespace Realm {
     virtual void get_bytes(off_t offset, void *dst, size_t size);
 
     virtual void put_bytes(off_t offset, const void *src, size_t size);
-    
+
     virtual void *get_direct_ptr(off_t offset, size_t size);
 
-    void get_batch(size_t batch_size,
-		   const off_t *offsets, void * const *dsts, 
-		   const size_t *sizes);
-    
-    void put_batch(size_t batch_size,
-		   const off_t *offsets, const void * const *srcs, 
-		   const size_t *sizes);
+    void get_batch(size_t batch_size, const off_t *offsets, void *const *dsts,
+                   const size_t *sizes);
+
+    void put_batch(size_t batch_size, const off_t *offsets, const void *const *srcs,
+                   const size_t *sizes);
 
     // gets info related to rdma access from other nodes
     virtual const ByteArray *get_rdma_info(NetworkModule *network);
@@ -104,8 +108,8 @@ namespace Realm {
     segbases.resize(num_nodes);
 
     gasnet_seginfo_t *seginfos = new gasnet_seginfo_t[num_nodes];
-    CHECK_GASNET( gasnet_getSegmentInfo(seginfos, num_nodes) );
-      
+    CHECK_GASNET(gasnet_getSegmentInfo(seginfos, num_nodes));
+
     for(int i = 0; i < num_nodes; i++) {
       assert(seginfos[i].size >= size_per_node);
       segbases[i] = static_cast<char *>(seginfos[i].addr);
@@ -116,9 +120,7 @@ namespace Realm {
     memory_stride = MEMORY_STRIDE;
   }
 
-  GASNet1Memory::~GASNet1Memory(void)
-  {
-  }
+  GASNet1Memory::~GASNet1Memory(void) {}
 
   void GASNet1Memory::get_bytes(off_t offset, void *dst, size_t size)
   {
@@ -128,8 +130,10 @@ namespace Realm {
       off_t node = (offset / memory_stride) % num_nodes;
       off_t blkoffset = offset % memory_stride;
       size_t chunk_size = memory_stride - blkoffset;
-      if(chunk_size > size) chunk_size = size;
-      gasnet_get(dst_c, node, segbases[node]+(blkid * memory_stride)+blkoffset, chunk_size);
+      if(chunk_size > size)
+        chunk_size = size;
+      gasnet_get(dst_c, node, segbases[node] + (blkid * memory_stride) + blkoffset,
+                 chunk_size);
       offset += chunk_size;
       dst_c += chunk_size;
       size -= chunk_size;
@@ -144,8 +148,10 @@ namespace Realm {
       off_t node = (offset / memory_stride) % num_nodes;
       off_t blkoffset = offset % memory_stride;
       size_t chunk_size = memory_stride - blkoffset;
-      if(chunk_size > size) chunk_size = size;
-      gasnet_put(node, segbases[node]+(blkid * memory_stride)+blkoffset, src_c, chunk_size);
+      if(chunk_size > size)
+        chunk_size = size;
+      gasnet_put(node, segbases[node] + (blkid * memory_stride) + blkoffset, src_c,
+                 chunk_size);
       offset += chunk_size;
       src_c += chunk_size;
       size -= chunk_size;
@@ -154,12 +160,11 @@ namespace Realm {
 
   void *GASNet1Memory::get_direct_ptr(off_t offset, size_t size)
   {
-    return 0;  // can't give a pointer to the caller - have to use RDMA
+    return 0; // can't give a pointer to the caller - have to use RDMA
   }
 
-  void GASNet1Memory::get_batch(size_t batch_size,
-				const off_t *offsets, void * const *dsts, 
-				const size_t *sizes)
+  void GASNet1Memory::get_batch(size_t batch_size, const off_t *offsets,
+                                void *const *dsts, const size_t *sizes)
   {
 #define NO_USE_NBI_ACCESSREGION
 #ifdef USE_NBI_ACCESSREGION
@@ -169,28 +174,29 @@ namespace Realm {
       off_t offset = offsets[i];
       char *dst_c = (char *)(dsts[i]);
       size_t size = sizes[i];
-      
+
       off_t blkid = (offset / memory_stride / num_nodes);
       off_t node = (offset / memory_stride) % num_nodes;
       off_t blkoffset = offset % memory_stride;
 
       while(size > 0) {
-	size_t chunk_size = memory_stride - blkoffset;
-	if(chunk_size > size) chunk_size = size;
+        size_t chunk_size = memory_stride - blkoffset;
+        if(chunk_size > size)
+          chunk_size = size;
 
-	char *src_c = (segbases[node] +
-		       (blkid * memory_stride) + blkoffset);
-	if(node != Network::my_node_id) {
-	  gasnet_get_nbi(dst_c, node, src_c, chunk_size);
-	} else {
-	  memcpy(dst_c, src_c, chunk_size);
-	}
+        char *src_c = (segbases[node] + (blkid * memory_stride) + blkoffset);
+        if(node != Network::my_node_id) {
+          gasnet_get_nbi(dst_c, node, src_c, chunk_size);
+        } else {
+          memcpy(dst_c, src_c, chunk_size);
+        }
 
-	dst_c += chunk_size;
-	size -= chunk_size;
-	blkoffset = 0;
-	node = (node + 1) % num_nodes;
-	if(node == 0) blkid++;
+        dst_c += chunk_size;
+        size -= chunk_size;
+        blkoffset = 0;
+        node = (node + 1) % num_nodes;
+        if(node == 0)
+          blkid++;
       }
     }
 
@@ -203,10 +209,8 @@ namespace Realm {
 #endif
   }
 
-  void GASNet1Memory::put_batch(size_t batch_size,
-				const off_t *offsets,
-				const void * const *srcs, 
-				const size_t *sizes)
+  void GASNet1Memory::put_batch(size_t batch_size, const off_t *offsets,
+                                const void *const *srcs, const size_t *sizes)
   {
     gasnet_begin_nbi_accessregion();
 
@@ -220,23 +224,24 @@ namespace Realm {
       off_t blkoffset = offset % memory_stride;
 
       while(size > 0) {
-	size_t chunk_size = memory_stride - blkoffset;
-	if(chunk_size > size) chunk_size = size;
+        size_t chunk_size = memory_stride - blkoffset;
+        if(chunk_size > size)
+          chunk_size = size;
 
-	char *dst_c = (segbases[node] +
-		       (blkid * memory_stride) + blkoffset);
+        char *dst_c = (segbases[node] + (blkid * memory_stride) + blkoffset);
 
-	if(node != Network::my_node_id) {
-	  gasnet_put_nbi(node, dst_c, (void *)src_c, chunk_size);
-	} else {
-	  memcpy(dst_c, src_c, chunk_size);
-	}
+        if(node != Network::my_node_id) {
+          gasnet_put_nbi(node, dst_c, (void *)src_c, chunk_size);
+        } else {
+          memcpy(dst_c, src_c, chunk_size);
+        }
 
-	src_c += chunk_size;
-	size -= chunk_size;
-	blkoffset = 0;
-	node = (node + 1) % num_nodes;
-	if(node == 0) blkid++;
+        src_c += chunk_size;
+        size -= chunk_size;
+        blkoffset = 0;
+        node = (node + 1) % num_nodes;
+        if(node == 0)
+          blkid++;
       }
     }
 
@@ -258,7 +263,6 @@ namespace Realm {
       return 0;
   }
 
-  
   ////////////////////////////////////////////////////////////////////////
   //
   // class GASNet1RemoteMemory
@@ -272,7 +276,7 @@ namespace Realm {
     virtual void get_bytes(off_t offset, void *dst, size_t size);
     virtual void put_bytes(off_t offset, const void *src, size_t size);
 
-    virtual bool get_remote_addr(off_t offset, RemoteAddress& remote_addr);
+    virtual bool get_remote_addr(off_t offset, RemoteAddress &remote_addr);
 
   protected:
     char *regbase;
@@ -283,26 +287,23 @@ namespace Realm {
     : RemoteMemory(_runtime_impl, _me, _size, k, MKIND_RDMA)
     , regbase(static_cast<char *>(_regbase))
   {}
-  
+
   void GASNet1RemoteMemory::get_bytes(off_t offset, void *dst, size_t size)
   {
-    gasnet_get(dst, ID(me).memory_owner_node(),
-	       regbase + offset, size);
-  }
-  
-  void GASNet1RemoteMemory::put_bytes(off_t offset,
-				      const void *src, size_t size)
-  {
-    gasnet_put(ID(me).memory_owner_node(), regbase + offset,
-	       const_cast<void *>(src), size);
+    gasnet_get(dst, ID(me).memory_owner_node(), regbase + offset, size);
   }
 
-  bool GASNet1RemoteMemory::get_remote_addr(off_t offset, RemoteAddress& remote_addr)
+  void GASNet1RemoteMemory::put_bytes(off_t offset, const void *src, size_t size)
+  {
+    gasnet_put(ID(me).memory_owner_node(), regbase + offset, const_cast<void *>(src),
+               size);
+  }
+
+  bool GASNet1RemoteMemory::get_remote_addr(off_t offset, RemoteAddress &remote_addr)
   {
     remote_addr.ptr = reinterpret_cast<uintptr_t>(regbase + offset);
     return true;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -314,7 +315,7 @@ namespace Realm {
     GASNet1IBMemory(RuntimeImpl *_runtime_impl, Memory _me, size_t _size, Memory::Kind k,
                     void *_regbase);
 
-    virtual bool get_remote_addr(off_t offset, RemoteAddress& remote_addr);
+    virtual bool get_remote_addr(off_t offset, RemoteAddress &remote_addr);
 
   protected:
     char *regbase;
@@ -326,12 +327,11 @@ namespace Realm {
     , regbase(static_cast<char *>(_regbase))
   {}
 
-  bool GASNet1IBMemory::get_remote_addr(off_t offset, RemoteAddress& remote_addr)
+  bool GASNet1IBMemory::get_remote_addr(off_t offset, RemoteAddress &remote_addr)
   {
     remote_addr.ptr = reinterpret_cast<uintptr_t>(regbase + offset);
     return true;
   }
-  
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -340,22 +340,15 @@ namespace Realm {
 
   class GASNet1MessageImpl : public ActiveMessageImpl {
   public:
-    GASNet1MessageImpl(NodeID _target,
-		       unsigned short _msgid,
-		       size_t _header_size,
-		       size_t _max_payload_size,
-		       const void *_src_payload_addr,
-		       size_t _src_payload_lines,
-		       size_t _src_payload_line_stride,
-		       void *_dest_payload_addr);
-    GASNet1MessageImpl(const Realm::NodeSet &_targets,
-		       unsigned short _msgid,
-		       size_t _header_size,
-		       size_t _max_payload_size,
-		       const void *_src_payload_addr,
-		       size_t _src_payload_lines,
-		       size_t _src_payload_line_stride);
-  
+    GASNet1MessageImpl(NodeID _target, unsigned short _msgid, size_t _header_size,
+                       size_t _max_payload_size, const void *_src_payload_addr,
+                       size_t _src_payload_lines, size_t _src_payload_line_stride,
+                       void *_dest_payload_addr);
+    GASNet1MessageImpl(const Realm::NodeSet &_targets, unsigned short _msgid,
+                       size_t _header_size, size_t _max_payload_size,
+                       const void *_src_payload_addr, size_t _src_payload_lines,
+                       size_t _src_payload_line_stride);
+
     virtual ~GASNet1MessageImpl();
 
     virtual void *add_local_completion(size_t size);
@@ -378,19 +371,17 @@ namespace Realm {
       unsigned short msgid;
       unsigned short sender;
       unsigned payload_len;
-      unsigned long msg_header;  // type is unknown
+      unsigned long msg_header; // type is unknown
     };
     FullHeader args; // must be last thing
   };
 
-  GASNet1MessageImpl::GASNet1MessageImpl(NodeID _target,
-					 unsigned short _msgid,
-					 size_t _header_size,
-					 size_t _max_payload_size,
-					 const void *_src_payload_addr,
-					 size_t _src_payload_lines,
-					 size_t _src_payload_line_stride,
-					 void *_dest_payload_addr)
+  GASNet1MessageImpl::GASNet1MessageImpl(NodeID _target, unsigned short _msgid,
+                                         size_t _header_size, size_t _max_payload_size,
+                                         const void *_src_payload_addr,
+                                         size_t _src_payload_lines,
+                                         size_t _src_payload_line_stride,
+                                         void *_dest_payload_addr)
     : target(_target)
     , is_multicast(false)
     , src_payload_addr(_src_payload_addr)
@@ -412,12 +403,11 @@ namespace Realm {
   }
 
   GASNet1MessageImpl::GASNet1MessageImpl(const Realm::NodeSet &_targets,
-					 unsigned short _msgid,
-					 size_t _header_size,
-					 size_t _max_payload_size,
-					 const void *_src_payload_addr,
-					 size_t _src_payload_lines,
-					 size_t _src_payload_line_stride)
+                                         unsigned short _msgid, size_t _header_size,
+                                         size_t _max_payload_size,
+                                         const void *_src_payload_addr,
+                                         size_t _src_payload_lines,
+                                         size_t _src_payload_line_stride)
     : targets(_targets)
     , is_multicast(true)
     , src_payload_addr(_src_payload_addr)
@@ -437,10 +427,8 @@ namespace Realm {
     header_base = &args.msg_header;
     assert((sizeof(BaseMedium) + 8 + header_size) <= 16 * sizeof(handlerarg_t));
   }
-  
-  GASNet1MessageImpl::~GASNet1MessageImpl()
-  {
-  }
+
+  GASNet1MessageImpl::~GASNet1MessageImpl() {}
 
   void *GASNet1MessageImpl::add_local_completion(size_t size)
   {
@@ -469,52 +457,42 @@ namespace Realm {
       assert(comp == 0);
       size_t count = targets.size();
       if(count > 0) {
-	for(NodeSet::const_iterator it = targets.begin();
-	    it != targets.end();
-	    ++it) {
-	  if(src_payload_addr != 0) {
-	    if(src_payload_lines > 1)
-	      enqueue_message(*it, MSGID_NEW_ACTIVEMSG,
-			      &args, header_size+24,
-			      src_payload_addr,
-			      act_payload_size / src_payload_lines,
-			      src_payload_line_stride, src_payload_lines,
-			      PAYLOAD_KEEP, 0);
-	    else
-	      enqueue_message(*it, MSGID_NEW_ACTIVEMSG,
-			      &args, header_size+24,
-			      src_payload_addr, act_payload_size,
-			      PAYLOAD_KEEP, 0);
-	  } else
-	    enqueue_message(*it, MSGID_NEW_ACTIVEMSG,
-			    &args, header_size+24,
-			    payload_base, act_payload_size,
-			    ((count > 0) ? PAYLOAD_COPY : PAYLOAD_FREE), 0);
-	  count--;
-	}
+        for(NodeSet::const_iterator it = targets.begin(); it != targets.end(); ++it) {
+          if(src_payload_addr != 0) {
+            if(src_payload_lines > 1)
+              enqueue_message(*it, MSGID_NEW_ACTIVEMSG, &args, header_size + 24,
+                              src_payload_addr, act_payload_size / src_payload_lines,
+                              src_payload_line_stride, src_payload_lines, PAYLOAD_KEEP,
+                              0);
+            else
+              enqueue_message(*it, MSGID_NEW_ACTIVEMSG, &args, header_size + 24,
+                              src_payload_addr, act_payload_size, PAYLOAD_KEEP, 0);
+          } else
+            enqueue_message(*it, MSGID_NEW_ACTIVEMSG, &args, header_size + 24,
+                            payload_base, act_payload_size,
+                            ((count > 0) ? PAYLOAD_COPY : PAYLOAD_FREE), 0);
+          count--;
+        }
       } else {
-	// free the (unused) payload ourselves
-	if((payload_size > 0) && (src_payload_addr == 0))
-	  free(payload_base);
+        // free the (unused) payload ourselves
+        if((payload_size > 0) && (src_payload_addr == 0))
+          free(payload_base);
       }
     } else {
       if(src_payload_addr != 0) {
-	if(src_payload_lines > 1)
-	  enqueue_message(target, MSGID_NEW_ACTIVEMSG,
-			  &args, header_size+24,
-			  src_payload_addr, (act_payload_size / src_payload_lines),
-			  src_payload_line_stride, src_payload_lines,
-			  PAYLOAD_KEEP, comp, dest_payload_addr);
-	else
-	  enqueue_message(target, MSGID_NEW_ACTIVEMSG,
-			  &args, header_size+24,
-			  src_payload_addr, act_payload_size, PAYLOAD_KEEP,
-			  comp, dest_payload_addr);
+        if(src_payload_lines > 1)
+          enqueue_message(target, MSGID_NEW_ACTIVEMSG, &args, header_size + 24,
+                          src_payload_addr, (act_payload_size / src_payload_lines),
+                          src_payload_line_stride, src_payload_lines, PAYLOAD_KEEP, comp,
+                          dest_payload_addr);
+        else
+          enqueue_message(target, MSGID_NEW_ACTIVEMSG, &args, header_size + 24,
+                          src_payload_addr, act_payload_size, PAYLOAD_KEEP, comp,
+                          dest_payload_addr);
       } else
-	enqueue_message(target, MSGID_NEW_ACTIVEMSG,
-			&args, header_size+24,
-			payload_base, act_payload_size, PAYLOAD_FREE,
-			comp, dest_payload_addr);
+        enqueue_message(target, MSGID_NEW_ACTIVEMSG, &args, header_size + 24,
+                        payload_base, act_payload_size, PAYLOAD_FREE, comp,
+                        dest_payload_addr);
     }
   }
 
@@ -524,7 +502,6 @@ namespace Realm {
     if((payload_size > 0) && (src_payload_addr == 0))
       free(payload_base);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -538,10 +515,10 @@ namespace Realm {
     , gasnet_mem_size(0)
     , amsg_stack_size(2 << 20)
   {}
-  
+
   /*static*/ NetworkModule *GASNet1Module::create_network_module(RuntimeImpl *runtime,
-								 int *argc,
-								 const char ***argv)
+                                                                 int *argc,
+                                                                 const char ***argv)
   {
     // gasnet_init() must be called before parsing command line arguments, as some
     //  spawners (e.g. the ssh spawner for gasnetrun_ibv) start with bogus args and
@@ -552,11 +529,12 @@ namespace Realm {
     char *orig_pmi_gni_cookie = getenv("PMI_GNI_COOKIE");
     if(orig_pmi_gni_cookie) {
       char new_pmi_gni_cookie[32];
-      snprintf(new_pmi_gni_cookie, 32, "%d", 1+atoi(orig_pmi_gni_cookie));
+      snprintf(new_pmi_gni_cookie, 32, "%d", 1 + atoi(orig_pmi_gni_cookie));
       setenv("PMI_GNI_COOKIE", new_pmi_gni_cookie, 1 /*overwrite*/);
     }
-    // SJT: another GASNET workaround - if we don't have GASNET_IB_SPAWNER set, assume it was MPI
-    // (This is called GASNET_IB_SPAWNER for versions <= 1.24 and GASNET_SPAWNER for versions >= 1.26)
+    // SJT: another GASNET workaround - if we don't have GASNET_IB_SPAWNER set, assume it
+    // was MPI (This is called GASNET_IB_SPAWNER for versions <= 1.24 and GASNET_SPAWNER
+    // for versions >= 1.26)
     if(!getenv("GASNET_IB_SPAWNER") && !getenv("GASNET_SPAWNER")) {
       setenv("GASNET_IB_SPAWNER", "mpi", 0 /*no overwrite*/);
       setenv("GASNET_SPAWNER", "mpi", 0 /*no overwrite*/);
@@ -580,13 +558,13 @@ namespace Realm {
       // do handle the case where NOPROBE is set to 1, but PHYSMEM_MAX isn't
       const char *e = getenv("GASNET_PHYSMEM_NOPROBE");
       if(!e || (atoi(e) > 0)) {
-	if(!e)
-	  setenv("GASNET_PHYSMEM_NOPROBE", "1", 0 /*no overwrite*/);
-	if(!getenv("GASNET_PHYSMEM_MAX")) {
-	  // just because it's fun to read things like this 20 years later:
-	  // "nobody will ever build a system with more than 1 TB of RAM..."
-	  setenv("GASNET_PHYSMEM_MAX", "1T", 0 /*no overwrite*/);
-	}
+        if(!e)
+          setenv("GASNET_PHYSMEM_NOPROBE", "1", 0 /*no overwrite*/);
+        if(!getenv("GASNET_PHYSMEM_MAX")) {
+          // just because it's fun to read things like this 20 years later:
+          // "nobody will ever build a system with more than 1 TB of RAM..."
+          setenv("GASNET_PHYSMEM_MAX", "1T", 0 /*no overwrite*/);
+        }
       }
     }
 
@@ -607,7 +585,7 @@ namespace Realm {
       fflush(stdout);
     }
 #endif
-    CHECK_GASNET( gasnet_init(argc, const_cast<char ***>(argv)) );
+    CHECK_GASNET(gasnet_init(argc, const_cast<char ***>(argv)));
     Network::my_node_id = gasnet_mynode();
     Network::max_node_id = gasnet_nodes() - 1;
     Network::all_peers.add_range(0, gasnet_nodes() - 1);
@@ -646,16 +624,16 @@ namespace Realm {
   // actual parsing of the command line should wait until here if at all
   //  possible
   void GASNet1Module::parse_command_line(RuntimeImpl *runtime,
-					 std::vector<std::string>& cmdline)
+                                         std::vector<std::string> &cmdline)
   {
     gasnet_parse_command_line(cmdline);
 
     CommandLineParser cp;
     cp.add_option_int_units("-ll:gsize", gasnet_mem_size, 'm')
-      .add_option_int("-ll:amsg", active_msg_worker_threads)
-      .add_option_int("-ll:amsg_bgwork", active_msg_worker_bgwork)
-      .add_option_int_units("-ll:astack", amsg_stack_size, 'm');
-    
+        .add_option_int("-ll:amsg", active_msg_worker_threads)
+        .add_option_int("-ll:amsg_bgwork", active_msg_worker_bgwork)
+        .add_option_int_units("-ll:astack", amsg_stack_size, 'm');
+
     bool ok = cp.parse_command_line(cmdline);
     assert(ok);
 
@@ -667,54 +645,55 @@ namespace Realm {
   //  bind/register/(pick your network-specific verb) the requested memory
   //  segments with the network
   void GASNet1Module::attach(RuntimeImpl *runtime,
-			     std::vector<NetworkSegment *>& segments)
+                             std::vector<NetworkSegment *> &segments)
   {
     // total up the size of all segments we'll try to fit into the gasnet
     //  segment
     size_t inseg_bytes = 0;
     for(std::vector<NetworkSegment *>::iterator it = segments.begin();
-	it != segments.end();
-	++it) {
+        it != segments.end(); ++it) {
       // must be asking for non-zero storage
-      if((*it)->bytes == 0) continue;
+      if((*it)->bytes == 0)
+        continue;
       // must not already be assigned an address
-      if((*it)->base != 0) continue;
+      if((*it)->base != 0)
+        continue;
       // must be host memory
-      if((*it)->memtype != NetworkSegmentInfo::HostMem) continue;
+      if((*it)->memtype != NetworkSegmentInfo::HostMem)
+        continue;
       // must not be asking for ODR
       if(((*it)->flags & NetworkSegmentInfo::OptionFlags::OnDemandRegistration) != 0)
         continue;
       // TODO: consider alignment
       inseg_bytes += (*it)->bytes;
     }
-    
-    init_endpoints(gasnet_mem_size, inseg_bytes, 0,
-		   *(runtime->core_reservations),
-		   active_msg_worker_threads,
-		   runtime->bgwork,
-		   active_msg_worker_bgwork,
-		   runtime->message_manager);
+
+    init_endpoints(gasnet_mem_size, inseg_bytes, 0, *(runtime->core_reservations),
+                   active_msg_worker_threads, runtime->bgwork, active_msg_worker_bgwork,
+                   runtime->message_manager);
 
     // Put this here so that it complies with the GASNet specification and
     // doesn't make any calls between gasnet_init and gasnet_attach
     gasnet_set_waitmode(GASNET_WAIT_BLOCK);
 
     gasnet_seginfo_t *seginfos = new gasnet_seginfo_t[Network::max_node_id + 1];
-    CHECK_GASNET( gasnet_getSegmentInfo(seginfos, Network::max_node_id + 1) );
+    CHECK_GASNET(gasnet_getSegmentInfo(seginfos, Network::max_node_id + 1));
     char *seg_base = reinterpret_cast<char *>(seginfos[Network::my_node_id].addr);
     seg_base += gasnet_mem_size;
     delete[] seginfos;
 
     // assign the base to any segment we allocated
     for(std::vector<NetworkSegment *>::iterator it = segments.begin();
-	it != segments.end();
-	++it) {
+        it != segments.end(); ++it) {
       // must be asking for non-zero storage
-      if((*it)->bytes == 0) continue;
+      if((*it)->bytes == 0)
+        continue;
       // must not already be assigned an address
-      if((*it)->base != 0) continue;
+      if((*it)->base != 0)
+        continue;
       // must be host memory
-      if((*it)->memtype != NetworkSegmentInfo::HostMem) continue;
+      if((*it)->memtype != NetworkSegmentInfo::HostMem)
+        continue;
       // TODO: consider alignment
       (*it)->base = seg_base;
       // RDMA info for GASNet is just the local base pointer
@@ -732,16 +711,16 @@ namespace Realm {
     if(gasnet_mem_size > 0) {
       // only node 0 creates the gasnet memory
       if(Network::my_node_id == 0) {
-	Memory m = runtime->next_local_memory_id();
+        Memory m = runtime->next_local_memory_id();
         GASNet1Memory *mem = new GASNet1Memory(runtime, m, gasnet_mem_size, this);
         runtime->add_memory(mem);
       }
     }
   }
-  
+
   // detaches from the network
   void GASNet1Module::detach(RuntimeImpl *runtime,
-			     std::vector<NetworkSegment *>& segments)
+                             std::vector<NetworkSegment *> &segments)
   {
     stop_activemsg_threads();
   }
@@ -752,21 +731,22 @@ namespace Realm {
     gasnet_barrier_notify(0, GASNET_BARRIERFLAG_ANONYMOUS);
     gasnet_barrier_wait(0, GASNET_BARRIERFLAG_ANONYMOUS);
   }
-    
-  static const int GASNET_COLL_FLAGS = GASNET_COLL_IN_MYSYNC | GASNET_COLL_OUT_MYSYNC | GASNET_COLL_LOCAL;
-  
-  void GASNet1Module::broadcast(NodeID root, const void *val_in, void *val_out, size_t bytes)
+
+  static const int GASNET_COLL_FLAGS =
+      GASNET_COLL_IN_MYSYNC | GASNET_COLL_OUT_MYSYNC | GASNET_COLL_LOCAL;
+
+  void GASNet1Module::broadcast(NodeID root, const void *val_in, void *val_out,
+                                size_t bytes)
   {
-    gasnet_coll_broadcast(GASNET_TEAM_ALL, val_out, root,
-			  const_cast<void *>(val_in), bytes,
-			  GASNET_COLL_FLAGS);
+    gasnet_coll_broadcast(GASNET_TEAM_ALL, val_out, root, const_cast<void *>(val_in),
+                          bytes, GASNET_COLL_FLAGS);
   }
-  
-  void GASNet1Module::gather(NodeID root, const void *val_in, void *vals_out, size_t bytes)
+
+  void GASNet1Module::gather(NodeID root, const void *val_in, void *vals_out,
+                             size_t bytes)
   {
-    gasnet_coll_gather(GASNET_TEAM_ALL, root,
-		       vals_out, const_cast<void *>(val_in), bytes,
-		       GASNET_COLL_FLAGS);
+    gasnet_coll_gather(GASNET_TEAM_ALL, root, vals_out, const_cast<void *>(val_in), bytes,
+                       GASNET_COLL_FLAGS);
   }
 
   void GASNet1Module::allgatherv(const char *val_in, size_t bytes,
@@ -842,25 +822,15 @@ namespace Realm {
     return new GASNet1IBMemory(runtime, m, size, kind, regbase);
   }
 
-  ActiveMessageImpl *GASNet1Module::create_active_message_impl(NodeID target,
-							       unsigned short msgid,
-							       size_t header_size,
-							       size_t max_payload_size,
-							       const void *src_payload_addr,
-							       size_t src_payload_lines,
-							       size_t src_payload_line_stride,
-							       void *storage_base,
-							       size_t storage_size)
+  ActiveMessageImpl *GASNet1Module::create_active_message_impl(
+      NodeID target, unsigned short msgid, size_t header_size, size_t max_payload_size,
+      const void *src_payload_addr, size_t src_payload_lines,
+      size_t src_payload_line_stride, void *storage_base, size_t storage_size)
   {
     assert(storage_size >= sizeof(GASNet1MessageImpl));
-    GASNet1MessageImpl *impl = new(storage_base) GASNet1MessageImpl(target,
-								    msgid,
-								    header_size,
-								    max_payload_size,
-								    src_payload_addr,
-								    src_payload_lines,
-								    src_payload_line_stride,
-								    0);
+    GASNet1MessageImpl *impl = new(storage_base)
+        GASNet1MessageImpl(target, msgid, header_size, max_payload_size, src_payload_addr,
+                           src_payload_lines, src_payload_line_stride, 0);
     return impl;
   }
 
@@ -893,65 +863,51 @@ namespace Realm {
     return impl;
   }
 
-  ActiveMessageImpl *GASNet1Module::create_active_message_impl(const NodeSet& targets,
-							       unsigned short msgid,
-							       size_t header_size,
-							       size_t max_payload_size,
-							       const void *src_payload_addr,
-							       size_t src_payload_lines,
-							       size_t src_payload_line_stride,
-							       void *storage_base,
-							       size_t storage_size)
+  ActiveMessageImpl *GASNet1Module::create_active_message_impl(
+      const NodeSet &targets, unsigned short msgid, size_t header_size,
+      size_t max_payload_size, const void *src_payload_addr, size_t src_payload_lines,
+      size_t src_payload_line_stride, void *storage_base, size_t storage_size)
   {
     assert(storage_size >= sizeof(GASNet1MessageImpl));
-    GASNet1MessageImpl *impl = new(storage_base) GASNet1MessageImpl(targets,
-								    msgid,
-								    header_size,
-								    max_payload_size,
-								    src_payload_addr,
-								    src_payload_lines,
-								    src_payload_line_stride);
+    GASNet1MessageImpl *impl = new(storage_base)
+        GASNet1MessageImpl(targets, msgid, header_size, max_payload_size,
+                           src_payload_addr, src_payload_lines, src_payload_line_stride);
     return impl;
   }
 
-  size_t GASNet1Module::recommended_max_payload(NodeID target,
-						bool with_congestion,
-						size_t header_size)
+  size_t GASNet1Module::recommended_max_payload(NodeID target, bool with_congestion,
+                                                size_t header_size)
   {
     return gasnet_AMMaxMedium();
   }
 
-  size_t GASNet1Module::recommended_max_payload(const NodeSet& targets,
-						bool with_congestion,
-						size_t header_size)
+  size_t GASNet1Module::recommended_max_payload(const NodeSet &targets,
+                                                bool with_congestion, size_t header_size)
   {
     return gasnet_AMMaxMedium();
   }
 
   size_t GASNet1Module::recommended_max_payload(NodeID target,
-						const RemoteAddress& dest_payload_addr,
-						bool with_congestion,
-						size_t header_size)
+                                                const RemoteAddress &dest_payload_addr,
+                                                bool with_congestion, size_t header_size)
   {
     // RDMA uses long, but don't go above 4MB per packet for responsiveness
     size_t maxlong = gasnet_AMMaxLongRequest();
     return std::min(maxlong, size_t(4 << 20));
   }
 
-  size_t GASNet1Module::recommended_max_payload(NodeID target,
-						const void *data, size_t bytes_per_line,
-						size_t lines, size_t line_stride,
-						bool with_congestion,
-						size_t header_size)
+  size_t GASNet1Module::recommended_max_payload(NodeID target, const void *data,
+                                                size_t bytes_per_line, size_t lines,
+                                                size_t line_stride, bool with_congestion,
+                                                size_t header_size)
   {
     return gasnet_AMMaxMedium();
   }
 
-  size_t GASNet1Module::recommended_max_payload(const NodeSet& targets,
-							const void *data, size_t bytes_per_line,
-							size_t lines, size_t line_stride,
-						bool with_congestion,
-						size_t header_size)
+  size_t GASNet1Module::recommended_max_payload(const NodeSet &targets, const void *data,
+                                                size_t bytes_per_line, size_t lines,
+                                                size_t line_stride, bool with_congestion,
+                                                size_t header_size)
   {
     return gasnet_AMMaxMedium();
   }
@@ -969,6 +925,5 @@ namespace Realm {
     size_t maxlong = gasnet_AMMaxLongRequest();
     return std::min(maxlong, std::min(bytes_per_line, size_t(4 << 20)));
   }
-  
 
 }; // namespace Realm

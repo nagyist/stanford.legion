@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +32,7 @@ namespace Realm {
   class REALM_PUBLIC_API ModuleConfig {
   protected:
     ModuleConfig(const std::string &name);
+
   public:
     virtual ~ModuleConfig(void);
     template <typename T>
@@ -37,15 +40,15 @@ namespace Realm {
     template <typename T>
     RealmStatus get_property(const std::string &name, T &value) const;
     void finish_configure(void);
-    const std::string& get_name(void) const;
+    const std::string &get_name(void) const;
     template <typename T>
     RealmStatus get_resource(const std::string &name, T &value) const;
-    virtual void configure_from_cmdline(std::vector<std::string>& cmdline);
+    virtual void configure_from_cmdline(std::vector<std::string> &cmdline);
 
   protected:
     // these maps store a map between configuration name and address of configurations,
     //  so that we can access these configurations using the name
-    std::unordered_map<std::string, void* const> config_map;
+    std::unordered_map<std::string, void *const> config_map;
 
     // these maps store a map between resource name and address of resource,
     //  so that we can access these resources using the name

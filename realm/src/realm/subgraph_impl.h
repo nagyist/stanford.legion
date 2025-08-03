@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +29,7 @@ namespace Realm {
   struct SubgraphScheduleEntry {
     SubgraphDefinition::OpKind op_kind;
     unsigned op_index;
-    std::vector<std::pair<unsigned, int> > preconditions;
+    std::vector<std::pair<unsigned, int>> preconditions;
     unsigned first_interp, num_interps;
     unsigned intermediate_event_base, intermediate_event_count;
     bool is_final_event;
@@ -49,12 +51,9 @@ namespace Realm {
     // compile/analyze the subgraph
     bool compile(void);
 
-    void instantiate(const void *args, size_t arglen,
-		     const ProfilingRequestSet& prs,
-		     span<const Event> preconditions,
-		     span<const Event> postconditions,
-		     Event start_event, Event finish_event,
-		     int priority_adjust);
+    void instantiate(const void *args, size_t arglen, const ProfilingRequestSet &prs,
+                     span<const Event> preconditions, span<const Event> postconditions,
+                     Event start_event, Event finish_event, int priority_adjust);
 
     void destroy(void);
 
@@ -62,7 +61,7 @@ namespace Realm {
     public:
       void defer(SubgraphImpl *_subgraph, Event wait_on);
       virtual void event_triggered(bool poisoned, TimeLimit work_until);
-      virtual void print(std::ostream& os) const;
+      virtual void print(std::ostream &os) const;
       virtual Event get_finish_event(void) const;
 
     protected:
@@ -87,8 +86,8 @@ namespace Realm {
     size_t arglen;
     int priority_adjust;
 
-    static void handle_message(NodeID sender, const SubgraphInstantiateMessage& msg,
-			       const void *data, size_t datalen);
+    static void handle_message(NodeID sender, const SubgraphInstantiateMessage &msg,
+                               const void *data, size_t datalen);
   };
 
   struct SubgraphDestroyMessage {
@@ -96,9 +95,8 @@ namespace Realm {
     Event wait_on;
 
     static void handle_message(NodeID sender, const SubgraphDestroyMessage &msg,
-			       const void *data, size_t datalen);
+                               const void *data, size_t datalen);
   };
-
 
 }; // namespace Realm
 

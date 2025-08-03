@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,18 +42,18 @@ namespace Realm {
 
       virtual ~LLVMCodeTranslator(void);
 
-      virtual bool can_translate(const std::type_info& source_impl_type,
-				 const std::type_info& target_impl_type);
+      virtual bool can_translate(const std::type_info &source_impl_type,
+                                 const std::type_info &target_impl_type);
 
       virtual CodeImplementation *translate(const CodeImplementation *source,
-					    const std::type_info& target_impl_type);
+                                            const std::type_info &target_impl_type);
 
       // C++ considers the above a "partial override" and wants these defined too
-      virtual bool can_translate(const CodeDescriptor& source_codedesc,
-				 const std::type_info& target_impl_type);
+      virtual bool can_translate(const CodeDescriptor &source_codedesc,
+                                 const std::type_info &target_impl_type);
 
-      virtual CodeImplementation *translate(const CodeDescriptor& source_codedesc,
-					    const std::type_info& target_impl_type);
+      virtual CodeImplementation *translate(const CodeDescriptor &source_codedesc,
+                                            const std::type_info &target_impl_type);
 
     protected:
       LLVMJitModule *module;
@@ -62,48 +64,48 @@ namespace Realm {
       , module(_module)
     {}
 
-    LLVMCodeTranslator::~LLVMCodeTranslator(void)
-    {}
+    LLVMCodeTranslator::~LLVMCodeTranslator(void) {}
 
-    bool LLVMCodeTranslator::can_translate(const std::type_info& source_impl_type,
-					   const std::type_info& target_impl_type)
+    bool LLVMCodeTranslator::can_translate(const std::type_info &source_impl_type,
+                                           const std::type_info &target_impl_type)
     {
       // LLVM IR -> function pointer
       if((source_impl_type == typeid(LLVMIRImplementation)) &&
-	 (target_impl_type == typeid(FunctionPointerImplementation)))
-	return true;
+         (target_impl_type == typeid(FunctionPointerImplementation)))
+        return true;
 
       return false;
     }
 
-    CodeImplementation *LLVMCodeTranslator::translate(const CodeImplementation *source,
-						      const std::type_info& target_impl_type)
+    CodeImplementation *
+    LLVMCodeTranslator::translate(const CodeImplementation *source,
+                                  const std::type_info &target_impl_type)
     {
       if(target_impl_type == typeid(FunctionPointerImplementation)) {
-	const LLVMIRImplementation *llvmir = dynamic_cast<const LLVMIRImplementation *>(source);
-	assert(llvmir != 0);
+        const LLVMIRImplementation *llvmir =
+            dynamic_cast<const LLVMIRImplementation *>(source);
+        assert(llvmir != 0);
 
-	void *fnptr = module->internal->llvmir_to_fnptr(llvmir->ir,
-							llvmir->entry_symbol);
-	return new FunctionPointerImplementation((void(*)())fnptr);
+        void *fnptr = module->internal->llvmir_to_fnptr(llvmir->ir, llvmir->entry_symbol);
+        return new FunctionPointerImplementation((void (*)())fnptr);
       }
 
       assert(0);
     }
 
     // these pass through to CodeTranslator's definitions
-    bool LLVMCodeTranslator::can_translate(const CodeDescriptor& source_codedesc,
-					   const std::type_info& target_impl_type)
+    bool LLVMCodeTranslator::can_translate(const CodeDescriptor &source_codedesc,
+                                           const std::type_info &target_impl_type)
     {
       return CodeTranslator::can_translate(source_codedesc, target_impl_type);
     }
 
-    CodeImplementation *LLVMCodeTranslator::translate(const CodeDescriptor& source_codedesc,
-						      const std::type_info& target_impl_type)
+    CodeImplementation *
+    LLVMCodeTranslator::translate(const CodeDescriptor &source_codedesc,
+                                  const std::type_info &target_impl_type)
     {
       return CodeTranslator::translate(source_codedesc, target_impl_type);
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -113,9 +115,8 @@ namespace Realm {
       : Module("llvmjit")
       , internal(0)
     {}
-      
-    LLVMJitModule::~LLVMJitModule(void)
-    {}
+
+    LLVMJitModule::~LLVMJitModule(void) {}
 
     /*static*/ ModuleConfig *LLVMJitModule::create_module_config(RuntimeImpl *runtime)
     {
@@ -126,10 +127,10 @@ namespace Realm {
     {
 #ifdef REALM_ALLOW_MISSING_LLVM_LIBS
       if(LLVMJitInternal::detect_llvm_libraries()) {
-	llvmjit_available = true;
+        llvmjit_available = true;
       } else {
-	log_llvmjit.info() << "LLVM libs not found - disabling JIT functionality";
-	return 0;
+        log_llvmjit.info() << "LLVM libs not found - disabling JIT functionality";
+        return 0;
       }
 #endif
       LLVMJitModule *m = new LLVMJitModule;
@@ -164,24 +165,23 @@ namespace Realm {
 
   }; // namespace LLVMJit
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class LLVMIRImplementation
 
   /*static*/ Serialization::PolymorphicSerdezSubclass<CodeImplementation,
-						      LLVMIRImplementation> LLVMIRImplementation::serdez_subclass;
+                                                      LLVMIRImplementation>
+      LLVMIRImplementation::serdez_subclass;
 
-  LLVMIRImplementation::LLVMIRImplementation(void)
-  {}
+  LLVMIRImplementation::LLVMIRImplementation(void) {}
 
-  LLVMIRImplementation::LLVMIRImplementation(const void *irdata, size_t irlen, const std::string& _entry_symbol)
+  LLVMIRImplementation::LLVMIRImplementation(const void *irdata, size_t irlen,
+                                             const std::string &_entry_symbol)
     : ir(irdata, irlen)
     , entry_symbol(_entry_symbol)
   {}
-  
-  LLVMIRImplementation::~LLVMIRImplementation(void)
-  {}
+
+  LLVMIRImplementation::~LLVMIRImplementation(void) {}
 
   CodeImplementation *LLVMIRImplementation::clone(void) const
   {
@@ -191,12 +191,9 @@ namespace Realm {
     return i;
   }
 
-  bool LLVMIRImplementation::is_portable(void) const
-  {
-    return true;
-  }
+  bool LLVMIRImplementation::is_portable(void) const { return true; }
 
-  void LLVMIRImplementation::print(std::ostream& os) const
+  void LLVMIRImplementation::print(std::ostream &os) const
   {
     os << "LLVMIR(" << entry_symbol << "," << ir.size() << " bytes)";
   }

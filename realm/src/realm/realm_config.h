@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +37,8 @@
 // if set, uses ucontext.h for user level thread switching, otherwise falls
 //  back to POSIX threads
 // address sanitizer doesn't cope with makecontext/swapcontext either
-#if !defined(REALM_USE_NATIVE_THREADS) && !defined(REALM_ON_MACOS) && !defined(ASAN_ENABLED)
+#if !defined(REALM_USE_NATIVE_THREADS) && !defined(REALM_ON_MACOS) &&                    \
+    !defined(ASAN_ENABLED)
 // clang on Mac is generating apparently-broken code in the user thread
 //  scheduler, so disable this code path for now
 #define REALM_USE_USER_THREADS
@@ -43,10 +46,10 @@
 
 // dynamic loading via dlfcn and a not-completely standard dladdr extension
 #ifdef REALM_USE_LIBDL
-  #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
-    #define REALM_USE_DLFCN
-    #define REALM_USE_DLADDR
-  #endif
+#if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
+#define REALM_USE_DLFCN
+#define REALM_USE_DLADDR
+#endif
 #endif
 
 // can Realm use exceptions to propagate errors back to the profiling interace?
@@ -67,10 +70,10 @@
 // TODO: reenable this
 #define REALM_USE_CACHING_ALLOCATOR 0
 #if !defined(REALM_USE_CACHING_ALLOCATOR) && !defined(ASAN_ENABLED)
-  #define REALM_USE_CACHING_ALLOCATOR 1
-  #ifndef REALM_TASK_BLOCK_SIZE
-    #define REALM_TASK_BLOCK_SIZE (128ULL*1024ULL)
-  #endif
+#define REALM_USE_CACHING_ALLOCATOR 1
+#ifndef REALM_TASK_BLOCK_SIZE
+#define REALM_TASK_BLOCK_SIZE (128ULL * 1024ULL)
+#endif
 #endif
 
 #if defined(REALM_USE_SHM)
@@ -83,7 +86,8 @@
 #endif
 
 #if defined(REALM_ON_WINDOWS)
-// ANONYMOUS_SHARED_MEMORY requires ipc mailbox support, which is not yet implemented on windows
+// ANONYMOUS_SHARED_MEMORY requires ipc mailbox support, which is not yet implemented on
+// windows
 // TODO: Support this on windows
 //#define REALM_USE_ANONYMOUS_SHARED_MEMORY 1
 #elif !defined(REALM_USE_ANONYMOUS_SHARED_MEMORY)
@@ -108,8 +112,8 @@ namespace Realm {
     // when dealing with named system resources while running parallel jobs on the same
     // machine
     extern unsigned long long job_id;
-  };
-};
+  }; // namespace Config
+};   // namespace Realm
 #endif
 
 #endif

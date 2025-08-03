@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +40,7 @@ namespace Realm {
     (void)prev;
 #else
     state.store(STATE_PENDING_AWAKE);
-    #endif
+#endif
   }
 
   inline void Doorbell::cancel()
@@ -50,7 +52,7 @@ namespace Realm {
     (void)prev;
 #else
     state.store(STATE_IDLE);
-    #endif
+#endif
   }
 
   inline bool Doorbell::satisfied()
@@ -126,7 +128,6 @@ namespace Realm {
 #endif
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class DoorbellList
@@ -144,17 +145,16 @@ namespace Realm {
         db->next_doorbell = reinterpret_cast<Doorbell *>(oldval);
         uintptr_t newval = reinterpret_cast<uintptr_t>(db);
         if(head_or_count.compare_exchange(oldval, newval))
-          return true;  // added to list
+          return true; // added to list
       } else {
         // appears to be a nonzero "extra count" - try to take one
         uintptr_t newval = ((oldval == 1) ? 0 : (oldval - 2));
         if(head_or_count.compare_exchange(oldval, newval))
-          return false;  // consumed token
+          return false; // consumed token
       }
       // CAS on one path or the other failed - try again...
     }
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -199,7 +199,6 @@ namespace Realm {
     }
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class FIFOMutex
@@ -243,7 +242,6 @@ namespace Realm {
     }
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class MutexChecker
@@ -269,7 +267,7 @@ namespace Realm {
   {
     // unconditional increment of count - if it exceeds the limit we've
     //  violated the supposed invariant
-    int actval = cur_count.fetch_add(1);  // NOTE: intentionally relaxed MO
+    int actval = cur_count.fetch_add(1); // NOTE: intentionally relaxed MO
     if(REALM_UNLIKELY((actval < 0) || (actval >= limit)))
       lock_fail(actval, cs);
   }
@@ -295,13 +293,12 @@ namespace Realm {
     }
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class MutexChecker::CheckedScope
   //
 
-  inline MutexChecker::CheckedScope::CheckedScope(MutexChecker& _checker,
+  inline MutexChecker::CheckedScope::CheckedScope(MutexChecker &_checker,
                                                   const char *_name,
                                                   void *_object /*= 0*/)
     : checker(_checker)
@@ -311,11 +308,7 @@ namespace Realm {
     checker.lock(this);
   }
 
-  inline MutexChecker::CheckedScope::~CheckedScope()
-  {
-    checker.unlock(this);
-  }
-
+  inline MutexChecker::CheckedScope::~CheckedScope() { checker.unlock(this); }
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -323,14 +316,15 @@ namespace Realm {
   //
 
   template <typename LT>
-  inline AutoLock<LT>::AutoLock(LT& mutex)
-    : mutex(mutex), held(true)
-  { 
+  inline AutoLock<LT>::AutoLock(LT &mutex)
+    : mutex(mutex)
+    , held(true)
+  {
     mutex.lock();
   }
 
   template <typename LT>
-  inline AutoLock<LT>::~AutoLock(void) 
+  inline AutoLock<LT>::~AutoLock(void)
   {
     if(held)
       mutex.unlock();
@@ -356,5 +350,4 @@ namespace Realm {
     held = true;
   }
 
-  
-};
+}; // namespace Realm

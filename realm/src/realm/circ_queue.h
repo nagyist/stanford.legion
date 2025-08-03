@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,23 +49,23 @@ namespace Realm {
     void reserve(size_t new_capacity);
     void clear(void);
 
-    T& front(void);
-    const T& front(void) const;
-    void push_front(const T& val);
+    T &front(void);
+    const T &front(void) const;
+    void push_front(const T &val);
     void pop_front(void);
 
-    T& back(void);
-    const T& back(void) const;
-    void push_back(const T& val);
+    T &back(void);
+    const T &back(void) const;
+    void push_back(const T &val);
     void pop_back(void);
 
-    void swap(CircularQueue<T, INTSIZE>& swap_with);
+    void swap(CircularQueue<T, INTSIZE> &swap_with);
 
     template <unsigned INTSIZE2>
-    void swap(CircularQueue<T, INTSIZE2>& swap_with);
+    void swap(CircularQueue<T, INTSIZE2> &swap_with);
 
-    typedef CircularQueueIterator<T,INTSIZE> iterator;
-    typedef CircularQueueIterator<T const,INTSIZE> const_iterator;
+    typedef CircularQueueIterator<T, INTSIZE> iterator;
+    typedef CircularQueueIterator<T const, INTSIZE> const_iterator;
 
     iterator begin(void);
     iterator end(void);
@@ -72,22 +74,23 @@ namespace Realm {
     const_iterator end(void) const;
 
   protected:
-    friend class CircularQueueIterator<T,INTSIZE>;
+    friend class CircularQueueIterator<T, INTSIZE>;
 
     T *item_ptr(char *base, size_t idx) const;
     const T *item_ptr(const char *base, size_t idx) const;
 
     // put this first for alignment goodness
-    char   internal_buffer[ITEMSIZE * INTSIZE];
-    char  *external_buffer;
-    size_t current_size;  // number of elements currently in queue
-    size_t max_size;      // size of underlying storage
-    size_t head;          // index of first valid element (i.e. front)
-    size_t tail;          // index of last valid element (i.e. back)
-                          //  (when empty, tail = head - 1 (mod capacity) )
-    int growth_factor;    // how to grow when more space is needed
-                          // if > 0, an additive increase on current capacity
-                          // if < 0, a multiplicative increase (i.e. new_cap = cap * abs(growth) )
+    char internal_buffer[ITEMSIZE * INTSIZE];
+    char *external_buffer;
+    size_t current_size; // number of elements currently in queue
+    size_t max_size;     // size of underlying storage
+    size_t head;         // index of first valid element (i.e. front)
+    size_t tail;         // index of last valid element (i.e. back)
+                         //  (when empty, tail = head - 1 (mod capacity) )
+    int growth_factor;   // how to grow when more space is needed
+                         // if > 0, an additive increase on current capacity
+                         // if < 0, a multiplicative increase (i.e. new_cap = cap *
+                         // abs(growth) )
   };
 
   template <typename T, unsigned INTSIZE>
@@ -98,30 +101,31 @@ namespace Realm {
     typedef T value_type;
     typedef std::ptrdiff_t difference_type;
     typedef T *pointer;
-    typedef T& reference;
+    typedef T &reference;
 
   protected:
-    friend class CircularQueue<T,INTSIZE>;
+    friend class CircularQueue<T, INTSIZE>;
 
-    CircularQueueIterator(CircularQueue<T,INTSIZE> *_cq, size_t _pos, bool _at_end);
+    CircularQueueIterator(CircularQueue<T, INTSIZE> *_cq, size_t _pos, bool _at_end);
 
   public:
     CircularQueueIterator(void);
-    CircularQueueIterator(const CircularQueueIterator<T,INTSIZE>& copy_from);
+    CircularQueueIterator(const CircularQueueIterator<T, INTSIZE> &copy_from);
 
-    CircularQueueIterator<T,INTSIZE>& operator=(const CircularQueueIterator<T,INTSIZE>& copy_from);
+    CircularQueueIterator<T, INTSIZE> &
+    operator=(const CircularQueueIterator<T, INTSIZE> &copy_from);
 
-    bool operator==(const CircularQueueIterator<T,INTSIZE>& compare_to) const;
-    bool operator!=(const CircularQueueIterator<T,INTSIZE>& compare_to) const;
+    bool operator==(const CircularQueueIterator<T, INTSIZE> &compare_to) const;
+    bool operator!=(const CircularQueueIterator<T, INTSIZE> &compare_to) const;
 
     T operator*(void);
     const T *operator->(void);
 
-    CircularQueueIterator<T,INTSIZE>& operator++(/*prefix*/);
-    CircularQueueIterator<T,INTSIZE> operator++(int /*postfix*/);
+    CircularQueueIterator<T, INTSIZE> &operator++(/*prefix*/);
+    CircularQueueIterator<T, INTSIZE> operator++(int /*postfix*/);
 
   protected:
-    CircularQueue<T,INTSIZE> *cq;
+    CircularQueue<T, INTSIZE> *cq;
     size_t pos;
     bool at_end;
   };
@@ -131,4 +135,3 @@ namespace Realm {
 #include "realm/circ_queue.inl"
 
 #endif // ifndef REALM_CIRC_QUEUE_H
-

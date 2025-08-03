@@ -1,21 +1,24 @@
 # Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
-# in compliance with the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software distributed under the License
-# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
-# or implied. See the License for the specific language governing permissions and limitations under
-# the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 if(TARGET GASNet::GASNet)
   return()
 endif()
 
 find_package(PkgConfig)
-if (NOT PkgConfig_FOUND)
+if(NOT PkgConfig_FOUND)
   return()
 endif()
 
@@ -28,12 +31,12 @@ else()
   set(_GASNET_MT seq)
 endif()
 
-if(NOT GASNet_ROOT_DIR)
-  set(GASNet_ROOT_DIR "$ENV{GASNET_ROOT}")
+if(NOT GASNet_ROOT)
+  set(GASNet_ROOT "$ENV{GASNET_ROOT}")
 endif()
 
-if(GASNet_ROOT_DIR)
-  set(_pkg_config "$ENV{PKG_CONFIG_PATH}" "${GASNet_ROOT_DIR}/lib/pkgconfig")
+if(GASNet_ROOT)
+  set(_pkg_config "$ENV{PKG_CONFIG_PATH}" "${GASNet_ROOT}/lib/pkgconfig")
   list(JOIN _pkg_config : _pkg_config_var)
   set(ENV{PKG_CONFIG_PATH} "${_pkg_config_var}")
 endif()
@@ -57,7 +60,7 @@ pkg_search_module(GASNet ${_GASNet_search_modules} IMPORTED_TARGET GASNet)
 # contained within MPI, we really just need the MPI library, so add it as a
 # transitive dependency here.  In theory, there may be more of these cases with
 # different conduits, but we'll deal with those on a case-by-case basis
-if (GASNet_FOUND)
+if(GASNet_FOUND)
   pkg_get_variable(_needs_mpi ${GASNet_MODULE_NAME} GASNET_LD_REQUIRES_MPI)
 
   if(_needs_mpi STREQUAL "1")

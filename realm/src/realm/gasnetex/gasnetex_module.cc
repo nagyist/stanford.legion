@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +38,7 @@ namespace Realm {
   Logger log_gex("gex");
 
   // bit twiddling tricks
-  static bool is_pow2(size_t val)
-  {
-    return ((val & (val - 1)) == 0);
-  }
+  static bool is_pow2(size_t val) { return ((val & (val - 1)) == 0); }
 
   template <typename T>
   static T roundup_pow2(T val, size_t alignment)
@@ -47,7 +46,6 @@ namespace Realm {
     assert(is_pow2(alignment));
     return ((val + alignment - 1) & ~(alignment - 1));
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -62,7 +60,7 @@ namespace Realm {
     virtual void get_bytes(off_t offset, void *dst, size_t size);
     virtual void put_bytes(off_t offset, const void *src, size_t size);
 
-    virtual bool get_remote_addr(off_t offset, RemoteAddress& remote_addr);
+    virtual bool get_remote_addr(off_t offset, RemoteAddress &remote_addr);
 
   protected:
     uintptr_t regbase;
@@ -83,20 +81,18 @@ namespace Realm {
     assert(0);
   }
 
-  void GASNetEXRemoteMemory::put_bytes(off_t offset,
-				      const void *src, size_t size)
+  void GASNetEXRemoteMemory::put_bytes(off_t offset, const void *src, size_t size)
   {
     // TODO
     assert(0);
   }
 
-  bool GASNetEXRemoteMemory::get_remote_addr(off_t offset, RemoteAddress& remote_addr)
+  bool GASNetEXRemoteMemory::get_remote_addr(off_t offset, RemoteAddress &remote_addr)
   {
     remote_addr.ptr = regbase + offset;
     remote_addr.extra = ep_index;
     return true;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -108,7 +104,7 @@ namespace Realm {
     GASNetEXIBMemory(RuntimeImpl *_runtime_impl, Memory _me, size_t _size, Memory::Kind k,
                      uintptr_t _regbase, gex_ep_index_t _ep_index);
 
-    virtual bool get_remote_addr(off_t offset, RemoteAddress& remote_addr);
+    virtual bool get_remote_addr(off_t offset, RemoteAddress &remote_addr);
 
   protected:
     uintptr_t regbase;
@@ -123,13 +119,12 @@ namespace Realm {
     , ep_index(_ep_index)
   {}
 
-  bool GASNetEXIBMemory::get_remote_addr(off_t offset, RemoteAddress& remote_addr)
+  bool GASNetEXIBMemory::get_remote_addr(off_t offset, RemoteAddress &remote_addr)
   {
     remote_addr.ptr = regbase + offset;
     remote_addr.extra = ep_index;
     return true;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -143,14 +138,10 @@ namespace Realm {
                         size_t _max_payload_size, const void *_src_payload_addr,
                         size_t _src_payload_lines, size_t _src_payload_line_stride,
                         uintptr_t _dest_payload_addr, gex_ep_index_t _dest_ep_index);
-    GASNetEXMessageImpl(GASNetEXInternal *_internal,
-			const Realm::NodeSet &_targets,
-			unsigned short _msgid,
-			size_t _header_size,
-			size_t _max_payload_size,
-			const void *_src_payload_addr,
-			size_t _src_payload_lines,
-			size_t _src_payload_line_stride);
+    GASNetEXMessageImpl(GASNetEXInternal *_internal, const Realm::NodeSet &_targets,
+                        unsigned short _msgid, size_t _header_size,
+                        size_t _max_payload_size, const void *_src_payload_addr,
+                        size_t _src_payload_lines, size_t _src_payload_line_stride);
 
     virtual ~GASNetEXMessageImpl();
 
@@ -208,32 +199,27 @@ namespace Realm {
     payload_size = _max_payload_size;
     if(payload_size > 0) {
       if((src_payload_addr != nullptr) && (src_payload_lines <= 1)) {
-	// contiguous source data can be offered up directly
-	payload_base = const_cast<void *>(src_payload_addr);
+        // contiguous source data can be offered up directly
+        payload_base = const_cast<void *>(src_payload_addr);
       } else if((header_padded + payload_size) <= INLINE_SIZE) {
-	// offer up the rest of our internal storage for the payload
+        // offer up the rest of our internal storage for the payload
         payload_base = &msg_data[header_padded / sizeof(gex_am_arg_t)];
       } else {
-	// internal logic will have to find us some memory to use
-	payload_base = nullptr;
+        // internal logic will have to find us some memory to use
+        payload_base = nullptr;
       }
     } else
-      payload_base = nullptr;  // no payload
+      payload_base = nullptr; // no payload
 
-    msg = internal->prepare_message(target, _dest_ep_index, msgid,
-				    header_base, header_size,
-				    payload_base, payload_size,
-				    _dest_payload_addr);
+    msg =
+        internal->prepare_message(target, _dest_ep_index, msgid, header_base, header_size,
+                                  payload_base, payload_size, _dest_payload_addr);
   }
 
-  GASNetEXMessageImpl::GASNetEXMessageImpl(GASNetEXInternal *_internal,
-					   const Realm::NodeSet &_targets,
-					   unsigned short _msgid,
-					   size_t _header_size,
-					   size_t _max_payload_size,
-					   const void *_src_payload_addr,
-					   size_t _src_payload_lines,
-					   size_t _src_payload_line_stride)
+  GASNetEXMessageImpl::GASNetEXMessageImpl(
+      GASNetEXInternal *_internal, const Realm::NodeSet &_targets, unsigned short _msgid,
+      size_t _header_size, size_t _max_payload_size, const void *_src_payload_addr,
+      size_t _src_payload_lines, size_t _src_payload_line_stride)
     : internal(_internal)
     , targets(_targets)
     , is_multicast(true)
@@ -252,23 +238,21 @@ namespace Realm {
     payload_size = _max_payload_size;
     if(payload_size > 0) {
       if(src_payload_addr != nullptr) {
-	// use the caller's storage for now
-	payload_base = const_cast<void *>(src_payload_addr);
+        // use the caller's storage for now
+        payload_base = const_cast<void *>(src_payload_addr);
       } else if((header_padded + payload_size) <= INLINE_SIZE) {
-	// we can use the rest of our internal storage
+        // we can use the rest of our internal storage
         payload_base = &msg_data[header_padded / sizeof(gex_am_arg_t)];
       } else {
-	// have to dynamically allocate storage
-	payload_base = malloc(payload_size);
-	assert(payload_base != 0);
+        // have to dynamically allocate storage
+        payload_base = malloc(payload_size);
+        assert(payload_base != 0);
       }
     } else
       payload_base = nullptr;
   }
 
-  GASNetEXMessageImpl::~GASNetEXMessageImpl()
-  {
-  }
+  GASNetEXMessageImpl::~GASNetEXMessageImpl() {}
 
   void *GASNetEXMessageImpl::add_local_completion(size_t size)
   {
@@ -294,68 +278,67 @@ namespace Realm {
       unsigned exp_local = targets.size();
       unsigned exp_remote = exp_local;
       if(comp && !comp->mark_ready(exp_local, exp_remote))
-	comp = nullptr;
+        comp = nullptr;
 
       for(NodeID tgt : targets) {
-	void *act_header = header_base;
-	// can't use src payload directly if it's 2d
-	void *act_payload = ((src_payload_lines <= 1) ? payload_base : nullptr);
+        void *act_header = header_base;
+        // can't use src payload directly if it's 2d
+        void *act_payload = ((src_payload_lines <= 1) ? payload_base : nullptr);
 
-	PreparedMessage *msg;
-	msg = internal->prepare_message(tgt, 0 /*always prim EP*/, msgid,
-					act_header, header_size,
-					act_payload, act_payload_size,
-					0 /* no RDMA destination*/);
+        PreparedMessage *msg;
+        msg = internal->prepare_message(tgt, 0 /*always prim EP*/, msgid, act_header,
+                                        header_size, act_payload, act_payload_size,
+                                        0 /* no RDMA destination*/);
 
-	if(act_header != header_base)
-	  memcpy(act_header, header_base, header_size);
-	if(act_payload != payload_base) {
-	  if(src_payload_lines > 1) {
-	    // copy line by line
-	    size_t bytes_per_line = act_payload_size / src_payload_lines;
-	    for(size_t i = 0; i < src_payload_lines; i++)
-	      memcpy(static_cast<char *>(act_payload) + (i * bytes_per_line),
-		     static_cast<const char *>(payload_base) + (i * src_payload_line_stride),
-		     bytes_per_line);
-	  } else {
-	    // simple memcpy
-	    memcpy(act_payload, payload_base, act_payload_size);
-	  }
-	}
+        if(act_header != header_base)
+          memcpy(act_header, header_base, header_size);
+        if(act_payload != payload_base) {
+          if(src_payload_lines > 1) {
+            // copy line by line
+            size_t bytes_per_line = act_payload_size / src_payload_lines;
+            for(size_t i = 0; i < src_payload_lines; i++)
+              memcpy(static_cast<char *>(act_payload) + (i * bytes_per_line),
+                     static_cast<const char *>(payload_base) +
+                         (i * src_payload_line_stride),
+                     bytes_per_line);
+          } else {
+            // simple memcpy
+            memcpy(act_payload, payload_base, act_payload_size);
+          }
+        }
 
-	internal->commit_message(msg, comp,
-				 act_header, header_size,
-				 act_payload, act_payload_size);
+        internal->commit_message(msg, comp, act_header, header_size, act_payload,
+                                 act_payload_size);
       }
 
       // if we dynamically allocated space for the payload, free that now
       if((payload_size > 0) && (src_payload_addr == nullptr) &&
-	 ((header_size + payload_size) > INLINE_SIZE))
-	free(payload_base);
+         ((header_size + payload_size) > INLINE_SIZE))
+        free(payload_base);
     } else {
       // arm the pending completion (if present)
       if(comp && !comp->mark_ready(1 /*exp_local*/, 1 /*exp_remote*/))
-	comp = nullptr;
+        comp = nullptr;
 
       if((src_payload_addr != 0) && (payload_base != src_payload_addr)) {
-	if(src_payload_lines > 1) {
-	  // copy line by line
-	  size_t bytes_per_line = act_payload_size / src_payload_lines;
-	  for(size_t i = 0; i < src_payload_lines; i++)
-	    memcpy(static_cast<char *>(payload_base) + (i * bytes_per_line),
-		   static_cast<const char *>(src_payload_addr) + (i * src_payload_line_stride),
-		   bytes_per_line);
-	} else {
-	  // simple memcpy
-	  memcpy(payload_base, src_payload_addr, act_payload_size);
-	}
+        if(src_payload_lines > 1) {
+          // copy line by line
+          size_t bytes_per_line = act_payload_size / src_payload_lines;
+          for(size_t i = 0; i < src_payload_lines; i++)
+            memcpy(static_cast<char *>(payload_base) + (i * bytes_per_line),
+                   static_cast<const char *>(src_payload_addr) +
+                       (i * src_payload_line_stride),
+                   bytes_per_line);
+        } else {
+          // simple memcpy
+          memcpy(payload_base, src_payload_addr, act_payload_size);
+        }
 
-	comp = internal->early_local_completion(comp);
+        comp = internal->early_local_completion(comp);
       }
 
-      internal->commit_message(msg, comp,
-			       header_base, header_size,
-			       payload_base, act_payload_size);
+      internal->commit_message(msg, comp, header_base, header_size, payload_base,
+                               act_payload_size);
     }
   }
 
@@ -365,13 +348,12 @@ namespace Realm {
       // we never told the internal gex logic about this, so all we have to
       //  is free payload memory if we allocated it
       if((payload_size > 0) && (src_payload_addr == nullptr) &&
-	 ((header_size + payload_size) > INLINE_SIZE))
-	free(payload_base);
+         ((header_size + payload_size) > INLINE_SIZE))
+        free(payload_base);
     } else {
       internal->cancel_message(msg);
     }
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -402,14 +384,11 @@ namespace Realm {
     , internal(nullptr)
   {}
 
-  GASNetEXModule::~GASNetEXModule()
-  {
-    delete internal;
-  }
+  GASNetEXModule::~GASNetEXModule() { delete internal; }
 
   /*static*/ NetworkModule *GASNetEXModule::create_network_module(RuntimeImpl *runtime,
-								  int *argc,
-								  const char ***argv)
+                                                                  int *argc,
+                                                                  const char ***argv)
   {
     GASNetEXModule *mod = new GASNetEXModule;
 
@@ -449,28 +428,28 @@ namespace Realm {
   // actual parsing of the command line should wait until here if at all
   //  possible
   void GASNetEXModule::parse_command_line(RuntimeImpl *runtime,
-					  std::vector<std::string>& cmdline)
+                                          std::vector<std::string> &cmdline)
   {
     CommandLineParser cp;
     cp.add_option_int("-gex:immediate", cfg_use_immediate)
-      .add_option_int("-gex:negotiated", cfg_use_negotiated)
-      .add_option_int_units("-gex:maxmed", cfg_max_medium)
-      .add_option_int_units("-gex:maxlong", cfg_max_long, 'm')
-      .add_option_int("-gex:crittime", cfg_crit_timeout)
-      .add_option_int("-gex:bindhost", cfg_bind_hostmem)
+        .add_option_int("-gex:negotiated", cfg_use_negotiated)
+        .add_option_int_units("-gex:maxmed", cfg_max_medium)
+        .add_option_int_units("-gex:maxlong", cfg_max_long, 'm')
+        .add_option_int("-gex:crittime", cfg_crit_timeout)
+        .add_option_int("-gex:bindhost", cfg_bind_hostmem)
 #ifdef REALM_USE_CUDA
-      .add_option_int("-gex:bindcuda", cfg_bind_cudamem)
+        .add_option_int("-gex:bindcuda", cfg_bind_cudamem)
 #endif
 #ifdef REALM_USE_HIP
-      .add_option_int("-gex:bindhip", cfg_bind_hipmem)
+        .add_option_int("-gex:bindhip", cfg_bind_hipmem)
 #endif
-      .add_option_int("-gex:cksum", cfg_do_checksums)
-      .add_option_int("-gex:batch", cfg_batch_messages)
-      .add_option_int("-gex:obcount", cfg_outbuf_count)
-      .add_option_int_units("-gex:obsize", cfg_outbuf_size)
-      .add_option_int("-gex:forcerma", cfg_force_rma)
-      .add_option_int("-gex:rmaput", cfg_use_rma_put)
-      .add_option_int("-gex:amlimit", cfg_am_limit);
+        .add_option_int("-gex:cksum", cfg_do_checksums)
+        .add_option_int("-gex:batch", cfg_batch_messages)
+        .add_option_int("-gex:obcount", cfg_outbuf_count)
+        .add_option_int_units("-gex:obsize", cfg_outbuf_size)
+        .add_option_int("-gex:forcerma", cfg_force_rma)
+        .add_option_int("-gex:rmaput", cfg_use_rma_put)
+        .add_option_int("-gex:amlimit", cfg_am_limit);
     size_t deprecated_gsize = 0;
     cp.add_option_int_units("-ll:gsize", deprecated_gsize, 'm');
 
@@ -478,7 +457,8 @@ namespace Realm {
     assert(ok);
 
     if(deprecated_gsize > 0) {
-      log_gex.fatal() << "Realm GASNetEX implementation does not provide a 'global' memory - '-ll:gsize' not permitted";
+      log_gex.fatal() << "Realm GASNetEX implementation does not provide a 'global' "
+                         "memory - '-ll:gsize' not permitted";
       abort();
     }
 
@@ -489,9 +469,10 @@ namespace Realm {
     if(cfg_outbuf_count < min_obufs) {
       // issue a warning unless the user asked for 0 to mean "minimum"
       if((cfg_outbuf_count > 0) && (Network::my_node_id == 0))
-        log_gex.warning() << "outbuf count raised from requested "
-                          << cfg_outbuf_count << " to required minimum "
-                          << min_obufs << " - if memory capacity issues result, reduce outbuf size using -gex:obsize";
+        log_gex.warning() << "outbuf count raised from requested " << cfg_outbuf_count
+                          << " to required minimum " << min_obufs
+                          << " - if memory capacity issues result, reduce outbuf size "
+                             "using -gex:obsize";
       cfg_outbuf_count = min_obufs;
     }
 
@@ -508,20 +489,22 @@ namespace Realm {
   //  bind/register/(pick your network-specific verb) the requested memory
   //  segments with the network
   void GASNetEXModule::attach(RuntimeImpl *runtime,
-			     std::vector<NetworkSegment *>& segments)
+                              std::vector<NetworkSegment *> &segments)
   {
     // total up the size of all segments we'll try to fit into the gasnet
     //  segment
     size_t inseg_bytes = 0;
     for(std::vector<NetworkSegment *>::iterator it = segments.begin();
-	it != segments.end();
-	++it) {
+        it != segments.end(); ++it) {
       // must be asking for non-zero storage
-      if((*it)->bytes == 0) continue;
+      if((*it)->bytes == 0)
+        continue;
       // must not already be assigned an address
-      if((*it)->base != 0) continue;
+      if((*it)->base != 0)
+        continue;
       // must be host memory (for now at least)
-      if((*it)->memtype != NetworkSegmentInfo::HostMem) continue;
+      if((*it)->memtype != NetworkSegmentInfo::HostMem)
+        continue;
       // must not be asking for ODR
       if(((*it)->flags & NetworkSegmentInfo::OptionFlags::OnDemandRegistration) != 0)
         continue;
@@ -533,34 +516,36 @@ namespace Realm {
 
     // for any segment that was pre-allocated, attempt to bind it
     for(NetworkSegment *seg : segments) {
-      if(seg->base == nullptr) continue;
+      if(seg->base == nullptr)
+        continue;
       // must not be asking for ODR
       if((seg->flags & NetworkSegmentInfo::OptionFlags::OnDemandRegistration) != 0)
         continue;
 
       gex_ep_index_t ep_index = 0;
-      bool ok = internal->attempt_binding(seg->base, seg->bytes,
-					  seg->memtype, seg->memextra,
-					  &ep_index);
+      bool ok = internal->attempt_binding(seg->base, seg->bytes, seg->memtype,
+                                          seg->memextra, &ep_index);
       if(ok) {
-	GASNetEXRDMAInfo info;
-	info.base = reinterpret_cast<uintptr_t>(seg->base);
-	info.ep_index = ep_index;
-	seg->add_rdma_info(this, &info, sizeof(info));
+        GASNetEXRDMAInfo info;
+        info.base = reinterpret_cast<uintptr_t>(seg->base);
+        info.ep_index = ep_index;
+        seg->add_rdma_info(this, &info, sizeof(info));
       }
     }
 
     // now assign the base to any segments we allocated
     uintptr_t offset = 0;
     for(std::vector<NetworkSegment *>::iterator it = segments.begin();
-	it != segments.end();
-	++it) {
+        it != segments.end(); ++it) {
       // must be asking for non-zero storage
-      if((*it)->bytes == 0) continue;
+      if((*it)->bytes == 0)
+        continue;
       // must not already be assigned an address
-      if((*it)->base != 0) continue;
+      if((*it)->base != 0)
+        continue;
       // must be host memory (for now at least)
-      if((*it)->memtype != NetworkSegmentInfo::HostMem) continue;
+      if((*it)->memtype != NetworkSegmentInfo::HostMem)
+        continue;
       // TODO: consider alignment
       (*it)->base = reinterpret_cast<void *>(segbase + offset);
       GASNetEXRDMAInfo info;
@@ -574,32 +559,29 @@ namespace Realm {
     internal->publish_bindings();
   }
 
-  void GASNetEXModule::create_memories(RuntimeImpl *runtime)
-  {
-  }
+  void GASNetEXModule::create_memories(RuntimeImpl *runtime) {}
 
   // detaches from the network
   void GASNetEXModule::detach(RuntimeImpl *runtime,
-			      std::vector<NetworkSegment *>& segments)
+                              std::vector<NetworkSegment *> &segments)
   {
     internal->detach();
   }
 
   // collective communication within this network
-  void GASNetEXModule::barrier(void)
-  {
-    internal->barrier();
-  }
+  void GASNetEXModule::barrier(void) { internal->barrier(); }
 
+  //  static const int GASNET_COLL_FLAGS = GASNET_COLL_IN_MYSYNC | GASNET_COLL_OUT_MYSYNC
+  //  | GASNET_COLL_LOCAL;
 
-  //  static const int GASNET_COLL_FLAGS = GASNET_COLL_IN_MYSYNC | GASNET_COLL_OUT_MYSYNC | GASNET_COLL_LOCAL;
-
-  void GASNetEXModule::broadcast(NodeID root, const void *val_in, void *val_out, size_t bytes)
+  void GASNetEXModule::broadcast(NodeID root, const void *val_in, void *val_out,
+                                 size_t bytes)
   {
     internal->broadcast(root, val_in, val_out, bytes);
   }
 
-  void GASNetEXModule::gather(NodeID root, const void *val_in, void *vals_out, size_t bytes)
+  void GASNetEXModule::gather(NodeID root, const void *val_in, void *vals_out,
+                              size_t bytes)
   {
     internal->gather(root, val_in, vals_out, bytes);
   }
@@ -646,15 +628,10 @@ namespace Realm {
     return new GASNetEXIBMemory(runtime, m, size, kind, info.base, info.ep_index);
   }
 
-  ActiveMessageImpl *GASNetEXModule::create_active_message_impl(NodeID target,
-								unsigned short msgid,
-								size_t header_size,
-								size_t max_payload_size,
-								const void *src_payload_addr,
-								size_t src_payload_lines,
-								size_t src_payload_line_stride,
-								void *storage_base,
-								size_t storage_size)
+  ActiveMessageImpl *GASNetEXModule::create_active_message_impl(
+      NodeID target, unsigned short msgid, size_t header_size, size_t max_payload_size,
+      const void *src_payload_addr, size_t src_payload_lines,
+      size_t src_payload_line_stride, void *storage_base, size_t storage_size)
   {
     // if checksums are enabled, we'll tack it on to the end of the header
     //  to avoid any alignment issues
@@ -663,15 +640,9 @@ namespace Realm {
           roundup_pow2(header_size + sizeof(gex_am_arg_t), sizeof(gex_am_arg_t));
 
     assert(storage_size >= sizeof(GASNetEXMessageImpl));
-    GASNetEXMessageImpl *impl = new(storage_base) GASNetEXMessageImpl(internal,
-								      target,
-								      msgid,
-								      header_size,
-								      max_payload_size,
-								      src_payload_addr,
-								      src_payload_lines,
-								      src_payload_line_stride,
-								      0, 0);
+    GASNetEXMessageImpl *impl = new(storage_base) GASNetEXMessageImpl(
+        internal, target, msgid, header_size, max_payload_size, src_payload_addr,
+        src_payload_lines, src_payload_line_stride, 0, 0);
     return impl;
   }
 
@@ -716,15 +687,10 @@ namespace Realm {
     return impl;
   }
 
-  ActiveMessageImpl *GASNetEXModule::create_active_message_impl(const NodeSet& targets,
-								unsigned short msgid,
-								size_t header_size,
-								size_t max_payload_size,
-								const void *src_payload_addr,
-								size_t src_payload_lines,
-								size_t src_payload_line_stride,
-								void *storage_base,
-								size_t storage_size)
+  ActiveMessageImpl *GASNetEXModule::create_active_message_impl(
+      const NodeSet &targets, unsigned short msgid, size_t header_size,
+      size_t max_payload_size, const void *src_payload_addr, size_t src_payload_lines,
+      size_t src_payload_line_stride, void *storage_base, size_t storage_size)
   {
     // if checksums are enabled, we'll tack it on to the end of the header
     //  to avoid any alignment issues
@@ -736,47 +702,32 @@ namespace Realm {
     if(targets.size() == 1) {
       // optimization - if there's exactly 1 target, redirect to the unicast mode
       NodeID target = *(targets.begin());
-      GASNetEXMessageImpl *impl = new(storage_base) GASNetEXMessageImpl(internal,
-									target,
-									msgid,
-									header_size,
-									max_payload_size,
-									src_payload_addr,
-									src_payload_lines,
-									src_payload_line_stride,
-									0, 0);
+      GASNetEXMessageImpl *impl = new(storage_base) GASNetEXMessageImpl(
+          internal, target, msgid, header_size, max_payload_size, src_payload_addr,
+          src_payload_lines, src_payload_line_stride, 0, 0);
       return impl;
     } else {
       // zero or 2+ targets - we'll make a temporary copy of the payload for now
-      GASNetEXMessageImpl *impl = new(storage_base) GASNetEXMessageImpl(internal,
-									targets,
-									msgid,
-									header_size,
-									max_payload_size,
-									src_payload_addr,
-									src_payload_lines,
-									src_payload_line_stride);
+      GASNetEXMessageImpl *impl = new(storage_base) GASNetEXMessageImpl(
+          internal, targets, msgid, header_size, max_payload_size, src_payload_addr,
+          src_payload_lines, src_payload_line_stride);
       return impl;
     }
   }
 
-  size_t GASNetEXModule::recommended_max_payload(NodeID target,
-						 bool with_congestion,
-						 size_t header_size)
+  size_t GASNetEXModule::recommended_max_payload(NodeID target, bool with_congestion,
+                                                 size_t header_size)
   {
     if(cfg_do_checksums)
       header_size =
           roundup_pow2(header_size + sizeof(gex_am_arg_t), sizeof(gex_am_arg_t));
 
-    return internal->recommended_max_payload(target, 0 /*ep_index*/,
-					     with_congestion,
-					     header_size,
-					     0 /*no dest_ptr*/);
+    return internal->recommended_max_payload(target, 0 /*ep_index*/, with_congestion,
+                                             header_size, 0 /*no dest_ptr*/);
   }
 
-  size_t GASNetEXModule::recommended_max_payload(const NodeSet& targets,
-						 bool with_congestion,
-						 size_t header_size)
+  size_t GASNetEXModule::recommended_max_payload(const NodeSet &targets,
+                                                 bool with_congestion, size_t header_size)
   {
     if(cfg_do_checksums)
       header_size =
@@ -785,66 +736,51 @@ namespace Realm {
     if(targets.size() == 1) {
       // optimization - if there's exactly 1 target, redirect to the unicast mode
       NodeID target = *(targets.begin());
-      return internal->recommended_max_payload(target, 0 /*ep_index*/,
-					       with_congestion,
-					       header_size,
-					       0 /*no dest_ptr*/);
+      return internal->recommended_max_payload(target, 0 /*ep_index*/, with_congestion,
+                                               header_size, 0 /*no dest_ptr*/);
     } else {
       // ask without specifying a target - gets conservative answer
-      return internal->recommended_max_payload(with_congestion,
-					       header_size);
+      return internal->recommended_max_payload(with_congestion, header_size);
     }
   }
 
   size_t GASNetEXModule::recommended_max_payload(NodeID target,
-						 const RemoteAddress& dest_payload_addr,
-						 bool with_congestion,
-						 size_t header_size)
+                                                 const RemoteAddress &dest_payload_addr,
+                                                 bool with_congestion, size_t header_size)
   {
     if(cfg_do_checksums)
       header_size =
           roundup_pow2(header_size + sizeof(gex_am_arg_t), sizeof(gex_am_arg_t));
 
-    return internal->recommended_max_payload(target,
-					     dest_payload_addr.extra,
-					     with_congestion,
-					     header_size,
-					     dest_payload_addr.ptr);
+    return internal->recommended_max_payload(target, dest_payload_addr.extra,
+                                             with_congestion, header_size,
+                                             dest_payload_addr.ptr);
   }
 
-  size_t GASNetEXModule::recommended_max_payload(NodeID target,
-						 const void *data, size_t bytes_per_line,
-						 size_t lines, size_t line_stride,
-						 bool with_congestion,
-						 size_t header_size)
+  size_t GASNetEXModule::recommended_max_payload(NodeID target, const void *data,
+                                                 size_t bytes_per_line, size_t lines,
+                                                 size_t line_stride, bool with_congestion,
+                                                 size_t header_size)
   {
-    return internal->recommended_max_payload(target, 0 /*ep_index*/,
-					     data, bytes_per_line,
-					     lines, line_stride,
-					     with_congestion,
-					     header_size,
-					     0 /*no dest_ptr*/);
+    return internal->recommended_max_payload(target, 0 /*ep_index*/, data, bytes_per_line,
+                                             lines, line_stride, with_congestion,
+                                             header_size, 0 /*no dest_ptr*/);
   }
 
-  size_t GASNetEXModule::recommended_max_payload(const NodeSet& targets,
-						 const void *data, size_t bytes_per_line,
-						 size_t lines, size_t line_stride,
-						 bool with_congestion,
-						 size_t header_size)
+  size_t GASNetEXModule::recommended_max_payload(const NodeSet &targets, const void *data,
+                                                 size_t bytes_per_line, size_t lines,
+                                                 size_t line_stride, bool with_congestion,
+                                                 size_t header_size)
   {
     if(targets.size() == 1) {
       // optimization - if there's exactly 1 target, redirect to the unicast mode
       NodeID target = *(targets.begin());
-      return internal->recommended_max_payload(target, 0 /*ep_index*/,
-					       data, bytes_per_line,
-					       lines, line_stride,
-					       with_congestion,
-					       header_size,
-					       0 /*no dest_ptr*/);
+      return internal->recommended_max_payload(
+          target, 0 /*ep_index*/, data, bytes_per_line, lines, line_stride,
+          with_congestion, header_size, 0 /*no dest_ptr*/);
     } else {
       // ask without specifying a target - gets conservative answer
-      return internal->recommended_max_payload(with_congestion,
-					       header_size);
+      return internal->recommended_max_payload(with_congestion, header_size);
     }
   }
 
@@ -857,13 +793,9 @@ namespace Realm {
   {
     char *data =
         static_cast<char *>(src_payload_addr.segment->base) + src_payload_addr.offset;
-    return internal->recommended_max_payload(target,
-					     dest_payload_addr.extra,
-					     data, bytes_per_line,
-					     lines, line_stride,
-					     with_congestion,
-					     header_size,
-					     dest_payload_addr.ptr);
+    return internal->recommended_max_payload(
+        target, dest_payload_addr.extra, data, bytes_per_line, lines, line_stride,
+        with_congestion, header_size, dest_payload_addr.ptr);
   }
 
 }; // namespace Realm

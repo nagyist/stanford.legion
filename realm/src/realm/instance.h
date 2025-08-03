@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,8 +44,10 @@ namespace Realm {
 
   typedef realm_field_id_t FieldID;
 
-  template <int N, typename T> struct Rect;
-  template <int N, typename T> struct IndexSpace;
+  template <int N, typename T>
+  struct Rect;
+  template <int N, typename T>
+  struct IndexSpace;
   class IndexSpaceGeneric;
   class LinearizedIndexSpaceIntfc;
   class InstanceLayoutGeneric;
@@ -81,7 +85,7 @@ namespace Realm {
     bool exists(void) const;
 
     Memory get_location(void) const;
-    //const LinearizedIndexSpaceIntfc& get_lis(void) const;
+    // const LinearizedIndexSpaceIntfc& get_lis(void) const;
     const InstanceLayoutGeneric *get_layout(void) const;
 
     ///@{
@@ -93,16 +97,12 @@ namespace Realm {
      * \return A pointer to the compiled piece lookup program.
      */
     template <int N, typename T>
-    REALM_INTERNAL_API_EXTERNAL_LINKAGE
-    const PieceLookup::Instruction *get_lookup_program(FieldID field_id,
-						       unsigned allowed_mask,
-						       uintptr_t& field_offset);
+    REALM_INTERNAL_API_EXTERNAL_LINKAGE const PieceLookup::Instruction *
+    get_lookup_program(FieldID field_id, unsigned allowed_mask, uintptr_t &field_offset);
     template <int N, typename T>
-    REALM_INTERNAL_API_EXTERNAL_LINKAGE
-    const PieceLookup::Instruction *get_lookup_program(FieldID field_id,
-						       const Rect<N,T>& subrect,
-						       unsigned allowed_mask,
-						       uintptr_t& field_offset);
+    REALM_INTERNAL_API_EXTERNAL_LINKAGE const PieceLookup::Instruction *
+    get_lookup_program(FieldID field_id, const Rect<N, T> &subrect, unsigned allowed_mask,
+                       uintptr_t &field_offset);
     ///@}
 
     /**
@@ -113,16 +113,14 @@ namespace Realm {
      * \param data A pointer to the data to read into.
      * \param datalen The number of bytes to read.
      */
-    void read_untyped(size_t offset, void* data, size_t datalen) const;
+    void read_untyped(size_t offset, void *data, size_t datalen) const;
 
     void write_untyped(size_t offset, const void *data, size_t datalen) const;
 
-    void reduce_apply_untyped(size_t offset, ReductionOpID redop_id,
-			      const void *data, size_t datalen,
-			      bool exclusive = false) const;
-    void reduce_fold_untyped(size_t offset, ReductionOpID redop_id,
-			     const void *data, size_t datalen,
-			     bool exclusive = false) const;
+    void reduce_apply_untyped(size_t offset, ReductionOpID redop_id, const void *data,
+                              size_t datalen, bool exclusive = false) const;
+    void reduce_fold_untyped(size_t offset, ReductionOpID redop_id, const void *data,
+                             size_t datalen, bool exclusive = false) const;
 
     /**
      * Return a pointer to the instance data.
@@ -141,10 +139,10 @@ namespace Realm {
     void write(size_t offset, T val) const;
     template <typename T>
     void reduce_apply(size_t offset, ReductionOpID redop_id, T val,
-		      bool exclusive = false) const;
+                      bool exclusive = false) const;
     template <typename T>
     void reduce_fold(size_t offset, ReductionOpID redop_id, T val,
-		     bool exclusive = false) const;
+                     bool exclusive = false) const;
     template <typename T>
     T *pointer(size_t offset) const;
 
@@ -165,7 +163,7 @@ namespace Realm {
     /**
      * Reuse the underlying memory of an instance to create a new
      * set of instances with different layouts. Only as many of the
-     * new layouts as can fit in the footprint will be allocated. The 
+     * new layouts as can fit in the footprint will be allocated. The
      * ordering of the new layouts is important as they will be allocated
      * in this order (pay attention to alignments). The old instance will
      * always be destroyed in the process.
@@ -242,22 +240,16 @@ namespace Realm {
      * \return The event to wait on before using the instance.
      */
     template <int N, typename T>
-    static Event create_instance(RegionInstance& inst,
-				 Memory memory,
-				 const IndexSpace<N,T>& space,
-				 const std::vector<size_t>& field_sizes,
-				 size_t block_size,
-				 const ProfilingRequestSet& prs,
-				 Event wait_on = Event::NO_EVENT);
+    static Event
+    create_instance(RegionInstance &inst, Memory memory, const IndexSpace<N, T> &space,
+                    const std::vector<size_t> &field_sizes, size_t block_size,
+                    const ProfilingRequestSet &prs, Event wait_on = Event::NO_EVENT);
 
     template <int N, typename T>
-    static Event create_instance(RegionInstance& inst,
-				 Memory memory,
-				 const IndexSpace<N,T>& space,
-				 const std::map<FieldID, size_t>& field_sizes,
-				 size_t block_size,
-				 const ProfilingRequestSet& prs,
-				 Event wait_on = Event::NO_EVENT);
+    static Event
+    create_instance(RegionInstance &inst, Memory memory, const IndexSpace<N, T> &space,
+                    const std::map<FieldID, size_t> &field_sizes, size_t block_size,
+                    const ProfilingRequestSet &prs, Event wait_on = Event::NO_EVENT);
     ///@}
 
     // we'd like the methods above to accept a Rect<N,T> in place of the
@@ -265,33 +257,28 @@ namespace Realm {
     //  parameters are specified explicitly, so provide an overload that
     //  takes a Rect directly
     template <int N, typename T>
-    static Event create_instance(RegionInstance& inst,
-				 Memory memory,
-				 const Rect<N,T>& rect,
-				 const std::vector<size_t>& field_sizes,
-				 size_t block_size, // 0=SOA, 1=AOS, 2+=hybrid
-				 const ProfilingRequestSet& prs,
-				 Event wait_on = Event::NO_EVENT);
+    static Event
+    create_instance(RegionInstance &inst, Memory memory, const Rect<N, T> &rect,
+                    const std::vector<size_t> &field_sizes,
+                    size_t block_size, // 0=SOA, 1=AOS, 2+=hybrid
+                    const ProfilingRequestSet &prs, Event wait_on = Event::NO_EVENT);
 
     template <int N, typename T>
-    static Event create_instance(RegionInstance& inst,
-				 Memory memory,
-				 const Rect<N,T>& rect,
-				 const std::map<FieldID, size_t>& field_sizes,
-				 size_t block_size, // 0=SOA, 1=AOS, 2+=hybrid
-				 const ProfilingRequestSet& prs,
-				 Event wait_on = Event::NO_EVENT);
+    static Event
+    create_instance(RegionInstance &inst, Memory memory, const Rect<N, T> &rect,
+                    const std::map<FieldID, size_t> &field_sizes,
+                    size_t block_size, // 0=SOA, 1=AOS, 2+=hybrid
+                    const ProfilingRequestSet &prs, Event wait_on = Event::NO_EVENT);
 
     template <int N, typename T>
     REALM_ATTR_DEPRECATED("use RegionInstance::create_external_instance instead",
-    static Event create_file_instance(RegionInstance& inst,
-				      const char *file_name,
-				      const IndexSpace<N,T>& space,
-				      const std::vector<FieldID> &field_ids,
-				      const std::vector<size_t> &field_sizes,
-				      realm_file_mode_t file_mode,
-				      const ProfilingRequestSet& prs,
-				      Event wait_on = Event::NO_EVENT));
+                          static Event create_file_instance(
+                              RegionInstance &inst, const char *file_name,
+                              const IndexSpace<N, T> &space,
+                              const std::vector<FieldID> &field_ids,
+                              const std::vector<size_t> &field_sizes,
+                              realm_file_mode_t file_mode, const ProfilingRequestSet &prs,
+                              Event wait_on = Event::NO_EVENT));
 
 #ifdef REALM_USE_HDF5
     template <int N, typename T>
@@ -299,27 +286,25 @@ namespace Realm {
       FieldID field_id;
       size_t field_size;
       std::string dataset_name;
-      Point<N,T> offset;
+      Point<N, T> offset;
       int dim_order[N];
     };
 
     REALM_ATTR_DEPRECATED2("use RegionInstance::create_external_instance instead",
-    template <int N, typename T>
-    static Event create_hdf5_instance(RegionInstance& inst,
-				      const char *file_name,
-				      const IndexSpace<N,T>& space,
-				      const std::vector<HDF5FieldInfo<N,T> >& field_infos,
-				      bool read_only,
-				      const ProfilingRequestSet& prs,
-				      Event wait_on = Event::NO_EVENT));
+                           template <int N, typename T> static Event create_hdf5_instance(
+                               RegionInstance &inst, const char *file_name,
+                               const IndexSpace<N, T> &space,
+                               const std::vector<HDF5FieldInfo<N, T>> &field_infos,
+                               bool read_only, const ProfilingRequestSet &prs,
+                               Event wait_on = Event::NO_EVENT));
 #endif
-              
+
     REALM_ATTR_DEPRECATED("use RegionInstance::create_external_instance instead",
-    static Event create_external(RegionInstance& inst,
-				 Memory memory, uintptr_t base,
-				 InstanceLayoutGeneric *ilg,
-				 const ProfilingRequestSet& prs,
-				 Event wait_on = Event::NO_EVENT));
+                          static Event create_external(RegionInstance &inst,
+                                                       Memory memory, uintptr_t base,
+                                                       InstanceLayoutGeneric *ilg,
+                                                       const ProfilingRequestSet &prs,
+                                                       Event wait_on = Event::NO_EVENT));
 
     void destroy(Event wait_on = Event::NO_EVENT) const;
 
@@ -338,13 +323,14 @@ namespace Realm {
      */
     Event fetch_metadata(Processor target) const;
 
-    // apparently we can't use default template parameters on methods without C++11, but we
+    // apparently we can't use default template parameters on methods without C++11, but
+    // we
     //  can provide templates of two different arities...
     template <int N, typename T>
-    IndexSpace<N,T> get_indexspace(void) const;
+    IndexSpace<N, T> get_indexspace(void) const;
 
     template <int N>
-    IndexSpace<N,int> get_indexspace(void) const;
+    IndexSpace<N, int> get_indexspace(void) const;
 
     // used for accessor construction
     REALM_INTERNAL_API_EXTERNAL_LINKAGE
@@ -374,20 +360,21 @@ namespace Realm {
      * \return An ExternalInstanceResource object for this instance, or null if
      *         the instance does not support re-registration.
      */
-    ExternalInstanceResource* generate_resource_info(bool read_only) const;
+    ExternalInstanceResource *generate_resource_info(bool read_only) const;
 
     // a version of the above that allows limiting the described memory to just
     //  a subset of the original instance (NOTE: this will accept any
     //  IndexSpace<N,T> at compile-time, but N,T must match the instance layout)
-    ExternalInstanceResource *generate_resource_info(const IndexSpaceGeneric& space,
-						     span<const FieldID> fields,
-						     bool read_only) const;
+    ExternalInstanceResource *generate_resource_info(const IndexSpaceGeneric &space,
+                                                     span<const FieldID> fields,
+                                                     bool read_only) const;
     ///@}
 
     struct DestroyedField {
     public:
       DestroyedField(void);
       DestroyedField(FieldID fid, unsigned s, CustomSerdezID sid);
+
     public:
       FieldID field_id;
       unsigned size;
@@ -395,22 +382,21 @@ namespace Realm {
     };
 
     // if any fields in the instance need custom destruction, use this version
-    void destroy(const std::vector<DestroyedField>& destroyed_fields,
-		 Event wait_on = Event::NO_EVENT) const;
+    void destroy(const std::vector<DestroyedField> &destroyed_fields,
+                 Event wait_on = Event::NO_EVENT) const;
 
     bool can_get_strided_access_parameters(size_t start, size_t count,
-					   ptrdiff_t field_offset, size_t field_size);
-    void get_strided_access_parameters(size_t start, size_t count,
-				       ptrdiff_t field_offset, size_t field_size,
-                                       intptr_t& base, ptrdiff_t& stride);
+                                           ptrdiff_t field_offset, size_t field_size);
+    void get_strided_access_parameters(size_t start, size_t count, ptrdiff_t field_offset,
+                                       size_t field_size, intptr_t &base,
+                                       ptrdiff_t &stride);
 
-    void report_instance_fault(int reason,
-			       const void *reason_data, size_t reason_size) const;
+    void report_instance_fault(int reason, const void *reason_data,
+                               size_t reason_size) const;
   };
 
   REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, RegionInstance r);
-
+  std::ostream &operator<<(std::ostream &os, RegionInstance r);
 
   /**
    * \class ExternalInstanceResource
@@ -435,21 +421,21 @@ namespace Realm {
     virtual ExternalInstanceResource *clone(void) const = 0;
 
     template <typename S>
-    static ExternalInstanceResource *deserialize_new(S& deserializer);
+    static ExternalInstanceResource *deserialize_new(S &deserializer);
 
     // pretty-printing
-    friend std::ostream& operator<<(std::ostream& os, const ExternalInstanceResource& res);
+    friend std::ostream &operator<<(std::ostream &os,
+                                    const ExternalInstanceResource &res);
 
     uint64_t get_type_id() const { return type_id; }
 
   protected:
-    virtual void print(std::ostream& os) const = 0;
+    virtual void print(std::ostream &os) const = 0;
     uint64_t type_id = 0;
   };
 
   template <typename S>
-  bool serialize(S& serializer, const ExternalInstanceResource& res);
-
+  bool serialize(S &serializer, const ExternalInstanceResource &res);
 
   /**
    * \class ExternalMemoryResource
@@ -468,17 +454,19 @@ namespace Realm {
     virtual ExternalInstanceResource *clone(void) const;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
 
     template <typename S>
-    static ExternalInstanceResource *deserialize_new(S& deserializer);
+    static ExternalInstanceResource *deserialize_new(S &deserializer);
 
   protected:
     ExternalMemoryResource();
 
-    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource, ExternalMemoryResource> serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource,
+                                                    ExternalMemoryResource>
+        serdez_subclass;
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
   public:
     uintptr_t base;
@@ -491,8 +479,8 @@ namespace Realm {
    */
   class REALM_PUBLIC_API ExternalFileResource : public ExternalInstanceResource {
   public:
-    ExternalFileResource(const std::string& _filename, realm_file_mode_t _mode,
-			 size_t _offset = 0);
+    ExternalFileResource(const std::string &_filename, realm_file_mode_t _mode,
+                         size_t _offset = 0);
 
     virtual bool satisfies(const InstanceLayoutGeneric &layout) const;
 
@@ -502,17 +490,19 @@ namespace Realm {
     virtual ExternalInstanceResource *clone(void) const;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
 
     template <typename S>
-    static ExternalInstanceResource *deserialize_new(S& deserializer);
+    static ExternalInstanceResource *deserialize_new(S &deserializer);
 
   protected:
     ExternalFileResource();
 
-    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource, ExternalFileResource> serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource,
+                                                    ExternalFileResource>
+        serdez_subclass;
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
   public:
     std::string filename;
@@ -520,11 +510,9 @@ namespace Realm {
     realm_file_mode_t mode;
   };
 
-}; // namespace Realm
+};     // namespace Realm
 #endif // ifndef REALM_INSTANCE_H
 
 #ifndef REALM_SKIP_INLINES
 #include "realm/instance.inl"
 #endif
-
-

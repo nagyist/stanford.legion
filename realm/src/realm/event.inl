@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,88 +31,75 @@ namespace Realm {
   //
   // class Event
 
-  inline bool Event::operator<(const Event& rhs) const
-  {
-    return id < rhs.id;
-  }
+  inline bool Event::operator<(const Event &rhs) const { return id < rhs.id; }
 
-  inline bool Event::operator==(const Event& rhs) const
-  {
-    return id == rhs.id;
-  }
+  inline bool Event::operator==(const Event &rhs) const { return id == rhs.id; }
 
-  inline bool Event::operator!=(const Event& rhs) const
-  {
-    return id != rhs.id;
-  }
+  inline bool Event::operator!=(const Event &rhs) const { return id != rhs.id; }
 
-  inline bool Event::exists(void) const
-  {
-    return id != 0;
-  }
+  inline bool Event::exists(void) const { return id != 0; }
 
-  inline std::ostream& operator<<(std::ostream& os, Event e)
+  inline std::ostream &operator<<(std::ostream &os, Event e)
   {
     return os << std::hex << e.id << std::dec;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class CompletionQueue
 
-  inline bool CompletionQueue::operator<(const CompletionQueue& rhs) const
+  inline bool CompletionQueue::operator<(const CompletionQueue &rhs) const
   {
     return id < rhs.id;
   }
 
-  inline bool CompletionQueue::operator==(const CompletionQueue& rhs) const
+  inline bool CompletionQueue::operator==(const CompletionQueue &rhs) const
   {
     return id == rhs.id;
   }
 
-  inline bool CompletionQueue::operator!=(const CompletionQueue& rhs) const
+  inline bool CompletionQueue::operator!=(const CompletionQueue &rhs) const
   {
     return id != rhs.id;
   }
 
-  inline bool CompletionQueue::exists(void) const
-  {
-    return id != 0;
-  }
+  inline bool CompletionQueue::exists(void) const { return id != 0; }
 
-  inline std::ostream& operator<<(std::ostream& os, CompletionQueue e)
+  inline std::ostream &operator<<(std::ostream &os, CompletionQueue e)
   {
     return os << std::hex << e.id << std::dec;
   }
 
-  /*static*/ inline Event Event::merge_events(const std::set<Event> &wait_for) {
+  /*static*/ inline Event Event::merge_events(const std::set<Event> &wait_for)
+  {
     // Highly inefficient, only left here for compatibility, consider using
     // std::vector or array instead
     std::vector<Event> events(wait_for.begin(), wait_for.end());
     return merge_events(span<const Event>(events));
   }
-  /*static*/ inline Event
-  Event::merge_events(const span<const Event> &wait_for) {
+  /*static*/ inline Event Event::merge_events(const span<const Event> &wait_for)
+  {
     return merge_events(wait_for.data(), wait_for.size());
   }
   /*static*/ inline Event
-  Event::merge_events_ignorefaults(const span<const Event> &wait_for) {
+  Event::merge_events_ignorefaults(const span<const Event> &wait_for)
+  {
     return merge_events_ignorefaults(wait_for.data(), wait_for.size());
   }
   /*static*/ inline Event
-  Event::merge_events_ignorefaults(const std::set<Event> &wait_for) {
+  Event::merge_events_ignorefaults(const std::set<Event> &wait_for)
+  {
     // Highly inefficient, only left here for compatibility, consider using
     // std::vector or array instead
     std::vector<Event> events(wait_for.begin(), wait_for.end());
     return merge_events_ignorefaults(span<const Event>(events));
   }
-  /*static*/ inline void
-  Event::advise_event_ordering(const span<Event> &happens_before,
-                               Event happens_after,
-                               bool all_must_trigger /*= true */) {
-    advise_event_ordering(happens_before.data(), happens_before.size(),
-                          happens_after, all_must_trigger);
+  /*static*/ inline void Event::advise_event_ordering(const span<Event> &happens_before,
+                                                      Event happens_after,
+                                                      bool all_must_trigger /*= true */)
+  {
+    advise_event_ordering(happens_before.data(), happens_before.size(), happens_after,
+                          all_must_trigger);
   }
 
-}; // namespace Realm  
+}; // namespace Realm

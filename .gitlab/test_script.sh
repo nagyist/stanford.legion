@@ -3,8 +3,6 @@
 set -e
 set -x
 
-umask 002 # Make sure files are group-writable
-
 # job directory
 echo "Running tests in $PWD"
 
@@ -86,10 +84,4 @@ free
 if [[ -z "$TEST_PYTHON_EXE" ]]; then
     export TEST_PYTHON_EXE=`which python3 python | head -1`
 fi
-
-chmod -R g+w .
-set +e
 $TEST_PYTHON_EXE ./test.py -j${THREADS:-16}
-ok=$?
-chmod -R g+w .
-exit $ok

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,49 +41,42 @@ namespace Realm {
     loop_barrier.store(0);
   }
 
-  static inline uint64_t index_to_pos(int64_t index,
-				      int64_t base, int64_t incr)
+  static inline uint64_t index_to_pos(int64_t index, int64_t base, int64_t incr)
   {
     if(incr > 0) {
       uint64_t delta = (uint64_t)index - (uint64_t)base;
       if(incr != 1)
-	delta /= incr;
+        delta /= incr;
       return delta;
     } else {
       uint64_t delta = (uint64_t)base - (uint64_t)index;
       if(incr != -1)
-	delta /= -incr;
+        delta /= -incr;
       return delta;
     }
   }
 
-  static inline int64_t pos_to_index(uint64_t pos,
-				     int64_t base, int64_t incr)
+  static inline int64_t pos_to_index(uint64_t pos, int64_t base, int64_t incr)
   {
     if(incr > 0)
       return (base + (pos * incr));
     else
       return (base - (pos * -incr));
   }
-  
-  bool LoopSchedule::start_static(int64_t start, int64_t end,
-				  int64_t incr, int64_t chunk,
-				  int thread_id,
-				  int64_t& span_start, int64_t& span_end)
+
+  bool LoopSchedule::start_static(int64_t start, int64_t end, int64_t incr, int64_t chunk,
+                                  int thread_id, int64_t &span_start, int64_t &span_end)
   {
     // make sure nobody's still on the previous loop
-    while(loop_barrier.load() >= num_workers) Thread::yield();
+    while(loop_barrier.load() >= num_workers)
+      Thread::yield();
 
     // compute the loop limit, dealing with the negative stride cases
     uint64_t limit;
     if(incr > 0) {
-      limit = ((end >= start) ?
-	         index_to_pos(end, start, incr) :
-	         0);
+      limit = ((end >= start) ? index_to_pos(end, start, incr) : 0);
     } else {
-      limit = ((end <= start) ?
-	         index_to_pos(end, start, incr) :
-	         0);
+      limit = ((end <= start) ? index_to_pos(end, start, incr) : 0);
     }
 
     // if the chunk wasn't specified, divide the work as evenly as
@@ -89,7 +84,7 @@ namespace Realm {
     if(chunk <= 0) {
       chunk = limit / num_workers;
       if((uint64_t(chunk) * num_workers) < limit)
-	chunk++;
+        chunk++;
     }
 
     // the compiler promises all threads will have the same value, so
@@ -106,8 +101,7 @@ namespace Realm {
     // and now give this thread its first chunk
     uint64_t pos = thread_id * chunk;
     if(pos < limit) {
-      uint64_t count = std::min((uint64_t)chunk,
-				(limit - pos));
+      uint64_t count = std::min((uint64_t)chunk, (limit - pos));
       span_start = pos_to_index(pos, start, incr);
       span_end = pos_to_index(pos + count, start, incr);
       return true;
@@ -115,14 +109,14 @@ namespace Realm {
       return false;
   }
 
-  bool LoopSchedule::next_static(int64_t& span_start, int64_t& span_end)
+  bool LoopSchedule::next_static(int64_t &span_start, int64_t &span_end)
   {
     // we use these a bunch, and it's ok to cache them
     int64_t base = loop_base.load();
     int64_t incr = loop_incr.load();
     int64_t chunk = loop_chunk.load();
     uint64_t limit = loop_limit.load();
-      
+
     // don't need to know thread id because we just step by num_workers
     //  chunks
     uint64_t old_pos = index_to_pos(span_start, base, incr);
@@ -130,8 +124,7 @@ namespace Realm {
 
     // if we wrap around, new_pos will be less than old_pos
     if((new_pos > old_pos) && (new_pos < limit)) {
-      uint64_t count = std::min((uint64_t)chunk,
-				(limit - new_pos));
+      uint64_t count = std::min((uint64_t)chunk, (limit - new_pos));
       span_start = pos_to_index(new_pos, base, incr);
       span_end = pos_to_index(new_pos + count, base, incr);
       return true;
@@ -139,35 +132,32 @@ namespace Realm {
       return false;
   }
 
-  void LoopSchedule::start_dynamic(int64_t start, int64_t end,
-				   int64_t incr, int64_t chunk)
+  void LoopSchedule::start_dynamic(int64_t start, int64_t end, int64_t incr,
+                                   int64_t chunk)
   {
     // make sure nobody's still on the previous loop
-    while(loop_barrier.load() >= num_workers) Thread::yield();
+    while(loop_barrier.load() >= num_workers)
+      Thread::yield();
 
     // compute the loop limit, dealing with the negative stride cases
     uint64_t limit;
     if(incr > 0) {
-      limit = ((end >= start) ?
-	         index_to_pos(end, start, incr) :
-	         0);
+      limit = ((end >= start) ? index_to_pos(end, start, incr) : 0);
     } else {
-      limit = ((end <= start) ?
-	         index_to_pos(end, start, incr) :
-	         0);
+      limit = ((end <= start) ? index_to_pos(end, start, incr) : 0);
     }
 
     // if the chunk wasn't specified, pick a value that aims for ~8
     //  chunks per thread to get some dynamic scheduling goodness
     if(chunk <= 0) {
       chunk = limit / (8 * num_workers);
-      if(chunk == 0) chunk = 1;
+      if(chunk == 0)
+        chunk = 1;
     }
 
     // if the chunk size is so large that n-1 of the workers can
     //  cause an overshoot that wraps around, we have a problem
-    uint64_t limit_overshoot = (limit + ((num_workers - 1) *
-					 (uint64_t)chunk));
+    uint64_t limit_overshoot = (limit + ((num_workers - 1) * (uint64_t)chunk));
     assert(limit_overshoot >= limit);
 
     // the compiler promises all threads will have the same value, so
@@ -183,21 +173,19 @@ namespace Realm {
     loop_barrier.fetch_add(1);
   }
 
-  bool LoopSchedule::next_dynamic(int64_t& span_start, int64_t& span_end,
-				  int64_t& stride)
+  bool LoopSchedule::next_dynamic(int64_t &span_start, int64_t &span_end, int64_t &stride)
   {
     // we use these a bunch, and it's ok to cache them
     int64_t base = loop_base.load();
     int64_t incr = loop_incr.load();
     int64_t chunk = loop_chunk.load();
     uint64_t limit = loop_limit.load();
-      
+
     // atomic increment to claim a new chunk
     uint64_t new_pos = loop_pos.fetch_add(chunk);
 
     if(new_pos < limit) {
-      uint64_t count = std::min((uint64_t)chunk,
-				(limit - new_pos));
+      uint64_t count = std::min((uint64_t)chunk, (limit - new_pos));
       span_start = pos_to_index(new_pos, base, incr);
       span_end = pos_to_index(new_pos + count, base, incr);
       stride = incr;
@@ -209,7 +197,8 @@ namespace Realm {
   void LoopSchedule::end_loop(bool wait)
   {
     // stall unless all threads have entered the current loop
-    while(loop_barrier.load() < num_workers) Thread::yield();
+    while(loop_barrier.load() < num_workers)
+      Thread::yield();
 
     // increment the barrier to indicate we're done, and see if we're the
     //  last
@@ -218,28 +207,30 @@ namespace Realm {
 
     if(wait) {
       if(last_ender) {
-	// we don't need to contribute again, and can return unless there was
-	//  only one worker
-	if(num_workers > 1) return;
+        // we don't need to contribute again, and can return unless there was
+        //  only one worker
+        if(num_workers > 1)
+          return;
       } else {
-	// we need to observe the count reach 2x num_workers
-	while(loop_barrier.load() < (2 * num_workers)) Thread::yield();
+        // we need to observe the count reach 2x num_workers
+        while(loop_barrier.load() < (2 * num_workers))
+          Thread::yield();
 
-	// signal our observation and return if we're not the last to do so
-	prev_count = loop_barrier.fetch_add(1);
-	if(prev_count < (3 * num_workers - 2)) return;
+        // signal our observation and return if we're not the last to do so
+        prev_count = loop_barrier.fetch_add(1);
+        if(prev_count < (3 * num_workers - 2))
+          return;
       }
     } else {
       // if we weren't the last to end, we're done - no waiting
       if(!last_ender)
-	return;
+        return;
     }
 
     // exactly one thread gets here, and resets loop_pos and then the barrier
     loop_pos.store(0);
     loop_barrier.store_release(0);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -253,7 +244,6 @@ namespace Realm {
   {
     schedule.initialize(_num_threads);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -276,16 +266,13 @@ namespace Realm {
     return old_item;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class ThreadPool
 
-  ThreadPool::ThreadPool(Processor _proc,
-                         int _num_workers,
-			 const std::string& _name_prefix,
-			 int _numa_node, size_t _stack_size,
-			 CoreReservationSet& crs)
+  ThreadPool::ThreadPool(Processor _proc, int _num_workers,
+                         const std::string &_name_prefix, int _numa_node,
+                         size_t _stack_size, CoreReservationSet &crs)
     : proc(_proc)
     , num_workers(_num_workers)
     , workers_running(false)
@@ -301,17 +288,16 @@ namespace Realm {
 
     core_rsrvs.resize(num_workers, 0);
     for(int i = 0; i < num_workers; i++)
-      core_rsrvs[i] = new CoreReservation(stringbuilder() << _name_prefix << " (worker " << (i + 1) << ")",
-					  crs, params);
+      core_rsrvs[i] = new CoreReservation(
+          stringbuilder() << _name_prefix << " (worker " << (i + 1) << ")", crs, params);
 
     // these will be filled in as workers show up
     worker_threads.resize(num_workers, 0);
 
     worker_infos.resize(num_workers + 1);
     for(int i = 0; i <= num_workers; i++) {
-      WorkerInfo& wi = worker_infos[i];
-      wi.status.store(i ? WorkerInfo::WORKER_NOT_RUNNING :
-		          WorkerInfo::WORKER_MASTER);
+      WorkerInfo &wi = worker_infos[i];
+      wi.status.store(i ? WorkerInfo::WORKER_NOT_RUNNING : WorkerInfo::WORKER_MASTER);
       wi.pool = this;
       wi.thread_id = 0;
       wi.num_threads = 1;
@@ -320,9 +306,10 @@ namespace Realm {
       wi.work_item = 0;
     }
 
-    log_pool.info() << "pool " << (void *)this << " started - " << num_workers << " workers";
+    log_pool.info() << "pool " << (void *)this << " started - " << num_workers
+                    << " workers";
   }
-  
+
   ThreadPool::~ThreadPool(void)
   {
     assert(!workers_running);
@@ -334,7 +321,9 @@ namespace Realm {
   // associates the calling thread as the master of the threadpool
   void ThreadPool::associate_as_master(void)
   {
-    log_pool.debug() << "associate: " << Thread::self() << " " << (void *)(ThreadLocal::threadpool_workerinfo) << " " << (void *)(&worker_infos[0]);
+    log_pool.debug() << "associate: " << Thread::self() << " "
+                     << (void *)(ThreadLocal::threadpool_workerinfo) << " "
+                     << (void *)(&worker_infos[0]);
     if(ThreadLocal::threadpool_workerinfo) {
       // should not already be associated with a different pool
       assert(ThreadLocal::threadpool_workerinfo == &worker_infos[0]);
@@ -362,9 +351,8 @@ namespace Realm {
     int id = 1;
     while(true) {
       int expval = WorkerInfo::WORKER_STARTING;
-      if(worker_infos[id].status.compare_exchange(expval,
-						  WorkerInfo::WORKER_IDLE))
-	break;
+      if(worker_infos[id].status.compare_exchange(expval, WorkerInfo::WORKER_IDLE))
+        break;
       id++;
       assert(id <= num_workers);
     }
@@ -375,37 +363,41 @@ namespace Realm {
 
     WorkerInfo *wi = &worker_infos[id];
     ThreadLocal::threadpool_workerinfo = wi;
-    log_pool.debug() << "worker: " << Thread::self() << " " << (void *)(ThreadLocal::threadpool_workerinfo);
+    log_pool.debug() << "worker: " << Thread::self() << " "
+                     << (void *)(ThreadLocal::threadpool_workerinfo);
 
     bool worker_shutdown = false;
     while(!worker_shutdown) {
       switch(wi->status.load_acquire()) {
       case WorkerInfo::WORKER_IDLE:
       case WorkerInfo::WORKER_CLAIMED:
-	{
-          std::this_thread::yield();
-          break;
-        }
+      {
+        std::this_thread::yield();
+        break;
+      }
 
       case WorkerInfo::WORKER_ACTIVE:
-	{
-	  log_pool.info() << "worker " << wi->thread_id << "/" << wi->num_threads << " executing: " << (void *)(wi->fnptr) << "(" << wi->data << ")";
-	  (wi->fnptr)(wi->data);
-	  log_pool.info() << "worker " << wi->thread_id << "/" << wi->num_threads << " done";
-	  wi->work_item->remaining_workers.fetch_sub_acqrel(1);
-	  wi->status.store(WorkerInfo::WORKER_IDLE);
-	  break;
-	}
+      {
+        log_pool.info() << "worker " << wi->thread_id << "/" << wi->num_threads
+                        << " executing: " << (void *)(wi->fnptr) << "(" << wi->data
+                        << ")";
+        (wi->fnptr)(wi->data);
+        log_pool.info() << "worker " << wi->thread_id << "/" << wi->num_threads
+                        << " done";
+        wi->work_item->remaining_workers.fetch_sub_acqrel(1);
+        wi->status.store(WorkerInfo::WORKER_IDLE);
+        break;
+      }
 
       case WorkerInfo::WORKER_SHUTDOWN:
-	{
-	  log_pool.info() << "worker shutdown received";
-	  worker_shutdown = true;
-	  break;
-	}
+      {
+        log_pool.info() << "worker shutdown received";
+        worker_shutdown = true;
+        break;
+      }
 
       default:
-	assert(0);
+        assert(0);
       }
     }
   }
@@ -415,16 +407,15 @@ namespace Realm {
   {
     if(!workers_running) {
       for(int i = 0; i < num_workers; i++) {
-	assert(worker_threads[i] == 0);
-	worker_infos[i+1].status.store(WorkerInfo::WORKER_STARTING);
+        assert(worker_threads[i] == 0);
+        worker_infos[i + 1].status.store(WorkerInfo::WORKER_STARTING);
       }
 
       for(int i = 0; i < num_workers; i++) {
-	// the threads we launch will assign ids themselves
-	ThreadLaunchParameters tlp;
-	Thread::create_kernel_thread<ThreadPool,
-				     &ThreadPool::worker_entry>(this, tlp,
-								*core_rsrvs[i]);
+        // the threads we launch will assign ids themselves
+        ThreadLaunchParameters tlp;
+        Thread::create_kernel_thread<ThreadPool, &ThreadPool::worker_entry>(
+            this, tlp, *core_rsrvs[i]);
       }
 
       workers_running = true;
@@ -437,24 +428,24 @@ namespace Realm {
     if(workers_running) {
       // tell all workers to shutdown
       for(int i = 0; i < num_workers; i++) {
-	int expval = WorkerInfo::WORKER_IDLE;
-	bool ok = worker_infos[i+1].status.compare_exchange(expval,
-							    WorkerInfo::WORKER_SHUTDOWN);
-	assert(ok);
+        int expval = WorkerInfo::WORKER_IDLE;
+        bool ok = worker_infos[i + 1].status.compare_exchange(
+            expval, WorkerInfo::WORKER_SHUTDOWN);
+        assert(ok);
       }
 
       // now join on all threads
       for(int i = 0; i < num_workers; i++) {
-	worker_threads[i]->join();
-	delete worker_threads[i];
-	worker_threads[i] = 0;
+        worker_threads[i]->join();
+        delete worker_threads[i];
+        worker_threads[i] = 0;
       }
 
       workers_running = false;
     }
   }
 
-  void ThreadPool::claim_workers(int count, std::set<int>& worker_ids)
+  void ThreadPool::claim_workers(int count, std::set<int> &worker_ids)
   {
     // spin up threads if they're not already
     if(!workers_running)
@@ -465,30 +456,29 @@ namespace Realm {
     while(i < worker_infos.size()) {
       // attempt atomic change from IDLE -> CLAIMED
       int expval = WorkerInfo::WORKER_IDLE;
-      if(worker_infos[i].status.compare_exchange(expval,
-						 WorkerInfo::WORKER_CLAIMED)) {
-	worker_ids.insert(i);
-	remaining -= 1;
-	if(remaining == 0)
-	  break;
+      if(worker_infos[i].status.compare_exchange(expval, WorkerInfo::WORKER_CLAIMED)) {
+        worker_ids.insert(i);
+        remaining -= 1;
+        if(remaining == 0)
+          break;
       }
       // unless this worker is still starting up, we have to move on to the next
       //  one and try it
       if(expval != WorkerInfo::WORKER_STARTING)
-	i++;
+        i++;
     }
 
-    log_pool.info() << "claim_workers requested " << count << ", got " << worker_ids.size();
+    log_pool.info() << "claim_workers requested " << count << ", got "
+                    << worker_ids.size();
   }
 
-  void ThreadPool::start_worker(int worker_id,
-				int thread_id, int num_threads,
-				void (*fnptr)(void *data), void *data,
-				WorkItem *work_item)
+  void ThreadPool::start_worker(int worker_id, int thread_id, int num_threads,
+                                void (*fnptr)(void *data), void *data,
+                                WorkItem *work_item)
   {
     assert((worker_id >= 0) && (worker_id <= num_workers));
     WorkerInfo *wi = &worker_infos[worker_id];
-    
+
     assert(wi->status.load() == WorkerInfo::WORKER_CLAIMED);
     wi->thread_id = thread_id;
     wi->num_threads = num_threads;
@@ -497,9 +487,8 @@ namespace Realm {
     wi->data = data;
     wi->work_item = work_item;
     int expval = WorkerInfo::WORKER_CLAIMED;
-    bool ok = wi->status.compare_exchange(expval,
-					  WorkerInfo::WORKER_ACTIVE);
+    bool ok = wi->status.compare_exchange(expval, WorkerInfo::WORKER_ACTIVE);
     assert(ok);
   }
 
-};
+}; // namespace Realm

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +38,7 @@ namespace Realm {
 
     typedef T ITEMTYPE;
 
-    // we used most of the signed integer range for priorities - we do borrow a 
+    // we used most of the signed integer range for priorities - we do borrow a
     //  few of the extreme values to make sure we have "infinity" and "negative infinity"
     //  and that we don't run into problems with -INT_MIN
     // attempts to enqueue an item with a priority outside the "finite" range will result
@@ -78,7 +80,8 @@ namespace Realm {
 
     // adds (or modifies) a subscription - only items above the specified priority will
     //  result in callbacks
-    void add_subscription(NotificationCallback *callback, priority_t higher_than = PRI_NEG_INF);
+    void add_subscription(NotificationCallback *callback,
+                          priority_t higher_than = PRI_NEG_INF);
     void remove_subscription(NotificationCallback *callback);
 
     void set_gauge(ProfilingGauges::AbsoluteRangeGauge<int> *new_gauge);
@@ -88,7 +91,8 @@ namespace Realm {
     //  consumes the item
     bool perform_notifications(T item, priority_t item_priority);
 
-    // 'highest_priority' may be read without the lock held, but only written with the lock
+    // 'highest_priority' may be read without the lock held, but only written with the
+    // lock
     priority_t highest_priority;
 
     // this lock protects everything else
@@ -96,31 +100,31 @@ namespace Realm {
 
     // the actual queue - priorities are negated here to that queue.begin() gives us the
     //  "highest" priority
-    std::map<priority_t, std::deque<T> > queue;
+    std::map<priority_t, std::deque<T>> queue;
 
     // notification subscriptions
     std::map<NotificationCallback *, priority_t> subscriptions;
-    
+
     ProfilingGauges::AbsoluteRangeGauge<int> *entries_in_queue;
 
     template <typename T2, typename LT2>
-    friend std::ostream& operator<<(std::ostream& os, const PriorityQueue<T2, LT2>& pq);
+    friend std::ostream &operator<<(std::ostream &os, const PriorityQueue<T2, LT2> &pq);
   };
 
   template <typename T, typename LT>
-  std::ostream& operator<<(std::ostream& os, const PriorityQueue<T, LT>& pq)
+  std::ostream &operator<<(std::ostream &os, const PriorityQueue<T, LT> &pq)
   {
     pq.lock.lock();
     os << "PQ{\n";
-    for(typename std::map<typename PriorityQueue<T, LT>::priority_t, std::deque<T> >::const_iterator it = pq.queue.begin();
-	it != pq.queue.end();
-	++it) {
+    for(typename std::map<typename PriorityQueue<T, LT>::priority_t,
+                          std::deque<T>>::const_iterator it = pq.queue.begin();
+        it != pq.queue.end(); ++it) {
       os << "  [" << -(it->first) << "]: ";
       typename std::deque<T>::const_iterator it2 = it->second.begin();
       assert(it2 != it->second.end());
       os << ((const void *)(*it2));
       while((++it2) != it->second.end())
-	os << ", " << ((const void *)(*it2));
+        os << ", " << ((const void *)(*it2));
       os << "\n";
     }
     os << "}\n";
@@ -133,4 +137,3 @@ namespace Realm {
 #include "realm/pri_queue.inl"
 
 #endif // ifndef REALM_PRI_QUEUE_H
-

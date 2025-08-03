@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,9 +45,8 @@ namespace Realm {
     // CUDA managed memory - extra is a uintptr_t'd pointer to _one of_
     //  the GPU objects
     static const MemoryType CudaManagedMem = 4;
-  };
+  }; // namespace NetworkSegmentInfo
 
-  
   namespace Cuda {
 
     // a running task on a CUDA processor is assigned a stream by Realm, and
@@ -84,8 +85,8 @@ namespace Realm {
     //   launched by the task must be properly ordered (using the CUDA APIs)
     //   after anything already in the stream assigned to the task
     typedef void (*StreamAwareTaskFuncPtr)(const void *args, size_t arglen,
-					   const void *user_data, size_t user_data_len,
-					   Processor proc, CUstream_st *stream);
+                                           const void *user_data, size_t user_data_len,
+                                           Processor proc, CUstream_st *stream);
 
     // this is the same data structure of CUuuid
     static const size_t UUID_SIZE = 16; // bytes
@@ -107,13 +108,14 @@ namespace Realm {
 
     class CudaModuleConfig : public ModuleConfig {
       friend class CudaModule;
+
     protected:
       CudaModuleConfig(void);
 
       bool discover_resource(void);
 
     public:
-      virtual void configure_from_cmdline(std::vector<std::string>& cmdline);
+      virtual void configure_from_cmdline(std::vector<std::string> &cmdline);
 
     public:
       // configurations
@@ -125,13 +127,14 @@ namespace Realm {
       int cfg_num_gpus = 0;
       std::string cfg_gpu_idxs;
       unsigned cfg_task_streams = 12, cfg_d2d_streams = 4;
-      bool cfg_use_worker_threads = false, cfg_use_shared_worker = true, cfg_pin_sysmem = true;
+      bool cfg_use_worker_threads = false, cfg_use_shared_worker = true,
+           cfg_pin_sysmem = true;
       bool cfg_fences_use_callbacks = false;
       bool cfg_suppress_hijack_warning = false;
       unsigned cfg_skip_gpu_count = 0;
       bool cfg_skip_busy_gpus = false;
       size_t cfg_min_avail_mem = 0;
-      int cfg_task_legacy_sync = 0; // 0 = no, 1 = yes
+      int cfg_task_legacy_sync = 0;   // 0 = no, 1 = yes
       int cfg_task_context_sync = -1; // 0 = no, 1 = yes, -1 = default (based on hijack)
       int cfg_max_ctxsync_threads = 4;
       bool cfg_lmem_resize_to_max = false;
@@ -248,7 +251,7 @@ namespace Realm {
 
   }; // namespace Cuda
 
-}; // namespace Realm 
+}; // namespace Realm
 
 #include "realm/cuda/cuda_module.inl"
 

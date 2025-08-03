@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +31,7 @@ namespace Realm {
       if(REALM_UNLILELY(single_network == 0)) {
       } else
 #endif
-	return single_network;
+        return single_network;
     }
 
     inline void barrier(void)
@@ -38,7 +40,7 @@ namespace Realm {
       if(REALM_UNLIKELY(single_network == 0)) {
       } else
 #endif
-	single_network->barrier();
+        single_network->barrier();
     }
 
     // collective communication across all nodes (TODO: subcommunicators?)
@@ -51,233 +53,172 @@ namespace Realm {
     }
 
     template <typename T>
-    inline void gather(NodeID root, T val, std::vector<T>& result)
+    inline void gather(NodeID root, T val, std::vector<T> &result)
     {
       result.resize(max_node_id + 1);
       gather(root, &val, &result[0], sizeof(T));
     }
 
     template <typename T>
-    inline void gather(NodeID root, T val)  // for non-root participants
+    inline void gather(NodeID root, T val) // for non-root participants
     {
       gather(root, &val, 0, sizeof(T));
     }
-    
-    inline void broadcast(NodeID root,
-			  const void *val_in, void *val_out, size_t bytes)
+
+    inline void broadcast(NodeID root, const void *val_in, void *val_out, size_t bytes)
     {
 #ifdef REALM_USE_MULTIPLE_NETWORKS
       if(REALM_UNLIKELY(single_network == 0)) {
       } else
 #endif
-	single_network->broadcast(root, val_in, val_out, bytes);
-    }
-    
-    inline void gather(NodeID root,
-		       const void *val_in, void *vals_out, size_t bytes)
-    {
-#ifdef REALM_USE_MULTIPLE_NETWORKS
-      if(REALM_UNLIKELY(single_network == 0)) {
-      } else
-#endif
-	single_network->gather(root, val_in, vals_out, bytes);
-    }
-    
-    inline ActiveMessageImpl *create_active_message_impl(NodeID target,
-							 unsigned short msgid,
-							 size_t header_size,
-							 size_t max_payload_size,
-							 const void *src_payload_addr,
-							 size_t src_payload_lines,
-							 size_t src_payload_line_stride,
-							 void *storage_base,
-							 size_t storage_size)
-    {
-#ifdef REALM_USE_MULTIPLE_NETWORKS
-      if(REALM_UNLIKELY(single_network == 0)) {
-      } else
-#endif
-	return single_network->create_active_message_impl(target,
-							  msgid,
-							  header_size,
-							  max_payload_size,
-							  src_payload_addr,
-							  src_payload_lines,
-							  src_payload_line_stride,
-							  storage_base,
-							  storage_size);
+        single_network->broadcast(root, val_in, val_out, bytes);
     }
 
-    inline ActiveMessageImpl *create_active_message_impl(NodeID target,
-							 unsigned short msgid,
-							 size_t header_size,
-							 size_t max_payload_size,
-                                                         const LocalAddress& src_payload_addr,
-							 size_t src_payload_lines,
-							 size_t src_payload_line_stride,
-							 const RemoteAddress& dest_payload_addr,
-							 void *storage_base,
-							 size_t storage_size)
+    inline void gather(NodeID root, const void *val_in, void *vals_out, size_t bytes)
     {
 #ifdef REALM_USE_MULTIPLE_NETWORKS
       if(REALM_UNLIKELY(single_network == 0)) {
       } else
 #endif
-	return single_network->create_active_message_impl(target,
-							  msgid,
-							  header_size,
-							  max_payload_size,
-							  src_payload_addr,
-							  src_payload_lines,
-							  src_payload_line_stride,
-							  dest_payload_addr,
-							  storage_base,
-							  storage_size);
+        single_network->gather(root, val_in, vals_out, bytes);
     }
 
-    inline ActiveMessageImpl *create_active_message_impl(NodeID target,
-							 unsigned short msgid,
-							 size_t header_size,
-							 size_t max_payload_size,
-							 const RemoteAddress& dest_payload_addr,
-							 void *storage_base,
-							 size_t storage_size)
+    inline ActiveMessageImpl *
+    create_active_message_impl(NodeID target, unsigned short msgid, size_t header_size,
+                               size_t max_payload_size, const void *src_payload_addr,
+                               size_t src_payload_lines, size_t src_payload_line_stride,
+                               void *storage_base, size_t storage_size)
     {
 #ifdef REALM_USE_MULTIPLE_NETWORKS
       if(REALM_UNLIKELY(single_network == 0)) {
       } else
 #endif
-	return single_network->create_active_message_impl(target,
-							  msgid,
-							  header_size,
-							  max_payload_size,
-							  dest_payload_addr,
-							  storage_base,
-							  storage_size);
+        return single_network->create_active_message_impl(
+            target, msgid, header_size, max_payload_size, src_payload_addr,
+            src_payload_lines, src_payload_line_stride, storage_base, storage_size);
     }
 
-    inline ActiveMessageImpl *create_active_message_impl(const NodeSet& targets,
-							 unsigned short msgid,
-							 size_t header_size,
-							 size_t max_payload_size,
-							 const void *src_payload_addr,
-							 size_t src_payload_lines,
-							 size_t src_payload_line_stride,
-							 void *storage_base,
-							 size_t storage_size)
+    inline ActiveMessageImpl *create_active_message_impl(
+        NodeID target, unsigned short msgid, size_t header_size, size_t max_payload_size,
+        const LocalAddress &src_payload_addr, size_t src_payload_lines,
+        size_t src_payload_line_stride, const RemoteAddress &dest_payload_addr,
+        void *storage_base, size_t storage_size)
     {
 #ifdef REALM_USE_MULTIPLE_NETWORKS
       if(REALM_UNLIKELY(single_network == 0)) {
       } else
 #endif
-	return single_network->create_active_message_impl(targets,
-							  msgid,
-							  header_size,
-							  max_payload_size,
-							  src_payload_addr,
-							  src_payload_lines,
-							  src_payload_line_stride,
-							  storage_base,
-							  storage_size);
-    }
-    
-    inline size_t recommended_max_payload(NodeID target,
-					  bool with_congestion,
-					  size_t header_size)
-    {
-#ifdef REALM_USE_MULTIPLE_NETWORKS
-      if(REALM_UNLIKELY(single_network == 0)) {
-      } else
-#endif
-	return single_network->recommended_max_payload(target,
-						       with_congestion,
-						       header_size);
+        return single_network->create_active_message_impl(
+            target, msgid, header_size, max_payload_size, src_payload_addr,
+            src_payload_lines, src_payload_line_stride, dest_payload_addr, storage_base,
+            storage_size);
     }
 
-    inline size_t recommended_max_payload(const NodeSet& targets,
-					  bool with_congestion,
-					  size_t header_size)
+    inline ActiveMessageImpl *create_active_message_impl(
+        NodeID target, unsigned short msgid, size_t header_size, size_t max_payload_size,
+        const RemoteAddress &dest_payload_addr, void *storage_base, size_t storage_size)
     {
 #ifdef REALM_USE_MULTIPLE_NETWORKS
       if(REALM_UNLIKELY(single_network == 0)) {
       } else
 #endif
-	return single_network->recommended_max_payload(targets,
-						       with_congestion,
-						       header_size);
+        return single_network->create_active_message_impl(
+            target, msgid, header_size, max_payload_size, dest_payload_addr, storage_base,
+            storage_size);
+    }
+
+    inline ActiveMessageImpl *create_active_message_impl(
+        const NodeSet &targets, unsigned short msgid, size_t header_size,
+        size_t max_payload_size, const void *src_payload_addr, size_t src_payload_lines,
+        size_t src_payload_line_stride, void *storage_base, size_t storage_size)
+    {
+#ifdef REALM_USE_MULTIPLE_NETWORKS
+      if(REALM_UNLIKELY(single_network == 0)) {
+      } else
+#endif
+        return single_network->create_active_message_impl(
+            targets, msgid, header_size, max_payload_size, src_payload_addr,
+            src_payload_lines, src_payload_line_stride, storage_base, storage_size);
+    }
+
+    inline size_t recommended_max_payload(NodeID target, bool with_congestion,
+                                          size_t header_size)
+    {
+#ifdef REALM_USE_MULTIPLE_NETWORKS
+      if(REALM_UNLIKELY(single_network == 0)) {
+      } else
+#endif
+        return single_network->recommended_max_payload(target, with_congestion,
+                                                       header_size);
+    }
+
+    inline size_t recommended_max_payload(const NodeSet &targets, bool with_congestion,
+                                          size_t header_size)
+    {
+#ifdef REALM_USE_MULTIPLE_NETWORKS
+      if(REALM_UNLIKELY(single_network == 0)) {
+      } else
+#endif
+        return single_network->recommended_max_payload(targets, with_congestion,
+                                                       header_size);
     }
 
     inline size_t recommended_max_payload(NodeID target,
-					  const RemoteAddress& dest_payload_addr,
-					  bool with_congestion,
-					  size_t header_size)
+                                          const RemoteAddress &dest_payload_addr,
+                                          bool with_congestion, size_t header_size)
     {
 #ifdef REALM_USE_MULTIPLE_NETWORKS
       if(REALM_UNLIKELY(single_network == 0)) {
       } else
 #endif
-	return single_network->recommended_max_payload(target,
-						       dest_payload_addr,
-						       with_congestion,
-						       header_size);
+        return single_network->recommended_max_payload(target, dest_payload_addr,
+                                                       with_congestion, header_size);
+    }
+
+    inline size_t recommended_max_payload(NodeID target, const void *data,
+                                          size_t bytes_per_line, size_t lines,
+                                          size_t line_stride, bool with_congestion,
+                                          size_t header_size)
+    {
+#ifdef REALM_USE_MULTIPLE_NETWORKS
+      if(REALM_UNLIKELY(single_network == 0)) {
+      } else
+#endif
+        return single_network->recommended_max_payload(target, data, bytes_per_line,
+                                                       lines, line_stride,
+                                                       with_congestion, header_size);
+    }
+
+    inline size_t recommended_max_payload(const NodeSet &targets, const void *data,
+                                          size_t bytes_per_line, size_t lines,
+                                          size_t line_stride, bool with_congestion,
+                                          size_t header_size)
+    {
+#ifdef REALM_USE_MULTIPLE_NETWORKS
+      if(REALM_UNLIKELY(single_network == 0)) {
+      } else
+#endif
+        return single_network->recommended_max_payload(targets, data, bytes_per_line,
+                                                       lines, line_stride,
+                                                       with_congestion, header_size);
     }
 
     inline size_t recommended_max_payload(NodeID target,
-					  const void *data, size_t bytes_per_line,
-					  size_t lines, size_t line_stride,
-					  bool with_congestion,
-					  size_t header_size)
+                                          const LocalAddress &src_payload_addr,
+                                          size_t bytes_per_line, size_t lines,
+                                          size_t line_stride,
+                                          const RemoteAddress &dest_payload_addr,
+                                          bool with_congestion, size_t header_size)
     {
 #ifdef REALM_USE_MULTIPLE_NETWORKS
       if(REALM_UNLIKELY(single_network == 0)) {
       } else
 #endif
-	return single_network->recommended_max_payload(target,
-						       data, bytes_per_line,
-						       lines, line_stride,
-						       with_congestion,
-						       header_size);
+        return single_network->recommended_max_payload(
+            target, src_payload_addr, bytes_per_line, lines, line_stride,
+            dest_payload_addr, with_congestion, header_size);
     }
 
-    inline size_t recommended_max_payload(const NodeSet& targets,
-					  const void *data, size_t bytes_per_line,
-					  size_t lines, size_t line_stride,
-					  bool with_congestion,
-					  size_t header_size)
-    {
-#ifdef REALM_USE_MULTIPLE_NETWORKS
-      if(REALM_UNLIKELY(single_network == 0)) {
-      } else
-#endif
-	return single_network->recommended_max_payload(targets,
-						       data, bytes_per_line,
-						       lines, line_stride,
-						       with_congestion,
-						       header_size);
-    }
+  }; // namespace Network
 
-    inline size_t recommended_max_payload(NodeID target,
-                                          const LocalAddress& src_payload_addr,
-					  size_t bytes_per_line,
-					  size_t lines, size_t line_stride,
-					  const RemoteAddress& dest_payload_addr,
-					  bool with_congestion,
-					  size_t header_size)
-    {
-#ifdef REALM_USE_MULTIPLE_NETWORKS
-      if(REALM_UNLIKELY(single_network == 0)) {
-      } else
-#endif
-	return single_network->recommended_max_payload(target,
-						       src_payload_addr,
-                                                       bytes_per_line,
-						       lines, line_stride,
-						       dest_payload_addr,
-						       with_congestion,
-						       header_size);
-    }
-
-  };
-
-
-};
+}; // namespace Realm

@@ -86,7 +86,8 @@ namespace Legion {
       REFINEMENT_REF = 36,
       OUTPUT_REGION_REF = 37,
       POINTWISE_DEPENDENCE_REF = 38,
-      LAST_SOURCE_REF = 39,
+      UNBOUNDED_POOL_REF = 39,
+      LAST_SOURCE_REF = 40,
     };
 
     enum ReferenceKind {
@@ -136,6 +137,7 @@ namespace Legion {
       "Refinement Reference",                       \
       "Output Region Reference",                    \
       "Pointwise Dependence Reference",             \
+      "Unbounded Pool Reference",                   \
   }
 
     /**

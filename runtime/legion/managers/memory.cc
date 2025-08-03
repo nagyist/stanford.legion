@@ -32,6 +32,7 @@
 
 #include "legion/managers/memory.h"
 #include "legion/contexts/context.h"
+#include "legion/kernel/garbage_collection.h"
 #include "legion/kernel/runtime.h"
 #include "legion/instances/builder.h"
 #include "legion/instances/physical.h"
@@ -47,8 +48,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    /*static*/ MemoryPool* MemoryPool::deserialize(
-        Deserializer& derez, Runtime* runtime)
+    /*static*/ MemoryPool* MemoryPool::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       Memory memory;
@@ -79,7 +79,10 @@ namespace Legion {
         derez.deserialize(scope);
         TaskTreeCoordinates coordinates;
         coordinates.deserialize(derez);
-        return new UnboundPool(manager, scope, coordinates, max_free_bytes);
+        UnboundPool* pool =
+            new UnboundPool(manager, scope, coordinates, max_free_bytes);
+        pool->unpack(derez);
+        return pool;
       }
     }
 
@@ -158,6 +161,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return PoolBounds(limit, max_alignment);
+    }
+
+    //--------------------------------------------------------------------------
+    void ConcretePool::capture_task_instances(
+        const std::map<PhysicalManager*, unsigned>& instances)
+    //--------------------------------------------------------------------------
+    {
+      // Nothing to do here since we know we won't be trying to do deferred
+      // deletions to satisfy allocations for this pool
     }
 
     //--------------------------------------------------------------------------
@@ -1223,6 +1235,26 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void UnboundPool::capture_task_instances(
+        const std::map<PhysicalManager*, unsigned>& instances)
+    //--------------------------------------------------------------------------
+    {
+      const Memory memory = manager->memory;
+      // Capture valid references on any instances in the same memory as
+      // this unbounded pool to prevent them from being deferred deleted
+      // to satisfy allocations done by this pool
+      for (std::map<PhysicalManager*, unsigned>::const_iterator it =
+               instances.begin();
+           it != instances.end(); it++)
+      {
+        if (memory != it->first->get_memory())
+          continue;
+        it->first->add_base_valid_ref(UNBOUNDED_POOL_REF);
+        captured_instances.push_back(it->first);
+      }
+    }
+
+    //--------------------------------------------------------------------------
     FutureInstance* UnboundPool::allocate_future(
         UniqueID creator_uid, size_t size)
     //--------------------------------------------------------------------------
@@ -1523,8 +1555,14 @@ namespace Legion {
                    fit->second.begin();
                it != fit->second.end(); it++)
             manager->free_task_local_instance(it->instance, it->precondition);
+        for (std::vector<PhysicalManager*>::const_iterator it =
+                 captured_instances.begin();
+             it != captured_instances.end(); it++)
+          if ((*it)->remove_base_valid_ref(UNBOUNDED_POOL_REF))
+            delete (*it);
         manager->release_unbound_pool();
         freed_instances.clear();
+        captured_instances.clear();
         freed_bytes = 0;
         released = true;
       }
@@ -1547,6 +1585,46 @@ namespace Legion {
       rez.serialize(max_freed_bytes);
       rez.serialize(scope);
       coordinates.serialize(rez);
+      rez.serialize<size_t>(captured_instances.size());
+      for (std::vector<PhysicalManager*>::const_iterator it =
+               captured_instances.begin();
+           it != captured_instances.end(); it++)
+      {
+        rez.serialize((*it)->did);
+        (*it)->pack_valid_ref();
+        if ((*it)->remove_base_valid_ref(UNBOUNDED_POOL_REF))
+          delete (*it);
+      }
+      captured_instances.clear();
+    }
+
+    //--------------------------------------------------------------------------
+    void UnboundPool::unpack(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      size_t num_instances;
+      derez.deserialize(num_instances);
+      std::vector<RtEvent> ready_events;
+      captured_instances.reserve(num_instances);
+      for (unsigned idx = 0; idx < num_instances; idx++)
+      {
+        DistributedID did;
+        derez.deserialize(did);
+        RtEvent ready;
+        captured_instances.push_back(
+            runtime->find_or_request_instance_manager(did, ready));
+        if (ready.exists())
+          ready_events.push_back(ready);
+      }
+      if (!ready_events.empty())
+        Runtime::merge_events(ready_events).wait();
+      for (std::vector<PhysicalManager*>::const_iterator it =
+               captured_instances.begin();
+           it != captured_instances.end(); it++)
+      {
+        (*it)->add_base_valid_ref(UNBOUNDED_POOL_REF);
+        (*it)->unpack_valid_ref();
+      }
     }
 
     /////////////////////////////////////////////////////////////
@@ -4640,7 +4718,7 @@ namespace Legion {
       DerezCheck z(derez);
       MemoryPool** result;
       derez.deserialize(result);
-      *result = MemoryPool::deserialize(derez, runtime);
+      *result = MemoryPool::deserialize(derez);
       RtEvent* safe_for_unbounded_pools;
       derez.deserialize(safe_for_unbounded_pools);
       if (safe_for_unbounded_pools != nullptr)

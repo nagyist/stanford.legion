@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
@@ -28,9 +45,10 @@ extern void launch_spin_kernel(uint64_t t_ns, unifiedHipStream_t *);
 #endif
 
 // Task IDs, some IDs are reserved so start at first available number
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
-  CHILD_TASK     = Processor::TASK_ID_FIRST_AVAILABLE+1,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
+  CHILD_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 1,
   RESPONSE_TASK,
 };
 
@@ -50,22 +68,24 @@ public:
   MyMachineUpdateTracker(void) {}
   virtual ~MyMachineUpdateTracker(void) {}
 
-  virtual void processor_updated(Processor p, UpdateType update_type, 
-				 const void *payload, size_t payload_size)
+  virtual void processor_updated(Processor p, UpdateType update_type, const void *payload,
+                                 size_t payload_size)
   {
-    printf("machine processor update: " IDFMT " %s (%zd payload_bytes)\n",
-	   p.id, (update_type == Machine::MachineUpdateSubscriber::THING_ADDED ? "added" :
-		  update_type == Machine::MachineUpdateSubscriber::THING_REMOVED ? "removed" : "updated"),
-	   payload_size);
+    printf("machine processor update: " IDFMT " %s (%zd payload_bytes)\n", p.id,
+           (update_type == Machine::MachineUpdateSubscriber::THING_ADDED     ? "added"
+            : update_type == Machine::MachineUpdateSubscriber::THING_REMOVED ? "removed"
+                                                                             : "updated"),
+           payload_size);
   }
 
-  virtual void memory_updated(Memory m, UpdateType update_type, 
-			      const void *payload, size_t payload_size)
+  virtual void memory_updated(Memory m, UpdateType update_type, const void *payload,
+                              size_t payload_size)
   {
-    printf("machine memory update: " IDFMT " %s (%zd payload_bytes)\n",
-	   m.id, (update_type == Machine::MachineUpdateSubscriber::THING_ADDED ? "added" :
-		  update_type == Machine::MachineUpdateSubscriber::THING_REMOVED ? "removed" : "updated"),
-	   payload_size);
+    printf("machine memory update: " IDFMT " %s (%zd payload_bytes)\n", m.id,
+           (update_type == Machine::MachineUpdateSubscriber::THING_ADDED     ? "added"
+            : update_type == Machine::MachineUpdateSubscriber::THING_REMOVED ? "removed"
+                                                                             : "updated"),
+           payload_size);
   }
 };
 
@@ -139,8 +159,8 @@ struct ResponseTaskArgs {
   } test_result;
 };
 
-void response_task(const void *args, size_t arglen,
-		   const void *userdata, size_t userlen, Processor p)
+void response_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                   Processor p)
 {
   log_app.print() << "profiling response task on processor " << p;
   printf("got profiling response - %zd bytes\n", arglen);
@@ -158,10 +178,8 @@ void response_task(const void *args, size_t arglen,
   if(pr.has_measurement<OperationStatus>()) {
     OperationStatus *op_status = pr.get_measurement<OperationStatus>();
     result = op_status->result;
-    printf("op status = %d (code = %d, details = %zd bytes)\n",
-	   (int)(op_status->result),
-	   op_status->error_code,
-	   op_status->error_details.size());
+    printf("op status = %d (code = %d, details = %zd bytes)\n", (int)(op_status->result),
+           op_status->error_code, op_status->error_details.size());
     delete op_status;
   } else
     printf("no status\n");
@@ -169,16 +187,17 @@ void response_task(const void *args, size_t arglen,
   if(pr.has_measurement<OperationTimeline>()) {
     OperationTimeline *op_timeline = pr.get_measurement<OperationTimeline>();
     printf("op timeline = %lld %lld %lld %lld (%lld %lld %lld)\n",
-	   op_timeline->ready_time,
-	   op_timeline->start_time,
-	   op_timeline->end_time,
-	   op_timeline->complete_time,
-           (((op_timeline->start_time >= 0) && (op_timeline->ready_time >= 0)) ?
-            (op_timeline->start_time - op_timeline->ready_time) : -1),
-           (((op_timeline->end_time >= 0) && (op_timeline->start_time >= 0)) ?
-            (op_timeline->end_time - op_timeline->start_time) : -1),
-           (((op_timeline->complete_time >= 0) && (op_timeline->end_time >= 0)) ?
-            (op_timeline->complete_time - op_timeline->end_time) : -1));
+           op_timeline->ready_time, op_timeline->start_time, op_timeline->end_time,
+           op_timeline->complete_time,
+           (((op_timeline->start_time >= 0) && (op_timeline->ready_time >= 0))
+                ? (op_timeline->start_time - op_timeline->ready_time)
+                : -1),
+           (((op_timeline->end_time >= 0) && (op_timeline->start_time >= 0))
+                ? (op_timeline->end_time - op_timeline->start_time)
+                : -1),
+           (((op_timeline->complete_time >= 0) && (op_timeline->end_time >= 0))
+                ? (op_timeline->complete_time - op_timeline->end_time)
+                : -1));
     // ready/start/end/complete should at least be ordered (if they exist)
     if(result != OperationStatus::CANCELLED) {
       assert(op_timeline->ready_time >= 0);
@@ -196,10 +215,8 @@ void response_task(const void *args, size_t arglen,
 
   if(pr.has_measurement<OperationTimelineGPU>()) {
     OperationTimelineGPU *op_timeline = pr.get_measurement<OperationTimelineGPU>();
-    printf("op gpu timeline = %lld %lld (%lld)\n",
-	   op_timeline->start_time,
-	   op_timeline->end_time,
-	   op_timeline->end_time - op_timeline->start_time);
+    printf("op gpu timeline = %lld %lld (%lld)\n", op_timeline->start_time,
+           op_timeline->end_time, op_timeline->end_time - op_timeline->start_time);
     // start and end should at least be ordered if we didn't terminate early or were
     // cancelled It is possible if the task didn't have any gpu work the start and end
     // times would be INVALID_TIMESTAMP.
@@ -217,11 +234,11 @@ void response_task(const void *args, size_t arglen,
     printf("op waits = %zd", op_waits->intervals.size());
     if(!op_waits->intervals.empty()) {
       printf(" [");
-      for(std::vector<OperationEventWaits::WaitInterval>::const_iterator it = op_waits->intervals.begin();
-	  it != op_waits->intervals.end();
-	  it++)
-	printf(" (%lld %lld %lld %llx)",
-	       it->wait_start, it->wait_ready, it->wait_end, it->wait_event.id);
+      for(std::vector<OperationEventWaits::WaitInterval>::const_iterator it =
+              op_waits->intervals.begin();
+          it != op_waits->intervals.end(); it++)
+        printf(" (%lld %lld %lld %llx)", it->wait_start, it->wait_ready, it->wait_end,
+               it->wait_event.id);
       printf(" ]\n");
     } else
       printf("\n");
@@ -229,7 +246,7 @@ void response_task(const void *args, size_t arglen,
   } else
     printf("no event wait data\n");
 
-  if(0&&pr.has_measurement<OperationBacktrace>()) {
+  if(0 && pr.has_measurement<OperationBacktrace>()) {
     OperationBacktrace *op_backtrace = pr.get_measurement<OperationBacktrace>();
     std::cout << "op backtrace = ";
     for(const std::string &sym : op_backtrace->symbols) {
@@ -245,8 +262,8 @@ void response_task(const void *args, size_t arglen,
 
       InstanceStatus::Result exp_result = response_args->test_result.exp_result;
       if(exp_result != stat.result) {
-	std::cout << "mismatch!  expected " << exp_result << "\n";
-	exit(1);
+        std::cout << "mismatch!  expected " << exp_result << "\n";
+        exit(1);
       }
     }
   }
@@ -261,17 +278,16 @@ void response_task(const void *args, size_t arglen,
   {
     InstanceMemoryUsage usage;
     if(pr.get_measurement(usage))
-      std::cout << "inst mem usage = " << usage.instance << " " << usage.memory << " " << usage.bytes << "\n";
+      std::cout << "inst mem usage = " << usage.instance << " " << usage.memory << " "
+                << usage.bytes << "\n";
   }
 
   if(pr.has_measurement<InstanceTimeline>()) {
     InstanceTimeline *inst_timeline = pr.get_measurement<InstanceTimeline>();
-    printf("inst timeline = %lld %lld %lld (%lld %lld)\n",
-	   inst_timeline->create_time,
-	   inst_timeline->ready_time,
-	   inst_timeline->delete_time,
-	   inst_timeline->ready_time - inst_timeline->create_time,
-	   inst_timeline->delete_time - inst_timeline->ready_time);
+    printf("inst timeline = %lld %lld %lld (%lld %lld)\n", inst_timeline->create_time,
+           inst_timeline->ready_time, inst_timeline->delete_time,
+           inst_timeline->ready_time - inst_timeline->create_time,
+           inst_timeline->delete_time - inst_timeline->ready_time);
     delete inst_timeline;
   } else
     printf("no instance timeline\n");
@@ -355,8 +371,8 @@ void response_task(const void *args, size_t arglen,
   response_counter.arrive();
 }
 
-void top_level_task(const void *args, size_t arglen, 
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   printf("top level task - getting machine and list of CPUs\n");
 
@@ -367,19 +383,18 @@ void top_level_task(const void *args, size_t arglen,
     std::set<Processor> all_processors;
     machine.get_all_processors(all_processors);
     for(std::set<Processor>::const_iterator it = all_processors.begin();
-	it != all_processors.end();
-	it++) {
+        it != all_processors.end(); it++) {
       if(it->kind() == Processor::LOC_PROC)
-	all_cpus.push_back(*it);
+        all_cpus.push_back(*it);
       if(it->kind() == Processor::TOC_PROC)
-	all_gpus.push_back(*it);
+        all_gpus.push_back(*it);
     }
   }
   bool has_gpus = !all_gpus.empty();
 
 #ifdef TEST_FAULTS
   // touch all of the new resilience-based calls (just to test linking)
-  if(arglen == 97) {  // if the compiler can DCE this, no link errors...  :(
+  if(arglen == 97) { // if the compiler can DCE this, no link errors...  :(
     Processor::report_execution_fault(0, 0, 0);
     Processor::NO_PROC.report_processor_fault(0, 0, 0);
     Memory::NO_MEMORY.report_memory_fault(0, 0, 0);
@@ -395,7 +410,7 @@ void top_level_task(const void *args, size_t arglen,
     Event::NO_EVENT.cancel_operation(0, 0);
   }
 #endif
-  
+
   // launch a child task and perform some measurements on it
   // choose the last cpu/gpu, which is likely to be on a different node
   Processor profile_cpu = all_cpus.front();
@@ -407,9 +422,9 @@ void top_level_task(const void *args, size_t arglen,
   ProfilingRequest &pr = prs.add_request(profile_cpu, RESPONSE_TASK, &response_task_arg,
                                          sizeof(response_task_arg));
   pr.add_measurement<OperationStatus>()
-    .add_measurement<OperationTimeline>()
-    .add_measurement<OperationEventWaits>()
-    .add_measurement<OperationBacktrace>();
+      .add_measurement<OperationTimeline>()
+      .add_measurement<OperationEventWaits>()
+      .add_measurement<OperationBacktrace>();
   if(has_gpus)
     pr.add_measurement<OperationTimelineGPU>();
 
@@ -463,12 +478,14 @@ void top_level_task(const void *args, size_t arglen,
     e4.wait();
   }
 
-  // Disable the cancel_operation due to this error https://gitlab.com/StanfordLegion/legion/-/jobs/5715868078
-  // Even though the CHILD_TASK will sleep for 5s and there is a sleep(2) after spawn, 
-  //   which should be enough for issuing the cancel_operation, 
+  // Disable the cancel_operation due to this error
+  // https://gitlab.com/StanfordLegion/legion/-/jobs/5715868078 Even though the CHILD_TASK
+  // will sleep for 5s and there is a sleep(2) after spawn,
+  //   which should be enough for issuing the cancel_operation,
   //   the CI container does not guarantee the sleep will be accurate, so it is possible
-  //   that the cancel_operation is issued after the task is done. 
-  // Tried to fix it with the PR https://gitlab.com/StanfordLegion/legion/-/merge_requests/1049, however,
+  //   that the cancel_operation is issued after the task is done.
+  // Tried to fix it with the PR
+  // https://gitlab.com/StanfordLegion/legion/-/merge_requests/1049, however,
   //   it triggers another bug https://github.com/StanfordLegion/legion/issues/1623,
   //   so let's keep the original code but disable the cancel tests.
 #if 0
@@ -515,10 +532,9 @@ void top_level_task(const void *args, size_t arglen,
         .add_measurement<InstanceTimeline>()
         .add_measurement<InstanceMemoryUsage>();
     RegionInstance inst;
-    Event e = RegionInstance::create_instance(inst, mem, is,
-					      std::vector<size_t>(1, 8),
-					      0, // SOA
-					      prs);
+    Event e = RegionInstance::create_instance(inst, mem, is, std::vector<size_t>(1, 8),
+                                              0, // SOA
+                                              prs);
 
     // while we've got an instance, let's try canceling some copies
     {
@@ -568,10 +584,9 @@ void top_level_task(const void *args, size_t arglen,
         .add_measurement<InstanceTimeline>()
         .add_measurement<InstanceMemoryUsage>();
     RegionInstance inst;
-    Event e = RegionInstance::create_instance(inst, mem, is,
-					      std::vector<size_t>(1, 1024),
-					      0, // SOA
-					      prs);
+    Event e = RegionInstance::create_instance(inst, mem, is, std::vector<size_t>(1, 1024),
+                                              0, // SOA
+                                              prs);
     // a normal inst.destroy(e) would not work here, as 'e' is poisoned...
     // instead, we need to "launder" the poison in order to actually clean
     //  up the metadata for the failed allocation
@@ -614,12 +629,11 @@ int main(int argc, char **argv)
   {
     std::set<Processor> all_procs;
     Machine::get_machine().get_all_processors(all_procs);
-    for(std::set<Processor>::const_iterator it = all_procs.begin();
-	it != all_procs.end();
-	it++)
+    for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+        it++)
       if(it->kind() == Processor::LOC_PROC) {
-	p = *it;
-	break;
+        p = *it;
+        break;
       }
   }
   assert(p.exists());
@@ -651,9 +665,9 @@ int main(int argc, char **argv)
 
 #ifdef TRACK_MACHINE_UPDATES
   // the machine is gone at this point, so no need to remove ourselves explicitly
-  //Machine::get_machine().remove_subscription(tracker);
+  // Machine::get_machine().remove_subscription(tracker);
   delete tracker;
 #endif
-  
+
   return 0;
 }

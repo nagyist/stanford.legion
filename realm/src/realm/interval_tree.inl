@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,14 +27,16 @@ namespace Realm {
   ////////////////////////////////////////////////////////////////////////
   //
   // class IntervalTree<IT,LT>::TreeNode
-  
+
   template <typename IT, typename LT>
-  inline IntervalTree<IT,LT>::TreeNode::TreeNode(IT _split_val)
-    : split_val(_split_val), left(0), right(0)
+  inline IntervalTree<IT, LT>::TreeNode::TreeNode(IT _split_val)
+    : split_val(_split_val)
+    , left(0)
+    , right(0)
   {}
 
   template <typename IT, typename LT>
-  inline IntervalTree<IT,LT>::TreeNode::~TreeNode(void)
+  inline IntervalTree<IT, LT>::TreeNode::~TreeNode(void)
   {
     // recursively delete child subtrees (if any)
     delete left;
@@ -43,35 +47,44 @@ namespace Realm {
     template <typename T>
     class StartSorter {
     public:
-      StartSorter(const std::vector<T>& _vals) : vals(_vals) {}
+      StartSorter(const std::vector<T> &_vals)
+        : vals(_vals)
+      {}
       bool operator()(int i, int j) { return vals[i] < vals[j]; }
+
     protected:
-      const std::vector<T>& vals;
+      const std::vector<T> &vals;
     };
 
     template <typename T>
     class EndSorter {
     public:
-      EndSorter(const std::vector<T>& _vals) : vals(_vals) {}
+      EndSorter(const std::vector<T> &_vals)
+        : vals(_vals)
+      {}
       bool operator()(int i, int j) { return vals[i] > vals[j]; }
+
     protected:
-      const std::vector<T>& vals;
+      const std::vector<T> &vals;
     };
-  };
+  }; // namespace
 
   template <typename IT, typename LT>
-  /*static*/ inline typename IntervalTree<IT,LT>::TreeNode *
-       IntervalTree<IT,LT>::TreeNode::build_tree(const typename std::vector<IT>& pending_starts,
-						 const typename std::vector<IT>& pending_ends,
-						 const typename std::vector<LT>& pending_labels)
+  /*static*/ inline typename IntervalTree<IT, LT>::TreeNode *
+  IntervalTree<IT, LT>::TreeNode::build_tree(
+      const typename std::vector<IT> &pending_starts,
+      const typename std::vector<IT> &pending_ends,
+      const typename std::vector<LT> &pending_labels)
   {
     size_t count = pending_starts.size();
-    if(!count) return 0;
+    if(!count)
+      return 0;
 
 #ifdef DEBUG_INTERVALS
     std::cout << "Pending:";
     for(size_t i = 0; i < count; i++)
-      std::cout << " " << pending_starts[i] << ".." << pending_ends[i] << "=" << pending_labels[i];
+      std::cout << " " << pending_starts[i] << ".." << pending_ends[i] << "="
+                << pending_labels[i];
     std::cout << "\n";
 #endif
 
@@ -112,22 +125,23 @@ namespace Realm {
 
     TreeNode *node = new TreeNode(cut);
 
-    // walk over the pending intervals and put them on one side or the other or add to our node
+    // walk over the pending intervals and put them on one side or the other or add to our
+    // node
     std::vector<IT> left_starts, right_starts, left_ends, right_ends;
     std::vector<LT> left_labels, right_labels;
     size_t num_local = 0;
     for(size_t i = 0; i < count; i++) {
       if(pending_ends[i] < cut) {
-	left_starts.push_back(pending_starts[i]);
-	left_ends.push_back(pending_ends[i]);
-	left_labels.push_back(pending_labels[i]);
-	continue;
+        left_starts.push_back(pending_starts[i]);
+        left_ends.push_back(pending_ends[i]);
+        left_labels.push_back(pending_labels[i]);
+        continue;
       }
       if(pending_starts[i] > cut) {
-	right_starts.push_back(pending_starts[i]);
-	right_ends.push_back(pending_ends[i]);
-	right_labels.push_back(pending_labels[i]);
-	continue;
+        right_starts.push_back(pending_starts[i]);
+        right_ends.push_back(pending_ends[i]);
+        right_labels.push_back(pending_labels[i]);
+        continue;
       }
       // overlap - add it to this node
       // note that this data structure effectively splits the interval into two pieces -
@@ -143,13 +157,13 @@ namespace Realm {
       node->sorted_by_start.resize(num_local);
       node->sorted_by_end.resize(num_local);
       for(size_t i = 0; i < num_local; i++) {
-	node->sorted_by_start[i] = i;
-	node->sorted_by_end[i] = i;
+        node->sorted_by_start[i] = i;
+        node->sorted_by_end[i] = i;
       }
       std::sort(node->sorted_by_start.begin(), node->sorted_by_start.end(),
-		StartSorter<IT>(node->starts));
+                StartSorter<IT>(node->starts));
       std::sort(node->sorted_by_end.begin(), node->sorted_by_end.end(),
-		EndSorter<IT>(node->ends));
+                EndSorter<IT>(node->ends));
     }
 
     node->left = build_tree(left_starts, left_ends, left_labels);
@@ -159,7 +173,8 @@ namespace Realm {
   }
 
   template <typename IT, typename LT>
-  inline void IntervalTree<IT,LT>::TreeNode::repopulate_pending(IntervalTree<IT,LT> *tree)
+  inline void
+  IntervalTree<IT, LT>::TreeNode::repopulate_pending(IntervalTree<IT, LT> *tree)
   {
     tree->pending_starts.insert(tree->pending_starts.end(), starts.begin(), starts.end());
     tree->pending_ends.insert(tree->pending_ends.end(), ends.begin(), ends.end());
@@ -172,11 +187,12 @@ namespace Realm {
 
   template <typename IT, typename LT>
   template <typename MARKER>
-  inline void IntervalTree<IT,LT>::TreeNode::test_interval(IT iv_start, IT iv_end,
-							   MARKER& marker) const
+  inline void IntervalTree<IT, LT>::TreeNode::test_interval(IT iv_start, IT iv_end,
+                                                            MARKER &marker) const
   {
 #ifdef DEBUG_INTERVALS
-    std::cout << "CHECK " << split_val << " " << iv_start << " " << iv_end << " " << left << " " << right << "\n";
+    std::cout << "CHECK " << split_val << " " << iv_start << " " << iv_end << " " << left
+              << " " << right << "\n";
 #endif
 
     // three cases to test on our local intervals:
@@ -184,29 +200,27 @@ namespace Realm {
     if(iv_end < split_val) {
       // walk our intervals by start point, marking things that overlap the end
       for(size_t i = 0; i < sorted_by_start.size(); i++) {
-	if(starts[sorted_by_start[i]] > iv_end) 
-	  break;  // no more will match either
-	marker.mark_overlap(starts[sorted_by_start[i]],
-			    ends[sorted_by_start[i]],
-			    labels[sorted_by_start[i]]);
+        if(starts[sorted_by_start[i]] > iv_end)
+          break; // no more will match either
+        marker.mark_overlap(starts[sorted_by_start[i]], ends[sorted_by_start[i]],
+                            labels[sorted_by_start[i]]);
       }
-    } 
+    }
     // 2) interval is entirely above our split point
     else if(iv_start > split_val) {
       // walk our intervals by end point, marking things that overlap the start
       for(size_t i = 0; i < sorted_by_end.size(); i++) {
-	if(ends[sorted_by_end[i]] < iv_start) 
-	  break;  // no more will match either
-	marker.mark_overlap(starts[sorted_by_end[i]],
-			    ends[sorted_by_end[i]],
-			    labels[sorted_by_end[i]]);
+        if(ends[sorted_by_end[i]] < iv_start)
+          break; // no more will match either
+        marker.mark_overlap(starts[sorted_by_end[i]], ends[sorted_by_end[i]],
+                            labels[sorted_by_end[i]]);
       }
     }
     // 3) interval covers our split point
     else {
       // easy - all intervals overlap
       for(size_t i = 0; i < starts.size(); i++)
-	marker.mark_overlap(starts[i], ends[i], labels[i]);
+        marker.mark_overlap(starts[i], ends[i], labels[i]);
     }
 
     // now the recursion:
@@ -222,16 +236,17 @@ namespace Realm {
 
   template <typename IT, typename LT>
   template <typename IR, typename MARKER>
-  inline void IntervalTree<IT,LT>::TreeNode::test_sorted_intervals(const IR& iv_ranges,
-								   int offset, int count,
-								   MARKER& marker) const
+  inline void IntervalTree<IT, LT>::TreeNode::test_sorted_intervals(const IR &iv_ranges,
+                                                                    int offset, int count,
+                                                                    MARKER &marker) const
   {
     assert(count > 0);
 
 #ifdef DEBUG_INTERVALS
     std::cout << "START " << count;
     for(size_t i = 0; i < count; i++)
-      std::cout << " " << iv_ranges.start(offset + i) << ".." << iv_ranges.end(offset + i);
+      std::cout << " " << iv_ranges.start(offset + i) << ".."
+                << iv_ranges.end(offset + i);
     std::cout << "\n";
 #endif
     // search to find the first range that includes our split or is above it
@@ -240,16 +255,18 @@ namespace Realm {
     while(lo <= hi) {
       int mid = (lo + hi) >> 1;
       if(split_val < iv_ranges.start(mid + offset))
-	hi = mid - 1;
+        hi = mid - 1;
       else if(split_val > iv_ranges.end(mid + offset))
-	lo = mid + 1;
+        lo = mid + 1;
       else {
-	// we have an overlap
+        // we have an overlap
 #ifdef DEBUG_INTERVALS
-	std::cout << "OVERLAP " << lo << " " << mid << " " << hi << " " << split_val << " " << iv_ranges.start(mid + offset) << " " << iv_ranges.end(mid + offset) << "\n";
+        std::cout << "OVERLAP " << lo << " " << mid << " " << hi << " " << split_val
+                  << " " << iv_ranges.start(mid + offset) << " "
+                  << iv_ranges.end(mid + offset) << "\n";
 #endif
-	lo = hi = mid;
-	break;
+        lo = hi = mid;
+        break;
       }
     }
 #ifdef DEBUG_INTERVALS
@@ -269,29 +286,28 @@ namespace Realm {
     if(lo == hi) {
       // one test interval covers the split value, so all of our intervals are overlapped
       for(size_t i = 0; i < starts.size(); i++)
-	marker.mark_overlap(starts[i], ends[i], labels[i]);
+        marker.mark_overlap(starts[i], ends[i], labels[i]);
     } else {
-      // our split point isn't covered, but test our intervals against the highest test inverval
+      // our split point isn't covered, but test our intervals against the highest test
+      // inverval
       //  below and the lowest test interval above
       if(hi >= 0) {
-	IT last_end = iv_ranges.end(hi + offset);
-	for(size_t i = 0; i < sorted_by_start.size(); i++) {
-	  if(starts[sorted_by_start[i]] > last_end)
-	    break;  // no more will match either
-	  marker.mark_overlap(starts[sorted_by_start[i]],
-			      ends[sorted_by_start[i]],
-			      labels[sorted_by_start[i]]);
-	}
+        IT last_end = iv_ranges.end(hi + offset);
+        for(size_t i = 0; i < sorted_by_start.size(); i++) {
+          if(starts[sorted_by_start[i]] > last_end)
+            break; // no more will match either
+          marker.mark_overlap(starts[sorted_by_start[i]], ends[sorted_by_start[i]],
+                              labels[sorted_by_start[i]]);
+        }
       }
       if(lo < count) {
-	IT first_start = iv_ranges.start(lo + offset);
-	for(size_t i = 0; i < sorted_by_end.size(); i++) {
-	  if(ends[sorted_by_end[i]] < first_start) 
-	    break;  // no more will match either
-	  marker.mark_overlap(starts[sorted_by_end[i]],
-			      ends[sorted_by_end[i]],
-			      labels[sorted_by_end[i]]);
-	}
+        IT first_start = iv_ranges.start(lo + offset);
+        for(size_t i = 0; i < sorted_by_end.size(); i++) {
+          if(ends[sorted_by_end[i]] < first_start)
+            break; // no more will match either
+          marker.mark_overlap(starts[sorted_by_end[i]], ends[sorted_by_end[i]],
+                              labels[sorted_by_end[i]]);
+        }
       }
     }
 
@@ -303,8 +319,6 @@ namespace Realm {
     if(right && (lo < count))
       right->test_sorted_intervals(iv_ranges, offset + lo, count - lo, marker);
   }
-				  
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -313,18 +327,20 @@ namespace Realm {
   template <typename IT, typename LT>
   class VectorMarker {
   public:
-    VectorMarker(std::vector<bool>& _labels_found) : labels_found(_labels_found) {}
+    VectorMarker(std::vector<bool> &_labels_found)
+      : labels_found(_labels_found)
+    {}
     void mark_overlap(IT iv_start, IT iv_end, LT iv_label)
     {
       unsigned idx = iv_label;
       if(idx >= labels_found.size())
-	labels_found.resize(idx + 1, false);
+        labels_found.resize(idx + 1, false);
       labels_found[idx] = true;
     }
-  protected:
-    std::vector<bool>& labels_found;
-  };
 
+  protected:
+    std::vector<bool> &labels_found;
+  };
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -333,7 +349,9 @@ namespace Realm {
   template <typename IT, typename LT>
   class SetMarker {
   public:
-    SetMarker(std::set<LT>& _labels_found) : labels_found(_labels_found) {}
+    SetMarker(std::set<LT> &_labels_found)
+      : labels_found(_labels_found)
+    {}
     void mark_overlap(IT iv_start, IT iv_end, LT iv_label)
     {
 #ifdef DEBUG_INTERVALS
@@ -341,40 +359,42 @@ namespace Realm {
 #endif
       labels_found.insert(iv_label);
     }
-  protected:
-    std::set<LT>& labels_found;
-  };
 
+  protected:
+    std::set<LT> &labels_found;
+  };
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class IntervalTree<IT,LT>
 
   template <typename IT, typename LT>
-  inline IntervalTree<IT,LT>::IntervalTree(void)
-    : root(0), count(0)
+  inline IntervalTree<IT, LT>::IntervalTree(void)
+    : root(0)
+    , count(0)
   {}
 
   template <typename IT, typename LT>
-  inline IntervalTree<IT,LT>::~IntervalTree(void)
+  inline IntervalTree<IT, LT>::~IntervalTree(void)
   {
     delete root;
   }
 
   template <typename IT, typename LT>
-  inline bool IntervalTree<IT,LT>::empty(void) const
+  inline bool IntervalTree<IT, LT>::empty(void) const
   {
     return count == 0;
   }
 
   template <typename IT, typename LT>
-  inline size_t IntervalTree<IT,LT>::size(void) const
+  inline size_t IntervalTree<IT, LT>::size(void) const
   {
     return count;
   }
 
   template <typename IT, typename LT>
-  inline void IntervalTree<IT,LT>::add_interval(IT iv_start, IT iv_end, LT iv_label, bool defer /*= true*/)
+  inline void IntervalTree<IT, LT>::add_interval(IT iv_start, IT iv_end, LT iv_label,
+                                                 bool defer /*= true*/)
   {
     // ignore empty intervals
     if(iv_start > iv_end)
@@ -388,7 +408,8 @@ namespace Realm {
 
   template <typename IT, typename LT>
   template <typename IR>
-  inline void IntervalTree<IT,LT>::add_intervals(const IR& iv_ranges, LT iv_label, bool defer /*= true*/)
+  inline void IntervalTree<IT, LT>::add_intervals(const IR &iv_ranges, LT iv_label,
+                                                  bool defer /*= true*/)
   {
     size_t old_count = pending_starts.size();
     size_t new_count = iv_ranges.size();
@@ -396,7 +417,8 @@ namespace Realm {
     pending_ends.reserve(old_count + new_count);
     pending_labels.reserve(old_count + new_count);
     for(size_t i = 0; i < new_count; i++) {
-      if(iv_ranges.start(i) > iv_ranges.end(i)) continue;
+      if(iv_ranges.start(i) > iv_ranges.end(i))
+        continue;
       pending_starts.push_back(iv_ranges.start(i));
       pending_ends.push_back(iv_ranges.end(i));
       pending_labels.push_back(iv_label);
@@ -406,26 +428,26 @@ namespace Realm {
   }
 
   template <typename IT, typename LT>
-  inline void IntervalTree<IT,LT>::remove_interval(IT iv_start, IT iv_end, LT iv_label)
+  inline void IntervalTree<IT, LT>::remove_interval(IT iv_start, IT iv_end, LT iv_label)
   {
     assert(0);
   }
 
   template <typename IT, typename LT>
   template <typename IR>
-  inline void IntervalTree<IT,LT>::remove_intervals(const IR& iv_ranges, LT iv_label)
+  inline void IntervalTree<IT, LT>::remove_intervals(const IR &iv_ranges, LT iv_label)
   {
     assert(0);
   }
 
   template <typename IT, typename LT>
-  inline void IntervalTree<IT,LT>::remove_by_label(LT iv_label)
+  inline void IntervalTree<IT, LT>::remove_by_label(LT iv_label)
   {
     assert(0);
   }
 
   template <typename IT, typename LT>
-  inline void IntervalTree<IT,LT>::construct_tree(bool rebuild_completely /*= false*/)
+  inline void IntervalTree<IT, LT>::construct_tree(bool rebuild_completely /*= false*/)
   {
     if(rebuild_completely && (root != 0)) {
       root->repopulate_pending(this);
@@ -441,29 +463,33 @@ namespace Realm {
 
   template <typename IT, typename LT>
   template <typename MARKER>
-  inline void IntervalTree<IT,LT>::test_interval(IT iv_start, IT iv_end, MARKER& marker) const
+  inline void IntervalTree<IT, LT>::test_interval(IT iv_start, IT iv_end,
+                                                  MARKER &marker) const
   {
     if(root)
       root->test_interval(iv_start, iv_end, marker);
   }
-    
+
   template <typename IT, typename LT>
-  inline void IntervalTree<IT,LT>::test_interval(IT iv_start, IT iv_end, std::vector<bool>& labels_found) const
+  inline void IntervalTree<IT, LT>::test_interval(IT iv_start, IT iv_end,
+                                                  std::vector<bool> &labels_found) const
   {
-    VectorMarker<IT,LT> marker(labels_found);
+    VectorMarker<IT, LT> marker(labels_found);
     test_interval(iv_start, iv_end, marker);
   }
 
   template <typename IT, typename LT>
-  inline void IntervalTree<IT,LT>::test_interval(IT iv_start, IT iv_end, std::set<LT>& labels_found) const
+  inline void IntervalTree<IT, LT>::test_interval(IT iv_start, IT iv_end,
+                                                  std::set<LT> &labels_found) const
   {
-    SetMarker<IT,LT> marker(labels_found);
+    SetMarker<IT, LT> marker(labels_found);
     test_interval(iv_start, iv_end, marker);
   }
 
   template <typename IT, typename LT>
   template <typename IR, typename MARKER>
-  inline void IntervalTree<IT,LT>::test_intervals(const IR& iv_ranges, MARKER& marker) const
+  inline void IntervalTree<IT, LT>::test_intervals(const IR &iv_ranges,
+                                                   MARKER &marker) const
   {
     // unsorted (and possibly overlapping) intervals have to be tested separately
     for(size_t i = 0; i < iv_ranges.size(); i++)
@@ -472,23 +498,26 @@ namespace Realm {
 
   template <typename IT, typename LT>
   template <typename IR>
-  void IntervalTree<IT,LT>::test_intervals(const IR& iv_ranges, std::vector<bool>& labels_found) const
+  void IntervalTree<IT, LT>::test_intervals(const IR &iv_ranges,
+                                            std::vector<bool> &labels_found) const
   {
-    VectorMarker<IT,LT> marker(labels_found);
+    VectorMarker<IT, LT> marker(labels_found);
     test_intervals(iv_ranges, marker);
   }
 
   template <typename IT, typename LT>
   template <typename IR>
-  void IntervalTree<IT,LT>::test_intervals(const IR& iv_ranges, std::set<LT>& labels_found) const
+  void IntervalTree<IT, LT>::test_intervals(const IR &iv_ranges,
+                                            std::set<LT> &labels_found) const
   {
-    SetMarker<IT,LT> marker(labels_found);
+    SetMarker<IT, LT> marker(labels_found);
     test_intervals(iv_ranges, marker);
   }
 
   template <typename IT, typename LT>
   template <typename IR, typename MARKER>
-  inline void IntervalTree<IT,LT>::test_sorted_intervals(const IR& iv_ranges, MARKER& marker) const
+  inline void IntervalTree<IT, LT>::test_sorted_intervals(const IR &iv_ranges,
+                                                          MARKER &marker) const
   {
     // simultaneous walk of interval tree and implied binary tree of iv_ranges
 #define SLOW_VERSIONs
@@ -503,19 +532,20 @@ namespace Realm {
 
   template <typename IT, typename LT>
   template <typename IR>
-  void IntervalTree<IT,LT>::test_sorted_intervals(const IR& iv_ranges, std::vector<bool>& labels_found) const
+  void IntervalTree<IT, LT>::test_sorted_intervals(const IR &iv_ranges,
+                                                   std::vector<bool> &labels_found) const
   {
-    VectorMarker<IT,LT> marker(labels_found);
+    VectorMarker<IT, LT> marker(labels_found);
     test_sorted_intervals(iv_ranges, marker);
   }
 
   template <typename IT, typename LT>
   template <typename IR>
-  void IntervalTree<IT,LT>::test_sorted_intervals(const IR& iv_ranges, std::set<LT>& labels_found) const
+  void IntervalTree<IT, LT>::test_sorted_intervals(const IR &iv_ranges,
+                                                   std::set<LT> &labels_found) const
   {
-    SetMarker<IT,LT> marker(labels_found);
+    SetMarker<IT, LT> marker(labels_found);
     test_sorted_intervals(iv_ranges, marker);
   }
-
 
 }; // namespace Realm

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +33,7 @@ namespace Realm {
   protected:
     // must be subclassed
     Operation(GenEventImpl *_finish_event, EventImpl::gen_t _finish_gen,
-	      const ProfilingRequestSet &_requests);
+              const ProfilingRequestSet &_requests);
 
     // can't destroy directly either - done when last reference is removed
     // (subclasses may still override the method - just not call it directly)
@@ -50,21 +52,23 @@ namespace Realm {
     virtual bool mark_started(void);
 
     virtual void mark_finished(bool successful);
-    virtual void mark_terminated(int error_code, const ByteArray& details);
+    virtual void mark_terminated(int error_code, const ByteArray &details);
 
     // returns true if its able to perform the cancellation (or if nothing can be done)
     // returns false if a subclass wants to try some other means to cancel an operation
-    virtual bool attempt_cancellation(int error_code, const void *reason_data, size_t reason_size);
+    virtual bool attempt_cancellation(int error_code, const void *reason_data,
+                                      size_t reason_size);
 
     virtual void set_priority(int new_priority);
 
-    // a common reason for cancellation is a poisoned precondition - this helper takes care
+    // a common reason for cancellation is a poisoned precondition - this helper takes
+    // care
     //  of recording the error code and marking the operation as (unsuccessfully) finished
     virtual void handle_poisoned_precondition(Event pre);
 
     bool cancellation_requested(void) const;
 
-    virtual void print(std::ostream& os) const = 0;
+    virtual void print(std::ostream &os) const = 0;
 
     // abstract class to describe asynchronous work started by an operation
     //  that must finish for the operation to become "complete"
@@ -77,14 +81,14 @@ namespace Realm {
 
       virtual void request_cancellation(void) = 0;
 
-      virtual void print(std::ostream& os) const = 0;
+      virtual void print(std::ostream &os) const = 0;
 
     protected:
       Operation *op;
 
       // the next_item field is effectively owned by the Operation class
       friend class Operation;
-      friend std::ostream& operator<<(std::ostream& os, Operation *op);
+      friend std::ostream &operator<<(std::ostream &os, Operation *op);
 
       AsyncWorkItem *next_item;
     };
@@ -94,7 +98,8 @@ namespace Realm {
     void add_async_work_item(AsyncWorkItem *item);
 
     // used to record event wait intervals, if desired
-    ProfilingMeasurements::OperationEventWaits::WaitInterval *create_wait_interval(Event e);
+    ProfilingMeasurements::OperationEventWaits::WaitInterval *
+    create_wait_interval(Event e);
 
     // used to measure when device-side work starts for a gpu task
     bool wants_gpu_work_start() const;
@@ -117,8 +122,10 @@ namespace Realm {
     GenEventImpl *finish_event;
     EventImpl::gen_t finish_gen;
     atomic<int> refcount;
+
   public:
     Event get_finish_event(void) const;
+
   protected:
     typedef ProfilingMeasurements::OperationStatus Status;
     atomic<Status::Result> state;
@@ -133,15 +140,15 @@ namespace Realm {
     ProfilingMeasurements::OperationTimelineGPU timeline_gpu; // gpu start/end times
     bool wants_event_waits;
     ProfilingMeasurements::OperationEventWaits waits;
-    ProfilingRequestSet requests; 
+    ProfilingRequestSet requests;
     ProfilingMeasurementCollection measurements;
 
     // append-only list (until Operation destruction)
     atomic<AsyncWorkItem *> all_work_items;
-    atomic<int> pending_work_items;  // uses atomics so we don't have to take lock to check
+    atomic<int> pending_work_items; // uses atomics so we don't have to take lock to check
     atomic<int> failed_work_items;
-    
-    friend std::ostream& operator<<(std::ostream& os, Operation *op);
+
+    friend std::ostream &operator<<(std::ostream &os, Operation *op);
   };
 
   class OperationTable {
@@ -154,12 +161,13 @@ namespace Realm {
     void add_local_operation(Event finish_event, Operation *local_op);
     void add_remote_operation(Event finish_event, int remote_note);
 
-    void request_cancellation(Event finish_event, const void *reason_data, size_t reason_size);
+    void request_cancellation(Event finish_event, const void *reason_data,
+                              size_t reason_size);
 
     void set_priority(Event finish_event, int new_priority);
 
-    void print_operations(std::ostream& os);
-    
+    void print_operations(std::ostream &os);
+
     static void register_handlers(void);
 
     // checks that all operations have finished before shutdown
@@ -183,7 +191,7 @@ namespace Realm {
 
     struct TableEntry : public EventWaiter {
       virtual void event_triggered(bool poisoned, TimeLimit work_until);
-      virtual void print(std::ostream& os) const;
+      virtual void print(std::ostream &os) const;
       virtual Event get_finish_event(void) const;
 
       OperationTable *table;
@@ -200,10 +208,10 @@ namespace Realm {
     // event table is protected by a mutex
     // try to avoid a serial bottleneck by splitting events over 4 different tables
     static const int NUM_TABLES = 4;
-    
+
     Mutex mutexes[NUM_TABLES];
     Table tables[NUM_TABLES];
-    //TableCleaner cleaner;
+    // TableCleaner cleaner;
 #endif
   };
 
@@ -211,10 +219,10 @@ namespace Realm {
     Event finish_event;
 
     static void handle_message(NodeID sender, const CancelOperationMessage &msg,
-			       const void *data, size_t datalen);
+                               const void *data, size_t datalen);
   };
 
-};
+}; // namespace Realm
 
 #include "realm/operation.inl"
 

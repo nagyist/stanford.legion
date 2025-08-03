@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "realm.h"
 #include "realm/id.h"
 #include "realm/cmdline.h"
@@ -8,29 +25,32 @@ using namespace Realm;
 
 Logger log_app("app");
 
-enum {
-  MAIN_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  MAIN_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
 };
 
-enum {
+enum
+{
   FID_BASE = 44,
 };
 
 namespace SampleConfig {
   size_t src_buffer_size = 64 << 20;
   size_t dst_buffer_size = 16 << 20;
-};
+}; // namespace SampleConfig
 
 Event fill(RegionInstance inst, IndexSpace<1, int> is, int fill_value,
-           Event wait_on = Event::NO_EVENT) {
+           Event wait_on = Event::NO_EVENT)
+{
   std::vector<CopySrcDstField> dsts(1);
   dsts[0].set_field(inst, FID_BASE, sizeof(int));
-  return is.fill(dsts, ProfilingRequestSet(), &fill_value, sizeof(fill_value),
-                 wait_on);
+  return is.fill(dsts, ProfilingRequestSet(), &fill_value, sizeof(fill_value), wait_on);
 }
 
-void main_task(const void *args, size_t arglen, const void *userdata,
-                    size_t userlen, Processor p) {
+void main_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+               Processor p)
+{
   std::vector<Memory> memories;
   Machine::MemoryQuery mq(Machine::get_machine());
   mq.only_kind(Memory::SYSTEM_MEM).local_address_space().has_capacity(1);
@@ -54,8 +74,8 @@ void main_task(const void *args, size_t arglen, const void *userdata,
 
   RegionInstance inst2;
   Event ev2 = RegionInstance::create_instance(
-      inst2, memories[mem_idx++ % memories.size()], dst_index_space,
-      field_sizes, /*block_size=*/0, ProfilingRequestSet());
+      inst2, memories[mem_idx++ % memories.size()], dst_index_space, field_sizes,
+      /*block_size=*/0, ProfilingRequestSet());
 
   Event fill_event =
       Event::merge_events(fill(inst1, src_index_space, /*fill_value=*/7, ev1),
@@ -63,8 +83,7 @@ void main_task(const void *args, size_t arglen, const void *userdata,
 
   IndexSpace<1> isect;
   Event isect_event = IndexSpace<1>::compute_intersection(
-      src_index_space, dst_index_space, isect, ProfilingRequestSet(),
-      fill_event);
+      src_index_space, dst_index_space, isect, ProfilingRequestSet(), fill_event);
 
   std::vector<CopySrcDstField> srcs(1), dsts(1);
   srcs[0].set_field(inst1, FID_BASE, sizeof(int));
@@ -76,8 +95,8 @@ void main_task(const void *args, size_t arglen, const void *userdata,
 
   bool success = true;
   GenericAccessor<int, 1, int> acc(inst2, FID_BASE);
-  for (IndexSpaceIterator<1, int> it(isect); it.valid; it.step()) {
-    for (PointInRectIterator<1, int> it2(it.rect); it2.valid; it2.step()) {
+  for(IndexSpaceIterator<1, int> it(isect); it.valid; it.step()) {
+    for(PointInRectIterator<1, int> it2(it.rect); it2.valid; it2.step()) {
       if(acc[it2.p] != 7) {
         log_app.error() << "point=" << it2.p[0] << ", expected=7, actual=" << acc[it2.p];
         success = false;
@@ -99,7 +118,7 @@ int main(int argc, char **argv)
 
   CommandLineParser cp;
   cp.add_option_int_units("-bsrc", SampleConfig::src_buffer_size, 'M'),
-  cp.add_option_int_units("-bdst", SampleConfig::dst_buffer_size, 'M');
+      cp.add_option_int_units("-bdst", SampleConfig::dst_buffer_size, 'M');
   bool ok = cp.parse_command_line(argc, const_cast<const char **>(argv));
   assert(ok);
 
@@ -107,15 +126,14 @@ int main(int argc, char **argv)
                     .only_kind(Processor::LOC_PROC)
                     .first();
 
-  if (!p.exists()) {
+  if(!p.exists()) {
     p = Machine::ProcessorQuery(Machine::get_machine()).first();
   }
 
   assert(p.exists());
 
   Processor::register_task_by_kind(p.kind(), false /*!global*/, MAIN_TASK,
-                                   CodeDescriptor(main_task),
-                                   ProfilingRequestSet())
+                                   CodeDescriptor(main_task), ProfilingRequestSet())
       .external_wait();
 
   Event e = rt.collective_spawn(p, MAIN_TASK, 0, 0);
@@ -123,7 +141,3 @@ int main(int argc, char **argv)
   rt.wait_for_shutdown();
   return 0;
 }
-
-
-
-

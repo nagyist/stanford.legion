@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,10 +31,10 @@ namespace Realm {
   public:
     ByteArrayRef(void);
     ByteArrayRef(const void *ref_base, size_t ref_size);
-    ByteArrayRef(const ByteArrayRef& ref);
+    ByteArrayRef(const ByteArrayRef &ref);
 
     // change what this ByteArrayRef refers to
-    ByteArrayRef& changeref(const void *ref_base, size_t ref_size);
+    ByteArrayRef &changeref(const void *ref_base, size_t ref_size);
 
     // access to base pointer and size
     const void *base(void) const;
@@ -41,7 +43,7 @@ namespace Realm {
 
     // helper to access bytes as typed references
     template <typename T>
-    const T& at(size_t offset) const;
+    const T &at(size_t offset) const;
 
   protected:
     void *array_base;
@@ -52,24 +54,24 @@ namespace Realm {
   public:
     ByteArray(void);
     ByteArray(const void *copy_from, size_t copy_size);
-    ByteArray(const ByteArray& copy_from);
+    ByteArray(const ByteArray &copy_from);
 
     // not actually a copy constructor!  blech...
-    ByteArray(const ByteArrayRef& copy_from);
+    ByteArray(const ByteArrayRef &copy_from);
 
     ~ByteArray(void);
 
     // copies the contents of the rhs ByteArray (again two versions)
-    ByteArray& operator=(const ByteArrayRef& copy_from);
-    ByteArray& operator=(const ByteArray& copy_from);
+    ByteArray &operator=(const ByteArrayRef &copy_from);
+    ByteArray &operator=(const ByteArray &copy_from);
 
     // swaps the contents of two ByteArrays - returns a reference to the first one
     // this allows you to transfer ownership of a byte array to a called function via:
     //   ByteArray().swap(old_array)
-    ByteArray& swap(ByteArray& swap_with);
+    ByteArray &swap(ByteArray &swap_with);
 
     // copy raw data in
-    ByteArray& set(const void *copy_from, size_t copy_size);
+    ByteArray &set(const void *copy_from, size_t copy_size);
 
     // access to base pointer and size
     // (const versions are redeclared due to some C++ weirdness)
@@ -78,13 +80,13 @@ namespace Realm {
 
     // helper to access bytes as typed references
     template <typename T>
-    T& at(size_t offset);
+    T &at(size_t offset);
 
     template <typename T>
-    const T& at(size_t offset) const;
+    const T &at(size_t offset) const;
 
     // give ownership of a buffer to a ByteArray
-    ByteArray& attach(void *new_base, size_t new_size);
+    ByteArray &attach(void *new_base, size_t new_size);
 
     // explicitly deallocate any held storage
     void clear(void);
@@ -98,13 +100,13 @@ namespace Realm {
 
   // support for realm-style serialization
   template <typename S>
-    bool serialize(S& serdez, const ByteArrayRef& a);
+  bool serialize(S &serdez, const ByteArrayRef &a);
 
   template <typename S>
-    bool serialize(S& serdez, const ByteArray& a);
+  bool serialize(S &serdez, const ByteArray &a);
 
   template <typename S>
-    bool deserialize(S& serdez, ByteArray& a);
+  bool deserialize(S &serdez, ByteArray &a);
 
 }; // namespace Realm
 

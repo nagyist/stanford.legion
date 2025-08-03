@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "common.h"
 #include "realm/realm_c.h"
 #include "realm/logging.h"
@@ -61,9 +78,9 @@ void REALM_FNPTR top_level_task(const void *args, size_t arglen, const void *use
                                    0, NULL, 0, 0, &events[i]);
     assert(status == REALM_SUCCESS);
   }
-  status = realm_event_merge(runtime, events.data(), events.size(), &event);
+  status = realm_event_merge(runtime, events.data(), events.size(), &event, 0);
   assert(status == REALM_SUCCESS);
-  status = realm_event_wait(runtime, event);
+  status = realm_event_wait(runtime, event, nullptr);
   assert(status == REALM_SUCCESS);
 
 #ifdef REALM_USE_CUDA
@@ -80,7 +97,7 @@ void REALM_FNPTR top_level_task(const void *args, size_t arglen, const void *use
 
   status = realm_processor_spawn(runtime, gpu_proc, HELLO_TASK, 0, 0, NULL, 0, 0, &event);
   assert(status == REALM_SUCCESS);
-  status = realm_event_wait(runtime, event);
+  status = realm_event_wait(runtime, event, nullptr);
   assert(status == REALM_SUCCESS);
 #endif
 }
@@ -106,21 +123,21 @@ int main(int argc, char **argv)
       runtime, LOC_PROC, REALM_REGISTER_TASK_DEFAULT, TOP_LEVEL_TASK, top_level_task, 0,
       0, &register_task_event);
   assert(status == REALM_SUCCESS);
-  status = realm_event_wait(runtime, register_task_event);
+  status = realm_event_wait(runtime, register_task_event, nullptr);
   assert(status == REALM_SUCCESS);
 
   status = realm_processor_register_task_by_kind(runtime, LOC_PROC,
                                                  REALM_REGISTER_TASK_DEFAULT, HELLO_TASK,
                                                  hello_task, 0, 0, &register_task_event);
   assert(status == REALM_SUCCESS);
-  status = realm_event_wait(runtime, register_task_event);
+  status = realm_event_wait(runtime, register_task_event, nullptr);
   assert(status == REALM_SUCCESS);
 
   status = realm_processor_register_task_by_kind(runtime, TOC_PROC,
                                                  REALM_REGISTER_TASK_DEFAULT, HELLO_TASK,
                                                  hello_task, 0, 0, &register_task_event);
   assert(status == REALM_SUCCESS);
-  status = realm_event_wait(runtime, register_task_event);
+  status = realm_event_wait(runtime, register_task_event, nullptr);
   assert(status == REALM_SUCCESS);
 
   realm_processor_query_t proc_query;

@@ -28,11 +28,11 @@
 #                             used by default if found.  The default order of
 #                             preference is mxm, psm, gemini, aries, pami, ibv,
 #                             shmem, portals4, ofi, mpi, udp, and smp.
-# GASNet_ROOT_DIR           - Prefix to use when searching for GASNet.  If
+# GASNet_ROOT               - Prefix to use when searching for GASNet.  If
 #                             specified then this search path will be used
 #                             exclusively and all others ignored.
 # ENV{GASNET_ROOT}          - Environment variable used to initialize the
-#                             value of GASNet_ROOT_DIR if not already specified
+#                             value of GASNet_ROOT if not already specified
 #
 
 macro(_GASNet_parse_conduit_and_threading_names
@@ -227,10 +227,10 @@ function(_sort_list_by_preference LVAR PVAR)
 endfunction()
 
 if(NOT GASNet_FOUND AND NOT TARGET GASNet::GASNet)
-  set(GASNet_ROOT_DIR "$ENV{GASNET_ROOT}" CACHE STRING "Root directory for GASNet")
-  mark_as_advanced(GASNet_ROOT_DIR)
-  if(GASNet_ROOT_DIR)
-    set(_GASNet_FIND_INCLUDE_OPTS PATHS ${GASNet_ROOT_DIR}/include NO_DEFAULT_PATH)
+  set(GASNet_ROOT "$ENV{GASNET_ROOT}" CACHE STRING "Root directory for GASNet")
+  mark_as_advanced(GASNet_ROOT)
+  if(GASNet_ROOT)
+    set(_GASNet_FIND_INCLUDE_OPTS PATHS ${GASNet_ROOT}/include NO_DEFAULT_PATH)
   else()
     set(_GASNet_FIND_INCLUDE_OPTS HINTS ENV MPI_INCLUDE)
   endif()
@@ -245,7 +245,7 @@ if(NOT GASNet_FOUND AND NOT TARGET GASNet::GASNet)
     # Set new restrictive search paths
     get_filename_component(CMAKE_PREFIX_PATH "${GASNet_INCLUDE_DIR}" DIRECTORY)
     unset(CMAKE_LIBRARY_PATH)
-    set(GASNet_ROOT_DIR ${CMAKE_PREFIX_PATH} CACHE STRING "Root directory for GASNet")
+    set(GASNet_ROOT ${CMAKE_PREFIX_PATH} CACHE STRING "Root directory for GASNet")
 
     # Limit the search to the discovered prefix path
     set(_GASNet_LIBRARY_FIND_OPTS

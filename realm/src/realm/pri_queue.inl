@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,10 +28,9 @@ namespace Realm {
 
   template <typename T, typename LT>
   inline PriorityQueue<T, LT>::PriorityQueue(void)
-    : highest_priority (PRI_NEG_INF)
-    , entries_in_queue (0)
-  {
-  }
+    : highest_priority(PRI_NEG_INF)
+    , entries_in_queue(0)
+  {}
 
   template <typename T, typename LT>
   inline PriorityQueue<T, LT>::~PriorityQueue(void)
@@ -41,9 +42,8 @@ namespace Realm {
   //  1) add it to the end of the list at that priority (i.e. FIFO order)
   //  2) "unget" adds it to the front of the list (i.e. LIFO order)
   template <typename T, typename LT>
-  inline void PriorityQueue<T, LT>::put(T item, 
-					priority_t priority, 
-					bool add_to_back /*= true*/)
+  inline void PriorityQueue<T, LT>::put(T item, priority_t priority,
+                                        bool add_to_back /*= true*/)
   {
     // step 1: clamp the priority to the "finite" range
     if(priority > PRI_MAX_FINITE)
@@ -68,17 +68,17 @@ namespace Realm {
 
       // now the notifications, if any
       if(perform_notifications(item, priority)) {
-	// item was taken, so restore original highest priority and exit
-	highest_priority = orig_highest;
-	lock.unlock();
-	if(entries_in_queue)
-	  (*entries_in_queue) -= 1;
-	return;
+        // item was taken, so restore original highest priority and exit
+        highest_priority = orig_highest;
+        lock.unlock();
+        if(entries_in_queue)
+          (*entries_in_queue) -= 1;
+        return;
       }
     }
 
     // get the right deque (this will create one if needed)
-    std::deque<T>& dq = queue[-priority]; // remember negation...
+    std::deque<T> &dq = queue[-priority]; // remember negation...
 
     // and add the item
     if(add_to_back)
@@ -94,8 +94,8 @@ namespace Realm {
   //  ignore things that aren't above a specified priority
   // the priority of the retrieved item (if any) is returned in *item_priority
   template <typename T, typename LT>
-  inline T PriorityQueue<T, LT>::get(priority_t *item_priority, 
-				     priority_t higher_than /*= PRI_NEG_INF*/)
+  inline T PriorityQueue<T, LT>::get(priority_t *item_priority,
+                                     priority_t higher_than /*= PRI_NEG_INF*/)
   {
     // body is protected by lock
     lock.lock();
@@ -106,7 +106,7 @@ namespace Realm {
       return 0; // TODO - EMPTY_VAL
     }
 
-    typename std::map<priority_t, std::deque<T> >::iterator it = queue.begin();
+    typename std::map<priority_t, std::deque<T>>::iterator it = queue.begin();
     priority_t priority = -(it->first);
 
     // not interesting enough?
@@ -122,9 +122,7 @@ namespace Realm {
     // if list is now empty, remove from the queue and adjust highest_priority
     if(it->second.empty()) {
       queue.erase(it);
-      highest_priority = (queue.empty() ?
-			    PRI_NEG_INF :
-			    -(queue.begin()->first));
+      highest_priority = (queue.empty() ? PRI_NEG_INF : -(queue.begin()->first));
     }
 
     // release lock and then return result
@@ -143,7 +141,7 @@ namespace Realm {
   //  you don't have multiple getters)
   template <typename T, typename LT>
   inline T PriorityQueue<T, LT>::peek(priority_t *item_priority,
-				      priority_t higher_than /*= PRI_NEG_INF*/) const
+                                      priority_t higher_than /*= PRI_NEG_INF*/) const
   {
     // body is protected by lock
     lock.lock();
@@ -154,7 +152,7 @@ namespace Realm {
       return 0; // TODO - EMPTY_VAL
     }
 
-    typename std::map<priority_t, std::deque<T> >::const_iterator it = queue.begin();
+    typename std::map<priority_t, std::deque<T>>::const_iterator it = queue.begin();
     priority_t priority = -(it->first);
 
     // not interesting enough?
@@ -179,21 +177,22 @@ namespace Realm {
   template <typename T, typename LT>
   inline bool PriorityQueue<T, LT>::empty(priority_t higher_than /*= PRI_NEG_INF*/) const
   {
-    return(highest_priority <= higher_than);
+    return (highest_priority <= higher_than);
   }
 
   // adds (or modifies) a subscription - only items above the specified priority will
   //  result in callbacks
   template <typename T, typename LT>
-  inline void PriorityQueue<T, LT>::add_subscription(NotificationCallback *callback,
-						     priority_t higher_than /*= PRI_NEG_INF*/)
+  inline void
+  PriorityQueue<T, LT>::add_subscription(NotificationCallback *callback,
+                                         priority_t higher_than /*= PRI_NEG_INF*/)
   {
     // just take lock and update subscription map
     lock.lock();
     subscriptions[callback] = higher_than;
     lock.unlock();
   }
-  
+
   template <typename T, typename LT>
   inline void PriorityQueue<T, LT>::remove_subscription(NotificationCallback *callback)
   {
@@ -206,21 +205,22 @@ namespace Realm {
   // helper that performs notifications for a new item - returns true if a callback
   //  consumes the item
   template <typename T, typename LT>
-  inline bool PriorityQueue<T, LT>::perform_notifications(T item, priority_t item_priority)
+  inline bool PriorityQueue<T, LT>::perform_notifications(T item,
+                                                          priority_t item_priority)
   {
     // lock already held by caller
 
-    for(typename std::map<NotificationCallback *, priority_t>::const_iterator it = subscriptions.begin();
-	it != subscriptions.end();
-	it++) {
+    for(typename std::map<NotificationCallback *, priority_t>::const_iterator it =
+            subscriptions.begin();
+        it != subscriptions.end(); it++) {
       // skip if this isn't interesting to this callback
       if(item_priority <= it->second)
-	continue;
+        continue;
 
       // do callback - a return of true means the item was consumed (so we shouldn't do
       //  any more callbacks
       if(it->first->item_available(item, item_priority))
-	return true;
+        return true;
     }
 
     // got through all the callbacks and nobody wanted it
@@ -228,7 +228,8 @@ namespace Realm {
   }
 
   template <typename T, typename LT>
-  inline void PriorityQueue<T, LT>::set_gauge(ProfilingGauges::AbsoluteRangeGauge<int> *new_gauge)
+  inline void
+  PriorityQueue<T, LT>::set_gauge(ProfilingGauges::AbsoluteRangeGauge<int> *new_gauge)
   {
     entries_in_queue = new_gauge;
   }

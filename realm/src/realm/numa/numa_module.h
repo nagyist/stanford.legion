@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,13 +28,14 @@ namespace Realm {
 
     class NumaModuleConfig : public ModuleConfig {
       friend class NumaModule;
+
     protected:
       NumaModuleConfig(void);
 
       bool discover_resource(void);
 
     public:
-      virtual void configure_from_cmdline(std::vector<std::string>& cmdline);
+      virtual void configure_from_cmdline(std::vector<std::string> &cmdline);
 
     protected:
       size_t cfg_numa_mem_size = 0;
@@ -49,7 +52,7 @@ namespace Realm {
     class REALM_INTERNAL_API_EXTERNAL_LINKAGE NumaModule : public Module {
     protected:
       NumaModule(void);
-      
+
     public:
       virtual ~NumaModule(void);
 

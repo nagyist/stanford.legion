@@ -1,4 +1,6 @@
-/* Copyright 2024 Argonne National Laboratory
+/*
+ * Copyright 2025 Argonne National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,42 +30,45 @@
 
 // size of posted receives (i.e. header+payload limit that can be sent
 //  eagerly)
-#define AM_BUF_SIZE  4096
+#define AM_BUF_SIZE 4096
 
-#define CHECK_MPI(cmd) do { \
-  int ret = (cmd); \
-  if(ret != MPI_SUCCESS) { \
-    fprintf(stderr, "MPI: %s = %d\n", #cmd, ret); \
-    exit(1); \
-  } \
-} while(0)
+#define CHECK_MPI(cmd)                                                                   \
+  do {                                                                                   \
+    int ret = (cmd);                                                                     \
+    if(ret != MPI_SUCCESS) {                                                             \
+      fprintf(stderr, "MPI: %s = %d\n", #cmd, ret);                                      \
+      exit(1);                                                                           \
+    }                                                                                    \
+  } while(0)
 
 namespace Realm {
-namespace MPI {
+  namespace MPI {
 
-extern atomic<size_t> messages_sent, messages_rcvd;
+    extern atomic<size_t> messages_sent, messages_rcvd;
 
-struct AM_msg {
-    int type;
-    int msgid;
-    int header_size;
-    int payload_size;
-    uintptr_t comp_ptr;
-    char stuff[1];
-};
+    struct AM_msg {
+      int type;
+      int msgid;
+      int header_size;
+      int payload_size;
+      uintptr_t comp_ptr;
+      char stuff[1];
+    };
 
-int AM_Init(int *p_node_this, int *p_node_size);
-void AM_Finalize();
-void AM_init_long_messages(MPI_Win win, void *am_base,
-			   Realm::IncomingMessageManager *message_manager);
-void AMPoll();
-void AMPoll_cancel();
-void AMSend(int tgt, int msgid, int header_size, int payload_size, const char *header, const char *payload, int payload_lines, int payload_line_stride, int has_dest, MPI_Aint dest, void *remote_comp);
+    int AM_Init(int *p_node_this, int *p_node_size);
+    void AM_Finalize();
+    void AM_init_long_messages(MPI_Win win, void *am_base,
+                               Realm::IncomingMessageManager *message_manager);
+    void AMPoll();
+    void AMPoll_cancel();
+    void AMSend(int tgt, int msgid, int header_size, int payload_size, const char *header,
+                const char *payload, int payload_lines, int payload_line_stride,
+                int has_dest, MPI_Aint dest, void *remote_comp);
 
-// must be defined by caller of AMSend
-void AMComplete(void *remote_comp);
+    // must be defined by caller of AMSend
+    void AMComplete(void *remote_comp);
 
-} /* namespace MPI */
+  } /* namespace MPI */
 } /* namespace Realm */
 
 #endif /* AM_MPI_H_INCLUDED */

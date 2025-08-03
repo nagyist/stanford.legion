@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +24,9 @@
 
 using namespace Realm;
 
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   WAITER_TASK,
 };
 
@@ -35,8 +38,8 @@ struct LargeStruct {
 
 thread_local LargeStruct large_tls_var;
 
-void top_level_task(const void *args, size_t arglen,
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   int stack_var;
 
@@ -47,7 +50,7 @@ void top_level_task(const void *args, size_t arglen,
 #endif
 
   log_app.info() << "completed successfully";
-  
+
   Runtime::get_runtime().shutdown(Event::NO_EVENT, 0 /*success*/);
 }
 
@@ -59,22 +62,21 @@ int main(int argc, const char **argv)
 
   // try to use a cpu proc, but if that doesn't exist, take whatever we can get
   Processor p = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::LOC_PROC)
-    .first();
+                    .only_kind(Processor::LOC_PROC)
+                    .first();
   if(!p.exists())
     p = Machine::ProcessorQuery(Machine::get_machine()).first();
   assert(p.exists());
 
-  Processor::register_task_by_kind(p.kind(), false /*!global*/,
-				   TOP_LEVEL_TASK,
-				   CodeDescriptor(top_level_task),
-				   ProfilingRequestSet()).external_wait();
+  Processor::register_task_by_kind(p.kind(), false /*!global*/, TOP_LEVEL_TASK,
+                                   CodeDescriptor(top_level_task), ProfilingRequestSet())
+      .external_wait();
 
   // collective launch of a single top level task
   rt.collective_spawn(p, TOP_LEVEL_TASK, 0, 0);
 
   // now sleep this thread until that shutdown actually happens
   int ret = rt.wait_for_shutdown();
-  
+
   return ret;
 }

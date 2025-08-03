@@ -1,4 +1,6 @@
-/* Copyright 2024 NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +17,9 @@
 
 #include "realm.h"
 #include "realm/cmdline.h"
-
-#include <assert.h>
-#include <unistd.h>
-#ifdef REALM_ON_MACOS
-#include <pthread.h>
-#else
-#include <syscall.h>
-#endif
+#include <cassert>
+#include <thread>
+#include <chrono>
 
 using namespace Realm;
 
@@ -35,7 +32,10 @@ enum
   READER_TASK,
 };
 
-enum { REDOP_ADD = 1 };
+enum
+{
+  REDOP_ADD = 1
+};
 
 class ReductionOpIntAdd {
 public:
@@ -43,12 +43,18 @@ public:
   typedef int RHS;
 
   template <bool EXCL>
-  static void apply(LHS& lhs, RHS rhs) { lhs += rhs; }
+  static void apply(LHS &lhs, RHS rhs)
+  {
+    lhs += rhs;
+  }
 
   static const RHS identity;
 
   template <bool EXCL>
-  static void fold(RHS& rhs1, RHS rhs2) { rhs1 += rhs2; }
+  static void fold(RHS &rhs1, RHS rhs2)
+  {
+    rhs1 += rhs2;
+  }
 };
 
 const ReductionOpIntAdd::RHS ReductionOpIntAdd::identity = 0;
@@ -65,28 +71,22 @@ namespace TestConfig {
   int num_writers = 4;
   int num_readers = 3;
   int num_iters = 4;
-};
+}; // namespace TestConfig
 
-
-void writer_task(const void *args, size_t arglen, 
-                 const void *userdata, size_t userlen, Processor p)
+void writer_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                 Processor p)
 {
   TaskArgs task_args = *(const TaskArgs *)args;
   int idx = task_args.idx;
   int num_iters = task_args.num_iters;
   Barrier writer_b = task_args.writer_barrier;
   Barrier reader_b = task_args.reader_barrier;
-#ifdef REALM_ON_MACOS
-  uint64_t tid64;
-  pthread_threadid_np(NULL, &tid64);
-  pid_t tid = static_cast<pid_t>(tid64);
-#else
-  pid_t tid = syscall(SYS_gettid);
-#endif
-  log_app.print("start writer task %d on Processor %llx, tid %d", idx, p.id, tid);
-  for (int i = 0; i < num_iters; i++) {
-    usleep(10000);
+  std::thread::id tid = std::this_thread::get_id();
+  log_app.print() << "start writer task " << idx << " on Processor " << p << ", tid "
+                  << tid;
+  for(int i = 0; i < num_iters; i++) {
     int reduce_val = (i + 1) * idx;
+    std::this_thread::sleep_for(std::chrono::microseconds(10000));
     writer_b.arrive(1, Event::NO_EVENT, &reduce_val, sizeof(reduce_val));
     log_app.info("writer %d finishes iter %d", idx, i);
     reader_b.wait();
@@ -95,8 +95,8 @@ void writer_task(const void *args, size_t arglen,
   }
 }
 
-void reader_task(const void *args, size_t arglen, 
-                 const void *userdata, size_t userlen, Processor p)
+void reader_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                 Processor p)
 {
   TaskArgs task_args = *(const TaskArgs *)args;
   int idx = task_args.idx;
@@ -104,21 +104,16 @@ void reader_task(const void *args, size_t arglen,
   int num_tasks = task_args.num_tasks;
   Barrier writer_b = task_args.writer_barrier;
   Barrier reader_b = task_args.reader_barrier;
-#ifdef REALM_ON_MACOS
-  uint64_t tid64;
-  pthread_threadid_np(NULL, &tid64);
-  pid_t tid = static_cast<pid_t>(tid64);
-#else
-  pid_t tid = syscall(SYS_gettid);
-#endif
-  log_app.print("start reader task %d on Processor %llx, tid %d", idx, p.id, tid);
-  for (int i = 0; i < num_iters; i++) {
+  std::thread::id tid = std::this_thread::get_id();
+  log_app.print() << "start reader task " << idx << " on Processor " << p << ", tid "
+                  << tid;
+  for(int i = 0; i < num_iters; i++) {
     writer_b.wait();
     int result = 0;
     bool ready = writer_b.get_result(&result, sizeof(result));
     assert(ready);
     int expected_result = (i + 1) * ((num_tasks - 1) * num_tasks / 2);
-    assert (expected_result == result);
+    assert(expected_result == result);
     log_app.info("reader idx %d, iter %d, result %d", idx, i, result);
     reader_b.arrive(1);
     writer_b = writer_b.advance_barrier();
@@ -126,36 +121,33 @@ void reader_task(const void *args, size_t arglen,
   }
 }
 
-void main_task(const void *args, size_t arglen, 
-                    const void *userdata, size_t userlen, Processor p)
+void main_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+               Processor p)
 {
-#ifdef REALM_ON_MACOS
-  uint64_t tid64;
-  pthread_threadid_np(NULL, &tid64);
-  pid_t tid = static_cast<pid_t>(tid64);
-#else
-  pid_t tid = syscall(SYS_gettid);
-#endif
-  log_app.print("start top task on Processor %llx, tid %d", p.id, tid);
+  std::thread::id tid = std::this_thread::get_id();
+  log_app.print() << "start top task on Processor " << p << ", tid " << tid;
 
   Machine machine = Machine::get_machine();
-  Machine::ProcessorQuery pq = Machine::ProcessorQuery(machine).only_kind(Processor::LOC_PROC);
+  Machine::ProcessorQuery pq =
+      Machine::ProcessorQuery(machine).only_kind(Processor::LOC_PROC);
   std::vector<Processor> writer_cpus, reader_cpus, cpus;
-  if (pq.count() >= static_cast<size_t>(2 + TestConfig::num_readers)) {
-    // we reserve the 1st for top level task and 2nd to 2nd + TestConfig::num_readers for reader tasks
-    // and the rest of them for writer tasks
+  if(pq.count() >= static_cast<size_t>(2 + TestConfig::num_readers)) {
+    // we reserve the 1st for top level task and 2nd to 2nd + TestConfig::num_readers for
+    // reader tasks and the rest of them for writer tasks
     int idx = 0;
-    for (Machine::ProcessorQuery::iterator it = pq.begin(); it; it++) {
-      if (*it == p) continue;
-      if (idx < TestConfig::num_readers) {
+    for(Machine::ProcessorQuery::iterator it = pq.begin(); it; it++) {
+      if(*it == p)
+        continue;
+      if(idx < TestConfig::num_readers) {
         reader_cpus.push_back(*it);
       } else {
         writer_cpus.push_back(*it);
       }
-      idx ++;
+      idx++;
     }
   } else {
-    log_app.warning("The number of CPU processor required = number of readers + writers + 1, please specify it through -ll:cpu");
+    log_app.warning("The number of CPU processor required = number of readers + writers "
+                    "+ 1, please specify it through -ll:cpu");
     reader_cpus.push_back(p);
     writer_cpus.push_back(p);
   }
@@ -170,26 +162,28 @@ void main_task(const void *args, size_t arglen,
 
   // spawn writer tasks
   std::vector<Event> task_events;
-  for (int i = 0; i < TestConfig::num_writers; i++) {
+  for(int i = 0; i < TestConfig::num_writers; i++) {
     TaskArgs task_args;
     task_args.writer_barrier = writer_barrier;
     task_args.reader_barrier = reader_barrier;
     task_args.idx = i;
     task_args.num_iters = TestConfig::num_iters;
     task_args.num_tasks = TestConfig::num_writers;
-    Event e = writer_cpus[i % writer_cpus.size()].spawn(WRITER_TASK, &task_args, sizeof(TaskArgs));
+    Event e = writer_cpus[i % writer_cpus.size()].spawn(WRITER_TASK, &task_args,
+                                                        sizeof(TaskArgs));
     task_events.push_back(e);
   }
 
   // spawn reader tasks
-  for (int i = 0; i < TestConfig::num_readers; i++) {
+  for(int i = 0; i < TestConfig::num_readers; i++) {
     TaskArgs task_args;
     task_args.writer_barrier = writer_barrier;
     task_args.reader_barrier = reader_barrier;
     task_args.idx = i;
     task_args.num_iters = TestConfig::num_iters;
     task_args.num_tasks = TestConfig::num_writers;
-    Event e = reader_cpus[i % reader_cpus.size()].spawn(READER_TASK, &task_args, sizeof(TaskArgs));
+    Event e = reader_cpus[i % reader_cpus.size()].spawn(READER_TASK, &task_args,
+                                                        sizeof(TaskArgs));
     task_events.push_back(e);
   }
 
@@ -199,12 +193,12 @@ void main_task(const void *args, size_t arglen,
   log_app.print("Total time %f(s)", t_end - t_start);
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
   Runtime rt;
 
   rt.init(&argc, (char ***)&argv);
-  
+
   CommandLineParser cp;
   cp.add_option_int("-nw", TestConfig::num_writers);
   cp.add_option_int("-nr", TestConfig::num_readers);
@@ -220,16 +214,16 @@ int main(int argc, char **argv)
   assert(p.exists());
 
   Processor::register_task_by_kind(Processor::LOC_PROC, false /*!global*/, MAIN_TASK,
-                                   CodeDescriptor(main_task),
-                                   ProfilingRequestSet()).external_wait();
+                                   CodeDescriptor(main_task), ProfilingRequestSet())
+      .external_wait();
 
   Processor::register_task_by_kind(Processor::LOC_PROC, false /*!global*/, WRITER_TASK,
-                                  CodeDescriptor(writer_task),
-                                  ProfilingRequestSet()).external_wait();
+                                   CodeDescriptor(writer_task), ProfilingRequestSet())
+      .external_wait();
 
   Processor::register_task_by_kind(Processor::LOC_PROC, false /*!global*/, READER_TASK,
-                                  CodeDescriptor(reader_task),
-                                  ProfilingRequestSet()).external_wait();
+                                   CodeDescriptor(reader_task), ProfilingRequestSet())
+      .external_wait();
 
   Event e = rt.collective_spawn(p, MAIN_TASK, 0, 0);
 

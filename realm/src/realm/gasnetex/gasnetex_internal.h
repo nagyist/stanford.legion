@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +52,8 @@ namespace Realm {
   public:
     OutbufMetadata();
 
-    enum State {
+    enum State
+    {
       STATE_IDLE,
       STATE_DATABUF,
       STATE_PKTBUF,
@@ -61,7 +64,8 @@ namespace Realm {
     uintptr_t databuf_reserve(size_t bytes);
     void databuf_close();
 
-    enum PktType {
+    enum PktType
+    {
       PKTTYPE_INVALID,
       PKTTYPE_INLINE,
       PKTTYPE_INLINE_SHORT,
@@ -74,7 +78,7 @@ namespace Realm {
 
     static const int MAX_PACKETS = 256;
 
-    bool pktbuf_reserve(size_t bytes, int& pktidx, uintptr_t& offset);
+    bool pktbuf_reserve(size_t bytes, int &pktidx, uintptr_t &offset);
     void pktbuf_close();
     uintptr_t pktbuf_get_offset(int pktidx);
     bool pktbuf_commit(int pktidx, PktType pkttype, bool update_realbuf);
@@ -102,9 +106,9 @@ namespace Realm {
     int databuf_use_count;
 
     // pbuf reservatsions are NOT thread-safe - external serialization is used
-    atomic<int> pktbuf_total_packets;  // unsynchronized read ok
+    atomic<int> pktbuf_total_packets; // unsynchronized read ok
     size_t pktbuf_rsrv_offset;
-    size_t pktbuf_pkt_ends[MAX_PACKETS];  // stores where a packet _ends_
+    size_t pktbuf_pkt_ends[MAX_PACKETS]; // stores where a packet _ends_
 
     // pbuf commits are lock-free
     atomic<PktType> pktbuf_pkt_types[MAX_PACKETS];
@@ -118,12 +122,14 @@ namespace Realm {
 
   class OutbufUsecountDec {
   public:
-    OutbufUsecountDec(OutbufMetadata *_md) : md(_md) {}
+    OutbufUsecountDec(OutbufMetadata *_md)
+      : md(_md)
+    {}
 
     void operator()() const { md->dec_usecount(); }
 
   protected:
-    OutbufMetadata* md;
+    OutbufMetadata *md;
   };
 
   class OutbufManager : public BackgroundWorkItem {
@@ -131,11 +137,9 @@ namespace Realm {
     OutbufManager();
     ~OutbufManager();
 
-    void init(size_t _outbuf_count, size_t _outbuf_size,
-	      uintptr_t _baseptr);
+    void init(size_t _outbuf_count, size_t _outbuf_size, uintptr_t _baseptr);
 
-    OutbufMetadata *alloc_outbuf(OutbufMetadata::State state,
-				 bool overflow_ok);
+    OutbufMetadata *alloc_outbuf(OutbufMetadata::State state, bool overflow_ok);
     void free_outbuf(OutbufMetadata *md);
 
     virtual bool do_work(TimeLimit work_until);
@@ -188,7 +192,7 @@ namespace Realm {
     static const size_t TOTAL_CAPACITY = 256;
     typedef char Storage_unaligned[TOTAL_CAPACITY];
     REALM_ALIGNED_TYPE_CONST(Storage_aligned, Storage_unaligned,
-			     Realm::CompletionCallbackBase::ALIGNMENT);
+                             Realm::CompletionCallbackBase::ALIGNMENT);
     Storage_aligned storage;
   };
 
@@ -207,8 +211,7 @@ namespace Realm {
     void recycle_comp(PendingCompletion *comp);
 
     PendingCompletion *lookup_completion(int index);
-    void invoke_completions(PendingCompletion *comp,
-			    bool do_local, bool do_remote);
+    void invoke_completions(PendingCompletion *comp, bool do_local, bool do_remote);
 
     size_t num_completions_pending();
 
@@ -225,7 +228,7 @@ namespace Realm {
     Realm::atomic<int> num_groups; // number of groups currently allocated
     Realm::atomic<PendingCompletionGroup *> groups[1 << LOG2_MAXGROUPS];
     atomic<size_t> num_pending;
-    size_t pending_soft_limit;  // try to stall traffic above this threshold
+    size_t pending_soft_limit; // try to stall traffic above this threshold
   };
 
   template <typename T, unsigned CHUNK_SIZE>
@@ -245,8 +248,8 @@ namespace Realm {
       typedef char Storage_unaligned[sizeof(T)];
       REALM_ALIGNED_TYPE_SAMEAS(Storage_aligned, Storage_unaligned, T);
       union {
-	Storage_aligned raw_storage;
-	uintptr_t nextptr;
+        Storage_aligned raw_storage;
+        uintptr_t nextptr;
       };
       Chunk *backptr;
     };
@@ -275,14 +278,15 @@ namespace Realm {
     ~PreparedMessage() {}
 
   public:
-    enum Strategy {
+    enum Strategy
+    {
       STRAT_UNKNOWN,
-      STRAT_SHORT_IMMEDIATE, // AM short, attempt immediate
-      STRAT_SHORT_PBUF,      // AM short, deferred in pktbuf
+      STRAT_SHORT_IMMEDIATE,  // AM short, attempt immediate
+      STRAT_SHORT_PBUF,       // AM short, deferred in pktbuf
       STRAT_MEDIUM_IMMEDIATE, // AM medium, attempt immediate
-      STRAT_MEDIUM_PBUF,     // AM medium, header/data in pktbuf
+      STRAT_MEDIUM_PBUF,      // AM medium, header/data in pktbuf
       STRAT_MEDIUM_MALLOCSRC, // AM medium, malloc'd temp source (HACK)
-      STRAT_MEDIUM_PREP,     // AM medium, using NPAM
+      STRAT_MEDIUM_PREP,      // AM medium, using NPAM
       STRAT_LONG_IMMEDIATE,
       STRAT_LONG_PBUF,
       STRAT_RGET_IMMEDIATE,
@@ -324,16 +328,12 @@ namespace Realm {
 
     // reserves space in a pbuf for an outbound packet (allocating and
     //  enqueuing a pbuf if needed)
-    bool reserve_pbuf_inline(size_t hdr_bytes, size_t payload_bytes,
-			     bool overflow_ok,
-			     OutbufMetadata *&pktbuf, int& pktidx,
-			     void *&hdr_base, void *&payload_base);
-    bool reserve_pbuf_long_rget(size_t hdr_bytes,
-				bool overflow_ok,
-				OutbufMetadata *&pktbuf, int& pktidx,
-				void *&hdr_base);
-    bool reserve_pbuf_put(bool overflow_ok,
-                          OutbufMetadata *&pktbuf, int& pktidx);
+    bool reserve_pbuf_inline(size_t hdr_bytes, size_t payload_bytes, bool overflow_ok,
+                             OutbufMetadata *&pktbuf, int &pktidx, void *&hdr_base,
+                             void *&payload_base);
+    bool reserve_pbuf_long_rget(size_t hdr_bytes, bool overflow_ok,
+                                OutbufMetadata *&pktbuf, int &pktidx, void *&hdr_base);
+    bool reserve_pbuf_put(bool overflow_ok, OutbufMetadata *&pktbuf, int &pktidx);
     void commit_pbuf_inline(OutbufMetadata *pktbuf, int pktidx, const void *hdr_base,
                             gex_am_arg_t arg0, size_t act_payload_bytes);
     void commit_pbuf_long(OutbufMetadata *pktbuf, int pktidx, const void *hdr_base,
@@ -344,8 +344,7 @@ namespace Realm {
                           gex_am_arg_t arg0, const void *payload_base,
                           size_t payload_bytes, uintptr_t dest_addr,
                           gex_ep_index_t src_ep_index, gex_ep_index_t tgt_ep_index);
-    void commit_pbuf_put(OutbufMetadata *pktbuf, int pktidx,
-                         PendingPutHeader *put,
+    void commit_pbuf_put(OutbufMetadata *pktbuf, int pktidx, PendingPutHeader *put,
                          const void *payload_base, size_t payload_bytes,
                          uintptr_t dest_addr);
     void cancel_pbuf(OutbufMetadata *pktbuf, int pktidx);
@@ -370,19 +369,21 @@ namespace Realm {
     void return_am_credits(int count);
 
     IntrusiveListLink<XmitSrcDestPair> xpair_list_link;
-    REALM_PMTA_DEFN(XmitSrcDestPair,IntrusiveListLink<XmitSrcDestPair>,xpair_list_link);
-    typedef IntrusiveList<XmitSrcDestPair, REALM_PMTA_USE(XmitSrcDestPair,xpair_list_link), DummyLock> XmitPairList;
+    REALM_PMTA_DEFN(XmitSrcDestPair, IntrusiveListLink<XmitSrcDestPair>, xpair_list_link);
+    typedef IntrusiveList<XmitSrcDestPair,
+                          REALM_PMTA_USE(XmitSrcDestPair, xpair_list_link), DummyLock>
+        XmitPairList;
 
     struct LongRgetData {
       const void *payload_base;
       size_t payload_bytes;
       uintptr_t dest_addr;
       union {
-	struct {
-	  OutbufMetadata *databuf;
-	} l;
-	struct {
-	  // rget needs to give both src and target ep index for data
+        struct {
+          OutbufMetadata *databuf;
+        } l;
+        struct {
+          // rget needs to give both src and target ep index for data
           gex_ep_index_t src_ep_index, tgt_ep_index;
         } r;
       };
@@ -399,10 +400,9 @@ namespace Realm {
     friend class GASNetEXInternal;
 
     bool reserve_pbuf_helper(size_t total_bytes, bool overflow_ok,
-			     OutbufMetadata *&pktbuf, int& pktidx,
-			     uintptr_t& baseptr);
-    bool commit_pbuf_helper(OutbufMetadata *pktbuf, int pktidx,
-			    const void *hdr_base, uintptr_t& baseptr);
+                             OutbufMetadata *&pktbuf, int &pktidx, uintptr_t &baseptr);
+    bool commit_pbuf_helper(OutbufMetadata *pktbuf, int pktidx, const void *hdr_base,
+                            uintptr_t &baseptr);
 
     GASNetEXInternal *internal;
     gex_ep_index_t src_ep_index;
@@ -413,17 +413,17 @@ namespace Realm {
     // we don't hold the mutex while pushing packets, but we need definitely
     //  don't want multiple threads trying to push for the same src/dst pair
     MutexChecker push_mutex_check;
-    atomic<OutbufMetadata *> first_pbuf;  // read without mutex
+    atomic<OutbufMetadata *> first_pbuf; // read without mutex
     OutbufMetadata *cur_pbuf;
     atomic<unsigned> imm_fail_count;
     bool has_ready_packets;
     long long first_fail_time;
-    atomic<PendingPutHeader *> put_head;  // read without mutex
+    atomic<PendingPutHeader *> put_head; // read without mutex
     atomic<PendingPutHeader *> *put_tailp;
     // circular queue of pending completion replys
     gex_am_arg_t *comp_reply_data;
     unsigned comp_reply_wrptr, comp_reply_rdptr;
-    atomic<unsigned> comp_reply_count;  // read without mutex
+    atomic<unsigned> comp_reply_count; // read without mutex
     unsigned comp_reply_capacity;
     // TODO: track packets in flight to avoid clogging?
     atomic<int> am_credits; // available end-to-end AM credits for this peer
@@ -463,20 +463,22 @@ namespace Realm {
     gex_event_opaque_t get_event() const;
 
     GASNetEXEvent &set_event(gex_event_opaque_t _event);
-    GASNetEXEvent& set_local_comp(PendingCompletion *_local_comp);
-    GASNetEXEvent& set_pktbuf(OutbufMetadata *_pktbuf);
-    GASNetEXEvent& set_databuf(OutbufMetadata *_databuf);
-    GASNetEXEvent& set_rget(PendingReverseGet *_rget);
-    GASNetEXEvent& set_put(PendingPutHeader *_put);
-    GASNetEXEvent& set_leaf(GASNetEXEvent *_leaf);
+    GASNetEXEvent &set_local_comp(PendingCompletion *_local_comp);
+    GASNetEXEvent &set_pktbuf(OutbufMetadata *_pktbuf);
+    GASNetEXEvent &set_databuf(OutbufMetadata *_databuf);
+    GASNetEXEvent &set_rget(PendingReverseGet *_rget);
+    GASNetEXEvent &set_put(PendingPutHeader *_put);
+    GASNetEXEvent &set_leaf(GASNetEXEvent *_leaf);
 
     void propagate_to_leaves();
 
     void trigger(GASNetEXInternal *internal);
 
     IntrusiveListLink<GASNetEXEvent> event_list_link;
-    REALM_PMTA_DEFN(GASNetEXEvent,IntrusiveListLink<GASNetEXEvent>,event_list_link);
-    typedef IntrusiveList<GASNetEXEvent, REALM_PMTA_USE(GASNetEXEvent,event_list_link), DummyLock> EventList;
+    REALM_PMTA_DEFN(GASNetEXEvent, IntrusiveListLink<GASNetEXEvent>, event_list_link);
+    typedef IntrusiveList<GASNetEXEvent, REALM_PMTA_USE(GASNetEXEvent, event_list_link),
+                          DummyLock>
+        EventList;
 
   protected:
     gex_ep_opaque_t event;
@@ -530,9 +532,9 @@ namespace Realm {
     bool started = false;
     GASNetEXInternal *internal;
     Mutex mutex;
-    atomic<bool> shutdown_flag;  // set/cleared inside mutex, but tested outside
+    atomic<bool> shutdown_flag; // set/cleared inside mutex, but tested outside
     Mutex::CondVar shutdown_cond;
-    atomic<bool> pollwait_flag;  // set/cleared inside mutex, but tested outside
+    atomic<bool> pollwait_flag; // set/cleared inside mutex, but tested outside
     Mutex::CondVar pollwait_cond;
     XmitSrcDestPair::XmitPairList critical_xpairs;
     GASNetEXEvent::EventList pending_events;
@@ -542,7 +544,7 @@ namespace Realm {
   public:
     GASNetEXCompleter(GASNetEXInternal *_internal);
 
-    void add_ready_events(GASNetEXEvent::EventList& newly_ready);
+    void add_ready_events(GASNetEXEvent::EventList &newly_ready);
 
     bool has_work_remaining();
 
@@ -551,7 +553,7 @@ namespace Realm {
   protected:
     GASNetEXInternal *internal;
     Mutex mutex;
-    atomic<bool> has_work;  // can be read without mutex
+    atomic<bool> has_work; // can be read without mutex
     GASNetEXEvent::EventList ready_events;
   };
 
@@ -664,17 +666,14 @@ namespace Realm {
                                    const void *data, size_t bytes_per_line, size_t lines,
                                    size_t line_stride, bool with_congestion,
                                    size_t header_size, uintptr_t dest_payload_addr);
-    size_t recommended_max_payload(bool with_congestion,
-				   size_t header_size);
+    size_t recommended_max_payload(bool with_congestion, size_t header_size);
 
     PreparedMessage *prepare_message(gex_rank_t target, gex_ep_index_t target_ep_index,
                                      unsigned short msgid, void *&header_base,
                                      size_t header_size, void *&payload_base,
                                      size_t payload_size, uintptr_t dest_payload_addr);
-    void commit_message(PreparedMessage *msg,
-			PendingCompletion *comp,
-			void *header_base, size_t header_size,
-			void *payload_base, size_t payload_size);
+    void commit_message(PreparedMessage *msg, PendingCompletion *comp, void *header_base,
+                        size_t header_size, void *payload_base, size_t payload_size);
     void cancel_message(PreparedMessage *msg);
 
     gex_am_arg_t handle_short(gex_rank_t srcrank, gex_am_arg_t arg0, const void *hdr,
@@ -702,11 +701,11 @@ namespace Realm {
 
     // callbacks from IncomingMessageManager
     static void short_message_complete(NodeID sender, uintptr_t objptr,
-				       uintptr_t comp_info);
+                                       uintptr_t comp_info);
     static void medium_message_complete(NodeID sender, uintptr_t objptr,
-					uintptr_t comp_info);
+                                        uintptr_t comp_info);
     static void long_message_complete(NodeID sender, uintptr_t objptr,
-				      uintptr_t comp_info);
+                                      uintptr_t comp_info);
 
     PendingCompletion *extract_arg0_local_comp(gex_am_arg_t &arg0);
 
@@ -761,4 +760,3 @@ namespace Realm {
 }; // namespace Realm
 
 #endif
-

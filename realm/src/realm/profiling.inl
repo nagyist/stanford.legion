@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,39 +47,34 @@ namespace Realm {
     TYPE_IS_SERIALIZABLE(OperationStatus::Result);
 
     template <typename S>
-    bool serdez(S& serdez, const OperationStatus& s)
+    bool serdez(S &serdez, const OperationStatus &s)
     {
-      return ((serdez & s.result) &&
-	      (serdez & s.error_code) &&
-	      (serdez & s.error_details));
+      return ((serdez & s.result) && (serdez & s.error_code) &&
+              (serdez & s.error_details));
     }
 
     template <typename S>
-    bool serdez(S& serdez, const OperationAbnormalStatus& s)
+    bool serdez(S &serdez, const OperationAbnormalStatus &s)
     {
-      return ((serdez & s.result) &&
-	      (serdez & s.error_code) &&
-	      (serdez & s.error_details));
+      return ((serdez & s.result) && (serdez & s.error_code) &&
+              (serdez & s.error_details));
     }
 
     TYPE_IS_SERIALIZABLE(InstanceStatus::Result);
 
     template <typename S>
-    bool serdez(S& serdez, const InstanceStatus& s)
+    bool serdez(S &serdez, const InstanceStatus &s)
     {
-      return ((serdez & s.result) &&
-	      (serdez & s.error_code) &&
-	      (serdez & s.error_details));
+      return ((serdez & s.result) && (serdez & s.error_code) &&
+              (serdez & s.error_details));
     }
 
     template <typename S>
-    bool serdez(S& serdez, const InstanceAbnormalStatus& s)
+    bool serdez(S &serdez, const InstanceAbnormalStatus &s)
     {
-      return ((serdez & s.result) &&
-	      (serdez & s.error_code) &&
-	      (serdez & s.error_details));
+      return ((serdez & s.result) && (serdez & s.error_code) &&
+              (serdez & s.error_details));
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -85,12 +82,10 @@ namespace Realm {
     //
 
     template <typename S>
-    bool serdez(S& serdez, const OperationBacktrace& b)
+    bool serdez(S &serdez, const OperationBacktrace &b)
     {
-      return ((serdez & b.pcs) &&
-              (serdez & b.symbols));
+      return ((serdez & b.pcs) && (serdez & b.symbols));
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -98,8 +93,7 @@ namespace Realm {
     //
     inline bool OperationTimelineGPU::is_valid(void) const
     {
-      return ((start_time != INVALID_TIMESTAMP) &&
-	      (end_time != INVALID_TIMESTAMP));
+      return ((start_time != INVALID_TIMESTAMP) && (end_time != INVALID_TIMESTAMP));
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -134,11 +128,9 @@ namespace Realm {
 
     inline bool OperationTimeline::is_valid(void) const
     {
-      return ((create_time != INVALID_TIMESTAMP) &&
-	      (ready_time != INVALID_TIMESTAMP) &&
-	      (start_time != INVALID_TIMESTAMP) &&
-	      (end_time != INVALID_TIMESTAMP) &&
-	      (complete_time != INVALID_TIMESTAMP));
+      return ((create_time != INVALID_TIMESTAMP) && (ready_time != INVALID_TIMESTAMP) &&
+              (start_time != INVALID_TIMESTAMP) && (end_time != INVALID_TIMESTAMP) &&
+              (complete_time != INVALID_TIMESTAMP));
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -147,11 +139,10 @@ namespace Realm {
     //
 
     template <typename S>
-    bool serdez(S& serdez, const OperationEventWaits& w)
+    bool serdez(S &serdez, const OperationEventWaits &w)
     {
       return (serdez & w.intervals);
     }
-
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -173,7 +164,6 @@ namespace Realm {
       wait_end = Clock::current_time_in_nanoseconds();
     }
 
-
     ////////////////////////////////////////////////////////////////////////
     //
     // struct InstanceTimeLine
@@ -194,55 +184,52 @@ namespace Realm {
       delete_time = Clock::current_time_in_nanoseconds();
     }
 
-   ////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
     //
     // struct OperationCopyInfo
     //
 
     template <typename S>
-    bool serialize(S& ser, const OperationCopyInfo& c)
+    bool serialize(S &ser, const OperationCopyInfo &c)
     {
       bool success = false;
       success = (ser & c.inst_info.size());
-      if (!success) return false;
-      for (size_t i = 0; i < c.inst_info.size(); i++) {
-        success = (ser & c.inst_info[i].src_insts) &&
-                  (ser & c.inst_info[i].dst_insts) &&
+      if(!success)
+        return false;
+      for(size_t i = 0; i < c.inst_info.size(); i++) {
+        success = (ser & c.inst_info[i].src_insts) && (ser & c.inst_info[i].dst_insts) &&
                   (ser & c.inst_info[i].src_indirection_inst) &&
                   (ser & c.inst_info[i].dst_indirection_inst) &&
                   (ser & c.inst_info[i].src_fields) &&
                   (ser & c.inst_info[i].dst_fields) &&
                   (ser & c.inst_info[i].src_indirection_field) &&
                   (ser & c.inst_info[i].dst_indirection_field) &&
-                  (ser & c.inst_info[i].request_type) &&
-                  (ser & c.inst_info[i].num_hops);
+                  (ser & c.inst_info[i].request_type) && (ser & c.inst_info[i].num_hops);
       }
       return success;
     }
 
     template <typename S>
-    bool deserialize(S& dez, OperationCopyInfo& c)
+    bool deserialize(S &dez, OperationCopyInfo &c)
     {
       bool success = false;
       size_t len = 0;
       success = (dez & len);
-      if (!success) return false;
+      if(!success)
+        return false;
       c.inst_info.resize(len);
-      for (size_t i = 0; i < c.inst_info.size(); i++) {
-        success = (dez & c.inst_info[i].src_insts) &&
-                  (dez & c.inst_info[i].dst_insts) &&
+      for(size_t i = 0; i < c.inst_info.size(); i++) {
+        success = (dez & c.inst_info[i].src_insts) && (dez & c.inst_info[i].dst_insts) &&
                   (dez & c.inst_info[i].src_indirection_inst) &&
                   (dez & c.inst_info[i].dst_indirection_inst) &&
                   (dez & c.inst_info[i].src_fields) &&
                   (dez & c.inst_info[i].dst_fields) &&
                   (dez & c.inst_info[i].src_indirection_field) &&
                   (dez & c.inst_info[i].dst_indirection_field) &&
-                  (dez & c.inst_info[i].request_type) &&
-                  (dez & c.inst_info[i].num_hops);
+                  (dez & c.inst_info[i].request_type) && (dez & c.inst_info[i].num_hops);
       }
       return success;
     }
-
 
   }; // namespace ProfilingMeasurements
 
@@ -252,35 +239,33 @@ namespace Realm {
   //
 
   template <typename T>
-  ProfilingRequest &ProfilingRequest::add_measurement(void) 
+  ProfilingRequest &ProfilingRequest::add_measurement(void)
   {
     // SJT: the typecast here is a NOP, but somehow it avoids weird linker errors
     requested_measurements.insert(static_cast<ProfilingMeasurementID>(T::ID));
     return *this;
   }
 
-  inline ProfilingRequest &ProfilingRequest::add_measurement(ProfilingMeasurementID measurement_id)
+  inline ProfilingRequest &
+  ProfilingRequest::add_measurement(ProfilingMeasurementID measurement_id)
   {
     requested_measurements.insert(measurement_id);
     return *this;
   }
 
-  inline ProfilingRequest &ProfilingRequest::add_measurements(const std::set<ProfilingMeasurementID>& measurement_ids)
+  inline ProfilingRequest &ProfilingRequest::add_measurements(
+      const std::set<ProfilingMeasurementID> &measurement_ids)
   {
-    requested_measurements.insert(measurement_ids.begin(),
-				  measurement_ids.end());
+    requested_measurements.insert(measurement_ids.begin(), measurement_ids.end());
     return *this;
   }
 
   template <typename S>
   bool serialize(S &s, const ProfilingRequest &pr)
   {
-    return((s << pr.response_proc) &&
-	   (s << pr.response_task_id) &&
-	   (s << pr.priority) &&
-	   (s << pr.report_if_empty) &&
-	   (s << pr.user_data) &&
-	   (s << pr.requested_measurements));
+    return ((s << pr.response_proc) && (s << pr.response_task_id) && (s << pr.priority) &&
+            (s << pr.report_if_empty) && (s << pr.user_data) &&
+            (s << pr.requested_measurements));
   }
 
   template <typename S>
@@ -291,20 +276,21 @@ namespace Realm {
     Processor::TaskFuncID fid;
     int priority;
     bool report_if_empty;
-    if(!(s >> p)) return 0;
-    if(!(s >> fid)) return 0;
-    if(!(s >> priority)) return 0;
-    if(!(s >> report_if_empty)) return 0;
-    ProfilingRequest *pr = new ProfilingRequest(p, fid,
-						priority, report_if_empty);
-    if(!(s >> pr->user_data) ||
-       !(s >> pr->requested_measurements)) {
+    if(!(s >> p))
+      return 0;
+    if(!(s >> fid))
+      return 0;
+    if(!(s >> priority))
+      return 0;
+    if(!(s >> report_if_empty))
+      return 0;
+    ProfilingRequest *pr = new ProfilingRequest(p, fid, priority, report_if_empty);
+    if(!(s >> pr->user_data) || !(s >> pr->requested_measurements)) {
       delete pr;
       return 0;
     }
     return pr;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -315,12 +301,16 @@ namespace Realm {
   bool ProfilingMeasurementCollection::wants_measurement(void) const
   {
     return requested_measurements.count(static_cast<ProfilingMeasurementID>(T::ID));
-  } 
+  }
 
   template <typename T>
-  void ProfilingMeasurementCollection::add_measurement(const T& data, bool send_complete_responses /*= true*/)
+  void
+  ProfilingMeasurementCollection::add_measurement(const T &data,
+                                                  bool send_complete_responses /*= true*/)
   {
-    std::map<ProfilingMeasurementID, std::vector<const ProfilingRequest *> >::const_iterator it = requested_measurements.find(static_cast<ProfilingMeasurementID>(T::ID));
+    std::map<ProfilingMeasurementID,
+             std::vector<const ProfilingRequest *>>::const_iterator it =
+        requested_measurements.find(static_cast<ProfilingMeasurementID>(T::ID));
     if(it == requested_measurements.end()) {
       // caller probably should have asked if we wanted this before measuring it...
       return;
@@ -334,53 +324,54 @@ namespace Realm {
 #ifndef NDEBUG
     bool ok =
 #endif
-      dbs << data;
+        dbs << data;
     assert(ok);
 
     // measurement data is stored in a ByteArray
-    ByteArray& md = measurements[static_cast<ProfilingMeasurementID>(T::ID)];
-    ByteArray b = dbs.detach_bytearray(-1);  // no trimming
-    md.swap(b);  // avoids a copy
+    ByteArray &md = measurements[static_cast<ProfilingMeasurementID>(T::ID)];
+    ByteArray b = dbs.detach_bytearray(-1); // no trimming
+    md.swap(b);                             // avoids a copy
 
-    // update the number of remaining measurements for each profiling request that wanted this
-    //  if the count hits zero, we can either send the request immediately or mark that we want to
-    //  later
+    // update the number of remaining measurements for each profiling request that wanted
+    // this
+    //  if the count hits zero, we can either send the request immediately or mark that we
+    //  want to later
     for(std::vector<const ProfilingRequest *>::const_iterator it2 = it->second.begin();
-	it2 != it->second.end();
-	it2++) {
-      std::map<const ProfilingRequest *, int>::iterator it3 = measurements_left.find(*it2);
+        it2 != it->second.end(); it2++) {
+      std::map<const ProfilingRequest *, int>::iterator it3 =
+          measurements_left.find(*it2);
       assert(it3 != measurements_left.end());
       it3->second--;
       if(it3->second == 0) {
-	if(send_complete_responses) {
-	  measurements_left.erase(it3);
-	  send_response(**it2);
-	} else {
-	  completed_requests_present = true;
-	}
+        if(send_complete_responses) {
+          measurements_left.erase(it3);
+          send_response(**it2);
+        } else {
+          completed_requests_present = true;
+        }
       }
     }
 
-    // while we're here, if we're allowed to send responses, see if there are any deferred ones
+    // while we're here, if we're allowed to send responses, see if there are any deferred
+    // ones
     if(send_complete_responses && completed_requests_present) {
       std::map<const ProfilingRequest *, int>::iterator it = measurements_left.begin();
       while(it != measurements_left.end()) {
-	if(it->second > 0) {
-	  it++;
-	  continue;
-	}
+        if(it->second > 0) {
+          it++;
+          continue;
+        }
 
-	// make a copy of the iterator so we can increment it
-	std::map<const ProfilingRequest *, int>::iterator old = it;
-	it++;
-	send_response(*(old->first));
-	measurements_left.erase(old);
+        // make a copy of the iterator so we can increment it
+        std::map<const ProfilingRequest *, int>::iterator old = it;
+        it++;
+        send_response(*(old->first));
+        measurements_left.erase(old);
       }
-      
+
       completed_requests_present = false;
     }
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -391,27 +382,30 @@ namespace Realm {
   bool serialize(S &s, const ProfilingRequestSet &prs)
   {
     size_t len = prs.requests.size();
-    if(!(s << len)) return false;
+    if(!(s << len))
+      return false;
     for(size_t i = 0; i < len; i++)
-      if(!(s << *prs.requests[i])) return false;
+      if(!(s << *prs.requests[i]))
+        return false;
     return true;
   }
-  
+
   template <typename S>
   bool deserialize(S &s, ProfilingRequestSet &prs)
   {
     size_t len;
-    if(!(s >> len)) return false;
+    if(!(s >> len))
+      return false;
     prs.clear(); // erase any existing data cleanly
     prs.requests.reserve(len);
     for(size_t i = 0; i < len; i++) {
       ProfilingRequest *pr = ProfilingRequest::deserialize_new(s);
-      if(!pr) return false;
+      if(!pr)
+        return false;
       prs.requests.push_back(pr);
     }
     return true;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -435,7 +429,7 @@ namespace Realm {
 #ifndef NDEBUG
       bool ok =
 #endif
-        fbd >> *m;
+          fbd >> *m;
       assert(ok);
       return m;
     } else
@@ -443,7 +437,7 @@ namespace Realm {
   }
 
   template <typename T>
-  inline bool ProfilingResponse::get_measurement(T& result) const
+  inline bool ProfilingResponse::get_measurement(T &result) const
   {
     int offset, size;
     if(find_id(static_cast<int>(T::ID), offset, size)) {
@@ -452,6 +446,5 @@ namespace Realm {
     } else
       return false;
   }
-
 
 }; // namespace Realm

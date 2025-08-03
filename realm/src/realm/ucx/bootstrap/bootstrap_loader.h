@@ -1,5 +1,6 @@
-
-/* Copyright 2024 NVIDIA Corporation
+/*
+ * Copyright 2025 NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +23,12 @@
 #include "realm/ucx/bootstrap/bootstrap.h"
 
 namespace Realm {
-namespace UCP {
+  namespace UCP {
 
-  int bootstrap_loader_init(const char *plugin, void *arg, bootstrap_handle_t *handle);
-  int bootstrap_loader_finalize(bootstrap_handle_t *handle);
+    int bootstrap_loader_init(const char *plugin, void *arg, bootstrap_handle_t *handle);
+    int bootstrap_loader_finalize(bootstrap_handle_t *handle);
 
-}; // namespace UCP
+  }; // namespace UCP
 
 }; // namespace Realm
 

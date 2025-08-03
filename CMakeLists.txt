@@ -435,6 +435,17 @@ if("${Legion_NETWORKS}" MATCHES ".*gasnet(1|ex).*")
 
     option(Legion_EMBED_GASNet_ENABLE_GPU_MEMORY_KINDS "Enable GASNet memory kinds when Realm has been built with CUDA/HIP/etc." ON)
 
+    if(Legion_EMBED_GASNet_ENABLE_GPU_MEMORY_KINDS)
+      if(Legion_USE_CUDA)
+        list(APPEND GASNet_CONFIG_SETTINGS "USE_CUDA=1")
+      endif()
+      if(Legion_USE_HIP)
+        list(APPEND GASNet_CONFIG_SETTINGS "USE_HIP=1")
+      endif()
+    else()
+      list(APPEND GASNet_CONFIG_SETTINGS "GASNET_GPU_CONFIGURE_ARGS=")
+    endif()
+
     # Always install the embedded gasnet library along with Legion, wrapper or not.
     set(GASNet_INSTALL TRUE)
 
@@ -817,7 +828,7 @@ else()
   set(REALM_ENABLE_GASNETEX OFF)
 endif()
 if (GASNet_INSTALL_DIR)
-  set(GASNET_ROOT_DIR ${GASNet_INSTALL_DIR})
+  set(GASNet_ROOT ${GASNet_INSTALL_DIR})
 endif()
 CPMFindPackage(NAME Realm
                SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/realm
@@ -825,7 +836,7 @@ CPMFindPackage(NAME Realm
                "REALM_ENABLE_INSTALL ON"
                "REALM_ENABLE_UCX ${REALM_ENABLE_UCX}"
                "REALM_ENABLE_GASNETEX ${REALM_ENABLE_GASNETEX}"
-               "GASNET_ROOT_DIR ${GASNET_ROOT_DIR}"
+               "GASNet_ROOT ${GASNet_ROOT}"
                "GASNET_CONDUIT ${GASNet_CONDUIT}"
                "REALM_ENABLE_GASNETEX_WRAPPER ${Legion_USE_GASNETEX_WRAPPER}"
                "REALM_MAX_DIM ${Legion_MAX_DIM}"

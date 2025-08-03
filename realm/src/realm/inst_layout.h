@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,17 +30,24 @@
 //  instantiates the template will presumably have included Kokkos_View.hpp
 //  in its full glory)
 namespace Kokkos {
-  template <class, class...> class View;
-  template <unsigned> struct MemoryTraits;
+  template <class, class...>
+  class View;
+  template <unsigned>
+  struct MemoryTraits;
   struct LayoutStride;
-  template <class, size_t, class> struct Array;
+  template <class, size_t, class>
+  struct Array;
   namespace Experimental {
-    template <class, class...> class OffsetView;
+    template <class, class...>
+    class OffsetView;
   };
-};
+}; // namespace Kokkos
 // Kokkos::Unmanaged is an enum, which we can't forward declare - we'll test
 //  that we have the right value in the template though
-enum { Kokkos_Unmanaged = 0x01 };
+enum
+{
+  Kokkos_Unmanaged = 0x01
+};
 
 #define REALM_PROVIDE_ACCESSOR_TO_KOKKOS_VIEW_CONVERSION
 #endif
@@ -62,21 +71,19 @@ namespace Realm {
    */
   class REALM_PUBLIC_API InstanceLayoutConstraints {
   public:
-    InstanceLayoutConstraints(void) { }
-    InstanceLayoutConstraints(const std::map<FieldID, size_t>& field_sizes,
-			      size_t block_size);
-    InstanceLayoutConstraints(const std::vector<size_t>& field_sizes,
-			      size_t block_size);
-    InstanceLayoutConstraints(const std::vector<FieldID>& field_ids,
-			      const std::vector<size_t>& field_sizes,
-			      size_t block_size);
+    InstanceLayoutConstraints(void) {}
+    InstanceLayoutConstraints(const std::map<FieldID, size_t> &field_sizes,
+                              size_t block_size);
+    InstanceLayoutConstraints(const std::vector<size_t> &field_sizes, size_t block_size);
+    InstanceLayoutConstraints(const std::vector<FieldID> &field_ids,
+                              const std::vector<size_t> &field_sizes, size_t block_size);
     InstanceLayoutConstraints(const FieldID *field_ids, const size_t *field_sizes,
                               size_t num_fields, size_t block_size);
 
     struct FieldInfo {
       FieldID field_id;
       bool fixed_offset;
-      size_t offset;  // used if `fixed_offset` is true
+      size_t offset; // used if `fixed_offset` is true
       size_t size;
       size_t alignment;
     };
@@ -100,9 +107,9 @@ namespace Realm {
       virtual void commit_updates() = 0;
 
       struct PerField {
-	const PieceLookup::Instruction *start_inst;
-	unsigned inst_usage_mask;
-	uintptr_t field_offset;
+        const PieceLookup::Instruction *start_inst;
+        unsigned inst_usage_mask;
+        uintptr_t field_offset;
       };
 
       std::map<FieldID, PerField> fields;
@@ -113,8 +120,8 @@ namespace Realm {
       typedef unsigned char Opcode;
 
       static const Opcode OP_INVALID = 0;
-      static const Opcode OP_SPLIT1 = 1;  // this is a SplitPlane<N,T>
-    }
+      static const Opcode OP_SPLIT1 = 1; // this is a SplitPlane<N,T>
+    }                                    // namespace Opcodes
 
     // some processors are limited in which instruction types they can
     //  support, so we build masks to describe usage/capabilities
@@ -146,7 +153,7 @@ namespace Realm {
       const Instruction *jump(unsigned delta) const;
     };
 
-  };
+  }; // namespace PieceLookup
 
   /**
    * \class InstanceLayoutGeneric
@@ -160,10 +167,10 @@ namespace Realm {
 
   public:
     template <typename S>
-    static InstanceLayoutGeneric *deserialize_new(S& deserializer);
+    static InstanceLayoutGeneric *deserialize_new(S &deserializer);
 
     virtual ~InstanceLayoutGeneric(void);
-    
+
     virtual InstanceLayoutGeneric *clone(void) const = 0;
 
     /**
@@ -172,7 +179,7 @@ namespace Realm {
      */
     virtual void relocate(size_t adjust_amt) = 0;
 
-    virtual void print(std::ostream& os) const = 0;
+    virtual void print(std::ostream &os) const = 0;
 
     /**
      * Create an affine layout using the bounds of 'is' (i.e. one piece)
@@ -184,9 +191,9 @@ namespace Realm {
      * \return InstanceLayoutGeneric* Pointer to the created layout.
      */
     template <int N, typename T>
-    static InstanceLayoutGeneric *choose_instance_layout(IndexSpace<N,T> is,
-							 const InstanceLayoutConstraints& ilc,
-                                                         const int dim_order[N]);
+    static InstanceLayoutGeneric *
+    choose_instance_layout(IndexSpace<N, T> is, const InstanceLayoutConstraints &ilc,
+                           const int dim_order[N]);
 
     /**
      * Create a multi-affine layout using one piece for each rectangle in
@@ -199,13 +206,12 @@ namespace Realm {
      * \return InstanceLayoutGeneric* Pointer to the created layout.
      */
     template <int N, typename T>
-    static InstanceLayoutGeneric *choose_instance_layout(IndexSpace<N,T> is,
-							 const std::vector<Rect<N,T> >& covering,
-							 const InstanceLayoutConstraints& ilc,
-                                                         const int dim_order[N]);
+    static InstanceLayoutGeneric *
+    choose_instance_layout(IndexSpace<N, T> is, const std::vector<Rect<N, T>> &covering,
+                           const InstanceLayoutConstraints &ilc, const int dim_order[N]);
 
     REALM_INTERNAL_API_EXTERNAL_LINKAGE
-    virtual void compile_lookup_program(PieceLookup::CompiledProgram& p) const = 0;
+    virtual void compile_lookup_program(PieceLookup::CompiledProgram &p) const = 0;
 
     size_t bytes_used;
     size_t alignment_reqd;
@@ -222,7 +228,7 @@ namespace Realm {
   };
 
   REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, const InstanceLayoutGeneric& ilg);
+  std::ostream &operator<<(std::ostream &os, const InstanceLayoutGeneric &ilg);
 
   /**
    * \class InstanceLayoutOpaque
@@ -249,7 +255,7 @@ namespace Realm {
 
     static const LayoutType InvalidLayoutType = 0;
     static const LayoutType AffineLayoutType = 1;
-  };
+  }; // namespace PieceLayoutTypes
 
   /**
    * \class InstanceLayoutPieceBase
@@ -263,12 +269,12 @@ namespace Realm {
 
     virtual void relocate(size_t base_offset) = 0;
 
-    virtual void print(std::ostream& os) const = 0;
+    virtual void print(std::ostream &os) const = 0;
 
     // used for constructing lookup programs
     virtual size_t lookup_inst_size() const = 0;
     virtual PieceLookup::Instruction *create_lookup_inst(void *ptr,
-							 unsigned next_delta) const = 0;
+                                                         unsigned next_delta) const = 0;
 
     PieceLayoutTypes::LayoutType layout_type;
   };
@@ -283,21 +289,21 @@ namespace Realm {
     InstanceLayoutPiece(void);
     InstanceLayoutPiece(PieceLayoutTypes::LayoutType _layout_type);
     InstanceLayoutPiece(PieceLayoutTypes::LayoutType _layout_type,
-			const Rect<N,T>& _bounds);
+                        const Rect<N, T> &_bounds);
 
     template <typename S>
-    static InstanceLayoutPiece<N,T> *deserialize_new(S& deserializer);
+    static InstanceLayoutPiece<N, T> *deserialize_new(S &deserializer);
 
-    virtual InstanceLayoutPiece<N,T> *clone(void) const = 0;
+    virtual InstanceLayoutPiece<N, T> *clone(void) const = 0;
 
-    virtual size_t calculate_offset(const Point<N,T>& p) const = 0;
+    virtual size_t calculate_offset(const Point<N, T> &p) const = 0;
 
-    Rect<N,T> bounds;
+    Rect<N, T> bounds;
   };
 
   template <int N, typename T>
-  REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, const InstanceLayoutPiece<N,T>& ilp);
+  REALM_PUBLIC_API std::ostream &operator<<(std::ostream &os,
+                                            const InstanceLayoutPiece<N, T> &ilp);
 
   /**
    * \class AffineLayoutPiece
@@ -305,14 +311,14 @@ namespace Realm {
    * single rectangle and a set of strides.
    */
   template <int N, typename T = int>
-  class REALM_PUBLIC_API AffineLayoutPiece : public InstanceLayoutPiece<N,T> {
+  class REALM_PUBLIC_API AffineLayoutPiece : public InstanceLayoutPiece<N, T> {
   public:
     AffineLayoutPiece(void);
 
     template <typename S>
-    static InstanceLayoutPiece<N,T> *deserialize_new(S& deserializer);
+    static InstanceLayoutPiece<N, T> *deserialize_new(S &deserializer);
 
-    virtual InstanceLayoutPiece<N,T> *clone(void) const;
+    virtual InstanceLayoutPiece<N, T> *clone(void) const;
 
     /**
      * Calculate the offset of a point within the affine piece.
@@ -320,21 +326,23 @@ namespace Realm {
      * \param p Point to calculate offset for.
      * \return size_t Offset of point.
      */
-    virtual size_t calculate_offset(const Point<N,T>& p) const;
+    virtual size_t calculate_offset(const Point<N, T> &p) const;
 
     virtual void relocate(size_t base_offset);
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
     // used for constructing lookup programs
     virtual size_t lookup_inst_size() const;
     virtual PieceLookup::Instruction *create_lookup_inst(void *ptr,
-							 unsigned next_delta) const;
+                                                         unsigned next_delta) const;
 
-    static Serialization::PolymorphicSerdezSubclass<InstanceLayoutPiece<N,T>, AffineLayoutPiece<N,T> > serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<InstanceLayoutPiece<N, T>,
+                                                    AffineLayoutPiece<N, T>>
+        serdez_subclass;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
 
     Point<N, size_t> strides;
     size_t offset;
@@ -355,22 +363,22 @@ namespace Realm {
     InstancePieceList(InstancePieceList &&) noexcept = default;
     InstancePieceList &operator=(InstancePieceList &&) noexcept = default;
 
-    const InstanceLayoutPiece<N,T> *find_piece(Point<N,T> p) const;
+    const InstanceLayoutPiece<N, T> *find_piece(Point<N, T> p) const;
 
     void relocate(size_t base_offset);
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
     template <typename S>
-    bool deserialize(S& deserializer);
+    bool deserialize(S &deserializer);
 
-    std::vector<InstanceLayoutPiece<N,T> *> pieces;
+    std::vector<InstanceLayoutPiece<N, T> *> pieces;
     // placeholder for lookup structure (e.g. K-D tree)
   };
 
   template <int N, typename T>
-  REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, const InstancePieceList<N,T>& ipl);
+  REALM_PUBLIC_API std::ostream &operator<<(std::ostream &os,
+                                            const InstancePieceList<N, T> &ipl);
 
   /**
    * \class InstanceLayout
@@ -382,7 +390,7 @@ namespace Realm {
     InstanceLayout(void);
 
     template <typename S>
-    static InstanceLayoutGeneric *deserialize_new(S& deserializer);
+    static InstanceLayoutGeneric *deserialize_new(S &deserializer);
 
     virtual ~InstanceLayout(void);
 
@@ -394,10 +402,10 @@ namespace Realm {
      */
     virtual void relocate(size_t base_offset);
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
     REALM_INTERNAL_API_EXTERNAL_LINKAGE
-    virtual void compile_lookup_program(PieceLookup::CompiledProgram& p) const;
+    virtual void compile_lookup_program(PieceLookup::CompiledProgram &p) const;
 
     /**
      * Compute the offset of the specified field for an element - this
@@ -406,15 +414,17 @@ namespace Realm {
      * \param fid FieldID of field to calculate offset for.
      * \return size_t Offset of field.
      */
-    size_t calculate_offset(Point<N,T> p, FieldID fid) const;
+    size_t calculate_offset(Point<N, T> p, FieldID fid) const;
 
-    IndexSpace<N,T> space;
-    std::vector<InstancePieceList<N,T> > piece_lists;
+    IndexSpace<N, T> space;
+    std::vector<InstancePieceList<N, T>> piece_lists;
 
-    static Serialization::PolymorphicSerdezSubclass<InstanceLayoutGeneric, InstanceLayout<N,T> > serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<InstanceLayoutGeneric,
+                                                    InstanceLayout<N, T>>
+        serdez_subclass;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
   };
 
   // instance layouts are compiled into "piece lookup programs" for fast
@@ -423,7 +433,7 @@ namespace Realm {
   namespace PieceLookup {
 
     namespace Opcodes {
-      static const Opcode OP_AFFINE_PIECE = 2;  // this is a AffinePiece<N,T>
+      static const Opcode OP_AFFINE_PIECE = 2; // this is a AffinePiece<N,T>
     }
 
     static const unsigned ALLOW_AFFINE_PIECE = 1U << Opcodes::OP_AFFINE_PIECE;
@@ -437,7 +447,7 @@ namespace Realm {
       REALM_CUDA_HD
       unsigned delta() const;
 
-      Rect<N,T> bounds;
+      Rect<N, T> bounds;
       uintptr_t base;
       Point<N, size_t> strides;
 
@@ -461,14 +471,13 @@ namespace Realm {
       T split_plane;
 
       REALM_CUDA_HD
-      const Instruction *next(const Point<N,T>& p) const;
+      const Instruction *next(const Point<N, T> &p) const;
 
       REALM_CUDA_HD
-      bool splits_rect(const Rect<N,T>& r) const;
+      bool splits_rect(const Rect<N, T> &r) const;
     };
 
   }; // namespace PieceLookup
-
 
   template <typename FT>
   class REALM_INTERNAL_API_EXTERNAL_LINKAGE AccessorRefHelper {
@@ -481,12 +490,12 @@ namespace Realm {
     // "write"
     AccessorRefHelper(const AccessorRefHelper &) = default;
     AccessorRefHelper(AccessorRefHelper &&) noexcept = default;
-    AccessorRefHelper<FT>& operator=(const FT& newval);
-    AccessorRefHelper<FT>& operator=(const AccessorRefHelper<FT>& rhs);
+    AccessorRefHelper<FT> &operator=(const FT &newval);
+    AccessorRefHelper<FT> &operator=(const AccessorRefHelper<FT> &rhs);
 
   protected:
     template <typename T>
-    friend std::ostream& operator<<(std::ostream& os, const AccessorRefHelper<T>& arh);
+    friend std::ostream &operator<<(std::ostream &os, const AccessorRefHelper<T> &arh);
 
     RegionInstance inst;
     size_t offset;
@@ -512,8 +521,7 @@ namespace Realm {
      * \param field_id FieldID of field to construct accessor for.
      * \param subfield_offset Offset of subfield to construct accessor for.
      */
-    GenericAccessor(RegionInstance inst,
-		   FieldID field_id, size_t subfield_offset = 0);
+    GenericAccessor(RegionInstance inst, FieldID field_id, size_t subfield_offset = 0);
 
     /**
      * Construct a GenericAccessor for the specified instance and field.
@@ -523,25 +531,26 @@ namespace Realm {
      * \param subrect Subrectangle to limit domain to.
      * \param subfield_offset Offset of subfield to construct accessor for.
      */
-    GenericAccessor(RegionInstance inst,
-		   FieldID field_id, const Rect<N,T>& subrect,
-		   size_t subfield_offset = 0);
+    GenericAccessor(RegionInstance inst, FieldID field_id, const Rect<N, T> &subrect,
+                    size_t subfield_offset = 0);
 
     ~GenericAccessor(void);
 
     static bool is_compatible(RegionInstance inst, size_t field_offset);
-    static bool is_compatible(RegionInstance inst, size_t field_offset, const Rect<N,T>& subrect);
+    static bool is_compatible(RegionInstance inst, size_t field_offset,
+                              const Rect<N, T> &subrect);
 
     template <typename INST>
     static bool is_compatible(const INST &instance, unsigned field_id);
     template <typename INST>
-    static bool is_compatible(const INST &instance, unsigned field_id, const Rect<N,T>& subrect);
+    static bool is_compatible(const INST &instance, unsigned field_id,
+                              const Rect<N, T> &subrect);
 
     // GenericAccessor does not support returning a pointer to an element
-    //FT *ptr(const Point<N,T>& p) const;
+    // FT *ptr(const Point<N,T>& p) const;
 
-    FT read(const Point<N,T>& p);
-    void write(const Point<N,T>& p, FT newval);
+    FT read(const Point<N, T> &p);
+    void write(const Point<N, T> &p, FT newval);
 
     /**
      * Return a reference that can be used to read or write a single
@@ -549,25 +558,24 @@ namespace Realm {
      * \param p Point to read/write.
      * \return Reference to element at p.
      */
-    AccessorRefHelper<FT> operator[](const Point<N,T>& p);
+    AccessorRefHelper<FT> operator[](const Point<N, T> &p);
 
     // instead of storing the top-level layout - we narrow down to just the
     //  piece list and relative offset of the field we're interested in
     RegionInstance inst;
-    const InstancePieceList<N,T> *piece_list;
+    const InstancePieceList<N, T> *piece_list;
     size_t rel_offset;
     // cache the most recently-used piece
-    const InstanceLayoutPiece<N,T> *prev_piece;
+    const InstanceLayoutPiece<N, T> *prev_piece;
 
-  //protected:
-    // not a const method because of the piece caching
-    size_t get_offset(const Point<N,T>& p);
+    // protected:
+    //  not a const method because of the piece caching
+    size_t get_offset(const Point<N, T> &p);
   };
-  
-  template <typename FT, int N, typename T>
-  REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, const GenericAccessor<FT,N,T>& a);
 
+  template <typename FT, int N, typename T>
+  REALM_PUBLIC_API std::ostream &operator<<(std::ostream &os,
+                                            const GenericAccessor<FT, N, T> &a);
 
   /**
    * \class AffineAccessor
@@ -597,8 +605,7 @@ namespace Realm {
      * \param field_id FieldID of field to construct accessor for.
      * \param subfield_offset Offset of subfield to construct accessor for.
      */
-    AffineAccessor(RegionInstance inst,
-		   FieldID field_id, size_t subfield_offset = 0);
+    AffineAccessor(RegionInstance inst, FieldID field_id, size_t subfield_offset = 0);
 
     /** Construct an AffineAccessor for the specified instance and field.
      * Limits the domain to the specified subrectangle.
@@ -610,13 +617,12 @@ namespace Realm {
      * \param subrect Subrectangle to limit domain to.
      * \param subfield_offset Offset of subfield to construct accessor for.
      */
-    AffineAccessor(RegionInstance inst,
-		   FieldID field_id, const Rect<N,T>& subrect,
-		   size_t subfield_offset = 0);
+    AffineAccessor(RegionInstance inst, FieldID field_id, const Rect<N, T> &subrect,
+                   size_t subfield_offset = 0);
 
     ///@{
     /**
-     * Construct an AffineAccessor for the specified instance, field, 
+     * Construct an AffineAccessor for the specified instance, field,
      * and coordinate transform.
      * \param inst RegionInstance to construct accessor for.
      * \param transform Affine transform to apply to coordinates.
@@ -625,20 +631,17 @@ namespace Realm {
      * \param subfield_offset Offset of subfield to construct accessor for.
      */
     template <int N2, typename T2>
-    AffineAccessor(RegionInstance inst,
-		   const Matrix<N2, N, T2>& transform,
-		   const Point<N2, T2>& offset,
-		   FieldID field_id, size_t subfield_offset = 0);
+    AffineAccessor(RegionInstance inst, const Matrix<N2, N, T2> &transform,
+                   const Point<N2, T2> &offset, FieldID field_id,
+                   size_t subfield_offset = 0);
 
     // note that the subrect here is in in the accessor's indexspace
     //  (from which the corresponding subrectangle in the instance can be
     //  easily determined)
     template <int N2, typename T2>
-    AffineAccessor(RegionInstance inst,
-		   const Matrix<N2, N, T2>& transform,
-		   const Point<N2, T2>& offset,
-		   FieldID field_id, const Rect<N,T>& subrect,
-		   size_t subfield_offset = 0);
+    AffineAccessor(RegionInstance inst, const Matrix<N2, N, T2> &transform,
+                   const Point<N2, T2> &offset, FieldID field_id,
+                   const Rect<N, T> &subrect, size_t subfield_offset = 0);
     ///@}
 
     REALM_CUDA_HD
@@ -650,97 +653,90 @@ namespace Realm {
     AffineAccessor &operator=(AffineAccessor &&) noexcept = default;
 
     static bool is_compatible(RegionInstance inst, FieldID field_id);
-    static bool is_compatible(RegionInstance inst, FieldID field_id, const Rect<N,T>& subrect);
+    static bool is_compatible(RegionInstance inst, FieldID field_id,
+                              const Rect<N, T> &subrect);
     template <int N2, typename T2>
-    static bool is_compatible(RegionInstance inst,
-			      const Matrix<N2, N, T2>& transform,
-			      const Point<N2, T2>& offset,
-			      FieldID field_id);
+    static bool is_compatible(RegionInstance inst, const Matrix<N2, N, T2> &transform,
+                              const Point<N2, T2> &offset, FieldID field_id);
     template <int N2, typename T2>
-    static bool is_compatible(RegionInstance inst,
-			      const Matrix<N2, N, T2>& transform,
-			      const Point<N2, T2>& offset,
-			      FieldID field_id, const Rect<N,T>& subrect);
+    static bool is_compatible(RegionInstance inst, const Matrix<N2, N, T2> &transform,
+                              const Point<N2, T2> &offset, FieldID field_id,
+                              const Rect<N, T> &subrect);
 
     // used by constructors or can be called directly
     REALM_CUDA_HD
     void reset();
-    void reset(RegionInstance inst,
-	       FieldID field_id, size_t subfield_offset = 0);
-    void reset(RegionInstance inst,
-	       FieldID field_id, const Rect<N,T>& subrect,
-	       size_t subfield_offset = 0);
+    void reset(RegionInstance inst, FieldID field_id, size_t subfield_offset = 0);
+    void reset(RegionInstance inst, FieldID field_id, const Rect<N, T> &subrect,
+               size_t subfield_offset = 0);
     template <int N2, typename T2>
-    void reset(RegionInstance inst,
-	       const Matrix<N2, N, T2>& transform,
-	       const Point<N2, T2>& offset,
-	       FieldID field_id, size_t subfield_offset = 0);
+    void reset(RegionInstance inst, const Matrix<N2, N, T2> &transform,
+               const Point<N2, T2> &offset, FieldID field_id, size_t subfield_offset = 0);
     template <int N2, typename T2>
-    void reset(RegionInstance inst,
-	       const Matrix<N2, N, T2>& transform,
-	       const Point<N2, T2>& offset,
-	       FieldID field_id, const Rect<N,T>& subrect,
-	       size_t subfield_offset = 0);
-  
-    REALM_CUDA_HD
-    FT *ptr(const Point<N,T>& p) const;
-    REALM_CUDA_HD
-    FT read(const Point<N,T>& p) const;
-    REALM_CUDA_HD
-    void write(const Point<N,T>& p, FT newval) const;
+    void reset(RegionInstance inst, const Matrix<N2, N, T2> &transform,
+               const Point<N2, T2> &offset, FieldID field_id, const Rect<N, T> &subrect,
+               size_t subfield_offset = 0);
 
     REALM_CUDA_HD
-    FT& operator[](const Point<N,T>& p) const;
+    FT *ptr(const Point<N, T> &p) const;
+    REALM_CUDA_HD
+    FT read(const Point<N, T> &p) const;
+    REALM_CUDA_HD
+    void write(const Point<N, T> &p, FT newval) const;
 
     REALM_CUDA_HD
-    bool is_dense_arbitrary(const Rect<N,T> &bounds) const; // any dimension ordering
+    FT &operator[](const Point<N, T> &p) const;
+
     REALM_CUDA_HD
-    bool is_dense_col_major(const Rect<N,T> &bounds) const; // Fortran dimension ordering
+    bool is_dense_arbitrary(const Rect<N, T> &bounds) const; // any dimension ordering
     REALM_CUDA_HD
-    bool is_dense_row_major(const Rect<N,T> &bounds) const; // C dimension ordering
+    bool is_dense_col_major(const Rect<N, T> &bounds) const; // Fortran dimension ordering
+    REALM_CUDA_HD
+    bool is_dense_row_major(const Rect<N, T> &bounds) const; // C dimension ordering
 
 #ifdef REALM_PROVIDE_ACCESSOR_TO_KOKKOS_VIEW_CONVERSION
-  // conversion to Kokkos unmanaged views
+    // conversion to Kokkos unmanaged views
 
-  // Kokkos::View uses relative ("local") indexing - the first element is
-  //  always index 0, even when accessing a subregion that does not include
-  //  global element 0
-  template <typename ... Args>
-  operator Kokkos::View<Args...>() const;
+    // Kokkos::View uses relative ("local") indexing - the first element is
+    //  always index 0, even when accessing a subregion that does not include
+    //  global element 0
+    template <typename... Args>
+    operator Kokkos::View<Args...>() const;
 
-  // Kokkos::Experimental::OffsetView uses absolute ("global") indexing -
-  //  the indices used on the OffsetView::operator() match what is used for
-  //  the AffineAccessor's operator[]
-  template <typename ... Args>
-  operator Kokkos::Experimental::OffsetView<Args...>() const;
+    // Kokkos::Experimental::OffsetView uses absolute ("global") indexing -
+    //  the indices used on the OffsetView::operator() match what is used for
+    //  the AffineAccessor's operator[]
+    template <typename... Args>
+    operator Kokkos::Experimental::OffsetView<Args...>() const;
 #endif
 
-  //protected:
-  //friend
-  // std::ostream& operator<<(std::ostream& os, const AffineAccessor<FT,N,T>& a);
+    // protected:
+    // friend
+    //  std::ostream& operator<<(std::ostream& os, const AffineAccessor<FT,N,T>& a);
 //#define REALM_ACCESSOR_DEBUG
 #if defined(REALM_ACCESSOR_DEBUG) || defined(REALM_USE_KOKKOS)
-  Rect<N,T> bounds;
+    Rect<N, T> bounds;
 #endif
 #ifdef REALM_USE_KOKKOS
-  bool bounds_specified;
+    bool bounds_specified;
 #endif
 #ifdef REALM_ACCESSOR_DEBUG
-  RegionInstance dbg_inst;
-#if defined (__CUDACC__) || defined (__HIPCC__)
+    RegionInstance dbg_inst;
+#if defined(__CUDACC__) || defined(__HIPCC__)
 #error "REALM_ACCESSOR_DEBUG macro for AffineAccessor not supported for GPU code"
 #endif
 #endif
     uintptr_t base;
     Point<N, size_t> strides;
+
   protected:
     REALM_CUDA_HD
-    FT* get_ptr(const Point<N,T>& p) const;
+    FT *get_ptr(const Point<N, T> &p) const;
   };
 
   template <typename FT, int N, typename T>
-  REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, const AffineAccessor<FT,N,T>& a);
+  REALM_PUBLIC_API std::ostream &operator<<(std::ostream &os,
+                                            const AffineAccessor<FT, N, T> &a);
 
   // a multi-affine accessor handles instances with multiple pieces, but only
   //  if all of them are affine
@@ -748,8 +744,8 @@ namespace Realm {
   class MultiAffineAccessor;
 
   template <typename FT, int N, typename T>
-  REALM_PUBLIC_API
-  std::ostream& operator<<(std::ostream& os, const MultiAffineAccessor<FT,N,T>& a);
+  REALM_PUBLIC_API std::ostream &operator<<(std::ostream &os,
+                                            const MultiAffineAccessor<FT, N, T> &a);
 
   /**
    * \class MultiAffineAccessor
@@ -761,7 +757,6 @@ namespace Realm {
   template <typename FT, int N, typename T>
   class REALM_PUBLIC_API MultiAffineAccessor {
   public:
-
     REALM_CUDA_HD
     MultiAffineAccessor(void);
 
@@ -774,8 +769,8 @@ namespace Realm {
      * \param field_id The field to access.
      * \param subfield_offset The offset of the subfield to access.
      */
-    MultiAffineAccessor(RegionInstance inst,
-			FieldID field_id, size_t subfield_offset = 0);
+    MultiAffineAccessor(RegionInstance inst, FieldID field_id,
+                        size_t subfield_offset = 0);
 
     /**
      * Construct a multi-affine accessor for the given instance and field.
@@ -787,9 +782,8 @@ namespace Realm {
      * \param subrect The subrectangle to limit the domain to.
      * \param subfield_offset The offset of the subfield to access.
      */
-    MultiAffineAccessor(RegionInstance inst,
-			FieldID field_id, const Rect<N,T>& subrect,
-			size_t subfield_offset = 0);
+    MultiAffineAccessor(RegionInstance inst, FieldID field_id, const Rect<N, T> &subrect,
+                        size_t subfield_offset = 0);
 
     REALM_CUDA_HD
     ~MultiAffineAccessor(void);
@@ -801,16 +795,14 @@ namespace Realm {
 
     static bool is_compatible(RegionInstance inst, FieldID field_id);
     static bool is_compatible(RegionInstance inst, FieldID field_id,
-			      const Rect<N,T>& subrect);
+                              const Rect<N, T> &subrect);
 
     // used by constructors or can be called directly
     REALM_CUDA_HD
     void reset();
-    void reset(RegionInstance inst,
-	       FieldID field_id, size_t subfield_offset = 0);
-    void reset(RegionInstance inst,
-	       FieldID field_id, const Rect<N,T>& subrect,
-	       size_t subfield_offset = 0);
+    void reset(RegionInstance inst, FieldID field_id, size_t subfield_offset = 0);
+    void reset(RegionInstance inst, FieldID field_id, const Rect<N, T> &subrect,
+               size_t subfield_offset = 0);
 
     ///@{
     /**
@@ -820,38 +812,38 @@ namespace Realm {
      * \return A pointer to the given point.
      */
     REALM_CUDA_HD
-    FT *ptr(const Point<N,T>& p) const;
+    FT *ptr(const Point<N, T> &p) const;
     REALM_CUDA_HD
-    FT *ptr(const Rect<N,T>& r, size_t strides[N]) const;
+    FT *ptr(const Rect<N, T> &r, size_t strides[N]) const;
     REALM_CUDA_HD
-    FT read(const Point<N,T>& p) const;
+    FT read(const Point<N, T> &p) const;
     REALM_CUDA_HD
-    void write(const Point<N,T>& p, FT newval) const;
+    void write(const Point<N, T> &p, FT newval) const;
     ///@}
 
+    REALM_CUDA_HD
+    FT &operator[](const Point<N, T> &p) const;
 
     REALM_CUDA_HD
-    FT& operator[](const Point<N,T>& p) const;
+    FT *ptr(const Point<N, T> &p);
+    REALM_CUDA_HD
+    FT *ptr(const Rect<N, T> &r, size_t strides[N]);
+    REALM_CUDA_HD
+    FT read(const Point<N, T> &p);
+    REALM_CUDA_HD
+    void write(const Point<N, T> &p, FT newval);
 
     REALM_CUDA_HD
-    FT *ptr(const Point<N,T>& p);
-    REALM_CUDA_HD
-    FT *ptr(const Rect<N,T>& r, size_t strides[N]);
-    REALM_CUDA_HD
-    FT read(const Point<N,T>& p);
-    REALM_CUDA_HD
-    void write(const Point<N,T>& p, FT newval);
-
-    REALM_CUDA_HD
-    FT& operator[](const Point<N,T>& p);
+    FT &operator[](const Point<N, T> &p);
 
   protected:
-    friend std::ostream& operator<< <FT,N,T>(std::ostream& os, const MultiAffineAccessor<FT,N,T>& a);
+    friend std::ostream &operator<< <FT, N, T>(std::ostream &os,
+                                               const MultiAffineAccessor<FT, N, T> &a);
 
     // cached info from the most recent piece, or authoritative info for
     //  a single piece
     bool piece_valid;
-    Rect<N,T> piece_bounds;
+    Rect<N, T> piece_bounds;
     uintptr_t piece_base;
     Point<N, size_t> piece_strides;
     // if we need to do a new lookup, this is where we start
@@ -859,11 +851,8 @@ namespace Realm {
     size_t field_offset;
   };
 
-
 }; // namespace Realm
 
 #include "realm/inst_layout.inl"
 
 #endif // ifndef REALM_INST_LAYOUT_H
-
-

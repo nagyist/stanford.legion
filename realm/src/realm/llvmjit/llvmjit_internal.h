@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +37,7 @@ namespace Realm {
       LLVMJitInternal(void);
       ~LLVMJitInternal(void);
 
-      void *llvmir_to_fnptr(const ByteArray& ir, const std::string& entry_symbol);
+      void *llvmir_to_fnptr(const ByteArray &ir, const std::string &entry_symbol);
 
 #ifdef REALM_ALLOW_MISSING_LLVM_LIBS
       static bool detect_llvm_libraries(void);

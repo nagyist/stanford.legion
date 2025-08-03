@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,94 +29,82 @@ namespace Realm {
   // class CommandLineParser
 
   template <typename T>
-  CommandLineParser& CommandLineParser::add_option_int(const std::string& optname,
-						       T& target,
-						       bool keep /*= false*/)
+  CommandLineParser &CommandLineParser::add_option_int(const std::string &optname,
+                                                       T &target, bool keep /*= false*/)
   {
     options.push_back(new IntegerCommandLineOption<T>(optname, keep, target));
     return *this;
   }
 
   template <typename T>
-  CommandLineParser& CommandLineParser::add_option_int_units(const std::string& optname,
-							     T& target,
-							     char default_unit /*= 0*/,
-							     bool binary /*= true*/,
-							     bool keep /*= false*/)
+  CommandLineParser &
+  CommandLineParser::add_option_int_units(const std::string &optname, T &target,
+                                          char default_unit /*= 0*/,
+                                          bool binary /*= true*/, bool keep /*= false*/)
   {
-    options.push_back(new IntegerUnitsCommandLineOption<T>(optname,
-							   default_unit, binary,
-							   keep, target));
+    options.push_back(new IntegerUnitsCommandLineOption<T>(optname, default_unit, binary,
+                                                           keep, target));
     return *this;
   }
 
   template <typename T>
-  CommandLineParser& CommandLineParser::add_option_string(const std::string& optname,
-							  T& target,
-							  bool keep /*= false*/)
+  CommandLineParser &CommandLineParser::add_option_string(const std::string &optname,
+                                                          T &target,
+                                                          bool keep /*= false*/)
   {
     options.push_back(new StringCommandLineOption(optname, keep, target));
     return *this;
   }
 
-  inline CommandLineParser& CommandLineParser::add_option_string(const std::string& optname,
-							  char *target,
-							  size_t maxlen,
-							  bool keep /*= false*/)
+  inline CommandLineParser &
+  CommandLineParser::add_option_string(const std::string &optname, char *target,
+                                       size_t maxlen, bool keep /*= false*/)
   {
     options.push_back(new StringCommandLineOption(optname, keep, target, maxlen));
     return *this;
   }
 
   template <typename T>
-  CommandLineParser& CommandLineParser::add_option_stringlist(const std::string& optname,
-							      T& target,
-							      bool keep /*= false*/)
+  CommandLineParser &CommandLineParser::add_option_stringlist(const std::string &optname,
+                                                              T &target,
+                                                              bool keep /*= false*/)
   {
     options.push_back(new StringListCommandLineOption(optname, keep, target));
     return *this;
   }
 
-  inline CommandLineParser& CommandLineParser::add_option_bool(const std::string& optname,
-							       bool& target,
-							       bool keep /*= false*/)
+  inline CommandLineParser &CommandLineParser::add_option_bool(const std::string &optname,
+                                                               bool &target,
+                                                               bool keep /*= false*/)
   {
     options.push_back(new BooleanCommandLineOption(optname, keep, target));
     return *this;
   }
 
   template <typename T>
-  CommandLineParser& CommandLineParser::add_option_method(const std::string& optname,
-							  T *target,
-							  bool (T::*method)(const std::string&),
-							  bool keep /*= false*/)
+  CommandLineParser &
+  CommandLineParser::add_option_method(const std::string &optname, T *target,
+                                       bool (T::*method)(const std::string &),
+                                       bool keep /*= false*/)
   {
     options.push_back(new MethodCommandLineOption<T>(optname, keep, target, method));
     return *this;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class CommandLineOption
 
-  inline CommandLineOption::CommandLineOption(const std::string& _optname, bool _keep)
-    : optname(_optname), keep(_keep)
-  {}
-  
-  inline CommandLineOption::~CommandLineOption(void)
+  inline CommandLineOption::CommandLineOption(const std::string &_optname, bool _keep)
+    : optname(_optname)
+    , keep(_keep)
   {}
 
-  inline bool CommandLineOption::match(const std::string& s)
-  {
-    return optname == s;
-  }
+  inline CommandLineOption::~CommandLineOption(void) {}
 
-  inline bool CommandLineOption::keep_arg(void) const
-  {
-    return keep;
-  }
+  inline bool CommandLineOption::match(const std::string &s) { return optname == s; }
 
+  inline bool CommandLineOption::keep_arg(void) const { return keep; }
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -122,108 +112,48 @@ namespace Realm {
 
   // level of indirection allows us to just specialize the string parsing part
   template <typename T>
-  int convert_integer_cmdline_argument(const std::string& s, T& target);
+  int convert_integer_cmdline_argument(const std::string &s, T &target);
 
   template <>
-  int convert_integer_cmdline_argument<int>(const std::string& s, int& target);
+  int convert_integer_cmdline_argument<int>(const std::string &s, int &target);
 
   template <>
-  int convert_integer_cmdline_argument<unsigned int>(const std::string& s, unsigned int& target);
+  int convert_integer_cmdline_argument<unsigned int>(const std::string &s,
+                                                     unsigned int &target);
 
   template <>
-  int convert_integer_cmdline_argument<unsigned long>(const std::string& s, unsigned long& target);
+  int convert_integer_cmdline_argument<unsigned long>(const std::string &s,
+                                                      unsigned long &target);
 
   template <>
-  int convert_integer_cmdline_argument<long long>(const std::string& s, long long& target);
+  int convert_integer_cmdline_argument<long long>(const std::string &s,
+                                                  long long &target);
 
   template <>
-  int convert_integer_cmdline_argument<unsigned long long>(const std::string& s, unsigned long long& target);
+  int convert_integer_cmdline_argument<unsigned long long>(const std::string &s,
+                                                           unsigned long long &target);
 
   template <>
-  int convert_integer_cmdline_argument<bool>(const std::string& s, bool& target);
+  int convert_integer_cmdline_argument<bool>(const std::string &s, bool &target);
 
   template <typename T>
-  IntegerCommandLineOption<T>::IntegerCommandLineOption(const std::string& _optname,
-							bool _keep,
-							T& _target)
+  IntegerCommandLineOption<T>::IntegerCommandLineOption(const std::string &_optname,
+                                                        bool _keep, T &_target)
     : CommandLineOption(_optname, _keep)
     , target(_target)
   {}
-    
+
   template <typename T>
-  int IntegerCommandLineOption<T>::parse_argument(std::vector<std::string>& cmdline,
-						   std::vector<std::string>::iterator& pos)
+  int IntegerCommandLineOption<T>::parse_argument(std::vector<std::string> &cmdline,
+                                                  std::vector<std::string>::iterator &pos)
   {
     // requires an additional argument
-    if(pos == cmdline.end()) return REALM_ARGUMENT_ERROR_MISSING_INPUT;
+    if(pos == cmdline.end())
+      return REALM_ARGUMENT_ERROR_MISSING_INPUT;
 
     // parse into a copy to avoid corrupting the value on failure
     T val;
     int status = convert_integer_cmdline_argument(*pos, val);
-    if(status == REALM_SUCCESS || status == REALM_ARGUMENT_ERROR_WITH_EXTRA_FLAGS) {
-      target = val;
-      if(keep) {
-	++pos;
-      } else {
-	pos = cmdline.erase(pos);
-      }
-      return REALM_SUCCESS;
-    } else
-      return status;
-  }
-
-  template <typename T>
-  int IntegerCommandLineOption<T>::parse_argument(int& pos, int argc,
-						   const char *argv[])
-  {
-    // requires an additional argument
-    if(pos >= argc) return REALM_ARGUMENT_ERROR_MISSING_INPUT;
-
-    // parse into a copy to avoid corrupting the value on failure
-    T val;
-    int status = convert_integer_cmdline_argument(argv[pos], val);
-    if(status == REALM_SUCCESS || status == REALM_ARGUMENT_ERROR_WITH_EXTRA_FLAGS) {
-      target = val;
-      // can't update this array - have to keep
-      ++pos;
-      return REALM_SUCCESS;
-    } else
-      return status;
-  }
-
-
-  ////////////////////////////////////////////////////////////////////////
-  //
-  // class IntegerUnitsCommandLineOption<T>
-
-  template <typename T>
-  IntegerUnitsCommandLineOption<T>::IntegerUnitsCommandLineOption(const std::string& _optname,
-								  char _default_unit,
-								  bool _binary,
-								  bool _keep,
-								  T& _target)
-    : CommandLineOption(_optname, _keep)
-    , default_unit(_default_unit)
-    , binary(_binary)
-    , target(_target)
-  {}
-
-  static inline int convert_integer_units_cmdline_argument(const char *s,
-					      char default_unit,
-					      bool binary,
-					      double &value);
-  
-  template <typename T>
-  int IntegerUnitsCommandLineOption<T>::parse_argument(std::vector<std::string>& cmdline,
-							std::vector<std::string>::iterator& pos)
-  {
-    // requires an additional argument
-    if(pos == cmdline.end()) return REALM_ARGUMENT_ERROR_MISSING_INPUT;
-
-    // parse into a copy to avoid corrupting the value on failure
-    double val;
-    int status = convert_integer_units_cmdline_argument((*pos).c_str(),
-					      default_unit, binary, val);
     if(status == REALM_SUCCESS || status == REALM_ARGUMENT_ERROR_WITH_EXTRA_FLAGS) {
       target = val;
       if(keep) {
@@ -237,16 +167,15 @@ namespace Realm {
   }
 
   template <typename T>
-  int IntegerUnitsCommandLineOption<T>::parse_argument(int& pos, int argc,
-							const char *argv[])
+  int IntegerCommandLineOption<T>::parse_argument(int &pos, int argc, const char *argv[])
   {
     // requires an additional argument
-    if(pos >= argc) return REALM_ARGUMENT_ERROR_MISSING_INPUT;
+    if(pos >= argc)
+      return REALM_ARGUMENT_ERROR_MISSING_INPUT;
 
     // parse into a copy to avoid corrupting the value on failure
-    double val;
-    int status = convert_integer_units_cmdline_argument(argv[pos],
-					      default_unit, binary, val);
+    T val;
+    int status = convert_integer_cmdline_argument(argv[pos], val);
     if(status == REALM_SUCCESS || status == REALM_ARGUMENT_ERROR_WITH_EXTRA_FLAGS) {
       target = val;
       // can't update this array - have to keep
@@ -256,26 +185,89 @@ namespace Realm {
       return status;
   }
 
+  ////////////////////////////////////////////////////////////////////////
+  //
+  // class IntegerUnitsCommandLineOption<T>
+
+  template <typename T>
+  IntegerUnitsCommandLineOption<T>::IntegerUnitsCommandLineOption(
+      const std::string &_optname, char _default_unit, bool _binary, bool _keep,
+      T &_target)
+    : CommandLineOption(_optname, _keep)
+    , default_unit(_default_unit)
+    , binary(_binary)
+    , target(_target)
+  {}
+
+  static inline int convert_integer_units_cmdline_argument(const char *s,
+                                                           char default_unit, bool binary,
+                                                           double &value);
+
+  template <typename T>
+  int IntegerUnitsCommandLineOption<T>::parse_argument(
+      std::vector<std::string> &cmdline, std::vector<std::string>::iterator &pos)
+  {
+    // requires an additional argument
+    if(pos == cmdline.end())
+      return REALM_ARGUMENT_ERROR_MISSING_INPUT;
+
+    // parse into a copy to avoid corrupting the value on failure
+    double val;
+    int status =
+        convert_integer_units_cmdline_argument((*pos).c_str(), default_unit, binary, val);
+    if(status == REALM_SUCCESS || status == REALM_ARGUMENT_ERROR_WITH_EXTRA_FLAGS) {
+      target = val;
+      if(keep) {
+        ++pos;
+      } else {
+        pos = cmdline.erase(pos);
+      }
+      return REALM_SUCCESS;
+    } else
+      return status;
+  }
+
+  template <typename T>
+  int IntegerUnitsCommandLineOption<T>::parse_argument(int &pos, int argc,
+                                                       const char *argv[])
+  {
+    // requires an additional argument
+    if(pos >= argc)
+      return REALM_ARGUMENT_ERROR_MISSING_INPUT;
+
+    // parse into a copy to avoid corrupting the value on failure
+    double val;
+    int status =
+        convert_integer_units_cmdline_argument(argv[pos], default_unit, binary, val);
+    if(status == REALM_SUCCESS || status == REALM_ARGUMENT_ERROR_WITH_EXTRA_FLAGS) {
+      target = val;
+      // can't update this array - have to keep
+      ++pos;
+      return REALM_SUCCESS;
+    } else
+      return status;
+  }
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class MethodCommandLineOption<T>
 
   template <typename T>
-  MethodCommandLineOption<T>::MethodCommandLineOption(const std::string& _optname,
-						      bool _keep,
-						      T *_target,
-						      bool (T::*_method)(const std::string&))
+  MethodCommandLineOption<T>::MethodCommandLineOption(
+      const std::string &_optname, bool _keep, T *_target,
+      bool (T::*_method)(const std::string &))
     : CommandLineOption(_optname, _keep)
-    , target(_target), method(_method)
+    , target(_target)
+    , method(_method)
   {}
-    
+
   template <typename T>
-  int MethodCommandLineOption<T>::parse_argument(std::vector<std::string>& cmdline,
-						  std::vector<std::string>::iterator& pos)
+  int MethodCommandLineOption<T>::parse_argument(std::vector<std::string> &cmdline,
+                                                 std::vector<std::string>::iterator &pos)
   {
     // requires an additional argument
-    if(pos == cmdline.end()) return REALM_ARGUMENT_ERROR_MISSING_INPUT;
+    if(pos == cmdline.end())
+      return REALM_ARGUMENT_ERROR_MISSING_INPUT;
 
     // call method - true means it parsed ok
     if((target->*method)(*pos)) {
@@ -290,11 +282,11 @@ namespace Realm {
   }
 
   template <typename T>
-  int MethodCommandLineOption<T>::parse_argument(int& pos, int argc,
-						  const char *argv[])
+  int MethodCommandLineOption<T>::parse_argument(int &pos, int argc, const char *argv[])
   {
     // requires an additional argument
-    if(pos >= argc) return REALM_ARGUMENT_ERROR_MISSING_INPUT;
+    if(pos >= argc)
+      return REALM_ARGUMENT_ERROR_MISSING_INPUT;
 
     // call method - true means it parsed ok
     if((target->*method)(argv[pos])) {
@@ -318,7 +310,8 @@ namespace Realm {
     options.clear();
   }
 
-  inline RealmStatus CommandLineParser::parse_command_line_v2(std::vector<std::string> &cmdline)
+  inline RealmStatus
+  CommandLineParser::parse_command_line_v2(std::vector<std::string> &cmdline)
   {
     RealmStatus status = REALM_SUCCESS;
     std::vector<std::string>::iterator pos = cmdline.begin();
@@ -355,7 +348,8 @@ namespace Realm {
     return status;
   }
 
-  inline RealmStatus CommandLineParser::parse_command_line_v2(int argc, const char *argv[])
+  inline RealmStatus CommandLineParser::parse_command_line_v2(int argc,
+                                                              const char *argv[])
   {
     RealmStatus status = REALM_SUCCESS;
     int pos = 0;
@@ -438,7 +432,7 @@ namespace Realm {
 
   template <>
   inline int convert_integer_cmdline_argument<unsigned int>(const std::string &s,
-                                                     unsigned int &target)
+                                                            unsigned int &target)
   {
     errno = 0; // no errors from before
     char *pos;
@@ -469,7 +463,7 @@ namespace Realm {
 
   template <>
   inline int convert_integer_cmdline_argument<unsigned long>(const std::string &s,
-                                                      unsigned long &target)
+                                                             unsigned long &target)
   {
     errno = 0; // no errors from before
     char *pos;
@@ -481,7 +475,8 @@ namespace Realm {
   }
 
   template <>
-  inline int convert_integer_cmdline_argument<long long>(const std::string &s, long long &target)
+  inline int convert_integer_cmdline_argument<long long>(const std::string &s,
+                                                         long long &target)
   {
     errno = 0; // no errors from before
     char *pos;
@@ -493,8 +488,9 @@ namespace Realm {
   }
 
   template <>
-  inline int convert_integer_cmdline_argument<unsigned long long>(const std::string &s,
-                                                           unsigned long long &target)
+  inline int
+  convert_integer_cmdline_argument<unsigned long long>(const std::string &s,
+                                                       unsigned long long &target)
   {
     errno = 0; // no errors from before
     char *pos;
@@ -564,7 +560,8 @@ namespace Realm {
   // class StringCommandLineOption
 
   inline StringCommandLineOption::StringCommandLineOption(const std::string &_optname,
-                                                   bool _keep, std::string &_target)
+                                                          bool _keep,
+                                                          std::string &_target)
     : CommandLineOption(_optname, _keep)
     , target_str(&_target)
     , target_array(0)
@@ -572,16 +569,17 @@ namespace Realm {
   {}
 
   inline StringCommandLineOption::StringCommandLineOption(const std::string &_optname,
-                                                   bool _keep, char *_target,
-                                                   size_t _maxlen)
+                                                          bool _keep, char *_target,
+                                                          size_t _maxlen)
     : CommandLineOption(_optname, _keep)
     , target_str(0)
     , target_array(_target)
     , target_arrlen(_maxlen)
   {}
 
-  inline int StringCommandLineOption::parse_argument(std::vector<std::string> &cmdline,
-                                              std::vector<std::string>::iterator &pos)
+  inline int
+  StringCommandLineOption::parse_argument(std::vector<std::string> &cmdline,
+                                          std::vector<std::string>::iterator &pos)
   {
     // requires an additional argument
     if(pos == cmdline.end())
@@ -605,7 +603,8 @@ namespace Realm {
     return REALM_SUCCESS;
   }
 
-  inline int StringCommandLineOption::parse_argument(int &pos, int argc, const char *argv[])
+  inline int StringCommandLineOption::parse_argument(int &pos, int argc,
+                                                     const char *argv[])
   {
     // requires an additional argument
     if(pos >= argc)
@@ -636,8 +635,9 @@ namespace Realm {
     , target(_target)
   {}
 
-  inline int StringListCommandLineOption::parse_argument(std::vector<std::string> &cmdline,
-                                                  std::vector<std::string>::iterator &pos)
+  inline int
+  StringListCommandLineOption::parse_argument(std::vector<std::string> &cmdline,
+                                              std::vector<std::string>::iterator &pos)
   {
     // requires an additional argument
     if(pos == cmdline.end())
@@ -654,7 +654,8 @@ namespace Realm {
     return REALM_SUCCESS;
   }
 
-  inline int StringListCommandLineOption::parse_argument(int &pos, int argc, const char *argv[])
+  inline int StringListCommandLineOption::parse_argument(int &pos, int argc,
+                                                         const char *argv[])
   {
     // requires an additional argument
     if(pos >= argc)
@@ -673,20 +674,22 @@ namespace Realm {
   // class BooleanCommandLineOption
 
   inline BooleanCommandLineOption::BooleanCommandLineOption(const std::string &_optname,
-                                                     bool _keep, bool &_target)
+                                                            bool _keep, bool &_target)
     : CommandLineOption(_optname, _keep)
     , target(_target)
   {}
 
-  inline int BooleanCommandLineOption::parse_argument(std::vector<std::string> &cmdline,
-                                               std::vector<std::string>::iterator &pos)
+  inline int
+  BooleanCommandLineOption::parse_argument(std::vector<std::string> &cmdline,
+                                           std::vector<std::string>::iterator &pos)
   {
     // nothing to parse - all we care about is presence
     target = true;
     return REALM_SUCCESS;
   }
 
-  inline int BooleanCommandLineOption::parse_argument(int &pos, int argc, const char *argv[])
+  inline int BooleanCommandLineOption::parse_argument(int &pos, int argc,
+                                                      const char *argv[])
   {
     // nothing to parse - all we care about is presence
     target = true;

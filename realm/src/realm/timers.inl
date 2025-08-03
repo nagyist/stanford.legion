@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,16 +32,16 @@
 #pragma intrinsic(__rdtsc)
 #else
 #if defined(__i386__) || defined(__x86_64__)
-  #if defined(REALM_COMPILER_IS_NVCC)
-    // old versions of nvcc have trouble with avx512 intrinsic definitions,
-    //  which we cannot avoid in the include below
-    // Update 1/13/2022: the issue has been observed even with CUDA 11.2.
-    //  as the version check doesn't seem to safely filter out all the buggy
-    //  ones, we remove the check.
-    #define __rdtsc __builtin_ia32_rdtsc
-  #else
-    #include <x86intrin.h>
-  #endif
+#if defined(REALM_COMPILER_IS_NVCC)
+// old versions of nvcc have trouble with avx512 intrinsic definitions,
+//  which we cannot avoid in the include below
+// Update 1/13/2022: the issue has been observed even with CUDA 11.2.
+//  as the version check doesn't seem to safely filter out all the buggy
+//  ones, we remove the check.
+#define __rdtsc __builtin_ia32_rdtsc
+#else
+#include <x86intrin.h>
+#endif
 #endif
 #endif
 #if defined(__GLIBC__) && (defined(__PPC__) || defined(__PPC64__))
@@ -48,11 +50,12 @@
 #endif
 
 // we'll use (non-standard) __int128 if available (gcc, clang, icc, at least)
-#if defined(REALM_COMPILER_IS_GCC) || defined(REALM_COMPILER_IS_CLANG) || defined(REALM_COMPILER_IS_ICC)
-  // only available in 64-bit builds?
-  #if __SIZEOF_POINTER__ >= 8
-    #define REALM_HAS_INT128
-  #endif
+#if defined(REALM_COMPILER_IS_GCC) || defined(REALM_COMPILER_IS_CLANG) ||                \
+    defined(REALM_COMPILER_IS_ICC)
+// only available in 64-bit builds?
+#if __SIZEOF_POINTER__ >= 8
+#define REALM_HAS_INT128
+#endif
 #endif
 
 namespace Realm {
@@ -65,13 +68,15 @@ namespace Realm {
   {
     return (current_time_in_nanoseconds(absolute) * 1e-9);
   }
-  
-  inline /*static*/ long long Clock::current_time_in_microseconds(bool absolute /*= false*/)
+
+  inline /*static*/ long long
+  Clock::current_time_in_microseconds(bool absolute /*= false*/)
   {
     return (current_time_in_nanoseconds(absolute) / 1000);
   }
-  
-  inline /*static*/ long long Clock::current_time_in_nanoseconds(bool absolute /*= false*/)
+
+  inline /*static*/ long long
+  Clock::current_time_in_nanoseconds(bool absolute /*= false*/)
   {
     uint64_t native = native_time();
     uint64_t nanoseconds = native_to_nanoseconds.convert_forward_absolute(native);
@@ -120,20 +125,20 @@ namespace Realm {
   {
 #if defined(__i386__) || defined(__x86_64__)
 #ifdef __PGI
-      // PGI's x86intrin doesn't define __rdtsc?
-      unsigned int dummy;
-      return __rdtscp(&dummy);
+    // PGI's x86intrin doesn't define __rdtsc?
+    unsigned int dummy;
+    return __rdtscp(&dummy);
 #else
-      return __rdtsc();
+    return __rdtsc();
 #endif
 #elif defined(__aarch64__)
-      // https://developer.arm.com/documentation/ddi0595/2021-12/AArch64-Registers/CNTVCT-EL0--Counter-timer-Virtual-Count-register
-      uint64_t val;
-      asm volatile("mrs %0, cntvct_el0" : "=r"(val));
-      return val;
+    // https://developer.arm.com/documentation/ddi0595/2021-12/AArch64-Registers/CNTVCT-EL0--Counter-timer-Virtual-Count-register
+    uint64_t val;
+    asm volatile("mrs %0, cntvct_el0" : "=r"(val));
+    return val;
 #elif defined(__GLIBC__) && (defined(__PPC__) || defined(__PPC64__))
-      // https://man7.org/linux/man-pages/man3/__ppc_get_timebase.3.html
-      return __ppc_get_timebase();
+    // https://man7.org/linux/man-pages/man3/__ppc_get_timebase.3.html
+    return __ppc_get_timebase();
 #else
 #error Missing cpu tsc reading code!
 #endif
@@ -142,19 +147,18 @@ namespace Realm {
   inline /*static*/ uint64_t Clock::raw_cpu_tsc_freq(void)
   {
 #if defined(__aarch64__)
-      // https://developer.arm.com/documentation/ddi0595/2021-12/AArch64-Registers/CNTFRQ-EL0--Counter-timer-Frequency-register
-      uint64_t val;
-      asm volatile("mrs %0, cntfrq_el0" : "=r"(val));
-      return val;
+    // https://developer.arm.com/documentation/ddi0595/2021-12/AArch64-Registers/CNTFRQ-EL0--Counter-timer-Frequency-register
+    uint64_t val;
+    asm volatile("mrs %0, cntfrq_el0" : "=r"(val));
+    return val;
 #elif defined(__GLIBC__) && (defined(__PPC__) || defined(__PPC64__))
-      // https://man7.org/linux/man-pages/man3/__ppc_get_timebase.3.html
-      return __ppc_get_timebase_freq();
+    // https://man7.org/linux/man-pages/man3/__ppc_get_timebase.3.html
+    return __ppc_get_timebase_freq();
 #else
-      return 0; // Rely on frequency estimate
+    return 0; // Rely on frequency estimate
 #endif
   }
 #endif
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -182,7 +186,10 @@ namespace Realm {
     rel_tb += ((rel_ta >> 32) * (slope_a_to_b & uint64_t(0xFFFFFFFFULL)));
     // final product computes and rounds fractional part (carefully)
     rel_tb += ((((rel_ta & uint64_t(0xFFFFFFFFULL)) *
-                 (slope_a_to_b & uint64_t(0xFFFFFFFFULL))) >> 31) + 1) >> 1;
+                 (slope_a_to_b & uint64_t(0xFFFFFFFFULL))) >>
+                31) +
+               1) >>
+              1;
 #endif
     uint64_t tb = rel_tb + b_zero;
 #ifdef DEBUG_REALM
@@ -213,7 +220,10 @@ namespace Realm {
     rel_ta += ((rel_tb >> 32) * (slope_b_to_a & uint64_t(0xFFFFFFFFULL)));
     // final product computes and rounds fractional part (carefully)
     rel_ta += ((((rel_tb & uint64_t(0xFFFFFFFFULL)) *
-                 (slope_b_to_a & uint64_t(0xFFFFFFFFULL))) >> 31) + 1) >> 1;
+                 (slope_b_to_a & uint64_t(0xFFFFFFFFULL))) >>
+                31) +
+               1) >>
+              1;
 #endif
     uint64_t ta = rel_ta + a_zero;
 #ifdef DEBUG_REALM
@@ -236,7 +246,10 @@ namespace Realm {
     uns_db += ((uns_da >> 32) * (slope_a_to_b & uint64_t(0xFFFFFFFFULL)));
     // final product computes and rounds fractional part (carefully)
     uns_db += ((((uns_da & uint64_t(0xFFFFFFFFULL)) *
-                 (slope_a_to_b & uint64_t(0xFFFFFFFFULL))) >> 31) + 1) >> 1;
+                 (slope_a_to_b & uint64_t(0xFFFFFFFFULL))) >>
+                31) +
+               1) >>
+              1;
     if(da < 0)
       uns_db -= (slope_a_to_b << 32);
     int64_t db = uns_db; // is there a way to sanity-check this?
@@ -258,7 +271,10 @@ namespace Realm {
     uns_da += ((uns_db >> 32) * (slope_b_to_a & uint64_t(0xFFFFFFFFULL)));
     // final product computes and rounds fractional part (carefully)
     uns_da += ((((uns_db & uint64_t(0xFFFFFFFFULL)) *
-                 (slope_b_to_a & uint64_t(0xFFFFFFFFULL))) >> 31) + 1) >> 1;
+                 (slope_b_to_a & uint64_t(0xFFFFFFFFULL))) >>
+                31) +
+               1) >>
+              1;
     if(db < 0)
       uns_da -= (slope_b_to_a << 32);
     int64_t da = uns_da; // is there a way to sanity-check this?
@@ -266,21 +282,19 @@ namespace Realm {
     return da;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class TimeLimit
   //
 
   inline TimeLimit::TimeLimit()
-    :
-      limit_native(~uint64_t(0))
+    : limit_native(~uint64_t(0))
     , interrupt_flag(0)
   {}
 
   // these constructors describe a limit in terms of Realm's clock
   /*static*/ inline TimeLimit TimeLimit::absolute(long long absolute_time_in_nsec,
-						  atomic<bool> *_interrupt_flag /*= 0*/)
+                                                  atomic<bool> *_interrupt_flag /*= 0*/)
   {
     TimeLimit t;
     t.limit_native = Clock::nanoseconds_to_native_absolute(absolute_time_in_nsec);
@@ -289,7 +303,7 @@ namespace Realm {
   }
 
   /*static*/ inline TimeLimit TimeLimit::relative(long long relative_time_in_nsec,
-						  atomic<bool> *_interrupt_flag /*= 0*/)
+                                                  atomic<bool> *_interrupt_flag /*= 0*/)
   {
     TimeLimit t;
     t.limit_native = (Clock::native_time() +
@@ -312,34 +326,35 @@ namespace Realm {
 
   inline bool TimeLimit::is_expired() const
   {
-    return(((interrupt_flag != 0) && interrupt_flag->load()) ||
-	   (Clock::native_time() >= limit_native));
+    return (((interrupt_flag != 0) && interrupt_flag->load()) ||
+            (Clock::native_time() >= limit_native));
   }
 
   inline bool TimeLimit::will_expire(long long additional_nsec) const
   {
-    return(((interrupt_flag != 0) && interrupt_flag->load()) ||
-           ((Clock::native_time() +
-             Clock::nanoseconds_to_native_delta(additional_nsec)) >=
-	    limit_native));
+    return (((interrupt_flag != 0) && interrupt_flag->load()) ||
+            ((Clock::native_time() +
+              Clock::nanoseconds_to_native_delta(additional_nsec)) >= limit_native));
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class Timestamp
 
-  inline TimeStamp::TimeStamp(const char *_message, bool _difference, Logger *_logger /*= 0*/)
-    : message(_message), difference(_difference), logger(_logger)
+  inline TimeStamp::TimeStamp(const char *_message, bool _difference,
+                              Logger *_logger /*= 0*/)
+    : message(_message)
+    , difference(_difference)
+    , logger(_logger)
   {
     start_native = Clock::native_time();
 
     if(!difference) {
       double start_time = 1e-9 * Clock::native_to_nanoseconds_absolute(start_native);
       if(logger)
-	logger->info("%s %7.6f", message, start_time);
+        logger->info("%s %7.6f", message, start_time);
       else
-	printf("%s %7.6f\n", message, start_time);
+        printf("%s %7.6f\n", message, start_time);
     }
   }
 
@@ -350,12 +365,10 @@ namespace Realm {
       double interval = 1e-9 * Clock::native_to_nanoseconds_delta(interval_native);
 
       if(logger)
-	logger->info("%s %7.6f", message, interval);
+        logger->info("%s %7.6f", message, interval);
       else
-	printf("%s %7.6f\n", message, interval);
+        printf("%s %7.6f\n", message, interval);
     }
   }
 
-
 }; // namespace Realm
-

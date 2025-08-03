@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,57 +26,54 @@
 
 namespace Realm {
 
-   Logger log_procset("procset");
+  Logger log_procset("procset");
 
-   ////////////////////////////////////////////////////////////////////////
-   //
-   // class LocalProcessorSet
-   //
-   class LocalProcessorSet : public LocalTaskProcessor {
-   public:
-     LocalProcessorSet(RuntimeImpl *runtime_impl, Processor _me, CoreReservationSet &crs,
-                       size_t _stack_size, int _num_cores, bool _force_kthreads);
-     virtual ~LocalProcessorSet(void);
-   protected:
-     CoreReservation *core_rsrv;
-   };
+  ////////////////////////////////////////////////////////////////////////
+  //
+  // class LocalProcessorSet
+  //
+  class LocalProcessorSet : public LocalTaskProcessor {
+  public:
+    LocalProcessorSet(RuntimeImpl *runtime_impl, Processor _me, CoreReservationSet &crs,
+                      size_t _stack_size, int _num_cores, bool _force_kthreads);
+    virtual ~LocalProcessorSet(void);
 
-   LocalProcessorSet::LocalProcessorSet(RuntimeImpl *runtime_impl, Processor _me,
-                                        CoreReservationSet &crs, size_t _stack_size,
-                                        int _num_cores, bool _force_kthreads)
-     : LocalTaskProcessor(runtime_impl, _me, Processor::PROC_SET, _num_cores)
+  protected:
+    CoreReservation *core_rsrv;
+  };
 
-   {
-     CoreReservationParameters params;
-     params.set_num_cores(_num_cores);
-     params.set_alu_usage(params.CORE_USAGE_EXCLUSIVE);
-     params.set_fpu_usage(params.CORE_USAGE_EXCLUSIVE);
-     params.set_ldst_usage(params.CORE_USAGE_SHARED);
-     params.set_max_stack_size(_stack_size);
+  LocalProcessorSet::LocalProcessorSet(RuntimeImpl *runtime_impl, Processor _me,
+                                       CoreReservationSet &crs, size_t _stack_size,
+                                       int _num_cores, bool _force_kthreads)
+    : LocalTaskProcessor(runtime_impl, _me, Processor::PROC_SET, _num_cores)
 
-     std::string name = stringbuilder() << "proc set " << _me;
+  {
+    CoreReservationParameters params;
+    params.set_num_cores(_num_cores);
+    params.set_alu_usage(params.CORE_USAGE_EXCLUSIVE);
+    params.set_fpu_usage(params.CORE_USAGE_EXCLUSIVE);
+    params.set_ldst_usage(params.CORE_USAGE_SHARED);
+    params.set_max_stack_size(_stack_size);
 
-     core_rsrv = new CoreReservation(name, crs, params);
+    std::string name = stringbuilder() << "proc set " << _me;
 
- #ifdef REALM_USE_USER_THREADS
-     if(!_force_kthreads) {
-       UserThreadTaskScheduler *sched = new UserThreadTaskScheduler(me, *core_rsrv);
-       // no config settings we want to tweak yet
-       set_scheduler(sched);
-     } else 
- #endif
-     {
-       KernelThreadTaskScheduler *sched = new KernelThreadTaskScheduler(me, *core_rsrv);
-       sched->cfg_max_idle_workers = 3; // keep a few idle threads around
-       set_scheduler(sched);
-     }
-   }
+    core_rsrv = new CoreReservation(name, crs, params);
 
-   LocalProcessorSet::~LocalProcessorSet(void)
-   {
-     delete core_rsrv;
-   }
+#ifdef REALM_USE_USER_THREADS
+    if(!_force_kthreads) {
+      UserThreadTaskScheduler *sched = new UserThreadTaskScheduler(me, *core_rsrv);
+      // no config settings we want to tweak yet
+      set_scheduler(sched);
+    } else
+#endif
+    {
+      KernelThreadTaskScheduler *sched = new KernelThreadTaskScheduler(me, *core_rsrv);
+      sched->cfg_max_idle_workers = 3; // keep a few idle threads around
+      set_scheduler(sched);
+    }
+  }
 
+  LocalProcessorSet::~LocalProcessorSet(void) { delete core_rsrv; }
 
   namespace ProcSet {
 
@@ -84,17 +83,16 @@ namespace Realm {
 
     ProcSetModuleConfig::ProcSetModuleConfig(void)
       : ModuleConfig("procset")
-    {
-    }
+    {}
 
-    void ProcSetModuleConfig::configure_from_cmdline(std::vector<std::string>& cmdline)
+    void ProcSetModuleConfig::configure_from_cmdline(std::vector<std::string> &cmdline)
     {
       // read command line parameters
       CommandLineParser cp;
 
       cp.add_option_int("-ll:mp_threads", cfg_num_mp_threads)
-        .add_option_int("-ll:mp_nodes", cfg_num_mp_procs)
-        .add_option_int("-ll:mp_cpu", cfg_num_mp_cpus);
+          .add_option_int("-ll:mp_nodes", cfg_num_mp_procs)
+          .add_option_int("-ll:mp_cpu", cfg_num_mp_cpus);
 
       bool ok = cp.parse_command_line(cmdline);
       if(!ok) {
@@ -110,9 +108,8 @@ namespace Realm {
     ProcSetModule::ProcSetModule(void)
       : Module("procset")
       , config(nullptr)
-    {
-    }
-      
+    {}
+
     ProcSetModule::~ProcSetModule(void)
     {
       assert(config != nullptr);
@@ -127,7 +124,7 @@ namespace Realm {
 
     /*static*/ Module *ProcSetModule::create_module(RuntimeImpl *runtime)
     {
-      // create a module to fill in with stuff 
+      // create a module to fill in with stuff
       ProcSetModule *m = new ProcSetModule;
 
       ProcSetModuleConfig *config =
@@ -143,10 +140,7 @@ namespace Realm {
 
     // do any general initialization - this is called after all configuration is
     //  complete
-    void ProcSetModule::initialize(RuntimeImpl *runtime)
-    {
-      Module::initialize(runtime);
-    }
+    void ProcSetModule::initialize(RuntimeImpl *runtime) { Module::initialize(runtime); }
 
     // create any memories provided by this module (default == do nothing)
     //  (each new MemoryImpl should use a Memory from RuntimeImpl::next_local_memory_id)
@@ -162,32 +156,33 @@ namespace Realm {
     {
       Module::create_processors(runtime);
       // for simplicity don't allow more that one procset per node for now
-      if (config->cfg_num_mp_procs > (Network::max_node_id + 1)) {
-	    log_procset.fatal() << "error num_mp_procs > number of nodes";
-	    assert(false);
+      if(config->cfg_num_mp_procs > (Network::max_node_id + 1)) {
+        log_procset.fatal() << "error num_mp_procs > number of nodes";
+        assert(false);
       }
-      if (config->cfg_num_mp_threads) {
+      if(config->cfg_num_mp_threads) {
         // if num_mp_procs is not set then assume one procset on every node
-        if (config->cfg_num_mp_procs == 0 || Network::my_node_id < config->cfg_num_mp_procs) { 
+        if(config->cfg_num_mp_procs == 0 ||
+           Network::my_node_id < config->cfg_num_mp_procs) {
           Processor p = runtime->next_local_processor_id();
           ProcessorImpl *pi = new LocalProcessorSet(
               runtime, p, runtime->core_reservation_set(), config->cfg_stack_size,
               config->cfg_num_mp_threads, Config::force_kernel_threads);
           runtime->add_processor(pi);
-        // if there are not procSets on all nodes and cfg_num_mp_cpus is set
-        // then add additional LocalCPUProcessors on these nodes
-        } else if (config->cfg_num_mp_cpus) {
-          for (int i = 0; i < config->cfg_num_mp_cpus; i++) {
+          // if there are not procSets on all nodes and cfg_num_mp_cpus is set
+          // then add additional LocalCPUProcessors on these nodes
+        } else if(config->cfg_num_mp_cpus) {
+          for(int i = 0; i < config->cfg_num_mp_cpus; i++) {
             Processor p = runtime->next_local_processor_id();
             ProcessorImpl *pi = new LocalCPUProcessor(
                 runtime, p, runtime->core_reservation_set(), config->cfg_stack_size,
                 Config::force_kernel_threads, 0, 0);
             runtime->add_processor(pi);
           }
-        }      
+        }
       }
     }
-    
+
     // create any DMA channels provided by the module (default == do nothing)
     void ProcSetModule::create_dma_channels(RuntimeImpl *runtime)
     {
@@ -202,10 +197,7 @@ namespace Realm {
 
     // clean up any common resources created by the module - this will be called
     //  after all memories/processors/etc. have been shut down and destroyed
-    void ProcSetModule::cleanup(void)
-    {
-      Module::cleanup();
-    }
+    void ProcSetModule::cleanup(void) { Module::cleanup(); }
 
   }; // namespace ProcSet
 

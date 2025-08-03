@@ -1,10 +1,26 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "common.h"
 
 #include "realm.h"
 #include "realm/cmdline.h"
 
 #include <stdio.h>
-#include <unistd.h>
 
 Realm::Logger log_app("app");
 
@@ -75,7 +91,7 @@ static void test_copy(realm_runtime_t runtime, realm_memory_t src_mem,
   };
   CHECK_REALM(realm_region_instance_create(runtime, &src_instance_params, nullptr,
                                            REALM_NO_EVENT, &src_inst, &event));
-  CHECK_REALM(realm_event_wait(runtime, event));
+  CHECK_REALM(realm_event_wait(runtime, event, nullptr));
   realm_region_instance_create_params_t dst_instance_params = {
       .memory = dst_mem,
       .lower_bound = lower_bound,
@@ -91,7 +107,7 @@ static void test_copy(realm_runtime_t runtime, realm_memory_t src_mem,
   };
   CHECK_REALM(realm_region_instance_create(runtime, &dst_instance_params, nullptr,
                                            REALM_NO_EVENT, &dst_inst, &event));
-  CHECK_REALM(realm_event_wait(runtime, event));
+  CHECK_REALM(realm_event_wait(runtime, event, nullptr));
   Realm::RegionInstance src_inst_cxx = Realm::RegionInstance(src_inst);
   Realm::RegionInstance dst_inst_cxx = Realm::RegionInstance(dst_inst);
   src_inst_cxx.fetch_metadata(Realm::Processor(proc)).wait();
@@ -124,7 +140,7 @@ static void test_copy(realm_runtime_t runtime, realm_memory_t src_mem,
 
   CHECK_REALM(realm_region_instance_copy(runtime, &copy_params, nullptr, REALM_NO_EVENT,
                                          0, &event));
-  CHECK_REALM(realm_event_wait(runtime, event));
+  CHECK_REALM(realm_event_wait(runtime, event, nullptr));
 
   bool success = true;
   Realm::GenericAccessor<int, N, T> acc(Realm::RegionInstance(dst_inst), FID_BASE);
@@ -238,7 +254,7 @@ int main(int argc, char **argv)
   CHECK_REALM(realm_processor_register_task_by_kind(
       runtime, LOC_PROC, REALM_REGISTER_TASK_DEFAULT, MAIN_TASK, main_task, 0, 0,
       &register_task_event));
-  CHECK_REALM(realm_event_wait(runtime, register_task_event));
+  CHECK_REALM(realm_event_wait(runtime, register_task_event, nullptr));
 
   realm_processor_query_t proc_query;
   CHECK_REALM(realm_processor_query_create(runtime, &proc_query));

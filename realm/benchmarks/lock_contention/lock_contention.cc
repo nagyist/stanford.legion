@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,14 +27,15 @@
 using namespace Realm;
 
 // TASK IDs
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
-  MAKE_LOCKS_TASK = Processor::TASK_ID_FIRST_AVAILABLE+1,
-  RETURN_LOCKS_TASK = Processor::TASK_ID_FIRST_AVAILABLE+2,
-  LAUNCH_FAIR_LOCK_TASK = Processor::TASK_ID_FIRST_AVAILABLE+3,
-  LAUNCH_UNFAIR_LOCK_TASK = Processor::TASK_ID_FIRST_AVAILABLE+4,
-  ADD_FINAL_EVENT_TASK = Processor::TASK_ID_FIRST_AVAILABLE+5,
-  DUMMY_TASK = Processor::TASK_ID_FIRST_AVAILABLE+6,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
+  MAKE_LOCKS_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 1,
+  RETURN_LOCKS_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 2,
+  LAUNCH_FAIR_LOCK_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 3,
+  LAUNCH_UNFAIR_LOCK_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 4,
+  ADD_FINAL_EVENT_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 5,
+  DUMMY_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 6,
 };
 
 struct InputArgs {
@@ -49,22 +51,22 @@ struct FairStruct {
 };
 
 // forward declaration
-void fair_locks_task(const void *args, size_t arglen, 
-                     const void *userdata, size_t userlen, Processor p);
+void fair_locks_task(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p);
 
-InputArgs& get_input_args(void)
+InputArgs &get_input_args(void)
 {
   static InputArgs args;
   return args;
 }
 
-std::set<Event>& get_final_events(void)
+std::set<Event> &get_final_events(void)
 {
   static std::set<Event> final_events;
   return final_events;
 }
 
-std::set<Reservation>& get_lock_set(void)
+std::set<Reservation> &get_lock_set(void)
 {
   static std::set<Reservation> lock_set;
   return lock_set;
@@ -75,20 +77,15 @@ Processor get_next_processor(Processor cur)
   Machine machine = Machine::get_machine();
   std::set<Processor> all_procs;
   machine.get_all_processors(all_procs);
-  for (std::set<Processor>::const_iterator it = all_procs.begin();
-        it != all_procs.end(); it++)
-  {
-    if (*it == cur)
-    {
+  for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+      it++) {
+    if(*it == cur) {
       // Advance the iterator once to get the next, handle
       // the wrap around case too
       it++;
-      if (it == all_procs.end())
-      {
+      if(it == all_procs.end()) {
         return *(all_procs.begin());
-      }
-      else
-      {
+      } else {
         return *it;
       }
     }
@@ -115,8 +112,8 @@ struct LaunchUnfairParams {
   realm_id_t reservations[1];
 };
 
-void top_level_task(const void *args, size_t arglen, 
-                    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   bool fair = false;
   size_t locks_per_processor = 16;
@@ -130,19 +127,20 @@ void top_level_task(const void *args, size_t arglen,
     }                                                                                    \
   } while(0)
 
-#define BOOL_ARG(argname, varname) do { \
-        if(!strcmp((argv)[i], argname)) {		\
-          varname = true;				\
-          continue;					\
-        } } while(0)
+#define BOOL_ARG(argname, varname)                                                       \
+  do {                                                                                   \
+    if(!strcmp((argv)[i], argname)) {                                                    \
+      varname = true;                                                                    \
+      continue;                                                                          \
+    }                                                                                    \
+  } while(0)
   {
     InputArgs &inputs = get_input_args();
     char **argv = inputs.argv;
-    for (int i = 1; i < inputs.argc; i++)
-    {
+    for(int i = 1; i < inputs.argc; i++) {
       INT_ARG("-lpp", locks_per_processor);
-      INT_ARG("-tpppl",tasks_per_processor_per_lock);
-      BOOL_ARG("-fair",fair);
+      INT_ARG("-tpppl", tasks_per_processor_per_lock);
+      BOOL_ARG("-fair", fair);
     }
     assert(locks_per_processor > 0);
     assert(tasks_per_processor_per_lock > 0);
@@ -165,25 +163,22 @@ void top_level_task(const void *args, size_t arglen,
       wait_event.wait();
     }
   }
-  if (fair)
-  {
+  if(fair) {
     fprintf(stdout,
             "Running FAIR lock contention experiment with %zu locks per processor and "
             "%zu tasks per lock per processor\n",
             locks_per_processor, tasks_per_processor_per_lock);
-    // For each lock in the lock set, stripe it through all the processors with dependences
+    // For each lock in the lock set, stripe it through all the processors with
+    // dependences
     size_t lock_depth = tasks_per_processor_per_lock * all_procs.size();
     std::set<Reservation> &lock_set = get_lock_set();
-    for (std::set<Reservation>::const_iterator it = lock_set.begin();
-          it != lock_set.end(); it++)
-    {
-      FairStruct fair = { p, *it, start_event, lock_depth };
+    for(std::set<Reservation>::const_iterator it = lock_set.begin(); it != lock_set.end();
+        it++) {
+      FairStruct fair = {p, *it, start_event, lock_depth};
       // We can just call it locally here to start on our processor
-      fair_locks_task(&fair,sizeof(FairStruct),0,0,p);
+      fair_locks_task(&fair, sizeof(FairStruct), 0, 0, p);
     }
-  }
-  else
-  {
+  } else {
     fprintf(stdout,
             "Running UNFAIR lock contention experiment with %zu locks per processor and "
             "%zu tasks per lock per processor\n",
@@ -212,9 +207,9 @@ void top_level_task(const void *args, size_t arglen,
   assert(final_event.exists());
 
   // Now we're ready to start our simulation
-  fprintf(stdout,"Running experiment...\n");
+  fprintf(stdout, "Running experiment...\n");
   {
-    double start, stop; 
+    double start, stop;
     start = Realm::Clock::current_time_in_microseconds();
     // Trigger the start event
     start_event.trigger();
@@ -223,16 +218,17 @@ void top_level_task(const void *args, size_t arglen,
     stop = Realm::Clock::current_time_in_microseconds();
 
     double latency = stop - start;
-    fprintf(stdout,"Total time: %7.3f us\n", latency);
-    double grants_per_sec = locks_per_processor * tasks_per_processor_per_lock * all_procs.size() / latency;
-    fprintf(stdout,"Reservation Grants/s (in Thousands): %7.3f\n", grants_per_sec);
+    fprintf(stdout, "Total time: %7.3f us\n", latency);
+    double grants_per_sec =
+        locks_per_processor * tasks_per_processor_per_lock * all_procs.size() / latency;
+    fprintf(stdout, "Reservation Grants/s (in Thousands): %7.3f\n", grants_per_sec);
   }
-  
-  fprintf(stdout,"Cleaning up...\n");
+
+  fprintf(stdout, "Cleaning up...\n");
 }
 
-void make_locks_task(const void *args, size_t arglen, 
-                     const void *userdata, size_t userlen, Processor p)
+void make_locks_task(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p)
 {
   assert(arglen == sizeof(MakeLocksParams));
   const MakeLocksParams *param = reinterpret_cast<const MakeLocksParams *>(args);
@@ -252,8 +248,8 @@ void make_locks_task(const void *args, size_t arglen,
   free(rparams);
 }
 
-void return_locks_task(const void *args, size_t arglen, 
-                       const void *userdata, size_t userlen, Processor p)
+void return_locks_task(const void *args, size_t arglen, const void *userdata,
+                       size_t userlen, Processor p)
 {
   assert(arglen >= sizeof(ReturnLocksParams));
   const ReturnLocksParams *params = reinterpret_cast<const ReturnLocksParams *>(args);
@@ -266,32 +262,31 @@ void return_locks_task(const void *args, size_t arglen,
   }
 }
 
-void fair_locks_task(const void *args, size_t arglen, 
-                     const void *userdata, size_t userlen, Processor p)
+void fair_locks_task(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p)
 {
   assert(arglen == sizeof(FairStruct));
-  FairStruct fair = *((FairStruct*)args);
-  if (fair.depth == 0)
-  {
+  FairStruct fair = *((FairStruct *)args);
+  if(fair.depth == 0) {
     // Sent the precondition back to the original processor
-    Event wait_event = fair.orig.spawn(ADD_FINAL_EVENT_TASK,&(fair.precondition),sizeof(Event));
+    Event wait_event =
+        fair.orig.spawn(ADD_FINAL_EVENT_TASK, &(fair.precondition), sizeof(Event));
     wait_event.wait();
-  }
-  else
-  {
+  } else {
     // Chain the lock acquistion, task call, lock release
-    Event lock_event = fair.lock.acquire(0,true,fair.precondition);
-    Event task_event = p.spawn(DUMMY_TASK,NULL,0,lock_event);
+    Event lock_event = fair.lock.acquire(0, true, fair.precondition);
+    Event task_event = p.spawn(DUMMY_TASK, NULL, 0, lock_event);
     fair.lock.release(task_event);
-    FairStruct next_struct = { fair.orig, fair.lock, task_event, fair.depth-1 };
+    FairStruct next_struct = {fair.orig, fair.lock, task_event, fair.depth - 1};
     Processor next_proc = get_next_processor(p);
-    Event wait_event = next_proc.spawn(LAUNCH_FAIR_LOCK_TASK,&next_struct,sizeof(FairStruct));
+    Event wait_event =
+        next_proc.spawn(LAUNCH_FAIR_LOCK_TASK, &next_struct, sizeof(FairStruct));
     wait_event.wait();
   }
 }
 
-void unfair_locks_task(const void *args, size_t arglen, 
-                       const void *userdata, size_t userlen, Processor p)
+void unfair_locks_task(const void *args, size_t arglen, const void *userdata,
+                       size_t userlen, Processor p)
 {
   assert(arglen >= sizeof(LaunchUnfairParams));
   const LaunchUnfairParams *params = reinterpret_cast<const LaunchUnfairParams *>(args);
@@ -302,8 +297,7 @@ void unfair_locks_task(const void *args, size_t arglen,
   const size_t tasks_per_processor_per_lock = params->tasks_per_processor_per_lock;
   const size_t num_locks = params->lock_set_size;
   std::set<Reservation> lock_set;
-  for (unsigned idx = 0; idx < num_locks; idx++)
-  {
+  for(unsigned idx = 0; idx < num_locks; idx++) {
     Reservation lock;
     lock.id = params->reservations[idx];
     lock_set.insert(lock);
@@ -311,28 +305,28 @@ void unfair_locks_task(const void *args, size_t arglen,
   std::set<Event> wait_for_events;
   for(Reservation lock : lock_set) {
     for(size_t idx = 0; idx < tasks_per_processor_per_lock; idx++) {
-      Event lock_event = lock.acquire(0,true,precondition);
-      Event task_event = p.spawn(DUMMY_TASK,NULL,0,lock_event);
+      Event lock_event = lock.acquire(0, true, precondition);
+      Event task_event = p.spawn(DUMMY_TASK, NULL, 0, lock_event);
       lock.release(task_event);
       wait_for_events.insert(task_event);
     }
   }
   // Merge all the wait for events together and send back the result
   Event final_event = Event::merge_events(wait_for_events);
-  Event wait_event = orig.spawn(ADD_FINAL_EVENT_TASK,&final_event,sizeof(Event));
+  Event wait_event = orig.spawn(ADD_FINAL_EVENT_TASK, &final_event, sizeof(Event));
   wait_event.wait();
 }
 
-void add_final_event(const void *args, size_t arglen, 
-                     const void *userdata, size_t userlen, Processor p)
+void add_final_event(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p)
 {
   assert(arglen == sizeof(Event));
-  Event result = *((Event*)args);
+  Event result = *((Event *)args);
   get_final_events().insert(result);
 }
 
-void dummy_task(const void *args, size_t arglen, 
-                const void *userdata, size_t userlen, Processor p)
+void dummy_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                Processor p)
 {
   // Do nothing
 }
@@ -361,12 +355,11 @@ int main(int argc, char **argv)
   {
     std::set<Processor> all_procs;
     Machine::get_machine().get_all_processors(all_procs);
-    for(std::set<Processor>::const_iterator it = all_procs.begin();
-	it != all_procs.end();
-	it++)
+    for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+        it++)
       if(it->kind() == Processor::LOC_PROC) {
-	p = *it;
-	break;
+        p = *it;
+        break;
       }
   }
   assert(p.exists());
@@ -379,7 +372,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   r.wait_for_shutdown();
-  
+
   return 0;
 }
-

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,12 +39,12 @@
 #include <unistd.h>
 #endif
 #ifdef REALM_ON_LINUX
-  #define HAVE_CPUSET
+#define HAVE_CPUSET
 #endif
 #ifdef REALM_ON_FREEBSD
-  #include <pthread_np.h>
-  typedef cpuset_t cpu_set_t;
-  #define HAVE_CPUSET
+#include <pthread_np.h>
+typedef cpuset_t cpu_set_t;
+#define HAVE_CPUSET
 #endif
 #include <errno.h>
 // for PTHREAD_STACK_MIN
@@ -60,14 +62,8 @@
 // Windows API uses DWORD_PTR for affinity masks
 #define HAVE_CPUSET
 typedef DWORD_PTR cpu_set_t;
-static void CPU_ZERO(DWORD_PTR *set)
-{
-  *set = 0;
-}
-static void CPU_SET(int index, DWORD_PTR *set)
-{
-  *set |= DWORD_PTR(1) << index;
-}
+static void CPU_ZERO(DWORD_PTR *set) { *set = 0; }
+static void CPU_SET(int index, DWORD_PTR *set) { *set |= DWORD_PTR(1) << index; }
 #endif
 
 #ifdef REALM_USE_USER_THREADS
@@ -82,8 +78,14 @@ static void CPU_SET(int index, DWORD_PTR *set)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated"
 inline int getcontext_wrap(ucontext_t *u) { return getcontext(u); }
-inline int swapcontext_wrap(ucontext_t *u1, const ucontext_t *u2) { return swapcontext(u1, u2); }
-inline void makecontext_wrap(ucontext_t *u, void (*fn)(), int args, ...) { makecontext(u, fn, 0); }
+inline int swapcontext_wrap(ucontext_t *u1, const ucontext_t *u2)
+{
+  return swapcontext(u1, u2);
+}
+inline void makecontext_wrap(ucontext_t *u, void (*fn)(), int args, ...)
+{
+  makecontext(u, fn, 0);
+}
 #pragma GCC diagnostic pop
 #define getcontext getcontext_wrap
 #define swapcontext swapcontext_wrap
@@ -163,12 +165,15 @@ namespace Realm {
   //
   // class CoreReservation
 
-  // we keep a global map of reservations to their allocations (this is inherently a global problem)
+  // we keep a global map of reservations to their allocations (this is inherently a
+  // global problem)
   std::map<CoreReservation *, CoreReservation::Allocation *> allocations;
 
-  CoreReservation::CoreReservation(const std::string& _name, CoreReservationSet &crs,
-				   const CoreReservationParameters& _params)
-    : name(_name), params(_params), allocation(0)
+  CoreReservation::CoreReservation(const std::string &_name, CoreReservationSet &crs,
+                                   const CoreReservationParameters &_params)
+    : name(_name)
+    , params(_params)
+    , allocation(0)
   {
     // reservations automatically add themselves to the set
     crs.add_reservation(*this);
@@ -181,7 +186,7 @@ namespace Realm {
     bool exclusive_ownership;
     std::set<int> proc_ids;
 #ifdef HAVE_CPUSET
-    bool restrict_cpus;  // if true, thread is confined to set below
+    bool restrict_cpus; // if true, thread is confined to set below
     cpu_set_t allowed_cpus;
 #endif
   };
@@ -253,62 +258,64 @@ namespace Realm {
 
   CoreReservationSet::CoreReservationSet(const HardwareTopology *_cm)
     : cm(_cm)
-  {
-  }
+  {}
 
   CoreReservationSet::~CoreReservationSet(void)
   {
-    // we don't own the CoreReservation *'s in the allocation map, but we do own the 
+    // we don't own the CoreReservation *'s in the allocation map, but we do own the
     //  allocations
-    for(std::map<CoreReservation *, CoreReservation::Allocation *>::iterator it = allocations.begin();
-	it != allocations.end();
-	it++)
+    for(std::map<CoreReservation *, CoreReservation::Allocation *>::iterator it =
+            allocations.begin();
+        it != allocations.end(); it++)
       delete it->second;
     allocations.clear();
   }
 
   const HardwareTopology *CoreReservationSet::get_core_map(void) const { return cm; }
 
-  void CoreReservationSet::add_reservation(CoreReservation& rsrv)
+  void CoreReservationSet::add_reservation(CoreReservation &rsrv)
   {
     assert(allocations.count(&rsrv) == 0);
     allocations[&rsrv] = 0;
   }
 
   static bool can_add_usage(CoreReservationParameters::CoreUsage current,
-			    CoreReservationParameters::CoreUsage reqd)
+                            CoreReservationParameters::CoreUsage reqd)
   {
     switch(current) {
     case CoreReservationParameters::CORE_USAGE_EXCLUSIVE:
-      {
-	// exclusive cannot coexist with exclusive or shared
-	if(reqd == CoreReservationParameters::CORE_USAGE_EXCLUSIVE) return false;
-	if(reqd == CoreReservationParameters::CORE_USAGE_SHARED) return false;
-	return true;
-      }
+    {
+      // exclusive cannot coexist with exclusive or shared
+      if(reqd == CoreReservationParameters::CORE_USAGE_EXCLUSIVE)
+        return false;
+      if(reqd == CoreReservationParameters::CORE_USAGE_SHARED)
+        return false;
+      return true;
+    }
 
     case CoreReservationParameters::CORE_USAGE_SHARED:
-      {
-	// shared cannot coexist with exclusive
-	if(reqd == CoreReservationParameters::CORE_USAGE_EXCLUSIVE) return false;
-	return true;
-      }
+    {
+      // shared cannot coexist with exclusive
+      if(reqd == CoreReservationParameters::CORE_USAGE_EXCLUSIVE)
+        return false;
+      return true;
+    }
 
     default:
-      {
-	// NONE and MINIMAL are fine
-	return true;
-      }
+    {
+      // NONE and MINIMAL are fine
+      return true;
+    }
     }
   }
 
-  static void add_usage(CoreReservationParameters::CoreUsage& current,
-			CoreReservationParameters::CoreUsage reqd)
+  static void add_usage(CoreReservationParameters::CoreUsage &current,
+                        CoreReservationParameters::CoreUsage reqd)
   {
     // this ends up being a simple max
     if(reqd > current)
       current = reqd;
-  }		
+  }
 
   // versions of the above that understand shared cores
   static bool can_add_usage(const std::map<HardwareTopology::ProcID,
@@ -320,12 +327,14 @@ namespace Realm {
     std::map<HardwareTopology::ProcID,
              CoreReservationParameters::CoreUsage>::const_iterator it;
     it = current.find(p);
-    if((it != current.end()) && !can_add_usage(it->second, reqd)) return false;
+    if((it != current.end()) && !can_add_usage(it->second, reqd))
+      return false;
 
     for(std::set<HardwareTopology::ProcID>::const_iterator it2 = shared.begin();
         it2 != shared.end(); it2++) {
       it = current.find(*it2);
-      if((it != current.end()) && !can_add_usage(it->second, reqd)) return false;
+      if((it != current.end()) && !can_add_usage(it->second, reqd))
+        return false;
     }
 
     return true;
@@ -347,9 +356,9 @@ namespace Realm {
         it2 != shared.end(); it2++) {
       it = current.find(*it2);
       if(it != current.end())
-	add_usage(it->second, reqd);
+        add_usage(it->second, reqd);
       else
-	current.insert(std::make_pair(*it2, reqd));
+        current.insert(std::make_pair(*it2, reqd));
     }
   }
 
@@ -365,19 +374,19 @@ namespace Realm {
         fpu_usage, ldst_usage;
     std::map<HardwareTopology::ProcID, int> user_count;
 
-    // iterate through the requests and sort them by whether or not they have any exclusivity
+    // iterate through the requests and sort them by whether or not they have any
+    // exclusivity
     //  demands and whether they're limited to a particular numa domain
     // also record pre-allocated reservations and their usage
-    std::map<std::pair<bool, int>, std::set<CoreReservation *> > to_satisfy;
-    for(std::map<CoreReservation *, CoreReservation::Allocation *>::iterator it = allocs.begin();
-	it != allocs.end();
-	it++) {
+    std::map<std::pair<bool, int>, std::set<CoreReservation *>> to_satisfy;
+    for(std::map<CoreReservation *, CoreReservation::Allocation *>::iterator it =
+            allocs.begin();
+        it != allocs.end(); it++) {
       CoreReservation *rsrv = it->first;
       CoreReservation::Allocation *alloc = it->second;
       if(alloc) {
-	for(std::set<int>::const_iterator it = alloc->proc_ids.begin();
-	    it != alloc->proc_ids.end();
-	    it++) {
+        for(std::set<int>::const_iterator it = alloc->proc_ids.begin();
+            it != alloc->proc_ids.end(); it++) {
           // get the corresponding HardwareTopology::Proc
           const HardwareTopology::ProcID p = *it;
           if(cm.has_processor(p) == false) {
@@ -414,21 +423,26 @@ namespace Realm {
           add_usage(ldst_usage, rsrv->params.ldst_usage, p, shares_ldst);
         }
       } else {
-	std::pair<bool, int> key = std::make_pair(((rsrv->params.alu_usage == CoreReservationParameters::CORE_USAGE_EXCLUSIVE) ||
-						   (rsrv->params.fpu_usage == CoreReservationParameters::CORE_USAGE_EXCLUSIVE) ||
-						   (rsrv->params.ldst_usage == CoreReservationParameters::CORE_USAGE_EXCLUSIVE)),
-						  rsrv->params.numa_domain);
-	to_satisfy[key].insert(rsrv);
+        std::pair<bool, int> key =
+            std::make_pair(((rsrv->params.alu_usage ==
+                             CoreReservationParameters::CORE_USAGE_EXCLUSIVE) ||
+                            (rsrv->params.fpu_usage ==
+                             CoreReservationParameters::CORE_USAGE_EXCLUSIVE) ||
+                            (rsrv->params.ldst_usage ==
+                             CoreReservationParameters::CORE_USAGE_EXCLUSIVE)),
+                           rsrv->params.numa_domain);
+        to_satisfy[key].insert(rsrv);
       }
     }
 
     // ok, now attempt to satisfy all the requests
-    // by _reverse_ iterating over to_satisfy, we consider exclusive requests before shared
+    // by _reverse_ iterating over to_satisfy, we consider exclusive requests before
+    // shared
     //  and those that want a particular numa domain before those that don't care
     std::map<CoreReservation *, std::set<HardwareTopology::ProcID>> assigned_procs;
-    for(std::map<std::pair<bool, int>, std::set<CoreReservation *> >::reverse_iterator it = to_satisfy.rbegin();
-	it != to_satisfy.rend();
-	it++) {
+    for(std::map<std::pair<bool, int>, std::set<CoreReservation *>>::reverse_iterator it =
+            to_satisfy.rbegin();
+        it != to_satisfy.rend(); it++) {
       bool has_exclusive = it->first.first;
       int req_domain = it->first.second;
 
@@ -443,14 +457,13 @@ namespace Realm {
         }
         std::copy(procs.begin(), procs.end(), std::back_inserter(pm));
       } else {
-	// shuffle the procs from the different domains to get a roughly-even distribution
+        // shuffle the procs from the different domains to get a roughly-even distribution
         pm = cm.distribute_processors_across_domains();
       }
 
       for(std::set<CoreReservation *>::iterator it2 = it->second.begin();
-	  it2 != it->second.end();
-	  it2++) {
-	CoreReservation *rsrv = *it2;
+          it2 != it->second.end(); it2++) {
+        CoreReservation *rsrv = *it2;
         std::set<HardwareTopology::ProcID> &procs = assigned_procs[rsrv];
 
         // iterate over all the possibly available processors and see if any fit
@@ -491,14 +504,15 @@ namespace Realm {
       }
     }
 
-    // if we got all the way through, we're successful and can now fill in the new allocations
+    // if we got all the way through, we're successful and can now fill in the new
+    // allocations
     for(std::map<CoreReservation *, std::set<HardwareTopology::ProcID>>::iterator it =
             assigned_procs.begin();
         it != assigned_procs.end(); it++) {
       CoreReservation *rsrv = it->first;
       CoreReservation::Allocation *alloc = new CoreReservation::Allocation;
 
-      alloc->exclusive_ownership = true;  // unless we set it false below
+      alloc->exclusive_ownership = true; // unless we set it false below
 #ifdef HAVE_CPUSET
       alloc->restrict_cpus = false; // unless we set it to true below
       CPU_ZERO(&alloc->allowed_cpus);
@@ -525,12 +539,13 @@ namespace Realm {
       }
 
       if(rsrv->allocation) {
-	log_thread.info() << "replacing allocation for reservation '" << rsrv->name << "'";
-	CoreReservation::Allocation *old_alloc = rsrv->allocation;
-	rsrv->allocation = alloc;
-	delete old_alloc; // TODO: reference count once we allow updates
+        log_thread.info() << "replacing allocation for reservation '" << rsrv->name
+                          << "'";
+        CoreReservation::Allocation *old_alloc = rsrv->allocation;
+        rsrv->allocation = alloc;
+        delete old_alloc; // TODO: reference count once we allow updates
       } else
-	rsrv->allocation = alloc;
+        rsrv->allocation = alloc;
 
       allocs[rsrv] = alloc;
     }
@@ -542,86 +557,84 @@ namespace Realm {
   {
     // remember who is missing an allocation - we'll need to notify them
     std::set<CoreReservation *> missing;
-    for(std::map<CoreReservation *, CoreReservation::Allocation *>::iterator it = allocations.begin();
-	it != allocations.end();
-	it++)
+    for(std::map<CoreReservation *, CoreReservation::Allocation *>::iterator it =
+            allocations.begin();
+        it != allocations.end(); it++)
       if(!it->second)
-	missing.insert(it->first);
+        missing.insert(it->first);
 
     // one shot for now - eventually allow a reservation to say it's willing to be
     //  adjusted if needed
-    bool ok = attempt_allocation(*cm,
-				 allocations);
+    bool ok = attempt_allocation(*cm, allocations);
     if(!ok) {
       if(!dummy_reservation_ok)
-	return false;
+        return false;
 
       // dummy allocations for everyone!
-      for(std::set<CoreReservation *>::iterator it = missing.begin();
-	  it != missing.end();
-	  it++) {
-	CoreReservation *rsrv = *it;
+      for(std::set<CoreReservation *>::iterator it = missing.begin(); it != missing.end();
+          it++) {
+        CoreReservation *rsrv = *it;
 
-	CoreReservation::Allocation *alloc = new CoreReservation::Allocation;
+        CoreReservation::Allocation *alloc = new CoreReservation::Allocation;
 
-	alloc->exclusive_ownership = true;  // unless we set it false below
+        alloc->exclusive_ownership = true; // unless we set it false below
 #ifdef HAVE_CPUSET
-	alloc->restrict_cpus = false; // unless we set it to true below
-	CPU_ZERO(&alloc->allowed_cpus);
+        alloc->restrict_cpus = false; // unless we set it to true below
+        CPU_ZERO(&alloc->allowed_cpus);
 #endif
-	rsrv->allocation = alloc;
-	allocations[rsrv] = alloc;
+        rsrv->allocation = alloc;
+        allocations[rsrv] = alloc;
       }
-    }      
+    }
 
-    // for all the reservations that were missing allocations, notify any registered listeners
-    for(std::set<CoreReservation *>::iterator it = missing.begin();
-	it != missing.end();
-	it++) {
+    // for all the reservations that were missing allocations, notify any registered
+    // listeners
+    for(std::set<CoreReservation *>::iterator it = missing.begin(); it != missing.end();
+        it++) {
       CoreReservation *rsrv = *it;
-      for(std::list<CoreReservation::NotificationListener *>::iterator it = rsrv->listeners.begin();
-	  it != rsrv->listeners.end();
-	  it++)
-	(*it)->notify_allocation(*rsrv);
+      for(std::list<CoreReservation::NotificationListener *>::iterator it =
+              rsrv->listeners.begin();
+          it != rsrv->listeners.end(); it++)
+        (*it)->notify_allocation(*rsrv);
     }
 
     return true;
   }
 
   template <typename T>
-  static std::ostream& operator<<(std::ostream &os, const std::set<T>& s)
+  static std::ostream &operator<<(std::ostream &os, const std::set<T> &s)
   {
     os << '<';
     if(!(s.empty())) {
       typename std::set<T>::const_iterator it = s.begin();
       while(true) {
-	os << *it;
-	if(++it == s.end()) break;
-	os << ',';
+        os << *it;
+        if(++it == s.end())
+          break;
+        os << ',';
       }
     }
     os << '>';
     return os;
   }
 
-  void CoreReservationSet::report_reservations(std::ostream& os) const
+  void CoreReservationSet::report_reservations(std::ostream &os) const
   {
     // iterate over the allocation map and print stuff out
-    for(std::map<CoreReservation *, CoreReservation::Allocation *>::const_iterator it = allocations.begin();
-	it != allocations.end();
-	it++) {
+    for(std::map<CoreReservation *, CoreReservation::Allocation *>::const_iterator it =
+            allocations.begin();
+        it != allocations.end(); it++) {
       const CoreReservation *rsrv = it->first;
       const CoreReservation::Allocation *alloc = it->second;
       os << rsrv->name << ": ";
       if(alloc) {
-	os << "allocated " << alloc->proc_ids;
+        os << "allocated " << alloc->proc_ids;
       } else {
-	os << "not allocated";
+        os << "not allocated";
       }
       os << std::endl;
     }
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -681,13 +694,14 @@ namespace Realm {
     act.sa_sigaction = &signal_handler;
     act.sa_flags = SA_SIGINFO;
 
-    CHECK_LIBC( sigaction(handler_signal, &act, 0) );
+    CHECK_LIBC(sigaction(handler_signal, &act, 0));
   }
 #endif
 
   void Thread::signal(Signal sig, bool asynchronous)
   {
-    log_thread.info() << "sending signal: target=" << (void *)this << " signal=" << sig << " async=" << asynchronous;
+    log_thread.info() << "sending signal: target=" << (void *)this << " signal=" << sig
+                      << " async=" << asynchronous;
     {
       AutoLock<> a(signal_mutex);
       signal_queue.push_back(sig);
@@ -718,36 +732,38 @@ namespace Realm {
     while(signal_count.load() > 0) {
       Signal sig;
       {
-	signal_count.fetch_sub(1);
-	AutoLock<> a(signal_mutex);
-	// should never be empty, as there's no race conditions on emptying the queue
-	assert(!signal_queue.empty());
-	sig = signal_queue.front();
-	signal_queue.pop_front();
+        signal_count.fetch_sub(1);
+        AutoLock<> a(signal_mutex);
+        // should never be empty, as there's no race conditions on emptying the queue
+        assert(!signal_queue.empty());
+        sig = signal_queue.front();
+        signal_queue.pop_front();
       }
 
       switch(sig) {
-      case Thread::TSIG_INTERRUPT: 
-	{
-	  Operation *op = current_op;
-	  if(op && op->cancellation_requested()) {
+      case Thread::TSIG_INTERRUPT:
+      {
+        Operation *op = current_op;
+        if(op && op->cancellation_requested()) {
 #ifdef REALM_USE_EXCEPTIONS
-	    if(exceptions_permitted()) {
-  	      throw CancellationException();
-	    } else
+          if(exceptions_permitted()) {
+            throw CancellationException();
+          } else
 #endif
-	    {
-	      log_thread.fatal() << "no handler for TSIG_INTERRUPT: thread=" << this << " op=" << op;
-	      assert(0);
-	    }
-	  } else
-	    log_thread.warning() << "unwanted TSIG_INTERRUPT: thread=" << this << " op=" << op;
-	  break;
-	}
-      default: 
-	{
-	  assert(0);
-	}
+          {
+            log_thread.fatal() << "no handler for TSIG_INTERRUPT: thread=" << this
+                               << " op=" << op;
+            assert(0);
+          }
+        } else
+          log_thread.warning() << "unwanted TSIG_INTERRUPT: thread=" << this
+                               << " op=" << op;
+        break;
+      }
+      default:
+      {
+        assert(0);
+      }
       }
     }
   }
@@ -760,7 +776,6 @@ namespace Realm {
     scheduler->set_thread_priority(this, new_priority);
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class KernelThread
@@ -768,12 +783,11 @@ namespace Realm {
   class KernelThread : public Thread {
   public:
     KernelThread(void *_target, void (*_entry_wrapper)(void *),
-		 ThreadScheduler *_scheduler);
+                 ThreadScheduler *_scheduler);
 
     virtual ~KernelThread(void);
 
-    void start_thread(const ThreadLaunchParameters& params,
-		      const CoreReservation& rsrv);
+    void start_thread(const ThreadLaunchParameters &params, const CoreReservation &rsrv);
 
     virtual void join(void);
     virtual void detach(void);
@@ -807,11 +821,12 @@ namespace Realm {
   };
 
   KernelThread::KernelThread(void *_target, void (*_entry_wrapper)(void *),
-			     ThreadScheduler *_scheduler)
-    : Thread(_scheduler), target(_target), entry_wrapper(_entry_wrapper)
+                             ThreadScheduler *_scheduler)
+    : Thread(_scheduler)
+    , target(_target)
+    , entry_wrapper(_entry_wrapper)
     , ok_to_delete(false)
-  {
-  }
+  {}
 
   KernelThread::~KernelThread(void)
   {
@@ -847,7 +862,7 @@ namespace Realm {
 
     if(thread->scheduler)
       thread->scheduler->thread_starting(thread);
-    
+
     // call the actual thread body
     (*thread->entry_wrapper)(thread->target);
 
@@ -902,7 +917,7 @@ namespace Realm {
   {
 #ifdef REALM_USE_NVTX
     init_nvtx_thread("RealmKernalThread");
-#endif    
+#endif
     KernelThread *thread = (KernelThread *)data;
 
     // set up TLS so people can find us
@@ -911,7 +926,7 @@ namespace Realm {
     log_thread.info() << "thread " << thread << " started";
     thread->update_state(STATE_RUNNING);
 
-    if (thread->scheduler)
+    if(thread->scheduler)
       thread->scheduler->thread_starting(thread);
 
     // call the actual thread body
@@ -922,7 +937,7 @@ namespace Realm {
     thread->update_state(STATE_FINISHED);
 
     // this is last so that the scheduler can delete us if it wants to
-    if (thread->scheduler)
+    if(thread->scheduler)
       thread->scheduler->thread_terminating(thread);
 
 #ifdef REALM_USE_NVTX
@@ -933,8 +948,8 @@ namespace Realm {
   }
 #endif
 
-  void KernelThread::start_thread(const ThreadLaunchParameters& params,
-				  const CoreReservation& rsrv)
+  void KernelThread::start_thread(const ThreadLaunchParameters &params,
+                                  const CoreReservation &rsrv)
   {
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
     // before we create any threads, make sure we have our signal handler registered
@@ -944,7 +959,7 @@ namespace Realm {
 #ifdef REALM_USE_PTHREADS
     pthread_attr_t attr;
 
-    CHECK_PTHREAD( pthread_attr_init(&attr) );
+    CHECK_PTHREAD(pthread_attr_init(&attr));
 #endif
 
     // allocation better exist...
@@ -952,9 +967,9 @@ namespace Realm {
 
 #if defined(HAVE_CPUSET) && !defined(REALM_ON_WINDOWS)
     if(rsrv.allocation->restrict_cpus)
-      CHECK_PTHREAD( pthread_attr_setaffinity_np(&attr, 
-						 sizeof(rsrv.allocation->allowed_cpus),
-						 &(rsrv.allocation->allowed_cpus)) );
+      CHECK_PTHREAD(pthread_attr_setaffinity_np(&attr,
+                                                sizeof(rsrv.allocation->allowed_cpus),
+                                                &(rsrv.allocation->allowed_cpus)));
 #endif
 
 #ifdef REALM_USE_PTHREADS
@@ -962,32 +977,30 @@ namespace Realm {
     //  advertised min stack size from the threading library as is
     const ptrdiff_t MIN_STACK_SIZE = PTHREAD_STACK_MIN;
 
-    ptrdiff_t stack_size = 0;  // 0 == "pthread default"
+    ptrdiff_t stack_size = 0; // 0 == "pthread default"
 #endif
 #ifdef REALM_ON_WINDOWS
     const ptrdiff_t MIN_STACK_SIZE = 0;
-    ptrdiff_t stack_size = 0;   // 0 == "windows default"
+    ptrdiff_t stack_size = 0; // 0 == "windows default"
 #endif
 
     if(params.stack_size != params.STACK_SIZE_DEFAULT) {
       // make sure it's not too large
       assert((rsrv.params.max_stack_size == rsrv.params.STACK_SIZE_DEFAULT) ||
-	     (params.stack_size <= rsrv.params.max_stack_size));
+             (params.stack_size <= rsrv.params.max_stack_size));
 
       stack_size = std::max<ptrdiff_t>(params.stack_size, MIN_STACK_SIZE);
     } else {
       // does the entire core reservation have a non-standard stack size?
       if(rsrv.params.max_stack_size != rsrv.params.STACK_SIZE_DEFAULT) {
-	stack_size = std::max<ptrdiff_t>(rsrv.params.max_stack_size,
-					 MIN_STACK_SIZE);
+        stack_size = std::max<ptrdiff_t>(rsrv.params.max_stack_size, MIN_STACK_SIZE);
       }
     }
 #ifdef REALM_USE_PTHREADS
     if(stack_size > 0) {
       // add in our estimate of the static TLS size
-      CHECK_PTHREAD( pthread_attr_setstacksize(&attr,
-					       (stack_size +
-						KernelThread::static_tls_size)) );
+      CHECK_PTHREAD(
+          pthread_attr_setstacksize(&attr, (stack_size + KernelThread::static_tls_size)));
     }
 #endif
 
@@ -1002,9 +1015,7 @@ namespace Realm {
       altstack_size = rsrv.params.alt_stack_size;
 
     if(altstack_size > 0) {
-      int ret = posix_memalign(&altstack_base,
-			       sysconf(_SC_PAGESIZE),
-			       altstack_size);
+      int ret = posix_memalign(&altstack_base, sysconf(_SC_PAGESIZE), altstack_size);
       assert(ret == 0);
     } else
       altstack_base = 0;
@@ -1014,27 +1025,27 @@ namespace Realm {
 
     // time to actually create the thread
 #ifdef REALM_USE_PTHREADS
-    CHECK_PTHREAD( pthread_create(&thread, &attr, pthread_entry, this) );
+    CHECK_PTHREAD(pthread_create(&thread, &attr, pthread_entry, this));
 
-    CHECK_PTHREAD( pthread_attr_destroy(&attr) );
+    CHECK_PTHREAD(pthread_attr_destroy(&attr));
 
-    log_thread.info() << "thread created:" << this << " (" << rsrv.name << ") - pthread " << std::hex << thread << std::dec;
+    log_thread.info() << "thread created:" << this << " (" << rsrv.name << ") - pthread "
+                      << std::hex << thread << std::dec;
 #endif
 #ifdef REALM_ON_WINDOWS
     // TODO: supposed to use _beginthreadex here?
-    thread = CreateThread(NULL,
-			  (stack_size +
-			   KernelThread::static_tls_size),
-			  winthread_entry, this, 0, 0);
+    thread = CreateThread(NULL, (stack_size + KernelThread::static_tls_size),
+                          winthread_entry, this, 0, 0);
 #ifdef HAVE_CPUSET
     if(rsrv.allocation->restrict_cpus)
       if(SetThreadAffinityMask(thread, rsrv.allocation->allowed_cpus) == 0)
         log_thread.warning() << "failed to set affinity: thread=" << thread
-                             << " mask=" << std::hex << rsrv.allocation->allowed_cpus << std::dec
-                             << " error=" << GetLastError();
+                             << " mask=" << std::hex << rsrv.allocation->allowed_cpus
+                             << std::dec << " error=" << GetLastError();
 #endif
 
-    log_thread.info() << "thread created:" << this << " (" << rsrv.name << ") - handle " << thread;
+    log_thread.info() << "thread created:" << this << " (" << rsrv.name << ") - handle "
+                      << thread;
 #endif
     log_thread.debug() << "thread stack: " << this << " size=" << stack_size;
   }
@@ -1042,7 +1053,7 @@ namespace Realm {
   void KernelThread::join(void)
   {
 #ifdef REALM_USE_PTHREADS
-    CHECK_PTHREAD( pthread_join(thread, 0 /* ignore retval */) );
+    CHECK_PTHREAD(pthread_join(thread, 0 /* ignore retval */));
 #endif
 #ifdef REALM_ON_WINDOWS
     WaitForSingleObject(thread, INFINITE);
@@ -1053,7 +1064,7 @@ namespace Realm {
   void KernelThread::detach(void)
   {
 #ifdef REALM_USE_PTHREADS
-    CHECK_PTHREAD( pthread_detach(thread) );
+    CHECK_PTHREAD(pthread_detach(thread));
 #endif
 #ifdef REALM_ON_WINDOWS
     CloseHandle(thread);
@@ -1093,22 +1104,35 @@ namespace Realm {
     //  skip all auto-detection attempts
     do {
       const char *s = getenv("REALM_STATIC_TLS_SIZE");
-      if(!s) break;
+      if(!s)
+        break;
 
       const char *pos = 0;
       size_t v = strtoull(s, const_cast<char **>(&pos), 10);
       if((errno != 0) || (v == 0)) {
-	errno = 0;
-	break;
+        errno = 0;
+        break;
       }
 
       switch(*pos) {
-      case 'k': case 'K': { v <<= 10; break; }
-      case 'm': case 'M': { v <<= 20; break; }
-      default: break;
+      case 'k':
+      case 'K':
+      {
+        v <<= 10;
+        break;
+      }
+      case 'm':
+      case 'M':
+      {
+        v <<= 20;
+        break;
+      }
+      default:
+        break;
       }
       static_tls_size = v;
-      log_thread.debug() << "static tls size = " << static_tls_size << " (from environment)";
+      log_thread.debug() << "static tls size = " << static_tls_size
+                         << " (from environment)";
       return;
     } while(0);
 
@@ -1118,28 +1142,34 @@ namespace Realm {
     //   simpler than the __pthread_get_minstack version below)
     do {
       void *sym = dlsym(RTLD_DEFAULT, "__static_tls_size");
-      if(!sym) break;
+      if(!sym)
+        break;
 
       static_tls_size = *reinterpret_cast<const size_t *>(sym);
-      log_thread.debug() << "static tls size = " << static_tls_size << " (from glibc __static_tls_size)";
+      log_thread.debug() << "static tls size = " << static_tls_size
+                         << " (from glibc __static_tls_size)";
       return;
     } while(0);
 
     // case 3: try __pthread_get_minstack (subtracting out PTHREAD_STACK_MIN)
     do {
       void *sym = dlsym(RTLD_DEFAULT, "__pthread_get_minstack");
-      if(!sym) break;
+      if(!sym)
+        break;
 
       pthread_attr_t attr;
-      CHECK_PTHREAD( pthread_attr_init(&attr) );
-      size_t minstack = (reinterpret_cast<size_t (*)(const pthread_attr_t *)>(sym))(&attr);
-      CHECK_PTHREAD( pthread_attr_destroy(&attr) );
+      CHECK_PTHREAD(pthread_attr_init(&attr));
+      size_t minstack =
+          (reinterpret_cast<size_t (*)(const pthread_attr_t *)>(sym))(&attr);
+      CHECK_PTHREAD(pthread_attr_destroy(&attr));
 
       // sanity-check the resulting value
-      if(minstack < (size_t)PTHREAD_STACK_MIN) break;
+      if(minstack < (size_t)PTHREAD_STACK_MIN)
+        break;
 
       static_tls_size = minstack - PTHREAD_STACK_MIN;
-      log_thread.debug() << "static tls size = " << static_tls_size << " (from glibc __pthread_get_minstack)";
+      log_thread.debug() << "static tls size = " << static_tls_size
+                         << " (from glibc __pthread_get_minstack)";
       return;
     } while(0);
 #endif
@@ -1150,72 +1180,73 @@ namespace Realm {
     {
       pthread_attr_t attr;
 
-      CHECK_PTHREAD( pthread_attr_init(&attr) );
+      CHECK_PTHREAD(pthread_attr_init(&attr));
 
-      for(size_t v = 1024; v <= 16*1024*1024; v <<= 1) {
-	// if pthreads doesn't like this stack size, skip to the next one
-	if(pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN + v) != 0) {
-	  // clear errno too
-	  errno = 0;
-	  continue;
-	}
-	pthread_t thread;
-	int ret = pthread_create(&thread, &attr, empty_thread_body, 0);
-	switch(ret) {
-	case 0:
-	  {
-	    // success - this estimate of the TLS size is sufficient
-	    void *result = 0;
-	    CHECK_PTHREAD( pthread_join(thread, &result) );
-	    CHECK_PTHREAD( pthread_attr_destroy(&attr) );
+      for(size_t v = 1024; v <= 16 * 1024 * 1024; v <<= 1) {
+        // if pthreads doesn't like this stack size, skip to the next one
+        if(pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN + v) != 0) {
+          // clear errno too
+          errno = 0;
+          continue;
+        }
+        pthread_t thread;
+        int ret = pthread_create(&thread, &attr, empty_thread_body, 0);
+        switch(ret) {
+        case 0:
+        {
+          // success - this estimate of the TLS size is sufficient
+          void *result = 0;
+          CHECK_PTHREAD(pthread_join(thread, &result));
+          CHECK_PTHREAD(pthread_attr_destroy(&attr));
 
-	    static_tls_size = v;
-	    log_thread.debug() << "static tls size = " << static_tls_size << " (from empirical testing)";
-	    return;
-	  }
+          static_tls_size = v;
+          log_thread.debug() << "static tls size = " << static_tls_size
+                             << " (from empirical testing)";
+          return;
+        }
 
-	case EINVAL:
-	  {
-	    // invalid settings in attr (i.e. our stack size)
-	    //  - clear errno and try again
-	    errno = 0;
-	    break;
-	  }
+        case EINVAL:
+        {
+          // invalid settings in attr (i.e. our stack size)
+          //  - clear errno and try again
+          errno = 0;
+          break;
+        }
 
-	default:
-	  {
-	    // unexpected error
-	    std::cerr << "PTHREAD: pthread_create(...) = " << ret << " (" << strerror(ret) << ")" << std::endl;
-	    ::abort();
-	  }
-	}
-
+        default:
+        {
+          // unexpected error
+          std::cerr << "PTHREAD: pthread_create(...) = " << ret << " (" << strerror(ret)
+                    << ")" << std::endl;
+          ::abort();
+        }
+        }
       }
 
       // none of the sizes we tried worked...
-      CHECK_PTHREAD( pthread_attr_destroy(&attr) );
+      CHECK_PTHREAD(pthread_attr_destroy(&attr));
     }
 #endif
 
     // if all else fails, guess it's about 32KB
 #ifdef REALM_ON_WINDOWS
-    static_tls_size = 0;  // not on stack in win32?
+    static_tls_size = 0; // not on stack in win32?
 #else
     static_tls_size = 32768;
 #endif
-    log_thread.debug() << "static tls size = " << static_tls_size << " (uneducated guess)";
+    log_thread.debug() << "static tls size = " << static_tls_size
+                       << " (uneducated guess)";
   }
 
   // used when we don't have an allocation yet
   template <typename T>
   class DeferredThreadStart : public CoreReservation::NotificationListener {
   public:
-    DeferredThreadStart(T *_thread,
-                        const ThreadLaunchParameters& _params);
+    DeferredThreadStart(T *_thread, const ThreadLaunchParameters &_params);
 
     virtual ~DeferredThreadStart(void);
 
-    virtual void notify_allocation(const CoreReservation& rsrv);
+    virtual void notify_allocation(const CoreReservation &rsrv);
 
   protected:
     T *thread;
@@ -1224,24 +1255,22 @@ namespace Realm {
 
   template <typename T>
   DeferredThreadStart<T>::DeferredThreadStart(T *_thread,
-                                              const ThreadLaunchParameters& _params)
-    : thread(_thread), params(_params)
-  {
-  }
+                                              const ThreadLaunchParameters &_params)
+    : thread(_thread)
+    , params(_params)
+  {}
 
   template <typename T>
   DeferredThreadStart<T>::~DeferredThreadStart(void)
-  {
-  }
+  {}
 
   template <typename T>
-  void DeferredThreadStart<T>::notify_allocation(const CoreReservation& rsrv)
+  void DeferredThreadStart<T>::notify_allocation(const CoreReservation &rsrv)
   {
     // thread is allowed to start now
     thread->start_thread(params, rsrv);
     delete this;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -1256,16 +1285,17 @@ namespace Realm {
 
     void uswitch_test_entry(int arg)
     {
-      log_thread.debug() << "uswitch test: adding: " << uswitch_test_check_flag.load() << " " << arg;
+      log_thread.debug() << "uswitch test: adding: " << uswitch_test_check_flag.load()
+                         << " " << arg;
       uswitch_test_check_flag.fetch_add(arg);
       errno = 0;
       int ret = swapcontext(&uswitch_test_ctx2, &uswitch_test_ctx1);
       if(ret != 0) {
-	log_thread.fatal() << "uswitch test: swap out failed: " << ret << " " << errno;
-	assert(0);
+        log_thread.fatal() << "uswitch test: swap out failed: " << ret << " " << errno;
+        assert(0);
       }
     }
-  }
+  } // namespace
 
   // some systems do not appear to support user thread switching for
   //  reasons unknown, so allow code to test to see if it's working first
@@ -1287,9 +1317,8 @@ namespace Realm {
     uswitch_test_ctx2.uc_stack.ss_sp = stack_base;
     uswitch_test_ctx2.uc_stack.ss_size = stack_size;
     uswitch_test_ctx2.uc_stack.ss_flags = 0;
-    makecontext(&uswitch_test_ctx2,
-		reinterpret_cast<void(*)()>(uswitch_test_entry),
-		1, 66);
+    makecontext(&uswitch_test_ctx2, reinterpret_cast<void (*)()>(uswitch_test_entry), 1,
+                66);
 
     uswitch_test_check_flag.store(1);
 
@@ -1324,12 +1353,11 @@ namespace Realm {
   class UserThread : public Thread {
   public:
     UserThread(void *_target, void (*_entry_wrapper)(void *),
-	       ThreadScheduler *_scheduler);
+               ThreadScheduler *_scheduler);
 
     virtual ~UserThread(void);
 
-    void start_thread(const ThreadLaunchParameters& params,
-		      const CoreReservation *rsrv);
+    void start_thread(const ThreadLaunchParameters &params, const CoreReservation *rsrv);
 
     virtual void join(void);
     virtual void detach(void);
@@ -1369,16 +1397,18 @@ namespace Realm {
   };
 
   UserThread::UserThread(void *_target, void (*_entry_wrapper)(void *),
-			 ThreadScheduler *_scheduler)
-    : Thread(_scheduler), target(_target), entry_wrapper(_entry_wrapper)
+                         ThreadScheduler *_scheduler)
+    : Thread(_scheduler)
+    , target(_target)
+    , entry_wrapper(_entry_wrapper)
     , magic(MAGIC_VALUE)
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
     , stack_base(0)
 #endif
-    , stack_size(0), ok_to_delete(false)
+    , stack_size(0)
+    , ok_to_delete(false)
     , running(false)
-  {
-  }
+  {}
 
   UserThread::~UserThread(void)
   {
@@ -1407,13 +1437,13 @@ namespace Realm {
     //  purposes for now
     thread_local UserThread *current_user_thread = 0;
     thread_local Thread *current_host_thread = 0;
-  };
+  }; // namespace ThreadLocal
 
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
   /*static*/ void UserThread::uthread_entry(void)
 #endif
 #ifdef REALM_ON_WINDOWS
-  /*static*/ void UserThread::uthread_entry(void *)
+      /*static*/ void UserThread::uthread_entry(void *)
 #endif
   {
     UserThread *thread = ThreadLocal::current_user_thread;
@@ -1429,13 +1459,13 @@ namespace Realm {
 
     if(thread->scheduler)
       thread->scheduler->thread_starting(thread);
-    
+
     // call the actual thread body
     (*thread->entry_wrapper)(thread->target);
 
     if(thread->scheduler)
       thread->scheduler->thread_terminating(thread);
-    
+
     // on return, we update our status and terminate
     log_thread.info() << "thread " << thread << " finished";
     thread->update_state(STATE_FINISHED);
@@ -1448,8 +1478,8 @@ namespace Realm {
     }
   }
 
-  void UserThread::start_thread(const ThreadLaunchParameters& params,
-				const CoreReservation *rsrv)
+  void UserThread::start_thread(const ThreadLaunchParameters &params,
+                                const CoreReservation *rsrv)
   {
     // it turns out MacOS behaves REALLY strangely with a stack < 32KB, and there
     //  make be some lower limit in Linux-land too, so clamp to 64KB to be safe
@@ -1458,16 +1488,14 @@ namespace Realm {
     if(params.stack_size != params.STACK_SIZE_DEFAULT) {
       // make sure it's not too large
       if(rsrv)
-	assert((rsrv->params.max_stack_size == rsrv->params.STACK_SIZE_DEFAULT) ||
-	       (params.stack_size <= rsrv->params.max_stack_size));
+        assert((rsrv->params.max_stack_size == rsrv->params.STACK_SIZE_DEFAULT) ||
+               (params.stack_size <= rsrv->params.max_stack_size));
 
       stack_size = std::max<ptrdiff_t>(params.stack_size, MIN_STACK_SIZE);
     } else {
       // does the entire core reservation have a non-standard stack size?
-      if(rsrv &&
-	 (rsrv->params.max_stack_size != rsrv->params.STACK_SIZE_DEFAULT)) {
-	stack_size = std::max<ptrdiff_t>(rsrv->params.max_stack_size,
-					 MIN_STACK_SIZE);
+      if(rsrv && (rsrv->params.max_stack_size != rsrv->params.STACK_SIZE_DEFAULT)) {
+        stack_size = std::max<ptrdiff_t>(rsrv->params.max_stack_size, MIN_STACK_SIZE);
       }
     }
 
@@ -1484,7 +1512,7 @@ namespace Realm {
     // Mark the stack as RW (leaving the last page as PROT_NONE for the red-zone)
     CHECK_LIBC(mprotect(stack_base, stack_size, PROT_READ | PROT_WRITE));
 
-    CHECK_LIBC( getcontext(&ctx) );
+    CHECK_LIBC(getcontext(&ctx));
 
     ctx.uc_link = 0; // we don't expect it to ever fall through
     ctx.uc_stack.ss_sp = stack_base;
@@ -1496,19 +1524,21 @@ namespace Realm {
     makecontext(&ctx, uthread_entry, 0);
 #endif
 #ifdef REALM_ON_WINDOWS
-    fiber = CreateFiberEx(stack_size, stack_size,
-                          FIBER_FLAG_FLOAT_SWITCH, uthread_entry, 0);
+    fiber =
+        CreateFiberEx(stack_size, stack_size, FIBER_FLAG_FLOAT_SWITCH, uthread_entry, 0);
     if(fiber == 0) {
       log_thread.fatal() << "fiber creation failed: error=" << GetLastError();
       ::abort();
     }
 #endif
 
-    update_state(STATE_STARTUP);    
+    update_state(STATE_STARTUP);
 
-    log_thread.info() << "thread created:" << this << " (" << (rsrv ? rsrv->name : "??") << ") - user thread";
+    log_thread.info() << "thread created:" << this << " (" << (rsrv ? rsrv->name : "??")
+                      << ") - user thread";
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
-    log_thread.debug() << "thread stack: " << this << " size=" << stack_size << " base=" << stack_base;
+    log_thread.debug() << "thread stack: " << this << " size=" << stack_size
+                       << " base=" << stack_base;
 #endif
 #ifdef REALM_ON_WINDOWS
     log_thread.debug() << "thread stack: " << this << " size=" << stack_size;
@@ -1529,9 +1559,9 @@ namespace Realm {
   {
 #ifdef DEBUG_USWITCH
     printf("uswitch: %p: %p -> %p\n",
-	   ThreadLocal::current_host_thread ? ThreadLocal::current_host_thread : ThreadLocal::current_thread,
-	   ThreadLocal::current_user_thread,
-	   switch_to);
+           ThreadLocal::current_host_thread ? ThreadLocal::current_host_thread
+                                            : ThreadLocal::current_thread,
+           ThreadLocal::current_user_thread, switch_to);
 #endif
 
     if(ThreadLocal::current_user_thread == 0) {
@@ -1551,7 +1581,7 @@ namespace Realm {
 
       ThreadLocal::host_context = &host_ctx;
 
-      CHECK_LIBC( swapcontext(&host_ctx, &switch_to->ctx) );
+      CHECK_LIBC(swapcontext(&host_ctx, &switch_to->ctx));
 #endif
 #ifdef REALM_ON_WINDOWS
       LPVOID host_ctx = ConvertThreadToFiberEx(0, 0);
@@ -1582,40 +1612,40 @@ namespace Realm {
       switch_from->running = false;
 
       if(switch_to != 0) {
-	assert(switch_to->magic == MAGIC_VALUE);
-	assert(switch_to->running == false);
+        assert(switch_to->magic == MAGIC_VALUE);
+        assert(switch_to->running == false);
 
-	ThreadLocal::current_thread = switch_to;
+        ThreadLocal::current_thread = switch_to;
 
-	// a switch between two user contexts - nice and simple
+        // a switch between two user contexts - nice and simple
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
-	CHECK_LIBC( swapcontext(&switch_from->ctx, &switch_to->ctx) );
-	switch_from->host_pthread = pthread_self();
+        CHECK_LIBC(swapcontext(&switch_from->ctx, &switch_to->ctx));
+        switch_from->host_pthread = pthread_self();
 #endif
 #ifdef REALM_ON_WINDOWS
-  SwitchToFiber(switch_to->fiber);
+        SwitchToFiber(switch_to->fiber);
 #endif
 
-	assert(switch_from->running == false);
-	switch_from->running = true;
+        assert(switch_from->running == false);
+        switch_from->running = true;
       } else {
-	// a return of control to the host thread
-	assert(ThreadLocal::host_context != 0);
+        // a return of control to the host thread
+        assert(ThreadLocal::host_context != 0);
 
-	ThreadLocal::current_thread = ThreadLocal::current_host_thread;
-	ThreadLocal::current_host_thread = 0;
+        ThreadLocal::current_thread = ThreadLocal::current_host_thread;
+        ThreadLocal::current_host_thread = 0;
 
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
-	CHECK_LIBC( swapcontext(&switch_from->ctx, ThreadLocal::host_context) );
-	switch_from->host_pthread = pthread_self();
+        CHECK_LIBC(swapcontext(&switch_from->ctx, ThreadLocal::host_context));
+        switch_from->host_pthread = pthread_self();
 #endif
 #ifdef REALM_ON_WINDOWS
-  SwitchToFiber(ThreadLocal::host_context);
+        SwitchToFiber(ThreadLocal::host_context);
 #endif
 
-	// if we get control back
-	assert(switch_from->running == false);
-	switch_from->running = true;
+        // if we get control back
+        assert(switch_from->running == false);
+        switch_from->running = true;
       }
     }
   }
@@ -1629,32 +1659,32 @@ namespace Realm {
       // TODO: work out the race conditions inherent in this process
       if(running) {
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
-	pthread_kill(host_pthread, handler_signal);
+        pthread_kill(host_pthread, handler_signal);
 #else
         assert(0);
 #endif
       } else {
         assert(scheduler != 0);
-	if(try_update_state(STATE_BLOCKED, STATE_ALERTED)) {
+        if(try_update_state(STATE_BLOCKED, STATE_ALERTED)) {
           scheduler->thread_ready(this);
         } else {
-	  log_thread.fatal()  << "HELP! couldn't alert: thread=" << this << " state=" << get_state();
-	  assert(0);
-	}
+          log_thread.fatal() << "HELP! couldn't alert: thread=" << this
+                             << " state=" << get_state();
+          assert(0);
+        }
       }
     }
   }
 #endif
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class Thread
 
-  /*static*/ Thread *Thread::create_kernel_thread_untyped(void *target, void (*entry_wrapper)(void *),
-							  const ThreadLaunchParameters& params,
-							  CoreReservation& rsrv,
-							  ThreadScheduler *_scheduler)
+  /*static*/ Thread *
+  Thread::create_kernel_thread_untyped(void *target, void (*entry_wrapper)(void *),
+                                       const ThreadLaunchParameters &params,
+                                       CoreReservation &rsrv, ThreadScheduler *_scheduler)
   {
     KernelThread *t = new KernelThread(target, entry_wrapper, _scheduler);
 
@@ -1679,10 +1709,9 @@ namespace Realm {
   }
 
 #ifdef REALM_USE_USER_THREADS
-  /*static*/ Thread *Thread::create_user_thread_untyped(void *target, void (*entry_wrapper)(void *),
-							const ThreadLaunchParameters& params,
-							const CoreReservation *rsrv,
-							ThreadScheduler *_scheduler)
+  /*static*/ Thread *Thread::create_user_thread_untyped(
+      void *target, void (*entry_wrapper)(void *), const ThreadLaunchParameters &params,
+      const CoreReservation *rsrv, ThreadScheduler *_scheduler)
   {
     UserThread *t = new UserThread(target, entry_wrapper, _scheduler);
 
@@ -1704,7 +1733,6 @@ namespace Realm {
   //
   // class PAPICounters
 
-
 #ifdef REALM_USE_PAPI
   PAPICounters::PAPICounters(void)
     : papi_event_set(PAPI_NULL)
@@ -1723,7 +1751,8 @@ namespace Realm {
     }
   }
 
-  /*static*/ PAPICounters *PAPICounters::setup_counters(const ProfilingMeasurementCollection& pmc)
+  /*static*/ PAPICounters *
+  PAPICounters::setup_counters(const ProfilingMeasurementCollection &pmc)
   {
     // if we didn't successfully initialize PAPI, don't try to use it...
     if(!PAPI::papi_available)
@@ -1767,24 +1796,25 @@ namespace Realm {
     }
 
     // exit early if none present
-    if(desired_events.empty()) return 0;
+    if(desired_events.empty())
+      return 0;
 
     // otherwise create an event set and add as many of them as we can
     PAPICounters *ctrs = new PAPICounters;
 
     {
       int ret = PAPI_create_eventset(&(ctrs->papi_event_set));
-      log_papi.debug() << "create_eventset: " << ctrs->papi_event_set << " (" << ret << ")";
+      log_papi.debug() << "create_eventset: " << ctrs->papi_event_set << " (" << ret
+                       << ")";
       assert(ret == PAPI_OK);
     }
 
     size_t count = 0;
     for(std::vector<int>::const_iterator it = desired_events.begin();
-	it != desired_events.end();
-	++it) {
+        it != desired_events.end(); ++it) {
       // event might already have been added?
       if(ctrs->event_codes.count(*it) > 0)
-	continue;
+        continue;
 
       int ret = PAPI_add_event(ctrs->papi_event_set, *it);
       if(ret == PAPI_OK) {
@@ -1852,9 +1882,9 @@ namespace Realm {
 
   // little helper to get a counter if present, or -1 if not
   static inline long long get_counter_val(int code,
-					  const std::map<int, size_t>& event_codes,
-					  const std::vector<long long>& event_counts,
-					  int& found_count)
+                                          const std::map<int, size_t> &event_codes,
+                                          const std::vector<long long> &event_counts,
+                                          int &found_count)
   {
     std::map<int, size_t>::const_iterator it = event_codes.find(code);
     if(it != event_codes.end()) {
@@ -1864,80 +1894,94 @@ namespace Realm {
       return -1;
   }
 
-  void PAPICounters::record(ProfilingMeasurementCollection& pmc)
+  void PAPICounters::record(ProfilingMeasurementCollection &pmc)
   {
     if(pmc.wants_measurement<ProfilingMeasurements::IPCPerfCounters>()) {
       ProfilingMeasurements::IPCPerfCounters ctrs;
       int found_count = 0;
-      ctrs.total_insts  = get_counter_val(PAPI_TOT_INS, event_codes, event_counts, found_count);
-      ctrs.total_cycles = get_counter_val(PAPI_TOT_CYC, event_codes, event_counts, found_count);
-      ctrs.fp_insts     = get_counter_val(PAPI_FP_INS , event_codes, event_counts, found_count);
-      ctrs.ld_insts     = get_counter_val(PAPI_LD_INS , event_codes, event_counts, found_count);
-      ctrs.st_insts     = get_counter_val(PAPI_SR_INS , event_codes, event_counts, found_count);
-      ctrs.br_insts     = get_counter_val(PAPI_BR_INS , event_codes, event_counts, found_count);
+      ctrs.total_insts =
+          get_counter_val(PAPI_TOT_INS, event_codes, event_counts, found_count);
+      ctrs.total_cycles =
+          get_counter_val(PAPI_TOT_CYC, event_codes, event_counts, found_count);
+      ctrs.fp_insts =
+          get_counter_val(PAPI_FP_INS, event_codes, event_counts, found_count);
+      ctrs.ld_insts =
+          get_counter_val(PAPI_LD_INS, event_codes, event_counts, found_count);
+      ctrs.st_insts =
+          get_counter_val(PAPI_SR_INS, event_codes, event_counts, found_count);
+      ctrs.br_insts =
+          get_counter_val(PAPI_BR_INS, event_codes, event_counts, found_count);
       if(found_count > 0)
-	pmc.add_measurement(ctrs);
+        pmc.add_measurement(ctrs);
     }
     if(pmc.wants_measurement<ProfilingMeasurements::L1ICachePerfCounters>()) {
       ProfilingMeasurements::L1ICachePerfCounters ctrs;
       int found_count = 0;
-      ctrs.accesses = get_counter_val(PAPI_L1_ICA, event_codes, event_counts, found_count);
-      ctrs.misses   = get_counter_val(PAPI_L1_ICM, event_codes, event_counts, found_count);
+      ctrs.accesses =
+          get_counter_val(PAPI_L1_ICA, event_codes, event_counts, found_count);
+      ctrs.misses = get_counter_val(PAPI_L1_ICM, event_codes, event_counts, found_count);
       if(found_count > 0)
-	pmc.add_measurement(ctrs);
+        pmc.add_measurement(ctrs);
     }
     if(pmc.wants_measurement<ProfilingMeasurements::L1DCachePerfCounters>()) {
       ProfilingMeasurements::L1DCachePerfCounters ctrs;
       int found_count = 0;
-      ctrs.accesses = get_counter_val(PAPI_L1_DCA, event_codes, event_counts, found_count);
-      ctrs.misses   = get_counter_val(PAPI_L1_DCM, event_codes, event_counts, found_count);
+      ctrs.accesses =
+          get_counter_val(PAPI_L1_DCA, event_codes, event_counts, found_count);
+      ctrs.misses = get_counter_val(PAPI_L1_DCM, event_codes, event_counts, found_count);
       if(found_count > 0)
-	pmc.add_measurement(ctrs);
+        pmc.add_measurement(ctrs);
     }
     if(pmc.wants_measurement<ProfilingMeasurements::L2CachePerfCounters>()) {
       ProfilingMeasurements::L2CachePerfCounters ctrs;
       int found_count = 0;
-      ctrs.accesses = get_counter_val(PAPI_L2_TCA, event_codes, event_counts, found_count);
-      ctrs.misses   = get_counter_val(PAPI_L2_TCM, event_codes, event_counts, found_count);
+      ctrs.accesses =
+          get_counter_val(PAPI_L2_TCA, event_codes, event_counts, found_count);
+      ctrs.misses = get_counter_val(PAPI_L2_TCM, event_codes, event_counts, found_count);
       if(found_count > 0)
-	pmc.add_measurement(ctrs);
+        pmc.add_measurement(ctrs);
     }
     if(pmc.wants_measurement<ProfilingMeasurements::L3CachePerfCounters>()) {
       ProfilingMeasurements::L3CachePerfCounters ctrs;
       int found_count = 0;
-      ctrs.accesses = get_counter_val(PAPI_L3_TCA, event_codes, event_counts, found_count);
-      ctrs.misses   = get_counter_val(PAPI_L3_TCM, event_codes, event_counts, found_count);
+      ctrs.accesses =
+          get_counter_val(PAPI_L3_TCA, event_codes, event_counts, found_count);
+      ctrs.misses = get_counter_val(PAPI_L3_TCM, event_codes, event_counts, found_count);
       if(found_count > 0)
-	pmc.add_measurement(ctrs);
+        pmc.add_measurement(ctrs);
     }
     if(pmc.wants_measurement<ProfilingMeasurements::TLBPerfCounters>()) {
       ProfilingMeasurements::TLBPerfCounters ctrs;
       int found_count = 0;
-      ctrs.inst_misses = get_counter_val(PAPI_TLB_IM, event_codes, event_counts, found_count);
-      ctrs.data_misses = get_counter_val(PAPI_TLB_DM, event_codes, event_counts, found_count);
+      ctrs.inst_misses =
+          get_counter_val(PAPI_TLB_IM, event_codes, event_counts, found_count);
+      ctrs.data_misses =
+          get_counter_val(PAPI_TLB_DM, event_codes, event_counts, found_count);
       if(found_count > 0)
-	pmc.add_measurement(ctrs);
+        pmc.add_measurement(ctrs);
     }
     if(pmc.wants_measurement<ProfilingMeasurements::BranchPredictionPerfCounters>()) {
       ProfilingMeasurements::BranchPredictionPerfCounters ctrs;
       int found_count = 0;
-      ctrs.total_branches = get_counter_val(PAPI_BR_CN , event_codes, event_counts, found_count);
-      ctrs.taken_branches = get_counter_val(PAPI_BR_TKN, event_codes, event_counts, found_count);
-      ctrs.mispredictions = get_counter_val(PAPI_BR_MSP, event_codes, event_counts, found_count);
+      ctrs.total_branches =
+          get_counter_val(PAPI_BR_CN, event_codes, event_counts, found_count);
+      ctrs.taken_branches =
+          get_counter_val(PAPI_BR_TKN, event_codes, event_counts, found_count);
+      ctrs.mispredictions =
+          get_counter_val(PAPI_BR_MSP, event_codes, event_counts, found_count);
       if(found_count > 0)
-	pmc.add_measurement(ctrs);
+        pmc.add_measurement(ctrs);
     }
 
 #ifdef REALM_PAPI_DEBUG
     for(std::map<int, size_t>::const_iterator it = event_codes.begin();
-	it != event_codes.end();
-	++it) {
-      log_papi.error() << "counter[" << (it->first & 0x7fffffff) << "] = " << event_counts[it->second];
+        it != event_codes.end(); ++it) {
+      log_papi.error() << "counter[" << (it->first & 0x7fffffff)
+                       << "] = " << event_counts[it->second];
     }
 #endif
   }
 #endif
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -1949,17 +1993,18 @@ namespace Realm {
     {
 #ifdef REALM_USE_PAPI
       {
-	int ret = PAPI_library_init(PAPI_VER_CURRENT);
-	if(ret == PAPI_VER_CURRENT) {
-	  // initialized - now tell it we have threads
-	  ret = PAPI_thread_init(pthread_self);
-	  if(ret == PAPI_OK) {
-	    PAPI::papi_available = true;
-	    int numctrs = PAPI_get_opt(PAPI_MAX_HWCTRS, 0);
-	    log_papi.debug() << "initalized successfully - " << numctrs << " counters";
-	  } else {
-	    log_papi.warning() << "thread init error: " << PAPI_strerror(ret) << " (" << ret << ")";
-	  }
+        int ret = PAPI_library_init(PAPI_VER_CURRENT);
+        if(ret == PAPI_VER_CURRENT) {
+          // initialized - now tell it we have threads
+          ret = PAPI_thread_init(pthread_self);
+          if(ret == PAPI_OK) {
+            PAPI::papi_available = true;
+            int numctrs = PAPI_get_opt(PAPI_MAX_HWCTRS, 0);
+            log_papi.debug() << "initalized successfully - " << numctrs << " counters";
+          } else {
+            log_papi.warning() << "thread init error: " << PAPI_strerror(ret) << " ("
+                               << ret << ")";
+          }
           // TODO: enable PAPI_multiplex_init if we see a lot of PAPI_ECNFLCT errors
         } else {
           // failure could be due to a version mismatch or some other error
@@ -1983,13 +2028,12 @@ namespace Realm {
     {
 #ifdef REALM_USE_PAPI
       if(PAPI::papi_available) {
-	PAPI_shutdown();
+        PAPI_shutdown();
       }
 #endif
       return true;
     }
 
-  };
-
+  }; // namespace Threading
 
 }; // namespace Realm

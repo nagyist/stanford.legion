@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,23 +78,24 @@ namespace Realm {
             rhs1_base, rhs1_stride, rhs2_base, rhs2_stride, count,
             redop_fold_wrapper<REDOP, EXCL>, (void *)&redop);
       }
-    };
+    }; // namespace ReductionKernels
 
     // this helper adds the appropriate kernels for REDOP to a
     // ReductionOpUntyped,
     //  although the latter is templated to work around circular include deps
     template <typename REDOP, typename T /*= ReductionOpUntyped*/>
-    void add_cuda_redop_kernels(T *redop) {
+    void add_cuda_redop_kernels(T *redop)
+    {
       // store the host proxy function pointer, as it's the same for all
       //  devices - translation to actual cudaFunction_t's happens later
-      redop->cuda_apply_excl_fn = reinterpret_cast<void *>(
-          &ReductionKernels::apply_cuda_kernel<REDOP, true>);
-      redop->cuda_apply_nonexcl_fn = reinterpret_cast<void *>(
-          &ReductionKernels::apply_cuda_kernel<REDOP, false>);
-      redop->cuda_fold_excl_fn = reinterpret_cast<void *>(
-          &ReductionKernels::fold_cuda_kernel<REDOP, true>);
-      redop->cuda_fold_nonexcl_fn = reinterpret_cast<void *>(
-          &ReductionKernels::fold_cuda_kernel<REDOP, false>);
+      redop->cuda_apply_excl_fn =
+          reinterpret_cast<void *>(&ReductionKernels::apply_cuda_kernel<REDOP, true>);
+      redop->cuda_apply_nonexcl_fn =
+          reinterpret_cast<void *>(&ReductionKernels::apply_cuda_kernel<REDOP, false>);
+      redop->cuda_fold_excl_fn =
+          reinterpret_cast<void *>(&ReductionKernels::fold_cuda_kernel<REDOP, true>);
+      redop->cuda_fold_nonexcl_fn =
+          reinterpret_cast<void *>(&ReductionKernels::fold_cuda_kernel<REDOP, false>);
       // Store some connections to the client's runtime instance that will be
       // used for launching the above instantiations
       // We use static cast here for type safety, as cudart is not ABI stable,

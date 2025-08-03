@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -161,8 +163,7 @@ namespace Realm {
       const std::vector<const typename CopyIndirection<N, T>::Base *> &_indirects,
       const ProfilingRequestSet &requests)
     : TransferDesc(_is, _srcs, _dsts, _indirects, requests, std::true_type())
-  {
-  }
+  {}
 
   template <int N, typename T>
   TransferDesc::TransferDesc(
@@ -170,9 +171,9 @@ namespace Realm {
       std::vector<CopySrcDstField> &&_dsts,
       const std::vector<const typename CopyIndirection<N, T>::Base *> &_indirects,
       const ProfilingRequestSet &requests)
-    : TransferDesc(_is, std::move(_srcs), std::move(_dsts), _indirects, requests, std::true_type())
-  {
-  }
+    : TransferDesc(_is, std::move(_srcs), std::move(_dsts), _indirects, requests,
+                   std::true_type())
+  {}
 
   template <int N, typename T, typename SrcVec, typename DstVec>
   TransferDesc::TransferDesc(

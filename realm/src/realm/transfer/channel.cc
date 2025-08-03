@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,250 +35,246 @@ TYPE_IS_SERIALIZABLE(Realm::XferDesKind);
 
 namespace Realm {
 
-    Logger log_new_dma("new_dma");
-    Logger log_request("request");
-    Logger log_xd("xd");
-    Logger log_xd_ref("xd_ref");
+  Logger log_new_dma("new_dma");
+  Logger log_request("request");
+  Logger log_xd("xd");
+  Logger log_xd_ref("xd_ref");
 
-    ////////////////////////////////////////////////////////////////////////
-    //
-    // class SequenceAssembler
-    //
+  ////////////////////////////////////////////////////////////////////////
+  //
+  // class SequenceAssembler
+  //
 
-    SequenceAssembler::SequenceAssembler(void)
-      : contig_amount_x2(0)
-      , first_noncontig((size_t)-1)
-      , mutex(0)
-    {}
+  SequenceAssembler::SequenceAssembler(void)
+    : contig_amount_x2(0)
+    , first_noncontig((size_t)-1)
+    , mutex(0)
+  {}
 
-    SequenceAssembler::SequenceAssembler(const SequenceAssembler& copy_from)
-      : contig_amount_x2(copy_from.contig_amount_x2)
-      , first_noncontig(copy_from.first_noncontig)
-      , mutex(0)
-      , spans(copy_from.spans)
-    {}
+  SequenceAssembler::SequenceAssembler(const SequenceAssembler &copy_from)
+    : contig_amount_x2(copy_from.contig_amount_x2)
+    , first_noncontig(copy_from.first_noncontig)
+    , mutex(0)
+    , spans(copy_from.spans)
+  {}
 
-    SequenceAssembler::~SequenceAssembler(void)
-    {
-      if(mutex.load())
-        delete mutex.load();
+  SequenceAssembler::~SequenceAssembler(void)
+  {
+    if(mutex.load())
+      delete mutex.load();
+  }
+
+  Mutex *SequenceAssembler::ensure_mutex()
+  {
+    Mutex *ptr = mutex.load();
+    if(ptr)
+      return ptr;
+    // allocate one and try to install it
+    Mutex *new_mutex = new Mutex;
+    if(mutex.compare_exchange(ptr, new_mutex)) {
+      // succeeded - return the mutex we made
+      return new_mutex;
+    } else {
+      // failed - someone already set the mutex with new_mutex,
+      // so just return the mutex
+      delete new_mutex;
+      return mutex.load();
+    }
+  }
+
+  bool SequenceAssembler::empty() const { return (contig_amount_x2.load() == 0); }
+
+  void SequenceAssembler::swap(SequenceAssembler &other)
+  {
+    // NOT thread-safe - taking mutexes won't help
+    std::swap(contig_amount_x2, other.contig_amount_x2);
+    std::swap(first_noncontig, other.first_noncontig);
+    spans.swap(other.spans);
+  }
+
+  void SequenceAssembler::import(SequenceAssembler &other) const
+  {
+    size_t contig_sample_x2 = contig_amount_x2.load_acquire();
+    if(contig_sample_x2 > 1)
+      other.add_span(0, contig_sample_x2 >> 1);
+    if((contig_sample_x2 & 1) != 0) {
+      for(std::map<size_t, size_t>::const_iterator it = spans.begin(); it != spans.end();
+          ++it)
+        other.add_span(it->first, it->second);
+    }
+  }
+
+  // asks if a span exists - return value is number of bytes from the
+  //  start that do
+  size_t SequenceAssembler::span_exists(size_t start, size_t count)
+  {
+    // lock-free case 1: start < contig_amount
+    size_t contig_sample_x2 = contig_amount_x2.load_acquire();
+    if(start < (contig_sample_x2 >> 1)) {
+      size_t max_avail = (contig_sample_x2 >> 1) - start;
+      if(count < max_avail)
+        return count;
+      else
+        return max_avail;
     }
 
-    Mutex *SequenceAssembler::ensure_mutex()
+    // lock-free case 2a: no noncontig ranges known
+    if((contig_sample_x2 & 1) == 0)
+      return 0;
+
+    // lock-free case 2b: contig_amount <= start < first_noncontig
+    size_t noncontig_sample = first_noncontig.load();
+    if(start < noncontig_sample)
+      return 0;
+
+    // general case 3: take the lock and look through spans/etc.
     {
-      Mutex *ptr = mutex.load();
-      if(ptr)
-        return ptr;
-      // allocate one and try to install it
-      Mutex *new_mutex = new Mutex;
-      if(mutex.compare_exchange(ptr, new_mutex)) {
-        // succeeded - return the mutex we made
-        return new_mutex;
-      } else {
-        // failed - someone already set the mutex with new_mutex,
-        // so just return the mutex
-        delete new_mutex;
-        return mutex.load();
+      AutoLock<> al(*ensure_mutex());
+
+      // first, recheck the contig_amount, in case both it and the noncontig
+      //  counters were bumped in between looking at the two of them
+      size_t contig_sample = contig_amount_x2.load_acquire() >> 1;
+      if(start < contig_sample) {
+        size_t max_avail = contig_sample - start;
+        if(count < max_avail)
+          return count;
+        else
+          return max_avail;
       }
-    }
 
-    bool SequenceAssembler::empty() const
-    {
-      return (contig_amount_x2.load() == 0);
-    }
-
-    void SequenceAssembler::swap(SequenceAssembler& other)
-    {
-      // NOT thread-safe - taking mutexes won't help
-      std::swap(contig_amount_x2, other.contig_amount_x2);
-      std::swap(first_noncontig, other.first_noncontig);
-      spans.swap(other.spans);
-    }
-
-    void SequenceAssembler::import(SequenceAssembler& other) const
-    {
-      size_t contig_sample_x2 = contig_amount_x2.load_acquire();
-      if(contig_sample_x2 > 1)
-        other.add_span(0, contig_sample_x2 >> 1);
-      if((contig_sample_x2 & 1) != 0) {
-        for(std::map<size_t, size_t>::const_iterator it = spans.begin();
-            it != spans.end();
-            ++it)
-          other.add_span(it->first, it->second);
-      }
-    }
-
-    // asks if a span exists - return value is number of bytes from the
-    //  start that do
-    size_t SequenceAssembler::span_exists(size_t start, size_t count)
-    {
-      // lock-free case 1: start < contig_amount
-      size_t contig_sample_x2 = contig_amount_x2.load_acquire();
-      if(start < (contig_sample_x2 >> 1)) {
-	size_t max_avail = (contig_sample_x2 >> 1) - start;
-	if(count < max_avail)
-	  return count;
-	else
-	  return max_avail;
-      }
-
-      // lock-free case 2a: no noncontig ranges known
-      if((contig_sample_x2 & 1) == 0)
-	return 0;
-
-      // lock-free case 2b: contig_amount <= start < first_noncontig
-      size_t noncontig_sample = first_noncontig.load();
-      if(start < noncontig_sample)
-	return 0;
-
-      // general case 3: take the lock and look through spans/etc.
-      {
-	AutoLock<> al(*ensure_mutex());
-
-	// first, recheck the contig_amount, in case both it and the noncontig
-	//  counters were bumped in between looking at the two of them
-	size_t contig_sample = contig_amount_x2.load_acquire() >> 1;
-	if(start < contig_sample) {
-	  size_t max_avail = contig_sample - start;
-	  if(count < max_avail)
-	    return count;
-	  else
-	    return max_avail;
-	}
-
-	// recheck noncontig as well
-	if(start < first_noncontig.load())
-	  return 0;
-
-	// otherwise find the first span after us and then back up one to find
-	//  the one that might contain our 'start'
-	std::map<size_t, size_t>::const_iterator it = spans.upper_bound(start);
-	// this should never be the first span
-	assert(it != spans.begin());
-	--it;
-	assert(it->first <= start);
-	// does this span overlap us?
-	if((it->first + it->second) > start) {
-	  size_t max_avail = it->first + it->second - start;
-	  while(max_avail < count) {
-	    // try to get more - return the current 'max_avail' if we fail
-	    if(++it == spans.end())
-	      return max_avail; // no more
-	    if(it->first > (start + max_avail))
-	      return max_avail; // not contiguous
-	    max_avail += it->second;
-	  }
-	  // got at least as much as we wanted
-	  return count;
-	} else
-	  return 0;
-      }
-    }
-
-    // returns the amount by which the contiguous range has been increased
-    //  (i.e. from [pos, pos+retval) )
-    size_t SequenceAssembler::add_span(size_t pos, size_t count)
-    {
-      // nothing to do for empty spans
-      if(count == 0)
+      // recheck noncontig as well
+      if(start < first_noncontig.load())
         return 0;
 
-      // fastest case - try to bump the contig amount without a lock, assuming
-      //  there's no noncontig spans
-      size_t prev_x2 = pos << 1;
-      size_t next_x2 = (pos + count) << 1;
-      if(contig_amount_x2.compare_exchange(prev_x2, next_x2)) {
-	// success - we bumped by exactly 'count'
-	return count;
-      }
+      // otherwise find the first span after us and then back up one to find
+      //  the one that might contain our 'start'
+      std::map<size_t, size_t>::const_iterator it = spans.upper_bound(start);
+      // this should never be the first span
+      assert(it != spans.begin());
+      --it;
+      assert(it->first <= start);
+      // does this span overlap us?
+      if((it->first + it->second) > start) {
+        size_t max_avail = it->first + it->second - start;
+        while(max_avail < count) {
+          // try to get more - return the current 'max_avail' if we fail
+          if(++it == spans.end())
+            return max_avail; // no more
+          if(it->first > (start + max_avail))
+            return max_avail; // not contiguous
+          max_avail += it->second;
+        }
+        // got at least as much as we wanted
+        return count;
+      } else
+        return 0;
+    }
+  }
 
-      // second best case - the CAS failed, but only because there are
-      //  noncontig spans...  assuming spans aren't getting too out of order
-      //  in the common case, we take the mutex and pick up any other spans we
-      //  connect with
-      if((prev_x2 >> 1) == pos) {
-	size_t span_end = pos + count;
-	{
-	  AutoLock<> al(*ensure_mutex());
+  // returns the amount by which the contiguous range has been increased
+  //  (i.e. from [pos, pos+retval) )
+  size_t SequenceAssembler::add_span(size_t pos, size_t count)
+  {
+    // nothing to do for empty spans
+    if(count == 0)
+      return 0;
 
-	  size_t new_noncontig = size_t(-1);
-	  while(!spans.empty()) {
-	    std::map<size_t, size_t>::iterator it = spans.begin();
-	    if(it->first == span_end) {
-	      span_end += it->second;
-	      spans.erase(it);
-	    } else {
-	      // stop here - this is the new first noncontig
-	      new_noncontig = it->first;
-	      break;
-	    }
-	  }
+    // fastest case - try to bump the contig amount without a lock, assuming
+    //  there's no noncontig spans
+    size_t prev_x2 = pos << 1;
+    size_t next_x2 = (pos + count) << 1;
+    if(contig_amount_x2.compare_exchange(prev_x2, next_x2)) {
+      // success - we bumped by exactly 'count'
+      return count;
+    }
 
-	  // to avoid false negatives in 'span_exists', update contig amount
-	  //  before we bump first_noncontig
-	  next_x2 = (span_end << 1) + (spans.empty() ? 0 : 1);
-	  // this must succeed
-	  bool ok = contig_amount_x2.compare_exchange(prev_x2, next_x2);
-	  assert(ok);
-
-	  first_noncontig.store(new_noncontig);
-	}
-
-	return (span_end - pos);
-      }
-
-      // worst case - our span doesn't appear to be contiguous, so we have to
-      //  take the mutex and add to the noncontig list (we may end up being
-      //  contiguous if we're the first noncontig and things have caught up)
+    // second best case - the CAS failed, but only because there are
+    //  noncontig spans...  assuming spans aren't getting too out of order
+    //  in the common case, we take the mutex and pick up any other spans we
+    //  connect with
+    if((prev_x2 >> 1) == pos) {
+      size_t span_end = pos + count;
       {
-	AutoLock<> al(*ensure_mutex());
+        AutoLock<> al(*ensure_mutex());
 
-	spans[pos] = count;
+        size_t new_noncontig = size_t(-1);
+        while(!spans.empty()) {
+          std::map<size_t, size_t>::iterator it = spans.begin();
+          if(it->first == span_end) {
+            span_end += it->second;
+            spans.erase(it);
+          } else {
+            // stop here - this is the new first noncontig
+            new_noncontig = it->first;
+            break;
+          }
+        }
 
-	if(pos > first_noncontig.load()) {
-	  // in this case, we also know that spans wasn't empty and somebody
-	  //  else has already set the LSB of contig_amount_x2
-	  return 0;
-	} else {
-	  // we need to re-check contig_amount_x2 and make sure the LSB is
-	  //  set - do both with an atomic OR
-	  prev_x2 = contig_amount_x2.fetch_or(1);
+        // to avoid false negatives in 'span_exists', update contig amount
+        //  before we bump first_noncontig
+        next_x2 = (span_end << 1) + (spans.empty() ? 0 : 1);
+        // this must succeed
+        bool ok = contig_amount_x2.compare_exchange(prev_x2, next_x2);
+        assert(ok);
 
-	  if((prev_x2 >> 1) == pos) {
-	    // we've been caught, so gather up spans and do another bump
-	    size_t span_end = pos;
-	    size_t new_noncontig = size_t(-1);
-	    while(!spans.empty()) {
-	      std::map<size_t, size_t>::iterator it = spans.begin();
-	      if(it->first == span_end) {
-		span_end += it->second;
-		spans.erase(it);
-	      } else {
-		// stop here - this is the new first noncontig
-		new_noncontig = it->first;
-		break;
-	      }
-	    }
-	    assert(span_end > pos);
+        first_noncontig.store(new_noncontig);
+      }
 
-	    // to avoid false negatives in 'span_exists', update contig amount
-	    //  before we bump first_noncontig
-	    next_x2 = (span_end << 1) + (spans.empty() ? 0 : 1);
-	    // this must succeed (as long as we remember we set the LSB)
-	    prev_x2 |= 1;
-	    bool ok = contig_amount_x2.compare_exchange(prev_x2, next_x2);
-	    assert(ok);
+      return (span_end - pos);
+    }
 
-	    first_noncontig.store(new_noncontig);
+    // worst case - our span doesn't appear to be contiguous, so we have to
+    //  take the mutex and add to the noncontig list (we may end up being
+    //  contiguous if we're the first noncontig and things have caught up)
+    {
+      AutoLock<> al(*ensure_mutex());
 
-	    return (span_end - pos);
-	  } else {
-	    // not caught, so no forward progress to report
-	    return 0;
-	  }
-	}
+      spans[pos] = count;
+
+      if(pos > first_noncontig.load()) {
+        // in this case, we also know that spans wasn't empty and somebody
+        //  else has already set the LSB of contig_amount_x2
+        return 0;
+      } else {
+        // we need to re-check contig_amount_x2 and make sure the LSB is
+        //  set - do both with an atomic OR
+        prev_x2 = contig_amount_x2.fetch_or(1);
+
+        if((prev_x2 >> 1) == pos) {
+          // we've been caught, so gather up spans and do another bump
+          size_t span_end = pos;
+          size_t new_noncontig = size_t(-1);
+          while(!spans.empty()) {
+            std::map<size_t, size_t>::iterator it = spans.begin();
+            if(it->first == span_end) {
+              span_end += it->second;
+              spans.erase(it);
+            } else {
+              // stop here - this is the new first noncontig
+              new_noncontig = it->first;
+              break;
+            }
+          }
+          assert(span_end > pos);
+
+          // to avoid false negatives in 'span_exists', update contig amount
+          //  before we bump first_noncontig
+          next_x2 = (span_end << 1) + (spans.empty() ? 0 : 1);
+          // this must succeed (as long as we remember we set the LSB)
+          prev_x2 |= 1;
+          bool ok = contig_amount_x2.compare_exchange(prev_x2, next_x2);
+          assert(ok);
+
+          first_noncontig.store(new_noncontig);
+
+          return (span_end - pos);
+        } else {
+          // not caught, so no forward progress to report
+          return 0;
+        }
       }
     }
+  }
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -289,10 +286,7 @@ namespace Realm {
     , state(STATE_INIT)
   {}
 
-  ControlPort::Encoder::~Encoder()
-  {
-    assert(state == STATE_DONE);
-  }
+  ControlPort::Encoder::~Encoder() { assert(state == STATE_DONE); }
 
   void ControlPort::Encoder::set_port_count(size_t ports)
   {
@@ -309,8 +303,7 @@ namespace Realm {
   // encodes some/all of the { count, port, last } packet into the next
   //  32b - returns true if encoding is complete or false if it should
   //  be called again with the same arguments for another 32b packet
-  bool ControlPort::Encoder::encode(unsigned& data,
-                                    size_t count, int port, bool last)
+  bool ControlPort::Encoder::encode(unsigned &data, size_t count, int port, bool last)
   {
     unsigned port_p1 = port + 1;
     assert((port_p1 >> port_shift) == 0);
@@ -320,67 +313,65 @@ namespace Realm {
       assert(0 && "encoding control word without known port count");
 
     case STATE_HAVE_PORT_COUNT:
-      {
-        // special case - if we're sending a single packet with count=0,last=1,
-        //  we don't need to send the port shift first
-        if((count == 0) && last) {
-          data = 0;
-          state = STATE_DONE;
-          log_xd.print() << "encode: " << count << " " << port << " " << last;
-          return true;
-        } else {
-          data = port_shift;
-          state = STATE_IDLE;
-          return false;
-        }
+    {
+      // special case - if we're sending a single packet with count=0,last=1,
+      //  we don't need to send the port shift first
+      if((count == 0) && last) {
+        data = 0;
+        state = STATE_DONE;
+        log_xd.print() << "encode: " << count << " " << port << " " << last;
+        return true;
+      } else {
+        data = port_shift;
+        state = STATE_IDLE;
+        return false;
       }
+    }
 
     case STATE_IDLE:
-      {
-        // figure out if we need 1, 2, or 3 chunks for this
-        unsigned mid = (count >> (30 - port_shift));
-        unsigned hi = ((sizeof(size_t) > 4) ? (count >> (60 - port_shift)) : 0);
+    {
+      // figure out if we need 1, 2, or 3 chunks for this
+      unsigned mid = (count >> (30 - port_shift));
+      unsigned hi = ((sizeof(size_t) > 4) ? (count >> (60 - port_shift)) : 0);
 
-        if(hi != 0) {
-          // will take three words - send HIGH first
-          data = (hi << 2) | CTRL_HIGH;
-          state = STATE_SENT_HIGH;
-          return false;
-        } else if(mid != 0) {
-          // will take two words - send MID first
-          data = (mid << 2) | CTRL_MID;
-          state = STATE_SENT_MID;
-          return false;
-        } else {
-          // fits in a single word
-          data = ((count << (port_shift + 2)) |
-                  (port_p1 << 2) |
-                  (last ? CTRL_LO_LAST : CTRL_LO_MORE));
-          state = (last ? STATE_DONE : STATE_IDLE);
-          //log_xd.print() << "encode: " << count << " " << port << " " << last;
-          return true;
-        }
-      }
-
-    case STATE_SENT_HIGH:
-      {
-        // since we just sent HIGH, must send MID next
-        unsigned mid = (count >> (30 - port_shift));
+      if(hi != 0) {
+        // will take three words - send HIGH first
+        data = (hi << 2) | CTRL_HIGH;
+        state = STATE_SENT_HIGH;
+        return false;
+      } else if(mid != 0) {
+        // will take two words - send MID first
         data = (mid << 2) | CTRL_MID;
         state = STATE_SENT_MID;
         return false;
-      }
-
-    case STATE_SENT_MID:
-      {
-        // since we just sent MID, send LO to finish
-        data = ((count << (port_shift + 2)) |
-                (port_p1 << 2) |
+      } else {
+        // fits in a single word
+        data = ((count << (port_shift + 2)) | (port_p1 << 2) |
                 (last ? CTRL_LO_LAST : CTRL_LO_MORE));
         state = (last ? STATE_DONE : STATE_IDLE);
-        //log_xd.print() << "encode: " << count << " " << port << " " << last;
+        // log_xd.print() << "encode: " << count << " " << port << " " << last;
         return true;
       }
+    }
+
+    case STATE_SENT_HIGH:
+    {
+      // since we just sent HIGH, must send MID next
+      unsigned mid = (count >> (30 - port_shift));
+      data = (mid << 2) | CTRL_MID;
+      state = STATE_SENT_MID;
+      return false;
+    }
+
+    case STATE_SENT_MID:
+    {
+      // since we just sent MID, send LO to finish
+      data = ((count << (port_shift + 2)) | (port_p1 << 2) |
+              (last ? CTRL_LO_LAST : CTRL_LO_MORE));
+      state = (last ? STATE_DONE : STATE_IDLE);
+      // log_xd.print() << "encode: " << count << " " << port << " " << last;
+      return true;
+    }
 
     case STATE_DONE:
       assert(0 && "sending after last?");
@@ -388,7 +379,6 @@ namespace Realm {
 
     return false;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -408,8 +398,7 @@ namespace Realm {
 
   // decodes the next 32b of packed data, returning true if a complete
   //  { count, port, last } has been received
-  bool ControlPort::Decoder::decode(unsigned data,
-                                    size_t& count, int& port, bool& last)
+  bool ControlPort::Decoder::decode(unsigned data, size_t &count, int &port, bool &last)
   {
     if(port_shift == 0) {
       // we haven't received the port shift yet, so it's either this or a 0
@@ -421,7 +410,7 @@ namespace Realm {
         count = 0;
         port = -1;
         last = true;
-        //log_xd.print() << "decode: " << count << " " << port << " " << last;
+        // log_xd.print() << "decode: " << count << " " << port << " " << last;
         return true;
       }
     } else {
@@ -429,13 +418,13 @@ namespace Realm {
       unsigned ctrl = data & 3;
 
       if(ctrl == CTRL_HIGH) {
-        assert(temp_count == 0);  // should not be clobbering an existing count
+        assert(temp_count == 0); // should not be clobbering an existing count
         temp_count = size_t(data >> 2) << (60 - port_shift);
-        assert(temp_count != 0);  // should not have gotten HIGH with 0 value
+        assert(temp_count != 0); // should not have gotten HIGH with 0 value
         return false;
       } else if(ctrl == CTRL_MID) {
         temp_count |= size_t(data >> 2) << (30 - port_shift);
-        assert(temp_count != 0);  // must have gotten HIGH or nonzero here
+        assert(temp_count != 0); // must have gotten HIGH or nonzero here
         return false;
       } else {
         // LO means we have a full control packet
@@ -444,7 +433,7 @@ namespace Realm {
         port = port_p1 - 1;
         last = (ctrl == CTRL_LO_LAST);
         temp_count = 0;
-        //log_xd.print() << "decode: " << count << " " << port << " " << last;
+        // log_xd.print() << "decode: " << count << " " << port << " " << last;
         return true;
       }
     }
@@ -683,19 +672,18 @@ namespace Realm {
     // pull control information if we need it
     if(input_control.remaining_count == 0) {
       if(input_control.control_port_idx >= 0) {
-        XferPort& icp = input_ports[input_control.control_port_idx];
-        size_t avail = icp.seq_remote.span_exists(icp.local_bytes_total,
-                                                  4 * sizeof(unsigned));
+        XferPort &icp = input_ports[input_control.control_port_idx];
+        size_t avail =
+            icp.seq_remote.span_exists(icp.local_bytes_total, 4 * sizeof(unsigned));
         size_t old_lbt = icp.local_bytes_total;
 
         // may take a few chunks of data to get a control packet
         while(true) {
           if(avail < sizeof(unsigned))
-            return 0;  // no data right now
+            return 0; // no data right now
 
           TransferIterator::AddressInfo c_info;
-          size_t amt = icp.iter->step(sizeof(unsigned), c_info, 0,
-                                      false /*!tentative*/);
+          size_t amt = icp.iter->step(sizeof(unsigned), c_info, 0, false /*!tentative*/);
           assert(amt == sizeof(unsigned));
           const void *srcptr = icp.mem->get_direct_ptr(c_info.base_offset, amt);
           assert(srcptr != 0);
@@ -705,8 +693,7 @@ namespace Realm {
           icp.local_bytes_total += sizeof(unsigned);
           avail -= sizeof(unsigned);
 
-          if(input_control.decoder.decode(cword,
-                                          input_control.remaining_count,
+          if(input_control.decoder.decode(cword, input_control.remaining_count,
                                           input_control.current_io_port,
                                           input_control.eos_received))
             break;
@@ -714,11 +701,11 @@ namespace Realm {
 
         // can't get here unless we read something, so ack it
         if(rseqcache != 0)
-          rseqcache->add_span(input_control.control_port_idx,
-                              old_lbt, icp.local_bytes_total - old_lbt);
+          rseqcache->add_span(input_control.control_port_idx, old_lbt,
+                              icp.local_bytes_total - old_lbt);
         else
-          update_bytes_read(input_control.control_port_idx,
-                            old_lbt, icp.local_bytes_total - old_lbt);
+          update_bytes_read(input_control.control_port_idx, old_lbt,
+                            icp.local_bytes_total - old_lbt);
 
         log_xd.info() << "input control: xd=" << std::hex << guid << std::dec
                       << " port=" << input_control.current_io_port
@@ -727,9 +714,9 @@ namespace Realm {
       }
       // if count is still zero, we're done
       if(input_control.remaining_count == 0) {
-	assert(input_control.eos_received);
-	begin_completion();
-	return 0;
+        assert(input_control.eos_received);
+        begin_completion();
+        return 0;
       }
     }
 
@@ -737,19 +724,18 @@ namespace Realm {
       if(output_control.control_port_idx >= 0) {
         // this looks wrong, but the port that controls the output is
         //  an input port! vvv
-        XferPort& ocp = input_ports[output_control.control_port_idx];
-        size_t avail = ocp.seq_remote.span_exists(ocp.local_bytes_total,
-                                                  4 * sizeof(unsigned));
+        XferPort &ocp = input_ports[output_control.control_port_idx];
+        size_t avail =
+            ocp.seq_remote.span_exists(ocp.local_bytes_total, 4 * sizeof(unsigned));
         size_t old_lbt = ocp.local_bytes_total;
 
         // may take a few chunks of data to get a control packet
         while(true) {
           if(avail < sizeof(unsigned))
-            return 0;  // no data right now
+            return 0; // no data right now
 
           TransferIterator::AddressInfo c_info;
-          size_t amt = ocp.iter->step(sizeof(unsigned), c_info, 0,
-                                      false /*!tentative*/);
+          size_t amt = ocp.iter->step(sizeof(unsigned), c_info, 0, false /*!tentative*/);
           assert(amt == sizeof(unsigned));
           const void *srcptr = ocp.mem->get_direct_ptr(c_info.base_offset, amt);
           assert(srcptr != 0);
@@ -759,8 +745,7 @@ namespace Realm {
           ocp.local_bytes_total += sizeof(unsigned);
           avail -= sizeof(unsigned);
 
-          if(output_control.decoder.decode(cword,
-                                           output_control.remaining_count,
+          if(output_control.decoder.decode(cword, output_control.remaining_count,
                                            output_control.current_io_port,
                                            output_control.eos_received))
             break;
@@ -768,11 +753,11 @@ namespace Realm {
 
         // can't get here unless we read something, so ack it
         if(rseqcache != 0)
-          rseqcache->add_span(output_control.control_port_idx,
-                              old_lbt, ocp.local_bytes_total - old_lbt);
+          rseqcache->add_span(output_control.control_port_idx, old_lbt,
+                              ocp.local_bytes_total - old_lbt);
         else
-          update_bytes_read(output_control.control_port_idx,
-                            old_lbt, ocp.local_bytes_total - old_lbt);
+          update_bytes_read(output_control.control_port_idx, old_lbt,
+                            ocp.local_bytes_total - old_lbt);
 
         log_xd.info() << "output control: xd=" << std::hex << guid << std::dec
                       << " port=" << output_control.current_io_port
@@ -781,14 +766,13 @@ namespace Realm {
       }
       // if count is still zero, we're done
       if(output_control.remaining_count == 0) {
-	assert(output_control.eos_received);
-	begin_completion();
-	return 0;
+        assert(output_control.eos_received);
+        begin_completion();
+        return 0;
       }
     }
 
-    return std::min(input_control.remaining_count,
-		    output_control.remaining_count);
+    return std::min(input_control.remaining_count, output_control.remaining_count);
   }
 
   size_t XferDes::get_addresses(size_t min_xfer_size, ReadSequenceCache *rseqcache)
@@ -943,11 +927,10 @@ namespace Realm {
       in_port->local_bytes_cons.fetch_add(total_read_bytes);
 
       if(in_port->peer_guid == XFERDES_NO_GUID)
-	in_done = ((in_port->addrlist.bytes_pending() == 0) &&
-		   in_port->iter->done());
+        in_done = ((in_port->addrlist.bytes_pending() == 0) && in_port->iter->done());
       else
-	in_done = (in_port->local_bytes_total ==
-		   in_port->remote_bytes_total.load_acquire());
+        in_done =
+            (in_port->local_bytes_total == in_port->remote_bytes_total.load_acquire());
     }
 
     bool out_done = false;
@@ -958,22 +941,19 @@ namespace Realm {
       out_port->local_bytes_cons.fetch_add(total_write_bytes);
 
       if(out_port->peer_guid == XFERDES_NO_GUID)
-	out_done = ((out_port->addrlist.bytes_pending() == 0) &&
-		    out_port->iter->done());
+        out_done = ((out_port->addrlist.bytes_pending() == 0) && out_port->iter->done());
     }
-	  
+
     input_control.remaining_count -= total_read_bytes;
     output_control.remaining_count -= total_write_bytes;
 
     // input or output controls override our notion of done-ness
     if(input_control.control_port_idx >= 0)
-      in_done = ((input_control.remaining_count == 0) &&
-		 input_control.eos_received);
+      in_done = ((input_control.remaining_count == 0) && input_control.eos_received);
 
     if(output_control.control_port_idx >= 0)
-      out_done = ((output_control.remaining_count == 0) &&
-		  output_control.eos_received);
-	  
+      out_done = ((output_control.remaining_count == 0) && output_control.eos_received);
+
     if(in_done || out_done) {
       begin_completion();
       return true;
@@ -2173,801 +2153,768 @@ namespace Realm {
   // class MemfillXferDes
   //
 
-      MemreduceXferDes::MemreduceXferDes(uintptr_t _dma_op, Channel *_channel,
+  MemreduceXferDes::MemreduceXferDes(uintptr_t _dma_op, Channel *_channel,
+                                     NodeID _launch_node, XferDesID _guid,
+                                     const std::vector<XferDesPortInfo> &inputs_info,
+                                     const std::vector<XferDesPortInfo> &outputs_info,
+                                     int _priority, XferDesRedopInfo _redop_info)
+    : XferDes(_dma_op, _channel, _launch_node, _guid, inputs_info, outputs_info,
+              _priority, 0, 0)
+    , redop_info(_redop_info)
+  {
+    kind = XFER_MEM_CPY;
+    redop = get_runtime()->reduce_op_table.get(redop_info.id, 0);
+    assert(redop);
+  }
+
+  long MemreduceXferDes::get_requests(Request **requests, long nr)
+  {
+    // unused
+    assert(0);
+    return 0;
+  }
+
+  bool MemreduceXferDes::progress_xd(MemreduceChannel *channel, TimeLimit work_until)
+  {
+    bool did_work = false;
+    ReadSequenceCache rseqcache(this, 2 << 20); // flush after 2MB
+    WriteSequenceCache wseqcache(this, 2 << 20);
+
+    const size_t in_elem_size = redop->sizeof_rhs;
+    const size_t out_elem_size =
+        (redop_info.is_fold ? redop->sizeof_rhs : redop->sizeof_lhs);
+    assert(redop_info.in_place); // TODO: support for out-of-place reduces
+
+    while(true) {
+      size_t min_xfer_size = 4096; // TODO: make controllable
+      size_t max_bytes = get_addresses(min_xfer_size, &rseqcache);
+      if(max_bytes == 0)
+        break;
+
+      XferPort *in_port = 0, *out_port = 0;
+      size_t in_span_start = 0, out_span_start = 0;
+      if(input_control.current_io_port >= 0) {
+        in_port = &input_ports[input_control.current_io_port];
+        in_span_start = in_port->local_bytes_total;
+      }
+      if(output_control.current_io_port >= 0) {
+        out_port = &output_ports[output_control.current_io_port];
+        out_span_start = out_port->local_bytes_total;
+      }
+
+      // have to count in terms of elements, which requires redoing some math
+      //  if in/out sizes do not match
+      size_t max_elems;
+      if(in_elem_size == out_elem_size) {
+        max_elems = max_bytes / in_elem_size;
+      } else {
+        max_elems = std::min(input_control.remaining_count / in_elem_size,
+                             output_control.remaining_count / out_elem_size);
+        if(in_port != 0) {
+          max_elems =
+              std::min(max_elems, in_port->addrlist.bytes_pending() / in_elem_size);
+          if(in_port->peer_guid != XFERDES_NO_GUID) {
+            size_t read_bytes_avail = in_port->seq_remote.span_exists(
+                in_port->local_bytes_total, (max_elems * in_elem_size));
+            max_elems = std::min(max_elems, (read_bytes_avail / in_elem_size));
+          }
+        }
+        if(out_port != 0) {
+          max_elems =
+              std::min(max_elems, out_port->addrlist.bytes_pending() / out_elem_size);
+          // no support for reducing into an intermediate buffer
+          assert(out_port->peer_guid == XFERDES_NO_GUID);
+        }
+      }
+
+      size_t total_elems = 0;
+      if(in_port != 0) {
+        if(out_port != 0) {
+          // input and output both exist - transfer what we can
+          log_xd.info() << "memreduce chunk: min=" << min_xfer_size
+                        << " max_elems=" << max_elems;
+
+          uintptr_t in_base =
+              reinterpret_cast<uintptr_t>(in_port->mem->get_direct_ptr(0, 0));
+          uintptr_t out_base =
+              reinterpret_cast<uintptr_t>(out_port->mem->get_direct_ptr(0, 0));
+
+          while(total_elems < max_elems) {
+            AddressListCursor &in_alc = in_port->addrcursor;
+            AddressListCursor &out_alc = out_port->addrcursor;
+
+            uintptr_t in_offset = in_alc.get_offset();
+            uintptr_t out_offset = out_alc.get_offset();
+
+            // the reported dim is reduced for partially consumed address
+            //  ranges - whatever we get can be assumed to be regular
+            int in_dim = in_alc.get_dim();
+            int out_dim = out_alc.get_dim();
+
+            // the current reduction op interface can reduce multiple elements
+            //  with a fixed address stride, which looks to us like either
+            //  1D (stride = elem_size), or 2D with 1 elem/line
+
+            size_t icount = in_alc.remaining(0) / in_elem_size;
+            size_t ocount = out_alc.remaining(0) / out_elem_size;
+            size_t istride, ostride;
+            if((in_dim > 1) && (icount == 1)) {
+              in_dim = 2;
+              icount = in_alc.remaining(1);
+              istride = in_alc.get_stride(1);
+            } else {
+              in_dim = 1;
+              istride = in_elem_size;
+            }
+            if((out_dim > 1) && (ocount == 1)) {
+              out_dim = 2;
+              ocount = out_alc.remaining(1);
+              ostride = out_alc.get_stride(1);
+            } else {
+              out_dim = 1;
+              ostride = out_elem_size;
+            }
+
+            size_t elems_left = max_elems - total_elems;
+            size_t elems = std::min(std::min(icount, ocount), elems_left);
+            assert(elems > 0);
+
+            void *out_ptr = reinterpret_cast<void *>(out_base + out_offset);
+            const void *in_ptr = reinterpret_cast<const void *>(in_base + in_offset);
+            if(redop_info.is_fold) {
+              if(redop_info.is_exclusive)
+                (redop->cpu_fold_excl_fn)(out_ptr, ostride, in_ptr, istride, elems,
+                                          redop->userdata);
+              else
+                (redop->cpu_fold_nonexcl_fn)(out_ptr, ostride, in_ptr, istride, elems,
+                                             redop->userdata);
+            } else {
+              if(redop_info.is_exclusive)
+                (redop->cpu_apply_excl_fn)(out_ptr, ostride, in_ptr, istride, elems,
+                                           redop->userdata);
+              else
+                (redop->cpu_apply_nonexcl_fn)(out_ptr, ostride, in_ptr, istride, elems,
+                                              redop->userdata);
+            }
+
+            in_alc.advance(in_dim - 1, elems * ((in_dim == 1) ? in_elem_size : 1));
+            out_alc.advance(out_dim - 1, elems * ((out_dim == 1) ? out_elem_size : 1));
+
+#ifdef DEBUG_REALM
+            assert(elems <= elems_left);
+#endif
+            total_elems += elems;
+
+            // stop if it's been too long, but make sure we do at least the
+            //  minimum number of bytes
+            if(((total_elems * in_elem_size) >= min_xfer_size) && work_until.is_expired())
+              break;
+          }
+        } else {
+          // input but no output, so skip input bytes
+          total_elems = max_elems;
+          in_port->addrcursor.skip_bytes(total_elems * in_elem_size);
+        }
+      } else {
+        if(out_port != 0) {
+          // output but no input, so skip output bytes
+          total_elems = max_elems;
+          out_port->addrcursor.skip_bytes(total_elems * out_elem_size);
+        } else {
+          // skipping both input and output is possible for simultaneous
+          //  gather+scatter
+          total_elems = max_elems;
+        }
+      }
+
+      // memcpy is always immediate, so handle both skip and copy with the
+      //  same code
+      rseqcache.add_span(input_control.current_io_port, in_span_start,
+                         total_elems * in_elem_size);
+      in_span_start += total_elems * in_elem_size;
+      wseqcache.add_span(output_control.current_io_port, out_span_start,
+                         total_elems * out_elem_size);
+      out_span_start += total_elems * out_elem_size;
+
+      bool done = record_address_consumption(total_elems * in_elem_size,
+                                             total_elems * out_elem_size);
+
+      did_work = true;
+
+      if(done || work_until.is_expired())
+        break;
+    }
+
+    rseqcache.flush();
+    wseqcache.flush();
+
+    return did_work;
+  }
+
+  GASNetXferDes::GASNetXferDes(uintptr_t _dma_op, Channel *_channel, NodeID _launch_node,
+                               XferDesID _guid,
+                               const std::vector<XferDesPortInfo> &inputs_info,
+                               const std::vector<XferDesPortInfo> &outputs_info,
+                               int _priority)
+    : XferDes(_dma_op, _channel, _launch_node, _guid, inputs_info, outputs_info,
+              _priority, 0, 0)
+  {
+    if((inputs_info.size() >= 1) &&
+       (input_ports[0].mem->kind == MemoryImpl::MKIND_GLOBAL)) {
+      kind = XFER_GASNET_READ;
+    } else if((outputs_info.size() >= 1) &&
+              (output_ports[0].mem->kind == MemoryImpl::MKIND_GLOBAL)) {
+      kind = XFER_GASNET_WRITE;
+    } else {
+      assert(0 && "neither source nor dest of GASNetXferDes is gasnet!?");
+    }
+    const int max_nr = 10; // FIXME
+    gasnet_reqs = (GASNetRequest *)calloc(max_nr, sizeof(GASNetRequest));
+    for(int i = 0; i < max_nr; i++) {
+      gasnet_reqs[i].xd = this;
+      available_reqs.push(&gasnet_reqs[i]);
+    }
+  }
+
+  long GASNetXferDes::get_requests(Request **requests, long nr)
+  {
+    GASNetRequest **reqs = (GASNetRequest **)requests;
+    long new_nr = default_get_requests(requests, nr);
+    switch(kind) {
+    case XFER_GASNET_READ:
+    {
+      for(long i = 0; i < new_nr; i++) {
+        reqs[i]->gas_off = /*src_buf.alloc_offset +*/ reqs[i]->src_off;
+        // reqs[i]->mem_base = (char*)(buf_base + reqs[i]->dst_off);
+        reqs[i]->mem_base = output_ports[reqs[i]->dst_port_idx].mem->get_direct_ptr(
+            reqs[i]->dst_off, reqs[i]->nbytes);
+        assert(reqs[i]->mem_base != 0);
+      }
+      break;
+    }
+    case XFER_GASNET_WRITE:
+    {
+      for(long i = 0; i < new_nr; i++) {
+        // reqs[i]->mem_base = (char*)(buf_base + reqs[i]->src_off);
+        reqs[i]->mem_base = input_ports[reqs[i]->src_port_idx].mem->get_direct_ptr(
+            reqs[i]->src_off, reqs[i]->nbytes);
+        assert(reqs[i]->mem_base != 0);
+        reqs[i]->gas_off = /*dst_buf.alloc_offset +*/ reqs[i]->dst_off;
+      }
+      break;
+    }
+    default:
+      assert(0);
+    }
+    return new_nr;
+  }
+
+  bool GASNetXferDes::progress_xd(GASNetChannel *channel, TimeLimit work_until)
+  {
+    Request *rq;
+    bool did_work = false;
+    do {
+      long count = get_requests(&rq, 1);
+      if(count > 0) {
+        channel->submit(&rq, count);
+        did_work = true;
+      } else
+        break;
+    } while(!work_until.is_expired());
+
+    return did_work;
+  }
+
+  void GASNetXferDes::notify_request_read_done(Request *req)
+  {
+    default_notify_request_read_done(req);
+  }
+
+  void GASNetXferDes::notify_request_write_done(Request *req)
+  {
+    default_notify_request_write_done(req);
+  }
+
+  void GASNetXferDes::flush() {}
+
+  RemoteWriteXferDes::RemoteWriteXferDes(uintptr_t _dma_op, Channel *_channel,
                                          NodeID _launch_node, XferDesID _guid,
-                                         const std::vector<XferDesPortInfo>& inputs_info,
-                                         const std::vector<XferDesPortInfo>& outputs_info,
-                                         int _priority,
-                                         XferDesRedopInfo _redop_info)
-	: XferDes(_dma_op, _channel, _launch_node, _guid,
-		  inputs_info, outputs_info,
-		  _priority, 0, 0)
-        , redop_info(_redop_info)
-      {
-	kind = XFER_MEM_CPY;
-        redop = get_runtime()->reduce_op_table.get(redop_info.id, 0);
-        assert(redop);
+                                         const std::vector<XferDesPortInfo> &inputs_info,
+                                         const std::vector<XferDesPortInfo> &outputs_info,
+                                         int _priority)
+    : XferDes(_dma_op, _channel, _launch_node, _guid, inputs_info, outputs_info,
+              _priority, 0, 0)
+  {
+    kind = XFER_REMOTE_WRITE;
+    requests = 0;
+  }
+
+  long RemoteWriteXferDes::get_requests(Request **requests, long nr)
+  {
+    xd_lock.lock();
+    RemoteWriteRequest **reqs = (RemoteWriteRequest **)requests;
+    // remote writes allow 2D on source, but not destination
+    unsigned flags = TransferIterator::SRC_LINES_OK;
+    long new_nr = default_get_requests(requests, nr, flags);
+    for(long i = 0; i < new_nr; i++) {
+      // reqs[i]->src_base = (char*)(src_buf_base + reqs[i]->src_off);
+      reqs[i]->src_base = input_ports[reqs[i]->src_port_idx].mem->get_direct_ptr(
+          reqs[i]->src_off, reqs[i]->nbytes);
+      assert(reqs[i]->src_base != 0);
+      // RemoteMemory *remote = checked_cast<RemoteMemory
+      // *>(output_ports[reqs[i]->dst_port_idx].mem); reqs[i]->dst_base =
+      // static_cast<char *>(remote->get_remote_addr(reqs[i]->dst_off));
+      // assert(reqs[i]->dst_base != 0);
+    }
+    xd_lock.unlock();
+    return new_nr;
+  }
+
+  // callbacks for updating read/write spans
+  class ReadBytesUpdater {
+  public:
+    ReadBytesUpdater(XferDes *_xd, int _port_idx, size_t _offset, size_t _size)
+      : xd(_xd)
+      , port_idx(_port_idx)
+      , offset(_offset)
+      , size(_size)
+    {}
+
+    void operator()() const
+    {
+      xd->update_bytes_read(port_idx, offset, size);
+      xd->remove_reference();
+    }
+
+  protected:
+    XferDes *xd;
+    int port_idx;
+    size_t offset, size;
+  };
+
+  class WriteBytesUpdater {
+  public:
+    WriteBytesUpdater(XferDes *_xd, int _port_idx, size_t _offset, size_t _size)
+      : xd(_xd)
+      , port_idx(_port_idx)
+      , offset(_offset)
+      , size(_size)
+    {}
+
+    void operator()() const { xd->update_bytes_write(port_idx, offset, size); }
+
+  protected:
+    XferDes *xd;
+    int port_idx;
+    size_t offset, size;
+  };
+
+  bool RemoteWriteXferDes::progress_xd(RemoteWriteChannel *channel, TimeLimit work_until)
+  {
+    bool did_work = false;
+    // immediate acks for reads happen when we assemble or skip input,
+    //  while immediate acks for writes happen only if we skip output
+    ReadSequenceCache rseqcache(this);
+    WriteSequenceCache wseqcache(this);
+
+    const size_t MAX_ASSEMBLY_SIZE = 4096;
+    while(true) {
+      size_t min_xfer_size = 4096; // TODO: make controllable
+      size_t max_bytes = get_addresses(min_xfer_size, &rseqcache);
+      if(max_bytes == 0)
+        break;
+
+      XferPort *in_port = 0, *out_port = 0;
+      size_t in_span_start = 0, out_span_start = 0;
+      if(input_control.current_io_port >= 0) {
+        in_port = &input_ports[input_control.current_io_port];
+        in_span_start = in_port->local_bytes_total;
+      }
+      if(output_control.current_io_port >= 0) {
+        out_port = &output_ports[output_control.current_io_port];
+        out_span_start = out_port->local_bytes_total;
       }
 
-      long MemreduceXferDes::get_requests(Request** requests, long nr)
-      {
-	// unused
-	assert(0);
-	return 0;
-      }
+      size_t total_bytes = 0;
+      if(in_port != 0) {
+        if(out_port != 0) {
+          // input and output both exist - transfer what we can
+          log_xd.info() << "remote write chunk: min=" << min_xfer_size
+                        << " max=" << max_bytes;
 
-      bool MemreduceXferDes::progress_xd(MemreduceChannel *channel,
-				      TimeLimit work_until)
-      {
-	bool did_work = false;
-	ReadSequenceCache rseqcache(this, 2 << 20);  // flush after 2MB
-	WriteSequenceCache wseqcache(this, 2 << 20);
+          while(total_bytes < max_bytes) {
+            AddressListCursor &in_alc = in_port->addrcursor;
+            AddressListCursor &out_alc = out_port->addrcursor;
+            int in_dim = in_alc.get_dim();
+            int out_dim = out_alc.get_dim();
+            size_t icount = in_alc.remaining(0);
+            size_t ocount = out_alc.remaining(0);
 
-        const size_t in_elem_size = redop->sizeof_rhs;
-        const size_t out_elem_size = (redop_info.is_fold ? redop->sizeof_rhs : redop->sizeof_lhs);
-        assert(redop_info.in_place);  // TODO: support for out-of-place reduces
+            size_t bytes = 0;
+            size_t bytes_left = max_bytes - total_bytes;
 
-	while(true) {
-	  size_t min_xfer_size = 4096;  // TODO: make controllable
-	  size_t max_bytes = get_addresses(min_xfer_size, &rseqcache);
-	  if(max_bytes == 0)
-	    break;
+            // look at the output first, because that controls the message
+            //  size
+            size_t dst_1d_maxbytes = ((out_dim > 0) ? std::min(bytes_left, ocount) : 0);
+            size_t dst_2d_maxbytes =
+                (((out_dim > 1) && (ocount <= (MAX_ASSEMBLY_SIZE / 2)))
+                     ? (ocount *
+                        std::min(MAX_ASSEMBLY_SIZE / ocount, out_alc.remaining(1)))
+                     : 0);
+            // would have to scan forward through the dst address list to
+            //  get the exact number of bytes that we can fit into
+            //  MAX_ASSEMBLY_SIZE after considering address info overhead,
+            //  but this is a last resort anyway, so just use a probably-
+            //  pessimistic estimate;
+            size_t dst_sc_maxbytes = std::min(bytes_left, MAX_ASSEMBLY_SIZE / 4);
+            // TODO: actually implement 2d and sc
+            dst_2d_maxbytes = 0;
+            dst_sc_maxbytes = 0;
 
-	  XferPort *in_port = 0, *out_port = 0;
-	  size_t in_span_start = 0, out_span_start = 0;
-	  if(input_control.current_io_port >= 0) {
-	    in_port = &input_ports[input_control.current_io_port];
-	    in_span_start = in_port->local_bytes_total;
-	  }
-	  if(output_control.current_io_port >= 0) {
-	    out_port = &output_ports[output_control.current_io_port];
-	    out_span_start = out_port->local_bytes_total;
-	  }
+            // favor 1d >> 2d >> sc
+            if((dst_1d_maxbytes >= dst_2d_maxbytes) &&
+               (dst_1d_maxbytes >= dst_sc_maxbytes)) {
+              // 1D target
+              NodeID dst_node = ID(out_port->mem->me).memory_owner_node();
+              RemoteAddress dst_buf;
+              bool ok = out_port->mem->get_remote_addr(out_alc.get_offset(), dst_buf);
+              assert(ok);
 
-          // have to count in terms of elements, which requires redoing some math
-          //  if in/out sizes do not match
-          size_t max_elems;
-          if(in_elem_size == out_elem_size) {
-            max_elems = max_bytes / in_elem_size;
-          } else {
-            max_elems = std::min(input_control.remaining_count / in_elem_size,
-                                 output_control.remaining_count / out_elem_size);
-            if(in_port != 0) {
-              max_elems = std::min(max_elems,
-                                   in_port->addrlist.bytes_pending() / in_elem_size);
-              if(in_port->peer_guid != XFERDES_NO_GUID) {
-                size_t read_bytes_avail = in_port->seq_remote.span_exists(in_port->local_bytes_total,
-                                                                          (max_elems * in_elem_size));
-                max_elems = std::min(max_elems,
-                                     (read_bytes_avail / in_elem_size));
+              // now look at the input
+              LocalAddress src_buf;
+              ok = in_port->mem->get_local_addr(in_alc.get_offset(), src_buf);
+              assert(ok);
+              size_t src_1d_maxbytes = 0;
+              if(in_dim > 0) {
+                size_t rec_bytes = ActiveMessage<Write1DMessage>::recommended_max_payload(
+                    dst_node, src_buf, icount, 1, 0, dst_buf, true /*w/ congestion*/);
+                src_1d_maxbytes = std::min({dst_1d_maxbytes, icount, rec_bytes});
               }
-            }
-            if(out_port != 0) {
-              max_elems = std::min(max_elems,
-                                   out_port->addrlist.bytes_pending() / out_elem_size);
-              // no support for reducing into an intermediate buffer
-              assert(out_port->peer_guid == XFERDES_NO_GUID);
-            }
-          }
 
-	  size_t total_elems = 0;
-	  if(in_port != 0) {
-	    if(out_port != 0) {
-	      // input and output both exist - transfer what we can
-	      log_xd.info() << "memreduce chunk: min=" << min_xfer_size
-			    << " max_elems=" << max_elems;
-
-	      uintptr_t in_base = reinterpret_cast<uintptr_t>(in_port->mem->get_direct_ptr(0, 0));
-	      uintptr_t out_base = reinterpret_cast<uintptr_t>(out_port->mem->get_direct_ptr(0, 0));
-
-	      while(total_elems < max_elems) {
-		AddressListCursor& in_alc = in_port->addrcursor;
-		AddressListCursor& out_alc = out_port->addrcursor;
-
-		uintptr_t in_offset = in_alc.get_offset();
-		uintptr_t out_offset = out_alc.get_offset();
-
-		// the reported dim is reduced for partially consumed address
-		//  ranges - whatever we get can be assumed to be regular
-		int in_dim = in_alc.get_dim();
-		int out_dim = out_alc.get_dim();
-
-                // the current reduction op interface can reduce multiple elements
-                //  with a fixed address stride, which looks to us like either
-                //  1D (stride = elem_size), or 2D with 1 elem/line
-
-                size_t icount = in_alc.remaining(0) / in_elem_size;
-                size_t ocount = out_alc.remaining(0) / out_elem_size;
-                size_t istride, ostride;
-                if((in_dim > 1) && (icount == 1)) {
-                  in_dim = 2;
-                  icount = in_alc.remaining(1);
-                  istride = in_alc.get_stride(1);
-                } else {
-                  in_dim = 1;
-                  istride = in_elem_size;
-                }
-                if((out_dim > 1) && (ocount == 1)) {
-                  out_dim = 2;
-                  ocount = out_alc.remaining(1);
-                  ostride = out_alc.get_stride(1);
-                } else {
-                  out_dim = 1;
-                  ostride = out_elem_size;
-                }
-
-		size_t elems_left = max_elems - total_elems;
-                size_t elems = std::min(std::min(icount, ocount), elems_left);
-                assert(elems > 0);
-
-                void *out_ptr = reinterpret_cast<void *>(out_base + out_offset);
-                const void *in_ptr = reinterpret_cast<const void *>(in_base + in_offset);
-                if(redop_info.is_fold) {
-                  if(redop_info.is_exclusive)
-                    (redop->cpu_fold_excl_fn)(out_ptr, ostride,
-                                              in_ptr, istride,
-                                              elems, redop->userdata);
-                  else
-                    (redop->cpu_fold_nonexcl_fn)(out_ptr, ostride,
-                                                 in_ptr, istride,
-                                                 elems, redop->userdata);
-                } else {
-                  if (redop_info.is_exclusive)
-                    (redop->cpu_apply_excl_fn)(out_ptr, ostride,
-                                               in_ptr, istride,
-                                               elems, redop->userdata);
-                  else
-                    (redop->cpu_apply_nonexcl_fn)(out_ptr, ostride,
-                                                  in_ptr, istride,
-                                                  elems, redop->userdata);
-                }
-
-                in_alc.advance(in_dim-1,
-                               elems * ((in_dim == 1) ? in_elem_size : 1));
-                out_alc.advance(out_dim-1,
-                                elems * ((out_dim == 1) ? out_elem_size : 1));
-
-#ifdef DEBUG_REALM
-		assert(elems <= elems_left);
-#endif
-		total_elems += elems;
-
-		// stop if it's been too long, but make sure we do at least the
-		//  minimum number of bytes
-		if(((total_elems * in_elem_size) >= min_xfer_size) &&
-                   work_until.is_expired()) break;
-	      }
-	    } else {
-	      // input but no output, so skip input bytes
-              total_elems = max_elems;
-	      in_port->addrcursor.skip_bytes(total_elems * in_elem_size);
-	    }
-	  } else {
-	    if(out_port != 0) {
-	      // output but no input, so skip output bytes
-              total_elems = max_elems;
-	      out_port->addrcursor.skip_bytes(total_elems * out_elem_size);
-	    } else {
-	      // skipping both input and output is possible for simultaneous
-	      //  gather+scatter
-              total_elems = max_elems;
-	    }
-	  }
-
-	  // memcpy is always immediate, so handle both skip and copy with the
-	  //  same code
-	  rseqcache.add_span(input_control.current_io_port,
-			     in_span_start, total_elems * in_elem_size);
-	  in_span_start += total_elems * in_elem_size;
-	  wseqcache.add_span(output_control.current_io_port,
-			     out_span_start, total_elems * out_elem_size);
-	  out_span_start += total_elems * out_elem_size;
-
-	  bool done = record_address_consumption(total_elems * in_elem_size,
-                                                 total_elems * out_elem_size);
-
-	  did_work = true;
-
-	  if(done || work_until.is_expired())
-	    break;
-	}
-
-	rseqcache.flush();
-	wseqcache.flush();
-
-	return did_work;
-      }
-
-
-      GASNetXferDes::GASNetXferDes(uintptr_t _dma_op, Channel *_channel,
-				   NodeID _launch_node, XferDesID _guid,
-				   const std::vector<XferDesPortInfo>& inputs_info,
-				   const std::vector<XferDesPortInfo>& outputs_info,
-				   int _priority)
-	: XferDes(_dma_op, _channel, _launch_node, _guid,
-		  inputs_info, outputs_info,
-		  _priority, 0, 0)
-      {
-	if((inputs_info.size() >= 1) &&
-	   (input_ports[0].mem->kind == MemoryImpl::MKIND_GLOBAL)) {
-	  kind = XFER_GASNET_READ;
-	} else if((outputs_info.size() >= 1) &&
-		  (output_ports[0].mem->kind == MemoryImpl::MKIND_GLOBAL)) {
-	  kind = XFER_GASNET_WRITE;
-	} else {
-	  assert(0 && "neither source nor dest of GASNetXferDes is gasnet!?");
-	}
-	const int max_nr = 10; // FIXME
-        gasnet_reqs = (GASNetRequest*) calloc(max_nr, sizeof(GASNetRequest));
-        for (int i = 0; i < max_nr; i++) {
-          gasnet_reqs[i].xd = this;
-	  available_reqs.push(&gasnet_reqs[i]);
-        }
-      }
-
-      long GASNetXferDes::get_requests(Request** requests, long nr)
-      {
-        GASNetRequest** reqs = (GASNetRequest**) requests;
-        long new_nr = default_get_requests(requests, nr);
-        switch (kind) {
-          case XFER_GASNET_READ:
-          {
-            for (long i = 0; i < new_nr; i++) {
-              reqs[i]->gas_off = /*src_buf.alloc_offset +*/ reqs[i]->src_off;
-              //reqs[i]->mem_base = (char*)(buf_base + reqs[i]->dst_off);
-	      reqs[i]->mem_base = output_ports[reqs[i]->dst_port_idx].mem->get_direct_ptr(reqs[i]->dst_off,
-											  reqs[i]->nbytes);
-	      assert(reqs[i]->mem_base != 0);
-            }
-            break;
-          }
-          case XFER_GASNET_WRITE:
-          {
-            for (long i = 0; i < new_nr; i++) {
-              //reqs[i]->mem_base = (char*)(buf_base + reqs[i]->src_off);
-	      reqs[i]->mem_base = input_ports[reqs[i]->src_port_idx].mem->get_direct_ptr(reqs[i]->src_off,
-											 reqs[i]->nbytes);
-	      assert(reqs[i]->mem_base != 0);
-              reqs[i]->gas_off = /*dst_buf.alloc_offset +*/ reqs[i]->dst_off;
-            }
-            break;
-          }
-          default:
-            assert(0);
-        }
-        return new_nr;
-      }
-
-      bool GASNetXferDes::progress_xd(GASNetChannel *channel,
-				      TimeLimit work_until)
-      {
-	Request *rq;
-	bool did_work = false;
-	do {
-	  long count = get_requests(&rq, 1);
-	  if(count > 0) {
-	    channel->submit(&rq, count);
-	    did_work = true;
-	  } else
-	    break;
-	} while(!work_until.is_expired());
-
-	return did_work;
-      }
-
-      void GASNetXferDes::notify_request_read_done(Request* req)
-      {
-        default_notify_request_read_done(req);
-      }
-
-      void GASNetXferDes::notify_request_write_done(Request* req)
-      {
-        default_notify_request_write_done(req);
-      }
-
-      void GASNetXferDes::flush()
-      {
-      }
-
-      RemoteWriteXferDes::RemoteWriteXferDes(
-          uintptr_t _dma_op, Channel *_channel, NodeID _launch_node, XferDesID _guid,
-          const std::vector<XferDesPortInfo> &inputs_info,
-          const std::vector<XferDesPortInfo> &outputs_info, int _priority)
-        : XferDes(_dma_op, _channel, _launch_node, _guid, inputs_info, outputs_info,
-                  _priority, 0, 0)
-      {
-        kind = XFER_REMOTE_WRITE;
-        requests = 0;
-      }
-
-      long RemoteWriteXferDes::get_requests(Request **requests, long nr)
-      {
-        xd_lock.lock();
-        RemoteWriteRequest **reqs = (RemoteWriteRequest **)requests;
-        // remote writes allow 2D on source, but not destination
-        unsigned flags = TransferIterator::SRC_LINES_OK;
-        long new_nr = default_get_requests(requests, nr, flags);
-        for(long i = 0; i < new_nr; i++) {
-          // reqs[i]->src_base = (char*)(src_buf_base + reqs[i]->src_off);
-          reqs[i]->src_base = input_ports[reqs[i]->src_port_idx].mem->get_direct_ptr(
-              reqs[i]->src_off, reqs[i]->nbytes);
-          assert(reqs[i]->src_base != 0);
-          // RemoteMemory *remote = checked_cast<RemoteMemory
-          // *>(output_ports[reqs[i]->dst_port_idx].mem); reqs[i]->dst_base =
-          // static_cast<char *>(remote->get_remote_addr(reqs[i]->dst_off));
-          // assert(reqs[i]->dst_base != 0);
-        }
-        xd_lock.unlock();
-        return new_nr;
-      }
-
-      // callbacks for updating read/write spans
-      class ReadBytesUpdater {
-      public:
-	ReadBytesUpdater(XferDes *_xd, int _port_idx,
-			 size_t _offset, size_t _size)
-	  : xd(_xd), port_idx(_port_idx), offset(_offset), size(_size)
-	{}
-
-	void operator()() const
-	{
-	  xd->update_bytes_read(port_idx, offset, size);
-	  xd->remove_reference();
-	}
-
-      protected:
-	XferDes *xd;
-	int port_idx;
-	size_t offset, size;
-      };
-
-      class WriteBytesUpdater {
-      public:
-	WriteBytesUpdater(XferDes *_xd, int _port_idx,
-			  size_t _offset, size_t _size)
-	  : xd(_xd), port_idx(_port_idx), offset(_offset), size(_size)
-	{}
-
-	void operator()() const
-	{
-	  xd->update_bytes_write(port_idx, offset, size);
-	}
-
-      protected:
-	XferDes *xd;
-	int port_idx;
-	size_t offset, size;
-      };
-
-      bool RemoteWriteXferDes::progress_xd(RemoteWriteChannel *channel,
-                                           TimeLimit work_until)
-      {
-        bool did_work = false;
-        // immediate acks for reads happen when we assemble or skip input,
-        //  while immediate acks for writes happen only if we skip output
-        ReadSequenceCache rseqcache(this);
-        WriteSequenceCache wseqcache(this);
-
-        const size_t MAX_ASSEMBLY_SIZE = 4096;
-        while(true) {
-          size_t min_xfer_size = 4096; // TODO: make controllable
-          size_t max_bytes = get_addresses(min_xfer_size, &rseqcache);
-          if(max_bytes == 0)
-            break;
-
-          XferPort *in_port = 0, *out_port = 0;
-          size_t in_span_start = 0, out_span_start = 0;
-          if(input_control.current_io_port >= 0) {
-            in_port = &input_ports[input_control.current_io_port];
-            in_span_start = in_port->local_bytes_total;
-          }
-          if(output_control.current_io_port >= 0) {
-            out_port = &output_ports[output_control.current_io_port];
-            out_span_start = out_port->local_bytes_total;
-          }
-
-          size_t total_bytes = 0;
-          if(in_port != 0) {
-            if(out_port != 0) {
-              // input and output both exist - transfer what we can
-              log_xd.info() << "remote write chunk: min=" << min_xfer_size
-                            << " max=" << max_bytes;
-
-              while(total_bytes < max_bytes) {
-                AddressListCursor &in_alc = in_port->addrcursor;
-                AddressListCursor &out_alc = out_port->addrcursor;
-                int in_dim = in_alc.get_dim();
-                int out_dim = out_alc.get_dim();
-                size_t icount = in_alc.remaining(0);
-                size_t ocount = out_alc.remaining(0);
-
-                size_t bytes = 0;
-                size_t bytes_left = max_bytes - total_bytes;
-
-                // look at the output first, because that controls the message
-                //  size
-                size_t dst_1d_maxbytes =
-                    ((out_dim > 0) ? std::min(bytes_left, ocount) : 0);
-                size_t dst_2d_maxbytes =
-                    (((out_dim > 1) && (ocount <= (MAX_ASSEMBLY_SIZE / 2)))
-                         ? (ocount *
-                            std::min(MAX_ASSEMBLY_SIZE / ocount, out_alc.remaining(1)))
-                         : 0);
-                // would have to scan forward through the dst address list to
-                //  get the exact number of bytes that we can fit into
-                //  MAX_ASSEMBLY_SIZE after considering address info overhead,
-                //  but this is a last resort anyway, so just use a probably-
-                //  pessimistic estimate;
-                size_t dst_sc_maxbytes = std::min(bytes_left, MAX_ASSEMBLY_SIZE / 4);
-                // TODO: actually implement 2d and sc
-                dst_2d_maxbytes = 0;
-                dst_sc_maxbytes = 0;
-
-                // favor 1d >> 2d >> sc
-                if((dst_1d_maxbytes >= dst_2d_maxbytes) &&
-                   (dst_1d_maxbytes >= dst_sc_maxbytes)) {
-                  // 1D target
-                  NodeID dst_node = ID(out_port->mem->me).memory_owner_node();
-                  RemoteAddress dst_buf;
-                  bool ok = out_port->mem->get_remote_addr(out_alc.get_offset(), dst_buf);
-                  assert(ok);
-
-                  // now look at the input
-                  LocalAddress src_buf;
-                  ok = in_port->mem->get_local_addr(in_alc.get_offset(), src_buf);
-                  assert(ok);
-                  size_t src_1d_maxbytes = 0;
-                  if(in_dim > 0) {
-                    size_t rec_bytes =
-                        ActiveMessage<Write1DMessage>::recommended_max_payload(
-                            dst_node, src_buf, icount, 1, 0, dst_buf,
-                            true /*w/ congestion*/);
-                    src_1d_maxbytes = std::min({dst_1d_maxbytes, icount, rec_bytes});
-                  }
-
-                  size_t src_2d_maxbytes = 0;
-                  // TODO: permit if source memory is cpu-accessible?
+              size_t src_2d_maxbytes = 0;
+              // TODO: permit if source memory is cpu-accessible?
 #ifdef ALLOW_RDMA_SOURCE_2D
-                  if(in_dim > 1) {
-                    size_t lines = in_alc.remaining(1);
-                    size_t rec_bytes =
-                        ActiveMessage<Write1DMessage>::recommended_max_payload(
-                            dst_node, src_buf, icount, lines, in_alc.get_stride(1),
-                            dst_buf, true /*w/ congestion*/);
-                    // round the recommendation down to a multiple of the line size
-                    rec_bytes -= (rec_bytes % icount);
-                    src_2d_maxbytes =
-                        std::min({dst_1d_maxbytes, icount * lines, rec_bytes});
-                  }
+              if(in_dim > 1) {
+                size_t lines = in_alc.remaining(1);
+                size_t rec_bytes = ActiveMessage<Write1DMessage>::recommended_max_payload(
+                    dst_node, src_buf, icount, lines, in_alc.get_stride(1), dst_buf,
+                    true /*w/ congestion*/);
+                // round the recommendation down to a multiple of the line size
+                rec_bytes -= (rec_bytes % icount);
+                src_2d_maxbytes = std::min({dst_1d_maxbytes, icount * lines, rec_bytes});
+              }
 #endif
-                  size_t src_ga_maxbytes = 0;
-                  // TODO: permit if source memory is cpu-accessible?
+              size_t src_ga_maxbytes = 0;
+              // TODO: permit if source memory is cpu-accessible?
 #ifdef ALLOW_RDMA_GATHER
-                  {
-                    // a gather will assemble into a buffer provided by the network
-                    size_t rec_bytes =
-                        ActiveMessage<Write1DMessage>::recommended_max_payload(
-                            dst_node, dst_buf, true /*w/ congestion*/);
-                    src_ga_maxbytes = std::min({dst_1d_maxbytes, bytes_left, rec_bytes});
-                  }
+              {
+                // a gather will assemble into a buffer provided by the network
+                size_t rec_bytes = ActiveMessage<Write1DMessage>::recommended_max_payload(
+                    dst_node, dst_buf, true /*w/ congestion*/);
+                src_ga_maxbytes = std::min({dst_1d_maxbytes, bytes_left, rec_bytes});
+              }
 #endif
 
-                  // source also favors 1d >> 2d >> gather
-                  if((src_1d_maxbytes >= src_2d_maxbytes) &&
-                     (src_1d_maxbytes >= src_ga_maxbytes)) {
-                    // TODO: if congestion is telling us not to send anything
-                    //  at all, it'd be better to sleep until the network
-                    //  says it's reasonable to try again - this approach
-                    //  will effectively spinwait (but at least guarantees to
-                    //  intersperse it with calls to the network progress
-                    //  work item)
-                    if(src_1d_maxbytes == 0)
-                      break;
+              // source also favors 1d >> 2d >> gather
+              if((src_1d_maxbytes >= src_2d_maxbytes) &&
+                 (src_1d_maxbytes >= src_ga_maxbytes)) {
+                // TODO: if congestion is telling us not to send anything
+                //  at all, it'd be better to sleep until the network
+                //  says it's reasonable to try again - this approach
+                //  will effectively spinwait (but at least guarantees to
+                //  intersperse it with calls to the network progress
+                //  work item)
+                if(src_1d_maxbytes == 0)
+                  break;
 
-                    // 1D source
-                    bytes = src_1d_maxbytes;
-                    // log_xd.info() << "remote write 1d: guid=" << guid
-                    //              << " src=" << src_buf << " dst=" << dst_buf
-                    //              << " bytes=" << bytes;
-                    ActiveMessage<Write1DMessage> amsg(dst_node, src_buf, bytes, dst_buf);
-                    amsg->next_xd_guid = out_port->peer_guid;
-                    amsg->next_port_idx = out_port->peer_port_idx;
-                    amsg->span_start = out_span_start;
+                // 1D source
+                bytes = src_1d_maxbytes;
+                // log_xd.info() << "remote write 1d: guid=" << guid
+                //              << " src=" << src_buf << " dst=" << dst_buf
+                //              << " bytes=" << bytes;
+                ActiveMessage<Write1DMessage> amsg(dst_node, src_buf, bytes, dst_buf);
+                amsg->next_xd_guid = out_port->peer_guid;
+                amsg->next_port_idx = out_port->peer_port_idx;
+                amsg->span_start = out_span_start;
 
-                    // reads aren't consumed until local completion, but
-                    //  only ask if we have a previous xd that's going to
-                    //  care
-                    if(in_port->peer_guid != XFERDES_NO_GUID) {
-                      // a ReadBytesUpdater holds a reference to the xd
-                      add_reference();
-                      amsg.add_local_completion(ReadBytesUpdater(
-                          this, input_control.current_io_port, in_span_start, bytes));
-                    }
-                    in_span_start += bytes;
-                    // the write isn't complete until it's ack'd by the target
-                    amsg.add_remote_completion(WriteBytesUpdater(
-                        this, output_control.current_io_port, out_span_start, bytes));
-                    out_span_start += bytes;
+                // reads aren't consumed until local completion, but
+                //  only ask if we have a previous xd that's going to
+                //  care
+                if(in_port->peer_guid != XFERDES_NO_GUID) {
+                  // a ReadBytesUpdater holds a reference to the xd
+                  add_reference();
+                  amsg.add_local_completion(ReadBytesUpdater(
+                      this, input_control.current_io_port, in_span_start, bytes));
+                }
+                in_span_start += bytes;
+                // the write isn't complete until it's ack'd by the target
+                amsg.add_remote_completion(WriteBytesUpdater(
+                    this, output_control.current_io_port, out_span_start, bytes));
+                out_span_start += bytes;
 
-                    amsg.commit();
-                    in_alc.advance(0, bytes);
-                    out_alc.advance(0, bytes);
-                  } else if(src_2d_maxbytes >= src_ga_maxbytes) {
-                    // 2D source
-                    size_t bytes_per_line = icount;
-                    size_t lines = src_2d_maxbytes / icount;
-                    bytes = bytes_per_line * lines;
-                    assert(bytes == src_2d_maxbytes);
-                    size_t src_stride = in_alc.get_stride(1);
-                    // log_xd.info() << "remote write 2d: guid=" << guid
-                    //              << " src=" << src_buf << " dst=" << dst_buf
-                    //              << " bytes=" << bytes << " lines=" << lines
-                    //              << " stride=" << src_stride;
-                    ActiveMessage<Write1DMessage> amsg(dst_node, src_buf, bytes_per_line,
-                                                       lines, src_stride, dst_buf);
-                    amsg->next_xd_guid = out_port->peer_guid;
-                    amsg->next_port_idx = out_port->peer_port_idx;
-                    amsg->span_start = out_span_start;
+                amsg.commit();
+                in_alc.advance(0, bytes);
+                out_alc.advance(0, bytes);
+              } else if(src_2d_maxbytes >= src_ga_maxbytes) {
+                // 2D source
+                size_t bytes_per_line = icount;
+                size_t lines = src_2d_maxbytes / icount;
+                bytes = bytes_per_line * lines;
+                assert(bytes == src_2d_maxbytes);
+                size_t src_stride = in_alc.get_stride(1);
+                // log_xd.info() << "remote write 2d: guid=" << guid
+                //              << " src=" << src_buf << " dst=" << dst_buf
+                //              << " bytes=" << bytes << " lines=" << lines
+                //              << " stride=" << src_stride;
+                ActiveMessage<Write1DMessage> amsg(dst_node, src_buf, bytes_per_line,
+                                                   lines, src_stride, dst_buf);
+                amsg->next_xd_guid = out_port->peer_guid;
+                amsg->next_port_idx = out_port->peer_port_idx;
+                amsg->span_start = out_span_start;
 
-                    // reads aren't consumed until local completion, but
-                    //  only ask if we have a previous xd that's going to
-                    //  care
-                    if(in_port->peer_guid != XFERDES_NO_GUID) {
-                      // a ReadBytesUpdater holds a reference to the xd
-                      add_reference();
-                      amsg.add_local_completion(ReadBytesUpdater(
-                          this, input_control.current_io_port, in_span_start, bytes));
-                    }
-                    in_span_start += bytes;
-                    // the write isn't complete until it's ack'd by the target
-                    amsg.add_remote_completion(WriteBytesUpdater(
-                        this, output_control.current_io_port, out_span_start, bytes));
-                    out_span_start += bytes;
+                // reads aren't consumed until local completion, but
+                //  only ask if we have a previous xd that's going to
+                //  care
+                if(in_port->peer_guid != XFERDES_NO_GUID) {
+                  // a ReadBytesUpdater holds a reference to the xd
+                  add_reference();
+                  amsg.add_local_completion(ReadBytesUpdater(
+                      this, input_control.current_io_port, in_span_start, bytes));
+                }
+                in_span_start += bytes;
+                // the write isn't complete until it's ack'd by the target
+                amsg.add_remote_completion(WriteBytesUpdater(
+                    this, output_control.current_io_port, out_span_start, bytes));
+                out_span_start += bytes;
 
-                    amsg.commit();
-                    in_alc.advance(1, lines);
-                    out_alc.advance(0, bytes);
-                  } else {
-                    // gather: assemble data
-                    bytes = src_ga_maxbytes;
-                    ActiveMessage<Write1DMessage> amsg(dst_node, bytes, dst_buf);
-                    amsg->next_xd_guid = out_port->peer_guid;
-                    amsg->next_port_idx = out_port->peer_port_idx;
-                    amsg->span_start = out_span_start;
+                amsg.commit();
+                in_alc.advance(1, lines);
+                out_alc.advance(0, bytes);
+              } else {
+                // gather: assemble data
+                bytes = src_ga_maxbytes;
+                ActiveMessage<Write1DMessage> amsg(dst_node, bytes, dst_buf);
+                amsg->next_xd_guid = out_port->peer_guid;
+                amsg->next_port_idx = out_port->peer_port_idx;
+                amsg->span_start = out_span_start;
 
-                    size_t todo = bytes;
-                    while(true) {
-                      if(in_dim > 0) {
-                        if((icount >= todo / 2) || (in_dim == 1)) {
-                          size_t chunk = std::min(todo, icount);
-                          uintptr_t src = reinterpret_cast<uintptr_t>(
-                              in_port->mem->get_direct_ptr(in_alc.get_offset(), chunk));
-                          uintptr_t dst =
-                              reinterpret_cast<uintptr_t>(amsg.payload_ptr(chunk));
-                          memcpy_1d(dst, src, chunk);
-                          in_alc.advance(0, chunk);
-                          todo -= chunk;
-                        } else {
-                          size_t lines = std::min(todo / icount, in_alc.remaining(1));
+                size_t todo = bytes;
+                while(true) {
+                  if(in_dim > 0) {
+                    if((icount >= todo / 2) || (in_dim == 1)) {
+                      size_t chunk = std::min(todo, icount);
+                      uintptr_t src = reinterpret_cast<uintptr_t>(
+                          in_port->mem->get_direct_ptr(in_alc.get_offset(), chunk));
+                      uintptr_t dst =
+                          reinterpret_cast<uintptr_t>(amsg.payload_ptr(chunk));
+                      memcpy_1d(dst, src, chunk);
+                      in_alc.advance(0, chunk);
+                      todo -= chunk;
+                    } else {
+                      size_t lines = std::min(todo / icount, in_alc.remaining(1));
 
-                          if(((icount * lines) >= todo / 2) || (in_dim == 2)) {
-                            uintptr_t src =
-                                reinterpret_cast<uintptr_t>(in_port->mem->get_direct_ptr(
-                                    in_alc.get_offset(), icount));
-                            uintptr_t dst = reinterpret_cast<uintptr_t>(
-                                amsg.payload_ptr(icount * lines));
-                            memcpy_2d(dst, icount /*lstride*/, src, in_alc.get_stride(1),
-                                      icount, lines);
-                            in_alc.advance(1, lines);
-                            todo -= icount * lines;
-                          } else {
-                            size_t planes =
-                                std::min(todo / (icount * lines), in_alc.remaining(2));
-                            uintptr_t src =
-                                reinterpret_cast<uintptr_t>(in_port->mem->get_direct_ptr(
-                                    in_alc.get_offset(), icount));
-                            uintptr_t dst = reinterpret_cast<uintptr_t>(
-                                amsg.payload_ptr(icount * lines * planes));
-                            memcpy_3d(dst, icount /*lstride*/,
-                                      (icount * lines) /*pstride*/, src,
-                                      in_alc.get_stride(1), in_alc.get_stride(2), icount,
-                                      lines, planes);
-                            in_alc.advance(2, planes);
-                            todo -= icount * lines * planes;
-                          }
-                        }
+                      if(((icount * lines) >= todo / 2) || (in_dim == 2)) {
+                        uintptr_t src = reinterpret_cast<uintptr_t>(
+                            in_port->mem->get_direct_ptr(in_alc.get_offset(), icount));
+                        uintptr_t dst =
+                            reinterpret_cast<uintptr_t>(amsg.payload_ptr(icount * lines));
+                        memcpy_2d(dst, icount /*lstride*/, src, in_alc.get_stride(1),
+                                  icount, lines);
+                        in_alc.advance(1, lines);
+                        todo -= icount * lines;
                       } else {
-                        assert(0);
+                        size_t planes =
+                            std::min(todo / (icount * lines), in_alc.remaining(2));
+                        uintptr_t src = reinterpret_cast<uintptr_t>(
+                            in_port->mem->get_direct_ptr(in_alc.get_offset(), icount));
+                        uintptr_t dst = reinterpret_cast<uintptr_t>(
+                            amsg.payload_ptr(icount * lines * planes));
+                        memcpy_3d(dst, icount /*lstride*/, (icount * lines) /*pstride*/,
+                                  src, in_alc.get_stride(1), in_alc.get_stride(2), icount,
+                                  lines, planes);
+                        in_alc.advance(2, planes);
+                        todo -= icount * lines * planes;
                       }
-
-                      if(todo == 0)
-                        break;
-
-                      // read next entry
-                      in_dim = in_alc.get_dim();
-                      icount = in_alc.remaining(0);
                     }
-
-                    // the write isn't complete until it's ack'd by the target
-                    amsg.add_remote_completion(WriteBytesUpdater(
-                        this, output_control.current_io_port, out_span_start, bytes));
-                    out_span_start += bytes;
-
-                    // assembly complete - send message
-                    amsg.commit();
-
-                    // we made a copy of input data, so "read" is complete
-                    rseqcache.add_span(input_control.current_io_port, in_span_start,
-                                       bytes);
-                    in_span_start += bytes;
-
-                    out_alc.advance(0, bytes);
+                  } else {
+                    assert(0);
                   }
-                } else if(dst_2d_maxbytes >= dst_sc_maxbytes) {
-                  // 2D target
-                  assert(0);
-                } else {
-                  // scatter target
-                  assert(0);
+
+                  if(todo == 0)
+                    break;
+
+                  // read next entry
+                  in_dim = in_alc.get_dim();
+                  icount = in_alc.remaining(0);
                 }
 
-#ifdef DEBUG_REALM
-                assert((bytes > 0) && (bytes <= bytes_left));
-#endif
-                total_bytes += bytes;
+                // the write isn't complete until it's ack'd by the target
+                amsg.add_remote_completion(WriteBytesUpdater(
+                    this, output_control.current_io_port, out_span_start, bytes));
+                out_span_start += bytes;
 
-                // stop if it's been too long, but make sure we do at least the
-                //  minimum number of bytes
-                if((total_bytes >= min_xfer_size) && work_until.is_expired())
-                  break;
+                // assembly complete - send message
+                amsg.commit();
+
+                // we made a copy of input data, so "read" is complete
+                rseqcache.add_span(input_control.current_io_port, in_span_start, bytes);
+                in_span_start += bytes;
+
+                out_alc.advance(0, bytes);
               }
+            } else if(dst_2d_maxbytes >= dst_sc_maxbytes) {
+              // 2D target
+              assert(0);
             } else {
-              // input but no output, so skip input bytes
-              total_bytes = max_bytes;
-              in_port->addrcursor.skip_bytes(total_bytes);
-              rseqcache.add_span(input_control.current_io_port, in_span_start,
-                                 total_bytes);
-              in_span_start += total_bytes;
+              // scatter target
+              assert(0);
             }
-          } else {
-            if(out_port != 0) {
-              // output but no input, so skip output bytes
-              total_bytes = max_bytes;
-              out_port->addrcursor.skip_bytes(total_bytes);
-              wseqcache.add_span(output_control.current_io_port, out_span_start,
-                                 total_bytes);
-              out_span_start += total_bytes;
-            } else {
-              // skipping both input and output is possible for simultaneous
-              //  gather+scatter
-              total_bytes = max_bytes;
-            }
+
+#ifdef DEBUG_REALM
+            assert((bytes > 0) && (bytes <= bytes_left));
+#endif
+            total_bytes += bytes;
+
+            // stop if it's been too long, but make sure we do at least the
+            //  minimum number of bytes
+            if((total_bytes >= min_xfer_size) && work_until.is_expired())
+              break;
           }
-
-          bool done = record_address_consumption(total_bytes, total_bytes);
-
-          did_work = true;
-
-          if(done || work_until.is_expired())
-            break;
+        } else {
+          // input but no output, so skip input bytes
+          total_bytes = max_bytes;
+          in_port->addrcursor.skip_bytes(total_bytes);
+          rseqcache.add_span(input_control.current_io_port, in_span_start, total_bytes);
+          in_span_start += total_bytes;
         }
-
-        rseqcache.flush();
-        wseqcache.flush();
-
-        return did_work;
-      }
-
-      void RemoteWriteXferDes::notify_request_read_done(Request* req)
-      {
-        xd_lock.lock();
-        default_notify_request_read_done(req);
-        xd_lock.unlock();
-      }
-
-      void RemoteWriteXferDes::notify_request_write_done(Request* req)
-      {
-        xd_lock.lock();
-        default_notify_request_write_done(req);
-        xd_lock.unlock();
-      }
-
-      void RemoteWriteXferDes::flush()
-      {
-        //xd_lock.lock();
-        //xd_lock.unlock();
-      }
-
-      // doesn't do pre_bytes_write updates, since the remote write message
-      //  takes care of it with lower latency (except for zero-byte
-      //  termination updates)
-      void RemoteWriteXferDes::update_bytes_write(int port_idx, size_t offset, size_t size)
-      {
-	XferPort *out_port = &output_ports[port_idx];
-	size_t inc_amt = out_port->seq_local.add_span(offset, size);
-	log_xd.info() << "bytes_write: " << std::hex << guid << std::dec
-		      << "(" << port_idx << ") " << offset << "+" << size << " -> " << inc_amt;
-
-	// pre_bytes_write update was handled in the remote AM handler
-	if(out_port->peer_guid != XFERDES_NO_GUID) {
-	  // update bytes total if needed (and available)
-	  if(out_port->needs_pbt_update.load() &&
-	     iteration_completed.load_acquire() &&
-             (out_port->local_bytes_total == out_port->local_bytes_cons.load())) {
-	    // exchange sets the flag to false and tells us previous value
-	    if(out_port->needs_pbt_update.exchange(false))
-	      xferDes_queue->update_pre_bytes_total(out_port->peer_guid,
-						    out_port->peer_port_idx,
-						    out_port->local_bytes_total);
-	  }
-        }
-
-        // subtract bytes written from the pending count - if that causes it to
-        //  go to zero, we can mark the transfer completed and update progress
-        //  in case the xd is just waiting for that
-        // NOTE: as soon as we set `transfer_completed`, the other references
-        //  to this xd may be removed, so do this last, and hold a reference of
-        //  our own long enough to call update_progress
-        if(inc_amt > 0) {
-          int64_t prev = bytes_write_pending.fetch_sub(inc_amt);
-          if(prev > 0)
-            log_xd.info() << "completion: xd=" << std::hex << guid << std::dec
-                          << " remaining=" << (prev - inc_amt);
-          if(inc_amt == static_cast<size_t>(prev)) {
-            add_reference();
-            transfer_completed.store_release(true);
-            update_progress();
-            remove_reference();
-          }
+      } else {
+        if(out_port != 0) {
+          // output but no input, so skip output bytes
+          total_bytes = max_bytes;
+          out_port->addrcursor.skip_bytes(total_bytes);
+          wseqcache.add_span(output_control.current_io_port, out_span_start, total_bytes);
+          out_span_start += total_bytes;
+        } else {
+          // skipping both input and output is possible for simultaneous
+          //  gather+scatter
+          total_bytes = max_bytes;
         }
       }
 
-      /*static*/
-      void RemoteWriteXferDes::Write1DMessage::handle_message(NodeID sender,
-							      const RemoteWriteXferDes::Write1DMessage &args,
-							      const void *data,
-							      size_t datalen)
-      {
-        // assert data copy is in right position
-        //assert(data == args.dst_buf);
+      bool done = record_address_consumption(total_bytes, total_bytes);
 
-	log_xd.info() << "remote write recieved: next=" << args.next_xd_guid
-		      << " start=" << args.span_start
-		      << " size=" << datalen;
+      did_work = true;
 
-	// if requested, notify (probably-local) next XD
-	if(args.next_xd_guid != XferDes::XFERDES_NO_GUID)
-	  XferDesQueue::get_singleton()->update_pre_bytes_write(args.next_xd_guid,
-								args.next_port_idx,
-								args.span_start,
-								datalen);
+      if(done || work_until.is_expired())
+        break;
+    }
+
+    rseqcache.flush();
+    wseqcache.flush();
+
+    return did_work;
+  }
+
+  void RemoteWriteXferDes::notify_request_read_done(Request *req)
+  {
+    xd_lock.lock();
+    default_notify_request_read_done(req);
+    xd_lock.unlock();
+  }
+
+  void RemoteWriteXferDes::notify_request_write_done(Request *req)
+  {
+    xd_lock.lock();
+    default_notify_request_write_done(req);
+    xd_lock.unlock();
+  }
+
+  void RemoteWriteXferDes::flush()
+  {
+    // xd_lock.lock();
+    // xd_lock.unlock();
+  }
+
+  // doesn't do pre_bytes_write updates, since the remote write message
+  //  takes care of it with lower latency (except for zero-byte
+  //  termination updates)
+  void RemoteWriteXferDes::update_bytes_write(int port_idx, size_t offset, size_t size)
+  {
+    XferPort *out_port = &output_ports[port_idx];
+    size_t inc_amt = out_port->seq_local.add_span(offset, size);
+    log_xd.info() << "bytes_write: " << std::hex << guid << std::dec << "(" << port_idx
+                  << ") " << offset << "+" << size << " -> " << inc_amt;
+
+    // pre_bytes_write update was handled in the remote AM handler
+    if(out_port->peer_guid != XFERDES_NO_GUID) {
+      // update bytes total if needed (and available)
+      if(out_port->needs_pbt_update.load() && iteration_completed.load_acquire() &&
+         (out_port->local_bytes_total == out_port->local_bytes_cons.load())) {
+        // exchange sets the flag to false and tells us previous value
+        if(out_port->needs_pbt_update.exchange(false))
+          xferDes_queue->update_pre_bytes_total(
+              out_port->peer_guid, out_port->peer_port_idx, out_port->local_bytes_total);
       }
+    }
 
-      /*static*/ bool RemoteWriteXferDes::Write1DMessage::handle_inline(NodeID sender,
-									const RemoteWriteXferDes::Write1DMessage &args,
-									const void *data,
-									size_t datalen,
-									TimeLimit work_until)
-      {
-	handle_message(sender, args, data, datalen);
-	return true;
+    // subtract bytes written from the pending count - if that causes it to
+    //  go to zero, we can mark the transfer completed and update progress
+    //  in case the xd is just waiting for that
+    // NOTE: as soon as we set `transfer_completed`, the other references
+    //  to this xd may be removed, so do this last, and hold a reference of
+    //  our own long enough to call update_progress
+    if(inc_amt > 0) {
+      int64_t prev = bytes_write_pending.fetch_sub(inc_amt);
+      if(prev > 0)
+        log_xd.info() << "completion: xd=" << std::hex << guid << std::dec
+                      << " remaining=" << (prev - inc_amt);
+      if(inc_amt == static_cast<size_t>(prev)) {
+        add_reference();
+        transfer_completed.store_release(true);
+        update_progress();
+        remove_reference();
       }
+    }
+  }
 
+  /*static*/
+  void RemoteWriteXferDes::Write1DMessage::handle_message(
+      NodeID sender, const RemoteWriteXferDes::Write1DMessage &args, const void *data,
+      size_t datalen)
+  {
+    // assert data copy is in right position
+    // assert(data == args.dst_buf);
+
+    log_xd.info() << "remote write recieved: next=" << args.next_xd_guid
+                  << " start=" << args.span_start << " size=" << datalen;
+
+    // if requested, notify (probably-local) next XD
+    if(args.next_xd_guid != XferDes::XFERDES_NO_GUID)
+      XferDesQueue::get_singleton()->update_pre_bytes_write(
+          args.next_xd_guid, args.next_port_idx, args.span_start, datalen);
+  }
+
+  /*static*/ bool RemoteWriteXferDes::Write1DMessage::handle_inline(
+      NodeID sender, const RemoteWriteXferDes::Write1DMessage &args, const void *data,
+      size_t datalen, TimeLimit work_until)
+  {
+    handle_message(sender, args, data, datalen);
+    return true;
+  }
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class Channel::SupportedPath
   //
 
-  Channel::SupportedPath& Channel::SupportedPath::set_max_dim(int src_and_dst_dim)
+  Channel::SupportedPath &Channel::SupportedPath::set_max_dim(int src_and_dst_dim)
   {
     for(SupportedPath *p = this; p; p = p->chain)
       p->max_src_dim = p->max_dst_dim = src_and_dst_dim;
     return *this;
   }
 
-  Channel::SupportedPath& Channel::SupportedPath::set_max_dim(int src_dim,
-                                                              int dst_dim)
+  Channel::SupportedPath &Channel::SupportedPath::set_max_dim(int src_dim, int dst_dim)
   {
     for(SupportedPath *p = this; p; p = p->chain) {
       p->max_src_dim = src_dim;
@@ -2976,23 +2923,22 @@ namespace Realm {
     return *this;
   }
 
-  Channel::SupportedPath& Channel::SupportedPath::allow_redops()
+  Channel::SupportedPath &Channel::SupportedPath::allow_redops()
   {
     for(SupportedPath *p = this; p; p = p->chain)
       p->redops_allowed = true;
     return *this;
   }
 
-  Channel::SupportedPath& Channel::SupportedPath::allow_serdez()
+  Channel::SupportedPath &Channel::SupportedPath::allow_serdez()
   {
     for(SupportedPath *p = this; p; p = p->chain)
       p->serdez_allowed = true;
     return *this;
   }
 
-  void Channel::SupportedPath::populate_memory_bitmask(span<const Memory> mems,
-                                                       NodeID node,
-                                                       Channel::SupportedPath::MemBitmask& bitmask)
+  void Channel::SupportedPath::populate_memory_bitmask(
+      span<const Memory> mems, NodeID node, Channel::SupportedPath::MemBitmask &bitmask)
   {
     bitmask.node = node;
 
@@ -3002,9 +2948,11 @@ namespace Realm {
     for(size_t i = 0; i < mems.size(); i++)
       if(mems[i].exists() && (NodeID(ID(mems[i]).memory_owner_node()) == node)) {
         if(ID(mems[i]).is_memory())
-          bitmask.mems[ID(mems[i]).memory_mem_idx() >> 6] |= (uint64_t(1) << (ID(mems[i]).memory_mem_idx() & 63));
+          bitmask.mems[ID(mems[i]).memory_mem_idx() >> 6] |=
+              (uint64_t(1) << (ID(mems[i]).memory_mem_idx() & 63));
         else if(ID(mems[i]).is_ib_memory())
-          bitmask.ib_mems[ID(mems[i]).memory_mem_idx() >> 6] |= (uint64_t(1) << (ID(mems[i]).memory_mem_idx() & 63));
+          bitmask.ib_mems[ID(mems[i]).memory_mem_idx() >> 6] |=
+              (uint64_t(1) << (ID(mems[i]).memory_mem_idx() & 63));
       }
   }
 
@@ -3042,673 +2990,703 @@ namespace Realm {
   // class Channel
   //
 
-      std::ostream& operator<<(std::ostream& os, const Channel::SupportedPath& p)
-      {
-	switch(p.src_type) {
-	case Channel::SupportedPath::SPECIFIC_MEMORY:
-	  { os << "src=" << p.src_mem; break; }
-	case Channel::SupportedPath::LOCAL_KIND:
-	  { os << "src=" << p.src_kind << "(lcl)"; break; }
-	case Channel::SupportedPath::GLOBAL_KIND:
-	  { os << "src=" << p.src_kind << "(gbl)"; break; }
-	case Channel::SupportedPath::LOCAL_RDMA:
-	  { os << "src=rdma(lcl)"; break; }
-	case Channel::SupportedPath::REMOTE_RDMA:
-	  { os << "src=rdma(rem)"; break; }
-        case Channel::SupportedPath::MEMORY_BITMASK:
-          { os << "src=" << p.src_bitmask.node << '/';
-            bool first = true;
-            for(int i = 0; i < Channel::SupportedPath::MemBitmask::BITMASK_SIZE; i++)
-              for(int j = 0; j < 64; j++)
-                if((p.src_bitmask.mems[i] & (uint64_t(1) << j)) != 0) {
-                  if(!first) os << ",";
-                  first = false;
-                  os << (64*i + j);
-                }
-            if(first) os << '-';
-            os << '/';
-            first = true;
-            for(int i = 0; i < Channel::SupportedPath::MemBitmask::BITMASK_SIZE; i++)
-              for(int j = 0; j < 64; j++)
-                if((p.src_bitmask.ib_mems[i] & (uint64_t(1) << j)) != 0) {
-                  if(!first) os << ",";
-                  first = false;
-                  os << (64*i + j);
-                }
-            if(first) os << '-';
-            break;
+  std::ostream &operator<<(std::ostream &os, const Channel::SupportedPath &p)
+  {
+    switch(p.src_type) {
+    case Channel::SupportedPath::SPECIFIC_MEMORY:
+    {
+      os << "src=" << p.src_mem;
+      break;
+    }
+    case Channel::SupportedPath::LOCAL_KIND:
+    {
+      os << "src=" << p.src_kind << "(lcl)";
+      break;
+    }
+    case Channel::SupportedPath::GLOBAL_KIND:
+    {
+      os << "src=" << p.src_kind << "(gbl)";
+      break;
+    }
+    case Channel::SupportedPath::LOCAL_RDMA:
+    {
+      os << "src=rdma(lcl)";
+      break;
+    }
+    case Channel::SupportedPath::REMOTE_RDMA:
+    {
+      os << "src=rdma(rem)";
+      break;
+    }
+    case Channel::SupportedPath::MEMORY_BITMASK:
+    {
+      os << "src=" << p.src_bitmask.node << '/';
+      bool first = true;
+      for(int i = 0; i < Channel::SupportedPath::MemBitmask::BITMASK_SIZE; i++)
+        for(int j = 0; j < 64; j++)
+          if((p.src_bitmask.mems[i] & (uint64_t(1) << j)) != 0) {
+            if(!first)
+              os << ",";
+            first = false;
+            os << (64 * i + j);
           }
-	default:
-	  assert(0);
-	}
-	switch(p.dst_type) {
-	case Channel::SupportedPath::SPECIFIC_MEMORY:
-	  { os << " dst=" << p.dst_mem; break; }
-	case Channel::SupportedPath::LOCAL_KIND:
-	  { os << " dst=" << p.dst_kind << "(lcl)"; break; }
-	case Channel::SupportedPath::GLOBAL_KIND:
-	  { os << " dst=" << p.dst_kind << "(gbl)"; break; }
-	case Channel::SupportedPath::LOCAL_RDMA:
-	  { os << " dst=rdma(lcl)"; break; }
-	case Channel::SupportedPath::REMOTE_RDMA:
-	  { os << " dst=rdma(rem)"; break; }
-        case Channel::SupportedPath::MEMORY_BITMASK:
-          { os << " dst=" << p.dst_bitmask.node << '/';
-            bool first = true;
-            for(int i = 0; i < Channel::SupportedPath::MemBitmask::BITMASK_SIZE; i++)
-              for(int j = 0; j < 64; j++)
-                if((p.dst_bitmask.mems[i] & (uint64_t(1) << j)) != 0) {
-                  if(!first) os << ",";
-                  first = false;
-                  os << (64*i + j);
-                }
-            if(first) os << '-';
-            os << '/';
-            first = true;
-            for(int i = 0; i < Channel::SupportedPath::MemBitmask::BITMASK_SIZE; i++)
-              for(int j = 0; j < 64; j++)
-                if((p.dst_bitmask.ib_mems[i] & (uint64_t(1) << j)) != 0) {
-                  if(!first) os << ",";
-                  first = false;
-                  os << (64*i + j);
-                }
-            if(first) os << '-';
-            break;
+      if(first)
+        os << '-';
+      os << '/';
+      first = true;
+      for(int i = 0; i < Channel::SupportedPath::MemBitmask::BITMASK_SIZE; i++)
+        for(int j = 0; j < 64; j++)
+          if((p.src_bitmask.ib_mems[i] & (uint64_t(1) << j)) != 0) {
+            if(!first)
+              os << ",";
+            first = false;
+            os << (64 * i + j);
           }
-	default:
-	  assert(0);
-	}
-	os << " bw=" << p.bandwidth << " lat=" << p.latency;
-	if(p.serdez_allowed)
-	  os << " serdez";
-	if(p.redops_allowed)
-	  os << " redop";
-	return os;
+      if(first)
+        os << '-';
+      break;
+    }
+    default:
+      assert(0);
+    }
+    switch(p.dst_type) {
+    case Channel::SupportedPath::SPECIFIC_MEMORY:
+    {
+      os << " dst=" << p.dst_mem;
+      break;
+    }
+    case Channel::SupportedPath::LOCAL_KIND:
+    {
+      os << " dst=" << p.dst_kind << "(lcl)";
+      break;
+    }
+    case Channel::SupportedPath::GLOBAL_KIND:
+    {
+      os << " dst=" << p.dst_kind << "(gbl)";
+      break;
+    }
+    case Channel::SupportedPath::LOCAL_RDMA:
+    {
+      os << " dst=rdma(lcl)";
+      break;
+    }
+    case Channel::SupportedPath::REMOTE_RDMA:
+    {
+      os << " dst=rdma(rem)";
+      break;
+    }
+    case Channel::SupportedPath::MEMORY_BITMASK:
+    {
+      os << " dst=" << p.dst_bitmask.node << '/';
+      bool first = true;
+      for(int i = 0; i < Channel::SupportedPath::MemBitmask::BITMASK_SIZE; i++)
+        for(int j = 0; j < 64; j++)
+          if((p.dst_bitmask.mems[i] & (uint64_t(1) << j)) != 0) {
+            if(!first)
+              os << ",";
+            first = false;
+            os << (64 * i + j);
+          }
+      if(first)
+        os << '-';
+      os << '/';
+      first = true;
+      for(int i = 0; i < Channel::SupportedPath::MemBitmask::BITMASK_SIZE; i++)
+        for(int j = 0; j < 64; j++)
+          if((p.dst_bitmask.ib_mems[i] & (uint64_t(1) << j)) != 0) {
+            if(!first)
+              os << ",";
+            first = false;
+            os << (64 * i + j);
+          }
+      if(first)
+        os << '-';
+      break;
+    }
+    default:
+      assert(0);
+    }
+    os << " bw=" << p.bandwidth << " lat=" << p.latency;
+    if(p.serdez_allowed)
+      os << " serdez";
+    if(p.redops_allowed)
+      os << " redop";
+    return os;
+  }
+
+  RemoteChannelInfo *Channel::construct_remote_info() const
+  {
+    std::vector<Memory> indirect_memories;
+    for(NodeID n = 0; n < Network::max_node_id + 1; n++) {
+      Node &node = get_runtime()->nodes[n];
+      for(MemoryImpl *impl : node.memories) {
+        if(supports_indirection_memory(impl->me)) {
+          indirect_memories.push_back(impl->me);
+        }
       }
-	  
-      RemoteChannelInfo *Channel::construct_remote_info() const
+      for(IBMemory *impl : node.ib_memories) {
+        if(supports_indirection_memory(impl->me)) {
+          indirect_memories.push_back(impl->me);
+        }
+      }
+    }
+    return new SimpleRemoteChannelInfo(node, kind, reinterpret_cast<uintptr_t>(this),
+                                       paths, indirect_memories);
+  }
+
+  void Channel::print(std::ostream &os) const
+  {
+    os << "channel{ node=" << node << " kind=" << kind << " paths=[";
+    if(!paths.empty()) {
+      for(std::vector<SupportedPath>::const_iterator it = paths.begin();
+          it != paths.end(); ++it)
+        os << "\n    " << *it;
+      os << "\n";
+    }
+    os << "] }";
+  }
+
+  const std::vector<Channel::SupportedPath> &Channel::get_paths(void) const
+  {
+    return paths;
+  }
+
+  uint64_t Channel::supports_path(
+      ChannelCopyInfo channel_copy_info, CustomSerdezID src_serdez_id,
+      CustomSerdezID dst_serdez_id, ReductionOpID redop_id, size_t total_bytes,
+      const std::vector<size_t> *src_frags, const std::vector<size_t> *dst_frags,
+      XferDesKind *kind_ret /*= 0*/, unsigned *bw_ret /*= 0*/, unsigned *lat_ret /*= 0*/)
+  {
+    Memory src_mem = channel_copy_info.src_mem;
+    Memory dst_mem = channel_copy_info.dst_mem;
+    if(!supports_redop(redop_id)) {
+      return 0;
+    }
+    // If we don't support the indirection memory, then no need to check the paths.
+    if((channel_copy_info.ind_mem != Memory::NO_MEMORY) &&
+       !supports_indirection_memory(channel_copy_info.ind_mem)) {
+      return 0;
+    }
+    for(std::vector<SupportedPath>::const_iterator it = paths.begin(); it != paths.end();
+        ++it) {
+      if(!it->serdez_allowed && ((src_serdez_id != 0) || (dst_serdez_id != 0)))
+        continue;
+      if(!it->redops_allowed && (redop_id != 0))
+        continue;
+
+      bool src_ok = false;
+      switch(it->src_type) {
+      case SupportedPath::SPECIFIC_MEMORY:
       {
-        std::vector<Memory> indirect_memories;
-        for(NodeID n = 0; n < Network::max_node_id + 1; n++) {
-          Node &node = get_runtime()->nodes[n];
-          for(MemoryImpl *impl : node.memories) {
-            if(supports_indirection_memory(impl->me)) {
-              indirect_memories.push_back(impl->me);
-            }
-          }
-          for(IBMemory *impl : node.ib_memories) {
-            if(supports_indirection_memory(impl->me)) {
-              indirect_memories.push_back(impl->me);
-            }
+        src_ok = (src_mem == it->src_mem);
+        break;
+      }
+      case SupportedPath::LOCAL_KIND:
+      {
+        src_ok = (src_mem.exists() && (src_mem.kind() == it->src_kind) &&
+                  (NodeID(ID(src_mem).memory_owner_node()) == node));
+        break;
+      }
+      case SupportedPath::GLOBAL_KIND:
+      {
+        src_ok = (src_mem.exists() && (src_mem.kind() == it->src_kind));
+        break;
+      }
+      case SupportedPath::LOCAL_RDMA:
+      {
+        if(src_mem.exists() && (NodeID(ID(src_mem).memory_owner_node()) == node)) {
+          MemoryImpl *src_impl = get_runtime()->get_memory_impl(src_mem);
+          assert(src_impl != nullptr && "invalid memory handle");
+          // detection of rdma-ness depends on whether memory is
+          //  local/remote to us, not the channel
+          if(NodeID(ID(src_mem).memory_owner_node()) == Network::my_node_id) {
+            src_ok = (src_impl->get_rdma_info(Network::single_network) != nullptr);
+          } else {
+            RemoteAddress dummy;
+            src_ok = src_impl->get_remote_addr(0, dummy);
           }
         }
-        return new SimpleRemoteChannelInfo(node, kind, reinterpret_cast<uintptr_t>(this),
-                                           paths, indirect_memories);
+        break;
+      }
+      case SupportedPath::REMOTE_RDMA:
+      {
+        if(src_mem.exists() && (NodeID(ID(src_mem).memory_owner_node()) != node)) {
+          MemoryImpl *src_impl = get_runtime()->get_memory_impl(src_mem);
+          assert(src_impl != nullptr && "invalid memory handle");
+          // detection of rdma-ness depends on whether memory is
+          //  local/remote to us, not the channel
+          if(NodeID(ID(src_mem).memory_owner_node()) == Network::my_node_id) {
+            src_ok = (src_impl->get_rdma_info(Network::single_network) != nullptr);
+          } else {
+            RemoteAddress dummy;
+            src_ok = src_impl->get_remote_addr(0, dummy);
+          }
+        }
+        break;
+      }
+      case SupportedPath::MEMORY_BITMASK:
+      {
+        ID src_id(src_mem);
+        if(NodeID(src_id.memory_owner_node()) == it->src_bitmask.node) {
+          if(src_id.is_memory())
+            src_ok = ((it->src_bitmask.mems[src_id.memory_mem_idx() >> 6] &
+                       (uint64_t(1) << (src_id.memory_mem_idx() & 63))) != 0);
+          else if(src_id.is_ib_memory())
+            src_ok = ((it->src_bitmask.ib_mems[src_id.memory_mem_idx() >> 6] &
+                       (uint64_t(1) << (src_id.memory_mem_idx() & 63))) != 0);
+          else
+            src_ok = false; // consider asserting on a non-memory ID?
+        } else
+          src_ok = false;
+        break;
+      }
+      }
+      if(!src_ok)
+        continue;
+
+      bool dst_ok = false;
+      switch(it->dst_type) {
+      case SupportedPath::SPECIFIC_MEMORY:
+      {
+        dst_ok = (dst_mem == it->dst_mem);
+        break;
+      }
+      case SupportedPath::LOCAL_KIND:
+      {
+        dst_ok = ((dst_mem.kind() == it->dst_kind) &&
+                  (NodeID(ID(dst_mem).memory_owner_node()) == node));
+        break;
+      }
+      case SupportedPath::GLOBAL_KIND:
+      {
+        dst_ok = (dst_mem.kind() == it->dst_kind);
+        break;
+      }
+      case SupportedPath::LOCAL_RDMA:
+      {
+        if(NodeID(ID(dst_mem).memory_owner_node()) == node) {
+          MemoryImpl *dst_impl = get_runtime()->get_memory_impl(dst_mem);
+          assert(dst_impl != nullptr && "invalid memory handle");
+          // detection of rdma-ness depends on whether memory is
+          //  local/remote to us, not the channel
+          if(NodeID(ID(dst_mem).memory_owner_node()) == Network::my_node_id) {
+            dst_ok = (dst_impl->get_rdma_info(Network::single_network) != nullptr);
+          } else {
+            RemoteAddress dummy;
+            dst_ok = dst_impl->get_remote_addr(0, dummy);
+          }
+        }
+        break;
+      }
+      case SupportedPath::REMOTE_RDMA:
+      {
+        if(NodeID(ID(dst_mem).memory_owner_node()) != node) {
+          MemoryImpl *dst_impl = get_runtime()->get_memory_impl(dst_mem);
+          assert(dst_impl != nullptr && "invalid memory handle");
+          // detection of rdma-ness depends on whether memory is
+          //  local/remote to us, not the channel
+          if(NodeID(ID(dst_mem).memory_owner_node()) == Network::my_node_id) {
+            dst_ok = (dst_impl->get_rdma_info(Network::single_network) != nullptr);
+          } else {
+            RemoteAddress dummy;
+            dst_ok = dst_impl->get_remote_addr(0, dummy);
+          }
+        }
+        break;
+      }
+      case SupportedPath::MEMORY_BITMASK:
+      {
+        ID dst_id(dst_mem);
+        if(NodeID(dst_id.memory_owner_node()) == it->dst_bitmask.node) {
+          if(dst_id.is_memory())
+            dst_ok = ((it->dst_bitmask.mems[dst_id.memory_mem_idx() >> 6] &
+                       (uint64_t(1) << (dst_id.memory_mem_idx() & 63))) != 0);
+          else if(dst_id.is_ib_memory())
+            dst_ok = ((it->dst_bitmask.ib_mems[dst_id.memory_mem_idx() >> 6] &
+                       (uint64_t(1) << (dst_id.memory_mem_idx() & 63))) != 0);
+          else
+            dst_ok = false; // consider asserting on a non-memory ID?
+        } else
+          dst_ok = false;
+        break;
+      }
+      }
+      if(!dst_ok)
+        continue;
+
+      // match
+      if(kind_ret) {
+        *kind_ret = it->xd_kind;
+      }
+      if(bw_ret) {
+        *bw_ret = it->bandwidth;
+      }
+      if(lat_ret) {
+        *lat_ret = it->latency;
       }
 
-      void Channel::print(std::ostream& os) const
-      {
-	os << "channel{ node=" << node << " kind=" << kind << " paths=[";
-	if(!paths.empty()) {
-	  for(std::vector<SupportedPath>::const_iterator it = paths.begin();
-	      it != paths.end();
-	      ++it)
-	    os << "\n    " << *it;
-	  os << "\n";
-	}
-	os << "] }";
+      // estimate transfer time
+      uint64_t xfer_time = uint64_t(total_bytes) * 1000 / it->bandwidth;
+      size_t frags = 1;
+      if(src_frags) {
+        frags = std::max(
+            frags,
+            (*src_frags)[std::min<size_t>(src_frags->size() - 1, it->max_src_dim)]);
       }
-
-      const std::vector<Channel::SupportedPath>& Channel::get_paths(void) const
-      {
-	return paths;
+      if(dst_frags) {
+        frags = std::max(
+            frags,
+            (*dst_frags)[std::min<size_t>(dst_frags->size() - 1, it->max_dst_dim)]);
       }
+      xfer_time += uint64_t(frags) * it->frag_overhead;
 
-      uint64_t Channel::supports_path(ChannelCopyInfo channel_copy_info,
-                                      CustomSerdezID src_serdez_id,
-                                      CustomSerdezID dst_serdez_id,
-                                      ReductionOpID redop_id, size_t total_bytes,
-                                      const std::vector<size_t> *src_frags,
-                                      const std::vector<size_t> *dst_frags,
-                                      XferDesKind *kind_ret /*= 0*/,
-                                      unsigned *bw_ret /*= 0*/, unsigned *lat_ret /*= 0*/)
-      {
-        Memory src_mem = channel_copy_info.src_mem;
-        Memory dst_mem = channel_copy_info.dst_mem;
-        if(!supports_redop(redop_id)) {
-          return 0;
-        }
-        // If we don't support the indirection memory, then no need to check the paths.
-        if((channel_copy_info.ind_mem != Memory::NO_MEMORY) &&
-           !supports_indirection_memory(channel_copy_info.ind_mem)) {
-          return 0;
-        }
-        for(std::vector<SupportedPath>::const_iterator it = paths.begin();
-            it != paths.end(); ++it) {
-          if(!it->serdez_allowed && ((src_serdez_id != 0) || (dst_serdez_id != 0)))
-            continue;
-          if(!it->redops_allowed && (redop_id != 0))
-            continue;
+      // make sure returned value is strictly positive
+      return std::max<uint64_t>(xfer_time, 1);
+    }
 
-          bool src_ok = false;
-          switch(it->src_type) {
-          case SupportedPath::SPECIFIC_MEMORY:
-          {
-            src_ok = (src_mem == it->src_mem);
-            break;
-          }
-          case SupportedPath::LOCAL_KIND:
-          {
-            src_ok = (src_mem.exists() && (src_mem.kind() == it->src_kind) &&
-                      (NodeID(ID(src_mem).memory_owner_node()) == node));
-            break;
-          }
-          case SupportedPath::GLOBAL_KIND:
-          {
-            src_ok = (src_mem.exists() && (src_mem.kind() == it->src_kind));
-            break;
-          }
-          case SupportedPath::LOCAL_RDMA:
-          {
-            if(src_mem.exists() && (NodeID(ID(src_mem).memory_owner_node()) == node)) {
-              MemoryImpl *src_impl = get_runtime()->get_memory_impl(src_mem);
-              assert(src_impl != nullptr && "invalid memory handle");
-              // detection of rdma-ness depends on whether memory is
-              //  local/remote to us, not the channel
-              if(NodeID(ID(src_mem).memory_owner_node()) == Network::my_node_id) {
-                src_ok = (src_impl->get_rdma_info(Network::single_network) != nullptr);
-              } else {
-                RemoteAddress dummy;
-                src_ok = src_impl->get_remote_addr(0, dummy);
-              }
-            }
-            break;
-          }
-          case SupportedPath::REMOTE_RDMA:
-          {
-            if(src_mem.exists() && (NodeID(ID(src_mem).memory_owner_node()) != node)) {
-              MemoryImpl *src_impl = get_runtime()->get_memory_impl(src_mem);
-              assert(src_impl != nullptr && "invalid memory handle");
-              // detection of rdma-ness depends on whether memory is
-              //  local/remote to us, not the channel
-              if(NodeID(ID(src_mem).memory_owner_node()) == Network::my_node_id) {
-                src_ok = (src_impl->get_rdma_info(Network::single_network) != nullptr);
-              } else {
-                RemoteAddress dummy;
-                src_ok = src_impl->get_remote_addr(0, dummy);
-              }
-            }
-            break;
-          }
-          case SupportedPath::MEMORY_BITMASK:
-          {
-            ID src_id(src_mem);
-            if(NodeID(src_id.memory_owner_node()) == it->src_bitmask.node) {
-              if(src_id.is_memory())
-                src_ok = ((it->src_bitmask.mems[src_id.memory_mem_idx() >> 6] &
-                           (uint64_t(1) << (src_id.memory_mem_idx() & 63))) != 0);
-              else if(src_id.is_ib_memory())
-                src_ok = ((it->src_bitmask.ib_mems[src_id.memory_mem_idx() >> 6] &
-                           (uint64_t(1) << (src_id.memory_mem_idx() & 63))) != 0);
-              else
-                src_ok = false; // consider asserting on a non-memory ID?
-            } else
-              src_ok = false;
-            break;
-          }
-          }
-          if(!src_ok)
-            continue;
+    return 0;
+  }
 
-          bool dst_ok = false;
-          switch(it->dst_type) {
-          case SupportedPath::SPECIFIC_MEMORY:
-          {
-            dst_ok = (dst_mem == it->dst_mem);
-            break;
-          }
-          case SupportedPath::LOCAL_KIND:
-          {
-            dst_ok = ((dst_mem.kind() == it->dst_kind) &&
-                      (NodeID(ID(dst_mem).memory_owner_node()) == node));
-            break;
-          }
-          case SupportedPath::GLOBAL_KIND:
-          {
-            dst_ok = (dst_mem.kind() == it->dst_kind);
-            break;
-          }
-          case SupportedPath::LOCAL_RDMA:
-          {
-            if(NodeID(ID(dst_mem).memory_owner_node()) == node) {
-              MemoryImpl *dst_impl = get_runtime()->get_memory_impl(dst_mem);
-              assert(dst_impl != nullptr && "invalid memory handle");
-              // detection of rdma-ness depends on whether memory is
-              //  local/remote to us, not the channel
-              if(NodeID(ID(dst_mem).memory_owner_node()) == Network::my_node_id) {
-                dst_ok = (dst_impl->get_rdma_info(Network::single_network) != nullptr);
-              } else {
-                RemoteAddress dummy;
-                dst_ok = dst_impl->get_remote_addr(0, dummy);
-              }
-            }
-            break;
-          }
-          case SupportedPath::REMOTE_RDMA:
-          {
-            if(NodeID(ID(dst_mem).memory_owner_node()) != node) {
-              MemoryImpl *dst_impl = get_runtime()->get_memory_impl(dst_mem);
-              assert(dst_impl != nullptr && "invalid memory handle");
-              // detection of rdma-ness depends on whether memory is
-              //  local/remote to us, not the channel
-              if(NodeID(ID(dst_mem).memory_owner_node()) == Network::my_node_id) {
-                dst_ok = (dst_impl->get_rdma_info(Network::single_network) != nullptr);
-              } else {
-                RemoteAddress dummy;
-                dst_ok = dst_impl->get_remote_addr(0, dummy);
-              }
-            }
-            break;
-          }
-          case SupportedPath::MEMORY_BITMASK:
-          {
-            ID dst_id(dst_mem);
-            if(NodeID(dst_id.memory_owner_node()) == it->dst_bitmask.node) {
-              if(dst_id.is_memory())
-                dst_ok = ((it->dst_bitmask.mems[dst_id.memory_mem_idx() >> 6] &
-                           (uint64_t(1) << (dst_id.memory_mem_idx() & 63))) != 0);
-              else if(dst_id.is_ib_memory())
-                dst_ok = ((it->dst_bitmask.ib_mems[dst_id.memory_mem_idx() >> 6] &
-                           (uint64_t(1) << (dst_id.memory_mem_idx() & 63))) != 0);
-              else
-                dst_ok = false; // consider asserting on a non-memory ID?
-            } else
-              dst_ok = false;
-            break;
-          }
-          }
-          if(!dst_ok)
-            continue;
-
-          // match
-          if(kind_ret) {
-            *kind_ret = it->xd_kind;
-          }
-          if(bw_ret) {
-            *bw_ret = it->bandwidth;
-          }
-          if(lat_ret) {
-            *lat_ret = it->latency;
-          }
-
-          // estimate transfer time
-          uint64_t xfer_time = uint64_t(total_bytes) * 1000 / it->bandwidth;
-          size_t frags = 1;
-          if(src_frags) {
-            frags = std::max(
-                frags,
-                (*src_frags)[std::min<size_t>(src_frags->size() - 1, it->max_src_dim)]);
-          }
-          if(dst_frags) {
-            frags = std::max(
-                frags,
-                (*dst_frags)[std::min<size_t>(dst_frags->size() - 1, it->max_dst_dim)]);
-          }
-          xfer_time += uint64_t(frags) * it->frag_overhead;
-
-          // make sure returned value is strictly positive
-          return std::max<uint64_t>(xfer_time, 1);
-        }
-
-        return 0;
-      }
-
-      bool Channel::supports_indirection_memory(Memory memory) const
-      {
-        ID id_mem(memory);
-        // TODO: This should just be a query on the memory if it's mapped and accessible
-        // locally by a CPU on this node.
-        if(node == Network::my_node_id) {
-          // This check is only valid for local channels.
-          switch(memory.kind()) {
-          case Memory::GPU_DYNAMIC_MEM:
-          case Memory::GPU_FB_MEM:
-            return false;
-          default:
-          {
-            if(NodeID(id_mem.memory_owner_node()) == node) {
-              // Local memories are always accessible
-              return true;
-            } else {
-              // Check if we have a remote memory mapping (HACK: should check the
-              // MemoryImpl)
-              return get_runtime()->remote_shared_memory_mappings.count(memory.id) > 0;
-            }
-          }
-          }
-        } else {
-          assert(0 && "Should not be called on remote channels!");
-        }
+  bool Channel::supports_indirection_memory(Memory memory) const
+  {
+    ID id_mem(memory);
+    // TODO: This should just be a query on the memory if it's mapped and accessible
+    // locally by a CPU on this node.
+    if(node == Network::my_node_id) {
+      // This check is only valid for local channels.
+      switch(memory.kind()) {
+      case Memory::GPU_DYNAMIC_MEM:
+      case Memory::GPU_FB_MEM:
         return false;
-      }
-
-      static Memory find_sysmem_ib_memory(NodeID node)
+      default:
       {
-        Node &n = get_runtime()->nodes[node];
-        for(std::vector<IBMemory *>::const_iterator it = n.ib_memories.begin();
-            it != n.ib_memories.end(); ++it) {
-          switch((*it)->lowlevel_kind) {
-          case Memory::SYSTEM_MEM:
-          case Memory::REGDMA_MEM:
-          case Memory::SOCKET_MEM:
-          case Memory::Z_COPY_MEM:
-            return (*it)->me;
-          default:
-            break;
-          }
-        }
-        log_new_dma.fatal() << "no sysmem ib memory on node:" << node;
-        abort();
-        return Memory::NO_MEMORY;
-      }
-
-      Memory Channel::suggest_ib_memories() const { return find_sysmem_ib_memory(node); }
-
-      Memory Channel::suggest_ib_memories_for_node(NodeID node_id) const
-      {
-        return find_sysmem_ib_memory(node_id);
-      }
-
-      // sometimes we need to return a reference to a SupportedPath that won't
-      //  actually be added to a channel
-      Channel::SupportedPath dummy_supported_path;
-
-      Channel::SupportedPath& Channel::add_path(span<const Memory> src_mems,
-                                                span<const Memory> dst_mems,
-                                                unsigned bandwidth, unsigned latency,
-                                                unsigned frag_overhead,
-                                                XferDesKind xd_kind)
-      {
-        NodeSet src_nodes;
-        for(size_t i = 0; i < src_mems.size(); i++)
-          if(src_mems[i].exists())
-            src_nodes.add(ID(src_mems[i]).memory_owner_node());
-          else
-            src_nodes.add(Network::max_node_id + 1);  // src fill placeholder
-
-        NodeSet dst_nodes;
-        for(size_t i = 0; i < dst_mems.size(); i++)
-          if(dst_mems[i].exists())
-            dst_nodes.add(ID(dst_mems[i]).memory_owner_node());
-
-        if(src_nodes.empty() || dst_nodes.empty()) {
-          // don't actually add a path
-          return dummy_supported_path;
-        }
-
-        size_t num_new = src_nodes.size() * dst_nodes.size();
-	size_t first_idx = paths.size();
-	paths.resize(first_idx + num_new);
-
-        SupportedPath *cur_sp = &paths[first_idx];
-        NodeSetIterator src_iter = src_nodes.begin();
-        NodeSetIterator dst_iter = dst_nodes.begin();
-
-        while(true) {
-          if(src_mems.size() == 1) {
-            cur_sp->src_type = SupportedPath::SPECIFIC_MEMORY;
-            cur_sp->src_mem = src_mems[0];
-          } else if(*src_iter > Network::max_node_id) {
-            cur_sp->src_type = SupportedPath::SPECIFIC_MEMORY;
-            cur_sp->src_mem = Memory::NO_MEMORY; // src fill
-          } else {
-            cur_sp->src_type = SupportedPath::MEMORY_BITMASK;
-            cur_sp->populate_memory_bitmask(src_mems, *src_iter, cur_sp->src_bitmask);
-          }
-
-          if(dst_mems.size() == 1) {
-            cur_sp->dst_type = SupportedPath::SPECIFIC_MEMORY;
-            cur_sp->dst_mem = dst_mems[0];
-          } else {
-            cur_sp->dst_type = SupportedPath::MEMORY_BITMASK;
-            cur_sp->populate_memory_bitmask(dst_mems, *dst_iter, cur_sp->dst_bitmask);
-          }
-
-          cur_sp->bandwidth = bandwidth;
-          cur_sp->latency = latency;
-          cur_sp->frag_overhead = frag_overhead;
-          cur_sp->max_src_dim = cur_sp->max_dst_dim = 1; // default
-          cur_sp->redops_allowed = false; // default
-          cur_sp->serdez_allowed = false; // default
-          cur_sp->xd_kind = xd_kind;
-
-          // bump iterators, wrapping dst if not done with src
-          ++dst_iter;
-          if(dst_iter == dst_nodes.end()) {
-            ++src_iter;
-            if(src_iter == src_nodes.end()) {
-              // end of chain and of loop
-              cur_sp->chain = 0;
-              break;
-            }
-            dst_iter = dst_nodes.begin();
-          }
-          // not end of chain, so connect to next before bumping current pointer
-          cur_sp->chain = cur_sp + 1;
-          ++cur_sp;
-        }
-#ifdef DEBUG_REALM
-        assert(cur_sp == (paths.data() + paths.size() - 1));
-#endif
-        // return reference to beginning of chain
-        return paths[first_idx];
-      }
-
-      Channel::SupportedPath& Channel::add_path(span<const Memory> src_mems,
-                                                Memory::Kind dst_kind, bool dst_global,
-                                                unsigned bandwidth, unsigned latency,
-                                                unsigned frag_overhead,
-                                                XferDesKind xd_kind)
-      {
-        NodeSet src_nodes;
-        for(size_t i = 0; i < src_mems.size(); i++)
-          if(src_mems[i].exists())
-            src_nodes.add(ID(src_mems[i]).memory_owner_node());
-          else
-            src_nodes.add(Network::max_node_id + 1);  // src fill placeholder
-
-        if(src_nodes.empty()) {
-          // don't actually add a path
-          return dummy_supported_path;
-        }
-
-        size_t num_new = src_nodes.size();
-	size_t first_idx = paths.size();
-	paths.resize(first_idx + num_new);
-
-        SupportedPath *cur_sp = &paths[first_idx];
-        NodeSetIterator src_iter = src_nodes.begin();
-
-        while(true) {
-          if(src_mems.size() == 1) {
-            cur_sp->src_type = SupportedPath::SPECIFIC_MEMORY;
-            cur_sp->src_mem = src_mems[0];
-          } else if(*src_iter > Network::max_node_id) {
-            cur_sp->src_type = SupportedPath::SPECIFIC_MEMORY;
-            cur_sp->src_mem = Memory::NO_MEMORY; // src fill
-          } else {
-            cur_sp->src_type = SupportedPath::MEMORY_BITMASK;
-            cur_sp->populate_memory_bitmask(src_mems, *src_iter, cur_sp->src_bitmask);
-          }
-
-          cur_sp->dst_type = (dst_global ? SupportedPath::GLOBAL_KIND :
-                                           SupportedPath::LOCAL_KIND);
-          cur_sp->dst_kind = dst_kind;
-
-          cur_sp->bandwidth = bandwidth;
-          cur_sp->latency = latency;
-          cur_sp->frag_overhead = frag_overhead;
-          cur_sp->max_src_dim = cur_sp->max_dst_dim = 1; // default
-          cur_sp->redops_allowed = false; // default
-          cur_sp->serdez_allowed = false; // default
-          cur_sp->xd_kind = xd_kind;
-
-          ++src_iter;
-          if(src_iter == src_nodes.end()) {
-            // end of chain and of loop
-            cur_sp->chain = 0;
-            break;
-          }
-
-          // not end of chain, so connect to next before bumping current pointer
-          cur_sp->chain = cur_sp + 1;
-          ++cur_sp;
-        }
-#ifdef DEBUG_REALM
-        assert(cur_sp == (paths.data() + paths.size() - 1));
-#endif
-        // return reference to beginning of chain
-        return paths[first_idx];
-      }
-
-      Channel::SupportedPath& Channel::add_path(Memory::Kind src_kind, bool src_global,
-                                                span<const Memory> dst_mems,
-                                                unsigned bandwidth, unsigned latency,
-                                                unsigned frag_overhead,
-                                                XferDesKind xd_kind)
-      {
-        NodeSet dst_nodes;
-        for(size_t i = 0; i < dst_mems.size(); i++)
-          if(dst_mems[i].exists())
-            dst_nodes.add(ID(dst_mems[i]).memory_owner_node());
-
-        if(dst_nodes.empty()) {
-          // don't actually add a path
-          return dummy_supported_path;
-        }
-
-        size_t num_new = dst_nodes.size();
-	size_t first_idx = paths.size();
-	paths.resize(first_idx + num_new);
-
-        SupportedPath *cur_sp = &paths[first_idx];
-        NodeSetIterator dst_iter = dst_nodes.begin();
-
-        while(true) {
-          cur_sp->src_type = (src_global ? SupportedPath::GLOBAL_KIND :
-                                           SupportedPath::LOCAL_KIND);
-          cur_sp->src_kind = src_kind;
-
-          if(dst_mems.size() == 1) {
-            cur_sp->dst_type = SupportedPath::SPECIFIC_MEMORY;
-            cur_sp->dst_mem = dst_mems[0];
-          } else {
-            cur_sp->dst_type = SupportedPath::MEMORY_BITMASK;
-            cur_sp->populate_memory_bitmask(dst_mems, *dst_iter, cur_sp->dst_bitmask);
-          }
-
-          cur_sp->bandwidth = bandwidth;
-          cur_sp->latency = latency;
-          cur_sp->frag_overhead = frag_overhead;
-          cur_sp->max_src_dim = cur_sp->max_dst_dim = 1; // default
-          cur_sp->redops_allowed = false; // default
-          cur_sp->serdez_allowed = false; // default
-          cur_sp->xd_kind = xd_kind;
-
-          ++dst_iter;
-          if(dst_iter == dst_nodes.end()) {
-            // end of chain and of loop
-            cur_sp->chain = 0;
-            break;
-          }
-
-          // not end of chain, so connect to next before bumping current pointer
-          cur_sp->chain = cur_sp + 1;
-          ++cur_sp;
-        }
-#ifdef DEBUG_REALM
-        assert(cur_sp == (paths.data() + paths.size() - 1));
-#endif
-        // return reference to beginning of chain
-        return paths[first_idx];
-      }
-
-      Channel::SupportedPath& Channel::add_path(Memory::Kind src_kind, bool src_global,
-                                                Memory::Kind dst_kind, bool dst_global,
-                                                unsigned bandwidth, unsigned latency,
-                                                unsigned frag_overhead,
-                                                XferDesKind xd_kind)
-      {
-	size_t idx = paths.size();
-	paths.resize(idx + 1);
-	SupportedPath &p = paths[idx];
-        p.chain = 0;
-
-	p.src_type = (src_global ? SupportedPath::GLOBAL_KIND :
-		                   SupportedPath::LOCAL_KIND);
-	p.src_kind = src_kind;
-	p.dst_type = (dst_global ? SupportedPath::GLOBAL_KIND :
-		                   SupportedPath::LOCAL_KIND);
-	p.dst_kind = dst_kind;
-	p.bandwidth = bandwidth;
-	p.latency = latency;
-        p.frag_overhead = frag_overhead;
-        p.max_src_dim = p.max_dst_dim = 1; // default
-	p.redops_allowed = false; // default
-	p.serdez_allowed = false; // default
-	p.xd_kind = xd_kind;
-        return p;
-      }
-
-      // TODO: allow rdma path to limit by kind?
-      Channel::SupportedPath& Channel::add_path(bool local_loopback,
-                                                unsigned bandwidth, unsigned latency,
-                                                unsigned frag_overhead,
-                                                XferDesKind xd_kind)
-      {
-	size_t idx = paths.size();
-	paths.resize(idx + 1);
-	SupportedPath &p = paths[idx];
-        p.chain = 0;
-
-	p.src_type = SupportedPath::LOCAL_RDMA;
-	p.dst_type = (local_loopback ? SupportedPath::LOCAL_RDMA :
-		                       SupportedPath::REMOTE_RDMA);
-	p.bandwidth = bandwidth;
-	p.latency = latency;
-        p.frag_overhead = frag_overhead;
-        p.max_src_dim = p.max_dst_dim = 1; // default
-	p.redops_allowed = false; // default
-	p.serdez_allowed = false; // default
-	p.xd_kind = xd_kind;
-        return p;
-      }
-
-      bool Channel::supports_redop(ReductionOpID redop_id) const
-      {
-        if(redop_id == 0) {
+        if(NodeID(id_mem.memory_owner_node()) == node) {
+          // Local memories are always accessible
           return true;
+        } else {
+          // Check if we have a remote memory mapping (HACK: should check the
+          // MemoryImpl)
+          return get_runtime()->remote_shared_memory_mappings.count(memory.id) > 0;
         }
+      }
+      }
+    } else {
+      assert(0 && "Should not be called on remote channels!");
+    }
+    return false;
+  }
 
-        for(const SupportedPath &path : paths) {
-          if(path.redops_allowed) {
-            return true;
-          }
-        }
+  static Memory find_sysmem_ib_memory(NodeID node)
+  {
+    Node &n = get_runtime()->nodes[node];
+    for(std::vector<IBMemory *>::const_iterator it = n.ib_memories.begin();
+        it != n.ib_memories.end(); ++it) {
+      switch((*it)->lowlevel_kind) {
+      case Memory::SYSTEM_MEM:
+      case Memory::REGDMA_MEM:
+      case Memory::SOCKET_MEM:
+      case Memory::Z_COPY_MEM:
+        return (*it)->me;
+      default:
+        break;
+      }
+    }
+    log_new_dma.fatal() << "no sysmem ib memory on node:" << node;
+    abort();
+    return Memory::NO_MEMORY;
+  }
 
-        return false;
+  Memory Channel::suggest_ib_memories() const { return find_sysmem_ib_memory(node); }
+
+  Memory Channel::suggest_ib_memories_for_node(NodeID node_id) const
+  {
+    return find_sysmem_ib_memory(node_id);
+  }
+
+  // sometimes we need to return a reference to a SupportedPath that won't
+  //  actually be added to a channel
+  Channel::SupportedPath dummy_supported_path;
+
+  Channel::SupportedPath &Channel::add_path(span<const Memory> src_mems,
+                                            span<const Memory> dst_mems,
+                                            unsigned bandwidth, unsigned latency,
+                                            unsigned frag_overhead, XferDesKind xd_kind)
+  {
+    NodeSet src_nodes;
+    for(size_t i = 0; i < src_mems.size(); i++)
+      if(src_mems[i].exists())
+        src_nodes.add(ID(src_mems[i]).memory_owner_node());
+      else
+        src_nodes.add(Network::max_node_id + 1); // src fill placeholder
+
+    NodeSet dst_nodes;
+    for(size_t i = 0; i < dst_mems.size(); i++)
+      if(dst_mems[i].exists())
+        dst_nodes.add(ID(dst_mems[i]).memory_owner_node());
+
+    if(src_nodes.empty() || dst_nodes.empty()) {
+      // don't actually add a path
+      return dummy_supported_path;
+    }
+
+    size_t num_new = src_nodes.size() * dst_nodes.size();
+    size_t first_idx = paths.size();
+    paths.resize(first_idx + num_new);
+
+    SupportedPath *cur_sp = &paths[first_idx];
+    NodeSetIterator src_iter = src_nodes.begin();
+    NodeSetIterator dst_iter = dst_nodes.begin();
+
+    while(true) {
+      if(src_mems.size() == 1) {
+        cur_sp->src_type = SupportedPath::SPECIFIC_MEMORY;
+        cur_sp->src_mem = src_mems[0];
+      } else if(*src_iter > Network::max_node_id) {
+        cur_sp->src_type = SupportedPath::SPECIFIC_MEMORY;
+        cur_sp->src_mem = Memory::NO_MEMORY; // src fill
+      } else {
+        cur_sp->src_type = SupportedPath::MEMORY_BITMASK;
+        cur_sp->populate_memory_bitmask(src_mems, *src_iter, cur_sp->src_bitmask);
       }
 
-      long Channel::progress_xd(XferDes *xd, long max_nr)
-      {
-	const long MAX_NR = 8;
-	Request *requests[MAX_NR];
-	long nr_got = xd->get_requests(requests, std::min(max_nr, MAX_NR));
-	if(nr_got == 0) return 0;
-	long nr_submitted = submit(requests, nr_got);
-	assert(nr_got == nr_submitted);
-	return nr_submitted;
+      if(dst_mems.size() == 1) {
+        cur_sp->dst_type = SupportedPath::SPECIFIC_MEMORY;
+        cur_sp->dst_mem = dst_mems[0];
+      } else {
+        cur_sp->dst_type = SupportedPath::MEMORY_BITMASK;
+        cur_sp->populate_memory_bitmask(dst_mems, *dst_iter, cur_sp->dst_bitmask);
       }
+
+      cur_sp->bandwidth = bandwidth;
+      cur_sp->latency = latency;
+      cur_sp->frag_overhead = frag_overhead;
+      cur_sp->max_src_dim = cur_sp->max_dst_dim = 1; // default
+      cur_sp->redops_allowed = false;                // default
+      cur_sp->serdez_allowed = false;                // default
+      cur_sp->xd_kind = xd_kind;
+
+      // bump iterators, wrapping dst if not done with src
+      ++dst_iter;
+      if(dst_iter == dst_nodes.end()) {
+        ++src_iter;
+        if(src_iter == src_nodes.end()) {
+          // end of chain and of loop
+          cur_sp->chain = 0;
+          break;
+        }
+        dst_iter = dst_nodes.begin();
+      }
+      // not end of chain, so connect to next before bumping current pointer
+      cur_sp->chain = cur_sp + 1;
+      ++cur_sp;
+    }
+#ifdef DEBUG_REALM
+    assert(cur_sp == (paths.data() + paths.size() - 1));
+#endif
+    // return reference to beginning of chain
+    return paths[first_idx];
+  }
+
+  Channel::SupportedPath &Channel::add_path(span<const Memory> src_mems,
+                                            Memory::Kind dst_kind, bool dst_global,
+                                            unsigned bandwidth, unsigned latency,
+                                            unsigned frag_overhead, XferDesKind xd_kind)
+  {
+    NodeSet src_nodes;
+    for(size_t i = 0; i < src_mems.size(); i++)
+      if(src_mems[i].exists())
+        src_nodes.add(ID(src_mems[i]).memory_owner_node());
+      else
+        src_nodes.add(Network::max_node_id + 1); // src fill placeholder
+
+    if(src_nodes.empty()) {
+      // don't actually add a path
+      return dummy_supported_path;
+    }
+
+    size_t num_new = src_nodes.size();
+    size_t first_idx = paths.size();
+    paths.resize(first_idx + num_new);
+
+    SupportedPath *cur_sp = &paths[first_idx];
+    NodeSetIterator src_iter = src_nodes.begin();
+
+    while(true) {
+      if(src_mems.size() == 1) {
+        cur_sp->src_type = SupportedPath::SPECIFIC_MEMORY;
+        cur_sp->src_mem = src_mems[0];
+      } else if(*src_iter > Network::max_node_id) {
+        cur_sp->src_type = SupportedPath::SPECIFIC_MEMORY;
+        cur_sp->src_mem = Memory::NO_MEMORY; // src fill
+      } else {
+        cur_sp->src_type = SupportedPath::MEMORY_BITMASK;
+        cur_sp->populate_memory_bitmask(src_mems, *src_iter, cur_sp->src_bitmask);
+      }
+
+      cur_sp->dst_type =
+          (dst_global ? SupportedPath::GLOBAL_KIND : SupportedPath::LOCAL_KIND);
+      cur_sp->dst_kind = dst_kind;
+
+      cur_sp->bandwidth = bandwidth;
+      cur_sp->latency = latency;
+      cur_sp->frag_overhead = frag_overhead;
+      cur_sp->max_src_dim = cur_sp->max_dst_dim = 1; // default
+      cur_sp->redops_allowed = false;                // default
+      cur_sp->serdez_allowed = false;                // default
+      cur_sp->xd_kind = xd_kind;
+
+      ++src_iter;
+      if(src_iter == src_nodes.end()) {
+        // end of chain and of loop
+        cur_sp->chain = 0;
+        break;
+      }
+
+      // not end of chain, so connect to next before bumping current pointer
+      cur_sp->chain = cur_sp + 1;
+      ++cur_sp;
+    }
+#ifdef DEBUG_REALM
+    assert(cur_sp == (paths.data() + paths.size() - 1));
+#endif
+    // return reference to beginning of chain
+    return paths[first_idx];
+  }
+
+  Channel::SupportedPath &Channel::add_path(Memory::Kind src_kind, bool src_global,
+                                            span<const Memory> dst_mems,
+                                            unsigned bandwidth, unsigned latency,
+                                            unsigned frag_overhead, XferDesKind xd_kind)
+  {
+    NodeSet dst_nodes;
+    for(size_t i = 0; i < dst_mems.size(); i++)
+      if(dst_mems[i].exists())
+        dst_nodes.add(ID(dst_mems[i]).memory_owner_node());
+
+    if(dst_nodes.empty()) {
+      // don't actually add a path
+      return dummy_supported_path;
+    }
+
+    size_t num_new = dst_nodes.size();
+    size_t first_idx = paths.size();
+    paths.resize(first_idx + num_new);
+
+    SupportedPath *cur_sp = &paths[first_idx];
+    NodeSetIterator dst_iter = dst_nodes.begin();
+
+    while(true) {
+      cur_sp->src_type =
+          (src_global ? SupportedPath::GLOBAL_KIND : SupportedPath::LOCAL_KIND);
+      cur_sp->src_kind = src_kind;
+
+      if(dst_mems.size() == 1) {
+        cur_sp->dst_type = SupportedPath::SPECIFIC_MEMORY;
+        cur_sp->dst_mem = dst_mems[0];
+      } else {
+        cur_sp->dst_type = SupportedPath::MEMORY_BITMASK;
+        cur_sp->populate_memory_bitmask(dst_mems, *dst_iter, cur_sp->dst_bitmask);
+      }
+
+      cur_sp->bandwidth = bandwidth;
+      cur_sp->latency = latency;
+      cur_sp->frag_overhead = frag_overhead;
+      cur_sp->max_src_dim = cur_sp->max_dst_dim = 1; // default
+      cur_sp->redops_allowed = false;                // default
+      cur_sp->serdez_allowed = false;                // default
+      cur_sp->xd_kind = xd_kind;
+
+      ++dst_iter;
+      if(dst_iter == dst_nodes.end()) {
+        // end of chain and of loop
+        cur_sp->chain = 0;
+        break;
+      }
+
+      // not end of chain, so connect to next before bumping current pointer
+      cur_sp->chain = cur_sp + 1;
+      ++cur_sp;
+    }
+#ifdef DEBUG_REALM
+    assert(cur_sp == (paths.data() + paths.size() - 1));
+#endif
+    // return reference to beginning of chain
+    return paths[first_idx];
+  }
+
+  Channel::SupportedPath &Channel::add_path(Memory::Kind src_kind, bool src_global,
+                                            Memory::Kind dst_kind, bool dst_global,
+                                            unsigned bandwidth, unsigned latency,
+                                            unsigned frag_overhead, XferDesKind xd_kind)
+  {
+    size_t idx = paths.size();
+    paths.resize(idx + 1);
+    SupportedPath &p = paths[idx];
+    p.chain = 0;
+
+    p.src_type = (src_global ? SupportedPath::GLOBAL_KIND : SupportedPath::LOCAL_KIND);
+    p.src_kind = src_kind;
+    p.dst_type = (dst_global ? SupportedPath::GLOBAL_KIND : SupportedPath::LOCAL_KIND);
+    p.dst_kind = dst_kind;
+    p.bandwidth = bandwidth;
+    p.latency = latency;
+    p.frag_overhead = frag_overhead;
+    p.max_src_dim = p.max_dst_dim = 1; // default
+    p.redops_allowed = false;          // default
+    p.serdez_allowed = false;          // default
+    p.xd_kind = xd_kind;
+    return p;
+  }
+
+  // TODO: allow rdma path to limit by kind?
+  Channel::SupportedPath &Channel::add_path(bool local_loopback, unsigned bandwidth,
+                                            unsigned latency, unsigned frag_overhead,
+                                            XferDesKind xd_kind)
+  {
+    size_t idx = paths.size();
+    paths.resize(idx + 1);
+    SupportedPath &p = paths[idx];
+    p.chain = 0;
+
+    p.src_type = SupportedPath::LOCAL_RDMA;
+    p.dst_type =
+        (local_loopback ? SupportedPath::LOCAL_RDMA : SupportedPath::REMOTE_RDMA);
+    p.bandwidth = bandwidth;
+    p.latency = latency;
+    p.frag_overhead = frag_overhead;
+    p.max_src_dim = p.max_dst_dim = 1; // default
+    p.redops_allowed = false;          // default
+    p.serdez_allowed = false;          // default
+    p.xd_kind = xd_kind;
+    return p;
+  }
+
+  bool Channel::supports_redop(ReductionOpID redop_id) const
+  {
+    if(redop_id == 0) {
+      return true;
+    }
+
+    for(const SupportedPath &path : paths) {
+      if(path.redops_allowed) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  long Channel::progress_xd(XferDes *xd, long max_nr)
+  {
+    const long MAX_NR = 8;
+    Request *requests[MAX_NR];
+    long nr_got = xd->get_requests(requests, std::min(max_nr, MAX_NR));
+    if(nr_got == 0)
+      return 0;
+    long nr_submitted = submit(requests, nr_got);
+    assert(nr_got == nr_submitted);
+    return nr_submitted;
+  }
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -3721,57 +3699,45 @@ namespace Realm {
 
   bool SimpleXferDesFactory::needs_release() { return false; }
 
-  void SimpleXferDesFactory::create_xfer_des(uintptr_t dma_op,
-					     NodeID launch_node,
-					     NodeID target_node,
-					     XferDesID guid,
-					     const std::vector<XferDesPortInfo>& inputs_info,
-					     const std::vector<XferDesPortInfo>& outputs_info,
-					     int priority,
-					     XferDesRedopInfo redop_info,
-					     const void *fill_data,
-					     size_t fill_size,
-                                             size_t fill_total)
+  void SimpleXferDesFactory::create_xfer_des(
+      uintptr_t dma_op, NodeID launch_node, NodeID target_node, XferDesID guid,
+      const std::vector<XferDesPortInfo> &inputs_info,
+      const std::vector<XferDesPortInfo> &outputs_info, int priority,
+      XferDesRedopInfo redop_info, const void *fill_data, size_t fill_size,
+      size_t fill_total)
   {
     if(target_node == Network::my_node_id) {
       // local creation
-      //assert(!inst.exists());
+      // assert(!inst.exists());
       LocalChannel *c = reinterpret_cast<LocalChannel *>(channel);
-      XferDes *xd = c->create_xfer_des(dma_op, launch_node, guid,
-				       inputs_info, outputs_info,
-				       priority, redop_info,
-				       fill_data, fill_size, fill_total);
+      XferDes *xd =
+          c->create_xfer_des(dma_op, launch_node, guid, inputs_info, outputs_info,
+                             priority, redop_info, fill_data, fill_size, fill_total);
 
       c->enqueue_ready_xd(xd);
     } else {
       // remote creation
       Serialization::ByteCountSerializer bcs;
       {
-	bool ok = ((bcs << inputs_info) &&
-		   (bcs << outputs_info) &&
-		   (bcs << priority) &&
-		   (bcs << redop_info) &&
-                   (bcs << fill_total));
-	if(ok && (fill_size > 0))
-	  ok = bcs.append_bytes(fill_data, fill_size);
-	assert(ok);
+        bool ok = ((bcs << inputs_info) && (bcs << outputs_info) && (bcs << priority) &&
+                   (bcs << redop_info) && (bcs << fill_total));
+        if(ok && (fill_size > 0))
+          ok = bcs.append_bytes(fill_data, fill_size);
+        assert(ok);
       }
       size_t req_size = bcs.bytes_used();
       ActiveMessage<SimpleXferDesCreateMessage> amsg(target_node, req_size);
-      //amsg->inst = inst;
+      // amsg->inst = inst;
       amsg->launch_node = launch_node;
       amsg->guid = guid;
       amsg->dma_op = dma_op;
       amsg->channel = channel;
       {
-	bool ok = ((amsg << inputs_info) &&
-		   (amsg << outputs_info) &&
-		   (amsg << priority) &&
-		   (amsg << redop_info) &&
-                   (amsg << fill_total));
-	if(ok && (fill_size > 0))
-	  amsg.add_payload(fill_data, fill_size);
-	assert(ok);
+        bool ok = ((amsg << inputs_info) && (amsg << outputs_info) &&
+                   (amsg << priority) && (amsg << redop_info) && (amsg << fill_total));
+        if(ok && (fill_size > 0))
+          amsg.add_payload(fill_data, fill_size);
+        assert(ok);
       }
       amsg.commit();
 
@@ -3779,27 +3745,24 @@ namespace Realm {
       //  by the local XferDes we create, but here we sent a copy, so delete
       //  the originals
       for(std::vector<XferDesPortInfo>::const_iterator it = inputs_info.begin();
-	  it != inputs_info.end();
-	  ++it)
-	delete it->iter;
+          it != inputs_info.end(); ++it)
+        delete it->iter;
 
       for(std::vector<XferDesPortInfo>::const_iterator it = outputs_info.begin();
-	  it != outputs_info.end();
-	  ++it)
-	delete it->iter;
+          it != outputs_info.end(); ++it)
+        delete it->iter;
     }
   }
-  
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class SimpleXferDesCreateMessage
   //
 
-  /*static*/ void SimpleXferDesCreateMessage::handle_message(NodeID sender,
-							     const SimpleXferDesCreateMessage &args,
-							     const void *msgdata,
-							     size_t msglen)
+  /*static*/ void
+  SimpleXferDesCreateMessage::handle_message(NodeID sender,
+                                             const SimpleXferDesCreateMessage &args,
+                                             const void *msgdata, size_t msglen)
   {
     std::vector<XferDesPortInfo> inputs_info, outputs_info;
     int priority = 0;
@@ -3808,11 +3771,8 @@ namespace Realm {
 
     Realm::Serialization::FixedBufferDeserializer fbd(msgdata, msglen);
 
-    bool ok = ((fbd >> inputs_info) &&
-	       (fbd >> outputs_info) &&
-	       (fbd >> priority) &&
-	       (fbd >> redop_info) &&
-               (fbd >> fill_total));
+    bool ok = ((fbd >> inputs_info) && (fbd >> outputs_info) && (fbd >> priority) &&
+               (fbd >> redop_info) && (fbd >> fill_total));
     assert(ok);
     const void *fill_data;
     size_t fill_size;
@@ -3823,42 +3783,38 @@ namespace Realm {
       fill_size = fbd.bytes_left();
       fill_data = fbd.peek_bytes(fill_size);
     }
-  
-    //assert(!args.inst.exists());
+
+    // assert(!args.inst.exists());
     LocalChannel *c = reinterpret_cast<LocalChannel *>(args.channel);
-    XferDes *xd = c->create_xfer_des(args.dma_op, args.launch_node,
-				     args.guid,
-				     inputs_info,
-				     outputs_info,
-				     priority,
-				     redop_info,
-				     fill_data, fill_size, fill_total);
+    XferDes *xd = c->create_xfer_des(args.dma_op, args.launch_node, args.guid,
+                                     inputs_info, outputs_info, priority, redop_info,
+                                     fill_data, fill_size, fill_total);
 
     c->enqueue_ready_xd(xd);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class NotifyXferDesCompleteMessage
   //
 
-  /*static*/ void NotifyXferDesCompleteMessage::handle_message(NodeID sender,
-							       const NotifyXferDesCompleteMessage &args,
-							       const void *data,
-							       size_t datalen)
+  /*static*/ void
+  NotifyXferDesCompleteMessage::handle_message(NodeID sender,
+                                               const NotifyXferDesCompleteMessage &args,
+                                               const void *data, size_t datalen)
   {
     args.op->notify_xd_completion(args.xd_id);
   }
 
-  /*static*/ void NotifyXferDesCompleteMessage::send_request(NodeID target, TransferOperation *op, XferDesID xd_id)
+  /*static*/ void NotifyXferDesCompleteMessage::send_request(NodeID target,
+                                                             TransferOperation *op,
+                                                             XferDesID xd_id)
   {
     ActiveMessage<NotifyXferDesCompleteMessage> amsg(target);
     amsg->op = op;
     amsg->xd_id = xd_id;
     amsg.commit();
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -3870,19 +3826,14 @@ namespace Realm {
     , factory_singleton(reinterpret_cast<uintptr_t>(this))
   {}
 
-  XferDesFactory *LocalChannel::get_factory()
-  {
-    return &factory_singleton;
-  }
-
+  XferDesFactory *LocalChannel::get_factory() { return &factory_singleton; }
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class SimpleRemoteChannelInfo
   //
 
-  SimpleRemoteChannelInfo::SimpleRemoteChannelInfo()
-  {}
+  SimpleRemoteChannelInfo::SimpleRemoteChannelInfo() {}
 
   SimpleRemoteChannelInfo::SimpleRemoteChannelInfo(
       NodeID _owner, XferDesKind _kind, uintptr_t _remote_ptr,
@@ -3895,10 +3846,9 @@ namespace Realm {
     , indirect_memories(_indirection_memories)
   {}
 
-  SimpleRemoteChannelInfo::SimpleRemoteChannelInfo(NodeID _owner,
-                                                   XferDesKind _kind,
-                                                   uintptr_t _remote_ptr,
-                                                   const std::vector<Channel::SupportedPath>& _paths)
+  SimpleRemoteChannelInfo::SimpleRemoteChannelInfo(
+      NodeID _owner, XferDesKind _kind, uintptr_t _remote_ptr,
+      const std::vector<Channel::SupportedPath> &_paths)
     : owner(_owner)
     , kind(_kind)
     , remote_ptr(_remote_ptr)
@@ -3915,8 +3865,8 @@ namespace Realm {
   }
 
   /*static*/ Serialization::PolymorphicSerdezSubclass<RemoteChannelInfo,
-                                                      SimpleRemoteChannelInfo> SimpleRemoteChannelInfo::serdez_subclass;
-
+                                                      SimpleRemoteChannelInfo>
+      SimpleRemoteChannelInfo::serdez_subclass;
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -4042,9 +3992,8 @@ namespace Realm {
   //
 
   MemfillChannel::MemfillChannel(BackgroundWorkManager *bgwork)
-    : SingleXDQChannel<MemfillChannel,MemfillXferDes>(bgwork,
-						      XFER_MEM_FILL,
-						      "memfill channel")
+    : SingleXDQChannel<MemfillChannel, MemfillXferDes>(bgwork, XFER_MEM_FILL,
+                                                       "memfill channel")
   {
     unsigned bw = 128000;         // HACK - estimate at 128 GB/s
     unsigned latency = 100;       // HACK - estimate at 100ns
@@ -4056,48 +4005,40 @@ namespace Realm {
     std::vector<Memory> remote_shared_mems;
     enumerate_remote_shared_mems(remote_shared_mems);
 
-    add_path(Memory::NO_MEMORY, local_cpu_mems,
-             bw, latency, frag_overhead, XFER_MEM_FILL)
-      .set_max_dim(3);
+    add_path(Memory::NO_MEMORY, local_cpu_mems, bw, latency, frag_overhead, XFER_MEM_FILL)
+        .set_max_dim(3);
 
-    if (remote_shared_mems.size() > 0) {
-      add_path(Memory::NO_MEMORY, remote_shared_mems,
-             bw, latency, frag_overhead, XFER_MEM_FILL)
-      .set_max_dim(3);
+    if(remote_shared_mems.size() > 0) {
+      add_path(Memory::NO_MEMORY, remote_shared_mems, bw, latency, frag_overhead,
+               XFER_MEM_FILL)
+          .set_max_dim(3);
     }
 
     xdq.add_to_manager(bgwork);
   }
 
-  MemfillChannel::~MemfillChannel()
-  {}
+  MemfillChannel::~MemfillChannel() {}
 
-  XferDes *MemfillChannel::create_xfer_des(uintptr_t dma_op,
-					   NodeID launch_node,
-					   XferDesID guid,
-					   const std::vector<XferDesPortInfo>& inputs_info,
-					   const std::vector<XferDesPortInfo>& outputs_info,
-					   int priority,
-					   XferDesRedopInfo redop_info,
-					   const void *fill_data,
-                                           size_t fill_size,
-                                           size_t fill_total)
+  XferDes *
+  MemfillChannel::create_xfer_des(uintptr_t dma_op, NodeID launch_node, XferDesID guid,
+                                  const std::vector<XferDesPortInfo> &inputs_info,
+                                  const std::vector<XferDesPortInfo> &outputs_info,
+                                  int priority, XferDesRedopInfo redop_info,
+                                  const void *fill_data, size_t fill_size,
+                                  size_t fill_total)
   {
     assert(redop_info.id == 0); // TODO: add support
     assert(fill_size > 0);
-    return new MemfillXferDes(dma_op, this, launch_node, guid,
-			      inputs_info, outputs_info,
-			      priority,
-			      fill_data, fill_size, fill_total);
+    return new MemfillXferDes(dma_op, this, launch_node, guid, inputs_info, outputs_info,
+                              priority, fill_data, fill_size, fill_total);
   }
 
-  long MemfillChannel::submit(Request** requests, long nr)
+  long MemfillChannel::submit(Request **requests, long nr)
   {
     // unused
     assert(0);
     return 0;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -4105,12 +4046,11 @@ namespace Realm {
   //
 
   MemreduceChannel::MemreduceChannel(BackgroundWorkManager *bgwork)
-    : SingleXDQChannel<MemreduceChannel,MemreduceXferDes>(bgwork,
-                                                          XFER_MEM_CPY,
-                                                          "memreduce channel")
+    : SingleXDQChannel<MemreduceChannel, MemreduceXferDes>(bgwork, XFER_MEM_CPY,
+                                                           "memreduce channel")
   {
-    unsigned bw = 1000; // HACK - estimate at 1 GB/s
-    unsigned latency = 100; // HACK - estimate at 100ns
+    unsigned bw = 1000;           // HACK - estimate at 1 GB/s
+    unsigned latency = 100;       // HACK - estimate at 100ns
     unsigned frag_overhead = 100; // HACK - estimate at 100ns
 
     // all local cpu memories are valid sources and dests
@@ -4119,16 +4059,15 @@ namespace Realm {
     std::vector<Memory> remote_shared_mems;
     enumerate_remote_shared_mems(remote_shared_mems);
 
-    add_path(local_cpu_mems, local_cpu_mems,
-             bw, latency, frag_overhead, XFER_MEM_CPY)
-      .set_max_dim(3)
-      .allow_redops();
-
-    if (remote_shared_mems.size() > 0) {
-      add_path(local_cpu_mems, remote_shared_mems,
-              bw, latency, frag_overhead, XFER_MEM_CPY)
+    add_path(local_cpu_mems, local_cpu_mems, bw, latency, frag_overhead, XFER_MEM_CPY)
         .set_max_dim(3)
         .allow_redops();
+
+    if(remote_shared_mems.size() > 0) {
+      add_path(local_cpu_mems, remote_shared_mems, bw, latency, frag_overhead,
+               XFER_MEM_CPY)
+          .set_max_dim(3)
+          .allow_redops();
     }
 
     xdq.add_to_manager(bgwork);
@@ -4139,634 +4078,604 @@ namespace Realm {
     return redop_id != 0;
   }
 
-  XferDes *MemreduceChannel::create_xfer_des(uintptr_t dma_op,
-                                             NodeID launch_node,
-                                             XferDesID guid,
-                                             const std::vector<XferDesPortInfo>& inputs_info,
-                                             const std::vector<XferDesPortInfo>& outputs_info,
-                                             int priority,
-                                             XferDesRedopInfo redop_info,
-                                             const void *fill_data,
-                                             size_t fill_size,
-                                             size_t fill_total)
+  XferDes *
+  MemreduceChannel::create_xfer_des(uintptr_t dma_op, NodeID launch_node, XferDesID guid,
+                                    const std::vector<XferDesPortInfo> &inputs_info,
+                                    const std::vector<XferDesPortInfo> &outputs_info,
+                                    int priority, XferDesRedopInfo redop_info,
+                                    const void *fill_data, size_t fill_size,
+                                    size_t fill_total)
   {
     assert(redop_info.id != 0); // redop is required
     assert(fill_size == 0);
-    return new MemreduceXferDes(dma_op, this, launch_node, guid,
-                                inputs_info, outputs_info,
-                                priority, redop_info);
+    return new MemreduceXferDes(dma_op, this, launch_node, guid, inputs_info,
+                                outputs_info, priority, redop_info);
   }
 
-  long MemreduceChannel::submit(Request** requests, long nr)
+  long MemreduceChannel::submit(Request **requests, long nr)
   {
     // unused
     assert(0);
     return 0;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class GASNetChannel
   //
 
-      // TODO: deprecate this channel/memory entirely
-      GASNetChannel::GASNetChannel(BackgroundWorkManager *bgwork,
-				   XferDesKind _kind)
-	: SingleXDQChannel<GASNetChannel, GASNetXferDes>(bgwork,
-							 _kind,
-							 stringbuilder() << "gasnet channel (kind= " << _kind << ")")
+  // TODO: deprecate this channel/memory entirely
+  GASNetChannel::GASNetChannel(BackgroundWorkManager *bgwork, XferDesKind _kind)
+    : SingleXDQChannel<GASNetChannel, GASNetXferDes>(
+          bgwork, _kind, stringbuilder() << "gasnet channel (kind= " << _kind << ")")
+  {
+    unsigned bw = 1000;            // HACK - estimate at 1 GB/s
+    unsigned latency = 5000;       // HACK - estimate at 5 us
+    unsigned frag_overhead = 1000; // HACK - estimate at 1 us
+
+    // all local cpu memories are valid sources/dests
+    std::vector<Memory> local_cpu_mems;
+    enumerate_local_cpu_memories(local_cpu_mems);
+
+    if(_kind == XFER_GASNET_READ)
+      add_path(Memory::GLOBAL_MEM, true, local_cpu_mems, bw, latency, frag_overhead,
+               XFER_GASNET_READ);
+    else
+      add_path(local_cpu_mems, Memory::GLOBAL_MEM, true, bw, latency, frag_overhead,
+               XFER_GASNET_WRITE);
+  }
+
+  GASNetChannel::~GASNetChannel() {}
+
+  XferDes *
+  GASNetChannel::create_xfer_des(uintptr_t dma_op, NodeID launch_node, XferDesID guid,
+                                 const std::vector<XferDesPortInfo> &inputs_info,
+                                 const std::vector<XferDesPortInfo> &outputs_info,
+                                 int priority, XferDesRedopInfo redop_info,
+                                 const void *fill_data, size_t fill_size,
+                                 size_t fill_total)
+  {
+    assert(redop_info.id == 0);
+    assert(fill_size == 0);
+    return new GASNetXferDes(dma_op, this, launch_node, guid, inputs_info, outputs_info,
+                             priority);
+  }
+
+  long GASNetChannel::submit(Request **requests, long nr)
+  {
+    for(long i = 0; i < nr; i++) {
+      GASNetRequest *req = (GASNetRequest *)requests[i];
+      // no serdez support
+      assert(req->xd->input_ports[req->src_port_idx].serdez_op == 0);
+      assert(req->xd->output_ports[req->dst_port_idx].serdez_op == 0);
+      switch(kind) {
+      case XFER_GASNET_READ:
       {
-	unsigned bw = 1000;  // HACK - estimate at 1 GB/s
-	unsigned latency = 5000; // HACK - estimate at 5 us
-        unsigned frag_overhead = 1000; // HACK - estimate at 1 us
-
-        // all local cpu memories are valid sources/dests
-        std::vector<Memory> local_cpu_mems;
-        enumerate_local_cpu_memories(local_cpu_mems);
-
-        if(_kind == XFER_GASNET_READ)
-          add_path(Memory::GLOBAL_MEM, true,
-                   local_cpu_mems,
-                   bw, latency, frag_overhead, XFER_GASNET_READ);
-        else
-          add_path(local_cpu_mems,
-                   Memory::GLOBAL_MEM, true,
-                   bw, latency, frag_overhead, XFER_GASNET_WRITE);
+        req->xd->input_ports[req->src_port_idx].mem->get_bytes(
+            req->gas_off, req->mem_base, req->nbytes);
+        break;
       }
-
-      GASNetChannel::~GASNetChannel()
+      case XFER_GASNET_WRITE:
       {
+        req->xd->output_ports[req->dst_port_idx].mem->put_bytes(
+            req->gas_off, req->mem_base, req->nbytes);
+        break;
       }
-
-      XferDes *GASNetChannel::create_xfer_des(uintptr_t dma_op,
-					      NodeID launch_node,
-					      XferDesID guid,
-					      const std::vector<XferDesPortInfo>& inputs_info,
-					      const std::vector<XferDesPortInfo>& outputs_info,
-					      int priority,
-					      XferDesRedopInfo redop_info,
-					      const void *fill_data,
-                                              size_t fill_size,
-                                              size_t fill_total)
-      {
-	assert(redop_info.id == 0);
-	assert(fill_size == 0);
-	return new GASNetXferDes(dma_op, this, launch_node, guid,
-				 inputs_info, outputs_info,
-				 priority);
-      }
-
-      long GASNetChannel::submit(Request** requests, long nr)
-      {
-        for (long i = 0; i < nr; i++) {
-          GASNetRequest* req = (GASNetRequest*) requests[i];
-	  // no serdez support
-	  assert(req->xd->input_ports[req->src_port_idx].serdez_op == 0);
-	  assert(req->xd->output_ports[req->dst_port_idx].serdez_op == 0);
-          switch (kind) {
-            case XFER_GASNET_READ:
-            {
-	      req->xd->input_ports[req->src_port_idx].mem->get_bytes(req->gas_off,
-								     req->mem_base,
-								     req->nbytes);
-              break;
-            }
-            case XFER_GASNET_WRITE:
-            {
-	      req->xd->output_ports[req->dst_port_idx].mem->put_bytes(req->gas_off,
-								      req->mem_base,
-								      req->nbytes);
-              break;
-            }
-            default:
-              assert(0);
-          }
-          req->xd->notify_request_read_done(req);
-          req->xd->notify_request_write_done(req);
-        }
-        return nr;
-      }
-
-      RemoteWriteChannel::RemoteWriteChannel(BackgroundWorkManager *bgwork)
-	: SingleXDQChannel<RemoteWriteChannel, RemoteWriteXferDes>(bgwork,
-								   XFER_REMOTE_WRITE,
-								   "remote write channel")
-      {
-	unsigned bw = 5000;  // HACK - estimate at 5 GB/s
-	unsigned latency = 2000;  // HACK - estimate at 2 us
-        unsigned frag_overhead = 1000; // HACK - estimate at 1 us
-	// any combination of SYSTEM/REGDMA/Z_COPY/SOCKET_MEM
-	// for(size_t i = 0; i < num_cpu_mem_kinds; i++)
-	//   add_path(cpu_mem_kinds[i], false,
-	// 	   Memory::REGDMA_MEM, true,
-	// 	   bw, latency, false, false, XFER_REMOTE_WRITE);
-	add_path(false /*!local_loopback*/,
-		 bw, latency, frag_overhead,
-		 XFER_REMOTE_WRITE);
-        // TODO: permit 2d sources?
-      }
-
-      RemoteWriteChannel::~RemoteWriteChannel() {}
-
-      XferDes *RemoteWriteChannel::create_xfer_des(uintptr_t dma_op,
-						   NodeID launch_node,
-						   XferDesID guid,
-						   const std::vector<XferDesPortInfo>& inputs_info,
-						   const std::vector<XferDesPortInfo>& outputs_info,
-						   int priority,
-						   XferDesRedopInfo redop_info,
-						   const void *fill_data,
-                                                   size_t fill_size,
-                                                   size_t fill_total)
-      {
-	assert(redop_info.id == 0);
-	assert(fill_size == 0);
-	return new RemoteWriteXferDes(dma_op, this, launch_node, guid,
-				      inputs_info, outputs_info,
-				      priority);
-      }
-
-      long RemoteWriteChannel::submit(Request** requests, long nr)
-      {
-        // should not be reached
+      default:
         assert(0);
-        return nr;
       }
+      req->xd->notify_request_read_done(req);
+      req->xd->notify_request_write_done(req);
+    }
+    return nr;
+  }
 
-      /*static*/ void XferDesDestroyMessage::handle_message(NodeID sender,
-							    const XferDesDestroyMessage &args,
-							    const void *msgdata,
-							    size_t msglen)
-      {
-	XferDesQueue::get_singleton()->destroy_xferDes(args.guid);
-      }
+  RemoteWriteChannel::RemoteWriteChannel(BackgroundWorkManager *bgwork)
+    : SingleXDQChannel<RemoteWriteChannel, RemoteWriteXferDes>(bgwork, XFER_REMOTE_WRITE,
+                                                               "remote write channel")
+  {
+    unsigned bw = 5000;            // HACK - estimate at 5 GB/s
+    unsigned latency = 2000;       // HACK - estimate at 2 us
+    unsigned frag_overhead = 1000; // HACK - estimate at 1 us
+    // any combination of SYSTEM/REGDMA/Z_COPY/SOCKET_MEM
+    // for(size_t i = 0; i < num_cpu_mem_kinds; i++)
+    //   add_path(cpu_mem_kinds[i], false,
+    // 	   Memory::REGDMA_MEM, true,
+    // 	   bw, latency, false, false, XFER_REMOTE_WRITE);
+    add_path(false /*!local_loopback*/, bw, latency, frag_overhead, XFER_REMOTE_WRITE);
+    // TODO: permit 2d sources?
+  }
 
-      /*static*/ void UpdateBytesTotalMessage::handle_message(NodeID sender,
-							      const UpdateBytesTotalMessage &args,
-							      const void *msgdata,
-							      size_t msglen)
-      {
-        XferDesQueue::get_singleton()->update_pre_bytes_total(args.guid,
-							      args.port_idx,
-							      args.pre_bytes_total);
-      }
+  RemoteWriteChannel::~RemoteWriteChannel() {}
 
-      /*static*/ void UpdateBytesWriteMessage::handle_message(NodeID sender,
-							      const UpdateBytesWriteMessage &args,
-							      const void *msgdata,
-							      size_t msglen)
-      {
-        XferDesQueue::get_singleton()->update_pre_bytes_write(args.guid,
-							      args.port_idx,
-							      args.span_start,
-							      args.span_size);
-      }
+  XferDes *RemoteWriteChannel::create_xfer_des(
+      uintptr_t dma_op, NodeID launch_node, XferDesID guid,
+      const std::vector<XferDesPortInfo> &inputs_info,
+      const std::vector<XferDesPortInfo> &outputs_info, int priority,
+      XferDesRedopInfo redop_info, const void *fill_data, size_t fill_size,
+      size_t fill_total)
+  {
+    assert(redop_info.id == 0);
+    assert(fill_size == 0);
+    return new RemoteWriteXferDes(dma_op, this, launch_node, guid, inputs_info,
+                                  outputs_info, priority);
+  }
 
-      /*static*/ void UpdateBytesReadMessage::handle_message(NodeID sender,
-							    const UpdateBytesReadMessage &args,
-							    const void *msgdata,
-							    size_t msglen)
-      {
-        XferDesQueue::get_singleton()->update_next_bytes_read(args.guid,
-							      args.port_idx,
-							      args.span_start,
-							      args.span_size);
-      }
+  long RemoteWriteChannel::submit(Request **requests, long nr)
+  {
+    // should not be reached
+    assert(0);
+    return nr;
+  }
 
-      ////////////////////////////////////////////////////////////////////////
-      //
-      // class XferDesPlaceholder
-      //
+  /*static*/ void XferDesDestroyMessage::handle_message(NodeID sender,
+                                                        const XferDesDestroyMessage &args,
+                                                        const void *msgdata,
+                                                        size_t msglen)
+  {
+    XferDesQueue::get_singleton()->destroy_xferDes(args.guid);
+  }
 
-      XferDesPlaceholder::XferDesPlaceholder()
-        : refcount(1)
-        , xd(0)
-	, nb_update_pre_bytes_total_calls_received(0)
-      {
-        for(int i = 0; i < INLINE_PORTS; i++)
-          inline_bytes_total[i] = ~size_t(0);
-      }
+  /*static*/ void
+  UpdateBytesTotalMessage::handle_message(NodeID sender,
+                                          const UpdateBytesTotalMessage &args,
+                                          const void *msgdata, size_t msglen)
+  {
+    XferDesQueue::get_singleton()->update_pre_bytes_total(args.guid, args.port_idx,
+                                                          args.pre_bytes_total);
+  }
 
-      XferDesPlaceholder::~XferDesPlaceholder()
-      {}
+  /*static*/ void
+  UpdateBytesWriteMessage::handle_message(NodeID sender,
+                                          const UpdateBytesWriteMessage &args,
+                                          const void *msgdata, size_t msglen)
+  {
+    XferDesQueue::get_singleton()->update_pre_bytes_write(
+        args.guid, args.port_idx, args.span_start, args.span_size);
+  }
 
-      void XferDesPlaceholder::add_reference()
-      {
-        refcount.fetch_add_acqrel(1);
-      }
+  /*static*/ void
+  UpdateBytesReadMessage::handle_message(NodeID sender,
+                                         const UpdateBytesReadMessage &args,
+                                         const void *msgdata, size_t msglen)
+  {
+    XferDesQueue::get_singleton()->update_next_bytes_read(
+        args.guid, args.port_idx, args.span_start, args.span_size);
+  }
 
-      void XferDesPlaceholder::remove_reference()
-      {
-        unsigned prev = refcount.fetch_sub_acqrel(1);
-        // if this is the last reference to a placeholder that was assigned an
-        //  xd (the unassigned case should only happen on an insertion race),
-        //  propagate our progress info to the xd
-        if((prev == 1) && xd) {
-          bool updated = false;
-          for(int i = 0; i < INLINE_PORTS; i++) {
-            if(inline_bytes_total[i] != ~size_t(0)) {
-              xd->update_pre_bytes_total(i, inline_bytes_total[i]);
-              updated = true;
-            }
-            if(!inline_pre_write[i].empty()) {
-              inline_pre_write[i].import(xd->input_ports[i].seq_remote);
-              updated = true;
-            }
-          }
-          for(std::map<int, size_t>::const_iterator it = extra_bytes_total.begin();
-              it != extra_bytes_total.end();
-              ++it) {
-            xd->update_pre_bytes_total(it->first, it->second);
-            updated = true;
-          }
-          for(std::map<int, SequenceAssembler>::const_iterator it = extra_pre_write.begin();
-              it != extra_pre_write.end();
-              ++it) {
-            it->second.import(xd->input_ports[it->first].seq_remote);
-            updated = true;
-          }
-          if(updated)
-            xd->update_progress();
-          xd->remove_reference();
+  ////////////////////////////////////////////////////////////////////////
+  //
+  // class XferDesPlaceholder
+  //
+
+  XferDesPlaceholder::XferDesPlaceholder()
+    : refcount(1)
+    , xd(0)
+    , nb_update_pre_bytes_total_calls_received(0)
+  {
+    for(int i = 0; i < INLINE_PORTS; i++)
+      inline_bytes_total[i] = ~size_t(0);
+  }
+
+  XferDesPlaceholder::~XferDesPlaceholder() {}
+
+  void XferDesPlaceholder::add_reference() { refcount.fetch_add_acqrel(1); }
+
+  void XferDesPlaceholder::remove_reference()
+  {
+    unsigned prev = refcount.fetch_sub_acqrel(1);
+    // if this is the last reference to a placeholder that was assigned an
+    //  xd (the unassigned case should only happen on an insertion race),
+    //  propagate our progress info to the xd
+    if((prev == 1) && xd) {
+      bool updated = false;
+      for(int i = 0; i < INLINE_PORTS; i++) {
+        if(inline_bytes_total[i] != ~size_t(0)) {
+          xd->update_pre_bytes_total(i, inline_bytes_total[i]);
+          updated = true;
         }
-
-        if(prev == 1)
-          delete this;
-      }
-
-      void XferDesPlaceholder::update_pre_bytes_write(int port_idx,
-                                                      size_t span_start,
-                                                      size_t span_size)
-      {
-        if(port_idx < INLINE_PORTS) {
-          inline_pre_write[port_idx].add_span(span_start, span_size);
-        } else {
-          // need a mutex around getting the reference to the SequenceAssembler
-          SequenceAssembler *sa;
-          {
-            AutoLock<> al(extra_mutex);
-            sa = &extra_pre_write[port_idx];
-          }
-          sa->add_span(span_start, span_size);
+        if(!inline_pre_write[i].empty()) {
+          inline_pre_write[i].import(xd->input_ports[i].seq_remote);
+          updated = true;
         }
       }
-
-      void XferDesPlaceholder::update_pre_bytes_total(int port_idx,
-                                                      size_t pre_bytes_total)
-      {
-        if(port_idx < INLINE_PORTS) {
-          inline_bytes_total[port_idx] = pre_bytes_total;
-        } else {
-          AutoLock<> al(extra_mutex);
-          extra_bytes_total[port_idx] = pre_bytes_total;
-        }
+      for(std::map<int, size_t>::const_iterator it = extra_bytes_total.begin();
+          it != extra_bytes_total.end(); ++it) {
+        xd->update_pre_bytes_total(it->first, it->second);
+        updated = true;
       }
-
-      void XferDesPlaceholder::set_real_xd(XferDes *_xd)
-      {
-        // remember the xd and add a reference to it - actual updates will
-        //  happen once we're destroyed
-        xd = _xd;
-        xd->add_reference();
-	xd->nb_update_pre_bytes_total_calls_received.fetch_add_acqrel(nb_update_pre_bytes_total_calls_received.load_acquire());
+      for(std::map<int, SequenceAssembler>::const_iterator it = extra_pre_write.begin();
+          it != extra_pre_write.end(); ++it) {
+        it->second.import(xd->input_ports[it->first].seq_remote);
+        updated = true;
       }
-
-      void XferDesPlaceholder::add_update_pre_bytes_total_received(void)
-      {
-        nb_update_pre_bytes_total_calls_received.fetch_add_acqrel(1);
-      }
-
-      unsigned XferDesPlaceholder::get_update_pre_bytes_total_received(void)
-      {
-        return nb_update_pre_bytes_total_calls_received.load_acquire();
-      }
-
-
-      ////////////////////////////////////////////////////////////////////////
-      //
-      // class XferDesQueue
-      //
-
-      /*static*/ XferDesQueue* XferDesQueue::get_singleton()
-      {
-	// we use a single queue for all xferDes
-	static XferDesQueue xferDes_queue;
-        return &xferDes_queue;
-      }
-
-      void XferDesQueue::update_pre_bytes_write(XferDesID xd_guid, int port_idx,
-						size_t span_start, size_t span_size)
-      {
-        NodeID execution_node = xd_guid >> (NODE_BITS + INDEX_BITS);
-        if (execution_node == Network::my_node_id) {
-          XferDes *xd = 0;
-          XferDesPlaceholder *ph = 0;
-          {
-            AutoLock<> al(guid_lock);
-            std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
-            if(it != guid_to_xd.end()) {
-              if((it->second & 1) == 0) {
-                // is a real xd - add a reference before we release the lock
-                xd = reinterpret_cast<XferDes *>(it->second);
-                xd->add_reference();
-              } else {
-                // is a placeholder - add a reference before we release lock
-                ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
-                ph->add_reference();
-              }
-            }
-          }
-          // if we got neither, create a new placeholder and try to add it,
-          //  coping with the case where we lose to another insertion
-          if(!xd && !ph) {
-            XferDesPlaceholder *new_ph = new XferDesPlaceholder;
-            {
-              AutoLock<> al(guid_lock);
-              std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
-              if(it != guid_to_xd.end()) {
-                if((it->second & 1) == 0) {
-                  // is a real xd - add a reference before we release the lock
-                  xd = reinterpret_cast<XferDes *>(it->second);
-                  xd->add_reference();
-                } else {
-                  // is a placeholder - add a reference before we release lock
-                  ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
-                  ph->add_reference();
-                }
-              } else {
-                guid_to_xd.insert(std::make_pair(xd_guid,
-                                                 reinterpret_cast<uintptr_t>(new_ph) + 1));
-                ph = new_ph;
-                new_ph->add_reference();  // table keeps the original reference
-              }
-            }
-            // if we didn't install our placeholder, remove the reference so it
-            //  goes away
-            if(ph != new_ph)
-              new_ph->remove_reference();
-          }
-          // now we can update the xd or the placeholder and then release the
-          //  reference we kept
-          if(xd) {
-            xd->update_pre_bytes_write(port_idx, span_start, span_size);
-            xd->remove_reference();
-          } else {
-            ph->update_pre_bytes_write(port_idx, span_start, span_size);
-            ph->remove_reference();
-          }
-        }
-        else {
-          // send a active message to remote node
-          // this can happen if we have a non-network path (e.g. ipc) to another rank
-          UpdateBytesWriteMessage::send_request(execution_node, xd_guid,
-						port_idx,
-						span_start, span_size);
-        }
-      }
-
-      void XferDesQueue::update_pre_bytes_total(XferDesID xd_guid, int port_idx,
-						size_t pre_bytes_total)
-      {
-        NodeID execution_node = xd_guid >> (NODE_BITS + INDEX_BITS);
-        if (execution_node == Network::my_node_id) {
-          XferDes *xd = 0;
-          XferDesPlaceholder *ph = 0;
-          {
-            AutoLock<> al(guid_lock);
-            std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
-            if(it != guid_to_xd.end()) {
-              if((it->second & 1) == 0) {
-                // is a real xd - add a reference before we release the lock
-                xd = reinterpret_cast<XferDes *>(it->second);
-                xd->add_reference();
-		xd->add_update_pre_bytes_total_received();
-		log_xd_ref.info("xd=%llx, add_ref refcount=%u, update_pre_bytes_total_received=%u", xd_guid, xd->reference_count.load_acquire(), xd->nb_update_pre_bytes_total_calls_received.load_acquire());
-              } else {
-                // is a placeholder - add a reference before we release lock
-                ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
-                ph->add_reference();
-		ph->add_update_pre_bytes_total_received();
-		log_xd_ref.info("xd=%llx, placeholder, update_pre_bytes_total_received=%u", xd_guid, ph->get_update_pre_bytes_total_received());
-              }
-            }
-          }
-          // if we got neither, create a new placeholder and try to add it,
-          //  coping with the case where we lose to another insertion
-          if(!xd && !ph) {
-            XferDesPlaceholder *new_ph = new XferDesPlaceholder;
-            {
-              AutoLock<> al(guid_lock);
-              std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
-              if(it != guid_to_xd.end()) {
-                if((it->second & 1) == 0) {
-                  // is a real xd - add a reference before we release the lock
-                  xd = reinterpret_cast<XferDes *>(it->second);
-                  xd->add_reference();
-		  xd->add_update_pre_bytes_total_received();
-		  log_xd_ref.info("xd=%llx, 2nd, add_ref refcount=%u, update_pre_bytes_total_received=%u", xd_guid, xd->reference_count.load_acquire(), xd->nb_update_pre_bytes_total_calls_received.load_acquire());
-                } else {
-                  // is a placeholder - add a reference before we release lock
-                  ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
-                  ph->add_reference();
-		  ph->add_update_pre_bytes_total_received();
-		  log_xd_ref.info("xd=%llx, 2nd, placeholder, update_pre_bytes_total_received=%u", xd_guid, ph->get_update_pre_bytes_total_received());
-                }
-              } else {
-                guid_to_xd.insert(std::make_pair(xd_guid,
-                                                 reinterpret_cast<uintptr_t>(new_ph) + 1));
-                ph = new_ph;
-                new_ph->add_reference();  // table keeps the original reference
-		new_ph->add_update_pre_bytes_total_received();
-		log_xd_ref.info("xd=%llx, new placeholder, update_pre_bytes_total_received=%u", xd_guid, ph->get_update_pre_bytes_total_received());
-              }
-            }
-            // if we didn't install our placeholder, remove the reference so it
-            //  goes away
-            if(ph != new_ph)
-              new_ph->remove_reference();
-          }
-          // now we can update the xd or the placeholder and then release the
-          //  reference we kept
-          if(xd) {
-            xd->update_pre_bytes_total(port_idx, pre_bytes_total);
-            xd->remove_reference();
-          } else {
-            ph->update_pre_bytes_total(port_idx, pre_bytes_total);
-            ph->remove_reference();
-          }
-        }
-        else {
-          // send an active message to remote node
-	  ActiveMessage<UpdateBytesTotalMessage> amsg(execution_node);
-	  amsg->guid = xd_guid;
-	  amsg->port_idx = port_idx;
-	  amsg->pre_bytes_total = pre_bytes_total;
-	  amsg.commit();
-        }
-      }
-
-      void XferDesQueue::update_next_bytes_read(XferDesID xd_guid, int port_idx,
-						size_t span_start, size_t span_size)
-      {
-        NodeID execution_node = xd_guid >> (NODE_BITS + INDEX_BITS);
-        if (execution_node == Network::my_node_id) {
-          XferDes *xd = 0;
-          {
-            AutoLock<> al(guid_lock);
-            std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
-            if(it != guid_to_xd.end()) {
-              if((it->second & 1) == 0) {
-                // is a real xd - add a reference before we release the lock
-                xd = reinterpret_cast<XferDes *>(it->second);
-                xd->add_reference();
-		log_xd_ref.info("xd=%llx, after add_ref refcount=%u", xd_guid, xd->reference_count.load_acquire());
-              } else {
-                // should never be a placeholder!
-                assert(0);
-              }
-            } else {
-              // ok if we don't find it - upstream xd's can be destroyed before
-              //  the downstream xd has stopped updating it
-            }
-          }
-          if(xd) {
-            xd->update_next_bytes_read(port_idx, span_start, span_size);
-	    log_xd_ref.info("xd=%llx, before rm_ref refcount=%u", xd_guid, xd->reference_count.load_acquire());
-            xd->remove_reference();
-          }
-        }
-        else {
-          // send a active message to remote node
-          UpdateBytesReadMessage::send_request(execution_node, xd_guid,
-					       port_idx,
-					       span_start, span_size);
-        }
-      }
-
-      void XferDesQueue::destroy_xferDes(XferDesID guid)
-      {
-	XferDes *xd = 0;
-        {
-          AutoLock<> al(guid_lock);
-          std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(guid);
-          if(it != guid_to_xd.end()) {
-            if((it->second & 1) == 0) {
-              // remember xd but remove from table (stealing table's reference)
-              xd = reinterpret_cast<XferDes *>(it->second);
-	      guid_to_xd.erase(it);
-	      log_xd_ref.info("destroy xd=%llx, update_pre_bytes_total_received=%u, expected=%u", guid, xd->nb_update_pre_bytes_total_calls_received.load_acquire(), xd->nb_update_pre_bytes_total_calls_expected);
-            } else {
-              // should never be a placeholder!
-              assert(0);
-            }
-          } else {
-            // should always be present!
-            assert(0);
-          }
-        }
-        // just remove table's reference (actual destruction may be delayed
-        //   if some other thread is still poking it)
-	xd->remove_reference();
-      }
-
-
-      bool XferDesQueue::enqueue_xferDes_local(XferDes* xd,
-					       bool add_to_queue /*= true*/)
-      {
-	Event wait_on = xd->request_metadata();
-	if(!wait_on.has_triggered()) {
-	  log_new_dma.info() << "xd metadata wait: xd=" << xd->guid << " ready=" << wait_on;
-	  xd->deferred_enqueue.defer(this, xd, wait_on);
-	  return false;
-	}
-
-        // insert ourselves in the table, replacing a placeholder if present
-        XferDesPlaceholder *ph = 0;
-        {
-          AutoLock<> al(guid_lock);
-          std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd->guid);
-          if(it != guid_to_xd.end()) {
-            if((it->second & 1) == 0) {
-              // should never be a real xd!
-              assert(0);
-              guid_to_xd.erase(it);
-            } else {
-              // remember placeholder (stealing table's reference)
-              ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
-              // put xd in, donating the initial reference to the table
-              it->second = reinterpret_cast<uintptr_t>(xd);
-              log_xd_ref.info("xd=%llx, swap placeholder, refcount=%u", xd->guid, xd->reference_count.load_acquire());
-            }
-          } else {
-            guid_to_xd.insert(std::make_pair(xd->guid,
-                                             reinterpret_cast<uintptr_t>(xd)));
-            log_xd_ref.info("xd=%llx, new xd, refcount=%u", xd->guid, xd->reference_count.load_acquire());
-          }
-        }
-        if(ph) {
-          // tell placeholder about real xd and have it update it once there
-          //  are no other concurrent updates
-          ph->set_real_xd(xd);
-          ph->remove_reference();
-        }
-
-	if(!add_to_queue) return true;
-	assert(0);
-
-	return true;
-      }
-
-
-      void XferDes::DeferredXDEnqueue::defer(XferDesQueue *_xferDes_queue,
-					     XferDes *_xd, Event wait_on)
-      {
-	xferDes_queue = _xferDes_queue;
-	xd = _xd;
-	Realm::EventImpl::add_waiter(wait_on, this);
-      }
-
-      void XferDes::DeferredXDEnqueue::event_triggered(bool poisoned,
-						       TimeLimit work_until)
-      {
-	// TODO: handle poisoning
-	assert(!poisoned);
-	log_new_dma.info() << "xd metadata ready: xd=" << xd->guid;
-	xd->channel->enqueue_ready_xd(xd);
-	//xferDes_queue->enqueue_xferDes_local(xd);
-      }
-
-      void XferDes::DeferredXDEnqueue::print(std::ostream& os) const
-      {
-	os << "deferred xd enqueue: xd=" << xd->guid;
-      }
-
-      Event XferDes::DeferredXDEnqueue::get_finish_event(void) const
-      {
-	// TODO: would be nice to provide dma op's finish event here
-	return Event::NO_EVENT;
-      }
-
-    void destroy_xfer_des(XferDesID _guid)
-    {
-      log_new_dma.info("Destroy XferDes: id(" IDFMT ")", _guid);
-      NodeID execution_node = _guid >> (XferDesQueue::NODE_BITS + XferDesQueue::INDEX_BITS);
-      if (execution_node == Network::my_node_id) {
-	XferDesQueue::get_singleton()->destroy_xferDes(_guid);
-      }
-      else {
-        XferDesDestroyMessage::send_request(execution_node, _guid);
-      }
+      if(updated)
+        xd->update_progress();
+      xd->remove_reference();
     }
 
-ActiveMessageHandlerReg<SimpleXferDesCreateMessage> simple_xfer_des_create_message_handler;
-ActiveMessageHandlerReg<NotifyXferDesCompleteMessage> notify_xfer_des_complete_handler;
-ActiveMessageHandlerReg<XferDesDestroyMessage> xfer_des_destroy_message_handler;
-ActiveMessageHandlerReg<UpdateBytesTotalMessage> update_bytes_total_message_handler;
-ActiveMessageHandlerReg<UpdateBytesWriteMessage> update_bytes_write_message_handler;
-ActiveMessageHandlerReg<UpdateBytesReadMessage> update_bytes_read_message_handler;
-ActiveMessageHandlerReg<RemoteWriteXferDes::Write1DMessage> remote_write_1d_message_handler;
+    if(prev == 1)
+      delete this;
+  }
+
+  void XferDesPlaceholder::update_pre_bytes_write(int port_idx, size_t span_start,
+                                                  size_t span_size)
+  {
+    if(port_idx < INLINE_PORTS) {
+      inline_pre_write[port_idx].add_span(span_start, span_size);
+    } else {
+      // need a mutex around getting the reference to the SequenceAssembler
+      SequenceAssembler *sa;
+      {
+        AutoLock<> al(extra_mutex);
+        sa = &extra_pre_write[port_idx];
+      }
+      sa->add_span(span_start, span_size);
+    }
+  }
+
+  void XferDesPlaceholder::update_pre_bytes_total(int port_idx, size_t pre_bytes_total)
+  {
+    if(port_idx < INLINE_PORTS) {
+      inline_bytes_total[port_idx] = pre_bytes_total;
+    } else {
+      AutoLock<> al(extra_mutex);
+      extra_bytes_total[port_idx] = pre_bytes_total;
+    }
+  }
+
+  void XferDesPlaceholder::set_real_xd(XferDes *_xd)
+  {
+    // remember the xd and add a reference to it - actual updates will
+    //  happen once we're destroyed
+    xd = _xd;
+    xd->add_reference();
+    xd->nb_update_pre_bytes_total_calls_received.fetch_add_acqrel(
+        nb_update_pre_bytes_total_calls_received.load_acquire());
+  }
+
+  void XferDesPlaceholder::add_update_pre_bytes_total_received(void)
+  {
+    nb_update_pre_bytes_total_calls_received.fetch_add_acqrel(1);
+  }
+
+  unsigned XferDesPlaceholder::get_update_pre_bytes_total_received(void)
+  {
+    return nb_update_pre_bytes_total_calls_received.load_acquire();
+  }
+
+  ////////////////////////////////////////////////////////////////////////
+  //
+  // class XferDesQueue
+  //
+
+  /*static*/ XferDesQueue *XferDesQueue::get_singleton()
+  {
+    // we use a single queue for all xferDes
+    static XferDesQueue xferDes_queue;
+    return &xferDes_queue;
+  }
+
+  void XferDesQueue::update_pre_bytes_write(XferDesID xd_guid, int port_idx,
+                                            size_t span_start, size_t span_size)
+  {
+    NodeID execution_node = xd_guid >> (NODE_BITS + INDEX_BITS);
+    if(execution_node == Network::my_node_id) {
+      XferDes *xd = 0;
+      XferDesPlaceholder *ph = 0;
+      {
+        AutoLock<> al(guid_lock);
+        std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
+        if(it != guid_to_xd.end()) {
+          if((it->second & 1) == 0) {
+            // is a real xd - add a reference before we release the lock
+            xd = reinterpret_cast<XferDes *>(it->second);
+            xd->add_reference();
+          } else {
+            // is a placeholder - add a reference before we release lock
+            ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
+            ph->add_reference();
+          }
+        }
+      }
+      // if we got neither, create a new placeholder and try to add it,
+      //  coping with the case where we lose to another insertion
+      if(!xd && !ph) {
+        XferDesPlaceholder *new_ph = new XferDesPlaceholder;
+        {
+          AutoLock<> al(guid_lock);
+          std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
+          if(it != guid_to_xd.end()) {
+            if((it->second & 1) == 0) {
+              // is a real xd - add a reference before we release the lock
+              xd = reinterpret_cast<XferDes *>(it->second);
+              xd->add_reference();
+            } else {
+              // is a placeholder - add a reference before we release lock
+              ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
+              ph->add_reference();
+            }
+          } else {
+            guid_to_xd.insert(
+                std::make_pair(xd_guid, reinterpret_cast<uintptr_t>(new_ph) + 1));
+            ph = new_ph;
+            new_ph->add_reference(); // table keeps the original reference
+          }
+        }
+        // if we didn't install our placeholder, remove the reference so it
+        //  goes away
+        if(ph != new_ph)
+          new_ph->remove_reference();
+      }
+      // now we can update the xd or the placeholder and then release the
+      //  reference we kept
+      if(xd) {
+        xd->update_pre_bytes_write(port_idx, span_start, span_size);
+        xd->remove_reference();
+      } else {
+        ph->update_pre_bytes_write(port_idx, span_start, span_size);
+        ph->remove_reference();
+      }
+    } else {
+      // send a active message to remote node
+      // this can happen if we have a non-network path (e.g. ipc) to another rank
+      UpdateBytesWriteMessage::send_request(execution_node, xd_guid, port_idx, span_start,
+                                            span_size);
+    }
+  }
+
+  void XferDesQueue::update_pre_bytes_total(XferDesID xd_guid, int port_idx,
+                                            size_t pre_bytes_total)
+  {
+    NodeID execution_node = xd_guid >> (NODE_BITS + INDEX_BITS);
+    if(execution_node == Network::my_node_id) {
+      XferDes *xd = 0;
+      XferDesPlaceholder *ph = 0;
+      {
+        AutoLock<> al(guid_lock);
+        std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
+        if(it != guid_to_xd.end()) {
+          if((it->second & 1) == 0) {
+            // is a real xd - add a reference before we release the lock
+            xd = reinterpret_cast<XferDes *>(it->second);
+            xd->add_reference();
+            xd->add_update_pre_bytes_total_received();
+            log_xd_ref.info(
+                "xd=%llx, add_ref refcount=%u, update_pre_bytes_total_received=%u",
+                xd_guid, xd->reference_count.load_acquire(),
+                xd->nb_update_pre_bytes_total_calls_received.load_acquire());
+          } else {
+            // is a placeholder - add a reference before we release lock
+            ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
+            ph->add_reference();
+            ph->add_update_pre_bytes_total_received();
+            log_xd_ref.info("xd=%llx, placeholder, update_pre_bytes_total_received=%u",
+                            xd_guid, ph->get_update_pre_bytes_total_received());
+          }
+        }
+      }
+      // if we got neither, create a new placeholder and try to add it,
+      //  coping with the case where we lose to another insertion
+      if(!xd && !ph) {
+        XferDesPlaceholder *new_ph = new XferDesPlaceholder;
+        {
+          AutoLock<> al(guid_lock);
+          std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
+          if(it != guid_to_xd.end()) {
+            if((it->second & 1) == 0) {
+              // is a real xd - add a reference before we release the lock
+              xd = reinterpret_cast<XferDes *>(it->second);
+              xd->add_reference();
+              xd->add_update_pre_bytes_total_received();
+              log_xd_ref.info(
+                  "xd=%llx, 2nd, add_ref refcount=%u, update_pre_bytes_total_received=%u",
+                  xd_guid, xd->reference_count.load_acquire(),
+                  xd->nb_update_pre_bytes_total_calls_received.load_acquire());
+            } else {
+              // is a placeholder - add a reference before we release lock
+              ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
+              ph->add_reference();
+              ph->add_update_pre_bytes_total_received();
+              log_xd_ref.info(
+                  "xd=%llx, 2nd, placeholder, update_pre_bytes_total_received=%u",
+                  xd_guid, ph->get_update_pre_bytes_total_received());
+            }
+          } else {
+            guid_to_xd.insert(
+                std::make_pair(xd_guid, reinterpret_cast<uintptr_t>(new_ph) + 1));
+            ph = new_ph;
+            new_ph->add_reference(); // table keeps the original reference
+            new_ph->add_update_pre_bytes_total_received();
+            log_xd_ref.info(
+                "xd=%llx, new placeholder, update_pre_bytes_total_received=%u", xd_guid,
+                ph->get_update_pre_bytes_total_received());
+          }
+        }
+        // if we didn't install our placeholder, remove the reference so it
+        //  goes away
+        if(ph != new_ph)
+          new_ph->remove_reference();
+      }
+      // now we can update the xd or the placeholder and then release the
+      //  reference we kept
+      if(xd) {
+        xd->update_pre_bytes_total(port_idx, pre_bytes_total);
+        xd->remove_reference();
+      } else {
+        ph->update_pre_bytes_total(port_idx, pre_bytes_total);
+        ph->remove_reference();
+      }
+    } else {
+      // send an active message to remote node
+      ActiveMessage<UpdateBytesTotalMessage> amsg(execution_node);
+      amsg->guid = xd_guid;
+      amsg->port_idx = port_idx;
+      amsg->pre_bytes_total = pre_bytes_total;
+      amsg.commit();
+    }
+  }
+
+  void XferDesQueue::update_next_bytes_read(XferDesID xd_guid, int port_idx,
+                                            size_t span_start, size_t span_size)
+  {
+    NodeID execution_node = xd_guid >> (NODE_BITS + INDEX_BITS);
+    if(execution_node == Network::my_node_id) {
+      XferDes *xd = 0;
+      {
+        AutoLock<> al(guid_lock);
+        std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd_guid);
+        if(it != guid_to_xd.end()) {
+          if((it->second & 1) == 0) {
+            // is a real xd - add a reference before we release the lock
+            xd = reinterpret_cast<XferDes *>(it->second);
+            xd->add_reference();
+            log_xd_ref.info("xd=%llx, after add_ref refcount=%u", xd_guid,
+                            xd->reference_count.load_acquire());
+          } else {
+            // should never be a placeholder!
+            assert(0);
+          }
+        } else {
+          // ok if we don't find it - upstream xd's can be destroyed before
+          //  the downstream xd has stopped updating it
+        }
+      }
+      if(xd) {
+        xd->update_next_bytes_read(port_idx, span_start, span_size);
+        log_xd_ref.info("xd=%llx, before rm_ref refcount=%u", xd_guid,
+                        xd->reference_count.load_acquire());
+        xd->remove_reference();
+      }
+    } else {
+      // send a active message to remote node
+      UpdateBytesReadMessage::send_request(execution_node, xd_guid, port_idx, span_start,
+                                           span_size);
+    }
+  }
+
+  void XferDesQueue::destroy_xferDes(XferDesID guid)
+  {
+    XferDes *xd = 0;
+    {
+      AutoLock<> al(guid_lock);
+      std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(guid);
+      if(it != guid_to_xd.end()) {
+        if((it->second & 1) == 0) {
+          // remember xd but remove from table (stealing table's reference)
+          xd = reinterpret_cast<XferDes *>(it->second);
+          guid_to_xd.erase(it);
+          log_xd_ref.info(
+              "destroy xd=%llx, update_pre_bytes_total_received=%u, expected=%u", guid,
+              xd->nb_update_pre_bytes_total_calls_received.load_acquire(),
+              xd->nb_update_pre_bytes_total_calls_expected);
+        } else {
+          // should never be a placeholder!
+          assert(0);
+        }
+      } else {
+        // should always be present!
+        assert(0);
+      }
+    }
+    // just remove table's reference (actual destruction may be delayed
+    //   if some other thread is still poking it)
+    xd->remove_reference();
+  }
+
+  bool XferDesQueue::enqueue_xferDes_local(XferDes *xd, bool add_to_queue /*= true*/)
+  {
+    Event wait_on = xd->request_metadata();
+    if(!wait_on.has_triggered()) {
+      log_new_dma.info() << "xd metadata wait: xd=" << xd->guid << " ready=" << wait_on;
+      xd->deferred_enqueue.defer(this, xd, wait_on);
+      return false;
+    }
+
+    // insert ourselves in the table, replacing a placeholder if present
+    XferDesPlaceholder *ph = 0;
+    {
+      AutoLock<> al(guid_lock);
+      std::map<XferDesID, uintptr_t>::iterator it = guid_to_xd.find(xd->guid);
+      if(it != guid_to_xd.end()) {
+        if((it->second & 1) == 0) {
+          // should never be a real xd!
+          assert(0);
+          guid_to_xd.erase(it);
+        } else {
+          // remember placeholder (stealing table's reference)
+          ph = reinterpret_cast<XferDesPlaceholder *>(it->second - 1);
+          // put xd in, donating the initial reference to the table
+          it->second = reinterpret_cast<uintptr_t>(xd);
+          log_xd_ref.info("xd=%llx, swap placeholder, refcount=%u", xd->guid,
+                          xd->reference_count.load_acquire());
+        }
+      } else {
+        guid_to_xd.insert(std::make_pair(xd->guid, reinterpret_cast<uintptr_t>(xd)));
+        log_xd_ref.info("xd=%llx, new xd, refcount=%u", xd->guid,
+                        xd->reference_count.load_acquire());
+      }
+    }
+    if(ph) {
+      // tell placeholder about real xd and have it update it once there
+      //  are no other concurrent updates
+      ph->set_real_xd(xd);
+      ph->remove_reference();
+    }
+
+    if(!add_to_queue)
+      return true;
+    assert(0);
+
+    return true;
+  }
+
+  void XferDes::DeferredXDEnqueue::defer(XferDesQueue *_xferDes_queue, XferDes *_xd,
+                                         Event wait_on)
+  {
+    xferDes_queue = _xferDes_queue;
+    xd = _xd;
+    Realm::EventImpl::add_waiter(wait_on, this);
+  }
+
+  void XferDes::DeferredXDEnqueue::event_triggered(bool poisoned, TimeLimit work_until)
+  {
+    // TODO: handle poisoning
+    assert(!poisoned);
+    log_new_dma.info() << "xd metadata ready: xd=" << xd->guid;
+    xd->channel->enqueue_ready_xd(xd);
+    // xferDes_queue->enqueue_xferDes_local(xd);
+  }
+
+  void XferDes::DeferredXDEnqueue::print(std::ostream &os) const
+  {
+    os << "deferred xd enqueue: xd=" << xd->guid;
+  }
+
+  Event XferDes::DeferredXDEnqueue::get_finish_event(void) const
+  {
+    // TODO: would be nice to provide dma op's finish event here
+    return Event::NO_EVENT;
+  }
+
+  void destroy_xfer_des(XferDesID _guid)
+  {
+    log_new_dma.info("Destroy XferDes: id(" IDFMT ")", _guid);
+    NodeID execution_node = _guid >> (XferDesQueue::NODE_BITS + XferDesQueue::INDEX_BITS);
+    if(execution_node == Network::my_node_id) {
+      XferDesQueue::get_singleton()->destroy_xferDes(_guid);
+    } else {
+      XferDesDestroyMessage::send_request(execution_node, _guid);
+    }
+  }
+
+  ActiveMessageHandlerReg<SimpleXferDesCreateMessage>
+      simple_xfer_des_create_message_handler;
+  ActiveMessageHandlerReg<NotifyXferDesCompleteMessage> notify_xfer_des_complete_handler;
+  ActiveMessageHandlerReg<XferDesDestroyMessage> xfer_des_destroy_message_handler;
+  ActiveMessageHandlerReg<UpdateBytesTotalMessage> update_bytes_total_message_handler;
+  ActiveMessageHandlerReg<UpdateBytesWriteMessage> update_bytes_write_message_handler;
+  ActiveMessageHandlerReg<UpdateBytesReadMessage> update_bytes_read_message_handler;
+  ActiveMessageHandlerReg<RemoteWriteXferDes::Write1DMessage>
+      remote_write_1d_message_handler;
 
 }; // namespace Realm
-
-

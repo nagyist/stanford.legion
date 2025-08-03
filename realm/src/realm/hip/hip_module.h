@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
- *                Los Alamos National Laboratory
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation, Los Alamos National Laboratory
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +24,6 @@
 #include "realm/network.h"
 #include "realm/atomics.h"
 
-
 // realm/hip_module.h is designed to be include-able even when the system
 //  doesn't actually have HIP installed, so we need to declare types that
 //  are compatible with the HIP runtime APIs - we can't "extern"
@@ -38,7 +38,7 @@ typedef ihipStream_t unifiedHipStream_t;
 #endif
 
 namespace Realm {
-  
+
   namespace NetworkSegmentInfo {
     // HIP device memory - extra is a uintptr_t'd pointer to the GPU
     //  object
@@ -47,8 +47,8 @@ namespace Realm {
     // CUDA managed memory - extra is a uintptr_t'd pointer to _one of_
     //  the GPU objects
     static const MemoryType HipManagedMem = 4;
-  };
-  
+  }; // namespace NetworkSegmentInfo
+
   namespace Hip {
 
     // a running task on a HIP processor is assigned a stream by Realm, and
@@ -87,8 +87,8 @@ namespace Realm {
     //   launched by the task must be properly ordered (using the HIP APIs)
     //   after anything already in the stream assigned to the task
     typedef void (*StreamAwareTaskFuncPtr)(const void *args, size_t arglen,
-					                                 const void *user_data, size_t user_data_len,
-					                                 Processor proc, unifiedHipStream_t *stream);
+                                           const void *user_data, size_t user_data_len,
+                                           Processor proc, unifiedHipStream_t *stream);
 
     class GPU;
     class GPUWorker;
@@ -98,13 +98,14 @@ namespace Realm {
 
     class HipModuleConfig : public ModuleConfig {
       friend class HipModule;
+
     protected:
       HipModuleConfig(void);
 
       bool discover_resource(void);
 
     public:
-      virtual void configure_from_cmdline(std::vector<std::string>& cmdline);
+      virtual void configure_from_cmdline(std::vector<std::string> &cmdline);
 
     public:
       // configurations
@@ -116,7 +117,8 @@ namespace Realm {
       int cfg_num_gpus = 0;
       std::string cfg_gpu_idxs;
       unsigned cfg_task_streams = 12, cfg_d2d_streams = 4;
-      bool cfg_use_worker_threads = false, cfg_use_shared_worker = true, cfg_pin_sysmem = true;
+      bool cfg_use_worker_threads = false, cfg_use_shared_worker = true,
+           cfg_pin_sysmem = true;
       bool cfg_fences_use_callbacks = false;
       bool cfg_suppress_hijack_warning = false;
       unsigned cfg_skip_gpu_count = 0;
@@ -140,12 +142,12 @@ namespace Realm {
     class REALM_PUBLIC_API HipModule : public Module {
     protected:
       HipModule(RuntimeImpl *_runtime);
-      
+
     public:
       virtual ~HipModule(void);
 
       static ModuleConfig *create_module_config(RuntimeImpl *runtime);
-      
+
       static Module *create_module(RuntimeImpl *runtime);
 
       // do any general initialization - this is called after all configuration is
@@ -205,7 +207,7 @@ namespace Realm {
 
   }; // namespace Hip
 
-}; // namespace Realm 
+}; // namespace Realm
 
 #include "realm/hip/hip_module.inl"
 

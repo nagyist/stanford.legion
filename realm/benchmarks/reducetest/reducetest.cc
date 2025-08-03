@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,17 +29,19 @@ using namespace Realm;
 typedef long long coord_t;
 
 // TASK IDs
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
-  HIST_BATCH_TASK  = Processor::TASK_ID_FIRST_AVAILABLE+1,
-  HIST_BATCH_LOCALIZE_TASK  = Processor::TASK_ID_FIRST_AVAILABLE+2,
-  HIST_BATCH_REDFOLD_TASK  = Processor::TASK_ID_FIRST_AVAILABLE+3, 
-  HIST_BATCH_REDLIST_TASK  = Processor::TASK_ID_FIRST_AVAILABLE+4,
-  HIST_BATCH_REDSINGLE_TASK  = Processor::TASK_ID_FIRST_AVAILABLE+5,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
+  HIST_BATCH_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 1,
+  HIST_BATCH_LOCALIZE_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 2,
+  HIST_BATCH_REDFOLD_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 3,
+  HIST_BATCH_REDLIST_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 4,
+  HIST_BATCH_REDSINGLE_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 5,
 };
 
 // reduction op IDs
-enum {
+enum
+{
   REDOP_BUCKET_ADD = 1,
 };
 
@@ -46,20 +49,17 @@ Logger log_app("appl");
 
 template <bool EXCL, class LHS, class RHS>
 struct DoAdd {
-  static void do_add(LHS& lhs, RHS rhs);
+  static void do_add(LHS &lhs, RHS rhs);
 };
 
 template <class LHS, class RHS>
-struct DoAdd<true,LHS,RHS> {
-  static void do_add(LHS& lhs, RHS rhs)
-  {
-    lhs += rhs;
-  }
+struct DoAdd<true, LHS, RHS> {
+  static void do_add(LHS &lhs, RHS rhs) { lhs += rhs; }
 };
 
 template <class LHS, class RHS>
-struct DoAdd<false,LHS,RHS> {
-  static void do_add(LHS& lhs, RHS rhs)
+struct DoAdd<false, LHS, RHS> {
+  static void do_add(LHS &lhs, RHS rhs)
   {
 #if defined(_WIN32)
     InterlockedAdd((volatile LONG *)&lhs, (LONG)rhs);
@@ -73,21 +73,21 @@ template <class LTYPE, class RTYPE>
 struct ReductionAdd {
   typedef LTYPE LHS;
   typedef RTYPE RHS;
-  template <bool EXCL> 
-  static void apply(LTYPE& lhs, RTYPE rhs)
+  template <bool EXCL>
+  static void apply(LTYPE &lhs, RTYPE rhs)
   {
-    DoAdd<EXCL,LTYPE,RTYPE>::do_add(lhs, rhs);
+    DoAdd<EXCL, LTYPE, RTYPE>::do_add(lhs, rhs);
   }
   static const RTYPE identity;
-  template <bool EXCL> 
-  static void fold(RTYPE& rhs1, RTYPE rhs2)
+  template <bool EXCL>
+  static void fold(RTYPE &rhs1, RTYPE rhs2)
   {
-    DoAdd<EXCL,RTYPE,RTYPE>::do_add(rhs1, rhs2);
+    DoAdd<EXCL, RTYPE, RTYPE>::do_add(rhs1, rhs2);
   }
 };
 
 template <class LTYPE, class RTYPE>
-/*static*/ const RTYPE ReductionAdd<LTYPE,RTYPE>::identity = 0;
+/*static*/ const RTYPE ReductionAdd<LTYPE, RTYPE>::identity = 0;
 
 /*
 template <class LTYPE, class RTYPE>
@@ -114,8 +114,8 @@ struct HistBatchArgs {
   unsigned buckets;
   unsigned seed1, seed2;
 };
-  
-InputArgs& get_input_args(void)
+
+InputArgs &get_input_args(void)
 {
   static InputArgs args;
   return args;
@@ -132,7 +132,8 @@ static Memory closest_memory(Processor p)
 
   for(size_t i = 1; i < pmas.size(); i++) {
     // ignore memories that have no capacity - can't create instances there
-    if(pmas[i].m.capacity() == 0) continue;
+    if(pmas[i].m.capacity() == 0)
+      continue;
 
     if(pmas[i].latency < best_lat) {
       m = pmas[i].m;
@@ -154,7 +155,8 @@ static Memory farthest_memory(Processor p)
 
   for(size_t i = 1; i < pmas.size(); i++) {
     // ignore memories that have no capacity - can't create instances there
-    if(pmas[i].m.capacity() == 0) continue;
+    if(pmas[i].m.capacity() == 0)
+      continue;
 
     if(pmas[i].latency > worst_lat) {
       m = pmas[i].m;
@@ -165,9 +167,8 @@ static Memory farthest_memory(Processor p)
   return m;
 }
 
-static void run_case(const char *name, int task_id,
-		     HistBatchArgs<BucketType>& hbargs, int num_batches,
-		     bool use_lock)
+static void run_case(const char *name, int task_id, HistBatchArgs<BucketType> &hbargs,
+                     int num_batches, bool use_lock)
 {
   // clear histogram
 #if 0
@@ -192,7 +193,8 @@ static void run_case(const char *name, int task_id,
   for(int i = 0; i < num_batches; i++) {
     hbargs.start = i * hbargs.count;
 
-    if(it == all_procs.end()) it = all_procs.begin();
+    if(it == all_procs.end())
+      it = all_procs.begin();
     Processor tgt = *(it++);
     log_app.debug("sending batch %d to processor " IDFMT "\n", i, tgt.id);
 
@@ -216,11 +218,11 @@ static void run_case(const char *name, int task_id,
 
   double end_time = Realm::Clock::current_time_in_microseconds();
   log_app.info("done\n");
-  printf("ELAPSED(%s) = %f\n", name, (end_time - start_time)*1e-6);
-}		     
+  printf("ELAPSED(%s) = %f\n", name, (end_time - start_time) * 1e-6);
+}
 
-void top_level_task(const void *args, size_t arglen, 
-                    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   int buckets = 1048576;
   int num_batches = 100;
@@ -230,22 +232,25 @@ void top_level_task(const void *args, size_t arglen,
   int do_slow = 0;
 
   // Parse the input arguments
-#define INT_ARG(argname, varname) do { \
-        if(!strcmp((argv)[i], argname)) {		\
-          varname = atoi((argv)[++i]);		\
-          continue;					\
-        } } while(0)
+#define INT_ARG(argname, varname)                                                        \
+  do {                                                                                   \
+    if(!strcmp((argv)[i], argname)) {                                                    \
+      varname = atoi((argv)[++i]);                                                       \
+      continue;                                                                          \
+    }                                                                                    \
+  } while(0)
 
-#define BOOL_ARG(argname, varname) do { \
-        if(!strcmp((argv)[i], argname)) {		\
-          varname = true;				\
-          continue;					\
-        } } while(0)
+#define BOOL_ARG(argname, varname)                                                       \
+  do {                                                                                   \
+    if(!strcmp((argv)[i], argname)) {                                                    \
+      varname = true;                                                                    \
+      continue;                                                                          \
+    }                                                                                    \
+  } while(0)
   {
     InputArgs &inputs = get_input_args();
     char **argv = inputs.argv;
-    for (int i = 1; i < inputs.argc; i++)
-    {
+    for(int i = 1; i < inputs.argc; i++) {
       INT_ARG("-doslow", do_slow);
       INT_ARG("-buckets", buckets);
       INT_ARG("-batches", num_batches);
@@ -255,7 +260,7 @@ void top_level_task(const void *args, size_t arglen,
 #undef INT_ARG
 #undef BOOL_ARG
 
-  //UserEvent start_event = UserEvent::create_user_event();
+  // UserEvent start_event = UserEvent::create_user_event();
 
   IndexSpace<1, coord_t> hist_region = Rect<1, coord_t>(0, buckets - 1);
 
@@ -265,9 +270,10 @@ void top_level_task(const void *args, size_t arglen,
   printf("placing master instance in memory " IDFMT "\n", m.id);
   RegionInstance hist_inst;
   RegionInstance::create_instance(hist_inst, m, hist_region,
-				  std::vector<size_t>(1, sizeof(BucketType)),
-				  0, // SOA
-				  ProfilingRequestSet()).wait();
+                                  std::vector<size_t>(1, sizeof(BucketType)),
+                                  0, // SOA
+                                  ProfilingRequestSet())
+      .wait();
   assert(hist_inst.exists());
 
   HistBatchArgs<BucketType> hbargs;
@@ -343,8 +349,7 @@ void top_level_task(const void *args, size_t arglen,
 #endif
 }
 
-static unsigned myrand(unsigned long long ival,
-		       unsigned seed1, unsigned seed2)
+static unsigned myrand(unsigned long long ival, unsigned seed1, unsigned seed2)
 {
   unsigned long long rstate = ival;
   for(int j = 0; j < 16; j++) {
@@ -355,8 +360,8 @@ static unsigned myrand(unsigned long long ival,
 }
 
 template <class REDOP>
-void hist_batch_task(const void *args, size_t arglen, 
-                     const void *userdata, size_t userlen, Processor p)
+void hist_batch_task(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p)
 {
   const HistBatchArgs<BucketType> *hbargs = (const HistBatchArgs<BucketType> *)args;
 
@@ -370,10 +375,10 @@ void hist_batch_task(const void *args, size_t arglen,
     REDOP::template apply<false>(ria[bucket], 1);
   }
 }
-  
+
 template <class REDOP>
-void hist_batch_localize_task(const void *args, size_t arglen, 
-                              const void *userdata, size_t userlen, Processor p)
+void hist_batch_localize_task(const void *args, size_t arglen, const void *userdata,
+                              size_t userlen, Processor p)
 {
   const HistBatchArgs<BucketType> *hbargs = (const HistBatchArgs<BucketType> *)args;
 
@@ -381,9 +386,10 @@ void hist_batch_localize_task(const void *args, size_t arglen,
   Memory m = closest_memory(p);
   RegionInstance lclinst = RegionInstance::NO_INST;
   RegionInstance::create_instance(lclinst, m, hbargs->region,
-				  std::vector<size_t>(1, sizeof(BucketType)),
-				  0, // SOA
-				  ProfilingRequestSet()).wait();
+                                  std::vector<size_t>(1, sizeof(BucketType)),
+                                  0, // SOA
+                                  ProfilingRequestSet())
+      .wait();
   assert(lclinst.exists());
 
   std::vector<CopySrcDstField> src(1);
@@ -394,8 +400,7 @@ void hist_batch_localize_task(const void *args, size_t arglen,
   dst[0].inst = lclinst;
   dst[0].field_id = 0;
   dst[0].size = sizeof(BucketType);
-  hbargs->region.copy(src, dst, 
-		      ProfilingRequestSet()).wait();
+  hbargs->region.copy(src, dst, ProfilingRequestSet()).wait();
 
   // get an array accessor for the instance
   AffineAccessor<BucketType, 1, coord_t> ria(lclinst, 0 /*field id*/);
@@ -408,27 +413,28 @@ void hist_batch_localize_task(const void *args, size_t arglen,
   }
 
   // now copy the local instance back to the original one
-  Event done = hbargs->region.copy(dst, src,
-				   ProfilingRequestSet());
+  Event done = hbargs->region.copy(dst, src, ProfilingRequestSet());
 
   lclinst.destroy(done);
 
   done.wait();
 }
-  
+
 template <class REDOP>
-void hist_batch_redfold_task(const void *args, size_t arglen, 
-                             const void *userdata, size_t userlen, Processor p)
+void hist_batch_redfold_task(const void *args, size_t arglen, const void *userdata,
+                             size_t userlen, Processor p)
 {
   const HistBatchArgs<BucketType> *hbargs = (const HistBatchArgs<BucketType> *)args;
 
   // create a reduction fold instance
   Memory m = closest_memory(p);
   RegionInstance redinst = RegionInstance::NO_INST;
-  RegionInstance::create_instance(redinst, m, hbargs->region,
-				  typename std::vector<size_t>(1, sizeof(BucketReduction::RHS)),
-				  0, // SOA
-				  ProfilingRequestSet()).wait();
+  RegionInstance::create_instance(
+      redinst, m, hbargs->region,
+      typename std::vector<size_t>(1, sizeof(BucketReduction::RHS)),
+      0, // SOA
+      ProfilingRequestSet())
+      .wait();
   assert(redinst.exists());
 
   // clear the instance
@@ -436,9 +442,8 @@ void hist_batch_redfold_task(const void *args, size_t arglen,
   fld[0].inst = redinst;
   fld[0].field_id = 0;
   fld[0].size = sizeof(BucketReduction::RHS);
-  hbargs->region.fill(fld,
-		      ProfilingRequestSet(),
-		      &BucketReduction::identity, fld[0].size).wait();
+  hbargs->region.fill(fld, ProfilingRequestSet(), &BucketReduction::identity, fld[0].size)
+      .wait();
 
   // get a reduction accessor for the instance
   AffineAccessor<BucketReduction::RHS, 1, coord_t> ria(redinst, 0 /*field id*/);
@@ -460,9 +465,7 @@ void hist_batch_redfold_task(const void *args, size_t arglen,
   dst[0].field_id = 0;
   dst[0].size = sizeof(BucketType);
   dst[0].set_redop(REDOP_BUCKET_ADD, false /*!fold*/);
-  Event done = hbargs->region.copy(src, dst, 
-				   ProfilingRequestSet(),
-				   Event::NO_EVENT);
+  Event done = hbargs->region.copy(src, dst, ProfilingRequestSet(), Event::NO_EVENT);
 
   redinst.destroy(done);
 
@@ -470,8 +473,8 @@ void hist_batch_redfold_task(const void *args, size_t arglen,
 }
 
 template <class REDOP>
-void hist_batch_redlist_task(const void *args, size_t arglen, 
-                             const void *userdata, size_t userlen, Processor p)
+void hist_batch_redlist_task(const void *args, size_t arglen, const void *userdata,
+                             size_t userlen, Processor p)
 {
 #if 0
   const HistBatchArgs<BucketType> *hbargs = (const HistBatchArgs<BucketType> *)args;
@@ -499,10 +502,10 @@ void hist_batch_redlist_task(const void *args, size_t arglen,
   hbargs->region.destroy_instance(redinst);
 #endif
 }
-  
+
 template <class REDOP>
-void hist_batch_redsingle_task(const void *args, size_t arglen, 
-                               const void *userdata, size_t userlen, Processor p)
+void hist_batch_redsingle_task(const void *args, size_t arglen, const void *userdata,
+                               size_t userlen, Processor p)
 {
 #if 0
   const HistBatchArgs<BucketType> *hbargs = (const HistBatchArgs<BucketType> *)args;
@@ -530,7 +533,7 @@ void hist_batch_redsingle_task(const void *args, size_t arglen,
   hbargs->region.destroy_instance(redinst);
 #endif
 }
-  
+
 int main(int argc, char **argv)
 {
   Runtime r;
@@ -556,12 +559,11 @@ int main(int argc, char **argv)
   {
     std::set<Processor> all_procs;
     Machine::get_machine().get_all_processors(all_procs);
-    for(std::set<Processor>::const_iterator it = all_procs.begin();
-	it != all_procs.end();
-	it++)
+    for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+        it++)
       if(it->kind() == Processor::LOC_PROC) {
-	p = *it;
-	break;
+        p = *it;
+        break;
       }
   }
   assert(p.exists());
@@ -574,7 +576,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   r.wait_for_shutdown();
-  
+
   return 0;
 }
-

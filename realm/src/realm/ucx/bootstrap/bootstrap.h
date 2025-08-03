@@ -1,5 +1,6 @@
-
-/* Copyright 2024 NVIDIA Corporation
+/*
+ * Copyright 2025 NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,14 +35,13 @@ typedef struct bootstrap_handle {
   int *shared_ranks;
   int num_shared_ranks;
   int (*barrier)(struct bootstrap_handle *handle);
-  int (*bcast)(void *buf, int bytes, int root,
-               struct bootstrap_handle *handle);
+  int (*bcast)(void *buf, int bytes, int root, struct bootstrap_handle *handle);
   int (*gather)(const void *sendbuf, void *recvbuf, int bytes, int root,
                 struct bootstrap_handle *handle);
   int (*allgather)(const void *sendbuf, void *recvbuf, int bytes,
                    struct bootstrap_handle *handle);
   int (*alltoall)(const void *sendbuf, void *recvbuf, int bytes,
-                   struct bootstrap_handle *handle);
+                  struct bootstrap_handle *handle);
   int (*allreduce_ull)(const void *sendbuf, void *recvbuf, int count,
                        enum reduction_op op, struct bootstrap_handle *handle);
   int (*allgatherv)(const void *sendbuf, void *recvbuf, int *sizes, int *offsets,

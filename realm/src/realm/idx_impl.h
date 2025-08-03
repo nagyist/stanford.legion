@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,21 +35,17 @@ namespace Realm {
     virtual void destroy(Event wait_on) = 0;
 
     virtual Event copy(const std::vector<CopySrcDstField> &srcs,
-		       const std::vector<CopySrcDstField> &dsts,
-		       const void *indirects_data,
-		       size_t indirect_len,
-		       const ProfilingRequestSet &requests,
-		       Event wait_on,
-		       int priority) const = 0;
+                       const std::vector<CopySrcDstField> &dsts,
+                       const void *indirects_data, size_t indirect_len,
+                       const ProfilingRequestSet &requests, Event wait_on,
+                       int priority) const = 0;
 
     // given an instance layout, attempts to provide bounds (start relative to
     //  the base of the instance and relative limit - i.e. first nonaccessibly
     //  offset) on affine accesses via elements in this index space - returns
     //  true if successful, false if not
-    virtual bool compute_affine_bounds(const InstanceLayoutGeneric *ilg,
-                                       FieldID fid,
-                                       uintptr_t& rel_base,
-                                       uintptr_t& limit) const = 0;
+    virtual bool compute_affine_bounds(const InstanceLayoutGeneric *ilg, FieldID fid,
+                                       uintptr_t &rel_base, uintptr_t &limit) const = 0;
 
     IndexSpaceGenericImpl(const IndexSpaceGenericImpl &) = default;
     IndexSpaceGenericImpl &operator=(const IndexSpaceGenericImpl &) = default;
@@ -58,28 +56,24 @@ namespace Realm {
   template <int N, typename T>
   class IndexSpaceGenericImplTyped : public IndexSpaceGenericImpl {
   public:
-    IndexSpaceGenericImplTyped(const IndexSpace<N,T>& _space);
+    IndexSpaceGenericImplTyped(const IndexSpace<N, T> &_space);
 
     virtual IndexSpaceGenericImpl *clone_at(void *dst) const;
 
     virtual void destroy(Event wait_on);
 
     virtual Event copy(const std::vector<CopySrcDstField> &srcs,
-		       const std::vector<CopySrcDstField> &dsts,
-		       const void *indirects_data,
-		       size_t indirect_len,
-		       const ProfilingRequestSet &requests,
-		       Event wait_on,
-		       int priority) const;
+                       const std::vector<CopySrcDstField> &dsts,
+                       const void *indirects_data, size_t indirect_len,
+                       const ProfilingRequestSet &requests, Event wait_on,
+                       int priority) const;
 
-    virtual bool compute_affine_bounds(const InstanceLayoutGeneric *ilg,
-                                       FieldID fid,
-                                       uintptr_t& rel_base,
-                                       uintptr_t& limit) const;
+    virtual bool compute_affine_bounds(const InstanceLayoutGeneric *ilg, FieldID fid,
+                                       uintptr_t &rel_base, uintptr_t &limit) const;
 
-    IndexSpace<N,T> space;
+    IndexSpace<N, T> space;
   };
 
-};
+}; // namespace Realm
 
 #endif

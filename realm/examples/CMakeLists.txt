@@ -1,14 +1,17 @@
 # Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
-# in compliance with the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software distributed under the License
-# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
-# or implied. See the License for the specific language governing permissions and limitations under
-# the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # This CMakeLists.txt file enumerates all the examples and creates test targets for them for the parent build system
 
@@ -62,8 +65,11 @@ endif()
 macro(add_example_test name)
   add_subdirectory(${name})
   add_test(NAME example_${name} COMMAND $<TARGET_FILE:${name}> ${TEST_ARGS} ${${name}_ARGS})
-  set_property(TEST example_${name} PROPERTY RESOURCE_LOCK $<REMOVE_DUPLICATES:${TEST_RESOURCE_LOCK} ${${target}_RESOURCE_LOCK}>)
-  if (REALM_USE_UCX)
+  set_property(
+    TEST example_${name} PROPERTY RESOURCE_LOCK $<REMOVE_DUPLICATES:${TEST_RESOURCE_LOCK}
+                                  ${${target}_RESOURCE_LOCK}>
+  )
+  if(REALM_USE_UCX)
     add_dependencies(${name} realm_ucp_bootstrap_mpi)
   endif()
   list(APPEND _example_list example_${name})
@@ -92,7 +98,6 @@ if(MSVC)
 else()
   set_tests_properties(
     ${_example_list} PROPERTIES ENVIRONMENT_MODIFICATION
-                              "LD_LIBRARY_PATH=path_list_append:${TEST_LIB_PATH}"
+                                "LD_LIBRARY_PATH=path_list_append:${TEST_LIB_PATH}"
   )
 endif()
-

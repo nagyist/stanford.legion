@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +20,7 @@
 // NOP but useful for IDEs
 #include "realm/reservation.h"
 
-//define REALM_DEBUG_FRSRV_HOLDERS
+// define REALM_DEBUG_FRSRV_HOLDERS
 #ifdef REALM_DEBUG_FRSRV_HOLDERS
 #include "realm/threads.h"
 #endif
@@ -29,16 +31,13 @@ namespace Realm {
   //
   // class FastReservation
 
-  inline Event FastReservation::lock(WaitMode mode /*= SPIN*/)
-  {
-    return wrlock(mode);
-  }
+  inline Event FastReservation::lock(WaitMode mode /*= SPIN*/) { return wrlock(mode); }
 
 #ifdef REALM_DEBUG_FRSRV_HOLDERS
   struct FastReservationDebugInfo {
     Thread *owner;
     std::map<FastReservation *, int> locks_held;
-    std::vector<std::pair<FastReservation *, int> > locks_log;
+    std::vector<std::pair<FastReservation *, int>> locks_log;
 
     static FastReservationDebugInfo *lookup_debuginfo(void);
   };
@@ -50,8 +49,7 @@ namespace Realm {
   inline Event FastReservation::wrlock(WaitMode mode /*= SPIN*/)
   {
 #ifdef REALM_DEBUG_FRSRV_HOLDERS
-    if(!ThreadLocal::frsv_debug || 
-       (ThreadLocal::frsv_debug->owner != Thread::self()))
+    if(!ThreadLocal::frsv_debug || (ThreadLocal::frsv_debug->owner != Thread::self()))
       ThreadLocal::frsv_debug = FastReservationDebugInfo::lookup_debuginfo();
     assert(ThreadLocal::frsv_debug->locks_held.count(this) == 0);
     ThreadLocal::frsv_debug->locks_held[this] = -1;
@@ -77,16 +75,15 @@ namespace Realm {
 #endif
     return e;
   }
-  
+
   inline Event FastReservation::rdlock(WaitMode mode /*= SPIN*/)
   {
 #ifdef REALM_DEBUG_FRSRV_HOLDERS
-    if(!ThreadLocal::frsv_debug || 
-       (ThreadLocal::frsv_debug->owner != Thread::self()))
+    if(!ThreadLocal::frsv_debug || (ThreadLocal::frsv_debug->owner != Thread::self()))
       ThreadLocal::frsv_debug = FastReservationDebugInfo::lookup_debuginfo();
     if(ThreadLocal::frsv_debug->locks_held.count(this) != 0) {
       // uncomment next line to disallow nested read locks
-      //assert(0);
+      // assert(0);
       assert(ThreadLocal::frsv_debug->locks_held[this] > 0);
       ThreadLocal::frsv_debug->locks_held[this]++;
     } else
@@ -103,9 +100,9 @@ namespace Realm {
     if(REALM_LIKELY((cur_state & ~(STATE_SLEEPER | STATE_READER_COUNT_MASK)) == 0)) {
       State orig_state = state.fetch_add_acqrel(1);
       if(REALM_LIKELY((orig_state & ~(STATE_SLEEPER | STATE_READER_COUNT_MASK)) == 0)) {
-	return Event::NO_EVENT;
+        return Event::NO_EVENT;
       } else {
-	// put the count back before we go down the slow path
+        // put the count back before we go down the slow path
         state.fetch_sub(1);
       }
     }
@@ -116,10 +113,10 @@ namespace Realm {
     if(e.exists()) {
       // didn't actually get the lock
       if(ThreadLocal::frsv_debug->locks_held[this] <= 1) {
-	assert(ThreadLocal::frsv_debug->locks_held[this] != 0);
-	ThreadLocal::frsv_debug->locks_held.erase(this);
+        assert(ThreadLocal::frsv_debug->locks_held[this] != 0);
+        ThreadLocal::frsv_debug->locks_held.erase(this);
       } else
-	ThreadLocal::frsv_debug->locks_held[this]--;
+        ThreadLocal::frsv_debug->locks_held[this]--;
       ThreadLocal::frsv_debug->locks_log.push_back(std::make_pair(this, -2));
     }
 #endif
@@ -129,8 +126,7 @@ namespace Realm {
   inline void FastReservation::unlock(void)
   {
 #ifdef REALM_DEBUG_FRSRV_HOLDERS
-    if(!ThreadLocal::frsv_debug || 
-       (ThreadLocal::frsv_debug->owner != Thread::self()))
+    if(!ThreadLocal::frsv_debug || (ThreadLocal::frsv_debug->owner != Thread::self()))
       ThreadLocal::frsv_debug = FastReservationDebugInfo::lookup_debuginfo();
     assert(ThreadLocal::frsv_debug->locks_held.count(this) == 1);
     if(ThreadLocal::frsv_debug->locks_held[this] <= 1) {
@@ -156,38 +152,32 @@ namespace Realm {
     State cur_state = state.load();
 
     if((cur_state & STATE_WRITER) != 0) {
-      if(REALM_LIKELY((cur_state & (STATE_READER_COUNT_MASK |
-				    STATE_SLEEPER |
-				    STATE_BASE_RSRV_WAITING)) == 0)) {
-	State new_state = cur_state - STATE_WRITER;
-	bool ok = state.compare_exchange(cur_state, new_state);
-	if(REALM_LIKELY(ok))
-	  return;
+      if(REALM_LIKELY((cur_state & (STATE_READER_COUNT_MASK | STATE_SLEEPER |
+                                    STATE_BASE_RSRV_WAITING)) == 0)) {
+        State new_state = cur_state - STATE_WRITER;
+        bool ok = state.compare_exchange(cur_state, new_state);
+        if(REALM_LIKELY(ok))
+          return;
       }
     } else {
       if(REALM_LIKELY(((cur_state & STATE_READER_COUNT_MASK) != 0) &&
-		      ((cur_state & (STATE_WRITER |
-				     STATE_BASE_RSRV_WAITING)) == 0))) {
-	State new_state = cur_state - 1;
-	bool ok = state.compare_exchange(cur_state, new_state);
-	if(REALM_LIKELY(ok))
-	  return;
+                      ((cur_state & (STATE_WRITER | STATE_BASE_RSRV_WAITING)) == 0))) {
+        State new_state = cur_state - 1;
+        bool ok = state.compare_exchange(cur_state, new_state);
+        if(REALM_LIKELY(ok))
+          return;
       }
     }
     unlock_slow();
   }
 
   // basically copies of the above for the try* cases
-  inline bool FastReservation::trylock(void)
-  {
-    return trywrlock();
-  }
+  inline bool FastReservation::trylock(void) { return trywrlock(); }
 
   inline bool FastReservation::trywrlock()
   {
 #ifdef REALM_DEBUG_FRSRV_HOLDERS
-    if(!ThreadLocal::frsv_debug ||
-       (ThreadLocal::frsv_debug->owner != Thread::self()))
+    if(!ThreadLocal::frsv_debug || (ThreadLocal::frsv_debug->owner != Thread::self()))
       ThreadLocal::frsv_debug = FastReservationDebugInfo::lookup_debuginfo();
     assert(ThreadLocal::frsv_debug->locks_held.count(this) == 0);
     ThreadLocal::frsv_debug->locks_held[this] = -1;
@@ -217,12 +207,11 @@ namespace Realm {
   inline bool FastReservation::tryrdlock(void)
   {
 #ifdef REALM_DEBUG_FRSRV_HOLDERS
-    if(!ThreadLocal::frsv_debug ||
-       (ThreadLocal::frsv_debug->owner != Thread::self()))
+    if(!ThreadLocal::frsv_debug || (ThreadLocal::frsv_debug->owner != Thread::self()))
       ThreadLocal::frsv_debug = FastReservationDebugInfo::lookup_debuginfo();
     if(ThreadLocal::frsv_debug->locks_held.count(this) != 0) {
       // uncomment next line to disallow nested read locks
-      //assert(0);
+      // assert(0);
       assert(ThreadLocal::frsv_debug->locks_held[this] > 0);
       ThreadLocal::frsv_debug->locks_held[this]++;
     } else
@@ -239,10 +228,10 @@ namespace Realm {
     if(REALM_LIKELY((cur_state & ~(STATE_SLEEPER | STATE_READER_COUNT_MASK)) == 0)) {
       State orig_state = state.fetch_add_acqrel(1);
       if(REALM_LIKELY((orig_state & ~(STATE_SLEEPER | STATE_READER_COUNT_MASK)) == 0)) {
-	return true;
+        return true;
       } else {
-	// put the count back before we go down the slow path
-	state.fetch_sub(1);
+        // put the count back before we go down the slow path
+        state.fetch_sub(1);
       }
     }
 
@@ -252,16 +241,14 @@ namespace Realm {
     if(!success) {
       // didn't actually get the lock
       if(ThreadLocal::frsv_debug->locks_held[this] <= 1) {
-	assert(ThreadLocal::frsv_debug->locks_held[this] != 0);
-	ThreadLocal::frsv_debug->locks_held.erase(this);
+        assert(ThreadLocal::frsv_debug->locks_held[this] != 0);
+        ThreadLocal::frsv_debug->locks_held.erase(this);
       } else
-	ThreadLocal::frsv_debug->locks_held[this]--;
+        ThreadLocal::frsv_debug->locks_held[this]--;
       ThreadLocal::frsv_debug->locks_log.push_back(std::make_pair(this, -2));
     }
 #endif
     return success;
   }
 
-	
 }; // namespace Realm
-

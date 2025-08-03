@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,22 +45,24 @@ namespace Realm {
     // the maximum time we're willing to spend on inline message
     //  handlers
     extern long long max_inline_message_time;
-  };
+  }; // namespace Config
 
-  enum { PAYLOAD_NONE, // no payload in packet
-	 PAYLOAD_KEEP, // use payload pointer, guaranteed to be stable
-	 PAYLOAD_FREE, // take ownership of payload, free when done
-	 PAYLOAD_COPY, // make a copy of the payload
-	 PAYLOAD_SRCPTR, // payload has been copied to the src data pool
-	 PAYLOAD_PENDING, // payload needs to be copied, but hasn't yet
-	 PAYLOAD_KEEPREG, // use payload pointer, AND it's registered!
-	 PAYLOAD_EMPTY, // message can have payload, but this one is 0 bytes
+  enum
+  {
+    PAYLOAD_NONE,    // no payload in packet
+    PAYLOAD_KEEP,    // use payload pointer, guaranteed to be stable
+    PAYLOAD_FREE,    // take ownership of payload, free when done
+    PAYLOAD_COPY,    // make a copy of the payload
+    PAYLOAD_SRCPTR,  // payload has been copied to the src data pool
+    PAYLOAD_PENDING, // payload needs to be copied, but hasn't yet
+    PAYLOAD_KEEPREG, // use payload pointer, AND it's registered!
+    PAYLOAD_EMPTY,   // message can have payload, but this one is 0 bytes
   };
 
   class ActiveMessageImpl;
- 
+
   template <typename T, size_t INLINE_STORAGE = 256>
-    class ActiveMessage {
+  class ActiveMessage {
   public:
     // constructs an INACTIVE message object - call init(...) as needed
     ActiveMessage();
@@ -69,7 +73,7 @@ namespace Realm {
     //  payload which can be delivered to a particular destination address
     ActiveMessage(NodeID _target, size_t _max_payload_size = 0);
     ActiveMessage(NodeID _target, size_t _max_payload_size,
-		  const RemoteAddress& _dest_payload_addr);
+                  const RemoteAddress &_dest_payload_addr);
     ActiveMessage(const Realm::NodeSet &_targets, size_t _max_payload_size = 0);
 
     // providing the payload (as a 1D or 2D reference, which must be PAYLOAD_KEEP)
@@ -78,37 +82,33 @@ namespace Realm {
     ActiveMessage(NodeID _target, const void *_data, size_t _datalen);
     ActiveMessage(NodeID _target, const LocalAddress &_src_payload_addr, size_t _datalen,
                   const RemoteAddress &_dest_payload_addr);
-    ActiveMessage(const Realm::NodeSet &_targets,
-		  const void *_data, size_t _datalen);
+    ActiveMessage(const Realm::NodeSet &_targets, const void *_data, size_t _datalen);
     ActiveMessage(NodeID _target, const void *_data, size_t _bytes_per_line,
-		  size_t _lines, size_t _line_stride);
+                  size_t _lines, size_t _line_stride);
     ActiveMessage(NodeID _target, const LocalAddress &_src_payload_addr,
                   size_t _bytes_per_line, size_t _lines, size_t _line_stride,
                   const RemoteAddress &_dest_payload_addr);
-    ActiveMessage(const Realm::NodeSet &_targets,
-		  const void *_data, size_t _bytes_per_line,
-		  size_t _lines, size_t _line_stride);
+    ActiveMessage(const Realm::NodeSet &_targets, const void *_data,
+                  size_t _bytes_per_line, size_t _lines, size_t _line_stride);
 
     ~ActiveMessage(void);
 
     // a version of `init` for each constructor above
-    void init(NodeID _target,
-	      size_t _max_payload_size = 0);
-    void init(NodeID _target,
-	      size_t _max_payload_size, const RemoteAddress& _dest_payload_addr);
+    void init(NodeID _target, size_t _max_payload_size = 0);
+    void init(NodeID _target, size_t _max_payload_size,
+              const RemoteAddress &_dest_payload_addr);
     void init(const Realm::NodeSet &_targets, size_t _max_payload_size = 0);
     void init(NodeID _target, const void *_data, size_t _datalen);
     void init(NodeID _target, const LocalAddress &_src_payload_addr, size_t _datalen,
               const RemoteAddress &_dest_payload_addr);
     void init(const Realm::NodeSet &_targets, const void *_data, size_t _datalen);
-    void init(NodeID _target, const void *_data, size_t _bytes_per_line,
-	      size_t _lines, size_t _line_stride);
+    void init(NodeID _target, const void *_data, size_t _bytes_per_line, size_t _lines,
+              size_t _line_stride);
     void init(NodeID _target, const LocalAddress &_src_payload_addr,
               size_t _bytes_per_line, size_t _lines, size_t _line_stride,
               const RemoteAddress &_dest_payload_addr);
-    void init(const Realm::NodeSet &_targets,
-	      const void *_data, size_t _bytes_per_line,
-	      size_t _lines, size_t _line_stride);
+    void init(const Realm::NodeSet &_targets, const void *_data, size_t _bytes_per_line,
+              size_t _lines, size_t _line_stride);
 
     // large messages may need to be fragmented, so use cases that can
     //  handle the fragmentation at a higher level may want to know the
@@ -117,21 +117,17 @@ namespace Realm {
     //  and/or whether the source data location is known
     // a call that sets `with_congestion` may get a smaller value (maybe
     //  even 0) if the path to the named target(s) is getting full
+    static size_t recommended_max_payload(NodeID target, bool with_congestion);
+    static size_t recommended_max_payload(const NodeSet &targets, bool with_congestion);
     static size_t recommended_max_payload(NodeID target,
-					  bool with_congestion);
-    static size_t recommended_max_payload(const NodeSet& targets,
-					  bool with_congestion);
-    static size_t recommended_max_payload(NodeID target,
-					  const RemoteAddress &dest_payload_addr,
-					  bool with_congestion);
-    static size_t recommended_max_payload(NodeID target,
-					  const void *data, size_t bytes_per_line,
-					  size_t lines, size_t line_stride,
-					  bool with_congestion);
-    static size_t recommended_max_payload(const NodeSet& targets,
-					  const void *data, size_t bytes_per_line,
-					  size_t lines, size_t line_stride,
-					  bool with_congestion);
+                                          const RemoteAddress &dest_payload_addr,
+                                          bool with_congestion);
+    static size_t recommended_max_payload(NodeID target, const void *data,
+                                          size_t bytes_per_line, size_t lines,
+                                          size_t line_stride, bool with_congestion);
+    static size_t recommended_max_payload(const NodeSet &targets, const void *data,
+                                          size_t bytes_per_line, size_t lines,
+                                          size_t line_stride, bool with_congestion);
     static size_t
     recommended_max_payload(NodeID target, const LocalAddress &src_payload_addr,
                             size_t bytes_per_line, size_t lines, size_t line_stride,
@@ -144,13 +140,11 @@ namespace Realm {
     // variable payload can be written to in three ways:
     //  (a) Realm-style serialization (currently eager)
     template <typename T2>
-      bool operator<<(const T2& to_append);
+    bool operator<<(const T2 &to_append);
     //  (b) old memcpy-like behavior (using the various payload modes)
-    void add_payload(const void *data, size_t datalen,
-		     int payload_mode = PAYLOAD_COPY);
-    void add_payload(const void *data, size_t bytes_per_line,
-		     size_t lines, size_t line_stride,
-		     int payload_mode = PAYLOAD_COPY);
+    void add_payload(const void *data, size_t datalen, int payload_mode = PAYLOAD_COPY);
+    void add_payload(const void *data, size_t bytes_per_line, size_t lines,
+                     size_t line_stride, int payload_mode = PAYLOAD_COPY);
     //  (c) request for a pointer to write into (writes must be completed before
     //       call to commit or cancel)
     void *payload_ptr(size_t datalen);
@@ -163,9 +157,9 @@ namespace Realm {
     // callbacks need to be "lightweight" - for heavier work, the message
     //  handler on the target can send an explicit response message
     template <typename CALLABLE>
-    void add_local_completion(const CALLABLE& callable);
+    void add_local_completion(const CALLABLE &callable);
     template <typename CALLABLE>
-    void add_remote_completion(const CALLABLE& callable);
+    void add_remote_completion(const CALLABLE &callable);
 
     // every active message must eventually be commit()'ed or cancel()'ed
     void commit(void);
@@ -247,21 +241,19 @@ namespace Realm {
     ~ActiveMessageHandlerTable(void);
 
     typedef unsigned short MessageID;
-    typedef void (*MessageHandler)(NodeID sender, const void *header,
-				   const void *payload, size_t payload_size,
-				   TimeLimit work_until);
+    typedef void (*MessageHandler)(NodeID sender, const void *header, const void *payload,
+                                   size_t payload_size, TimeLimit work_until);
     typedef void (*MessageHandlerNoTimeout)(NodeID sender, const void *header,
-					    const void *payload, size_t payload_size);
+                                            const void *payload, size_t payload_size);
     typedef bool (*MessageHandlerInline)(NodeID sender, const void *header,
-					 const void *payload, size_t payload_size,
-					 TimeLimit work_until);
+                                         const void *payload, size_t payload_size,
+                                         TimeLimit work_until);
 
     template <typename T>
-      MessageID lookup_message_id(void) const;
+    MessageID lookup_message_id(void) const;
 
     const char *lookup_message_name(MessageID id);
-    void record_message_handler_call(MessageID id,
-				     long long t_start, long long t_end);
+    void record_message_handler_call(MessageID id, long long t_start, long long t_end);
     void report_message_handler_stats();
 
     static void append_handler_reg(ActiveMessageHandlerRegBase *new_reg);
@@ -295,8 +287,10 @@ namespace Realm {
   public:
     virtual ~ActiveMessageHandlerRegBase(void) {}
     virtual ActiveMessageHandlerTable::MessageHandler get_handler(void) const = 0;
-    virtual ActiveMessageHandlerTable::MessageHandlerNoTimeout get_handler_notimeout(void) const = 0;
-    virtual ActiveMessageHandlerTable::MessageHandlerInline get_handler_inline(void) const = 0;
+    virtual ActiveMessageHandlerTable::MessageHandlerNoTimeout
+    get_handler_notimeout(void) const = 0;
+    virtual ActiveMessageHandlerTable::MessageHandlerInline
+    get_handler_inline(void) const = 0;
 
     ActiveMessageHandlerTable::TypeHash hash;
     const char *name;
@@ -332,8 +326,10 @@ namespace Realm {
     // returns either the requested kind of handler or a null pointer if
     //  it doesn't exist
     virtual ActiveMessageHandlerTable::MessageHandler get_handler(void) const;
-    virtual ActiveMessageHandlerTable::MessageHandlerNoTimeout get_handler_notimeout(void) const;
-    virtual ActiveMessageHandlerTable::MessageHandlerInline get_handler_inline(void) const;
+    virtual ActiveMessageHandlerTable::MessageHandlerNoTimeout
+    get_handler_notimeout(void) const;
+    virtual ActiveMessageHandlerTable::MessageHandlerInline
+    get_handler_inline(void) const;
 
     // this method does nothing, but can be called to force the instantiation
     //  of a handler registration object (needed when things are inside templates)
@@ -343,12 +339,13 @@ namespace Realm {
   namespace ThreadLocal {
     // this flag will be true when we are running a message handler
     extern thread_local bool in_message_handler;
-  };
-  
-  class REALM_INTERNAL_API_EXTERNAL_LINKAGE IncomingMessageManager : public BackgroundWorkItem {
+  }; // namespace ThreadLocal
+
+  class REALM_INTERNAL_API_EXTERNAL_LINKAGE IncomingMessageManager
+    : public BackgroundWorkItem {
   public:
     IncomingMessageManager(int _nodes, int _dedicated_threads,
-			   Realm::CoreReservationSet& crs);
+                           Realm::CoreReservationSet &crs);
     ~IncomingMessageManager(void);
 
     typedef uintptr_t CallbackData;
@@ -358,16 +355,11 @@ namespace Realm {
     // returns true if the call was handled immediately (in which case the
     //  callback, if present, will NOT be called), or false if the message
     //  will be processed later
-    bool add_incoming_message(NodeID sender,
-			      ActiveMessageHandlerTable::MessageID msgid,
-			      const void *hdr, size_t hdr_size,
-			      int hdr_mode,
-			      const void *payload, size_t payload_size,
-			      int payload_mode,
-			      CallbackFnptr callback_fnptr,
-			      CallbackData callback_data1,
-			      CallbackData callback_data2,
-			      TimeLimit work_until);
+    bool add_incoming_message(NodeID sender, ActiveMessageHandlerTable::MessageID msgid,
+                              const void *hdr, size_t hdr_size, int hdr_mode,
+                              const void *payload, size_t payload_size, int payload_mode,
+                              CallbackFnptr callback_fnptr, CallbackData callback_data1,
+                              CallbackData callback_data2, TimeLimit work_until);
 
     void start_handler_threads(size_t stack_size);
 
@@ -406,8 +398,7 @@ namespace Realm {
       void reset();
 
       // called with message manager lock held
-      Message *append_message(size_t hdr_bytes_needed,
-			      size_t payload_bytes_needed);
+      Message *append_message(size_t hdr_bytes_needed, size_t payload_bytes_needed);
 
       // called _without_ message manager lock held
       void recycle_message(Message *msg, IncomingMessageManager *manager);
@@ -417,9 +408,8 @@ namespace Realm {
       MessageBlock *next_free;
     };
 
-    int get_messages(Message *& head, Message **& tail, bool wait);
-    bool return_messages(int sender, size_t num_handled,
-                         Message *head, Message **tail);
+    int get_messages(Message *&head, Message **&tail, bool wait);
+    bool return_messages(int sender, size_t num_handled, Message *head, Message **tail);
 
     int nodes, dedicated_threads, sleeper_count;
     atomic<bool> bgwork_requested;
@@ -541,4 +531,3 @@ namespace Realm {
 #include "realm/activemsg.inl"
 
 #endif
-

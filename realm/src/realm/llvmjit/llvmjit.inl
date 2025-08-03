@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,18 +25,16 @@ namespace Realm {
   // class LLVMIRImplementation
 
   template <typename S>
-  bool LLVMIRImplementation::serialize(S& serializer) const
+  bool LLVMIRImplementation::serialize(S &serializer) const
   {
-    return ((serializer << ir) &&
-	    (serializer << entry_symbol));
+    return ((serializer << ir) && (serializer << entry_symbol));
   }
 
   template <typename S>
-  /*static*/ CodeImplementation *LLVMIRImplementation::deserialize_new(S& deserializer)
+  /*static*/ CodeImplementation *LLVMIRImplementation::deserialize_new(S &deserializer)
   {
     LLVMIRImplementation *i = new LLVMIRImplementation;
-    if((deserializer >> i->ir) &&
-       (deserializer >> i->entry_symbol)) {
+    if((deserializer >> i->ir) && (deserializer >> i->entry_symbol)) {
       return i;
     } else {
       delete i;

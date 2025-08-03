@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "realm.h"
 #include "realm/cmdline.h"
 #include "realm/network.h"
@@ -24,8 +41,9 @@ using namespace Realm;
 
 Logger log_app("app");
 
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
 };
 
 namespace TestConfig {
@@ -66,7 +84,7 @@ namespace TestConfig {
   // python module
   int num_python_cpus = 1;
   size_t py_stack_size = 4 * 1024 * 1024;
-};
+}; // namespace TestConfig
 
 #ifdef REALM_USE_CUDA
 static std::string convert_uuid(char *cu_uuid)
@@ -99,8 +117,8 @@ static bool compare_uuid(char *expected, char *actual)
 }
 #endif
 
-void top_level_task(const void *args, size_t arglen, 
-		                const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   Runtime rt = Runtime::get_runtime();
   int wrong_config = 0;
@@ -145,8 +163,8 @@ void top_level_task(const void *args, size_t arglen,
     // test wrong property
     ret_value = core_config->get_property<int>("get_error_core", wrong_config);
     assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
-    log_app.print("cpus %d, utils %d, ios %d, sysmem %zu, regmem %zu", 
-      num_cpu_procs, num_util_procs, num_io_procs, sysmem_size, regmem_size);
+    log_app.print("cpus %d, utils %d, ios %d, sysmem %zu, regmem %zu", num_cpu_procs,
+                  num_util_procs, num_io_procs, sysmem_size, regmem_size);
     // test stack size
 #ifdef REALM_ON_WINDOWS
     void *stack_ptr = _alloca(TestConfig::stack_size * 2 / 3);
@@ -195,12 +213,12 @@ void top_level_task(const void *args, size_t arglen,
   ModuleConfig *cuda_config = rt.get_module_config("cuda");
   ModuleConfig *hip_config = rt.get_module_config("hip");
   ModuleConfig *gpu_config = nullptr;
-  if (cuda_config) {
+  if(cuda_config) {
     gpu_config = cuda_config;
-  } else if (hip_config) {
+  } else if(hip_config) {
     gpu_config = hip_config;
   }
-  if (gpu_config) {
+  if(gpu_config) {
     int num_gpus = 0;
     size_t fb_mem_size = 0;
     size_t zc_mem_size = 0;
@@ -227,7 +245,7 @@ void top_level_task(const void *args, size_t arglen,
     assert(ret_value == REALM_SUCCESS);
     assert(zc_ib_size == TestConfig::zc_ib_size);
     // uvm is only available in cuda
-    if (cuda_config) {
+    if(cuda_config) {
       ret_value = gpu_config->get_property("uvmem", uvm_mem_size);
       assert(ret_value == REALM_SUCCESS);
       assert(uvm_mem_size == TestConfig::uvm_mem_size);
@@ -247,15 +265,18 @@ void top_level_task(const void *args, size_t arglen,
     // test wrong property
     ret_value = gpu_config->get_property("get_error_cuda", wrong_config);
     assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
-    log_app.print("cuda gpus %d, fbmem %zu, zcmem %zu, fb_ib %zu, zc_ib %zu, uvm %zu, use_dynamic_fb %d, dynfb_max_size %zu, task_streams %u, d2d_streams %u", 
-      num_gpus, fb_mem_size, zc_mem_size, fb_ib_size, zc_ib_size, uvm_mem_size, use_dynamic_fb, dynfb_max_size, task_streams, d2d_streams);
+    log_app.print(
+        "cuda gpus %d, fbmem %zu, zcmem %zu, fb_ib %zu, zc_ib %zu, uvm %zu, "
+        "use_dynamic_fb %d, dynfb_max_size %zu, task_streams %u, d2d_streams %u",
+        num_gpus, fb_mem_size, zc_mem_size, fb_ib_size, zc_ib_size, uvm_mem_size,
+        use_dynamic_fb, dynfb_max_size, task_streams, d2d_streams);
   } else {
     log_app.print("cuda/hip is not loaded");
   }
 
   // openmp module
   ModuleConfig *openmp_config = rt.get_module_config("openmp");
-  if (openmp_config) {
+  if(openmp_config) {
     int num_openmp_cpus = 0;
     int num_threads_per_cpu = 0;
     bool openmp_use_numa = false;
@@ -275,14 +296,15 @@ void top_level_task(const void *args, size_t arglen,
     // test wrong property
     ret_value = openmp_config->get_property("get_error_openmp", wrong_config);
     assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
-    log_app.print("ocpus %d, othr %d, use_numa %d, stack_size %zu", num_openmp_cpus, num_threads_per_cpu, openmp_use_numa, openmp_stack_size);
+    log_app.print("ocpus %d, othr %d, use_numa %d, stack_size %zu", num_openmp_cpus,
+                  num_threads_per_cpu, openmp_use_numa, openmp_stack_size);
   } else {
     log_app.print("openmp is not loaded");
   }
 
   // python module
   ModuleConfig *python_config = rt.get_module_config("python");
-  if (python_config) {
+  if(python_config) {
     int num_python_cpus = 0;
     size_t py_stack_size = 0;
     ret_value = python_config->get_property("pyproc", num_python_cpus);
@@ -299,7 +321,7 @@ void top_level_task(const void *args, size_t arglen,
     log_app.print("python is not loaded");
   }
 
-  if (Network::my_node_id == 0) {
+  if(Network::my_node_id == 0) {
     int num_cpu_procs = 0;
     int num_util_procs = 0;
     int num_io_procs = 0;
@@ -315,7 +337,8 @@ void top_level_task(const void *args, size_t arglen,
     Machine machine = Machine::get_machine();
     int num_nodes = static_cast<int>(machine.get_address_space_count());
     // iterate all processors within the machine.
-    for(Machine::ProcessorQuery::iterator it = Machine::ProcessorQuery(machine).begin(); it; ++it) {
+    for(Machine::ProcessorQuery::iterator it = Machine::ProcessorQuery(machine).begin();
+        it; ++it) {
       Processor proc = *it;
       Processor::Kind kind = proc.kind();
       Machine::ProcessInfo process_info;
@@ -324,81 +347,81 @@ void top_level_task(const void *args, size_t arglen,
       log_app.print() << "Process " << proc << ", process_id:" << process_info.processid
                       << ", host_id:" << process_info.hostid
                       << ", hostname:" << process_info.hostname;
-      switch (kind)
+      switch(kind) {
+      case Processor::LOC_PROC:
       {
-        case Processor::LOC_PROC:
-        {
-          log_app.print("Rank %u, Processor ID " IDFMT " is CPU.", p.address_space(),
-                        proc.id);
-          num_cpu_procs ++;
-          break;
-        }
-        case Processor::UTIL_PROC:
-        {
-          log_app.print("Rank %u, Processor ID " IDFMT " is utility.", p.address_space(),
-                        proc.id);
-          num_util_procs ++;
-          break;
-        }
-        case Processor::IO_PROC:
-        {
-          log_app.print("Rank %u, Processor ID " IDFMT " is I/O Proc.", p.address_space(),
-                        proc.id);
-          num_io_procs ++;
-          break;
-        }
+        log_app.print("Rank %u, Processor ID " IDFMT " is CPU.", p.address_space(),
+                      proc.id);
+        num_cpu_procs++;
+        break;
+      }
+      case Processor::UTIL_PROC:
+      {
+        log_app.print("Rank %u, Processor ID " IDFMT " is utility.", p.address_space(),
+                      proc.id);
+        num_util_procs++;
+        break;
+      }
+      case Processor::IO_PROC:
+      {
+        log_app.print("Rank %u, Processor ID " IDFMT " is I/O Proc.", p.address_space(),
+                      proc.id);
+        num_io_procs++;
+        break;
+      }
 #if defined(REALM_USE_CUDA) || defined(REALM_USE_HIP)
-        case Processor::TOC_PROC:
-        {
-          log_app.print("Rank %u, Processor ID " IDFMT " is GPU.", p.address_space(),
-                        proc.id);
+      case Processor::TOC_PROC:
+      {
+        log_app.print("Rank %u, Processor ID " IDFMT " is GPU.", p.address_space(),
+                      proc.id);
 #ifdef REALM_USE_CUDA
-          Cuda::Uuid cuda_uuid;
-          ret_value = Cuda::get_cuda_device_uuid(proc, &cuda_uuid);
-          if(ret_value) {
-            int device_id;
-            assert(Cuda::get_cuda_device_id(proc, &device_id));
-            CUuuid expected_uuid;
-            cuDeviceGetUuid(&expected_uuid, device_id);
-            assert(
-                compare_uuid(reinterpret_cast<char *>(&expected_uuid), &(cuda_uuid[0])));
-            std::string uuid = convert_uuid(&(cuda_uuid[0]));
-            log_app.print("GPU Processor %llx, devide_id %d, uuid:%s", proc.id, device_id,
-                          uuid.c_str());
-          }
-#endif
-          num_gpus ++;
-          break;
+        Cuda::Uuid cuda_uuid;
+        ret_value = Cuda::get_cuda_device_uuid(proc, &cuda_uuid);
+        if(ret_value) {
+          int device_id;
+          assert(Cuda::get_cuda_device_id(proc, &device_id));
+          CUuuid expected_uuid;
+          cuDeviceGetUuid(&expected_uuid, device_id);
+          assert(compare_uuid(reinterpret_cast<char *>(&expected_uuid), &(cuda_uuid[0])));
+          std::string uuid = convert_uuid(&(cuda_uuid[0]));
+          log_app.print("GPU Processor %llx, devide_id %d, uuid:%s", proc.id, device_id,
+                        uuid.c_str());
         }
+#endif
+        num_gpus++;
+        break;
+      }
 #endif
 #ifdef REALM_USE_OPENMP
-        case Processor::OMP_PROC:
-        {
-          log_app.print("Rank %u, Processor ID " IDFMT " is OMP.", p.address_space(),
-                        proc.id);
-          num_openmp_cpus ++;
-          break;
-        }
+      case Processor::OMP_PROC:
+      {
+        log_app.print("Rank %u, Processor ID " IDFMT " is OMP.", p.address_space(),
+                      proc.id);
+        num_openmp_cpus++;
+        break;
+      }
 #endif
 #ifdef REALM_USE_PYTHON
-        case Processor::PY_PROC:
-        {
-          log_app.print("Rank %u, Processor ID " IDFMT " is Python.", p.address_space(),
-                        proc.id);
-          num_python_cpus ++;
-          break;
-        }
+      case Processor::PY_PROC:
+      {
+        log_app.print("Rank %u, Processor ID " IDFMT " is Python.", p.address_space(),
+                      proc.id);
+        num_python_cpus++;
+        break;
+      }
 #endif
-        default:
-        {
-          break;
-        }
+      default:
+      {
+        break;
+      }
       }
     }
     Numa::NumaModule *numa_module = rt.get_module<Numa::NumaModule>("numa");
-    if (numa_module) {
+    if(numa_module) {
       int num_numas = numa_module->numa_cpu_counts.size();
-      assert(num_cpu_procs == (TestConfig::num_cpu_procs + TestConfig::num_numa_cpus * num_numas) * num_nodes);
+      assert(num_cpu_procs ==
+             (TestConfig::num_cpu_procs + TestConfig::num_numa_cpus * num_numas) *
+                 num_nodes);
     } else {
       assert(num_cpu_procs == TestConfig::num_cpu_procs * num_nodes);
     }
@@ -423,53 +446,59 @@ void top_level_task(const void *args, size_t arglen,
     size_t dynfb_max_size = 0;
 #endif
     // iterate all memories within the machine.
-    for(Machine::MemoryQuery::iterator it = Machine::MemoryQuery(machine).begin(); it; ++it) {
+    for(Machine::MemoryQuery::iterator it = Machine::MemoryQuery(machine).begin(); it;
+        ++it) {
       Memory p = *it;
       Memory::Kind kind = p.kind();
-      switch (kind)
+      switch(kind) {
+      case Memory::SYSTEM_MEM:
       {
-        case Memory::SYSTEM_MEM:
-        {
-          log_app.print("Rank %u, Memory ID " IDFMT " is SYSTEM MEM, size %zu.", p.address_space(), p.id, p.capacity());
-          sysmem_size += p.capacity();
-          break;
-        }
-        case Memory::REGDMA_MEM:
-        {
-          log_app.print("Rank %u, Memory ID " IDFMT " is REGDMA MEM, size %zu.", p.address_space(), p.id, p.capacity());
-          regmem_size += p.capacity();
-          break;
-        }
+        log_app.print("Rank %u, Memory ID " IDFMT " is SYSTEM MEM, size %zu.",
+                      p.address_space(), p.id, p.capacity());
+        sysmem_size += p.capacity();
+        break;
+      }
+      case Memory::REGDMA_MEM:
+      {
+        log_app.print("Rank %u, Memory ID " IDFMT " is REGDMA MEM, size %zu.",
+                      p.address_space(), p.id, p.capacity());
+        regmem_size += p.capacity();
+        break;
+      }
 #if defined(REALM_USE_CUDA) || defined(REALM_USE_HIP)
-        case Memory::GPU_FB_MEM:
-        {
-          log_app.print("Rank %u, Memory ID " IDFMT " is FB MEM, size %zu.", p.address_space(), p.id, p.capacity());
-          fb_mem_size += p.capacity();
-          break;
-        }
-        case Memory::Z_COPY_MEM:
-        {
-          log_app.print("Rank %u, Memory ID " IDFMT " is ZC MEM, size %zu.", p.address_space(), p.id, p.capacity());
-          zc_mem_size += p.capacity();
-          break;
-        }
-        case Memory::GPU_MANAGED_MEM:
-        {
-          log_app.print("Rank %u, Memory ID " IDFMT " is GPU MANAGED MEM, size %zu.", p.address_space(), p.id, p.capacity());
-          uvm_mem_size += p.capacity();
-          break;
-        }
-        case Memory::GPU_DYNAMIC_MEM:
-        {
-          log_app.print("Rank %u, Memory ID " IDFMT " is GPU DYNAMIC FB MEM, size %zu.", p.address_space(), p.id, p.capacity());
-          dynfb_max_size += p.capacity();
-          break;
-        }
+      case Memory::GPU_FB_MEM:
+      {
+        log_app.print("Rank %u, Memory ID " IDFMT " is FB MEM, size %zu.",
+                      p.address_space(), p.id, p.capacity());
+        fb_mem_size += p.capacity();
+        break;
+      }
+      case Memory::Z_COPY_MEM:
+      {
+        log_app.print("Rank %u, Memory ID " IDFMT " is ZC MEM, size %zu.",
+                      p.address_space(), p.id, p.capacity());
+        zc_mem_size += p.capacity();
+        break;
+      }
+      case Memory::GPU_MANAGED_MEM:
+      {
+        log_app.print("Rank %u, Memory ID " IDFMT " is GPU MANAGED MEM, size %zu.",
+                      p.address_space(), p.id, p.capacity());
+        uvm_mem_size += p.capacity();
+        break;
+      }
+      case Memory::GPU_DYNAMIC_MEM:
+      {
+        log_app.print("Rank %u, Memory ID " IDFMT " is GPU DYNAMIC FB MEM, size %zu.",
+                      p.address_space(), p.id, p.capacity());
+        dynfb_max_size += p.capacity();
+        break;
+      }
 #endif
-        default:
-        {
-          break;
-        }
+      default:
+      {
+        break;
+      }
       }
     }
     assert(sysmem_size == TestConfig::sysmem_size * num_nodes);
@@ -507,10 +536,9 @@ int main(int argc, char **argv)
   bool ok = cp.parse_command_line(argc, const_cast<const char **>(argv));
   assert(ok);
 
-
   if(test_args == 0) {
     // core module
-    ModuleConfig* core_config = rt.get_module_config("core");
+    ModuleConfig *core_config = rt.get_module_config("core");
     assert(core_config != NULL);
     RealmStatus ret_value = REALM_ERROR;
     {
@@ -531,9 +559,11 @@ int main(int argc, char **argv)
       assert(ret_value == REALM_SUCCESS);
       ret_value = core_config->set_property<size_t>("stack_size", TestConfig::stack_size);
       assert(ret_value == REALM_SUCCESS);
-      ret_value = core_config->set_property<bool>("pin_util_procs", TestConfig::pin_util_procs);
+      ret_value =
+          core_config->set_property<bool>("pin_util_procs", TestConfig::pin_util_procs);
       assert(ret_value == REALM_SUCCESS);
-      ret_value = core_config->set_property<bool>("use_ext_sysmem", TestConfig::use_ext_sysmem);
+      ret_value =
+          core_config->set_property<bool>("use_ext_sysmem", TestConfig::use_ext_sysmem);
       assert(ret_value == REALM_SUCCESS);
       ret_value = core_config->set_property<size_t>("regmem", TestConfig::regmem_size);
       assert(ret_value == REALM_SUCCESS);
@@ -574,16 +604,15 @@ int main(int argc, char **argv)
     }
 
     // cuda/hip module
-    ModuleConfig* cuda_config = rt.get_module_config("cuda");
-    ModuleConfig* hip_config = rt.get_module_config("hip");
-    ModuleConfig* gpu_config = nullptr;
-    if (cuda_config) {
+    ModuleConfig *cuda_config = rt.get_module_config("cuda");
+    ModuleConfig *hip_config = rt.get_module_config("hip");
+    ModuleConfig *gpu_config = nullptr;
+    if(cuda_config) {
       gpu_config = cuda_config;
-    } else if (hip_config)
-    {
+    } else if(hip_config) {
       gpu_config = hip_config;
     }
-    if (gpu_config) {
+    if(gpu_config) {
       int ngpus = 0;
       size_t fbmem = 0;
       ret_value = gpu_config->get_resource("gpu", ngpus);
@@ -602,17 +631,21 @@ int main(int argc, char **argv)
       ret_value = gpu_config->set_property<size_t>("ib_zcmem", TestConfig::zc_ib_size);
       assert(ret_value == REALM_SUCCESS);
       // uvm is only available in cuda
-      if (cuda_config) {
+      if(cuda_config) {
         ret_value = gpu_config->set_property<size_t>("uvmem", TestConfig::uvm_mem_size);
         assert(ret_value == REALM_SUCCESS);
       }
-      ret_value = gpu_config->set_property<bool>("use_dynamic_fb", TestConfig::use_dynamic_fb);
+      ret_value =
+          gpu_config->set_property<bool>("use_dynamic_fb", TestConfig::use_dynamic_fb);
       assert(ret_value == REALM_SUCCESS);
-      ret_value = gpu_config->set_property<size_t>("dynfb_max_size", TestConfig::dynfb_max_size);
+      ret_value =
+          gpu_config->set_property<size_t>("dynfb_max_size", TestConfig::dynfb_max_size);
       assert(ret_value == REALM_SUCCESS);
-      ret_value = gpu_config->set_property<unsigned>("task_streams", TestConfig::task_streams);
+      ret_value =
+          gpu_config->set_property<unsigned>("task_streams", TestConfig::task_streams);
       assert(ret_value == REALM_SUCCESS);
-      ret_value = gpu_config->set_property<unsigned>("d2d_streams", TestConfig::d2d_streams);
+      ret_value =
+          gpu_config->set_property<unsigned>("d2d_streams", TestConfig::d2d_streams);
       assert(ret_value == REALM_SUCCESS);
       // test wrong config
       ret_value = gpu_config->set_property("set_error_cuda", TestConfig::fb_mem_size);
@@ -622,32 +655,37 @@ int main(int argc, char **argv)
     }
 
     // openmp module
-    ModuleConfig* openmp_config = rt.get_module_config("openmp");
-    if (openmp_config) {
+    ModuleConfig *openmp_config = rt.get_module_config("openmp");
+    if(openmp_config) {
       ret_value = openmp_config->set_property<int>("ocpu", TestConfig::num_openmp_cpus);
       assert(ret_value == REALM_SUCCESS);
-      ret_value = openmp_config->set_property<int>("othr", TestConfig::num_threads_per_cpu);
+      ret_value =
+          openmp_config->set_property<int>("othr", TestConfig::num_threads_per_cpu);
       assert(ret_value == REALM_SUCCESS);
       ret_value = openmp_config->set_property<bool>("onuma", TestConfig::openmp_use_numa);
       assert(ret_value == REALM_SUCCESS);
-      ret_value = openmp_config->set_property<size_t>("ostack", TestConfig::openmp_stack_size);
+      ret_value =
+          openmp_config->set_property<size_t>("ostack", TestConfig::openmp_stack_size);
       assert(ret_value == REALM_SUCCESS);
       // test wrong config
-      ret_value = openmp_config->set_property("set_error_openmp", TestConfig::num_openmp_cpus);
+      ret_value =
+          openmp_config->set_property("set_error_openmp", TestConfig::num_openmp_cpus);
       assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
     } else {
       log_app.print("openmp is not loaded");
     }
 
     // python module
-    ModuleConfig* python_config = rt.get_module_config("python");
-    if (python_config) {
+    ModuleConfig *python_config = rt.get_module_config("python");
+    if(python_config) {
       ret_value = python_config->set_property<int>("pyproc", TestConfig::num_python_cpus);
       assert(ret_value == REALM_SUCCESS);
-      ret_value = python_config->set_property<size_t>("pystack", TestConfig::py_stack_size);
+      ret_value =
+          python_config->set_property<size_t>("pystack", TestConfig::py_stack_size);
       assert(ret_value == REALM_SUCCESS);
       // test wrong config
-      ret_value = python_config->set_property("set_error_openmp", TestConfig::num_openmp_cpus);
+      ret_value =
+          python_config->set_property("set_error_openmp", TestConfig::num_openmp_cpus);
       assert(ret_value == REALM_MODULE_CONFIG_ERROR_INVALID_NAME);
     } else {
       log_app.print("python is not loaded");
@@ -662,20 +700,20 @@ int main(int argc, char **argv)
 
   // select a processor to run the top level task on
   Processor p = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::LOC_PROC)
-    .first();
+                    .only_kind(Processor::LOC_PROC)
+                    .first();
   assert(p.exists());
 
   // Collective launch a single task on each CPU processor of each node, that
   // just means this test will be done once on each node
-  Event e = rt.collective_spawn_by_kind(Processor::LOC_PROC, TOP_LEVEL_TASK,
-                      NULL, 0, true/*one per node*/);
+  Event e = rt.collective_spawn_by_kind(Processor::LOC_PROC, TOP_LEVEL_TASK, NULL, 0,
+                                        true /*one per node*/);
 
   // request shutdown once that task is complete
   rt.shutdown(e);
 
   // now sleep this thread until that shutdown actually happens
   rt.wait_for_shutdown();
-  
+
   return 0;
 }

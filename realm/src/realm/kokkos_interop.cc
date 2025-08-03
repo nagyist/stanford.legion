@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +48,7 @@ namespace Kokkos {
   class REALM_PUBLIC_API OpenMP;
   class REALM_PUBLIC_API Cuda;
   class REALM_PUBLIC_API HIP;
-};
+}; // namespace Kokkos
 
 #include <Kokkos_Core.hpp>
 
@@ -54,7 +56,7 @@ namespace Kokkos {
 //  were changed - detect the presence of a new header (included indirectly
 //  via Kokkos_Core.hpp)
 #ifdef KOKKOS_INITIALIZATION_SETTINGS_HPP
-  #define REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
+#define REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
 #endif
 
 #include <stdlib.h>
@@ -73,7 +75,7 @@ namespace Realm {
       return false;
 #endif
     }
-    
+
     bool is_kokkos_hip_enabled(void)
     {
 #ifdef KOKKOS_ENABLE_HIP
@@ -95,19 +97,22 @@ namespace Realm {
     class KokkosInternalTask : public InternalTask {
     public:
       KokkosInternalTask()
-	: done(false), condvar(mutex) {}
+        : done(false)
+        , condvar(mutex)
+      {}
 
       void mark_done()
       {
-	AutoLock<> al(mutex);
-	done = true;
-	condvar.broadcast();
+        AutoLock<> al(mutex);
+        done = true;
+        condvar.broadcast();
       }
 
       void wait_done()
       {
-	AutoLock<> al(mutex);
-	while(!done) condvar.wait();
+        AutoLock<> al(mutex);
+        while(!done)
+          condvar.wait();
       }
 
       bool done;
@@ -117,31 +122,31 @@ namespace Realm {
 
 #ifdef KOKKOS_ENABLE_OPENMP
     std::vector<ProcessorImpl *> kokkos_omp_procs;
-    
+
     class KokkosOpenMPInitializer : public KokkosInternalTask {
     public:
       virtual void execute_on_processor(Processor p)
       {
-	log_kokkos.info() << "doing openmp init on proc " << p;
+        log_kokkos.info() << "doing openmp init on proc " << p;
 #ifdef REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
         Kokkos::InitializationSettings init_settings;
-	init_settings.set_num_threads(-1); // todo - get from proc
+        init_settings.set_num_threads(-1); // todo - get from proc
         Kokkos::OpenMP::impl_initialize(init_settings);
 #else
-	int thread_count = -1; // todo - get from proc
-	Kokkos::OpenMP::impl_initialize(thread_count);
+        int thread_count = -1; // todo - get from proc
+        Kokkos::OpenMP::impl_initialize(thread_count);
 #endif
-	mark_done();
+        mark_done();
       }
     };
-    
+
     class KokkosOpenMPFinalizer : public KokkosInternalTask {
     public:
       virtual void execute_on_processor(Processor p)
       {
-	log_kokkos.info() << "doing openmp finalize on proc " << p;
-	Kokkos::OpenMP::impl_finalize();
-	mark_done();
+        log_kokkos.info() << "doing openmp finalize on proc " << p;
+        Kokkos::OpenMP::impl_finalize();
+        mark_done();
       }
     };
 #endif
@@ -156,9 +161,9 @@ namespace Realm {
     public:
       virtual void execute_on_processor(Processor p)
       {
-	log_kokkos.info() << "doing cuda init on proc " << p;
+        log_kokkos.info() << "doing cuda init on proc " << p;
 
-	ProcessorImpl *impl = get_runtime()->get_processor_impl(p);
+        ProcessorImpl *impl = get_runtime()->get_processor_impl(p);
         assert(impl != nullptr && "invalid processor handle");
         assert(impl->kind == Processor::TOC_PROC);
         Cuda::GPUProcessor *gpu = checked_cast<Cuda::GPUProcessor *>(impl);
@@ -169,39 +174,39 @@ namespace Realm {
         init_settings.set_num_devices(1);
         Kokkos::Cuda::impl_initialize(init_settings);
 #else
-	int cuda_device_id = gpu->gpu->info->index;
-	int num_instances = 1; // unused in kokkos?
+        int cuda_device_id = gpu->gpu->info->index;
+        int num_instances = 1; // unused in kokkos?
 
-	Kokkos::Cuda::impl_initialize(Kokkos::Cuda::SelectDevice(cuda_device_id),
-				      num_instances);
+        Kokkos::Cuda::impl_initialize(Kokkos::Cuda::SelectDevice(cuda_device_id),
+                                      num_instances);
 #endif
-	{
-	  // some init is deferred until an instance is created
-	  Kokkos::Cuda dummy;
-	}
-	mark_done();
+        {
+          // some init is deferred until an instance is created
+          Kokkos::Cuda dummy;
+        }
+        mark_done();
       }
     };
-    
+
     class KokkosCudaFinalizer : public KokkosInternalTask {
     public:
       virtual void execute_on_processor(Processor p)
       {
-	log_kokkos.info() << "doing cuda finalize on proc " << p;
+        log_kokkos.info() << "doing cuda finalize on proc " << p;
 
-	// delete all the cuda instances from this proc that we've cached
-	for(std::map<std::pair<Processor, cudaStream_t>, Kokkos::Cuda *>::iterator it = cuda_instance_map.begin();
-	    it != cuda_instance_map.end();
-	    ++it)
-	  if(it->first.first == p)
-	    delete it->second;
+        // delete all the cuda instances from this proc that we've cached
+        for(std::map<std::pair<Processor, cudaStream_t>, Kokkos::Cuda *>::iterator it =
+                cuda_instance_map.begin();
+            it != cuda_instance_map.end(); ++it)
+          if(it->first.first == p)
+            delete it->second;
 
-	Kokkos::Cuda::impl_finalize();
-	mark_done();
+        Kokkos::Cuda::impl_finalize();
+        mark_done();
       }
     };
 #endif
-    
+
 #ifdef KOKKOS_ENABLE_HIP
     std::vector<ProcessorImpl *> kokkos_hip_procs;
 
@@ -212,9 +217,9 @@ namespace Realm {
     public:
       virtual void execute_on_processor(Processor p)
       {
-	log_kokkos.info() << "doing hip init on proc " << p;
+        log_kokkos.info() << "doing hip init on proc " << p;
 
-	ProcessorImpl *impl = get_runtime()->get_processor_impl(p);
+        ProcessorImpl *impl = get_runtime()->get_processor_impl(p);
         assert(impl != nullptr && "invalid processor handle");
         assert(impl->kind == Processor::TOC_PROC);
         Hip::GPUProcessor *gpu = checked_cast<Hip::GPUProcessor *>(impl);
@@ -225,38 +230,38 @@ namespace Realm {
         init_settings.set_num_devices(1);
         Kokkos::HIP::impl_initialize(init_settings);
 #else
-	int hip_device_id = gpu->gpu->info->index;
+        int hip_device_id = gpu->gpu->info->index;
 
-	Kokkos::HIP::impl_initialize(Kokkos::HIP::SelectDevice(hip_device_id));
+        Kokkos::HIP::impl_initialize(Kokkos::HIP::SelectDevice(hip_device_id));
 #endif
-	{
-	  // some init is deferred until an instance is created
-	  Kokkos::HIP dummy;
-	}
-	mark_done();
+        {
+          // some init is deferred until an instance is created
+          Kokkos::HIP dummy;
+        }
+        mark_done();
       }
     };
-    
+
     class KokkosHipFinalizer : public KokkosInternalTask {
     public:
       virtual void execute_on_processor(Processor p)
       {
-	log_kokkos.info() << "doing hip finalize on proc " << p;
+        log_kokkos.info() << "doing hip finalize on proc " << p;
 
-	// delete all the cuda instances from this proc that we've cached
-	for(std::map<std::pair<Processor, hipStream_t>, Kokkos::HIP *>::iterator it = hip_instance_map.begin();
-	    it != hip_instance_map.end();
-	    ++it)
-	  if(it->first.first == p)
-	    delete it->second;
+        // delete all the cuda instances from this proc that we've cached
+        for(std::map<std::pair<Processor, hipStream_t>, Kokkos::HIP *>::iterator it =
+                hip_instance_map.begin();
+            it != hip_instance_map.end(); ++it)
+          if(it->first.first == p)
+            delete it->second;
 
-	Kokkos::HIP::impl_finalize();
-	mark_done();
+        Kokkos::HIP::impl_finalize();
+        mark_done();
       }
     };
 #endif
 
-    void kokkos_initialize(const std::vector<ProcessorImpl *>& local_procs)
+    void kokkos_initialize(const std::vector<ProcessorImpl *> &local_procs)
     {
       // use Kokkos::Impl::{pre,post}_initialize to allow us to do our own
       //  execution space initialization
@@ -283,89 +288,95 @@ namespace Realm {
 #ifdef REALM_USE_OPENMP
       // ... from an openmp proc
       {
-	// if we're providing openmp goodness, set environment variable to shut
-	//  off some kokkos warnings that don't mean anything
-	setenv("OMP_PROC_BIND", "false", 0 /*!overwrite*/);
+        // if we're providing openmp goodness, set environment variable to shut
+        //  off some kokkos warnings that don't mean anything
+        setenv("OMP_PROC_BIND", "false", 0 /*!overwrite*/);
 
-	size_t count = 0;
-	for(std::vector<ProcessorImpl *>::const_iterator it = local_procs.begin();
-	    it != local_procs.end();
-	    ++it)
-	  if((*it)->kind == Processor::OMP_PROC) {
-	    count++;
-	    if(count > 1) continue; // we'll complain below
-	    KokkosOpenMPInitializer ompinit;
-	    (*it)->add_internal_task(&ompinit);
-	    ompinit.wait_done();
-	    kokkos_omp_procs.push_back(*it);
-	  }
-	if(count != 1) {
-	  log_kokkos.fatal() << "Kokkos OpenMP support requires exactly 1 omp proc (found " << count << ") - suggest -ll:ocpu 1 -ll:onuma 0";
-	  abort();
-	}
+        size_t count = 0;
+        for(std::vector<ProcessorImpl *>::const_iterator it = local_procs.begin();
+            it != local_procs.end(); ++it)
+          if((*it)->kind == Processor::OMP_PROC) {
+            count++;
+            if(count > 1)
+              continue; // we'll complain below
+            KokkosOpenMPInitializer ompinit;
+            (*it)->add_internal_task(&ompinit);
+            ompinit.wait_done();
+            kokkos_omp_procs.push_back(*it);
+          }
+        if(count != 1) {
+          log_kokkos.fatal()
+              << "Kokkos OpenMP support requires exactly 1 omp proc (found " << count
+              << ") - suggest -ll:ocpu 1 -ll:onuma 0";
+          abort();
+        }
       }
 #else
       // ... from normal CPU procs since we don't have anything better
       {
-	size_t count = 0;
-	for(std::vector<ProcessorImpl *>::const_iterator it = local_procs.begin();
-	    it != local_procs.end();
-	    ++it)
-	  if((*it)->kind == Processor::LOC_PROC) {
-	    count++;
-	    if(count > 1) continue; // we'll complain below
-	    KokkosOpenMPInitializer ompinit;
-	    (*it)->add_internal_task(&ompinit);
-	    ompinit.wait_done();
-	    kokkos_omp_procs.push_back(*it);
-	  }
-	if(count != 1) {
-	  log_kokkos.fatal() << "Kokkos OpenMP support without realm OpenMP requires exactly 1 cpu proc (found " << count << ") - suggest -ll:cpu 1";
-	  abort();
-	}
+        size_t count = 0;
+        for(std::vector<ProcessorImpl *>::const_iterator it = local_procs.begin();
+            it != local_procs.end(); ++it)
+          if((*it)->kind == Processor::LOC_PROC) {
+            count++;
+            if(count > 1)
+              continue; // we'll complain below
+            KokkosOpenMPInitializer ompinit;
+            (*it)->add_internal_task(&ompinit);
+            ompinit.wait_done();
+            kokkos_omp_procs.push_back(*it);
+          }
+        if(count != 1) {
+          log_kokkos.fatal() << "Kokkos OpenMP support without realm OpenMP requires "
+                                "exactly 1 cpu proc (found "
+                             << count << ") - suggest -ll:cpu 1";
+          abort();
+        }
       }
 #endif
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
       {
-	size_t count = 0;
-	for(std::vector<ProcessorImpl *>::const_iterator it = local_procs.begin();
-	    it != local_procs.end();
-	    ++it)
-	  if((*it)->kind == Processor::TOC_PROC) {
-	    count++;
-	    if(count > 1) continue; // we'll complain below
-	    KokkosCudaInitializer cudainit;
-	    (*it)->add_internal_task(&cudainit);
-	    cudainit.wait_done();
-	    kokkos_cuda_procs.push_back(*it);
-	  }
-	if(count != 1) {
-	  log_kokkos.fatal() << "Kokkos Cuda support requires exactly 1 gpu proc (found " << count << ") - suggest -ll:gpu 1";
-	  abort();
-	}
+        size_t count = 0;
+        for(std::vector<ProcessorImpl *>::const_iterator it = local_procs.begin();
+            it != local_procs.end(); ++it)
+          if((*it)->kind == Processor::TOC_PROC) {
+            count++;
+            if(count > 1)
+              continue; // we'll complain below
+            KokkosCudaInitializer cudainit;
+            (*it)->add_internal_task(&cudainit);
+            cudainit.wait_done();
+            kokkos_cuda_procs.push_back(*it);
+          }
+        if(count != 1) {
+          log_kokkos.fatal() << "Kokkos Cuda support requires exactly 1 gpu proc (found "
+                             << count << ") - suggest -ll:gpu 1";
+          abort();
+        }
       }
 #endif
-      
+
 #ifdef KOKKOS_ENABLE_HIP
       {
-	size_t count = 0;
-	for(std::vector<ProcessorImpl *>::const_iterator it = local_procs.begin();
-	    it != local_procs.end();
-	    ++it)
-	  if((*it)->kind == Processor::TOC_PROC) {
-	    count++;
-	    if(count > 1) continue; // we'll complain below
-	    KokkosHipInitializer hipinit;
-	    (*it)->add_internal_task(&hipinit);
-	    hipinit.wait_done();
-	    kokkos_hip_procs.push_back(*it);
-	  }
-	if(count != 1) {
-	  log_kokkos.fatal() << "Kokkos Hip support requires exactly 1 gpu proc (found " << count << ") - suggest -ll:gpu 1";
-	  abort();
-	}
+        size_t count = 0;
+        for(std::vector<ProcessorImpl *>::const_iterator it = local_procs.begin();
+            it != local_procs.end(); ++it)
+          if((*it)->kind == Processor::TOC_PROC) {
+            count++;
+            if(count > 1)
+              continue; // we'll complain below
+            KokkosHipInitializer hipinit;
+            (*it)->add_internal_task(&hipinit);
+            hipinit.wait_done();
+            kokkos_hip_procs.push_back(*it);
+          }
+        if(count != 1) {
+          log_kokkos.fatal() << "Kokkos Hip support requires exactly 1 gpu proc (found "
+                             << count << ") - suggest -ll:gpu 1";
+          abort();
+        }
       }
 #endif
 
@@ -375,8 +386,8 @@ namespace Realm {
       log_kokkos.info() << "doing general post-initialization";
       Kokkos::Impl::post_initialize(kokkos_init_args);
     }
-    
-    void kokkos_finalize(const std::vector<ProcessorImpl *>& local_procs)
+
+    void kokkos_finalize(const std::vector<ProcessorImpl *> &local_procs)
     {
 #if KOKKOS_VERSION >= 40000
       Kokkos::Impl::pre_finalize();
@@ -384,37 +395,31 @@ namespace Realm {
       // per processor finalization on the correct threads
 #ifdef KOKKOS_ENABLE_OPENMP
       for(std::vector<ProcessorImpl *>::const_iterator it = kokkos_omp_procs.begin();
-	  it != kokkos_omp_procs.end();
-	  ++it)
-	{
-	  KokkosOpenMPFinalizer ompfinal;
-	  (*it)->add_internal_task(&ompfinal);
-	  ompfinal.wait_done();
-	}
+          it != kokkos_omp_procs.end(); ++it) {
+        KokkosOpenMPFinalizer ompfinal;
+        (*it)->add_internal_task(&ompfinal);
+        ompfinal.wait_done();
+      }
 #endif
-      
+
 #ifdef KOKKOS_ENABLE_CUDA
       for(std::vector<ProcessorImpl *>::const_iterator it = kokkos_cuda_procs.begin();
-	  it != kokkos_cuda_procs.end();
-	  ++it)
-	{
-	  KokkosCudaFinalizer cudafinal;
-	  (*it)->add_internal_task(&cudafinal);
-	  cudafinal.wait_done();
-	}
+          it != kokkos_cuda_procs.end(); ++it) {
+        KokkosCudaFinalizer cudafinal;
+        (*it)->add_internal_task(&cudafinal);
+        cudafinal.wait_done();
+      }
 #endif
-  
+
 #ifdef KOKKOS_ENABLE_HIP
       for(std::vector<ProcessorImpl *>::const_iterator it = kokkos_hip_procs.begin();
-	  it != kokkos_hip_procs.end();
-	  ++it)
-	{
-	  KokkosHipFinalizer hipfinal;
-	  (*it)->add_internal_task(&hipfinal);
-	  hipfinal.wait_done();
-	}
+          it != kokkos_hip_procs.end(); ++it) {
+        KokkosHipFinalizer hipfinal;
+        (*it)->add_internal_task(&hipfinal);
+        hipfinal.wait_done();
+      }
 #endif
-      
+
       log_kokkos.info() << "doing general finalization";
 #if KOKKOS_VERSION >= 40000
       Kokkos::Impl::post_finalize();
@@ -423,9 +428,9 @@ namespace Realm {
 #endif
     }
 
-  };
+  }; // namespace KokkosInterop
 
-  // execution space instance conversions from processor.h
+    // execution space instance conversions from processor.h
 #ifdef KOKKOS_ENABLE_SERIAL
   template <>
   Processor::KokkosExecInstance::operator Kokkos::Serial() const
@@ -457,16 +462,17 @@ namespace Realm {
     {
       AutoLock<> al(KokkosInterop::cuda_instance_map_mutex);
       std::pair<Processor, cudaStream_t> key(p, stream);
-      std::map<std::pair<Processor, cudaStream_t>, Kokkos::Cuda *>::iterator it = KokkosInterop::cuda_instance_map.find(key);
+      std::map<std::pair<Processor, cudaStream_t>, Kokkos::Cuda *>::iterator it =
+          KokkosInterop::cuda_instance_map.find(key);
       if(it != KokkosInterop::cuda_instance_map.end()) {
-	inst = it->second;
+        inst = it->second;
       } else {
-	// creating a Kokkos::Cuda instance does some blocking calls, but we're
-	//  not re-entrant here, so enable the scheduler lock
-	Processor::enable_scheduler_lock();
-	inst = new Kokkos::Cuda(stream);
-	Processor::disable_scheduler_lock();
-	KokkosInterop::cuda_instance_map[key] = inst;
+        // creating a Kokkos::Cuda instance does some blocking calls, but we're
+        //  not re-entrant here, so enable the scheduler lock
+        Processor::enable_scheduler_lock();
+        inst = new Kokkos::Cuda(stream);
+        Processor::disable_scheduler_lock();
+        KokkosInterop::cuda_instance_map[key] = inst;
       }
     }
     return *inst;
@@ -476,7 +482,7 @@ namespace Realm {
 #endif
   }
 #endif
-    
+
 #ifdef KOKKOS_ENABLE_HIP
   template <>
   Processor::KokkosExecInstance::operator Kokkos::HIP() const
@@ -492,16 +498,17 @@ namespace Realm {
     {
       AutoLock<> al(KokkosInterop::hip_instance_map_mutex);
       std::pair<Processor, hipStream_t> key(p, stream);
-      std::map<std::pair<Processor, hipStream_t>, Kokkos::HIP *>::iterator it = KokkosInterop::hip_instance_map.find(key);
+      std::map<std::pair<Processor, hipStream_t>, Kokkos::HIP *>::iterator it =
+          KokkosInterop::hip_instance_map.find(key);
       if(it != KokkosInterop::hip_instance_map.end()) {
-	inst = it->second;
+        inst = it->second;
       } else {
-	// creating a Kokkos::HIP instance does some blocking calls, but we're
-	//  not re-entrant here, so enable the scheduler lock
-	Processor::enable_scheduler_lock();
-	inst = new Kokkos::HIP(stream);
-	Processor::disable_scheduler_lock();
-	KokkosInterop::hip_instance_map[key] = inst;
+        // creating a Kokkos::HIP instance does some blocking calls, but we're
+        //  not re-entrant here, so enable the scheduler lock
+        Processor::enable_scheduler_lock();
+        inst = new Kokkos::HIP(stream);
+        Processor::disable_scheduler_lock();
+        KokkosInterop::hip_instance_map[key] = inst;
       }
     }
     return *inst;
@@ -512,4 +519,4 @@ namespace Realm {
   }
 #endif
 
-};
+}; // namespace Realm

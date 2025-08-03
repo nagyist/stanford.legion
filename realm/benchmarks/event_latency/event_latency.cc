@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,12 +30,13 @@ using namespace Realm;
 
 Logger log_app("app");
 
-#define DEFAULT_DEPTH 1024 
+#define DEFAULT_DEPTH 1024
 
 // TASK IDs
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
-  THUNK_BUILDER  = Processor::TASK_ID_FIRST_AVAILABLE+1,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
+  THUNK_BUILDER = Processor::TASK_ID_FIRST_AVAILABLE + 1,
 };
 
 struct TopLevelArgs {
@@ -53,7 +55,7 @@ public:
   typedef T LHS;
   typedef T RHS;
 
-  static void apply(T& lhs, T rhs) { lhs = rhs; }
+  static void apply(T &lhs, T rhs) { lhs = rhs; }
 };
 
 class UserEventAssignRedop {
@@ -62,17 +64,24 @@ public:
   typedef UserEvent RHS;
 
   template <bool EXCL>
-  static void apply(UserEvent& lhs, UserEvent rhs) { lhs = rhs; }
+  static void apply(UserEvent &lhs, UserEvent rhs)
+  {
+    lhs = rhs;
+  }
 
   static const UserEvent identity; // = UserEvent::NO_USER_EVENT;
 
   template <bool EXCL>
-  static void fold(UserEvent& rhs1, UserEvent rhs2) { rhs1 = rhs2; }
+  static void fold(UserEvent &rhs1, UserEvent rhs2)
+  {
+    rhs1 = rhs2;
+  }
 };
 
 /*static*/ const UserEvent UserEventAssignRedop::identity = UserEvent::NO_USER_EVENT;
 
-enum {
+enum
+{
   REDOP_ASSIGN = 66,
 };
 
@@ -81,20 +90,15 @@ Processor get_next_processor(Processor cur)
   Machine machine = Machine::get_machine();
   std::set<Processor> all_procs;
   machine.get_all_processors(all_procs);
-  for (std::set<Processor>::const_iterator it = all_procs.begin();
-        it != all_procs.end(); it++)
-  {
-    if (*it == cur)
-    {
+  for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+      it++) {
+    if(*it == cur) {
       // Advance the iterator once to get the next, handle
       // the wrap around case too
       it++;
-      if (it == all_procs.end())
-      {
+      if(it == all_procs.end()) {
         return *(all_procs.begin());
-      }
-      else
-      {
+      } else {
         return *it;
       }
     }
@@ -104,8 +108,8 @@ Processor get_next_processor(Processor cur)
   return Processor::NO_PROC;
 }
 
-void top_level_task(const void *args, size_t arglen, 
-                    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   const TopLevelArgs *targs = static_cast<const TopLevelArgs *>(args);
 
@@ -114,14 +118,12 @@ void top_level_task(const void *args, size_t arglen,
 
   // create a barrier that will be used to communicate the first event in
   //  the chain back to us
-  Barrier chain_done = Barrier::create_barrier(1,
-					       REDOP_ASSIGN,
-					       &UserEvent::NO_EVENT,
-					       sizeof(UserEvent));
+  Barrier chain_done =
+      Barrier::create_barrier(1, REDOP_ASSIGN, &UserEvent::NO_EVENT, sizeof(UserEvent));
 
   // construct chain
   log_app.print() << "initializing event latency experiment with a depth of "
-		  << targs->chain_depth << " events...";
+                  << targs->chain_depth << " events...";
   double t1 = Clock::current_time();
   if(targs->chain_depth > 1) {
     ThunkBuilderArgs bargs;
@@ -153,12 +155,13 @@ void top_level_task(const void *args, size_t arglen,
   {
     double elapsed = t4 - t3;
     double per_task = elapsed / (targs->chain_depth + 1);
-    log_app.print() << "chain trigger: " << (1e6 * per_task) << " us/event, " << elapsed << " s total";
+    log_app.print() << "chain trigger: " << (1e6 * per_task) << " us/event, " << elapsed
+                    << " s total";
   }
 }
 
-void thunk_builder(const void *args, size_t arglen, 
-                   const void *userdata, size_t userlen, Processor p)
+void thunk_builder(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                   Processor p)
 {
   const ThunkBuilderArgs *bargs = static_cast<const ThunkBuilderArgs *>(args);
 
@@ -204,12 +207,11 @@ int main(int argc, char **argv)
   {
     std::set<Processor> all_procs;
     Machine::get_machine().get_all_processors(all_procs);
-    for(std::set<Processor>::const_iterator it = all_procs.begin();
-	it != all_procs.end();
-	it++)
+    for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+        it++)
       if(it->kind() == Processor::LOC_PROC) {
-	p = *it;
-	break;
+        p = *it;
+        break;
       }
   }
   assert(p.exists());
@@ -222,6 +224,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   r.wait_for_shutdown();
-  
+
   return 0;
 }

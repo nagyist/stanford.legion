@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,9 +31,9 @@ namespace Realm {
   public:
     GaugeSampleBuffer(int _sampler_id);
     virtual ~GaugeSampleBuffer(void);
-    
+
     virtual void write_data(int fd) = 0;
-    
+
     int sampler_id;
     int compressed_len;
     int first_sample;
@@ -42,7 +44,7 @@ namespace Realm {
   class GaugeSampleBufferImpl : public GaugeSampleBuffer {
   public:
     GaugeSampleBufferImpl(int _sampler_id, size_t _reserve);
-    
+
     virtual void write_data(int fd);
 
     std::vector<typename T::Sample> samples;
@@ -56,25 +58,25 @@ namespace Realm {
 
     virtual bool sample_gauge(int sample_index) = 0;
     virtual GaugeSampleBuffer *buffer_swap(size_t new_buffer_size,
-					   bool nonempty_only = false) = 0;
+                                           bool nonempty_only = false) = 0;
 
   protected:
     friend class ProfilingGauges::Gauge;
     friend class SamplingProfilerImpl;
 
     template <typename T>
-    void perform_sample(ProfilingGauges::AbsoluteGauge<T>& gauge,
-			typename ProfilingGauges::AbsoluteGauge<T>::Sample &sample);
+    void perform_sample(ProfilingGauges::AbsoluteGauge<T> &gauge,
+                        typename ProfilingGauges::AbsoluteGauge<T>::Sample &sample);
     template <typename T>
-    void perform_sample(ProfilingGauges::AbsoluteRangeGauge<T>& gauge,
-			typename ProfilingGauges::AbsoluteRangeGauge<T>::Sample &sample);
+    void perform_sample(ProfilingGauges::AbsoluteRangeGauge<T> &gauge,
+                        typename ProfilingGauges::AbsoluteRangeGauge<T>::Sample &sample);
     template <typename T>
-    void perform_sample(ProfilingGauges::EventCounter<T>& gauge, 
-			typename ProfilingGauges::EventCounter<T>::Sample &sample);
+    void perform_sample(ProfilingGauges::EventCounter<T> &gauge,
+                        typename ProfilingGauges::EventCounter<T>::Sample &sample);
 
     int sampler_id;
     SamplingProfilerImpl *profiler;
-    Mutex mutex;  // prevents deletion of a gauge during sampling
+    Mutex mutex; // prevents deletion of a gauge during sampling
     bool gauge_exists;
     GaugeSampler *next;
   };
@@ -83,11 +85,11 @@ namespace Realm {
   class GaugeSamplerImpl : public GaugeSampler {
   public:
     GaugeSamplerImpl(int _sampler_id, SamplingProfilerImpl *_profiler, T *_gauge,
-		     SampleFile::PacketNewGauge *info);
+                     SampleFile::PacketNewGauge *info);
 
     virtual bool sample_gauge(int sample_index);
     virtual GaugeSampleBuffer *buffer_swap(size_t new_buffer_size,
-					   bool nonempty_only = false);
+                                           bool nonempty_only = false);
 
   protected:
     T *gauge;
@@ -100,9 +102,8 @@ namespace Realm {
     DelayedGaugeAddition(ProfilingGauges::Gauge *_gauge, DelayedGaugeAddition *_next);
     virtual ~DelayedGaugeAddition(void);
 
-    virtual GaugeSampler *create_sampler(int sampler_id,
-					 SamplingProfilerImpl *profiler,
-					 SampleFile::PacketNewGauge *info) = 0;
+    virtual GaugeSampler *create_sampler(int sampler_id, SamplingProfilerImpl *profiler,
+                                         SampleFile::PacketNewGauge *info) = 0;
 
     ProfilingGauges::Gauge *gauge;
     DelayedGaugeAddition *next;
@@ -113,36 +114,35 @@ namespace Realm {
   public:
     DelayedGaugeAdditionImpl(ProfilingGauges::Gauge *_gauge, DelayedGaugeAddition *_next);
 
-    virtual GaugeSampler *create_sampler(int sampler_id,
-					 SamplingProfilerImpl *profiler,
-					 SampleFile::PacketNewGauge *info);
+    virtual GaugeSampler *create_sampler(int sampler_id, SamplingProfilerImpl *profiler,
+                                         SampleFile::PacketNewGauge *info);
   };
-  
+
   class SamplingProfilerImpl {
   protected:
     friend class SamplingProfiler;
 
     SamplingProfilerImpl(bool _is_default);
     ~SamplingProfilerImpl(void);
-    
+
   public:
-    void configure_from_cmdline(std::vector<std::string>& cmdline,
-				CoreReservationSet& crs);
-    
+    void configure_from_cmdline(std::vector<std::string> &cmdline,
+                                CoreReservationSet &crs);
+
     void flush_data(void);
     void shutdown(void);
 
-    static SamplingProfiler& get_profiler(void);
-      
+    static SamplingProfiler &get_profiler(void);
+
     template <typename T>
     GaugeSampler *add_gauge(T *gauge);
 
     void remove_gauge(ProfilingGauges::Gauge *gauge, GaugeSampler *sampler);
-      
+
     void sampler_loop(void);
 
   protected:
-    bool parse_profile_pattern(const std::string& s);
+    bool parse_profile_pattern(const std::string &s);
 
     bool is_default;
     Mutex mutex;
@@ -155,7 +155,7 @@ namespace Realm {
     atomic<int> next_sample_index;
 
     bool pattern_match(const std::string &name) const;
-    
+
     // list of active samplers
     std::vector<SampleFile::PacketNewGauge *> new_sampler_infos;
     GaugeSampler *sampler_head;
@@ -173,6 +173,6 @@ namespace Realm {
     ProfilingGauges::EventCounter<long long> *sampling_time;
   };
 
-};
+}; // namespace Realm
 
 #endif

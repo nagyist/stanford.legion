@@ -1,7 +1,25 @@
+<!--
+Copyright 2025 Stanford University, NVIDIA Corporation
+SPDX-License-Identifier: Apache-2.0
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 [![ci](https://github.com/stanfordlegion/realm/actions/workflows/ci.yml/badge.svg)](https://github.com/StanfordLegion/realm/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/release/stanfordlegion/realm.svg)](https://github.com/StanfordLegion/realm/releases/latest)
+[![Release](https://img.shields.io/github/release/stanfordlegion/realm.svg?include_preleases)](https://github.com/StanfordLegion/realm/releases/latest)
 [![Documentation](https://img.shields.io/badge/docs-grey.svg?logo=doxygen&logoColor=white&labelColor=blue)](https://legion.stanford.edu/realm/doc)
 [![License](https://img.shields.io/github/license/stanfordlegion/realm.svg)](https://github.com/StanfordLegion/realm/blob/main/LICENSE.txt)
+[![REUSE Compliance](https://img.shields.io/reuse/compliance/github.com%2FStanfordLegion%2Frealm)](https://api.reuse.software/info/github.com/StanfordLegion/realm)
 [![Issues](https://img.shields.io/github/issues/stanfordlegion/realm.svg)](https://github.com/StanfordLegion/realm/issues)
 [![Chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://legion.zulipchat.com)
 

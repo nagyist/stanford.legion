@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,22 +41,18 @@
 #define write _write
 #define close _close
 
-static void usleep(long long microseconds)
-{
-  Sleep(microseconds / 1000);
-}
+static void usleep(long long microseconds) { Sleep(microseconds / 1000); }
 #endif
 
 namespace Realm {
 
   Logger log_realmprof("realmprof");
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class GaugeSampleBuffer
   //
-  
+
   GaugeSampleBuffer::GaugeSampleBuffer(int _sampler_id)
     : sampler_id(_sampler_id)
     , compressed_len(0)
@@ -62,15 +60,13 @@ namespace Realm {
     , last_sample(-1)
   {}
 
-  GaugeSampleBuffer::~GaugeSampleBuffer(void)
-  {}
- 
+  GaugeSampleBuffer::~GaugeSampleBuffer(void) {}
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class GaugeSampleBufferImpl<T>
   //
-  
+
   template <typename T>
   GaugeSampleBufferImpl<T>::GaugeSampleBufferImpl(int _sampler_id, size_t _reserve)
     : GaugeSampleBuffer(_sampler_id)
@@ -118,7 +114,6 @@ namespace Realm {
 #endif
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class GaugeSampler
@@ -131,20 +126,21 @@ namespace Realm {
     , next(0)
   {}
 
-  GaugeSampler::~GaugeSampler(void)
-  {}
+  GaugeSampler::~GaugeSampler(void) {}
 
   template <typename T>
-  void GaugeSampler::perform_sample(ProfilingGauges::AbsoluteGauge<T>& gauge,
-				    typename ProfilingGauges::AbsoluteGauge<T>::Sample &sample)
+  void
+  GaugeSampler::perform_sample(ProfilingGauges::AbsoluteGauge<T> &gauge,
+                               typename ProfilingGauges::AbsoluteGauge<T>::Sample &sample)
   {
     // simple copy is all we need
     sample.value = gauge.curval.load();
   }
 
   template <typename T>
-  void GaugeSampler::perform_sample(ProfilingGauges::AbsoluteRangeGauge<T>& gauge,
-				    typename ProfilingGauges::AbsoluteRangeGauge<T>::Sample &sample)
+  void GaugeSampler::perform_sample(
+      ProfilingGauges::AbsoluteRangeGauge<T> &gauge,
+      typename ProfilingGauges::AbsoluteRangeGauge<T>::Sample &sample)
   {
     // want a consistent sample of current/min/max, and then reset min/max to current
     sample.value = gauge.curval.load();
@@ -153,13 +149,13 @@ namespace Realm {
   }
 
   template <typename T>
-  void GaugeSampler::perform_sample(ProfilingGauges::EventCounter<T>& gauge,
-				    typename ProfilingGauges::EventCounter<T>::Sample &sample)
+  void
+  GaugeSampler::perform_sample(ProfilingGauges::EventCounter<T> &gauge,
+                               typename ProfilingGauges::EventCounter<T>::Sample &sample)
   {
     // need to atomically read the value and write 0 back
     sample.count = gauge.events.exchange(0);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -168,8 +164,7 @@ namespace Realm {
 
   template <typename T>
   GaugeSamplerImpl<T>::GaugeSamplerImpl(int _sampler_id, SamplingProfilerImpl *_profiler,
-					T *_gauge,
-					SampleFile::PacketNewGauge *info)
+                                        T *_gauge, SampleFile::PacketNewGauge *info)
     : GaugeSampler(_sampler_id, _profiler)
     , gauge(_gauge)
     , buffer_size(0)
@@ -200,7 +195,7 @@ namespace Realm {
        (buffer->samples[i - 1] == buffer->samples[i])) {
       // yes, increase the previous sample's run length by 1
       buffer->run_lengths[i - 1]++;
-      return false;  // never full if we merge a sample
+      return false; // never full if we merge a sample
     } else {
       buffer->run_lengths[i] = 1;
       buffer->compressed_len++;
@@ -210,7 +205,7 @@ namespace Realm {
 
   template <typename T>
   GaugeSampleBuffer *GaugeSamplerImpl<T>::buffer_swap(size_t new_buffer_size,
-						      bool nonempty_only /*= false*/)
+                                                      bool nonempty_only /*= false*/)
   {
     if(nonempty_only && buffer && (buffer->compressed_len > 0))
       return 0;
@@ -224,40 +219,36 @@ namespace Realm {
     return oldbuffer;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class DelayedGaugeAddition
   //
-  
+
   DelayedGaugeAddition::DelayedGaugeAddition(ProfilingGauges::Gauge *_gauge,
-					     DelayedGaugeAddition *_next)
-    : gauge(_gauge), next(_next)
+                                             DelayedGaugeAddition *_next)
+    : gauge(_gauge)
+    , next(_next)
   {}
 
-  DelayedGaugeAddition::~DelayedGaugeAddition(void)
-  {}
+  DelayedGaugeAddition::~DelayedGaugeAddition(void) {}
 
-    
   ////////////////////////////////////////////////////////////////////////
   //
   // class DelayedGaugeAdditionImpl<T>
   //
-  
+
   template <typename T>
   DelayedGaugeAdditionImpl<T>::DelayedGaugeAdditionImpl(ProfilingGauges::Gauge *_gauge,
-							DelayedGaugeAddition *_next)
+                                                        DelayedGaugeAddition *_next)
     : DelayedGaugeAddition(_gauge, _next)
   {}
 
   template <typename T>
-  GaugeSampler * DelayedGaugeAdditionImpl<T>::create_sampler(int sampler_id,
-							     SamplingProfilerImpl *profiler,
-							     SampleFile::PacketNewGauge *info)
+  GaugeSampler *DelayedGaugeAdditionImpl<T>::create_sampler(
+      int sampler_id, SamplingProfilerImpl *profiler, SampleFile::PacketNewGauge *info)
   {
     return new GaugeSamplerImpl<T>(sampler_id, profiler, static_cast<T *>(gauge), info);
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -269,13 +260,10 @@ namespace Realm {
     impl = new SamplingProfilerImpl(is_default);
   }
 
-  SamplingProfiler::~SamplingProfiler(void)
-  {
-    delete (SamplingProfilerImpl *)impl;
-  }
+  SamplingProfiler::~SamplingProfiler(void) { delete(SamplingProfilerImpl *)impl; }
 
-  void SamplingProfiler::configure_from_cmdline(std::vector<std::string>& cmdline,
-						CoreReservationSet& crs)
+  void SamplingProfiler::configure_from_cmdline(std::vector<std::string> &cmdline,
+                                                CoreReservationSet &crs)
   {
     ((SamplingProfilerImpl *)impl)->configure_from_cmdline(cmdline, crs);
   }
@@ -285,10 +273,7 @@ namespace Realm {
     ((SamplingProfilerImpl *)impl)->flush_data();
   }
 
-  void SamplingProfiler::shutdown(void)
-  {
-    ((SamplingProfilerImpl *)impl)->shutdown();
-  }
+  void SamplingProfiler::shutdown(void) { ((SamplingProfilerImpl *)impl)->shutdown(); }
 
   template <typename T>
   GaugeSampler *SamplingProfiler::add_gauge(T *gauge)
@@ -306,7 +291,7 @@ namespace Realm {
     DefaultSamplerHandler(void);
 
   public:
-    static DefaultSamplerHandler& get_handler(void);
+    static DefaultSamplerHandler &get_handler(void);
 
     DelayedGaugeAddition *install_default_sampler(SamplingProfilerImpl *new_default);
     void remove_default_sampler(SamplingProfilerImpl *old_default);
@@ -321,16 +306,18 @@ namespace Realm {
   };
 
   DefaultSamplerHandler::DefaultSamplerHandler(void)
-    : default_sampler(0), delayed_additions(0)
+    : default_sampler(0)
+    , delayed_additions(0)
   {}
 
-  /*static*/ DefaultSamplerHandler& DefaultSamplerHandler::get_handler(void)
+  /*static*/ DefaultSamplerHandler &DefaultSamplerHandler::get_handler(void)
   {
     static DefaultSamplerHandler handler;
     return handler;
   }
 
-  DelayedGaugeAddition *DefaultSamplerHandler::install_default_sampler(SamplingProfilerImpl *new_default)
+  DelayedGaugeAddition *
+  DefaultSamplerHandler::install_default_sampler(SamplingProfilerImpl *new_default)
   {
     AutoLock<> al(mutex);
     assert(default_sampler == 0);
@@ -359,7 +346,6 @@ namespace Realm {
     }
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class SamplingProfilerImpl
@@ -385,7 +371,8 @@ namespace Realm {
     , sampling_time(0)
   {
     if(is_default)
-      delayed_additions = DefaultSamplerHandler::get_handler().install_default_sampler(this);
+      delayed_additions =
+          DefaultSamplerHandler::get_handler().install_default_sampler(this);
   }
 
   SamplingProfilerImpl::~SamplingProfilerImpl(void)
@@ -427,9 +414,9 @@ namespace Realm {
     //  buffers and destroy all samplers
     AutoLock<> al(mutex);
 
-    for(std::vector<SampleFile::PacketNewGauge *>::iterator it = new_sampler_infos.begin();
-	it != new_sampler_infos.end();
-	++it) {
+    for(std::vector<SampleFile::PacketNewGauge *>::iterator it =
+            new_sampler_infos.begin();
+        it != new_sampler_infos.end(); ++it) {
       SampleFile::PacketHeader hdr;
       hdr.packet_type = SampleFile::PacketHeader::PACKET_NEWGAUGE;
       hdr.packet_size = sizeof(SampleFile::PacketNewGauge);
@@ -456,8 +443,9 @@ namespace Realm {
     while(sampler) {
       GaugeSampleBuffer *buffer = sampler->buffer_swap(0);
       if(buffer) {
-	if(buffer->compressed_len > 0) buffer->write_data(output_fd);
-	delete buffer;
+        if(buffer->compressed_len > 0)
+          buffer->write_data(output_fd);
+        delete buffer;
       }
       GaugeSampler *next = sampler->next;
       delete sampler;
@@ -466,16 +454,18 @@ namespace Realm {
 
     close(output_fd);
 
-    log_realmprof.info() << "realm profiler shut down: samples=" << next_sample_index.load();
+    log_realmprof.info() << "realm profiler shut down: samples="
+                         << next_sample_index.load();
   }
 
-  bool SamplingProfilerImpl::parse_profile_pattern(const std::string& s)
+  bool SamplingProfilerImpl::parse_profile_pattern(const std::string &s)
   {
     // split string on commas
     size_t spos = 0;
     while(true) {
       size_t cpos = s.find(',', spos);
-      if(cpos == std::string::npos) break;
+      if(cpos == std::string::npos)
+        break;
       cfg_patterns.push_back(std::string(s, spos, cpos - spos - 1));
       spos = cpos + 1;
     }
@@ -483,8 +473,8 @@ namespace Realm {
     return true;
   }
 
-  void SamplingProfilerImpl::configure_from_cmdline(std::vector<std::string>& cmdline,
-						    CoreReservationSet& crs)
+  void SamplingProfilerImpl::configure_from_cmdline(std::vector<std::string> &cmdline,
+                                                    CoreReservationSet &crs)
   {
     int nodes_profiled = 0;
     std::string logfile = "realmprof_%.dat";
@@ -492,13 +482,14 @@ namespace Realm {
 #ifndef NDEBUG
     bool ok =
 #endif
-              CommandLineParser()
-      .add_option_int("-realm:prof", nodes_profiled)
-      .add_option_string("-realm:prof_file", logfile)
-      .add_option_int("-realm:prof_buffer_size", cfg_buffer_size)
-      .add_option_int("-realm:prof_sample_interval", cfg_sample_interval)
-      .add_option_method("-realm:prof_pattern", this, &SamplingProfilerImpl::parse_profile_pattern)
-      .parse_command_line(cmdline);
+        CommandLineParser()
+            .add_option_int("-realm:prof", nodes_profiled)
+            .add_option_string("-realm:prof_file", logfile)
+            .add_option_int("-realm:prof_buffer_size", cfg_buffer_size)
+            .add_option_int("-realm:prof_sample_interval", cfg_sample_interval)
+            .add_option_method("-realm:prof_pattern", this,
+                               &SamplingProfilerImpl::parse_profile_pattern)
+            .parse_command_line(cmdline);
 
     assert(ok);
 
@@ -508,35 +499,36 @@ namespace Realm {
     DelayedGaugeAddition *dga = 0;
     {
       AutoLock<> al(mutex);
-      
+
       is_configured = true;
       dga = delayed_additions;
       delayed_additions = 0;
     }
 
     long long now = Clock::current_time_in_nanoseconds();
-    sampling_start = new ProfilingGauges::AbsoluteGauge<long long>("realm/sampling start", now);
+    sampling_start =
+        new ProfilingGauges::AbsoluteGauge<long long>("realm/sampling start", now);
     sampling_time = new ProfilingGauges::EventCounter<long long>("realm/sampling time");
 
     while(dga) {
       if(cfg_enabled && pattern_match(dga->gauge->name)) {
-	int sampler_id = next_sampler_id.fetch_add(1);
-	SampleFile::PacketNewGauge *info = new SampleFile::PacketNewGauge;
-	GaugeSampler *sampler = dga->create_sampler(sampler_id, this, info);
+        int sampler_id = next_sampler_id.fetch_add(1);
+        SampleFile::PacketNewGauge *info = new SampleFile::PacketNewGauge;
+        GaugeSampler *sampler = dga->create_sampler(sampler_id, this, info);
 #ifndef NDEBUG
-	GaugeSampleBuffer *buffer =
+        GaugeSampleBuffer *buffer =
 #endif
-	                            sampler->buffer_swap(cfg_buffer_size);
-	assert(buffer == 0);
-	{
-	  AutoLock<> al(mutex);
-	  new_sampler_infos.push_back(info);
-	  if(sampler_tail)
-	    *sampler_tail = sampler;
-	  else
-	    sampler_head = sampler;
-	  sampler_tail = &(sampler->next);
-	}
+            sampler->buffer_swap(cfg_buffer_size);
+        assert(buffer == 0);
+        {
+          AutoLock<> al(mutex);
+          new_sampler_infos.push_back(info);
+          if(sampler_tail)
+            *sampler_tail = sampler;
+          else
+            sampler_head = sampler;
+          sampler_tail = &(sampler->next);
+        }
       }
       DelayedGaugeAddition *olddga = dga;
       dga = dga->next;
@@ -549,33 +541,36 @@ namespace Realm {
       core_rsrv = new CoreReservation("gauge sampler", crs, params);
       ThreadLaunchParameters tparams;
       sampling_thread = Thread::create_kernel_thread<SamplingProfilerImpl,
-						     &SamplingProfilerImpl::sampler_loop>(this,
-											  tparams,
-											  *core_rsrv);
+                                                     &SamplingProfilerImpl::sampler_loop>(
+          this, tparams, *core_rsrv);
 
       // compute a per-node filename
       size_t pct = logfile.find('%');
       if(pct == std::string::npos) {
-	// no node number - only ok when profiling a single node
-	if(nodes_profiled > 1) {
-	  log_realmprof.fatal() << "cannot write profiling data from multiple nodes to common log file '" << logfile << "'";
-	  assert(0);
-	}
+        // no node number - only ok when profiling a single node
+        if(nodes_profiled > 1) {
+          log_realmprof.fatal()
+              << "cannot write profiling data from multiple nodes to common log file '"
+              << logfile << "'";
+          assert(0);
+        }
       } else {
-	// replace % with node number
-	char filename[256];
-	snprintf(filename, sizeof filename, "%.*s%d%s",
-		(int)pct, logfile.c_str(), Network::my_node_id, logfile.c_str() + pct + 1);
-	logfile = filename;
+        // replace % with node number
+        char filename[256];
+        snprintf(filename, sizeof filename, "%.*s%d%s", (int)pct, logfile.c_str(),
+                 Network::my_node_id, logfile.c_str() + pct + 1);
+        logfile = filename;
       }
 
       output_fd = open(logfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
       if(output_fd < 0) {
-	log_realmprof.fatal() << "could not create/write '" << logfile << "': " << strerror(errno);
-	assert(0);
+        log_realmprof.fatal() << "could not create/write '" << logfile
+                              << "': " << strerror(errno);
+        assert(0);
       }
 
-      log_realmprof.info() << "realm profiler enabled: logfile='" << logfile << "' interval=" << cfg_sample_interval << " ns";
+      log_realmprof.info() << "realm profiler enabled: logfile='" << logfile
+                           << "' interval=" << cfg_sample_interval << " ns";
     }
   }
 
@@ -584,48 +579,47 @@ namespace Realm {
     long long last_sample_time = 0;
     while(!is_shut_down) {
       long long wait_time = (cfg_sample_interval -
-			     (Clock::current_time_in_nanoseconds() - last_sample_time));
+                             (Clock::current_time_in_nanoseconds() - last_sample_time));
       if(wait_time >= 1000)
-	usleep(wait_time / 1000);
-      
+        usleep(wait_time / 1000);
+
       GaugeSampler *head = 0;
       GaugeSampler **tail = 0;
       std::vector<SampleFile::PacketNewGauge *> new_infos;
       // take the mutex long enough to sample a consistent head and tail - after
       //  that we can release the lock while we traverse our part of the list
       {
-	AutoLock<> al(mutex);
-	head = sampler_head;
-	tail = sampler_tail;
-	// grab list of new infos atomically as well
-	new_infos.swap(new_sampler_infos);
+        AutoLock<> al(mutex);
+        head = sampler_head;
+        tail = sampler_tail;
+        // grab list of new infos atomically as well
+        new_infos.swap(new_sampler_infos);
       }
-      
+
       for(std::vector<SampleFile::PacketNewGauge *>::iterator it = new_infos.begin();
-	  it != new_infos.end();
-	  ++it) {
-	SampleFile::PacketHeader hdr;
-	hdr.packet_type = SampleFile::PacketHeader::PACKET_NEWGAUGE;
-	hdr.packet_size = sizeof(SampleFile::PacketNewGauge);
-	ssize_t amt = write(output_fd, &hdr, sizeof(hdr));
+          it != new_infos.end(); ++it) {
+        SampleFile::PacketHeader hdr;
+        hdr.packet_type = SampleFile::PacketHeader::PACKET_NEWGAUGE;
+        hdr.packet_size = sizeof(SampleFile::PacketNewGauge);
+        ssize_t amt = write(output_fd, &hdr, sizeof(hdr));
 #ifdef NDEBUG
-	(void)amt;
+        (void)amt;
 #else
-	assert(amt == (ssize_t)sizeof(hdr));
+        assert(amt == (ssize_t)sizeof(hdr));
 #endif
-	amt = write(output_fd, *it, sizeof(SampleFile::PacketNewGauge));
+        amt = write(output_fd, *it, sizeof(SampleFile::PacketNewGauge));
 #ifdef NDEBUG
-	(void)amt;
+        (void)amt;
 #else
-	assert(amt == (ssize_t)sizeof(SampleFile::PacketNewGauge));
+        assert(amt == (ssize_t)sizeof(SampleFile::PacketNewGauge));
 #endif
-	delete *it;
+        delete *it;
       }
       new_infos.clear();
 
       // an empty list means nothing to do
       if(!head)
-	continue;
+        continue;
 
       // as we walk the list, we'll prune out samplers for gauges that have been
       //  removed, which requires remembering the next pointer from the most recent
@@ -644,67 +638,67 @@ namespace Realm {
       int current_sample_index = next_sample_index.fetch_add(1);
       GaugeSampler *sampler = head;
       while(sampler) {
-	// take the sampler's mutex while performing the sample to avoid races with
-	//  the gauge itself being deleted
-	bool full = false;
-	bool deleted = false;
-	{
-	  AutoLock<> al(sampler->mutex);
-	  if(sampler->gauge_exists) {
-	    full = sampler->sample_gauge(current_sample_index);
-	  } else {
-	    deleted = true;
-	  }
-	}
-	if(full) full_samplers.push_back(sampler);
-	if(deleted) {
-	  deleted_samplers.push_back(sampler);
-	  // fix list links
-	  if(sampler == new_head)
-	    new_head = sampler->next;
-	  *prev_next = sampler->next;
-	}
-	if(!deleted)
-	  prev_next = &(sampler->next);
-	// stop if we've gotten to the tail we grabbed in the snapshot
-	if(&(sampler->next) == tail)
-	  break;
-	sampler = sampler->next;  // safe since we're deferring deletion
+        // take the sampler's mutex while performing the sample to avoid races with
+        //  the gauge itself being deleted
+        bool full = false;
+        bool deleted = false;
+        {
+          AutoLock<> al(sampler->mutex);
+          if(sampler->gauge_exists) {
+            full = sampler->sample_gauge(current_sample_index);
+          } else {
+            deleted = true;
+          }
+        }
+        if(full)
+          full_samplers.push_back(sampler);
+        if(deleted) {
+          deleted_samplers.push_back(sampler);
+          // fix list links
+          if(sampler == new_head)
+            new_head = sampler->next;
+          *prev_next = sampler->next;
+        }
+        if(!deleted)
+          prev_next = &(sampler->next);
+        // stop if we've gotten to the tail we grabbed in the snapshot
+        if(&(sampler->next) == tail)
+          break;
+        sampler = sampler->next; // safe since we're deferring deletion
       }
       long long t_end = Clock::current_time_in_nanoseconds();
       (*sampling_time) += (t_end - t_start);
 
       // now update head and tail if we changed them
       {
-	AutoLock<> al(mutex);
-	sampler_head = new_head;  // always safe to update since we know the list wasn't empty
-	// only update the tail if the list hasn't grown
-	if(sampler_tail == tail) {
-	  sampler_tail = prev_next;
-	}
+        AutoLock<> al(mutex);
+        sampler_head =
+            new_head; // always safe to update since we know the list wasn't empty
+        // only update the tail if the list hasn't grown
+        if(sampler_tail == tail) {
+          sampler_tail = prev_next;
+        }
       }
 
       // deal with samplers that were full
       for(std::vector<GaugeSampler *>::const_iterator it = full_samplers.begin();
-	  it != full_samplers.end();
-	  it++) {
-	GaugeSampleBuffer *buffer = (*it)->buffer_swap(cfg_buffer_size);
-	assert((buffer != 0) && (buffer->compressed_len > 0));
-	buffer->write_data(output_fd);
-	delete buffer;
+          it != full_samplers.end(); it++) {
+        GaugeSampleBuffer *buffer = (*it)->buffer_swap(cfg_buffer_size);
+        assert((buffer != 0) && (buffer->compressed_len > 0));
+        buffer->write_data(output_fd);
+        delete buffer;
       }
 
       // samplers whose gauges were deleted need to flush data before deletion
       for(std::vector<GaugeSampler *>::const_iterator it = deleted_samplers.begin();
-	  it != deleted_samplers.end();
-	  it++) {
-	GaugeSampleBuffer *buffer = (*it)->buffer_swap(0);
-	if(buffer) {
-	  if(buffer->compressed_len > 0) 
-	    buffer->write_data(output_fd);
-	  delete buffer;
-	}
-	delete (*it);
+          it != deleted_samplers.end(); it++) {
+        GaugeSampleBuffer *buffer = (*it)->buffer_swap(0);
+        if(buffer) {
+          if(buffer->compressed_len > 0)
+            buffer->write_data(output_fd);
+          delete buffer;
+        }
+        delete(*it);
       }
 
       // last, if a flush was requested, go through and dump the data for any other
@@ -712,30 +706,30 @@ namespace Realm {
       //  do the file I/O and memory allocation in the iteration itself
       // we also know no deletion will occur here, so we don't need to remember the tail
       if(flush_requested) {
-	flush_requested = false;  // clear the flag now that we're handling it
-	GaugeSampler *sampler = sampler_head;
-	std::vector<GaugeSampler *>::const_iterator full_it = full_samplers.begin();
-	while(sampler) {
-	  if((full_it != full_samplers.end()) && (sampler == *full_it)) {
-	    // this one was full and we've already handled it
-	    ++full_it;
-	    continue;
-	  }
-	  
-	  GaugeSampleBuffer *buffer = sampler->buffer_swap(cfg_buffer_size,
-							   true /*non-empty only*/);
-	  if(buffer) {
-	    assert(buffer->compressed_len > 0);
-	    buffer->write_data(output_fd);
-	    delete buffer;
-	  }
+        flush_requested = false; // clear the flag now that we're handling it
+        GaugeSampler *sampler = sampler_head;
+        std::vector<GaugeSampler *>::const_iterator full_it = full_samplers.begin();
+        while(sampler) {
+          if((full_it != full_samplers.end()) && (sampler == *full_it)) {
+            // this one was full and we've already handled it
+            ++full_it;
+            continue;
+          }
 
-	  sampler = sampler->next;
-	}
+          GaugeSampleBuffer *buffer =
+              sampler->buffer_swap(cfg_buffer_size, true /*non-empty only*/);
+          if(buffer) {
+            assert(buffer->compressed_len > 0);
+            buffer->write_data(output_fd);
+            delete buffer;
+          }
+
+          sampler = sampler->next;
+        }
       }
     }
   }
-  
+
   template <typename T>
   GaugeSampler *SamplingProfilerImpl::add_gauge(T *gauge)
   {
@@ -744,8 +738,8 @@ namespace Realm {
       AutoLock<> al(mutex);
       // race conditions are annoying - check again
       if(!is_configured) {
-	delayed_additions = new DelayedGaugeAdditionImpl<T>(gauge, delayed_additions);
-	return 0;
+        delayed_additions = new DelayedGaugeAdditionImpl<T>(gauge, delayed_additions);
+        return 0;
       }
     }
 
@@ -756,7 +750,7 @@ namespace Realm {
     // if we are configured, check against patterns without holding the lock
     if(!pattern_match(gauge->name))
       return 0;
-    
+
     // it matches a pattern, so create the sampler and add it to the list
     int sampler_id = next_sampler_id.fetch_add(1);
     SampleFile::PacketNewGauge *info = new SampleFile::PacketNewGauge;
@@ -764,28 +758,28 @@ namespace Realm {
 #ifndef NDEBUG
     GaugeSampleBuffer *buffer =
 #endif
-                                sampler->buffer_swap(cfg_buffer_size);
+        sampler->buffer_swap(cfg_buffer_size);
     assert(buffer == 0);
     {
       AutoLock<> al(mutex);
       // do shutdown check here to avoid race conditions
       if(is_shut_down) {
-	delete info;
-	delete sampler;
-	return 0;
+        delete info;
+        delete sampler;
+        return 0;
       }
       new_sampler_infos.push_back(info);
       if(sampler_tail)
-	*sampler_tail = sampler;
+        *sampler_tail = sampler;
       else
-	sampler_head = sampler;
+        sampler_head = sampler;
       sampler_tail = &(sampler->next);
     }
     return sampler;
   }
 
   void SamplingProfilerImpl::remove_gauge(ProfilingGauges::Gauge *gauge,
-					  GaugeSampler *sampler)
+                                          GaugeSampler *sampler)
   {
     // if the shutdown flag is set, the gauge has already been deleted
     AutoLock<> al(mutex);
@@ -800,13 +794,12 @@ namespace Realm {
     sampler->gauge_exists = false;
   }
 
-  bool SamplingProfilerImpl::pattern_match(const std::string& s) const
+  bool SamplingProfilerImpl::pattern_match(const std::string &s) const
   {
     assert(is_configured);
     // TODO: actual pattern matches
     return true;
   }
-
 
   namespace ProfilingGauges {
 
@@ -819,24 +812,30 @@ namespace Realm {
     /*static*/ void Gauge::add_gauge(T *gauge, SamplingProfiler *profiler)
     {
       if(profiler)
-	gauge->sampler = profiler->add_gauge(gauge);
+        gauge->sampler = profiler->add_gauge(gauge);
       else
-	gauge->sampler = DefaultSamplerHandler::get_handler().add_gauge_to_default_sampler(gauge);
+        gauge->sampler =
+            DefaultSamplerHandler::get_handler().add_gauge_to_default_sampler(gauge);
     }
 
     void Gauge::remove_gauge(void)
     {
       SamplingProfilerImpl *profiler = sampler->profiler;
       if(profiler)
-	profiler->remove_gauge(this, sampler);
+        profiler->remove_gauge(this, sampler);
     }
 
     // yet another try at forcibly instantiating the right templates
-    template void Gauge::add_gauge<AbsoluteGauge<unsigned long long> >(AbsoluteGauge<unsigned long long>*, SamplingProfiler*);
-    template void Gauge::add_gauge<AbsoluteGauge<unsigned long> >(AbsoluteGauge<unsigned long>*, SamplingProfiler*);
-    template void Gauge::add_gauge<AbsoluteGauge<unsigned> >(AbsoluteGauge<unsigned>*, SamplingProfiler*);
-    template void Gauge::add_gauge<AbsoluteRangeGauge<int> >(AbsoluteRangeGauge<int>*, SamplingProfiler*);
+    template void Gauge::add_gauge<AbsoluteGauge<unsigned long long>>(
+        AbsoluteGauge<unsigned long long> *, SamplingProfiler *);
+    template void
+    Gauge::add_gauge<AbsoluteGauge<unsigned long>>(AbsoluteGauge<unsigned long> *,
+                                                   SamplingProfiler *);
+    template void Gauge::add_gauge<AbsoluteGauge<unsigned>>(AbsoluteGauge<unsigned> *,
+                                                            SamplingProfiler *);
+    template void Gauge::add_gauge<AbsoluteRangeGauge<int>>(AbsoluteRangeGauge<int> *,
+                                                            SamplingProfiler *);
 
-  };
+  }; // namespace ProfilingGauges
 
 }; // namespace Realm

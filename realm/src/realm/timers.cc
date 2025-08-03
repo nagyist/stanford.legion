@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +38,6 @@
 namespace Realm {
 
   Logger log_timer("timers");
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -77,15 +78,12 @@ namespace Realm {
     // windows epoch starts at 1/1/1601, which is overkill and happens to
     //  overflow int64_t, so shift to Unix epoch (1/1/1970)
     t -= uint64_t(10000000) * 86400 * (369 * 365 + 89 /* leap days*/);
-    t *= 100;  // FILETIME is in 100ns units
+    t *= 100; // FILETIME is in 100ns units
 #endif
     return t;
   }
 
-  /*static*/ long long Clock::get_zero_time(void)
-  {
-    return zero_time;
-  }
+  /*static*/ long long Clock::get_zero_time(void) { return zero_time; }
 
   /*static*/ void Clock::set_zero_time(void)
   {
@@ -103,8 +101,8 @@ namespace Realm {
                                    uint64_t force_cpu_tsc_freq)
   {
 #if REALM_TIMERS_USE_RDTSC
-    if(use_cpu_tsc != 0) {  // "yes" or "dont care"
-      if (force_cpu_tsc_freq == 0) {
+    if(use_cpu_tsc != 0) { // "yes" or "dont care"
+      if(force_cpu_tsc_freq == 0) {
         force_cpu_tsc_freq = raw_cpu_tsc_freq();
       }
 
@@ -124,7 +122,7 @@ namespace Realm {
         for(int i = 0; i < (1 << iterations); i++)
           native2 = std::max(native2, raw_cpu_tsc());
 
-        // one OS call of the appropriate type
+          // one OS call of the appropriate type
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_FREEBSD)
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
@@ -145,7 +143,7 @@ namespace Realm {
         // windows epoch starts at 1/1/1601, which is overkill and happens to
         //  overflow int64_t, so shift to Unix epoch (1/1/1970)
         nanoseconds2 -= uint64_t(10000000) * 86400 * (369 * 365 + 89 /* leap days*/);
-        nanoseconds2 *= 100;  // FILETIME is in 100ns units
+        nanoseconds2 *= 100; // FILETIME is in 100ns units
 #endif
 
         if(iterations == 0) {
@@ -158,8 +156,7 @@ namespace Realm {
         //  one sample
         if(force_cpu_tsc_freq > 0) {
           // supplied freq is ticks/sec = ticks / 1e9 ns
-          bool ok = native_to_nanoseconds.set(native1,
-                                              nanoseconds1,
+          bool ok = native_to_nanoseconds.set(native1, nanoseconds1,
                                               native1 + force_cpu_tsc_freq,
                                               nanoseconds1 + 1000000000);
           if(ok) {
@@ -181,10 +178,8 @@ namespace Realm {
           //  (less than 100 MHz or above 100 GHz)
           double est_ghz = 1.0 * (native2 - native1) / (nanoseconds2 - nanoseconds1);
           if((est_ghz >= 0.1) && (est_ghz <= 100.0)) {
-            bool ok = native_to_nanoseconds.set(native1,
-                                                nanoseconds1,
-                                                native2,
-                                                nanoseconds2);
+            bool ok =
+                native_to_nanoseconds.set(native1, nanoseconds1, native2, nanoseconds2);
 
             if(ok) {
               log_timer.debug() << "tsc calibration: native=" << native1 << "," << native2
@@ -193,9 +188,9 @@ namespace Realm {
               cpu_tsc_enabled = true;
             }
           } else {
-            log_timer.warning() << "tsc calibration failed: native=" << native1 << "," << native2
-                                << " nanoseconds=" << nanoseconds1 << "," << nanoseconds2
-                                << " freq=" << est_ghz;
+            log_timer.warning() << "tsc calibration failed: native=" << native1 << ","
+                                << native2 << " nanoseconds=" << nanoseconds1 << ","
+                                << nanoseconds2 << " freq=" << est_ghz;
           }
           break;
         }
@@ -203,17 +198,17 @@ namespace Realm {
         // termination case 3 - too many iterations - assume a tsc read
         //  should never be faster than 1ns
         if((uint64_t(1) << iterations) > TARGET_NANOSECONDS) {
-          log_timer.warning() << "tsc calibration too fast: native=" << native1 << "," << native2
-                              << " nanoseconds=" << nanoseconds1 << "," << nanoseconds2
-                              << " iterations=" << iterations;
+          log_timer.warning() << "tsc calibration too fast: native=" << native1 << ","
+                              << native2 << " nanoseconds=" << nanoseconds1 << ","
+                              << nanoseconds2 << " iterations=" << iterations;
           break;
         }
 
         // termination case 4 - time elapsed with too few iterations
         if(nanoseconds2 >= (nanoseconds1 + TARGET_NANOSECONDS)) {
-          log_timer.warning() << "tsc calibration too slow: native=" << native1 << "," << native2
-                              << " nanoseconds=" << nanoseconds1 << "," << nanoseconds2
-                              << " iterations=" << iterations;
+          log_timer.warning() << "tsc calibration too slow: native=" << native1 << ","
+                              << native2 << " nanoseconds=" << nanoseconds1 << ","
+                              << nanoseconds2 << " iterations=" << iterations;
           break;
         }
       }
@@ -255,19 +250,16 @@ namespace Realm {
       abort();
     }
     // ns = numer/denom * ticks -> `denom` ns == `numer` ticks
-    bool ok = native_to_nanoseconds.set(abstime,
-                                        caltime,
-                                        abstime + info.denom,
+    bool ok = native_to_nanoseconds.set(abstime, caltime, abstime + info.denom,
                                         caltime + info.numer);
     if(!ok) {
       log_timer.fatal() << "mach calibration failed: abstime=" << abstime
-                        << " caltime=" << caltime
-                        << " ratio=" << info.numer << "/" << info.denom;
+                        << " caltime=" << caltime << " ratio=" << info.numer << "/"
+                        << info.denom;
       abort();
     }
 
-    log_timer.debug() << "mach calibration: abstime=" << abstime
-                      << " caltime=" << caltime
+    log_timer.debug() << "mach calibration: abstime=" << abstime << " caltime=" << caltime
                       << " ratio=" << info.numer << "/" << info.denom;
 #endif
   }
@@ -301,11 +293,12 @@ namespace Realm {
     , slope_b_to_a(uint64_t(1) << 32)
   {}
 
-  bool Clock::TimescaleConverter::set(uint64_t ta1, uint64_t tb1,
-                                      uint64_t ta2, uint64_t tb2)
+  bool Clock::TimescaleConverter::set(uint64_t ta1, uint64_t tb1, uint64_t ta2,
+                                      uint64_t tb2)
   {
     // insist that second point is later
-    if((ta2 <= ta1) || (tb2 <= tb1)) return false;
+    if((ta2 <= ta1) || (tb2 <= tb1))
+      return false;
 
     // limit the supported ratio to 2^16 in either direction
     uint64_t a_delta = ta2 - ta1;
@@ -313,7 +306,7 @@ namespace Realm {
     if(((a_delta >> 16) >= b_delta) || ((b_delta >> 16) >= a_delta))
       return false;
 
-    // slopes are 32.32 fixed point - i.e. slope_a_to_b = (2^32 * b) / a
+      // slopes are 32.32 fixed point - i.e. slope_a_to_b = (2^32 * b) / a
 #ifdef REALM_HAS_INT128
     // easy if we have 128-bit integer math
     __int128 a_to_b_128 = (__int128(b_delta) << 32) / a_delta;
@@ -346,9 +339,9 @@ namespace Realm {
     int64_t db_minus = convert_forward_delta(-((int64_t)a_delta));
     int64_t da_plus = convert_reverse_delta(b_delta);
     int64_t da_minus = convert_reverse_delta(-((int64_t)b_delta));
-    assert((ta2 == ta3) && (tb2 == tb3) &&
-           (db_plus == (int64_t)b_delta) && (-db_minus == (int64_t)b_delta) &&
-           (da_plus == (int64_t)a_delta) && (-da_minus == (int64_t)a_delta));
+    assert((ta2 == ta3) && (tb2 == tb3) && (db_plus == (int64_t)b_delta) &&
+           (-db_minus == (int64_t)b_delta) && (da_plus == (int64_t)a_delta) &&
+           (-da_minus == (int64_t)a_delta));
 #endif
 
     return true;

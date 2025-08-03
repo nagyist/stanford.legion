@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,34 +38,29 @@ namespace Realm {
     typedef ::realm_id_t id_t;
 
     id_t id;
-    bool operator<(const Subgraph& rhs) const { return id < rhs.id; }
-    bool operator==(const Subgraph& rhs) const { return id == rhs.id; }
-    bool operator!=(const Subgraph& rhs) const { return id != rhs.id; }
+    bool operator<(const Subgraph &rhs) const { return id < rhs.id; }
+    bool operator==(const Subgraph &rhs) const { return id == rhs.id; }
+    bool operator!=(const Subgraph &rhs) const { return id != rhs.id; }
 
     static const Subgraph NO_SUBGRAPH;
 
     bool exists(void) const { return id != 0; }
 
-    static Event create_subgraph(Subgraph& subgraph,
-				 const SubgraphDefinition& defn,
-				 const ProfilingRequestSet& prs,
-				 Event wait_on = Event::NO_EVENT);
+    static Event create_subgraph(Subgraph &subgraph, const SubgraphDefinition &defn,
+                                 const ProfilingRequestSet &prs,
+                                 Event wait_on = Event::NO_EVENT);
 
     // TODO: collective construction
 
     void destroy(Event wait_on = Event::NO_EVENT) const;
 
-    Event instantiate(const void *args, size_t arglen,
-		      const ProfilingRequestSet& prs,
-		      Event wait_on = Event::NO_EVENT,
-		      int priority_adjust = 0) const;
+    Event instantiate(const void *args, size_t arglen, const ProfilingRequestSet &prs,
+                      Event wait_on = Event::NO_EVENT, int priority_adjust = 0) const;
 
-    Event instantiate(const void *args, size_t arglen,
-		      const ProfilingRequestSet& prs,
-		      const std::vector<Event>& preconditions,
-		      std::vector<Event>& postconditions,
-		      Event wait_on = Event::NO_EVENT,
-		      int priority_adjust = 0) const;
+    Event instantiate(const void *args, size_t arglen, const ProfilingRequestSet &prs,
+                      const std::vector<Event> &preconditions,
+                      std::vector<Event> &postconditions, Event wait_on = Event::NO_EVENT,
+                      int priority_adjust = 0) const;
 
     // TODO: collective instantiation
   };
@@ -88,7 +85,7 @@ namespace Realm {
     //  task registration
 
     struct TaskDesc {
-      TaskDesc();  // initializes all fields
+      TaskDesc(); // initializes all fields
 
       // interpolatable: args
       Processor proc;
@@ -99,7 +96,7 @@ namespace Realm {
     };
 
     struct CopyDesc {
-      CopyDesc();  // initializes all fields
+      CopyDesc(); // initializes all fields
 
       // interpolatable: none?
       IndexSpaceGeneric space; // type-erase here to avoid template explosion
@@ -112,8 +109,8 @@ namespace Realm {
     };
 
     struct ArrivalDesc {
-      ArrivalDesc();  // initializes all fields
-      
+      ArrivalDesc(); // initializes all fields
+
       // interpolatable: { barrier, reduce_value }
       Barrier barrier;
       unsigned count /*= 1*/;
@@ -121,7 +118,7 @@ namespace Realm {
     };
 
     struct InstantiationDesc {
-      InstantiationDesc();  // initializes all fields
+      InstantiationDesc(); // initializes all fields
 
       // interpolatable: args
       Subgraph subgraph;
@@ -131,7 +128,7 @@ namespace Realm {
     };
 
     struct AcquireDesc {
-      AcquireDesc();  // initializes all fields
+      AcquireDesc(); // initializes all fields
 
       // interpolatable: none?
       Reservation rsrv;
@@ -140,7 +137,7 @@ namespace Realm {
     };
 
     struct ReleaseDesc {
-      ReleaseDesc();  // initializes all fields
+      ReleaseDesc(); // initializes all fields
 
       // interpolatable: none?
       Reservation rsrv;
@@ -163,7 +160,8 @@ namespace Realm {
     // the same target op/port may be subject to multiple dependencies - the
     //  equivalent of event merging happens behind the scenes
 
-    enum OpKind {
+    enum OpKind
+    {
       OPKIND_INVALID,
       OPKIND_TASK,
       OPKIND_COPY,
@@ -178,7 +176,7 @@ namespace Realm {
     };
 
     struct Dependency {
-      Dependency();  // initializes all fields
+      Dependency(); // initializes all fields
 
       OpKind src_op_kind;
       unsigned src_op_index;
@@ -198,51 +196,53 @@ namespace Realm {
     //   it means subgraph cannot be pre-compiled?
 
     struct Interpolation {
-      Interpolation();  // initializes all fields
+      Interpolation(); // initializes all fields
 
-      enum TargetKind {
-	TARGET_INVALID,
+      enum TargetKind
+      {
+        TARGET_INVALID,
 
-	TARGET_TASK_BASE = OPKIND_TASK << 8,
-	TARGET_TASK_ARGS,
+        TARGET_TASK_BASE = OPKIND_TASK << 8,
+        TARGET_TASK_ARGS,
 
-	TARGET_COPY_BASE = OPKIND_COPY << 8,
+        TARGET_COPY_BASE = OPKIND_COPY << 8,
 
-	TARGET_ARRIVAL_BASE = OPKIND_ARRIVAL << 8,
-	TARGET_ARRIVAL_BARRIER,
-	TARGET_ARRIVAL_VALUE,
+        TARGET_ARRIVAL_BASE = OPKIND_ARRIVAL << 8,
+        TARGET_ARRIVAL_BARRIER,
+        TARGET_ARRIVAL_VALUE,
 
-	TARGET_INSTANCE_BASE = OPKIND_INSTANTIATION << 8,
-	TARGET_INSTANCE_ARGS,
+        TARGET_INSTANCE_BASE = OPKIND_INSTANTIATION << 8,
+        TARGET_INSTANCE_ARGS,
 
-	TARGET_ACQUIRE_BASE = OPKIND_ACQUIRE << 8,
+        TARGET_ACQUIRE_BASE = OPKIND_ACQUIRE << 8,
 
-	TARGET_RELEASE_BASE = OPKIND_RELEASE << 8,
+        TARGET_RELEASE_BASE = OPKIND_RELEASE << 8,
       };
 
-      size_t offset;           // offset within instantiation args
-      size_t bytes;            // size within instantiation args
+      size_t offset; // offset within instantiation args
+      size_t bytes;  // size within instantiation args
       TargetKind target_kind;
-      unsigned target_index;   // index of operation within its list
-      size_t target_offset;    // offset within target field
-      ReductionOpID redop_id;  // overwrite if 0, reduce apply otherwise
+      unsigned target_index;  // index of operation within its list
+      size_t target_offset;   // offset within target field
+      ReductionOpID redop_id; // overwrite if 0, reduce apply otherwise
     };
 
     std::vector<Interpolation> interpolations;
 
     // concurrency mode - more serial versions may allow the compiled form to
     //  pre-allocate and reuse resources, improving efficiency
-    enum ConcurrencyMode {
-      ONE_SHOT,             // can only be executed once (e.g. probably not
-                            //   worth optimizing)
-      INSTANTIATION_ORDER,  // implementation may serialize instantiations in
-                            //   in the order they were instantiated
-      SERIALIZABLE,         // implementations may be serialized, but a later
-                            //   instatiation must be able to run even if
-                            //   earlier instantiations are waiting for
-                            //   satisfaction of their default precondition
-      CONCURRENT,           // concurrent execution of instantiations is
-                            //   required for correctness
+    enum ConcurrencyMode
+    {
+      ONE_SHOT,            // can only be executed once (e.g. probably not
+                           //   worth optimizing)
+      INSTANTIATION_ORDER, // implementation may serialize instantiations in
+                           //   in the order they were instantiated
+      SERIALIZABLE,        // implementations may be serialized, but a later
+                           //   instatiation must be able to run even if
+                           //   earlier instantiations are waiting for
+                           //   satisfaction of their default precondition
+      CONCURRENT,          // concurrent execution of instantiations is
+                           //   required for correctness
     };
 
     ConcurrencyMode concurrency_mode;

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,16 +48,17 @@ namespace Realm {
       long long work_item_timeslice = 100000;
     };
 
-    void configure_from_cmdline(std::vector<std::string>& cmdline);
+    void configure_from_cmdline(std::vector<std::string> &cmdline);
 
-    void start_dedicated_workers(Realm::CoreReservationSet& crs);
+    void start_dedicated_workers(Realm::CoreReservationSet &crs);
 
     void stop_dedicated_workers(void);
 
     typedef unsigned long long BitMask;
     static const size_t MAX_WORK_ITEMS = 256;
     static const size_t BITMASK_BITS = 8 * sizeof(BitMask);
-    static const size_t BITMASK_ARRAY_SIZE = (MAX_WORK_ITEMS + BITMASK_BITS - 1) / BITMASK_BITS;
+    static const size_t BITMASK_ARRAY_SIZE =
+        (MAX_WORK_ITEMS + BITMASK_BITS - 1) / BITMASK_BITS;
 
     class Worker {
     public:
@@ -66,10 +69,9 @@ namespace Realm {
 
       // configuration settings impact which work items this worker can handle
       void set_max_timeslice(long long _timeslice_in_ns);
-      void set_numa_domain(int _numa_domain);  // -1 == dont care
+      void set_numa_domain(int _numa_domain); // -1 == dont care
 
-      bool do_work(long long max_time_in_ns,
-		   atomic<bool> *interrupt_flag);
+      bool do_work(long long max_time_in_ns, atomic<bool> *interrupt_flag);
 
     protected:
       BackgroundWorkManager *manager;
@@ -79,6 +81,7 @@ namespace Realm {
       long long max_timeslice;
       int numa_domain;
     };
+
   protected:
     friend class BackgroundWorkManager::Worker;
     friend class BackgroundWorkItem;
@@ -125,12 +128,11 @@ namespace Realm {
 
   class REALM_INTERNAL_API_EXTERNAL_LINKAGE BackgroundWorkItem {
   public:
-    BackgroundWorkItem(const std::string& _name);
+    BackgroundWorkItem(const std::string &_name);
     virtual ~BackgroundWorkItem(void);
 
-    void add_to_manager(BackgroundWorkManager *_manager,
-			int _numa_domain = -1,
-			long long _min_timeslice_needed = -1);
+    void add_to_manager(BackgroundWorkManager *_manager, int _numa_domain = -1,
+                        long long _min_timeslice_needed = -1);
 
     // perform work, trying to respect the 'work_until' time limit - return
     //  true to request requeuing (this is more efficient than calling
@@ -154,13 +156,14 @@ namespace Realm {
   public:
     // in debug mode, we'll track the state of a work item to avoid
     //  duplicate activations or activations after shutdown
-    enum State {
+    enum State
+    {
       STATE_IDLE,
       STATE_ACTIVE,
       STATE_SHUTDOWN,
     };
 
-    void make_inactive(void);  // called immediately before 'do_work'
+    void make_inactive(void); // called immediately before 'do_work'
     void shutdown_work_item(void);
 
   protected:
@@ -168,6 +171,6 @@ namespace Realm {
 #endif
   };
 
-};
+}; // namespace Realm
 
 #endif

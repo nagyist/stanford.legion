@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef _PHILOX_H_
 #define _PHILOX_H_
 
@@ -65,10 +82,9 @@ public:
     // need 32 random bits (we probably lose a bunch when this gets converted to float)
     u32 bits = rand_raw(key, ctr_hi, ctr_lo);
     // would prefer 0x1p-32 here, but pedantic c++ doesn't get it until c++17
-    const float scale = 1.0f / (1ULL << 32);  // 2^-32
+    const float scale = 1.0f / (1ULL << 32); // 2^-32
     return (bits * scale);
   }
 };
 
 #endif
-  

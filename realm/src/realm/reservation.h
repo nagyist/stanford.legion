@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,41 +27,46 @@
 
 namespace Realm {
 
-    class REALM_PUBLIC_API Reservation {
-    public:
-      typedef ::realm_id_t id_t;
-      id_t id;
-      bool operator<(const Reservation& rhs) const { return id < rhs.id; }
-      bool operator==(const Reservation& rhs) const { return id == rhs.id; }
-      bool operator!=(const Reservation& rhs) const { return id != rhs.id; }
+  class REALM_PUBLIC_API Reservation {
+  public:
+    typedef ::realm_id_t id_t;
+    id_t id;
+    bool operator<(const Reservation &rhs) const { return id < rhs.id; }
+    bool operator==(const Reservation &rhs) const { return id == rhs.id; }
+    bool operator!=(const Reservation &rhs) const { return id != rhs.id; }
 
-      static const Reservation NO_RESERVATION;
+    static const Reservation NO_RESERVATION;
 
-      bool exists(void) const { return id != 0; }
+    bool exists(void) const { return id != 0; }
 
-      // requests ownership (either exclusive or shared) of the reservation with a 
-      //   specified mode - returns an event that will trigger when the reservation 
-      //   is granted
-      Event acquire(unsigned mode = 0, bool exclusive = true, Event wait_on = Event::NO_EVENT) const;
+    // requests ownership (either exclusive or shared) of the reservation with a
+    //   specified mode - returns an event that will trigger when the reservation
+    //   is granted
+    Event acquire(unsigned mode = 0, bool exclusive = true,
+                  Event wait_on = Event::NO_EVENT) const;
 
-      // tries to acquire ownership of the reservation with the given 'mode' and 'exclusive'ity
-      // if immediately successful, returns Event::NO_EVENT - check with exists(), not has_triggered()!
-      // if not, the reservation is NOT acquired (ever), and it returns an Event that should be
-      //  allowed to trigger before the caller tries again - also, the caller MUST retry until successful,
-      //  setting 'retry' to true on subsequent attempts
-      Event try_acquire(bool retry, unsigned mode = 0, bool exclusive = true,
-			Event wait_on = Event::NO_EVENT) const;
+    // tries to acquire ownership of the reservation with the given 'mode' and
+    // 'exclusive'ity if immediately successful, returns Event::NO_EVENT - check with
+    // exists(), not has_triggered()! if not, the reservation is NOT acquired (ever), and
+    // it returns an Event that should be
+    //  allowed to trigger before the caller tries again - also, the caller MUST retry
+    //  until successful, setting 'retry' to true on subsequent attempts
+    Event try_acquire(bool retry, unsigned mode = 0, bool exclusive = true,
+                      Event wait_on = Event::NO_EVENT) const;
 
-      // releases a held reservation - release can be deferred until an event triggers
-      void release(Event wait_on = Event::NO_EVENT) const;
+    // releases a held reservation - release can be deferred until an event triggers
+    void release(Event wait_on = Event::NO_EVENT) const;
 
-      // Create a new reservation, destroy an existing reservation 
-      static Reservation create_reservation();
+    // Create a new reservation, destroy an existing reservation
+    static Reservation create_reservation();
 
-      void destroy_reservation(Event wait_on = Event::NO_EVENT);
-    };
+    void destroy_reservation(Event wait_on = Event::NO_EVENT);
+  };
 
-    inline std::ostream& operator<<(std::ostream& os, Reservation r) { return os << std::hex << r.id << std::dec; }
+  inline std::ostream &operator<<(std::ostream &os, Reservation r)
+  {
+    return os << std::hex << r.id << std::dec;
+  }
 
   // a FastReservation is a wrapper around a Reservation that signficantly
   //  reduces overhead for repeated use of the same Reservation within a
@@ -75,15 +82,16 @@ namespace Realm {
 
   private:
     // NOT copyable
-    FastReservation(const FastReservation&);
-    FastReservation& operator=(const FastReservation&);
+    FastReservation(const FastReservation &);
+    FastReservation &operator=(const FastReservation &);
 
   public:
-    enum WaitMode {
-      SPIN,           // keep trying until lock is available
-      ALWAYS_SPIN,    // spin, even if holder is suspended (DANGEROUS)
-      WAIT,           // wait on Realm::Event, allowing other tasks to run
-      EXTERNAL_WAIT,  // wait on kernel mutex, for non-Realm threads
+    enum WaitMode
+    {
+      SPIN,          // keep trying until lock is available
+      ALWAYS_SPIN,   // spin, even if holder is suspended (DANGEROUS)
+      WAIT,          // wait on Realm::Event, allowing other tasks to run
+      EXTERNAL_WAIT, // wait on kernel mutex, for non-Realm threads
     };
 
     // these are inlined and cover the fast (i.e. uncontended) cases - they
@@ -122,12 +130,12 @@ namespace Realm {
     //  atomically updated
     typedef uint32_t State;
     static const State STATE_READER_COUNT_MASK = 0x03ffffff;
-    static const State STATE_SLEEPER           = 0x04000000;
-    static const State STATE_WRITER            = 0x08000000;
-    static const State STATE_WRITER_WAITING    = 0x10000000;
-    static const State STATE_BASE_RSRV         = 0x20000000;
+    static const State STATE_SLEEPER = 0x04000000;
+    static const State STATE_WRITER = 0x08000000;
+    static const State STATE_WRITER_WAITING = 0x10000000;
+    static const State STATE_BASE_RSRV = 0x20000000;
     static const State STATE_BASE_RSRV_WAITING = 0x40000000;
-    static const State STATE_SLOW_FALLBACK     = 0x80000000;
+    static const State STATE_SLOW_FALLBACK = 0x80000000;
 
   protected:
     Event wrlock_slow(WaitMode mode);
@@ -148,10 +156,9 @@ namespace Realm {
     //  indirection
     char opaque[CACHE_LINE_SIZE * 4 - sizeof(atomic<State>)];
   };
-	
+
 }; // namespace Realm
 
 #include "realm/reservation.inl"
 
 #endif // ifndef REALM_RESERVATION_H
-

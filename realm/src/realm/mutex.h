@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +33,7 @@
 //  threads or an UnfairMutex under heavy contention), so do not enable
 //  by default
 // TODO: control with command-line switch?
-//define REALM_ENABLE_STARVATION_CHECKS
+// define REALM_ENABLE_STARVATION_CHECKS
 
 namespace Realm {
 
@@ -84,13 +86,13 @@ namespace Realm {
 
     class CheckedScope {
     public:
-      CheckedScope(MutexChecker& _checker, const char *_name, void *_object = 0);
+      CheckedScope(MutexChecker &_checker, const char *_name, void *_object = 0);
       ~CheckedScope();
 
     protected:
       friend class MutexChecker;
 
-      MutexChecker& checker;
+      MutexChecker &checker;
       const char *name;
       void *object;
     };
@@ -129,14 +131,15 @@ namespace Realm {
     //  before going to sleep
     static const long long DOORBELL_SLEEP_IMMEDIATE = 0;
     static const long long DOORBELL_SLEEP_NEVER = -1;
-    static const long long DOORBELL_SLEEP_DEFAULT = 10000;  // 10 us
+    static const long long DOORBELL_SLEEP_DEFAULT = 10000; // 10 us
 
     void set_sleep_timeout(long long timeout_in_ns);
 
     // waiter interface
     void prepare();
     void cancel();
-    bool satisfied();  // indicates satisfaction - wait must be called but is guaranteed to be immediate
+    bool satisfied(); // indicates satisfaction - wait must be called but is guaranteed to
+                      // be immediate
     uint32_t wait();
 
     // waker interface
@@ -289,7 +292,6 @@ namespace Realm {
     alignas(8) uint64_t placeholder[8]; // 64 bytes, at least 8 byte aligned
   };
 
-
   // a delegating mutex allows lock-free mutual exclusion between threads that
   //  want to work on a shared resource - a lock attempt either succeeds
   //  immediately or delegates the intended work "units" to some other thread
@@ -306,13 +308,13 @@ namespace Realm {
     // a small amount of temporary state must be preserved by the caller across
     //  the call to attempt_enter and any/all calls to attempt_exit (this is
     //  not stored in the object to avoid false sharing)
-    uint64_t attempt_enter(uint64_t work_units, uint64_t& tstate);
+    uint64_t attempt_enter(uint64_t work_units, uint64_t &tstate);
 
     // attempts to exit the mutual exclusion zone once all known work has been
     //  performed - a zero return indicates success, while a non-zero return
     //  indicates the caller is still in the mutex and has been given more work
     //  to do
-    uint64_t attempt_exit(uint64_t& tstate);
+    uint64_t attempt_exit(uint64_t &tstate);
 
   protected:
     // LSB indicates some thread is in the mutex, while the rest of the bits
@@ -381,14 +383,14 @@ namespace Realm {
   template <typename LT = Mutex>
   class AutoLock {
   public:
-    AutoLock(LT& _mutex);
+    AutoLock(LT &_mutex);
     ~AutoLock();
 
     void release();
     void reacquire();
-    
+
   protected:
-    LT& mutex;
+    LT &mutex;
     bool held;
   };
 
@@ -399,9 +401,9 @@ namespace Realm {
     ~RWLock();
 
     // should never be copied (or moved)
-    RWLock(const RWLock&) = delete;
-    RWLock(RWLock&&) = delete;
-    RWLock& operator=(const RWLock&) = delete;
+    RWLock(const RWLock &) = delete;
+    RWLock(RWLock &&) = delete;
+    RWLock &operator=(const RWLock &) = delete;
     RWLock &operator=(RWLock &&) = delete;
 
     void wrlock();
@@ -413,29 +415,35 @@ namespace Realm {
     // to allow use with AutoLock<T>, the RWLock provides "aspects" that
     //  look like normal locks
     struct Writer {
-      Writer(RWLock& _rwlock) : rwlock(_rwlock) {}
+      Writer(RWLock &_rwlock)
+        : rwlock(_rwlock)
+      {}
       void lock() { rwlock.wrlock(); }
       void trylock() { rwlock.trywrlock(); }
       void unlock() { rwlock.unlock(); }
+
     protected:
-      RWLock& rwlock;
+      RWLock &rwlock;
     };
 
     struct Reader {
-      Reader(RWLock& _rwlock) : rwlock(_rwlock) {}
+      Reader(RWLock &_rwlock)
+        : rwlock(_rwlock)
+      {}
       void lock() { rwlock.rdlock(); }
       void trylock() { rwlock.tryrdlock(); }
       void unlock() { rwlock.unlock(); }
+
     protected:
-      RWLock& rwlock;
+      RWLock &rwlock;
     };
 
     typedef AutoLock<Writer> AutoWriterLock;
     typedef AutoLock<Reader> AutoReaderLock;
 
     // allow free coercion to these aspects
-    operator Writer&() { return writer; }
-    operator Reader&() { return reader; }
+    operator Writer &() { return writer; }
+    operator Reader &() { return reader; }
 
   protected:
     Writer writer;
@@ -445,13 +453,13 @@ namespace Realm {
     //  rules type-punning, so use macros to let mutex.cc's inclusion
     //  of this file behave a little differently
 #ifdef REALM_ON_MACOS
-      // apparently pthread_rwlock_t's are LARGE on macOS
-      alignas(8) uint64_t placeholder[32]; // 256 bytes, at least 8 byte aligned
+    // apparently pthread_rwlock_t's are LARGE on macOS
+    alignas(8) uint64_t placeholder[32]; // 256 bytes, at least 8 byte aligned
 #else
-      alignas(8) uint64_t placeholder[8]; // 64 bytes, at least 8 byte aligned
+    alignas(8) uint64_t placeholder[8]; // 64 bytes, at least 8 byte aligned
 #endif
   };
-};
+}; // namespace Realm
 
 #include "realm/mutex.inl"
 

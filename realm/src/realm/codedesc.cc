@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,72 +30,72 @@ namespace Realm {
 
   Logger log_codetrans("codetrans");
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class Type
 
-  std::ostream& operator<<(std::ostream& os, const Type& t)
+  std::ostream &operator<<(std::ostream &os, const Type &t)
   {
     switch(t.f_common.kind) {
-    case Type::InvalidKind: os << "INVALIDTYPE"; break;
+    case Type::InvalidKind:
+      os << "INVALIDTYPE";
+      break;
     case Type::OpaqueKind:
-      {
-	if(t.size_bits() == 0)
-	  os << "void";
-	else
-	  os << "opaque(" << t.size_bits() << ")";
-	break;
-      }
+    {
+      if(t.size_bits() == 0)
+        os << "void";
+      else
+        os << "opaque(" << t.size_bits() << ")";
+      break;
+    }
     case Type::IntegerKind:
-      {
-	os << (t.f_integer.is_signed ? 's' : 'u') << "int(" << t.size_bits() << ")";
-	break;
-      }
-    case Type::FloatingPointKind: os << "float(" << t.size_bits() << ")"; break;
+    {
+      os << (t.f_integer.is_signed ? 's' : 'u') << "int(" << t.size_bits() << ")";
+      break;
+    }
+    case Type::FloatingPointKind:
+      os << "float(" << t.size_bits() << ")";
+      break;
     case Type::PointerKind:
-      {
-	os << *t.f_pointer.base_type;
-	if(t.f_pointer.is_const) os << " const";
-	os << " *";
-	break;
-      }
+    {
+      os << *t.f_pointer.base_type;
+      if(t.f_pointer.is_const)
+        os << " const";
+      os << " *";
+      break;
+    }
     case Type::FunctionPointerKind:
-      {
-	os << *t.f_funcptr.return_type << "(*)(";
-	const std::vector<Type>& p = *t.f_funcptr.param_types;
-	if(p.size()) {
-	  for(size_t i = 0; i < p.size(); i++) {
-	    if(i) os << ", ";
-	    os << p[i];
-	  }
-	} else
-	  os << "void";
-	os << ")";
-	break;
-      }
+    {
+      os << *t.f_funcptr.return_type << "(*)(";
+      const std::vector<Type> &p = *t.f_funcptr.param_types;
+      if(p.size()) {
+        for(size_t i = 0; i < p.size(); i++) {
+          if(i)
+            os << ", ";
+          os << p[i];
+        }
+      } else
+        os << "void";
+      os << ")";
+      break;
+    }
     }
     return os;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class CodeDescriptor
 
-  CodeDescriptor::CodeDescriptor(void)
-  {}
+  CodeDescriptor::CodeDescriptor(void) {}
 
-  CodeDescriptor::CodeDescriptor(const Type& _t)
+  CodeDescriptor::CodeDescriptor(const Type &_t)
     : m_type(_t)
   {}
 
-  CodeDescriptor::CodeDescriptor(const CodeDescriptor& rhs)
-  {
-    copy_from(rhs);
-  }
+  CodeDescriptor::CodeDescriptor(const CodeDescriptor &rhs) { copy_from(rhs); }
 
-  CodeDescriptor& CodeDescriptor::operator=(const CodeDescriptor& rhs)
+  CodeDescriptor &CodeDescriptor::operator=(const CodeDescriptor &rhs)
   {
     if(this != &rhs) {
       clear();
@@ -102,10 +104,7 @@ namespace Realm {
     return *this;
   }
 
-  CodeDescriptor::~CodeDescriptor(void)
-  {
-    clear();
-  }
+  CodeDescriptor::~CodeDescriptor(void) { clear(); }
 
   void CodeDescriptor::clear(void)
   {
@@ -114,20 +113,20 @@ namespace Realm {
     delete_container_contents(m_props);
   }
 
-  void CodeDescriptor::copy_from(const CodeDescriptor& rhs)
+  void CodeDescriptor::copy_from(const CodeDescriptor &rhs)
   {
     m_type = rhs.m_type;
     {
       size_t s = rhs.m_impls.size();
       m_impls.resize(s);
       for(size_t i = 0; i < s; i++)
-	m_impls[i] = rhs.m_impls[i]->clone();
+        m_impls[i] = rhs.m_impls[i]->clone();
     }
     {
       size_t s = rhs.m_props.size();
       m_props.resize(s);
       for(size_t i = 0; i < s; i++)
-	m_props[i] = rhs.m_props[i]->clone();
+        m_props[i] = rhs.m_props[i]->clone();
     }
   }
 
@@ -136,10 +135,9 @@ namespace Realm {
   bool CodeDescriptor::has_portable_implementations(void) const
   {
     for(std::vector<CodeImplementation *>::const_iterator it = m_impls.begin();
-	it != m_impls.end();
-	it++)
+        it != m_impls.end(); it++)
       if((*it)->is_portable())
-	return true;
+        return true;
     return false;
   }
 
@@ -150,10 +148,11 @@ namespace Realm {
 #if defined(REALM_USE_DLFCN) && defined(REALM_USE_DLADDR)
     const FunctionPointerImplementation *fpi = find_impl<FunctionPointerImplementation>();
     if(fpi) {
-      DSOReferenceImplementation *dsoref = DSOReferenceImplementation::cvt_fnptr_to_dsoref(fpi, true /*quiet*/);
+      DSOReferenceImplementation *dsoref =
+          DSOReferenceImplementation::cvt_fnptr_to_dsoref(fpi, true /*quiet*/);
       if(dsoref) {
-	m_impls.push_back(dsoref);
-	return true;
+        m_impls.push_back(dsoref);
+        return true;
       }
     }
 #endif
@@ -161,13 +160,13 @@ namespace Realm {
     return false;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class FunctionPointerImplementation
 
   /*static*/ Serialization::PolymorphicSerdezSubclass<CodeImplementation,
-						      FunctionPointerImplementation> FunctionPointerImplementation::serdez_subclass;
+                                                      FunctionPointerImplementation>
+      FunctionPointerImplementation::serdez_subclass;
 
   FunctionPointerImplementation::FunctionPointerImplementation(void)
     : fnptr(0)
@@ -177,19 +176,14 @@ namespace Realm {
     : fnptr(_fnptr)
   {}
 
-  FunctionPointerImplementation::~FunctionPointerImplementation(void)
-  {}
+  FunctionPointerImplementation::~FunctionPointerImplementation(void) {}
 
   CodeImplementation *FunctionPointerImplementation::clone(void) const
   {
     return new FunctionPointerImplementation(fnptr);
   }
 
-  bool FunctionPointerImplementation::is_portable(void) const
-  {
-    return false;
-  }
-
+  bool FunctionPointerImplementation::is_portable(void) const { return false; }
 
 #ifdef REALM_USE_DLFCN
   ////////////////////////////////////////////////////////////////////////
@@ -197,28 +191,25 @@ namespace Realm {
   // class DSOReferenceImplementation
 
   /*static*/ Serialization::PolymorphicSerdezSubclass<CodeImplementation,
-						      DSOReferenceImplementation> DSOReferenceImplementation::serdez_subclass;
+                                                      DSOReferenceImplementation>
+      DSOReferenceImplementation::serdez_subclass;
 
-  DSOReferenceImplementation::DSOReferenceImplementation(void)
+  DSOReferenceImplementation::DSOReferenceImplementation(void) {}
+
+  DSOReferenceImplementation::DSOReferenceImplementation(const std::string &_dso_name,
+                                                         const std::string &_symbol_name)
+    : dso_name(_dso_name)
+    , symbol_name(_symbol_name)
   {}
 
-  DSOReferenceImplementation::DSOReferenceImplementation(const std::string& _dso_name,
-							 const std::string& _symbol_name)
-    : dso_name(_dso_name), symbol_name(_symbol_name)
-  {}
-
-  DSOReferenceImplementation::~DSOReferenceImplementation(void)
-  {}
+  DSOReferenceImplementation::~DSOReferenceImplementation(void) {}
 
   CodeImplementation *DSOReferenceImplementation::clone(void) const
   {
     return new DSOReferenceImplementation(dso_name, symbol_name);
   }
 
-  bool DSOReferenceImplementation::is_portable(void) const
-  {
-    return true;
-  }
+  bool DSOReferenceImplementation::is_portable(void) const { return true; }
 
 #ifdef REALM_USE_DLADDR
   namespace {
@@ -229,15 +220,17 @@ namespace Realm {
       Dl_info inf;
       int ret = dladdr(ptr, &inf);
       if(ret == 0) {
-	if(!quiet)
-	  log_codetrans.warning() << "couldn't map fnptr " << ptr << " to a dynamic symbol";
-	return 0;
+        if(!quiet)
+          log_codetrans.warning()
+              << "couldn't map fnptr " << ptr << " to a dynamic symbol";
+        return 0;
       }
 
       if(inf.dli_saddr != ptr) {
-	if(!quiet)
-	  log_codetrans.warning() << "pointer " << ptr << " in middle of symbol '" << inf.dli_sname << " (" << inf.dli_saddr << ")?";
-	return 0;
+        if(!quiet)
+          log_codetrans.warning() << "pointer " << ptr << " in middle of symbol '"
+                                  << inf.dli_sname << " (" << inf.dli_saddr << ")?";
+        return 0;
       }
 
       // try to detect symbols that are in the base executable and change the filename to
@@ -266,58 +259,53 @@ namespace Realm {
     }
   }; // namespace
 
-  /*static*/ DSOReferenceImplementation *DSOReferenceImplementation::cvt_fnptr_to_dsoref(const FunctionPointerImplementation *fpi,
-											 bool quiet /*= false*/)
+  /*static*/ DSOReferenceImplementation *DSOReferenceImplementation::cvt_fnptr_to_dsoref(
+      const FunctionPointerImplementation *fpi, bool quiet /*= false*/)
   {
     return dladdr_helper((void *)(fpi->fnptr), quiet);
-  } 
+  }
 #endif
 #endif
-
 
   ////////////////////////////////////////////////////////////////////////
   //
   // class CodeTranslator
 
-  CodeTranslator::CodeTranslator(const std::string& _name)
+  CodeTranslator::CodeTranslator(const std::string &_name)
     : name(_name)
   {}
 
-  CodeTranslator::~CodeTranslator(void)
-  {}
+  CodeTranslator::~CodeTranslator(void) {}
 
   // default version just iterates over all the implementations in the source
-  bool CodeTranslator::can_translate(const CodeDescriptor& source_codedesc,
-				     const std::type_info& target_impl_type)
+  bool CodeTranslator::can_translate(const CodeDescriptor &source_codedesc,
+                                     const std::type_info &target_impl_type)
   {
-    const std::vector<CodeImplementation *>& impls = source_codedesc.implementations();
+    const std::vector<CodeImplementation *> &impls = source_codedesc.implementations();
     for(std::vector<CodeImplementation *>::const_iterator it = impls.begin();
-	it != impls.end();
-	it++) {
+        it != impls.end(); it++) {
       CodeImplementation &impl = **it;
       if(can_translate(typeid(impl), target_impl_type))
-	return true;
+        return true;
     }
 
     return false;
   }
 
   // default version just iterates over all the implementations in the source
-  CodeImplementation *CodeTranslator::translate(const CodeDescriptor& source_codedesc,
-						const std::type_info& target_impl_type)
+  CodeImplementation *CodeTranslator::translate(const CodeDescriptor &source_codedesc,
+                                                const std::type_info &target_impl_type)
   {
-    const std::vector<CodeImplementation *>& impls = source_codedesc.implementations();
+    const std::vector<CodeImplementation *> &impls = source_codedesc.implementations();
     for(std::vector<CodeImplementation *>::const_iterator it = impls.begin();
-	it != impls.end();
-	it++) {
+        it != impls.end(); it++) {
       CodeImplementation &impl = **it;
       if(can_translate(typeid(impl), target_impl_type))
-	return translate(*it, target_impl_type);
+        return translate(*it, target_impl_type);
     }
 
     return 0;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -332,16 +320,16 @@ namespace Realm {
   {
     // unload any modules we have loaded
     for(std::map<std::string, void *>::iterator it = modules_loaded.begin();
-	it != modules_loaded.end();
-	it++) {
+        it != modules_loaded.end(); it++) {
       int ret = dlclose(it->second);
       if(ret != 0)
-	log_codetrans.warning() << "error on dlclose of '" << it->first << "': " << dlerror();
+        log_codetrans.warning()
+            << "error on dlclose of '" << it->first << "': " << dlerror();
     }
   }
 
-  bool DSOCodeTranslator::can_translate(const std::type_info& source_impl_type,
-					   const std::type_info& target_impl_type)
+  bool DSOCodeTranslator::can_translate(const std::type_info &source_impl_type,
+                                        const std::type_info &target_impl_type)
   {
     // DSO ref -> function pointer
     if((source_impl_type == typeid(DSOReferenceImplementation)) &&
@@ -354,44 +342,49 @@ namespace Realm {
       return true;
 #endif
 
-      return false;
-    }
+    return false;
+  }
 
   CodeImplementation *DSOCodeTranslator::translate(const CodeImplementation *source,
-						   const std::type_info& target_impl_type)
+                                                   const std::type_info &target_impl_type)
   {
     if(target_impl_type == typeid(FunctionPointerImplementation)) {
-      const DSOReferenceImplementation *dsoref = dynamic_cast<const DSOReferenceImplementation *>(source);
+      const DSOReferenceImplementation *dsoref =
+          dynamic_cast<const DSOReferenceImplementation *>(source);
       assert(dsoref != 0);
 
       void *handle = 0;
       // check to see if we've already loaded the module?
       std::map<std::string, void *>::iterator it = modules_loaded.find(dsoref->dso_name);
       if(it != modules_loaded.end()) {
-	handle = it->second;
+        handle = it->second;
       } else {
-	// try to load it - empty string for dso_name means the main executable
-	const char *dso_name = dsoref->dso_name.c_str();
-	handle = dlopen(*dso_name ? dso_name : 0, RTLD_NOW | RTLD_LOCAL);
-	if(!handle) {
-	  log_codetrans.warning() << "could not open DSO '" << dsoref->dso_name << "': " << dlerror();
-	  return 0;
-	}
-	modules_loaded[dsoref->dso_name] = handle;
+        // try to load it - empty string for dso_name means the main executable
+        const char *dso_name = dsoref->dso_name.c_str();
+        handle = dlopen(*dso_name ? dso_name : 0, RTLD_NOW | RTLD_LOCAL);
+        if(!handle) {
+          log_codetrans.warning()
+              << "could not open DSO '" << dsoref->dso_name << "': " << dlerror();
+          return 0;
+        }
+        modules_loaded[dsoref->dso_name] = handle;
       }
 
       void *ptr = dlsym(handle, dsoref->symbol_name.c_str());
       if(!ptr) {
-	log_codetrans.warning() << "could not find symbol '" << dsoref->symbol_name << "' in  DSO '" << dsoref->dso_name << "': " << dlerror();
-	return 0;
+        log_codetrans.warning()
+            << "could not find symbol '" << dsoref->symbol_name << "' in  DSO '"
+            << dsoref->dso_name << "': " << dlerror();
+        return 0;
       }
 
-      return new FunctionPointerImplementation((void(*)())ptr);
+      return new FunctionPointerImplementation((void (*)())ptr);
     }
 
 #ifdef REALM_USE_DLADDR
     if(target_impl_type == typeid(DSOReferenceImplementation)) {
-      const FunctionPointerImplementation *fpi = dynamic_cast<const FunctionPointerImplementation *>(source);
+      const FunctionPointerImplementation *fpi =
+          dynamic_cast<const FunctionPointerImplementation *>(source);
       assert(fpi != 0);
 
       return dladdr_helper((void *)(fpi->fnptr), false /*!quiet*/);
@@ -402,18 +395,17 @@ namespace Realm {
   }
 
   // these pass through to CodeTranslator's definitions
-  bool DSOCodeTranslator::can_translate(const CodeDescriptor& source_codedesc,
-					const std::type_info& target_impl_type)
+  bool DSOCodeTranslator::can_translate(const CodeDescriptor &source_codedesc,
+                                        const std::type_info &target_impl_type)
   {
     return CodeTranslator::can_translate(source_codedesc, target_impl_type);
   }
 
-  CodeImplementation *DSOCodeTranslator::translate(const CodeDescriptor& source_codedesc,
-						   const std::type_info& target_impl_type)
+  CodeImplementation *DSOCodeTranslator::translate(const CodeDescriptor &source_codedesc,
+                                                   const std::type_info &target_impl_type)
   {
     return CodeTranslator::translate(source_codedesc, target_impl_type);
   }
 #endif
 
-
-};
+}; // namespace Realm

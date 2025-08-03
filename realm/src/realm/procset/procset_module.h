@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,24 +26,25 @@ namespace Realm {
 
     class ProcSetModuleConfig : public ModuleConfig {
       friend class ProcSetModule;
+
     protected:
       ProcSetModuleConfig(void);
 
     public:
-      virtual void configure_from_cmdline(std::vector<std::string>& cmdline);
+      virtual void configure_from_cmdline(std::vector<std::string> &cmdline);
 
     protected:
       int cfg_num_mp_threads = 0; // threads per ProcSet
-      int cfg_num_mp_procs = 0; // number of ProcSets
-      int cfg_num_mp_cpus = 0; // additional cpus on any non ProcSet nodes
+      int cfg_num_mp_procs = 0;   // number of ProcSets
+      int cfg_num_mp_cpus = 0;    // additional cpus on any non ProcSet nodes
       size_t cfg_stack_size = 2 << 20;
     };
 
-   // our interface to the rest of the runtime
+    // our interface to the rest of the runtime
     class ProcSetModule : public Module {
     protected:
       ProcSetModule(void);
-      
+
     public:
       virtual ~ProcSetModule(void);
 
@@ -70,7 +73,7 @@ namespace Realm {
 
       // clean up any common resources created by the module - this will be called
       //  after all memories/processors/etc. have been shut down and destroyed
-     virtual void cleanup(void);
+      virtual void cleanup(void);
 
     public:
       ProcSetModuleConfig *config;
@@ -81,5 +84,3 @@ namespace Realm {
 }; // namespace Realm
 
 #endif
-
-

@@ -1,4 +1,6 @@
-/* Copyright 2025 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -204,6 +206,7 @@ typedef enum realm_runtime_attr_enum
 } realm_runtime_attr_t;
 
 // Different Processor types
+// clang-format off
 #define REALM_PROCESSOR_KINDS(__op__) \
   __op__(NO_KIND, "") \
   __op__(TOC_PROC, "Throughput core") \
@@ -214,14 +217,17 @@ typedef enum realm_runtime_attr_enum
   __op__(PROC_SET, "Set of Processors for OpenMP/Kokkos etc.") \
   __op__(OMP_PROC, "OpenMP (or similar) thread pool") \
   __op__(PY_PROC, "Python interpreter")
+// clang-format on
 
-typedef enum realm_processor_kind_t {
+typedef enum realm_processor_kind_t
+{
 #define C_ENUMS(name, desc) name,
   REALM_PROCESSOR_KINDS(C_ENUMS)
 #undef C_ENUMS
 } realm_processor_kind_t;
 
 // Different Memory types
+// clang-format off
 #define REALM_MEMORY_KINDS(__op__) \
   __op__(NO_MEMKIND, "") \
   __op__(GLOBAL_MEM, "Guaranteed visible to all processors on all nodes (e.g. GASNet memory, universally slow)") \
@@ -238,8 +244,10 @@ typedef enum realm_processor_kind_t {
   __op__(LEVEL1_CACHE, "CPU L1 Visible to all processors on the node, better performance to one processor") \
   __op__(GPU_MANAGED_MEM, "Managed memory that can be cached by either host or GPU") \
   __op__(GPU_DYNAMIC_MEM, "Dynamically-allocated framebuffer memory for one GPU and all its SMs")
+// clang-format on
 
-typedef enum realm_memory_kind_t {
+typedef enum realm_memory_kind_t
+{
 #define C_ENUMS(name, desc) name,
   REALM_MEMORY_KINDS(C_ENUMS)
 #undef C_ENUMS
@@ -697,12 +705,13 @@ realm_status_t REALM_EXPORT realm_memory_query_iter(realm_memory_query_t query,
  *
  * @param runtime The runtime instance to use.
  * @param[out] event The event to wait for.
+ * @param[out] poisoned Whether the event is poisoned.
  * @return Realm status indicating success or failure.
  *
  * @ingroup Event
  */
-realm_status_t REALM_EXPORT realm_event_wait(realm_runtime_t runtime,
-                                             realm_event_t event);
+realm_status_t REALM_EXPORT realm_event_wait(realm_runtime_t runtime, realm_event_t event,
+                                             int *poisoned);
 
 /**
  * @brief Merges multiple events into a single event.
@@ -711,13 +720,30 @@ realm_status_t REALM_EXPORT realm_event_wait(realm_runtime_t runtime,
  * @param wait_for The events to wait for.
  * @param num_events The number of events to wait for.
  * @param[out] event The merged event.
+ * @param ignore_faults Whether to ignore any poison on the input events.
  * @return Realm status indicating success or failure.
  *
  * @ingroup Event
  */
 realm_status_t REALM_EXPORT realm_event_merge(realm_runtime_t runtime,
                                               const realm_event_t *wait_for,
-                                              size_t num_events, realm_event_t *event);
+                                              size_t num_events, realm_event_t *event,
+                                              int ignore_faults);
+
+/**
+ * @brief Checks if an event has triggered.
+ *
+ * @param runtime The runtime instance to use.
+ * @param event The event to check.
+ * @param[out] has_triggered Whether the event has triggered.
+ * @param[out] poisoned Whether the event is poisoned.
+ * @return Realm status indicating success or failure.
+ *
+ * @ingroup Event
+ */
+realm_status_t REALM_EXPORT realm_event_has_triggered(realm_runtime_t runtime,
+                                                      realm_event_t event,
+                                                      int *has_triggered, int *poisoned);
 
 /*
  * @defgroup UserEvent UserEvent API
@@ -739,12 +765,16 @@ realm_status_t REALM_EXPORT realm_user_event_create(realm_runtime_t runtime,
  * @brief Triggers a user event.
  *
  * @param event The user event to be triggered.
+ * @param wait_on The event to wait on.
+ * @param ignore_faults Whether to ignore any poison on the input events.
  * @return Realm status indicating success or failure.
  *
  * @ingroup UserEvent
  */
 realm_status_t REALM_EXPORT realm_user_event_trigger(realm_runtime_t runtime,
-                                                     realm_user_event_t event);
+                                                     realm_user_event_t event,
+                                                     realm_event_t wait_on,
+                                                     int ignore_faults);
 
 /*
  * @defgroup RegionInstance RegionInstance API

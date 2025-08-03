@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +26,8 @@
 
 #include <cstdint>
 
-#if !defined(REALM_TIMERS_USE_RDTSC) && \
-    (defined(__i386__) || defined(__x86_64__) || \
-    defined(__aarch64__) || defined(__arm__))
+#if !defined(REALM_TIMERS_USE_RDTSC) && (defined(__i386__) || defined(__x86_64__) ||     \
+                                         defined(__aarch64__) || defined(__arm__))
 #define REALM_TIMERS_USE_RDTSC 1
 #endif
 
@@ -35,7 +36,8 @@ namespace Realm {
   // Clock provides (static) methods for getting the current time, which can be either:
   //  relative (default) - time since the runtime was initialized, synchronized between
   //                         all nodes
-  //  absolute           - system time reported by the OS, which may not be well synchronized
+  //  absolute           - system time reported by the OS, which may not be well
+  //  synchronized
   //                         between nodes
   //
   // The time may be requested in one of three units:
@@ -131,9 +133,9 @@ namespace Realm {
 
     // these constructors describe a limit in terms of Realm's clock
     static TimeLimit absolute(long long absolute_time_in_nsec,
-			      atomic<bool> *_interrupt_flag = 0);
+                              atomic<bool> *_interrupt_flag = 0);
     static TimeLimit relative(long long relative_time_in_nsec,
-			      atomic<bool> *_interrupt_flag = 0);
+                              atomic<bool> *_interrupt_flag = 0);
 
     // often the desired time limit is "idk, something responsive", so
     //  have a common way to pick a completely-made-up number
@@ -162,10 +164,9 @@ namespace Realm {
     Logger *logger;
     uint64_t start_native;
   };
-  
+
 }; // namespace Realm
 
 #include "realm/timers.inl"
 
 #endif // ifndef REALM_TIMERS_H
-

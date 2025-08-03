@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 NVIDIA Corp
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -156,7 +157,8 @@ static void report_timing(float usecs, bool measure_latency, size_t num_samples,
   else
     log_app.print() << '\t' << std::scientific << std::setprecision(2)
                     << (num_samples * num_events_per_sample * 1e6) / usecs
-                    << " events/s (" << num_samples << " samples, total=" << usecs << " us)";
+                    << " events/s (" << num_samples << " samples, total=" << usecs
+                    << " us)";
 }
 
 static double time_dag(UserEvent &trigger_event, Event &wait_event)
@@ -206,7 +208,7 @@ static void bench_timing_task(const void *args, size_t arglen, const void *userd
   size_t num_samples = src_args.num_samples;
 
   if(src_args.enabled_tests & FAN_TEST) {
-    for(size_t i = src_args.min_num_events; i <= src_args.max_num_events; i<<=1) {
+    for(size_t i = src_args.min_num_events; i <= src_args.max_num_events; i <<= 1) {
       double usecs = 0.0;
       if(src_args.num_samples == 0) {
         if(src_args.min_usecs > 0) {
@@ -225,7 +227,7 @@ static void bench_timing_task(const void *args, size_t arglen, const void *userd
       report_timing(usecs, src_args.measure_latency, num_samples, i + 2);
     }
   } else if(src_args.enabled_tests & CHAIN_TEST) {
-    for(size_t i = src_args.min_num_events; i <= src_args.max_num_events; i<<=1) {
+    for(size_t i = src_args.min_num_events; i <= src_args.max_num_events; i <<= 1) {
       setup_chain_test(src_args, num_samples, p, i, trigger_event, wait_event);
       double usecs = time_dag(trigger_event, wait_event);
       log_app.print() << "Chain test " << p << "->" << src_args.dst_proc;
@@ -332,7 +334,7 @@ int main(int argc, char **argv)
   cp.add_option_bool("-L", args.measure_latency);
   ok = cp.parse_command_line(argc, (const char **)argv);
 
-  if (args.min_test_size > args.max_test_size) {
+  if(args.min_test_size > args.max_test_size) {
     args.max_test_size = args.min_test_size;
   }
 

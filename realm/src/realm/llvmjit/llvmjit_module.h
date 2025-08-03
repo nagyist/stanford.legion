@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +34,7 @@ namespace Realm {
     class LLVMJitModule : public Module {
     protected:
       LLVMJitModule(void);
-      
+
     public:
       virtual ~LLVMJitModule(void);
 
@@ -61,7 +63,6 @@ namespace Realm {
       virtual void cleanup(void);
 
     public:
-
       LLVMJitInternal *internal;
     };
 

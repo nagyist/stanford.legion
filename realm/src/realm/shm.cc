@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,9 +81,9 @@ namespace Realm {
     }
 #if defined(REALM_ON_WINDOWS)
     numa_node = numa_node < 0 ? NUMA_NO_PREFERRED_NODE : numa_node;
-    HANDLE hMapFile = CreateFileMappingNuma(
-        INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, (size >> 32ULL),
-        (size & ~(1ULL << 32ULL)), info.name.c_str(), numa_node);
+    HANDLE hMapFile = CreateFileMappingNuma(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
+                                            (size >> 32ULL), (size & ~(1ULL << 32ULL)),
+                                            info.name.c_str(), numa_node);
     if(hMapFile == nullptr) {
       log_shm.info("Failed to create shm %s", info.name.c_str());
       return false;
@@ -207,7 +209,7 @@ namespace Realm {
     , handle(Realm::INVALID_OS_HANDLE)
     , owner(false)
   {}
-  SharedMemoryInfo::SharedMemoryInfo(SharedMemoryInfo&& other)
+  SharedMemoryInfo::SharedMemoryInfo(SharedMemoryInfo &&other)
     : name(std::move(other.name))
     , base(nullptr)
     , size(0)
@@ -223,8 +225,9 @@ namespace Realm {
     std::swap(owner, other.owner);
   }
 
-  SharedMemoryInfo& SharedMemoryInfo::operator=(SharedMemoryInfo&& other) {
-    if (this != &other) {
+  SharedMemoryInfo &SharedMemoryInfo::operator=(SharedMemoryInfo &&other)
+  {
+    if(this != &other) {
       // Release whatever's currently in this shared memory info
       unlink();
 

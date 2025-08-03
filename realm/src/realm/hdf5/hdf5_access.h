@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,36 +50,38 @@ namespace Realm {
   };
 
   template <int N, typename T>
-    class REALM_PUBLIC_API HDF5LayoutPiece : public InstanceLayoutPiece<N,T>, public HDF5PieceInfo {
+  class REALM_PUBLIC_API HDF5LayoutPiece : public InstanceLayoutPiece<N, T>,
+                                           public HDF5PieceInfo {
   public:
     HDF5LayoutPiece(void);
 
     template <typename S>
-    static InstanceLayoutPiece<N,T> *deserialize_new(S& deserializer);
+    static InstanceLayoutPiece<N, T> *deserialize_new(S &deserializer);
 
-    virtual InstanceLayoutPiece<N,T> *clone(void) const;
+    virtual InstanceLayoutPiece<N, T> *clone(void) const;
 
-    virtual size_t calculate_offset(const Point<N,T>& p) const;
+    virtual size_t calculate_offset(const Point<N, T> &p) const;
 
     virtual void relocate(size_t base_offset);
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
     virtual size_t lookup_inst_size() const;
     virtual PieceLookup::Instruction *create_lookup_inst(void *ptr,
-							 unsigned next_delta) const ;
+                                                         unsigned next_delta) const;
 
-    static Serialization::PolymorphicSerdezSubclass<InstanceLayoutPiece<N,T>, HDF5LayoutPiece<N,T> > serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<InstanceLayoutPiece<N, T>,
+                                                    HDF5LayoutPiece<N, T>>
+        serdez_subclass;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
   };
-
 
   namespace PieceLookup {
 
     namespace Opcodes {
-      static const Opcode OP_HDF5_PIECE = 3;  // this is an HDF5Piece<N,T>
+      static const Opcode OP_HDF5_PIECE = 3; // this is an HDF5Piece<N,T>
     }
 
     static const unsigned ALLOW_HDF5_PIECE = 1U << Opcodes::OP_HDF5_PIECE;
@@ -93,7 +97,7 @@ namespace Realm {
       unsigned short dsetname_len;
       const char *dsetname() const;
 
-      Rect<N,T> bounds;
+      Rect<N, T> bounds;
       Point<N, hdf5_size_t> offset;
       int dim_order[N];
       bool read_only;
@@ -101,12 +105,11 @@ namespace Realm {
       const Instruction *next() const;
     };
 
-  };
-
+  }; // namespace PieceLookup
 
   class REALM_PUBLIC_API ExternalHDF5Resource : public ExternalInstanceResource {
   public:
-    ExternalHDF5Resource(const std::string& _filename, bool _read_only);
+    ExternalHDF5Resource(const std::string &_filename, bool _read_only);
 
     virtual bool satisfies(const InstanceLayoutGeneric &layout) const;
 
@@ -116,17 +119,19 @@ namespace Realm {
     virtual ExternalInstanceResource *clone(void) const;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
 
     template <typename S>
-    static ExternalInstanceResource *deserialize_new(S& deserializer);
+    static ExternalInstanceResource *deserialize_new(S &deserializer);
 
   protected:
     ExternalHDF5Resource();
 
-    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource, ExternalHDF5Resource> serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource,
+                                                    ExternalHDF5Resource>
+        serdez_subclass;
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
   public:
     std::string filename;

@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,43 +27,51 @@ namespace Realm {
   // class ID
   //
 
-  inline ID::ID(IDType _id) : id(_id) {}
+  inline ID::ID(IDType _id)
+    : id(_id)
+  {}
 
   template <class T>
-  ID::ID(T thing_to_get_id_from) : id(thing_to_get_id_from.id) {}
+  ID::ID(T thing_to_get_id_from)
+    : id(thing_to_get_id_from.id)
+  {}
 
-  inline ID::ID(void) : id(0) {}
+  inline ID::ID(void)
+    : id(0)
+  {}
 
-  inline ID::ID(const ID& copy_from) : id(copy_from.id) {}
+  inline ID::ID(const ID &copy_from)
+    : id(copy_from.id)
+  {}
 
-  inline ID& ID::operator=(const ID& copy_from)
+  inline ID &ID::operator=(const ID &copy_from)
   {
     id = copy_from.id;
     return *this;
   }
 
-  inline bool ID::operator==(const ID& rhs) const 
-  {
-    return this->id == rhs.id;
-  }
+  inline bool ID::operator==(const ID &rhs) const { return this->id == rhs.id; }
 
-  inline bool ID::operator!=(const ID& rhs) const 
-  {
-    return this->id != rhs.id;
-  }
+  inline bool ID::operator!=(const ID &rhs) const { return this->id != rhs.id; }
 
   template <class T>
-  T ID::convert(void) const { T thing_to_return; thing_to_return.id = id; return thing_to_return; }
-
-  template <>
-  inline ID ID::convert<ID>(void) const { return *this; }
-
-  inline bool ID::is_null(void) const
+  T ID::convert(void) const
   {
-    return this->id == 0;
+    T thing_to_return;
+    thing_to_return.id = id;
+    return thing_to_return;
   }
 
-  /*static*/ inline ID ID::make_event(unsigned creator_node, unsigned gen_event_idx, unsigned generation)
+  template <>
+  inline ID ID::convert<ID>(void) const
+  {
+    return *this;
+  }
+
+  inline bool ID::is_null(void) const { return this->id == 0; }
+
+  /*static*/ inline ID ID::make_event(unsigned creator_node, unsigned gen_event_idx,
+                                      unsigned generation)
   {
     ID id;
     id.id = 0;
@@ -77,7 +87,8 @@ namespace Realm {
     return this->event_type_tag() == FMT_Event::TAG_VALUE;
   }
 
-  /*static*/ inline ID ID::make_barrier(unsigned creator_node, unsigned barrier_idx, unsigned generation)
+  /*static*/ inline ID ID::make_barrier(unsigned creator_node, unsigned barrier_idx,
+                                        unsigned generation)
   {
     ID id;
     id.id = 0;
@@ -138,7 +149,8 @@ namespace Realm {
     return this->memory_type_tag() == FMT_IB_Memory::TAG_VALUE;
   }
 
-  /*static*/ inline ID ID::make_instance(unsigned owner_node, unsigned creator_node, unsigned mem_idx, unsigned inst_idx)
+  /*static*/ inline ID ID::make_instance(unsigned owner_node, unsigned creator_node,
+                                         unsigned mem_idx, unsigned inst_idx)
   {
     ID id;
     id.id = 0;
@@ -170,7 +182,8 @@ namespace Realm {
     return this->proc_type_tag() == FMT_Processor::TAG_VALUE;
   }
 
-  /*static*/ inline ID ID::make_procgroup(unsigned owner_node, unsigned creator_node, unsigned pgroup_idx)
+  /*static*/ inline ID ID::make_procgroup(unsigned owner_node, unsigned creator_node,
+                                          unsigned pgroup_idx)
   {
     ID id;
     id.id = 0;
@@ -186,7 +199,8 @@ namespace Realm {
     return this->pgroup_type_tag() == FMT_ProcGroup::TAG_VALUE;
   }
 
-  /*static*/ inline ID ID::make_sparsity(unsigned owner_node, unsigned creator_node, unsigned sparsity_idx)
+  /*static*/ inline ID ID::make_sparsity(unsigned owner_node, unsigned creator_node,
+                                         unsigned sparsity_idx)
   {
     ID id;
     id.id = 0;
@@ -217,7 +231,8 @@ namespace Realm {
     return this->compqueue_type_tag() == FMT_CompQueue::TAG_VALUE;
   }
 
-  /*static*/ inline ID ID::make_subgraph(unsigned owner_node, unsigned creator_node, unsigned subgraph_idx)
+  /*static*/ inline ID ID::make_subgraph(unsigned owner_node, unsigned creator_node,
+                                         unsigned subgraph_idx)
   {
     ID id;
     id.id = 0;
@@ -233,6 +248,9 @@ namespace Realm {
     return this->subgraph_type_tag() == FMT_Subgraph::TAG_VALUE;
   }
 
-  inline std::ostream& operator<<(std::ostream& os, ID id) { return os << std::hex << static_cast<ID::IDType>(id.id) << std::dec; }
+  inline std::ostream &operator<<(std::ostream &os, ID id)
+  {
+    return os << std::hex << static_cast<ID::IDType>(id.id) << std::dec;
+  }
 
 }; // namespace Realm

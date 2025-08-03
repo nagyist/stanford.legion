@@ -1,14 +1,17 @@
 # Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
-# in compliance with the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software distributed under the License
-# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
-# or implied. See the License for the specific language governing permissions and limitations under
-# the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 #region Benchmark Properties
 set(BENCHMARK_DEFAULT_ARGS)
@@ -66,7 +69,7 @@ set(_bench_list)
 # TODO(cperry): make a cmake script that will allow to override test arguments at runtime
 macro(add_benchmark target)
   add_executable(${target} ${ARGN})
-  if (REALM_USE_HIP)
+  if(REALM_USE_HIP)
     set(SRC_LIST ${ARGN})
     list(FILTER SRC_LIST INCLUDE REGEX "\.cu")
     list(TRANSFORM SRC_LIST REPLACE ".*:(.*\.cu)>" "\\1")

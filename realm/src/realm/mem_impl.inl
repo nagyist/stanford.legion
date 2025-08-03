@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +57,6 @@ namespace Realm {
     return 0;
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class BasicRangeAllocator<RT,TT>
@@ -71,22 +72,22 @@ namespace Realm {
 #endif
 
   template <typename RT, typename TT>
-  inline BasicRangeAllocator<RT,TT>::BasicRangeAllocator(void)
+  inline BasicRangeAllocator<RT, TT>::BasicRangeAllocator(void)
     : first_free_range(SENTINEL)
   {
     ranges.resize(1);
-    Range& s = ranges[SENTINEL];
+    Range &s = ranges[SENTINEL];
     s.first = RT(-1);
     s.last = 0;
     s.prev = s.next = s.prev_free = s.next_free = SENTINEL;
   }
 
   template <typename RT, typename TT>
-  inline BasicRangeAllocator<RT,TT>::~BasicRangeAllocator(void)
+  inline BasicRangeAllocator<RT, TT>::~BasicRangeAllocator(void)
   {}
 
   template <typename RT, typename TT>
-  inline void BasicRangeAllocator<RT,TT>::swap(BasicRangeAllocator<RT, TT>& swap_with)
+  inline void BasicRangeAllocator<RT, TT>::swap(BasicRangeAllocator<RT, TT> &swap_with)
   {
     allocated.swap(swap_with.allocated);
 #ifdef DEBUG_REALM
@@ -97,7 +98,7 @@ namespace Realm {
   }
 
   template <typename RT, typename TT>
-  inline void BasicRangeAllocator<RT,TT>::add_range(RT first, RT last)
+  inline void BasicRangeAllocator<RT, TT>::add_range(RT first, RT last)
   {
     // ignore empty ranges
     if(first == last)
@@ -105,8 +106,8 @@ namespace Realm {
 
     int new_idx = alloc_range(first, last);
 
-    Range& newr = ranges[new_idx];
-    Range& sentinel = ranges[SENTINEL];
+    Range &newr = ranges[new_idx];
+    Range &sentinel = ranges[SENTINEL];
 
     // simple case - starting range
     if(sentinel.next == SENTINEL) {
@@ -127,7 +128,7 @@ namespace Realm {
   }
 
   template <typename RT, typename TT>
-  inline unsigned BasicRangeAllocator<RT,TT>::alloc_range(RT first, RT last)
+  inline unsigned BasicRangeAllocator<RT, TT>::alloc_range(RT first, RT last)
   {
     // find/make a free index in the range list for this range
     int new_idx;
@@ -142,9 +143,9 @@ namespace Realm {
     ranges[new_idx].last = last;
     return new_idx;
   }
-   
+
   template <typename RT, typename TT>
-  inline void BasicRangeAllocator<RT,TT>::free_range(unsigned index)
+  inline void BasicRangeAllocator<RT, TT>::free_range(unsigned index)
   {
     ranges[index].next = first_free_range;
     first_free_range = index;
@@ -179,12 +180,12 @@ namespace Realm {
     assert(allocs_first.size() == n);
 
     const unsigned range_idx = it->second;
-    if (range_idx == SENTINEL) {
+    if(range_idx == SENTINEL) {
       // this is a zero-sized range so we can redistrict only to zero-sized instances
-      for (size_t i = 0; i < n; i++) {
+      for(size_t i = 0; i < n; i++) {
         // No need to check for duplicate tags here since they are going
         // to be assigned the same sentinel value anyway
-        if (sizes[i]) {
+        if(sizes[i]) {
           deallocate(old_tag);
           return i;
         }
@@ -197,31 +198,31 @@ namespace Realm {
     }
 
     Range *r = &ranges[range_idx];
-    for (size_t i = 0; i < n; i++) {
+    for(size_t i = 0; i < n; i++) {
       assert(allocated.find(new_tags[i]) == allocated.end());
-      if (sizes[i]) {
+      if(sizes[i]) {
         RT offset = calculate_offset(r->first, alignments[i]);
         // do we have enough space?
-        if ((r->last - r->first) < (sizes[i] + offset)) {
+        if((r->last - r->first) < (sizes[i] + offset)) {
           deallocate(old_tag);
           return i;
         }
         allocs_first[i] = r->first + offset;
         RT alloc_last = allocs_first[i] + sizes[i];
-        if (offset) { // Offset padding needs to be freed
+        if(offset) { // Offset padding needs to be freed
           // See if we can merge with the previous free range before us
           unsigned pf_idx = r->prev;
           while((pf_idx != SENTINEL) && (ranges[pf_idx].prev_free == pf_idx)) {
             pf_idx = ranges[pf_idx].prev;
-            assert(pf_idx != range_idx);  // wrapping around would be bad
+            assert(pf_idx != range_idx); // wrapping around would be bad
           }
-          if ((pf_idx == r->prev) && (pf_idx != SENTINEL)) {
+          if((pf_idx == r->prev) && (pf_idx != SENTINEL)) {
             // Previous range is free so we can expand it to include offset
             ranges[pf_idx].last = allocs_first[i];
           } else {
             // Create a new free range and insert it into the free list
             unsigned new_idx = alloc_range(r->first, allocs_first[i]);
-            r = &ranges[range_idx];  // alloc may have moved this!
+            r = &ranges[range_idx]; // alloc may have moved this!
             Range &new_range = ranges[new_idx];
             new_range.prev = r->prev;
             new_range.next = range_idx;
@@ -237,7 +238,7 @@ namespace Realm {
         }
         // Now make the new range for the tag
         unsigned new_idx = alloc_range(allocs_first[i], alloc_last);
-        r = &ranges[range_idx];  // alloc may have moved this!
+        r = &ranges[range_idx]; // alloc may have moved this!
         r->first = alloc_last;
         Range &new_range = ranges[new_idx];
         new_range.prev = r->prev;
@@ -249,9 +250,9 @@ namespace Realm {
         allocated[new_tags[i]] = new_idx;
 
         // Detect the case where the old range is empty
-        if (r->first == r->last) {
+        if(r->first == r->last) {
           deallocate(it->first);
-          return (i+1);
+          return (i + 1);
         }
       } else { // Zero-sized instances are easy
         allocated[new_tags[i]] = SENTINEL;
@@ -304,7 +305,8 @@ namespace Realm {
     // TODO(apryakhin@): Consider doing it more efficient.
     std::unordered_set<unsigned> range_indices;
     for(const auto &alloc : allocated) {
-      if (alloc.second == SENTINEL) continue;
+      if(alloc.second == SENTINEL)
+        continue;
       if(!range_indices.insert(alloc.second).second) {
         std::cerr << "ERROR: found duplicate range idx:" << alloc.second
                   << " for tag:" << alloc.first << std::endl;
@@ -411,8 +413,7 @@ namespace Realm {
   }
 
   template <typename RT, typename TT>
-  inline bool BasicRangeAllocator<RT,TT>::can_allocate(TT tag,
-						       RT size, RT alignment)
+  inline bool BasicRangeAllocator<RT, TT>::can_allocate(TT tag, RT size, RT alignment)
   {
     // empty allocation requests are trivial
     if(size == 0) {
@@ -443,7 +444,8 @@ namespace Realm {
   }
 
   template <typename RT, typename TT>
-  inline bool BasicRangeAllocator<RT,TT>::allocate(TT tag, RT size, RT alignment, RT& alloc_first)
+  inline bool BasicRangeAllocator<RT, TT>::allocate(TT tag, RT size, RT alignment,
+                                                    RT &alloc_first)
   {
     // empty allocation requests are trivial
     if(size == 0) {
@@ -452,8 +454,8 @@ namespace Realm {
     }
 
 #ifdef DEBUG_REALM
-    //assert(free_list_has_cycle() == false);
-    //assert(has_invalid_ranges() == false);
+    // assert(free_list_has_cycle() == false);
+    // assert(has_invalid_ranges() == false);
 #endif
 
     // walk free ranges and just take the first that fits
@@ -463,81 +465,81 @@ namespace Realm {
 
       RT ofs = 0;
       if(alignment) {
-	RT rem = r->first % alignment;
-	if(rem > 0)
-	  ofs = alignment - rem;
+        RT rem = r->first % alignment;
+        if(rem > 0)
+          ofs = alignment - rem;
       }
       // do we have enough space?
       if((r->last - r->first) >= (size + ofs)) {
-	// yes, but we may need to chop things up to make the exact range we want
-	alloc_first = r->first + ofs;
-	RT alloc_last = alloc_first + size;
+        // yes, but we may need to chop things up to make the exact range we want
+        alloc_first = r->first + ofs;
+        RT alloc_last = alloc_first + size;
 
         // do we need to carve off a new (free) block before us?
         if(alloc_first != r->first) {
-	  unsigned new_idx = alloc_range(r->first, alloc_first);
-	  Range *new_prev = &ranges[new_idx];
-	  r = &ranges[idx];  // alloc may have moved this!
-	  
-	  r->first = alloc_first;
-	  // insert into all-block dllist
-	  new_prev->prev = r->prev;
-	  new_prev->next = idx;
-	  ranges[r->prev].next = new_idx;
-	  r->prev = new_idx;
-	  // insert into free-block dllist
-	  new_prev->prev_free = r->prev_free;
-	  new_prev->next_free = idx;
-	  ranges[r->prev_free].next_free = new_idx;
-	  r->prev_free = new_idx;
+          unsigned new_idx = alloc_range(r->first, alloc_first);
+          Range *new_prev = &ranges[new_idx];
+          r = &ranges[idx]; // alloc may have moved this!
+
+          r->first = alloc_first;
+          // insert into all-block dllist
+          new_prev->prev = r->prev;
+          new_prev->next = idx;
+          ranges[r->prev].next = new_idx;
+          r->prev = new_idx;
+          // insert into free-block dllist
+          new_prev->prev_free = r->prev_free;
+          new_prev->next_free = idx;
+          ranges[r->prev_free].next_free = new_idx;
+          r->prev_free = new_idx;
 
 #ifdef DEBUG_REALM
-	  // fix up by_first entries
-	  by_first[r->first] = new_idx;
-	  by_first[alloc_first] = idx;
+          // fix up by_first entries
+          by_first[r->first] = new_idx;
+          by_first[alloc_first] = idx;
 #endif
         }
 
-	// two cases to deal with
-	if(alloc_last == r->last) {
-	  // case 1 - exact fit
-	  //
-	  // all we have to do here is remove this range from the free range dlist
-	  //  and add to the allocated lookup map
-	  ranges[r->prev_free].next_free = r->next_free;
-	  ranges[r->next_free].prev_free = r->prev_free;
-	} else {
-	  // case 2 - leftover at end - put in new range
-	  unsigned after_idx = alloc_range(alloc_last, r->last);
-	  Range *r_after = &ranges[after_idx];
-	  r = &ranges[idx];  // alloc may have moved this!
+        // two cases to deal with
+        if(alloc_last == r->last) {
+          // case 1 - exact fit
+          //
+          // all we have to do here is remove this range from the free range dlist
+          //  and add to the allocated lookup map
+          ranges[r->prev_free].next_free = r->next_free;
+          ranges[r->next_free].prev_free = r->prev_free;
+        } else {
+          // case 2 - leftover at end - put in new range
+          unsigned after_idx = alloc_range(alloc_last, r->last);
+          Range *r_after = &ranges[after_idx];
+          r = &ranges[idx]; // alloc may have moved this!
 
 #ifdef DEBUG_REALM
-	  by_first[alloc_last] = after_idx;
+          by_first[alloc_last] = after_idx;
 #endif
-	  r->last = alloc_last;
-	  
-	  // r_after goes after r in all block list
-	  r_after->prev = idx;
-	  r_after->next = r->next;
-	  r->next = after_idx;
-	  ranges[r_after->next].prev = after_idx;
+          r->last = alloc_last;
 
-	  // r_after replaces r in the free block list
-	  r_after->prev_free = r->prev_free;
-	  r_after->next_free = r->next_free;
-	  ranges[r_after->next_free].prev_free = after_idx;
-	  ranges[r_after->prev_free].next_free = after_idx;
-	}
+          // r_after goes after r in all block list
+          r_after->prev = idx;
+          r_after->next = r->next;
+          r->next = after_idx;
+          ranges[r_after->next].prev = after_idx;
 
-	// tie this off because we use it to detect allocated-ness
-	r->prev_free = r->next_free = idx;
+          // r_after replaces r in the free block list
+          r_after->prev_free = r->prev_free;
+          r_after->next_free = r->next_free;
+          ranges[r_after->next_free].prev_free = after_idx;
+          ranges[r_after->prev_free].next_free = after_idx;
+        }
 
-	allocated[tag] = idx;
+        // tie this off because we use it to detect allocated-ness
+        r->prev_free = r->next_free = idx;
+
+        allocated[tag] = idx;
 
 #ifdef DEBUG_REALM
-        //assert(free_list_has_cycle() == false);
-        //assert(has_invalid_ranges() == false);
+        // assert(free_list_has_cycle() == false);
+        // assert(has_invalid_ranges() == false);
 #endif
 
         return true;
@@ -657,7 +659,7 @@ namespace Realm {
   }
 
   template <typename RT, typename TT>
-  inline bool BasicRangeAllocator<RT,TT>::lookup(TT tag, RT& first, RT& size)
+  inline bool BasicRangeAllocator<RT, TT>::lookup(TT tag, RT &first, RT &size)
   {
     typename std::map<TT, unsigned>::iterator it = allocated.find(tag);
 
@@ -665,21 +667,19 @@ namespace Realm {
       // if there was no Range associated with this tag, it was an zero-size
       //  allocation
       if(it->second == SENTINEL) {
-	first = 0;
-	size = 0;
+        first = 0;
+        size = 0;
       } else {
-	const Range& r = ranges[it->second];
-	first = r.first;
-	size = r.last - r.first;
+        const Range &r = ranges[it->second];
+        first = r.first;
+        size = r.last - r.first;
       }
 
       return true;
     } else
       return false;
   }
-  
-    
+
 }; // namespace Realm
 
 #endif // ifndef REALM_MEM_IMPL_INL
-

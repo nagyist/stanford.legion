@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +32,8 @@ namespace Realm {
   //
   // class ThreadPool
 
-  /*static*/ inline ThreadPool::WorkerInfo *ThreadPool::get_worker_info(bool warn_if_missing)
+  /*static*/ inline ThreadPool::WorkerInfo *
+  ThreadPool::get_worker_info(bool warn_if_missing)
   {
     ThreadPool::WorkerInfo *info = ThreadLocal::threadpool_workerinfo;
     if(REALM_UNLIKELY(!info && warn_if_missing))

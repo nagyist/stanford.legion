@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,11 +33,11 @@
 typedef long long int coord_t;
 
 void stencil(DTYPE *RESTRICT inputPtr, DTYPE *RESTRICT outputPtr,
-             DTYPE *RESTRICT weightPtr, coord_t haloX, coord_t startX,
-             coord_t endX, coord_t startY, coord_t endY);
+             DTYPE *RESTRICT weightPtr, coord_t haloX, coord_t startX, coord_t endX,
+             coord_t startY, coord_t endY);
 
-void increment(DTYPE *RESTRICT inputPtr, coord_t haloX, coord_t startX,
-               coord_t endX, coord_t startY, coord_t endY);
+void increment(DTYPE *RESTRICT inputPtr, coord_t haloX, coord_t startX, coord_t endX,
+               coord_t startY, coord_t endY);
 
 void copy2D(DTYPE *RESTRICT inputPtr, DTYPE *RESTRICT outputPtr, coord_t haloX,
             coord_t startX, coord_t endX, coord_t startY, coord_t endY,

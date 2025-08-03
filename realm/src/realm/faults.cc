@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +32,8 @@
 #if defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD)
 #include <sstream>
 #include <execinfo.h>
-#endif /* defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) || defined(REALM_ON_FREEBSD) */
+#endif /* defined(REALM_ON_LINUX) || defined(REALM_ON_MACOS) ||                          \
+          defined(REALM_ON_FREEBSD) */
 #ifdef REALM_HAVE_CXXABI_H
 #include <cxxabi.h>
 #endif
@@ -47,49 +50,43 @@ namespace Realm {
   //
   // class Backtrace
 
-  Backtrace::Backtrace(void)
-  {}
+  Backtrace::Backtrace(void) {}
 
-  Backtrace::~Backtrace(void)
-  {}
+  Backtrace::~Backtrace(void) {}
 
   Backtrace::Backtrace(const Backtrace &copy_from)
     : pc_hash(copy_from.pc_hash)
     , pcs(copy_from.pcs)
   {}
-    
-  Backtrace& Backtrace::operator=(const Backtrace& copy_from)
+
+  Backtrace &Backtrace::operator=(const Backtrace &copy_from)
   {
     pc_hash = copy_from.pc_hash;
     pcs = copy_from.pcs;
     return *this;
   }
 
-  bool Backtrace::operator==(const Backtrace& rhs) const
+  bool Backtrace::operator==(const Backtrace &rhs) const
   {
     // two early outs - different numbers of frame or a different hash
-    if(pc_hash != rhs.pc_hash) return false;
-    if(pcs.size() != rhs.pcs.size()) return false;
+    if(pc_hash != rhs.pc_hash)
+      return false;
+    if(pcs.size() != rhs.pcs.size())
+      return false;
     // for now, check all the pcs - a good hash should make this unnecessary
     for(size_t i = 0; i < pcs.size(); i++)
       if(pcs[i] != rhs.pcs[i]) {
-	std::cerr << "Hash match, but PC mismatch: hash = " << pc_hash << std::endl;
-	std::cerr << "First backtrace " << *this;
-	std::cerr << "Second backtrace " << rhs;
-	return false;
+        std::cerr << "Hash match, but PC mismatch: hash = " << pc_hash << std::endl;
+        std::cerr << "First backtrace " << *this;
+        std::cerr << "Second backtrace " << rhs;
+        return false;
       }
     return true;
   }
 
-  uintptr_t Backtrace::hash(void) const
-  {
-    return pc_hash;
-  }
+  uintptr_t Backtrace::hash(void) const { return pc_hash; }
 
-  bool Backtrace::empty(void) const
-  {
-    return pcs.empty();
-  }
+  bool Backtrace::empty(void) const { return pcs.empty(); }
 
   size_t Backtrace::size(void) const { return pcs.size(); }
 
@@ -104,15 +101,15 @@ namespace Realm {
     for(size_t i = 1; i < pcs.size(); i++) {
       bool match = true;
       for(size_t j = 0; (j < other.pcs.size()) && (j + i) < pcs.size(); j++)
-	if(pcs[j + i] != other.pcs[j]) {
-	  match = false;
-	  break;
-	}
+        if(pcs[j + i] != other.pcs[j]) {
+          match = false;
+          break;
+        }
       if(match) {
         pcs.resize(i);
         // recompute the hash too
         pc_hash = compute_hash();
-	return true;
+        return true;
       }
     }
     return false;
@@ -122,15 +119,14 @@ namespace Realm {
   {
     uintptr_t newhash = 0;
     int i = 0;
-    for(std::vector<uintptr_t>::const_iterator it = pcs.begin();
-	it != pcs.end();
-	it++) {
+    for(std::vector<uintptr_t>::const_iterator it = pcs.begin(); it != pcs.end(); it++) {
       newhash = (newhash * 0x10021) ^ *it;
-      if(++i == depth) break;
+      if(++i == depth)
+        break;
     }
     return newhash;
   }
-  
+
   // captures the current back trace, skipping 'skip' frames, and optionally
   //   limiting the total depth - this is fairly quick as it just walks the stack
   //   and records pointers
@@ -205,15 +201,18 @@ namespace Realm {
         bool print_raw = true;
         char *lp = s;
 #ifdef REALM_HAVE_CXXABI_H
-        while(*lp && (*lp != '(')) lp++;
+        while(*lp && (*lp != '('))
+          lp++;
         if(*lp && (lp[1] != '+')) {
           char *rp = ++lp;
-          while(*rp && (*rp != '+') && (*rp != ')')) rp++;
+          while(*rp && (*rp != '+') && (*rp != ')'))
+            rp++;
           if(*rp) {
             char orig_rp = *rp;
             *rp = 0;
             int status = -4;
-            char *result = abi::__cxa_demangle(lp, demangle_buffer, &demangle_len, &status);
+            char *result =
+                abi::__cxa_demangle(lp, demangle_buffer, &demangle_len, &status);
             *rp = orig_rp;
             if(status == 0) {
               demangle_buffer = result;
@@ -265,22 +264,22 @@ namespace Realm {
   //
   // class ExecutionException
 
-  ExecutionException::ExecutionException(int _error_code,
-					 const void *_detail_data, size_t _detail_size,
-					 bool capture_backtrace /*= true*/)
+  ExecutionException::ExecutionException(int _error_code, const void *_detail_data,
+                                         size_t _detail_size,
+                                         bool capture_backtrace /*= true*/)
     : error_code(_error_code)
     , details(_detail_data, _detail_size)
   {
     if(capture_backtrace)
       backtrace.capture_backtrace(1); // skip this frame
   }
-  
-  ExecutionException::~ExecutionException(void) REALM_NOEXCEPT
-  {}
 
-  void ExecutionException::populate_profiling_measurements(ProfilingMeasurementCollection& pmc) const
+  ExecutionException::~ExecutionException(void) REALM_NOEXCEPT {}
+
+  void ExecutionException::populate_profiling_measurements(
+      ProfilingMeasurementCollection &pmc) const
   {
-    if(!backtrace.empty() && 
+    if(!backtrace.empty() &&
        pmc.wants_measurement<ProfilingMeasurements::OperationBacktrace>()) {
       ProfilingMeasurements::OperationBacktrace b;
       b.pcs = backtrace.get_pcs();
@@ -290,7 +289,6 @@ namespace Realm {
       pmc.add_measurement(b);
     }
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -304,7 +302,6 @@ namespace Realm {
   {
     return "CancellationException";
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -320,13 +317,12 @@ namespace Realm {
     return "PoisonedEventException";
   }
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class ApplicationException
 
-  ApplicationException::ApplicationException(int _error_code,
-					     const void *_detail_data, size_t _detail_size)
+  ApplicationException::ApplicationException(int _error_code, const void *_detail_data,
+                                             size_t _detail_size)
     : ExecutionException(_error_code, _detail_data, _detail_size)
   {}
 
@@ -334,6 +330,5 @@ namespace Realm {
   {
     return "ApplicationException";
   }
-
 
 }; // namespace Realm

@@ -1,18 +1,17 @@
-#------------------------------------------------------------------------------#
-# Copyright 2024 Kitware, Inc.
+# Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#------------------------------------------------------------------------------#
 
 cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
 project(LegionTest_perf_realm_task_throughput)
@@ -34,7 +33,7 @@ elseif(Legion_USE_HIP)
   if(Legion_HIP_TARGET STREQUAL "CUDA")
     add_executable(task_throughput ${CPU_SOURCES} ${GPU_SOURCES})
     target_compile_definitions(task_throughput PRIVATE __HIP_PLATFORM_NVIDIA__)
-  elseif (Legion_HIP_TARGET STREQUAL "ROCM")
+  elseif(Legion_HIP_TARGET STREQUAL "ROCM")
     hip_add_executable(task_throughput ${CPU_SOURCES} ${GPU_SOURCES})
     target_compile_definitions(task_throughput PRIVATE __HIP_PLATFORM_AMD__)
   endif()
@@ -43,7 +42,11 @@ else()
   add_executable(task_throughput ${CPU_SOURCES})
 endif()
 target_link_libraries(task_throughput Legion::Realm)
-target_compile_options(task_throughput PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CXX_BUILD_WARNING_FLAGS}>)
+target_compile_options(
+  task_throughput PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CXX_BUILD_WARNING_FLAGS}>
+)
 if(Legion_ENABLE_TESTING)
-  add_test(NAME task_throughput COMMAND ${Legion_TEST_LAUNCHER} $<TARGET_FILE:task_throughput> ${Legion_TEST_ARGS})
+  add_test(NAME task_throughput COMMAND ${Legion_TEST_LAUNCHER} $<TARGET_FILE:task_throughput>
+                                        ${Legion_TEST_ARGS}
+  )
 endif()

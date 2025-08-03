@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,505 +41,559 @@
 #include <algorithm>
 #include <iomanip>
 
-#define CHECK_PTHREAD(cmd) do { \
-  int ret = (cmd); \
-  if(ret != 0) { \
-    fprintf(stderr, "PTHREAD: %s = %d (%s)\n", #cmd, ret, strerror(ret)); \
-    exit(1); \
-  } \
-} while(0)
+#define CHECK_PTHREAD(cmd)                                                               \
+  do {                                                                                   \
+    int ret = (cmd);                                                                     \
+    if(ret != 0) {                                                                       \
+      fprintf(stderr, "PTHREAD: %s = %d (%s)\n", #cmd, ret, strerror(ret));              \
+      exit(1);                                                                           \
+    }                                                                                    \
+  } while(0)
 
 #include "realm/timers.h"
 #include "realm/serialize.h"
 
 namespace Realm {
 
-    Logger log_dma("dma");
-    //extern Logger log_new_dma;
-    Logger log_aio("aio");
+  Logger log_dma("dma");
+  // extern Logger log_new_dma;
+  Logger log_aio("aio");
 
-    static atomic<unsigned> rdma_sequence_no(1);
+  static atomic<unsigned> rdma_sequence_no(1);
 
-    static AsyncFileIOContext *aio_context = 0;
+  static AsyncFileIOContext *aio_context = 0;
 
 #ifdef REALM_USE_KERNEL_AIO
-    inline int io_setup(unsigned nr, aio_context_t *ctxp)
-    {
-      return syscall(__NR_io_setup, nr, ctxp);
-    }
+  inline int io_setup(unsigned nr, aio_context_t *ctxp)
+  {
+    return syscall(__NR_io_setup, nr, ctxp);
+  }
 
-    inline int io_destroy(aio_context_t ctx)
-    {
-      return syscall(__NR_io_destroy, ctx);
-    }
+  inline int io_destroy(aio_context_t ctx) { return syscall(__NR_io_destroy, ctx); }
 
-    inline int io_submit(aio_context_t ctx, long nr, struct iocb **iocbpp)
-    {
-      return syscall(__NR_io_submit, ctx, nr, iocbpp);
-    }
+  inline int io_submit(aio_context_t ctx, long nr, struct iocb **iocbpp)
+  {
+    return syscall(__NR_io_submit, ctx, nr, iocbpp);
+  }
 
-    inline int io_getevents(aio_context_t ctx, long min_nr, long max_nr,
-                            struct io_event *events, struct timespec *timeout)
-    {
-      return syscall(__NR_io_getevents, ctx, min_nr, max_nr, events, timeout);
-    }
+  inline int io_getevents(aio_context_t ctx, long min_nr, long max_nr,
+                          struct io_event *events, struct timespec *timeout)
+  {
+    return syscall(__NR_io_getevents, ctx, min_nr, max_nr, events, timeout);
+  }
 
-    class KernelAIOWrite : public AsyncFileIOContext::AIOOperation {
-    public:
-      KernelAIOWrite(aio_context_t aio_ctx,
-                     int fd, size_t offset, size_t bytes,
-		     const void *buffer, Request* request = NULL);
-      virtual void launch(void);
-      virtual bool check_completion(void);
+  class KernelAIOWrite : public AsyncFileIOContext::AIOOperation {
+  public:
+    KernelAIOWrite(aio_context_t aio_ctx, int fd, size_t offset, size_t bytes,
+                   const void *buffer, Request *request = NULL);
+    virtual void launch(void);
+    virtual bool check_completion(void);
 
-    public:
-      aio_context_t ctx;
-      struct iocb cb;
-    };
+  public:
+    aio_context_t ctx;
+    struct iocb cb;
+  };
 
-    KernelAIOWrite::KernelAIOWrite(aio_context_t aio_ctx,
-				   int fd, size_t offset, size_t bytes,
-				   const void *buffer, Request* request)
-    {
-      completed = false;
-      ctx = aio_ctx;
-      memset(&cb, 0, sizeof(cb));
-      cb.aio_data = (uint64_t)this;
-      cb.aio_fildes = fd;
-      cb.aio_lio_opcode = IOCB_CMD_PWRITE;
-      cb.aio_buf = (uint64_t)buffer;
-      cb.aio_offset = offset;
-      cb.aio_nbytes = bytes;
-      req = request;
-    }
+  KernelAIOWrite::KernelAIOWrite(aio_context_t aio_ctx, int fd, size_t offset,
+                                 size_t bytes, const void *buffer, Request *request)
+  {
+    completed = false;
+    ctx = aio_ctx;
+    memset(&cb, 0, sizeof(cb));
+    cb.aio_data = (uint64_t)this;
+    cb.aio_fildes = fd;
+    cb.aio_lio_opcode = IOCB_CMD_PWRITE;
+    cb.aio_buf = (uint64_t)buffer;
+    cb.aio_offset = offset;
+    cb.aio_nbytes = bytes;
+    req = request;
+  }
 
-    void KernelAIOWrite::launch(void)
-    {
-      struct iocb *cbs[1];
-      cbs[0] = &cb;
-      log_aio.debug("write issued: op=%p cb=%p", this, &cb);
+  void KernelAIOWrite::launch(void)
+  {
+    struct iocb *cbs[1];
+    cbs[0] = &cb;
+    log_aio.debug("write issued: op=%p cb=%p", this, &cb);
 #ifndef NDEBUG
-      int ret =
+    int ret =
 #endif
-	io_submit(ctx, 1, cbs);
-      assert(ret == 1);
-    }
+        io_submit(ctx, 1, cbs);
+    assert(ret == 1);
+  }
 
-    bool KernelAIOWrite::check_completion(void)
-    {
-      return completed;
-    }
+  bool KernelAIOWrite::check_completion(void) { return completed; }
 
-    class KernelAIORead : public AsyncFileIOContext::AIOOperation {
-    public:
-      KernelAIORead(aio_context_t aio_ctx,
-                     int fd, size_t offset, size_t bytes,
-		     void *buffer, Request* request = NULL);
-      virtual void launch(void);
-      virtual bool check_completion(void);
+  class KernelAIORead : public AsyncFileIOContext::AIOOperation {
+  public:
+    KernelAIORead(aio_context_t aio_ctx, int fd, size_t offset, size_t bytes,
+                  void *buffer, Request *request = NULL);
+    virtual void launch(void);
+    virtual bool check_completion(void);
 
-    public:
-      aio_context_t ctx;
-      struct iocb cb;
-    };
+  public:
+    aio_context_t ctx;
+    struct iocb cb;
+  };
 
-    KernelAIORead::KernelAIORead(aio_context_t aio_ctx,
-				 int fd, size_t offset, size_t bytes,
-				 void *buffer, Request* request)
-    {
-      completed = false;
-      ctx = aio_ctx;
-      memset(&cb, 0, sizeof(cb));
-      cb.aio_data = (uint64_t)this;
-      cb.aio_fildes = fd;
-      cb.aio_lio_opcode = IOCB_CMD_PREAD;
-      cb.aio_buf = (uint64_t)buffer;
-      cb.aio_offset = offset;
-      cb.aio_nbytes = bytes;
-      req = request;
-    }
+  KernelAIORead::KernelAIORead(aio_context_t aio_ctx, int fd, size_t offset, size_t bytes,
+                               void *buffer, Request *request)
+  {
+    completed = false;
+    ctx = aio_ctx;
+    memset(&cb, 0, sizeof(cb));
+    cb.aio_data = (uint64_t)this;
+    cb.aio_fildes = fd;
+    cb.aio_lio_opcode = IOCB_CMD_PREAD;
+    cb.aio_buf = (uint64_t)buffer;
+    cb.aio_offset = offset;
+    cb.aio_nbytes = bytes;
+    req = request;
+  }
 
-    void KernelAIORead::launch(void)
-    {
-      struct iocb *cbs[1];
-      cbs[0] = &cb;
-      log_aio.debug("read issued: op=%p cb=%p", this, &cb);
+  void KernelAIORead::launch(void)
+  {
+    struct iocb *cbs[1];
+    cbs[0] = &cb;
+    log_aio.debug("read issued: op=%p cb=%p", this, &cb);
 #ifndef NDEBUG
-      int ret =
+    int ret =
 #endif
-	io_submit(ctx, 1, cbs);
-      assert(ret == 1);
-    }
+        io_submit(ctx, 1, cbs);
+    assert(ret == 1);
+  }
 
-    bool KernelAIORead::check_completion(void)
-    {
-      return completed;
-    }
+  bool KernelAIORead::check_completion(void) { return completed; }
 #endif
 
 #ifdef REALM_USE_LIBAIO
-    class PosixAIOWrite : public AsyncFileIOContext::AIOOperation {
-    public:
-      PosixAIOWrite(int fd, size_t offset, size_t bytes,
-		    const void *buffer, Request* request = NULL);
-      virtual void launch(void);
-      virtual bool check_completion(void);
+  class PosixAIOWrite : public AsyncFileIOContext::AIOOperation {
+  public:
+    PosixAIOWrite(int fd, size_t offset, size_t bytes, const void *buffer,
+                  Request *request = NULL);
+    virtual void launch(void);
+    virtual bool check_completion(void);
 
-    public:
-      struct aiocb cb;
-    };
+  public:
+    struct aiocb cb;
+  };
 
-    PosixAIOWrite::PosixAIOWrite(int fd, size_t offset, size_t bytes,
-				 const void *buffer, Request* request)
-    {
-      completed = false;
-      memset(&cb, 0, sizeof(cb));
-      cb.aio_fildes = fd;
-      cb.aio_buf = (void *)buffer;
-      cb.aio_offset = offset;
-      cb.aio_nbytes = bytes;
-      req = request;
-    }
+  PosixAIOWrite::PosixAIOWrite(int fd, size_t offset, size_t bytes, const void *buffer,
+                               Request *request)
+  {
+    completed = false;
+    memset(&cb, 0, sizeof(cb));
+    cb.aio_fildes = fd;
+    cb.aio_buf = (void *)buffer;
+    cb.aio_offset = offset;
+    cb.aio_nbytes = bytes;
+    req = request;
+  }
 
-    void PosixAIOWrite::launch(void)
-    {
-      log_aio.debug("write issued: op=%p cb=%p", static_cast<void *>(this),
-                    static_cast<void *>(&cb));
+  void PosixAIOWrite::launch(void)
+  {
+    log_aio.debug("write issued: op=%p cb=%p", static_cast<void *>(this),
+                  static_cast<void *>(&cb));
 #ifdef REALM_ON_MACOS
-      constexpr unsigned MAX_ATTEMPTS = 8;
+    constexpr unsigned MAX_ATTEMPTS = 8;
 #else
-      constexpr unsigned MAX_ATTEMPTS = 1;
+    constexpr unsigned MAX_ATTEMPTS = 1;
 #endif
-      for (unsigned idx = 0; idx < MAX_ATTEMPTS; idx++)
+    for(unsigned idx = 0; idx < MAX_ATTEMPTS; idx++) {
+      int ret = aio_write(&cb);
+      if(ret == 0)
+        return;
+      switch(errno) {
+      case EAGAIN:
+        continue;
+      default:
       {
-        int ret = aio_write(&cb);
-        if (ret == 0)
-          return;
-        switch (errno)
-        {
-          case EAGAIN:
-            continue;
-          default:
-            {
-              const char *message = realm_strerror(errno);
-              log_aio.fatal("Failed asynchronous IO write [%d]: %s", errno, message);
-              abort();
-            }
-        }
+        const char *message = realm_strerror(errno);
+        log_aio.fatal("Failed asynchronous IO write [%d]: %s", errno, message);
+        abort();
       }
-      log_aio.warning("exceeeded max aio write attempts %d, switching to synchronous mode", MAX_ATTEMPTS);
-      const uint8_t *buffer = (const uint8_t*)cb.aio_buf;
-      while (cb.aio_nbytes) {
-        ssize_t ret = pwrite(cb.aio_fildes, (const void*)buffer, cb.aio_nbytes, cb.aio_offset);
-        if (ret < 0) {
-          const char *message = realm_strerror(errno);
-          log_aio.fatal("Failed synchronous IO write [%d]: %s", errno, message);
-          abort();
-        } else if (ret) {
-          assert(((size_t)ret) <= cb.aio_nbytes);
-          buffer += ret;
-          cb.aio_offset += ret;
-          cb.aio_nbytes -= ret;
-        } else {
-          log_aio.fatal("Synchronous IO write failed to make forward progress");
-          abort();
-        } 
       }
-      completed = true;
     }
-
-    bool PosixAIOWrite::check_completion(void)
-    {
-      if (!completed)
-      {
-        int ret = aio_error(&cb);
-        if(ret == EINPROGRESS) return false;
-        log_aio.debug("write returned: op=%p cb=%p ret=%d", static_cast<void *>(this),
-                      static_cast<void *>(&cb), ret);
-        if (ret != 0)
-        {
-          const char *message = realm_strerror(ret);
-          log_aio.fatal("Failed asynchronous IO write [%d]: %s", ret, message);
-          abort();
-        }
+    log_aio.warning("exceeeded max aio write attempts %d, switching to synchronous mode",
+                    MAX_ATTEMPTS);
+    const uint8_t *buffer = (const uint8_t *)cb.aio_buf;
+    while(cb.aio_nbytes) {
+      ssize_t ret =
+          pwrite(cb.aio_fildes, (const void *)buffer, cb.aio_nbytes, cb.aio_offset);
+      if(ret < 0) {
+        const char *message = realm_strerror(errno);
+        log_aio.fatal("Failed synchronous IO write [%d]: %s", errno, message);
+        abort();
+      } else if(ret) {
+        assert(((size_t)ret) <= cb.aio_nbytes);
+        buffer += ret;
+        cb.aio_offset += ret;
+        cb.aio_nbytes -= ret;
+      } else {
+        log_aio.fatal("Synchronous IO write failed to make forward progress");
+        abort();
       }
-      return true;
     }
+    completed = true;
+  }
 
-    class PosixAIORead : public AsyncFileIOContext::AIOOperation {
-    public:
-      PosixAIORead(int fd, size_t offset, size_t bytes,
-		   void *buffer, Request* request = NULL);
-      virtual void launch(void);
-      virtual bool check_completion(void);
-
-    public:
-      struct aiocb cb;
-    };
-
-    PosixAIORead::PosixAIORead(int fd, size_t offset, size_t bytes,
-			       void *buffer, Request* request)
-    {
-      completed = false;
-      memset(&cb, 0, sizeof(cb));
-      cb.aio_fildes = fd;
-      cb.aio_buf = buffer;
-      cb.aio_offset = offset;
-      cb.aio_nbytes = bytes;
-      req = request;
+  bool PosixAIOWrite::check_completion(void)
+  {
+    if(!completed) {
+      int ret = aio_error(&cb);
+      if(ret == EINPROGRESS)
+        return false;
+      log_aio.debug("write returned: op=%p cb=%p ret=%d", static_cast<void *>(this),
+                    static_cast<void *>(&cb), ret);
+      if(ret != 0) {
+        const char *message = realm_strerror(ret);
+        log_aio.fatal("Failed asynchronous IO write [%d]: %s", ret, message);
+        abort();
+      }
     }
+    return true;
+  }
 
-    void PosixAIORead::launch(void)
-    {
-      log_aio.debug("read issued: op=%p cb=%p", static_cast<void *>(this),
-                    static_cast<void *>(&cb));
+  class PosixAIORead : public AsyncFileIOContext::AIOOperation {
+  public:
+    PosixAIORead(int fd, size_t offset, size_t bytes, void *buffer,
+                 Request *request = NULL);
+    virtual void launch(void);
+    virtual bool check_completion(void);
+
+  public:
+    struct aiocb cb;
+  };
+
+  PosixAIORead::PosixAIORead(int fd, size_t offset, size_t bytes, void *buffer,
+                             Request *request)
+  {
+    completed = false;
+    memset(&cb, 0, sizeof(cb));
+    cb.aio_fildes = fd;
+    cb.aio_buf = buffer;
+    cb.aio_offset = offset;
+    cb.aio_nbytes = bytes;
+    req = request;
+  }
+
+  void PosixAIORead::launch(void)
+  {
+    log_aio.debug("read issued: op=%p cb=%p", static_cast<void *>(this),
+                  static_cast<void *>(&cb));
 #ifdef REALM_ON_MACOS
-      constexpr unsigned MAX_ATTEMPTS = 8;
+    constexpr unsigned MAX_ATTEMPTS = 8;
 #else
-      constexpr unsigned MAX_ATTEMPTS = 1;
+    constexpr unsigned MAX_ATTEMPTS = 1;
 #endif
-      for (unsigned idx = 0; idx < MAX_ATTEMPTS; idx++)
+    for(unsigned idx = 0; idx < MAX_ATTEMPTS; idx++) {
+      int ret = aio_read(&cb);
+      if(ret == 0)
+        return;
+      switch(errno) {
+      case EAGAIN:
+        continue;
+      default:
       {
-        int ret = aio_read(&cb);
-        if (ret == 0)
-          return;
-        switch (errno)
-        {
-          case EAGAIN:
-            continue;
-          default:
-            {
-              const char *message = realm_strerror(errno);
-              log_aio.fatal("Failed asynchronous IO read [%d]: %s", errno, message);
-              abort();
-            }
-        }
+        const char *message = realm_strerror(errno);
+        log_aio.fatal("Failed asynchronous IO read [%d]: %s", errno, message);
+        abort();
       }
-      log_aio.warning("exceeeded max aio read attempts %d, switching to synchronous mode", MAX_ATTEMPTS);
-      uint8_t *buffer = (uint8_t*)cb.aio_buf;
-      while (cb.aio_nbytes) {
-        ssize_t ret = pread(cb.aio_fildes, (void*)buffer, cb.aio_nbytes, cb.aio_offset);
-        if (ret < 0) {
-          const char *message = realm_strerror(errno);
-          log_aio.fatal("Failed synchronous IO read [%d]: %s", errno, message);
-          abort();
-        } else if (ret) {
-          assert(((size_t)ret) <= cb.aio_nbytes);
-          buffer += ret;
-          cb.aio_offset += ret;
-          cb.aio_nbytes -= ret;
-        } else {
-          log_aio.fatal("Synchronous IO read failed to make forward progress");
-          abort();
-        }
       }
-      completed = true;
     }
+    log_aio.warning("exceeeded max aio read attempts %d, switching to synchronous mode",
+                    MAX_ATTEMPTS);
+    uint8_t *buffer = (uint8_t *)cb.aio_buf;
+    while(cb.aio_nbytes) {
+      ssize_t ret = pread(cb.aio_fildes, (void *)buffer, cb.aio_nbytes, cb.aio_offset);
+      if(ret < 0) {
+        const char *message = realm_strerror(errno);
+        log_aio.fatal("Failed synchronous IO read [%d]: %s", errno, message);
+        abort();
+      } else if(ret) {
+        assert(((size_t)ret) <= cb.aio_nbytes);
+        buffer += ret;
+        cb.aio_offset += ret;
+        cb.aio_nbytes -= ret;
+      } else {
+        log_aio.fatal("Synchronous IO read failed to make forward progress");
+        abort();
+      }
+    }
+    completed = true;
+  }
 
-    bool PosixAIORead::check_completion(void)
-    {
-      if (!completed)
-      {
-        int ret = aio_error(&cb);
-        if(ret == EINPROGRESS) return false;
-        log_aio.debug("read returned: op=%p cb=%p ret=%d", static_cast<void *>(this),
-                      static_cast<void *>(&cb), ret);
-        if (ret != 0)
-        {
-          const char *message = realm_strerror(ret);
-          log_aio.fatal("Failed asynchronous IO read [%d]: %s", ret, message);
-          abort();
-        }
+  bool PosixAIORead::check_completion(void)
+  {
+    if(!completed) {
+      int ret = aio_error(&cb);
+      if(ret == EINPROGRESS)
+        return false;
+      log_aio.debug("read returned: op=%p cb=%p ret=%d", static_cast<void *>(this),
+                    static_cast<void *>(&cb), ret);
+      if(ret != 0) {
+        const char *message = realm_strerror(ret);
+        log_aio.fatal("Failed asynchronous IO read [%d]: %s", ret, message);
+        abort();
       }
-      return true;
     }
+    return true;
+  }
 #endif
 
-    class AIOFence : public Operation::AsyncWorkItem {
-    public:
-      AIOFence(Operation *_op) : Operation::AsyncWorkItem(_op) {}
-      virtual void request_cancellation(void) {}
-      virtual void print(std::ostream& os) const { os << "AIOFence"; }
-    };
+  class AIOFence : public Operation::AsyncWorkItem {
+  public:
+    AIOFence(Operation *_op)
+      : Operation::AsyncWorkItem(_op)
+    {}
+    virtual void request_cancellation(void) {}
+    virtual void print(std::ostream &os) const { os << "AIOFence"; }
+  };
 
-    class AIOFenceOp : public AsyncFileIOContext::AIOOperation {
-    public:
-      AIOFenceOp(Operation *_req);
-      virtual void launch(void);
-      virtual bool check_completion(void);
+  class AIOFenceOp : public AsyncFileIOContext::AIOOperation {
+  public:
+    AIOFenceOp(Operation *_req);
+    virtual void launch(void);
+    virtual bool check_completion(void);
 
-    public:
-      Operation *req;
-      AIOFence *f;
-    };
+  public:
+    Operation *req;
+    AIOFence *f;
+  };
 
-    AIOFenceOp::AIOFenceOp(Operation *_req)
-    {
-      completed = false;
-      req = _req;
-      f = new AIOFence(req);
-      req->add_async_work_item(f);
-    }
+  AIOFenceOp::AIOFenceOp(Operation *_req)
+  {
+    completed = false;
+    req = _req;
+    f = new AIOFence(req);
+    req->add_async_work_item(f);
+  }
 
-    void AIOFenceOp::launch(void)
-    {
-      log_aio.debug("fence launched: op=%p req=%p", static_cast<void *>(this),
-                    static_cast<void *>(req));
-      completed = true;
-    }
+  void AIOFenceOp::launch(void)
+  {
+    log_aio.debug("fence launched: op=%p req=%p", static_cast<void *>(this),
+                  static_cast<void *>(req));
+    completed = true;
+  }
 
-    bool AIOFenceOp::check_completion(void)
-    {
-      assert(completed);
-      log_aio.debug("fence completed: op=%p req=%p", static_cast<void *>(this),
-                    static_cast<void *>(req));
-      f->mark_finished(true /*successful*/);
-      return true;
-    }
+  bool AIOFenceOp::check_completion(void)
+  {
+    assert(completed);
+    log_aio.debug("fence completed: op=%p req=%p", static_cast<void *>(this),
+                  static_cast<void *>(req));
+    f->mark_finished(true /*successful*/);
+    return true;
+  }
 
-    AsyncFileIOContext::AsyncFileIOContext(int _max_depth)
-      : BackgroundWorkItem("async file IO")
-      , max_depth(_max_depth)
-    {
+  AsyncFileIOContext::AsyncFileIOContext(int _max_depth)
+    : BackgroundWorkItem("async file IO")
+    , max_depth(_max_depth)
+  {
 #ifdef REALM_USE_KERNEL_AIO
-      aio_ctx = 0;
+    aio_ctx = 0;
 #ifndef NDEBUG
-      int ret =
+    int ret =
 #endif
-	io_setup(max_depth, &aio_ctx);
-      assert(ret == 0);
+        io_setup(max_depth, &aio_ctx);
+    assert(ret == 0);
 #endif
-    }
+  }
 
-    AsyncFileIOContext::~AsyncFileIOContext(void)
-    {
-      assert(pending_operations.empty());
-      assert(launched_operations.empty());
+  AsyncFileIOContext::~AsyncFileIOContext(void)
+  {
+    assert(pending_operations.empty());
+    assert(launched_operations.empty());
 #ifdef REALM_USE_KERNEL_AIO
 #ifndef NDEBUG
-      int ret =
+    int ret =
 #endif
-	io_destroy(aio_ctx);
-      assert(ret == 0);
+        io_destroy(aio_ctx);
+    assert(ret == 0);
 #endif
-    }
+  }
 
-    void AsyncFileIOContext::enqueue_write(int fd, size_t offset, 
-					   size_t bytes, const void *buffer,
-                                           Request* req)
-    {
+  void AsyncFileIOContext::enqueue_write(int fd, size_t offset, size_t bytes,
+                                         const void *buffer, Request *req)
+  {
 #ifdef REALM_USE_KERNEL_AIO
-      KernelAIOWrite *op = new KernelAIOWrite(aio_ctx,
-					      fd, offset, bytes, buffer, req);
+    KernelAIOWrite *op = new KernelAIOWrite(aio_ctx, fd, offset, bytes, buffer, req);
 #elif defined(REALM_USE_LIBAIO)
-      PosixAIOWrite *op = new PosixAIOWrite(fd, offset, bytes, buffer, req);
+    PosixAIOWrite *op = new PosixAIOWrite(fd, offset, bytes, buffer, req);
 #else
-      AsyncFileIOContext::AIOOperation* op = 0;
-      assert(0);
+    AsyncFileIOContext::AIOOperation *op = 0;
+    assert(0);
 #endif
-      bool was_empty;
-      {
-	AutoLock<> al(mutex);
-	was_empty = launched_operations.empty();
-	if(launched_operations.size() < (size_t)max_depth) {
-	  op->launch();
-	  launched_operations.push_back(op);
-	} else {
-	  pending_operations.push_back(op);
-	}
-      }
-      if(was_empty)
-	make_active();
-    }
-
-    void AsyncFileIOContext::enqueue_read(int fd, size_t offset, 
-					  size_t bytes, void *buffer,
-                                          Request* req)
+    bool was_empty;
     {
+      AutoLock<> al(mutex);
+      was_empty = launched_operations.empty();
+      if(launched_operations.size() < (size_t)max_depth) {
+        op->launch();
+        launched_operations.push_back(op);
+      } else {
+        pending_operations.push_back(op);
+      }
+    }
+    if(was_empty)
+      make_active();
+  }
+
+  void AsyncFileIOContext::enqueue_read(int fd, size_t offset, size_t bytes, void *buffer,
+                                        Request *req)
+  {
 #ifdef REALM_USE_KERNEL_AIO
-      KernelAIORead *op = new KernelAIORead(aio_ctx,
-					    fd, offset, bytes, buffer, req);
+    KernelAIORead *op = new KernelAIORead(aio_ctx, fd, offset, bytes, buffer, req);
 #elif defined(REALM_USE_LIBAIO)
-      PosixAIORead *op = new PosixAIORead(fd, offset, bytes, buffer, req);
+    PosixAIORead *op = new PosixAIORead(fd, offset, bytes, buffer, req);
 #else
-      AsyncFileIOContext::AIOOperation* op = 0;
-      assert(0);
+    AsyncFileIOContext::AIOOperation *op = 0;
+    assert(0);
 #endif
-      bool was_empty;
-      {
-	AutoLock<> al(mutex);
-	was_empty = launched_operations.empty();
-	if(launched_operations.size() < (size_t)max_depth) {
-	  op->launch();
-	  launched_operations.push_back(op);
-	} else {
-	  pending_operations.push_back(op);
-	}
+    bool was_empty;
+    {
+      AutoLock<> al(mutex);
+      was_empty = launched_operations.empty();
+      if(launched_operations.size() < (size_t)max_depth) {
+        op->launch();
+        launched_operations.push_back(op);
+      } else {
+        pending_operations.push_back(op);
       }
-      if(was_empty)
-	make_active();
     }
+    if(was_empty)
+      make_active();
+  }
 
-    void AsyncFileIOContext::enqueue_fence(Operation *req)
+  void AsyncFileIOContext::enqueue_fence(Operation *req)
+  {
+    AIOFenceOp *op = new AIOFenceOp(req);
+    bool was_empty;
     {
-      AIOFenceOp *op = new AIOFenceOp(req);
-      bool was_empty;
-      {
-	AutoLock<> al(mutex);
-	was_empty = launched_operations.empty();
-	if(launched_operations.size() < (size_t)max_depth) {
-	  op->launch();
-	  launched_operations.push_back(op);
-	} else {
-	  pending_operations.push_back(op);
-	}
+      AutoLock<> al(mutex);
+      was_empty = launched_operations.empty();
+      if(launched_operations.size() < (size_t)max_depth) {
+        op->launch();
+        launched_operations.push_back(op);
+      } else {
+        pending_operations.push_back(op);
       }
-      if(was_empty)
-	make_active();
     }
+    if(was_empty)
+      make_active();
+  }
 
-    bool AsyncFileIOContext::empty(void)
-    {
-      AutoLock<> al(mutex);
-      return launched_operations.empty();
-    }
+  bool AsyncFileIOContext::empty(void)
+  {
+    AutoLock<> al(mutex);
+    return launched_operations.empty();
+  }
 
-    long AsyncFileIOContext::available(void)
-    {
-      AutoLock<> al(mutex);
-      return (max_depth - launched_operations.size());
-    }
+  long AsyncFileIOContext::available(void)
+  {
+    AutoLock<> al(mutex);
+    return (max_depth - launched_operations.size());
+  }
 
-    void AsyncFileIOContext::make_progress(void)
-    {
-      AutoLock<> al(mutex);
+  void AsyncFileIOContext::make_progress(void)
+  {
+    AutoLock<> al(mutex);
 
-      // first, reap as many events as we can - oldest first
+    // first, reap as many events as we can - oldest first
 #ifdef REALM_USE_KERNEL_AIO
-      while(true) {
-	struct io_event events[8];
-	struct timespec ts;
-	ts.tv_sec = 0;
-	ts.tv_nsec = 0;  // no delay
-	int ret = io_getevents(aio_ctx, 1, 8, events, &ts);
-	if(ret == 0) break;
-	log_aio.debug("io_getevents returned %d events", ret);
-	for(int i = 0; i < ret; i++) {
-	  AIOOperation *op = (AIOOperation *)(events[i].data);
-	  log_aio.debug("io_getevents: event[%d] = %p", i, op);
-	  op->completed = true;
-	}
+    while(true) {
+      struct io_event events[8];
+      struct timespec ts;
+      ts.tv_sec = 0;
+      ts.tv_nsec = 0; // no delay
+      int ret = io_getevents(aio_ctx, 1, 8, events, &ts);
+      if(ret == 0)
+        break;
+      log_aio.debug("io_getevents returned %d events", ret);
+      for(int i = 0; i < ret; i++) {
+        AIOOperation *op = (AIOOperation *)(events[i].data);
+        log_aio.debug("io_getevents: event[%d] = %p", i, op);
+        op->completed = true;
       }
+    }
 #endif
+
+    // now actually mark events completed in oldest-first order
+    while(!launched_operations.empty()) {
+      AIOOperation *op = launched_operations.front();
+      if(!op->check_completion())
+        break;
+      log_aio.debug("aio op completed: op=%p", static_cast<void *>(op));
+      // <NEW_DMA>
+      if(op->req != NULL) {
+        Request *request = (Request *)(op->req);
+        request->xd->notify_request_read_done(request);
+        request->xd->notify_request_write_done(request);
+      }
+      // </NEW_DMA>
+      launched_operations.pop_front();
+      delete op;
+    }
+
+    // finally, if there are any pending ops, and room for them, launch them
+    while((launched_operations.size() < (size_t)max_depth) &&
+          !pending_operations.empty()) {
+      AIOOperation *op = pending_operations.front();
+      pending_operations.pop_front();
+      op->launch();
+      launched_operations.push_back(op);
+    }
+  }
+
+  bool AsyncFileIOContext::do_work(TimeLimit work_until)
+  {
+    // first, reap as many events as we can - oldest first
+#ifdef REALM_USE_KERNEL_AIO
+    assert(!launched_operations.empty());
+    while {
+      struct io_event events[8];
+      struct timespec ts;
+      ts.tv_sec = 0;
+      ts.tv_nsec = 0; // no delay
+      int ret = io_getevents(aio_ctx, 1, 8, events, &ts);
+      if(ret == 0)
+        break;
+      log_aio.debug("io_getevents returned %d events", ret);
+      for(int i = 0; i < ret; i++) {
+        AIOOperation *op = (AIOOperation *)(events[i].data);
+        log_aio.debug("io_getevents: event[%d] = %p", i, op);
+        op->completed = true;
+      }
+      // only try again if we got a full set the time before
+      if(ret < 8)
+        break;
+    }
+    while(!work_until.is_expired())
+      ;
+#endif
+
+    // have to check for completed ops even if we didn't get any this
+    //  time - there may have been some last time that we didn't have
+    //  enough time to notify
+    {
+      AutoLock<> al(mutex);
 
       // now actually mark events completed in oldest-first order
-      while(!launched_operations.empty()) {
-	AIOOperation *op = launched_operations.front();
-	if(!op->check_completion()) break;
+      while(!work_until.is_expired()) {
+        if(launched_operations.empty()) {
+          if(pending_operations.empty()) {
+            // finished work - we can return without requeuing ourselves
+            return false;
+          } else {
+            // launch some pending work below
+            break;
+          }
+        }
+        AIOOperation *op = launched_operations.front();
+        if(!op->check_completion())
+          break;
         log_aio.debug("aio op completed: op=%p", static_cast<void *>(op));
         // <NEW_DMA>
-        if (op->req != NULL) {
-          Request* request = (Request*)(op->req);
+        if(op->req != NULL) {
+          Request *request = (Request *)(op->req);
           request->xd->notify_request_read_done(request);
           request->xd->notify_request_write_done(request);
         }
@@ -547,103 +602,50 @@ namespace Realm {
         delete op;
       }
 
-      // finally, if there are any pending ops, and room for them, launch them
+      // finally, if there are any pending ops, and room for them, and
+      //   time left, launch them
       while((launched_operations.size() < (size_t)max_depth) &&
-	    !pending_operations.empty()) {
-	AIOOperation *op = pending_operations.front();
-	pending_operations.pop_front();
-	op->launch();
-	launched_operations.push_back(op);
+            !pending_operations.empty() && !work_until.is_expired()) {
+        AIOOperation *op = pending_operations.front();
+        pending_operations.pop_front();
+        op->launch();
+        launched_operations.push_back(op);
       }
     }
 
-    bool AsyncFileIOContext::do_work(TimeLimit work_until)
-    {
-      // first, reap as many events as we can - oldest first
-#ifdef REALM_USE_KERNEL_AIO
-      assert(!launched_operations.empty());
-      while {
-	struct io_event events[8];
-	struct timespec ts;
-	ts.tv_sec = 0;
-	ts.tv_nsec = 0;  // no delay
-	int ret = io_getevents(aio_ctx, 1, 8, events, &ts);
-	if(ret == 0) break;
-	log_aio.debug("io_getevents returned %d events", ret);
-	for(int i = 0; i < ret; i++) {
-	  AIOOperation *op = (AIOOperation *)(events[i].data);
-	  log_aio.debug("io_getevents: event[%d] = %p", i, op);
-	  op->completed = true;
-	}
-	// only try again if we got a full set the time before
-	if(ret < 8) break;
-      } while(!work_until.is_expired());
-#endif
+    // if we fall through to here, there's still polling for either old
+    //  or newly launched work to do
+    return true;
+  }
 
-      // have to check for completed ops even if we didn't get any this
-      //  time - there may have been some last time that we didn't have
-      //  enough time to notify
-      {
-	AutoLock<> al(mutex);
+  /*static*/
+  AsyncFileIOContext *AsyncFileIOContext::get_singleton() { return aio_context; }
 
-	// now actually mark events completed in oldest-first order
-	while(!work_until.is_expired()) {
-          if(launched_operations.empty()) {
-            if(pending_operations.empty()) {
-              // finished work - we can return without requeuing ourselves
-              return false;
-            } else {
-              // launch some pending work below
-              break;
-            }
-          }
-          AIOOperation *op = launched_operations.front();
-          if(!op->check_completion())
-            break;
-          log_aio.debug("aio op completed: op=%p", static_cast<void *>(op));
-          // <NEW_DMA>
-	  if (op->req != NULL) {
-	    Request* request = (Request*)(op->req);
-	    request->xd->notify_request_read_done(request);
-	    request->xd->notify_request_write_done(request);
-	  }
-          // </NEW_DMA>
-          launched_operations.pop_front();
-          delete op;
-        }
+  Channel *get_xfer_channel(const Node *nodes_info, Memory src_mem, Memory dst_mem,
+                            CustomSerdezID src_serdez_id, CustomSerdezID dst_serdez_id,
+                            ReductionOpID redop_id, XferDesKind *pkind = 0)
+  {
+    Channel *channel = 0;
+    XferDesKind kind = XFER_NONE;
 
-        // finally, if there are any pending ops, and room for them, and
-        //   time left, launch them
-        while((launched_operations.size() < (size_t)max_depth) &&
-              !pending_operations.empty() && !work_until.is_expired()) {
-          AIOOperation *op = pending_operations.front();
-          pending_operations.pop_front();
-          op->launch();
-          launched_operations.push_back(op);
-        }
+    // look at the dma channels available on the source node
+    NodeID src_node = ID(src_mem).memory_owner_node();
+    NodeID dst_node = ID(dst_mem).memory_owner_node();
+    const Node &n = nodes_info[src_node];
+    for(Channel *ch : n.dma_channels) {
+      unsigned bw = 0;
+      unsigned latency = 0;
+      if(ch->supports_path(ChannelCopyInfo{src_mem, dst_mem}, src_serdez_id,
+                           dst_serdez_id, redop_id, 0, 0, 0, // FIXME
+                           &kind, &bw, &latency)) {
+        channel = ch;
+        break;
       }
-
-      // if we fall through to here, there's still polling for either old
-      //  or newly launched work to do
-      return true;
     }
 
-    /*static*/
-    AsyncFileIOContext* AsyncFileIOContext::get_singleton() {
-      return aio_context;
-    }
-
-    Channel *get_xfer_channel(const Node *nodes_info, Memory src_mem, Memory dst_mem,
-                              CustomSerdezID src_serdez_id, CustomSerdezID dst_serdez_id,
-                              ReductionOpID redop_id, XferDesKind *pkind = 0)
-    {
-      Channel *channel = 0;
-      XferDesKind kind = XFER_NONE;
-
-      // look at the dma channels available on the source node
-      NodeID src_node = ID(src_mem).memory_owner_node();
-      NodeID dst_node = ID(dst_mem).memory_owner_node();
-      const Node &n = nodes_info[src_node];
+    // if that didn't work, try the destination node (if different)
+    if((kind == XFER_NONE) && (dst_node != src_node)) {
+      const Node &n = nodes_info[dst_node];
       for(Channel *ch : n.dma_channels) {
         unsigned bw = 0;
         unsigned latency = 0;
@@ -654,124 +656,109 @@ namespace Realm {
           break;
         }
       }
-
-      // if that didn't work, try the destination node (if different)
-      if((kind == XFER_NONE) && (dst_node != src_node)) {
-        const Node &n = nodes_info[dst_node];
-        for(Channel *ch : n.dma_channels) {
-          unsigned bw = 0;
-          unsigned latency = 0;
-          if(ch->supports_path(ChannelCopyInfo{src_mem, dst_mem}, src_serdez_id,
-                               dst_serdez_id, redop_id, 0, 0, 0, // FIXME
-                               &kind, &bw, &latency)) {
-            channel = ch;
-            break;
-          }
-        }
-      }
-
-      if(pkind)
-        *pkind = kind;
-      return channel;
     }
 
-    bool find_shortest_path(const Node *nodes_info, Memory src_mem, Memory dst_mem,
-                            CustomSerdezID serdez_id, ReductionOpID redop_id,
-                            MemPathInfo &info, bool skip_final_memcpy /*= false*/)
-    {
-      // make sure we write a fresh MemPathInfo
-      info.path.clear();
-      info.xd_channels.clear();
-      // info.xd_kinds.clear();
-      // info.xd_target_nodes.clear();
+    if(pkind)
+      *pkind = kind;
+    return channel;
+  }
 
-      // fast case - can we go straight from src to dst?
-      XferDesKind kind;
-      Channel *channel = get_xfer_channel(nodes_info, src_mem, dst_mem, serdez_id,
-                                          serdez_id, redop_id, &kind);
-      if(channel) {
-        info.path.push_back(src_mem);
-        if(!skip_final_memcpy || (kind != XFER_MEM_CPY)) {
-          info.path.push_back(dst_mem);
-          // info.xd_kinds.push_back(kind);
-          info.xd_channels.push_back(channel);
-        }
-      } else {
-        std::map<Memory, std::vector<Memory>> dist;
-        std::map<Memory, std::vector<Channel *>> channels;
-        std::list<Memory> mems_left;
-        std::queue<Memory> active_nodes;
-        const Node &node = nodes_info[ID(src_mem).memory_owner_node()];
+  bool find_shortest_path(const Node *nodes_info, Memory src_mem, Memory dst_mem,
+                          CustomSerdezID serdez_id, ReductionOpID redop_id,
+                          MemPathInfo &info, bool skip_final_memcpy /*= false*/)
+  {
+    // make sure we write a fresh MemPathInfo
+    info.path.clear();
+    info.xd_channels.clear();
+    // info.xd_kinds.clear();
+    // info.xd_target_nodes.clear();
+
+    // fast case - can we go straight from src to dst?
+    XferDesKind kind;
+    Channel *channel = get_xfer_channel(nodes_info, src_mem, dst_mem, serdez_id,
+                                        serdez_id, redop_id, &kind);
+    if(channel) {
+      info.path.push_back(src_mem);
+      if(!skip_final_memcpy || (kind != XFER_MEM_CPY)) {
+        info.path.push_back(dst_mem);
+        // info.xd_kinds.push_back(kind);
+        info.xd_channels.push_back(channel);
+      }
+    } else {
+      std::map<Memory, std::vector<Memory>> dist;
+      std::map<Memory, std::vector<Channel *>> channels;
+      std::list<Memory> mems_left;
+      std::queue<Memory> active_nodes;
+      const Node &node = nodes_info[ID(src_mem).memory_owner_node()];
+      for(const IBMemory *ib_mem : node.ib_memories) {
+        mems_left.push_back(ib_mem->me);
+      }
+      if(ID(dst_mem).memory_owner_node() != ID(src_mem).memory_owner_node()) {
+        const Node &node = nodes_info[ID(dst_mem).memory_owner_node()];
         for(const IBMemory *ib_mem : node.ib_memories) {
           mems_left.push_back(ib_mem->me);
         }
-        if(ID(dst_mem).memory_owner_node() != ID(src_mem).memory_owner_node()) {
-          const Node &node = nodes_info[ID(dst_mem).memory_owner_node()];
-          for(const IBMemory *ib_mem : node.ib_memories) {
-            mems_left.push_back(ib_mem->me);
+      }
+      for(std::list<Memory>::iterator it = mems_left.begin(); it != mems_left.end();) {
+        // we know we're doing at least one hop, so no dst_serdez or redop here
+        channel = get_xfer_channel(nodes_info, src_mem, *it, serdez_id, 0, 0);
+        if(channel) {
+          std::vector<Memory> &v = dist[*it];
+          v.push_back(src_mem);
+          v.push_back(*it);
+          channels[*it].push_back(channel);
+          active_nodes.push(*it);
+          it = mems_left.erase(it);
+        } else
+          ++it;
+      }
+      while(true) {
+        if(active_nodes.empty())
+          return false;
+
+        Memory cur = active_nodes.front();
+        active_nodes.pop();
+        std::vector<Memory> sub_path = dist[cur];
+
+        // can we reach the destination from here (handling potential
+        //  deserialization or reduction)
+        channel =
+            get_xfer_channel(nodes_info, cur, dst_mem, 0, serdez_id, redop_id, &kind);
+        if(channel) {
+          info.path = dist[cur];
+          // info.xd_kinds = kinds[cur];
+          info.xd_channels = channels[cur];
+          if(!skip_final_memcpy || (kind != XFER_MEM_CPY)) {
+            info.path.push_back(dst_mem);
+            // info.xd_kinds.push_back(kind);
+            info.xd_channels.push_back(channel);
           }
+          break;
         }
+
+        // no, look for another intermediate hop
         for(std::list<Memory>::iterator it = mems_left.begin(); it != mems_left.end();) {
-          // we know we're doing at least one hop, so no dst_serdez or redop here
-          channel = get_xfer_channel(nodes_info, src_mem, *it, serdez_id, 0, 0);
+          channel = get_xfer_channel(nodes_info, cur, *it, 0, 0, 0);
           if(channel) {
             std::vector<Memory> &v = dist[*it];
-            v.push_back(src_mem);
+            v = dist[cur];
             v.push_back(*it);
-            channels[*it].push_back(channel);
+            // std::vector<XferDesKind>& k = kinds[*it];
+            // k = kinds[cur];
+            // k.push_back(kind);
+            std::vector<Channel *> &c = channels[*it];
+            c = channels[cur];
+            c.push_back(channel);
             active_nodes.push(*it);
             it = mems_left.erase(it);
           } else
             ++it;
         }
-        while(true) {
-          if(active_nodes.empty())
-            return false;
-
-          Memory cur = active_nodes.front();
-          active_nodes.pop();
-          std::vector<Memory> sub_path = dist[cur];
-
-          // can we reach the destination from here (handling potential
-          //  deserialization or reduction)
-          channel =
-              get_xfer_channel(nodes_info, cur, dst_mem, 0, serdez_id, redop_id, &kind);
-          if(channel) {
-            info.path = dist[cur];
-            // info.xd_kinds = kinds[cur];
-            info.xd_channels = channels[cur];
-            if(!skip_final_memcpy || (kind != XFER_MEM_CPY)) {
-              info.path.push_back(dst_mem);
-              // info.xd_kinds.push_back(kind);
-              info.xd_channels.push_back(channel);
-            }
-            break;
-          }
-
-          // no, look for another intermediate hop
-          for(std::list<Memory>::iterator it = mems_left.begin();
-              it != mems_left.end();) {
-            channel = get_xfer_channel(nodes_info, cur, *it, 0, 0, 0);
-            if(channel) {
-              std::vector<Memory> &v = dist[*it];
-              v = dist[cur];
-              v.push_back(*it);
-              // std::vector<XferDesKind>& k = kinds[*it];
-              // k = kinds[cur];
-              // k.push_back(kind);
-              std::vector<Channel *> &c = channels[*it];
-              c = channels[cur];
-              c.push_back(channel);
-              active_nodes.push(*it);
-              it = mems_left.erase(it);
-            } else
-              ++it;
-          }
-        }
       }
-
-      return true;
     }
+
+    return true;
+  }
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -786,15 +773,12 @@ namespace Realm {
   {}
 
   template <typename S>
-  /*static*/ TransferIterator *WrappingFIFOIterator::deserialize_new(S& deserializer)
+  /*static*/ TransferIterator *WrappingFIFOIterator::deserialize_new(S &deserializer)
   {
     size_t base, size, offset, prev_offset;
     bool tentative_valid;
-    if((deserializer >> base) &&
-       (deserializer >> size) &&
-       (deserializer >> offset) &&
-       (deserializer >> prev_offset) &&
-       (deserializer >> tentative_valid)) {
+    if((deserializer >> base) && (deserializer >> size) && (deserializer >> offset) &&
+       (deserializer >> prev_offset) && (deserializer >> tentative_valid)) {
       WrappingFIFOIterator *wfi = new WrappingFIFOIterator(base, size);
       wfi->offset = offset;
       wfi->prev_offset = prev_offset;
@@ -802,12 +786,9 @@ namespace Realm {
       return wfi;
     } else
       return 0;
-  }   
-
-  void WrappingFIFOIterator::reset(void)
-  {
-    offset = 0;
   }
+
+  void WrappingFIFOIterator::reset(void) { offset = 0; }
 
   bool WrappingFIFOIterator::done(void)
   {
@@ -817,9 +798,8 @@ namespace Realm {
 
   size_t WrappingFIFOIterator::get_base_offset(void) const { return 0; }
 
-  size_t WrappingFIFOIterator::step(size_t max_bytes, AddressInfo &info,
-				    unsigned flags,
-				    bool tentative /*= false*/)
+  size_t WrappingFIFOIterator::step(size_t max_bytes, AddressInfo &info, unsigned flags,
+                                    bool tentative /*= false*/)
   {
     assert(!tentative_valid);
 
@@ -846,8 +826,7 @@ namespace Realm {
     return bytes;
   }
 
-  size_t WrappingFIFOIterator::step_custom(size_t max_bytes,
-                                           AddressInfoCustom& info,
+  size_t WrappingFIFOIterator::step_custom(size_t max_bytes, AddressInfoCustom &info,
                                            bool tentative /*= false*/)
   {
     // not supported
@@ -880,8 +859,7 @@ namespace Realm {
     int dim = (lines > 1) ? 2 : 1;
     size_t *data = addrlist.begin_nd_entry(dim);
     if(!data)
-      return true;  // can't add more until some is consumed
-
+      return true; // can't add more until some is consumed
 
     // 1-D span from [base,base+size)
     data[0] = (size << 4) + 2 /*dim*/;
@@ -892,35 +870,33 @@ namespace Realm {
     }
     addrlist.commit_nd_entry(dim, size * lines);
 
-    return false;  // we can add more if asked
+    return false; // we can add more if asked
   }
 
-  /*static*/ Serialization::PolymorphicSerdezSubclass<TransferIterator, WrappingFIFOIterator> WrappingFIFOIterator::serdez_subclass;
+  /*static*/ Serialization::PolymorphicSerdezSubclass<TransferIterator,
+                                                      WrappingFIFOIterator>
+      WrappingFIFOIterator::serdez_subclass;
 
   template <typename S>
-  bool WrappingFIFOIterator::serialize(S& serializer) const
+  bool WrappingFIFOIterator::serialize(S &serializer) const
   {
-    return ((serializer << base) &&
-	    (serializer << size) &&
-	    (serializer << offset) &&
-	    (serializer << prev_offset) &&
-	    (serializer << tentative_valid));
+    return ((serializer << base) && (serializer << size) && (serializer << offset) &&
+            (serializer << prev_offset) && (serializer << tentative_valid));
   }
 
+  void start_dma_system(BackgroundWorkManager *bgwork)
+  {
+    aio_context = new AsyncFileIOContext(256);
+    aio_context->add_to_manager(bgwork);
+  }
 
-    void start_dma_system(BackgroundWorkManager *bgwork)
-    {
-      aio_context = new AsyncFileIOContext(256);
-      aio_context->add_to_manager(bgwork);
-    }
-
-    void stop_dma_system(void)
-    {
+  void stop_dma_system(void)
+  {
 #ifdef DEBUG_REALM
-      aio_context->shutdown_work_item();
+    aio_context->shutdown_work_item();
 #endif
-      delete aio_context;
-      aio_context = 0;
-    }
+    delete aio_context;
+    aio_context = 0;
+  }
 
-};
+}; // namespace Realm

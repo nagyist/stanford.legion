@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "realm.h"
 #include "realm/cmdline.h"
 
@@ -7,8 +24,9 @@
 
 using namespace Realm;
 
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
 };
 
 // The goal of this test is to confirm that several different Realm
@@ -24,10 +42,10 @@ struct SyncPrimitives {
   Barrier test_bar;
 };
 
-void top_level_task(const void *args, size_t arglen, 
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
-  const SyncPrimitives *primitives = (const SyncPrimitives*)args;
+  const SyncPrimitives *primitives = (const SyncPrimitives *)args;
   // Make sure that task launching synchronizes
   assert(x == 11);
   // Make sure that user-event triggers synchronzie with waits
@@ -35,7 +53,8 @@ void top_level_task(const void *args, size_t arglen,
   primitives->test_wait.trigger();
   // Make sure that user-event triggers synchronize with has_triggered
   primitives->test_triggered.subscribe();
-  while (!primitives->test_triggered.has_triggered()) { }
+  while(!primitives->test_triggered.has_triggered()) {
+  }
   assert(x == 1729);
   // Make sure that barrier arrive and wait synchronize
   x = 6174;
@@ -63,8 +82,8 @@ int main(int argc, char **argv)
   x = 11;
   // Collective launch a single task on each CPU processor of each node, that
   // just means this test will be done once on each node
-  Event e = rt.collective_spawn_by_kind(Processor::LOC_PROC, TOP_LEVEL_TASK,
-                      &primitives, sizeof(primitives), true/*one per node*/);
+  Event e = rt.collective_spawn_by_kind(Processor::LOC_PROC, TOP_LEVEL_TASK, &primitives,
+                                        sizeof(primitives), true /*one per node*/);
   // request shutdown once that task is complete
   rt.shutdown(e);
 
@@ -85,7 +104,6 @@ int main(int argc, char **argv)
   assert(y == 2520);
   // now sleep this thread until that shutdown actually happens
   rt.wait_for_shutdown();
-  
+
   return 0;
 }
-

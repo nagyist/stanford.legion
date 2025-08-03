@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,19 +35,22 @@ namespace Realm {
   //
 
   inline ByteArrayRef::ByteArrayRef(void)
-    : array_base(0), array_size(0)
+    : array_base(0)
+    , array_size(0)
   {}
 
   inline ByteArrayRef::ByteArrayRef(const void *ref_base, size_t ref_size)
-    : array_base(const_cast<void *>(ref_base)), array_size(ref_size)
+    : array_base(const_cast<void *>(ref_base))
+    , array_size(ref_size)
   {}
 
-  inline ByteArrayRef::ByteArrayRef(const ByteArrayRef& copy_from)
-    : array_base(copy_from.array_base), array_size(copy_from.array_size)
+  inline ByteArrayRef::ByteArrayRef(const ByteArrayRef &copy_from)
+    : array_base(copy_from.array_base)
+    , array_size(copy_from.array_size)
   {}
 
   // change what this ByteArrayRef refers to
-  inline ByteArrayRef& ByteArrayRef::changeref(const void *ref_base, size_t ref_size)
+  inline ByteArrayRef &ByteArrayRef::changeref(const void *ref_base, size_t ref_size)
   {
     array_base = const_cast<void *>(ref_base);
     array_size = ref_size;
@@ -53,26 +58,18 @@ namespace Realm {
   }
 
   // access to base pointer and size
-  inline const void *ByteArrayRef::base(void) const
-  {
-    return array_base;
-  }
+  inline const void *ByteArrayRef::base(void) const { return array_base; }
 
-  inline size_t ByteArrayRef::size(void) const
-  {
-    return array_size;
-  }
+  inline size_t ByteArrayRef::size(void) const { return array_size; }
 
   // helper to access bytes as typed references
   template <typename T>
-  const T& ByteArrayRef::at(size_t offset) const
+  const T &ByteArrayRef::at(size_t offset) const
   {
     // always range check?
     assert((offset + sizeof(T)) <= array_size);
     return *static_cast<const T *>(static_cast<char *>(array_base) + offset);
   }
-
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -80,46 +77,43 @@ namespace Realm {
   //
 
   inline ByteArray::ByteArray(void)
-  : ByteArrayRef()
+    : ByteArrayRef()
   {}
 
   inline ByteArray::ByteArray(const void *copy_from, size_t copy_size)
-  : ByteArrayRef()
+    : ByteArrayRef()
   {
     make_copy(copy_from, copy_size);
   }
 
-  inline ByteArray::ByteArray(const ByteArray& copy_from)
-  : ByteArrayRef()
+  inline ByteArray::ByteArray(const ByteArray &copy_from)
+    : ByteArrayRef()
   {
     make_copy(copy_from.array_base, copy_from.array_size);
   }
 
-  inline ByteArray::ByteArray(const ByteArrayRef& copy_from)
-  : ByteArrayRef()
+  inline ByteArray::ByteArray(const ByteArrayRef &copy_from)
+    : ByteArrayRef()
   {
     make_copy(copy_from.base(), copy_from.size());
   }
 
-  inline ByteArray::~ByteArray(void)
-  {
-    clear();
-  }
+  inline ByteArray::~ByteArray(void) { clear(); }
 
   // copies the contents of the rhs ByteArray
-  inline ByteArray& ByteArray::operator=(const ByteArrayRef& copy_from)
+  inline ByteArray &ByteArray::operator=(const ByteArrayRef &copy_from)
   {
     if(this != &copy_from) {
-      clear();  // throw away any data we had before
+      clear(); // throw away any data we had before
       make_copy(copy_from.base(), copy_from.size());
     }
     return *this;
   }
 
-  inline ByteArray& ByteArray::operator=(const ByteArray& copy_from)
+  inline ByteArray &ByteArray::operator=(const ByteArray &copy_from)
   {
     if(this != &copy_from) {
-      clear();  // throw away any data we had before
+      clear(); // throw away any data we had before
       make_copy(copy_from.base(), copy_from.size());
     }
     return *this;
@@ -128,7 +122,7 @@ namespace Realm {
   // swaps the contents of two ByteArrays - returns a reference to the first one
   // this allows you to transfer ownership of a byte array to a called function via:
   //   ByteArray().swap(old_array)
-  inline ByteArray& ByteArray::swap(ByteArray& swap_with)
+  inline ByteArray &ByteArray::swap(ByteArray &swap_with)
   {
     std::swap(array_base, swap_with.array_base);
     std::swap(array_size, swap_with.array_size);
@@ -136,27 +130,21 @@ namespace Realm {
   }
 
   // copy raw data in
-  inline ByteArray& ByteArray::set(const void *copy_from, size_t copy_size)
+  inline ByteArray &ByteArray::set(const void *copy_from, size_t copy_size)
   {
-    clear();  // throw away any data we had before
+    clear(); // throw away any data we had before
     make_copy(copy_from, copy_size);
     return *this;
   }
 
   // access to base pointer and size
-  inline void *ByteArray::base(void)
-  {
-    return array_base;
-  }
+  inline void *ByteArray::base(void) { return array_base; }
 
-  inline const void *ByteArray::base(void) const
-  {
-    return array_base;
-  }
+  inline const void *ByteArray::base(void) const { return array_base; }
 
   // helper to access bytes as typed references
   template <typename T>
-  T& ByteArray::at(size_t offset)
+  T &ByteArray::at(size_t offset)
   {
     // always range check?
     assert((offset + sizeof(T)) <= array_size);
@@ -164,7 +152,7 @@ namespace Realm {
   }
 
   template <typename T>
-  const T& ByteArray::at(size_t offset) const
+  const T &ByteArray::at(size_t offset) const
   {
     // always range check?
     assert((offset + sizeof(T)) <= array_size);
@@ -172,17 +160,18 @@ namespace Realm {
   }
 
   // give ownership of a buffer to a ByteArray
-  inline ByteArray& ByteArray::attach(void *new_base, size_t new_size)
+  inline ByteArray &ByteArray::attach(void *new_base, size_t new_size)
   {
-    clear();  // throw away any data we had before
+    clear(); // throw away any data we had before
     if(new_size) {
       array_base = new_base;
       assert(array_base != 0);
       array_size = new_size;
     } else {
-      // if we were given ownership of a 0-length allocation, free it rather than leaking it
+      // if we were given ownership of a 0-length allocation, free it rather than leaking
+      // it
       if(new_base)
-	free(new_base);
+        free(new_base);
     }
     return *this;
   }
@@ -224,31 +213,31 @@ namespace Realm {
 
   // support for realm-style serialization
   template <typename S>
-  bool serialize(S& serdez, const ByteArrayRef& a)
+  bool serialize(S &serdez, const ByteArrayRef &a)
   {
-    return((serdez << a.size()) &&
-	   ((a.size() == 0) ||
-	    serdez.append_bytes(a.base(), a.size())));
+    return ((serdez << a.size()) &&
+            ((a.size() == 0) || serdez.append_bytes(a.base(), a.size())));
   }
 
   template <typename S>
-  bool serialize(S& serdez, const ByteArray& a)
+  bool serialize(S &serdez, const ByteArray &a)
   {
-    return serialize(serdez, static_cast<const ByteArrayRef&>(a));
+    return serialize(serdez, static_cast<const ByteArrayRef &>(a));
   }
 
   template <typename S>
-  bool deserialize(S& serdez, ByteArray& a)
+  bool deserialize(S &serdez, ByteArray &a)
   {
     size_t new_size;
-    if(!(serdez >> new_size)) return false;
+    if(!(serdez >> new_size))
+      return false;
     void *new_base = 0;
     if(new_size) {
       new_base = malloc(new_size);
       assert(new_base != 0);
       if(!serdez.extract_bytes(new_base, new_size)) {
-	free(new_base);  // no leaks plz
-	return false;
+        free(new_base); // no leaks plz
+        return false;
       }
     }
     a.attach(new_base, new_size);

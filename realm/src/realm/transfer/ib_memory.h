@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,27 +42,24 @@ namespace Realm {
 
     // not used by IB memories
     virtual AllocationResult allocate_storage_immediate(RegionInstanceImpl *inst,
-							bool need_alloc_result,
-							bool poisoned,
-							TimeLimit work_until);
+                                                        bool need_alloc_result,
+                                                        bool poisoned,
+                                                        TimeLimit work_until);
 
-    virtual void release_storage_immediate(RegionInstanceImpl *inst,
-					   bool poisoned,
-					   TimeLimit work_until);
+    virtual void release_storage_immediate(RegionInstanceImpl *inst, bool poisoned,
+                                           TimeLimit work_until);
 
     virtual void get_bytes(off_t offset, void *dst, size_t size);
     virtual void put_bytes(off_t offset, const void *src, size_t size);
 
     // attempts to allocate one or more IBs - either all succeed or all fail
-    bool attempt_immediate_allocation(NodeID requestor, uintptr_t req_op,
-                                      size_t count, const size_t *sizes,
-                                      off_t *offsets);
+    bool attempt_immediate_allocation(NodeID requestor, uintptr_t req_op, size_t count,
+                                      const size_t *sizes, off_t *offsets);
 
     // enqueues a batch of PendingIBRequests to be satisfied as soon as possible
     void enqueue_requests(PendingIBRequests *reqs);
 
-    void free_multiple(size_t count,
-                       const off_t *offsets, const size_t *sizes);
+    void free_multiple(size_t count, const off_t *offsets, const size_t *sizes);
 
   protected:
     // these must be called with the mutex held
@@ -88,8 +87,7 @@ namespace Realm {
     unsigned req_index;
     bool immediate;
 
-    static void handle_message(NodeID sender,
-                               const RemoteIBAllocRequestSingle &args,
+    static void handle_message(NodeID sender, const RemoteIBAllocRequestSingle &args,
                                const void *data, size_t msglen);
   };
 
@@ -99,8 +97,7 @@ namespace Realm {
     uintptr_t req_op;
     bool immediate;
 
-    static void handle_message(NodeID sender,
-                               const RemoteIBAllocRequestMultiple &args,
+    static void handle_message(NodeID sender, const RemoteIBAllocRequestMultiple &args,
                                const void *data, size_t msglen);
   };
 
@@ -109,18 +106,15 @@ namespace Realm {
     unsigned req_index;
     off_t offset;
 
-    static void handle_message(NodeID sender,
-                               const RemoteIBAllocResponseSingle &args,
+    static void handle_message(NodeID sender, const RemoteIBAllocResponseSingle &args,
                                const void *data, size_t msglen);
   };
-
 
   struct RemoteIBAllocResponseMultiple {
     uintptr_t req_op;
     unsigned count, first_index;
 
-    static void handle_message(NodeID sender,
-                               const RemoteIBAllocResponseMultiple &args,
+    static void handle_message(NodeID sender, const RemoteIBAllocResponseMultiple &args,
                                const void *data, size_t msglen);
   };
 
@@ -129,16 +123,14 @@ namespace Realm {
     size_t size;
     off_t offset;
 
-    static void handle_message(NodeID sender,
-                               const RemoteIBReleaseSingle &args,
+    static void handle_message(NodeID sender, const RemoteIBReleaseSingle &args,
                                const void *data, size_t msglen);
   };
 
   struct RemoteIBReleaseMultiple {
     unsigned count;
 
-    static void handle_message(NodeID sender,
-                               const RemoteIBReleaseMultiple &args,
+    static void handle_message(NodeID sender, const RemoteIBReleaseMultiple &args,
                                const void *data, size_t msglen);
   };
 

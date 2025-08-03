@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +46,8 @@ namespace Realm {
   struct RemoteAddress {
     union {
       struct {
-	uintptr_t ptr;
-	uintptr_t extra;
+        uintptr_t ptr;
+        uintptr_t extra;
       };
       unsigned char raw_bytes[384];
     };
@@ -87,24 +89,20 @@ namespace Realm {
     T broadcast(NodeID root, T val);
 
     template <typename T>
-    void gather(NodeID root, T val, std::vector<T>& result);
+    void gather(NodeID root, T val, std::vector<T> &result);
     template <typename T>
-    void gather(NodeID root, T val);  // for non-root participants
+    void gather(NodeID root, T val); // for non-root participants
 
     // untyped versions
     void broadcast(NodeID root, const void *val_in, void *val_out, size_t bytes);
     void gather(NodeID root, const void *val_in, void *vals_out, size_t bytes);
 
     // for sending active messages
-    ActiveMessageImpl *create_active_message_impl(NodeID target,
-						  unsigned short msgid,
-						  size_t header_size,
-						  size_t max_payload_size,
-						  const void *src_payload_addr,
-						  size_t src_payload_lines,
-						  size_t src_payload_line_stride,
-						  void *storage_base,
-						  size_t storage_size);
+    ActiveMessageImpl *
+    create_active_message_impl(NodeID target, unsigned short msgid, size_t header_size,
+                               size_t max_payload_size, const void *src_payload_addr,
+                               size_t src_payload_lines, size_t src_payload_line_stride,
+                               void *storage_base, size_t storage_size);
 
     ActiveMessageImpl *create_active_message_impl(
         NodeID target, unsigned short msgid, size_t header_size, size_t max_payload_size,
@@ -116,54 +114,43 @@ namespace Realm {
         NodeID target, unsigned short msgid, size_t header_size, size_t max_payload_size,
         const RemoteAddress &dest_payload_addr, void *storage_base, size_t storage_size);
 
-    ActiveMessageImpl *create_active_message_impl(const NodeSet& targets,
-						  unsigned short msgid,
-						  size_t header_size,
-						  size_t max_payload_size,
-						  const void *src_payload_addr,
-						  size_t src_payload_lines,
-						  size_t src_payload_line_stride,
-						  void *storage_base,
-						  size_t storage_size);
+    ActiveMessageImpl *create_active_message_impl(
+        const NodeSet &targets, unsigned short msgid, size_t header_size,
+        size_t max_payload_size, const void *src_payload_addr, size_t src_payload_lines,
+        size_t src_payload_line_stride, void *storage_base, size_t storage_size);
 
     size_t recommended_max_payload(NodeID target, bool with_congestion,
-				   size_t header_size);
-    size_t recommended_max_payload(const NodeSet& targets,
-				   bool with_congestion,
-				   size_t header_size);
-    size_t recommended_max_payload(NodeID target,
-				   const RemoteAddress& dest_payload_addr,
-				   bool with_congestion,
-				   size_t header_size);
-    size_t recommended_max_payload(NodeID target,
-				   const void *data, size_t bytes_per_line,
-				   size_t lines, size_t line_stride,
-				   bool with_congestion,
-				   size_t header_size);
-    size_t recommended_max_payload(const NodeSet& targets,
-				   const void *data, size_t bytes_per_line,
-				   size_t lines, size_t line_stride,
-				   bool with_congestion,
-				   size_t header_size);
+                                   size_t header_size);
+    size_t recommended_max_payload(const NodeSet &targets, bool with_congestion,
+                                   size_t header_size);
+    size_t recommended_max_payload(NodeID target, const RemoteAddress &dest_payload_addr,
+                                   bool with_congestion, size_t header_size);
+    size_t recommended_max_payload(NodeID target, const void *data, size_t bytes_per_line,
+                                   size_t lines, size_t line_stride, bool with_congestion,
+                                   size_t header_size);
+    size_t recommended_max_payload(const NodeSet &targets, const void *data,
+                                   size_t bytes_per_line, size_t lines,
+                                   size_t line_stride, bool with_congestion,
+                                   size_t header_size);
     size_t recommended_max_payload(NodeID target, const LocalAddress &src_payload_addr,
                                    size_t bytes_per_line, size_t lines,
                                    size_t line_stride,
                                    const RemoteAddress &dest_payload_addr,
                                    bool with_congestion, size_t header_size);
-  };
+  }; // namespace Network
 
   // a network module provides additional functionality on top of a normal Realm
   //  module
   class REALM_INTERNAL_API_EXTERNAL_LINKAGE NetworkModule : public Module {
   protected:
-    NetworkModule(const std::string& _name);
+    NetworkModule(const std::string &_name);
 
   public:
     // all subclasses should define this (static) method - its responsibilities
     // are:
     // 1) determine if the network module should even be loaded
     // 2) fix the command line if the spawning system hijacked it
-    //static NetworkModule *create_network_module(RuntimeImpl *runtime,
+    // static NetworkModule *create_network_module(RuntimeImpl *runtime,
     //                                            int *argc, const char ***argv);
 
     // Enumerates all the peers that the current node could potentially share memory with
@@ -172,24 +159,24 @@ namespace Realm {
     // actual parsing of the command line should wait until here if at all
     //  possible
     virtual void parse_command_line(RuntimeImpl *runtime,
-				    std::vector<std::string>& cmdline);
+                                    std::vector<std::string> &cmdline);
 
     // "attaches" to the network, if that is meaningful - attempts to
     //  bind/register/(pick your network-specific verb) the requested memory
     //  segments with the network
     virtual void attach(RuntimeImpl *runtime,
-			std::vector<NetworkSegment *>& segments) = 0;
+                        std::vector<NetworkSegment *> &segments) = 0;
 
     // detaches from the network
     virtual void detach(RuntimeImpl *runtime,
-			std::vector<NetworkSegment *>& segments) = 0;
+                        std::vector<NetworkSegment *> &segments) = 0;
 
     // collective communication within this network
     virtual void barrier(void) = 0;
-    virtual void broadcast(NodeID root,
-			   const void *val_in, void *val_out, size_t bytes) = 0;
-    virtual void gather(NodeID root,
-			const void *val_in, void *vals_out, size_t bytes) = 0;
+    virtual void broadcast(NodeID root, const void *val_in, void *val_out,
+                           size_t bytes) = 0;
+    virtual void gather(NodeID root, const void *val_in, void *vals_out,
+                        size_t bytes) = 0;
     virtual void allgatherv(const char *val_in, size_t bytes, std::vector<char> &vals_out,
                             std::vector<size_t> &lengths) = 0;
 
@@ -204,15 +191,11 @@ namespace Realm {
                                               Memory::Kind kind,
                                               const ByteArray &rdma_info) = 0;
 
-    virtual ActiveMessageImpl *create_active_message_impl(NodeID target,
-							  unsigned short msgid,
-							  size_t header_size,
-							  size_t max_payload_size,
-							  const void *src_payload_addr,
-							  size_t src_payload_lines,
-							  size_t src_payload_line_stride,
-							  void *storage_base,
-							  size_t storage_size) = 0;
+    virtual ActiveMessageImpl *
+    create_active_message_impl(NodeID target, unsigned short msgid, size_t header_size,
+                               size_t max_payload_size, const void *src_payload_addr,
+                               size_t src_payload_lines, size_t src_payload_line_stride,
+                               void *storage_base, size_t storage_size) = 0;
 
     virtual ActiveMessageImpl *create_active_message_impl(
         NodeID target, unsigned short msgid, size_t header_size, size_t max_payload_size,
@@ -226,36 +209,26 @@ namespace Realm {
                                const RemoteAddress &dest_payload_addr, void *storage_base,
                                size_t storage_size) = 0;
 
-    virtual ActiveMessageImpl *create_active_message_impl(const NodeSet& targets,
-							  unsigned short msgid,
-							  size_t header_size,
-							  size_t max_payload_size,
-							  const void *src_payload_addr,
-							  size_t src_payload_lines,
-							  size_t src_payload_line_stride,
-							  void *storage_base,
-							  size_t storage_size) = 0;
+    virtual ActiveMessageImpl *create_active_message_impl(
+        const NodeSet &targets, unsigned short msgid, size_t header_size,
+        size_t max_payload_size, const void *src_payload_addr, size_t src_payload_lines,
+        size_t src_payload_line_stride, void *storage_base, size_t storage_size) = 0;
 
+    virtual size_t recommended_max_payload(NodeID target, bool with_congestion,
+                                           size_t header_size) = 0;
+    virtual size_t recommended_max_payload(const NodeSet &targets, bool with_congestion,
+                                           size_t header_size) = 0;
     virtual size_t recommended_max_payload(NodeID target,
-					   bool with_congestion,
-					   size_t header_size) = 0;
-    virtual size_t recommended_max_payload(const NodeSet& targets,
-					   bool with_congestion,
-					   size_t header_size) = 0;
-    virtual size_t recommended_max_payload(NodeID target,
-					   const RemoteAddress& dest_payload_addr,
-					   bool with_congestion,
-					   size_t header_size) = 0;
-    virtual size_t recommended_max_payload(NodeID target,
-					   const void *data, size_t bytes_per_line,
-					   size_t lines, size_t line_stride,
-					   bool with_congestion,
-					   size_t header_size) = 0;
-    virtual size_t recommended_max_payload(const NodeSet& targets,
-					   const void *data, size_t bytes_per_line,
-					   size_t lines, size_t line_stride,
-					   bool with_congestion,
-					   size_t header_size) = 0;
+                                           const RemoteAddress &dest_payload_addr,
+                                           bool with_congestion, size_t header_size) = 0;
+    virtual size_t recommended_max_payload(NodeID target, const void *data,
+                                           size_t bytes_per_line, size_t lines,
+                                           size_t line_stride, bool with_congestion,
+                                           size_t header_size) = 0;
+    virtual size_t recommended_max_payload(const NodeSet &targets, const void *data,
+                                           size_t bytes_per_line, size_t lines,
+                                           size_t line_stride, bool with_congestion,
+                                           size_t header_size) = 0;
     virtual size_t recommended_max_payload(NodeID target,
                                            const LocalAddress &src_payload_addr,
                                            size_t bytes_per_line, size_t lines,
@@ -284,7 +257,7 @@ namespace Realm {
       // registration should be performed on-demand rather than eagerly
       static const FlagsType OnDemandRegistration = 1U << 0;
     };
-  };
+  }; // namespace NetworkSegmentInfo
 
   class REALM_INTERNAL_API_EXTERNAL_LINKAGE NetworkSegment {
   public:
@@ -300,7 +273,7 @@ namespace Realm {
                 NetworkSegmentInfo::MemoryTypeExtraData _memextra = 0,
                 NetworkSegmentInfo::FlagsType _flags = 0);
 
-    void *base;  // once this is non-null, it cannot be changed
+    void *base; // once this is non-null, it cannot be changed
     size_t bytes, alignment;
     NetworkSegmentInfo::MemoryType memtype;
     NetworkSegmentInfo::MemoryTypeExtraData memextra;
@@ -314,8 +287,7 @@ namespace Realm {
     //  whatever data (if any) that network needs to track the binding
     std::map<NetworkModule *, ByteArray> networks;
 
-    void add_rdma_info(NetworkModule *network,
-		       const void *data, size_t len);
+    void add_rdma_info(NetworkModule *network, const void *data, size_t len);
     const ByteArray *get_rdma_info(NetworkModule *network) const;
 
     // returns whether the segment is registered for all networks,

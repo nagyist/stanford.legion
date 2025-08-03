@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,37 +38,38 @@ namespace Realm {
   };
 
   template <int N, typename T>
-  class REALM_PUBLIC_API CudaArrayLayoutPiece :
-    public InstanceLayoutPiece<N,T>, public CudaArrayPieceInfo {
+  class REALM_PUBLIC_API CudaArrayLayoutPiece : public InstanceLayoutPiece<N, T>,
+                                                public CudaArrayPieceInfo {
   public:
     CudaArrayLayoutPiece(void);
 
     template <typename S>
-    static InstanceLayoutPiece<N,T> *deserialize_new(S& deserializer);
+    static InstanceLayoutPiece<N, T> *deserialize_new(S &deserializer);
 
-    virtual InstanceLayoutPiece<N,T> *clone(void) const;
+    virtual InstanceLayoutPiece<N, T> *clone(void) const;
 
-    virtual size_t calculate_offset(const Point<N,T>& p) const;
+    virtual size_t calculate_offset(const Point<N, T> &p) const;
 
     virtual void relocate(size_t base_offset);
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
     virtual size_t lookup_inst_size() const;
     virtual PieceLookup::Instruction *create_lookup_inst(void *ptr,
-							 unsigned next_delta) const ;
+                                                         unsigned next_delta) const;
 
-    static Serialization::PolymorphicSerdezSubclass<InstanceLayoutPiece<N,T>, CudaArrayLayoutPiece<N,T> > serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<InstanceLayoutPiece<N, T>,
+                                                    CudaArrayLayoutPiece<N, T>>
+        serdez_subclass;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
   };
-
 
   namespace PieceLookup {
 
     namespace Opcodes {
-      static const Opcode OP_CUDA_ARRAY_PIECE = 4;  // this is an CudaArrayPiece<N,T>
+      static const Opcode OP_CUDA_ARRAY_PIECE = 4; // this is an CudaArrayPiece<N,T>
     }
 
     static const unsigned ALLOW_CUDA_ARRAY_PIECE = 1U << Opcodes::OP_CUDA_ARRAY_PIECE;
@@ -87,14 +90,13 @@ namespace Realm {
       const Instruction *next() const;
     };
 
-  };
+  }; // namespace PieceLookup
 
   class REALM_PUBLIC_API ExternalCudaMemoryResource : public ExternalInstanceResource {
   public:
     ExternalCudaMemoryResource(int _cuda_device_id, uintptr_t _base,
                                size_t _size_in_bytes, bool _read_only);
-    ExternalCudaMemoryResource(int _cuda_device_id, void *_base,
-                               size_t _size_in_bytes);
+    ExternalCudaMemoryResource(int _cuda_device_id, void *_base, size_t _size_in_bytes);
     ExternalCudaMemoryResource(int _cuda_device_id, const void *_base,
                                size_t _size_in_bytes);
 
@@ -106,17 +108,19 @@ namespace Realm {
     virtual ExternalInstanceResource *clone(void) const;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
 
     template <typename S>
-    static ExternalInstanceResource *deserialize_new(S& deserializer);
+    static ExternalInstanceResource *deserialize_new(S &deserializer);
 
   protected:
     ExternalCudaMemoryResource();
 
-    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource, ExternalCudaMemoryResource> serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource,
+                                                    ExternalCudaMemoryResource>
+        serdez_subclass;
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
   public:
     int cuda_device_id;
@@ -138,17 +142,19 @@ namespace Realm {
     virtual ExternalInstanceResource *clone(void) const;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
 
     template <typename S>
-    static ExternalInstanceResource *deserialize_new(S& deserializer);
+    static ExternalInstanceResource *deserialize_new(S &deserializer);
 
   protected:
     ExternalCudaArrayResource();
 
-    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource, ExternalCudaArrayResource> serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource,
+                                                    ExternalCudaArrayResource>
+        serdez_subclass;
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
 
   public:
     int cuda_device_id;
@@ -157,7 +163,8 @@ namespace Realm {
 
   class REALM_PUBLIC_API ExternalCudaPinnedHostResource : public ExternalMemoryResource {
   public:
-    ExternalCudaPinnedHostResource(uintptr_t _base, size_t _size_in_bytes, bool _read_only);
+    ExternalCudaPinnedHostResource(uintptr_t _base, size_t _size_in_bytes,
+                                   bool _read_only);
     ExternalCudaPinnedHostResource(void *_base, size_t _size_in_bytes);
     ExternalCudaPinnedHostResource(const void *_base, size_t _size_in_bytes);
 
@@ -167,17 +174,19 @@ namespace Realm {
     virtual ExternalInstanceResource *clone(void) const;
 
     template <typename S>
-    bool serialize(S& serializer) const;
+    bool serialize(S &serializer) const;
 
     template <typename S>
-    static ExternalInstanceResource *deserialize_new(S& deserializer);
+    static ExternalInstanceResource *deserialize_new(S &deserializer);
 
   protected:
     ExternalCudaPinnedHostResource();
 
-    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource, ExternalCudaPinnedHostResource> serdez_subclass;
+    static Serialization::PolymorphicSerdezSubclass<ExternalInstanceResource,
+                                                    ExternalCudaPinnedHostResource>
+        serdez_subclass;
 
-    virtual void print(std::ostream& os) const;
+    virtual void print(std::ostream &os) const;
   };
 
 }; // namespace Realm

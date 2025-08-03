@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +34,8 @@ Logger log_app("app");
 // Other experiments:
 // - Use partitioning API
 
-enum {
+enum
+{
   TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   INIT_VECTOR_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 1,
   CPU_SAXPY_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 2,
@@ -43,13 +46,14 @@ enum {
 
 // global configuration parameters
 namespace TestConfig {
-size_t num_elements = 32768;
-int iterations = 2;
-bool prefetch = false;
+  size_t num_elements = 32768;
+  int iterations = 2;
+  bool prefetch = false;
 }; // namespace TestConfig
 
-void profiling_task(const void *args, size_t arglen, const void *userdata,
-                    size_t userlen, Processor p) {
+void profiling_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
+{
   ProfilingResponse pr(args, arglen);
 
   // expecting the iteration number in the _profile_response_'s user data
@@ -58,53 +62,59 @@ void profiling_task(const void *args, size_t arglen, const void *userdata,
 
   using namespace realm::ProfilingMeasurements;
   OperationTimeline timeline;
-  if (pr.get_measurement(timeline)) {
+  if(pr.get_measurement(timeline)) {
     // use the 'complete_time' instead of 'end_time' to account for deferred
     //  kernel execution on the GPU
     long long elapsed_ns = timeline.complete_time - timeline.start_time;
     // each element reads x/y/z, writes z
-    double bw_gbs =
-        double(TestConfig::num_elements * sizeof(float) * 4) / elapsed_ns;
+    double bw_gbs = double(TestConfig::num_elements * sizeof(float) * 4) / elapsed_ns;
     log_app.print() << "iteration " << iteration << ": elapsed=" << elapsed_ns
                     << " ns, bw=" << bw_gbs << " GB/s";
   }
 }
 
-void find_processors(Processor &first_cpu, Processor &first_gpu) {
+void find_processors(Processor &first_cpu, Processor &first_gpu)
+{
   // Print out our processors and their kinds
   // Remember the first CPU and GPU processor
   Machine machine = Machine::get_machine();
   std::set<Processor> all_procs;
   machine.get_all_processors(all_procs);
-  for (std::set<Processor>::const_iterator it = all_procs.begin();
-       it != all_procs.end(); it++) {
+  for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+      it++) {
     Processor::Kind kind = it->kind();
-    switch (kind) {
-    case Processor::LOC_PROC: {
-      if (!first_cpu.exists())
+    switch(kind) {
+    case Processor::LOC_PROC:
+    {
+      if(!first_cpu.exists())
         first_cpu = *it;
       log_app.print() << "CPU processor: " << *it;
       break;
     }
-    case Processor::TOC_PROC: {
-      if (!first_gpu.exists())
+    case Processor::TOC_PROC:
+    {
+      if(!first_gpu.exists())
         first_gpu = *it;
       log_app.print() << "GPU processor: " << *it;
       break;
     }
-    case Processor::UTIL_PROC: {
+    case Processor::UTIL_PROC:
+    {
       log_app.print() << "utility processor: " << *it;
       break;
     }
-    case Processor::IO_PROC: {
+    case Processor::IO_PROC:
+    {
       log_app.print() << "I/O processor: " << *it;
       break;
     }
-    case Processor::PROC_GROUP: {
+    case Processor::PROC_GROUP:
+    {
       log_app.print() << "processor group: " << *it;
       break;
     }
-    default: {
+    default:
+    {
       log_app.print() << "unknown processor: " << *it;
       break;
     }
@@ -112,22 +122,24 @@ void find_processors(Processor &first_cpu, Processor &first_gpu) {
   }
 }
 
-void find_memories(Processor cpu, Processor gpu, Memory &system,
-                   Memory &framebuffer, Memory &managed, Memory &zerocopy) {
+void find_memories(Processor cpu, Processor gpu, Memory &system, Memory &framebuffer,
+                   Memory &managed, Memory &zerocopy)
+{
   Machine machine = Machine::get_machine();
   std::set<Memory> visible_mems;
   machine.get_visible_memories(cpu, visible_mems);
-  for (std::set<Memory>::const_iterator it = visible_mems.begin();
-       it != visible_mems.end(); it++) {
+  for(std::set<Memory>::const_iterator it = visible_mems.begin();
+      it != visible_mems.end(); it++) {
     // skip memories with no capacity for creating instances
-    if (it->capacity() == 0)
+    if(it->capacity() == 0)
       continue;
 
     Memory::Kind kind = it->kind();
-    switch (kind) {
+    switch(kind) {
     case Memory::SYSTEM_MEM:
     case Memory::SOCKET_MEM:
-    case Memory::REGDMA_MEM: {
+    case Memory::REGDMA_MEM:
+    {
       system = *it;
       log_app.print() << "system memory: " << *it
                       << " capacity=" << (it->capacity() >> 20) << " MB";
@@ -138,26 +150,29 @@ void find_memories(Processor cpu, Processor gpu, Memory &system,
     }
   }
 
-  if (gpu.exists()) {
+  if(gpu.exists()) {
     visible_mems.clear();
     machine.get_visible_memories(gpu, visible_mems);
-    for (std::set<Memory>::const_iterator it = visible_mems.begin();
-         it != visible_mems.end(); it++) {
+    for(std::set<Memory>::const_iterator it = visible_mems.begin();
+        it != visible_mems.end(); it++) {
       Memory::Kind kind = it->kind();
-      switch (kind) {
-      case Memory::GPU_FB_MEM: {
+      switch(kind) {
+      case Memory::GPU_FB_MEM:
+      {
         framebuffer = *it;
         log_app.print() << "framebuffer memory: " << *it
                         << " capacity=" << (it->capacity() >> 20) << " MB";
         break;
       }
-      case Memory::Z_COPY_MEM: {
+      case Memory::Z_COPY_MEM:
+      {
         zerocopy = *it;
         log_app.print() << "zero-copy memory: " << *it
                         << " capacity=" << (it->capacity() >> 20) << " MB";
         break;
       }
-      case Memory::GPU_MANAGED_MEM: {
+      case Memory::GPU_MANAGED_MEM:
+      {
         managed = *it;
         log_app.print() << "managed memory: " << *it
                         << " capacity=" << (it->capacity() >> 20) << " MB";
@@ -170,8 +185,9 @@ void find_memories(Processor cpu, Processor gpu, Memory &system,
   }
 }
 
-void top_level_task(const void *args, size_t arglen, const void *userdata,
-                    size_t userlen, Processor p) {
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
+{
   Processor first_cpu = Processor::NO_PROC;
   Processor first_gpu = Processor::NO_PROC;
   find_processors(first_cpu, first_gpu);
@@ -191,8 +207,8 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
   field_sizes[FID_Z] = sizeof(float);
 
   RegionInstance cpu_inst;
-  RegionInstance::create_instance(cpu_inst, system_mem, bounds, field_sizes,
-                                  0 /*SOA*/, ProfilingRequestSet())
+  RegionInstance::create_instance(cpu_inst, system_mem, bounds, field_sizes, 0 /*SOA*/,
+                                  ProfilingRequestSet())
       .wait();
 
   log_app.print() << "created system memory instance: " << cpu_inst;
@@ -217,15 +233,15 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
   {
     std::vector<CopySrcDstField> fill_vec;
     fill_vec.push_back(cpu_x_field);
-    fill_x = bounds.fill(fill_vec, ProfilingRequestSet(), &init_x_value,
-                         sizeof(init_x_value));
+    fill_x =
+        bounds.fill(fill_vec, ProfilingRequestSet(), &init_x_value, sizeof(init_x_value));
   }
   Event fill_y;
   {
     std::vector<CopySrcDstField> fill_vec;
     fill_vec.push_back(cpu_y_field);
-    fill_y = bounds.fill(fill_vec, ProfilingRequestSet(), &init_y_value,
-                         sizeof(init_y_value));
+    fill_y =
+        bounds.fill(fill_vec, ProfilingRequestSet(), &init_y_value, sizeof(init_y_value));
   }
 
   Event z_ready = Event::NO_EVENT;
@@ -235,22 +251,21 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
   saxpy_args.z_inst = cpu_inst;
   saxpy_args.alpha = drand48();
   saxpy_args.bounds = bounds;
-  if (first_gpu.exists()) {
+  if(first_gpu.exists()) {
     // Run the computation on the GPU
     // Make instances on the GPU
     RegionInstance gpu_inst;
-    while (true) {
+    while(true) {
       // plan A: framebuffer memory
-      if (framebuffer_mem.exists()) {
-        Event e = RegionInstance::create_instance(
-            gpu_inst, framebuffer_mem, bounds, field_sizes, 0 /*SOA*/,
-            ProfilingRequestSet());
+      if(framebuffer_mem.exists()) {
+        Event e = RegionInstance::create_instance(gpu_inst, framebuffer_mem, bounds,
+                                                  field_sizes, 0 /*SOA*/,
+                                                  ProfilingRequestSet());
         // a failed allocation will result in a "poisoned" completion event
         bool poisoned;
         e.wait_faultaware(poisoned);
-        if (!poisoned) {
-          log_app.print() << "created framebuffer memory instance: "
-                          << cpu_inst;
+        if(!poisoned) {
+          log_app.print() << "created framebuffer memory instance: " << cpu_inst;
           break;
         } else {
           log_app.print() << "unsufficient framebuffer memory for instance";
@@ -258,14 +273,13 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
       }
 
       // plan B: managed memory
-      if (managed_mem.exists()) {
-        Event e = RegionInstance::create_instance(gpu_inst, managed_mem, bounds,
-                                                  field_sizes, 0 /*SOA*/,
-                                                  ProfilingRequestSet());
+      if(managed_mem.exists()) {
+        Event e = RegionInstance::create_instance(
+            gpu_inst, managed_mem, bounds, field_sizes, 0 /*SOA*/, ProfilingRequestSet());
         // a failed allocation will result in a "poisoned" completion event
         bool poisoned;
         e.wait_faultaware(poisoned);
-        if (!poisoned) {
+        if(!poisoned) {
           log_app.print() << "created managed memory instance: " << cpu_inst;
           break;
         } else {
@@ -274,14 +288,14 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
       }
 
       // plan C: zerocopy memory (not cached by GPU)
-      if (zerocopy_mem.exists()) {
-        Event e = RegionInstance::create_instance(
-            gpu_inst, zerocopy_mem, bounds, field_sizes, 0 /*SOA*/,
-            ProfilingRequestSet());
+      if(zerocopy_mem.exists()) {
+        Event e =
+            RegionInstance::create_instance(gpu_inst, zerocopy_mem, bounds, field_sizes,
+                                            0 /*SOA*/, ProfilingRequestSet());
         // a failed allocation will result in a "poisoned" completion event
         bool poisoned;
         e.wait_faultaware(poisoned);
-        if (!poisoned) {
+        if(!poisoned) {
           log_app.print() << "created zerocopy memory instance: " << cpu_inst;
           break;
         } else {
@@ -327,8 +341,7 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
     {
       std::vector<CopySrcDstField> dsts(1, gpu_z_field);
       float fill_value = 1.0f;
-      fill_z = bounds.fill(dsts, ProfilingRequestSet(), &fill_value,
-                           sizeof(fill_value));
+      fill_z = bounds.fill(dsts, ProfilingRequestSet(), &fill_value, sizeof(fill_value));
     }
 
     SaxpyArgs gpu_args;
@@ -339,7 +352,7 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
     gpu_args.bounds = bounds;
 
     Event e = Event::merge_events(copy_x, copy_y, fill_z);
-    for (int i = 0; i < TestConfig::iterations; i++) {
+    for(int i = 0; i < TestConfig::iterations; i++) {
       ProfilingRequestSet prs;
       prs.add_request(p, PROFILE_TASK, &i, sizeof(i))
           .add_measurement<realm::ProfilingMeasurements::OperationTimeline>();
@@ -360,82 +373,75 @@ void top_level_task(const void *args, size_t arglen, const void *userdata,
     {
       std::vector<CopySrcDstField> dsts(1, cpu_z_field);
       float fill_value = 1.0f;
-      fill_z = bounds.fill(dsts, ProfilingRequestSet(), &fill_value,
-                           sizeof(fill_value));
+      fill_z = bounds.fill(dsts, ProfilingRequestSet(), &fill_value, sizeof(fill_value));
     }
 
     Event e = Event::merge_events(fill_x, fill_y, fill_z);
-    for (int i = 0; i < TestConfig::iterations; i++) {
+    for(int i = 0; i < TestConfig::iterations; i++) {
       ProfilingRequestSet prs;
       prs.add_request(p, PROFILE_TASK, &i, sizeof(i))
           .add_measurement<realm::ProfilingMeasurements::OperationTimeline>();
-      e = first_cpu.spawn(CPU_SAXPY_TASK, &saxpy_args, sizeof(saxpy_args), prs,
-                          e);
+      e = first_cpu.spawn(CPU_SAXPY_TASK, &saxpy_args, sizeof(saxpy_args), prs, e);
     }
     z_ready = e;
   }
 
   // Run our checker task
-  Event done = first_cpu.spawn(CHECK_RESULT_TASK, &saxpy_args,
-                               sizeof(saxpy_args), z_ready);
+  Event done =
+      first_cpu.spawn(CHECK_RESULT_TASK, &saxpy_args, sizeof(saxpy_args), z_ready);
   log_app.print() << "all work issued - done event=" << done;
   done.wait();
   cpu_inst.destroy();
 }
 
-void cpu_saxpy_task(const void *args, size_t arglen, const void *userdata,
-                    size_t userlen, Processor p) {
+void cpu_saxpy_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
+{
   assert(arglen == sizeof(SaxpyArgs));
   const SaxpyArgs *saxpy_args = (const SaxpyArgs *)args;
 
   log_app.print() << "executing CPU saxpy task";
 
   // get affine accessors for each of our three instances
-  AffineAccessor<float, 1> ra_x =
-      AffineAccessor<float, 1>(saxpy_args->x_inst, FID_X);
-  AffineAccessor<float, 1> ra_y =
-      AffineAccessor<float, 1>(saxpy_args->y_inst, FID_Y);
-  AffineAccessor<float, 1> ra_z =
-      AffineAccessor<float, 1>(saxpy_args->z_inst, FID_Z);
+  AffineAccessor<float, 1> ra_x = AffineAccessor<float, 1>(saxpy_args->x_inst, FID_X);
+  AffineAccessor<float, 1> ra_y = AffineAccessor<float, 1>(saxpy_args->y_inst, FID_Y);
+  AffineAccessor<float, 1> ra_z = AffineAccessor<float, 1>(saxpy_args->z_inst, FID_Z);
 
-  for (int i = saxpy_args->bounds.lo; i <= saxpy_args->bounds.hi; i++)
+  for(int i = saxpy_args->bounds.lo; i <= saxpy_args->bounds.hi; i++)
     ra_z[i] += saxpy_args->alpha * ra_x[i] + ra_y[i];
 }
 
 void check_result_task(const void *args, size_t arglen, const void *userdata,
-                       size_t userlen, Processor) {
+                       size_t userlen, Processor)
+{
   assert(arglen == sizeof(SaxpyArgs));
   const SaxpyArgs *saxpy_args = (const SaxpyArgs *)args;
 
   log_app.print() << "executing checking task";
 
   // get affine accessors for each of our three instances
-  AffineAccessor<float, 1> ra_x =
-      AffineAccessor<float, 1>(saxpy_args->x_inst, FID_X);
-  AffineAccessor<float, 1> ra_y =
-      AffineAccessor<float, 1>(saxpy_args->y_inst, FID_Y);
-  AffineAccessor<float, 1> ra_z =
-      AffineAccessor<float, 1>(saxpy_args->z_inst, FID_Z);
+  AffineAccessor<float, 1> ra_x = AffineAccessor<float, 1>(saxpy_args->x_inst, FID_X);
+  AffineAccessor<float, 1> ra_y = AffineAccessor<float, 1>(saxpy_args->y_inst, FID_Y);
+  AffineAccessor<float, 1> ra_z = AffineAccessor<float, 1>(saxpy_args->z_inst, FID_Z);
 
   size_t errors = 0;
-  for (int i = saxpy_args->bounds.lo; i <= saxpy_args->bounds.hi; i++) {
+  for(int i = saxpy_args->bounds.lo; i <= saxpy_args->bounds.hi; i++) {
     float expected =
-        (TestConfig::iterations * (saxpy_args->alpha * ra_x[i] + ra_y[i])) +
-        1.0;
+        (TestConfig::iterations * (saxpy_args->alpha * ra_x[i] + ra_y[i])) + 1.0;
     float actual = ra_z[i];
 
     // FMAs are too accurate
     float relative = (actual - expected) / expected;
-    if (fabsf(relative) < 1e-6) {
+    if(fabsf(relative) < 1e-6) {
       // ok
     } else {
       // only print the first 10 or so errors
-      if (errors++ <= 10)
-        log_app.warning() << "mismatch at index " << i
-                          << ": expected=" << expected << " actual=" << actual;
+      if(errors++ <= 10)
+        log_app.warning() << "mismatch at index " << i << ": expected=" << expected
+                          << " actual=" << actual;
     }
   }
-  if (errors == 0) {
+  if(errors == 0) {
     log_app.print() << "success - no mismatches detected";
     Runtime::get_runtime().shutdown(Event::NO_EVENT);
   } else {
@@ -445,11 +451,12 @@ void check_result_task(const void *args, size_t arglen, const void *userdata,
 }
 
 #if defined(SAXPY_ENABLE_CUDA) || defined(SAXPY_ENABLE_HIP)
-extern void gpu_saxpy_task(const void *args, size_t arglen,
-                           const void *userdata, size_t userlen, Processor p);
+extern void gpu_saxpy_task(const void *args, size_t arglen, const void *userdata,
+                           size_t userlen, Processor p);
 #endif
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   Runtime rt;
 
   rt.init(&argc, &argv);
@@ -460,7 +467,7 @@ int main(int argc, char **argv) {
                 .add_option_int("-p", TestConfig::prefetch)
                 .parse_command_line(argc, argv);
 
-  if (!ok) {
+  if(!ok) {
     log_app.fatal() << "error parsing command line arguments";
     exit(1);
   }

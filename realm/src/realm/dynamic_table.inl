@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +28,10 @@ namespace Realm {
   //
 
   template <typename _ET, size_t _INNER_BITS, size_t _LEAF_BITS, typename CONSTRUCTOR>
-  std::vector<typename DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::FreeList *> &
-  DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::get_registered_freelists(
-      Mutex *&lock)
+  std::vector<typename DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS,
+                                             CONSTRUCTOR>::FreeList *> &
+  DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS,
+                        CONSTRUCTOR>::get_registered_freelists(Mutex *&lock)
   {
     static std::vector<FreeList *> registered_freelists;
     static Mutex registered_freelist_lock;
@@ -37,8 +40,10 @@ namespace Realm {
   }
 
   template <typename _ET, size_t _INNER_BITS, size_t _LEAF_BITS, typename CONSTRUCTOR>
-  void DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::register_freelist(
-      typename DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::FreeList *free_list)
+  void
+  DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::register_freelist(
+      typename DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::FreeList
+          *free_list)
   {
     Mutex *lock = nullptr;
     std::vector<FreeList *> &freelists = get_registered_freelists(lock);
@@ -48,8 +53,10 @@ namespace Realm {
 
   template <typename _ET, size_t _INNER_BITS, size_t _LEAF_BITS, typename CONSTRUCTOR>
   typename DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::ET *
-  DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::steal_freelist_element(
-      typename DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::FreeList *requestor)
+  DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::
+      steal_freelist_element(
+          typename DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS,
+                                         CONSTRUCTOR>::FreeList *requestor)
   {
     // TODO: improve this by adjusting the starting offset to reduce contention
     Mutex *lock = nullptr;
@@ -70,7 +77,7 @@ namespace Realm {
   typename DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::LEAF_TYPE *
   DynamicTableAllocator<_ET, _INNER_BITS, _LEAF_BITS, CONSTRUCTOR>::new_leaf_node(
       IT first_index, IT last_index, int owner, ET **free_list_head, ET **free_list_tail,
-      const CONSTRUCTOR& elem_ctor)
+      const CONSTRUCTOR &elem_ctor)
 
   {
     LEAF_TYPE *leaf = new LEAF_TYPE(0, first_index, last_index);
@@ -79,8 +86,8 @@ namespace Realm {
     for(IT i = 0; i <= last_ofs; i++) {
       ID id = ET::make_id(leaf->elems[0], owner, first_index + i);
       elem_ctor.construct(&leaf->elems[i], id, owner);
-    // leaf->elems[i].init(ID(ET::ID_TYPE, owner, first_index +
-    // i).convert<typeof(leaf->elems[0].me)>(), owner);
+      // leaf->elems[i].init(ID(ET::ID_TYPE, owner, first_index +
+      // i).convert<typeof(leaf->elems[0].me)>(), owner);
     }
 
     if(free_list_head != nullptr && free_list_tail != nullptr) {
@@ -113,8 +120,11 @@ namespace Realm {
   //
 
   template <typename LT, typename IT>
-  DynamicTableNodeBase<LT, IT>::DynamicTableNodeBase(int _level, IT _first_index, IT _last_index)
-    : level(_level), first_index(_first_index), last_index(_last_index)
+  DynamicTableNodeBase<LT, IT>::DynamicTableNodeBase(int _level, IT _first_index,
+                                                     IT _last_index)
+    : level(_level)
+    , first_index(_first_index)
+    , last_index(_last_index)
     , next_alloced_node(0)
   {}
 
@@ -122,21 +132,20 @@ namespace Realm {
   DynamicTableNodeBase<LT, IT>::~DynamicTableNodeBase(void)
   {}
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class DynamicTableNode<ET, SIZE, LT,  IT>
   //
 
   template <typename ET, size_t _SIZE, typename LT, typename IT>
-  DynamicTableNode<ET, _SIZE, LT, IT>::DynamicTableNode(int _level, IT _first_index, IT _last_index)
+  DynamicTableNode<ET, _SIZE, LT, IT>::DynamicTableNode(int _level, IT _first_index,
+                                                        IT _last_index)
     : DynamicTableNodeBase<LT, IT>(_level, _first_index, _last_index)
   {}
 
   template <typename ET, size_t _SIZE, typename LT, typename IT>
   DynamicTableNode<ET, _SIZE, LT, IT>::~DynamicTableNode(void)
   {}
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -167,17 +176,17 @@ namespace Realm {
 
   template <typename ALLOCATOR>
   /*static*/ intptr_t DynamicTable<ALLOCATOR>::encode_root_and_level(NodeBase *root,
-								     int level)
+                                                                     int level)
   {
 #ifdef DEBUG_REALM
-    assert(((reinterpret_cast<intptr_t>(root) & 7) == 0) &&
-	   (level >= 0) && (level <= 7));
+    assert(((reinterpret_cast<intptr_t>(root) & 7) == 0) && (level >= 0) && (level <= 7));
 #endif
     return (reinterpret_cast<intptr_t>(root) | level);
   }
 
   template <typename ALLOCATOR>
-  /*static*/ typename DynamicTable<ALLOCATOR>::NodeBase *DynamicTable<ALLOCATOR>::extract_root(intptr_t rlval)
+  /*static*/ typename DynamicTable<ALLOCATOR>::NodeBase *
+  DynamicTable<ALLOCATOR>::extract_root(intptr_t rlval)
   {
     return reinterpret_cast<NodeBase *>(rlval & ~intptr_t(7));
   }
@@ -216,19 +225,18 @@ namespace Realm {
     }
   }
 
-  template<typename ALLOCATOR>
+  template <typename ALLOCATOR>
   size_t DynamicTable<ALLOCATOR>::max_entries(void) const
   {
     intptr_t rlval = root_and_level.load();
     if(rlval == 0)
       return 0;
     size_t elems_addressable = 1 << ALLOCATOR::LEAF_BITS;
-    elems_addressable <<= (ALLOCATOR::INNER_BITS *
-			   extract_level(rlval));
+    elems_addressable <<= (ALLOCATOR::INNER_BITS * extract_level(rlval));
     return elems_addressable;
   }
 
-  template<typename ALLOCATOR>
+  template <typename ALLOCATOR>
   bool DynamicTable<ALLOCATOR>::has_entry(IT index) const
   {
     // first, figure out how many levels the tree must have to find our index
@@ -239,26 +247,25 @@ namespace Realm {
       // detect overflow
       IT new_elems = (elems_addressable << ALLOCATOR::INNER_BITS);
       if(new_elems < elems_addressable)
-	break;
+        break;
       elems_addressable = new_elems;
     }
 
     intptr_t rlval = root_and_level.load();
     if(rlval == 0)
-      return false;  // empty tree
+      return false; // empty tree
 #ifdef DEBUG_REALM
     assert(extract_root(rlval)->level == extract_level(rlval));
 #endif
     int n_level = extract_level(rlval);
     if(n_level < level_needed)
-      return false;  // tree too short
+      return false; // tree too short
     NodeBase *n = extract_root(rlval);
 
 #ifdef DEBUG_REALM
     // when we get here, root is high enough
-    assert((level_needed <= n->level) &&
-	   (index >= n->first_index) &&
-	   (index <= n->last_index));
+    assert((level_needed <= n->level) && (index >= n->first_index) &&
+           (index <= n->last_index));
 #endif
 
     // now walk tree, populating the path we need
@@ -267,23 +274,22 @@ namespace Realm {
       assert(n_level == n->level);
 #endif
       // intermediate nodes
-      typename ALLOCATOR::INNER_TYPE *inner = static_cast<typename ALLOCATOR::INNER_TYPE *>(n);
+      typename ALLOCATOR::INNER_TYPE *inner =
+          static_cast<typename ALLOCATOR::INNER_TYPE *>(n);
 
       IT i = ((index >> (ALLOCATOR::LEAF_BITS + (n->level - 1) * ALLOCATOR::INNER_BITS)) &
-	      ((((IT)1) << ALLOCATOR::INNER_BITS) - 1));
+              ((((IT)1) << ALLOCATOR::INNER_BITS) - 1));
 #ifdef DEBUG_REALM
       assert(((size_t)i) < ALLOCATOR::INNER_TYPE::SIZE);
 #endif
 
       NodeBase *child = inner->elems[i].load_acquire();
       if(child == 0) {
-	return false;	
+        return false;
       }
 #ifdef DEBUG_REALM
-      assert((child != 0) &&
-	     (child->level == (n_level - 1)) &&
-	     (index >= child->first_index) &&
-	     (index <= child->last_index));
+      assert((child != 0) && (child->level == (n_level - 1)) &&
+             (index >= child->first_index) && (index <= child->last_index));
 #endif
       n = child;
       n_level--;
@@ -292,7 +298,9 @@ namespace Realm {
   }
 
   template <typename ALLOCATOR>
-  typename DynamicTable<ALLOCATOR>::ET *DynamicTable<ALLOCATOR>::lookup_entry(IT index, int owner, ET **free_list_head /*= 0*/, ET **free_list_tail /*= 0*/)
+  typename DynamicTable<ALLOCATOR>::ET *
+  DynamicTable<ALLOCATOR>::lookup_entry(IT index, int owner, ET **free_list_head /*= 0*/,
+                                        ET **free_list_tail /*= 0*/)
   {
     // first, figure out how many levels the tree must have to find our index
     int level_needed = 0;
@@ -302,12 +310,12 @@ namespace Realm {
       // detect overflow
       IT new_elems = (elems_addressable << ALLOCATOR::INNER_BITS);
       if(new_elems < elems_addressable)
-	break;
+        break;
       elems_addressable = new_elems;
     }
 
-    // in the common case, we won't need to add levels to the tree - grab the root (no lock)
-    // and see if it covers the range that includes our index
+    // in the common case, we won't need to add levels to the tree - grab the root (no
+    // lock) and see if it covers the range that includes our index
     intptr_t rlval = root_and_level.load_acquire();
     NodeBase *n = extract_root(rlval);
     int n_level = extract_level(rlval);
@@ -324,36 +332,38 @@ namespace Realm {
       n = extract_root(rlval);
       n_level = extract_level(rlval);
       if(!n) {
-	// simple case - just create a root node at the level we want
-	n = new_tree_node(level_needed, 0, elems_addressable - 1, owner, free_list_head, free_list_tail);
-	n_level = level_needed;
-	root_and_level.store_release(encode_root_and_level(n, n_level));
+        // simple case - just create a root node at the level we want
+        n = new_tree_node(level_needed, 0, elems_addressable - 1, owner, free_list_head,
+                          free_list_tail);
+        n_level = level_needed;
+        root_and_level.store_release(encode_root_and_level(n, n_level));
 
-	prepend_alloced_node(n);
+        prepend_alloced_node(n);
       } else {
-	// some of the tree already exists - add new layers on top
-	while(n_level < level_needed) {
-	  int parent_level = n_level + 1;
-	  IT parent_first = 0;
-	  IT parent_last = (((n->last_index + 1) << ALLOCATOR::INNER_BITS) - 1);
-	  NodeBase *parent = new_tree_node(parent_level, parent_first, parent_last, owner, free_list_head, free_list_tail);
-	  typename ALLOCATOR::INNER_TYPE *inner = static_cast<typename ALLOCATOR::INNER_TYPE *>(parent);
-	  inner->elems[0].store_release(n);
-	  n = parent;
-	  n_level = parent_level;
-	  root_and_level.store_release(encode_root_and_level(n, n_level));
+        // some of the tree already exists - add new layers on top
+        while(n_level < level_needed) {
+          int parent_level = n_level + 1;
+          IT parent_first = 0;
+          IT parent_last = (((n->last_index + 1) << ALLOCATOR::INNER_BITS) - 1);
+          NodeBase *parent = new_tree_node(parent_level, parent_first, parent_last, owner,
+                                           free_list_head, free_list_tail);
+          typename ALLOCATOR::INNER_TYPE *inner =
+              static_cast<typename ALLOCATOR::INNER_TYPE *>(parent);
+          inner->elems[0].store_release(n);
+          n = parent;
+          n_level = parent_level;
+          root_and_level.store_release(encode_root_and_level(n, n_level));
 
-	  prepend_alloced_node(n);
-	}
+          prepend_alloced_node(n);
+        }
       }
 
       lock.unlock();
     }
 #ifdef DEBUG_REALM
     // when we get here, root is high enough
-    assert((level_needed <= n->level) &&
-	   (index >= n->first_index) &&
-	   (index <= n->last_index));
+    assert((level_needed <= n->level) && (index >= n->first_index) &&
+           (index <= n->last_index));
 #endif
 
     // now walk tree, populating the path we need
@@ -362,42 +372,42 @@ namespace Realm {
       assert(n_level == n->level);
 #endif
       // intermediate nodes
-      typename ALLOCATOR::INNER_TYPE *inner = static_cast<typename ALLOCATOR::INNER_TYPE *>(n);
+      typename ALLOCATOR::INNER_TYPE *inner =
+          static_cast<typename ALLOCATOR::INNER_TYPE *>(n);
 
       IT i = ((index >> (ALLOCATOR::LEAF_BITS + (n->level - 1) * ALLOCATOR::INNER_BITS)) &
-	      ((((IT)1) << ALLOCATOR::INNER_BITS) - 1));
+              ((((IT)1) << ALLOCATOR::INNER_BITS) - 1));
 #ifdef DEBUG_REALM
       assert(((size_t)i) < ALLOCATOR::INNER_TYPE::SIZE);
 #endif
 
       NodeBase *child = inner->elems[i].load_acquire();
       if(child == 0) {
-	// need to populate subtree
+        // need to populate subtree
 
-	// take lock on inner node
-	inner->lock.lock();
+        // take lock on inner node
+        inner->lock.lock();
 
-	// now that lock is held, see if we really need to make new node
-	child = inner->elems[i].load_acquire();
-	if(child == 0) {
-	  int child_level = n_level - 1;
-	  int child_shift = (ALLOCATOR::LEAF_BITS + child_level * ALLOCATOR::INNER_BITS);
-	  IT child_first = inner->first_index + (i << child_shift);
-	  IT child_last = inner->first_index + ((i + 1) << child_shift) - 1;
+        // now that lock is held, see if we really need to make new node
+        child = inner->elems[i].load_acquire();
+        if(child == 0) {
+          int child_level = n_level - 1;
+          int child_shift = (ALLOCATOR::LEAF_BITS + child_level * ALLOCATOR::INNER_BITS);
+          IT child_first = inner->first_index + (i << child_shift);
+          IT child_last = inner->first_index + ((i + 1) << child_shift) - 1;
 
-	  child = new_tree_node(child_level, child_first, child_last, owner, free_list_head, free_list_tail);
-	  inner->elems[i].store_release(child);
+          child = new_tree_node(child_level, child_first, child_last, owner,
+                                free_list_head, free_list_tail);
+          inner->elems[i].store_release(child);
 
-	  prepend_alloced_node(child);
-	}
+          prepend_alloced_node(child);
+        }
 
-	inner->lock.unlock();
+        inner->lock.unlock();
       }
 #ifdef DEBUG_REALM
-      assert((child != 0) &&
-	     (child->level == (n_level - 1)) &&
-	     (index >= child->first_index) &&
-	     (index <= child->last_index));
+      assert((child != 0) && (child->level == (n_level - 1)) &&
+             (index >= child->first_index) && (index <= child->last_index));
 #endif
       n = child;
       n_level--;
@@ -409,12 +419,11 @@ namespace Realm {
     return &(leaf->elems[ofs]);
   }
 
-  template<typename ALLOCATOR>
+  template <typename ALLOCATOR>
   void DynamicTable<ALLOCATOR>::set_constructor(Constructor &_elem_ctor)
   {
     elem_ctor = _elem_ctor;
   }
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -422,15 +431,22 @@ namespace Realm {
   //
 
   template <typename ALLOCATOR>
-  DynamicTableFreeList<ALLOCATOR>::DynamicTableFreeList(DynamicTable<ALLOCATOR>& _table, int _owner, DynamicTableFreeList<ALLOCATOR> *_parent_list)
-    : table(_table), parent_list(_parent_list), owner(_owner), first_free(0), next_alloc(0)
+  DynamicTableFreeList<ALLOCATOR>::DynamicTableFreeList(
+      DynamicTable<ALLOCATOR> &_table, int _owner,
+      DynamicTableFreeList<ALLOCATOR> *_parent_list)
+    : table(_table)
+    , parent_list(_parent_list)
+    , owner(_owner)
+    , first_free(0)
+    , next_alloc(0)
   {
     assert((parent_list == nullptr) || (parent_list->parent_list == nullptr));
     ALLOCATOR::register_freelist(this);
   }
 
-  template<typename ALLOCATOR>
-  void DynamicTableFreeList<ALLOCATOR>::push_front(DynamicTableFreeList<ALLOCATOR>::ET *entry)
+  template <typename ALLOCATOR>
+  void
+  DynamicTableFreeList<ALLOCATOR>::push_front(DynamicTableFreeList<ALLOCATOR>::ET *entry)
   {
     assert(entry->next_free == nullptr);
     // no need for lock - use compare and swap to push item onto front of
@@ -438,21 +454,24 @@ namespace Realm {
     DynamicTableFreeList<ALLOCATOR>::ET *old_free = first_free.load_acquire();
     do {
       entry->next_free = old_free;
-    } while (!first_free.compare_exchange(old_free, entry));
+    } while(!first_free.compare_exchange(old_free, entry));
   }
-  template<typename ALLOCATOR>
-  void DynamicTableFreeList<ALLOCATOR>::push_front(DynamicTableFreeList<ALLOCATOR>::ET *head, DynamicTableFreeList<ALLOCATOR>::ET *tail)
+  template <typename ALLOCATOR>
+  void
+  DynamicTableFreeList<ALLOCATOR>::push_front(DynamicTableFreeList<ALLOCATOR>::ET *head,
+                                              DynamicTableFreeList<ALLOCATOR>::ET *tail)
   {
     // no need for lock - use compare and swap to push item onto front of
     //  free list (no ABA problem because the popper is mutex'd)
     ET *old_head = first_free.load_acquire();
     do {
       tail->next_free = old_head;
-    } while (!first_free.compare_exchange(old_head, head));
+    } while(!first_free.compare_exchange(old_head, head));
   }
 
-  template<typename ALLOCATOR>
-  typename DynamicTableFreeList<ALLOCATOR>::ET *DynamicTableFreeList<ALLOCATOR>::pop_front_underlock(void)
+  template <typename ALLOCATOR>
+  typename DynamicTableFreeList<ALLOCATOR>::ET *
+  DynamicTableFreeList<ALLOCATOR>::pop_front_underlock(void)
   {
     // we are the only popper, but we need to use cmpxchg's to play nice
     // with pushers that don't take the lock
@@ -466,8 +485,9 @@ namespace Realm {
     return old_first;
   }
 
-  template<typename ALLOCATOR>
-  typename DynamicTableFreeList<ALLOCATOR>::ET *DynamicTableFreeList<ALLOCATOR>::pop_front(void)
+  template <typename ALLOCATOR>
+  typename DynamicTableFreeList<ALLOCATOR>::ET *
+  DynamicTableFreeList<ALLOCATOR>::pop_front(void)
   {
     AutoLock<> al(lock);
     return pop_front_underlock();
@@ -546,11 +566,14 @@ namespace Realm {
   }
 
   // allocates a range of IDs that can be given to a remote node for remote allocation
-  // these entries do not go on the local free list unless they are deleted after being used
+  // these entries do not go on the local free list unless they are deleted after being
+  // used
   template <typename ALLOCATOR>
-  void DynamicTableFreeList<ALLOCATOR>::alloc_range(int requested, IT& first_id, IT& last_id)
+  void DynamicTableFreeList<ALLOCATOR>::alloc_range(int requested, IT &first_id,
+                                                    IT &last_id)
   {
-    // to avoid interactions with the local allocator, we must always assign a multiple of 2^LEAF_BITS
+    // to avoid interactions with the local allocator, we must always assign a multiple of
+    // 2^LEAF_BITS
     //  ids
     if((requested & ((1 << ALLOCATOR::LEAF_BITS) - 1)) != 0)
       requested = ((requested >> ALLOCATOR::LEAF_BITS) + 1) << ALLOCATOR::LEAF_BITS;

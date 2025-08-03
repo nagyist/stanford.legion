@@ -1,5 +1,6 @@
-/* Copyright 2024 Stanford University
- * Copyright 2024 Los Alamos National Laboratory
+/*
+ * Copyright 2025 Los Alamos National Laboratory, Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,13 +29,14 @@
 using namespace Realm;
 
 // TASK IDs
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
-  MAKE_LOCKS_TASK = Processor::TASK_ID_FIRST_AVAILABLE+1,
-  RETURN_LOCKS_TASK = Processor::TASK_ID_FIRST_AVAILABLE+2,
-  LAUNCH_CHAIN_CREATION_TASK = Processor::TASK_ID_FIRST_AVAILABLE+3,
-  ADD_FINAL_EVENT_TASK = Processor::TASK_ID_FIRST_AVAILABLE+4,
-  DUMMY_TASK = Processor::TASK_ID_FIRST_AVAILABLE+5,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
+  MAKE_LOCKS_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 1,
+  RETURN_LOCKS_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 2,
+  LAUNCH_CHAIN_CREATION_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 3,
+  ADD_FINAL_EVENT_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 4,
+  DUMMY_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 5,
 };
 
 struct InputArgs {
@@ -50,22 +52,22 @@ struct FairStruct {
 };
 
 // forward declaration
-void fair_locks_task(const void *args, size_t arglen, 
-                     const void *userdata, size_t userlen, Processor p);
+void fair_locks_task(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p);
 
-InputArgs& get_input_args(void)
+InputArgs &get_input_args(void)
 {
   static InputArgs args;
   return args;
 }
 
-std::set<Event>& get_final_events(void)
+std::set<Event> &get_final_events(void)
 {
   static std::set<Event> final_events;
   return final_events;
 }
 
-std::set<Reservation>& get_lock_set(void)
+std::set<Reservation> &get_lock_set(void)
 {
   static std::set<Reservation> lock_set;
   return lock_set;
@@ -76,20 +78,15 @@ Processor get_next_processor(Processor cur)
   Machine machine = Machine::get_machine();
   std::set<Processor> all_procs;
   machine.get_all_processors(all_procs);
-  for (std::set<Processor>::const_iterator it = all_procs.begin();
-        it != all_procs.end(); it++)
-  {
-    if (*it == cur)
-    {
+  for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+      it++) {
+    if(*it == cur) {
       // Advance the iterator once to get the next, handle
       // the wrap around case too
       it++;
-      if (it == all_procs.end())
-      {
+      if(it == all_procs.end()) {
         return *(all_procs.begin());
-      }
-      else
-      {
+      } else {
         return *it;
       }
     }
@@ -118,8 +115,8 @@ struct LaunchChainParams {
   realm_id_t reservations[1];
 };
 
-void top_level_task(const void *args, size_t arglen, 
-                    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
   size_t locks_per_processor = 16;
   size_t chains_per_processor = 32;
@@ -133,19 +130,20 @@ void top_level_task(const void *args, size_t arglen,
     }                                                                                    \
   } while(0)
 
-#define BOOL_ARG(argname, varname) do { \
-        if(!strcmp((argv)[i], argname)) {		\
-          varname = true;				\
-          continue;					\
-        } } while(0)
+#define BOOL_ARG(argname, varname)                                                       \
+  do {                                                                                   \
+    if(!strcmp((argv)[i], argname)) {                                                    \
+      varname = true;                                                                    \
+      continue;                                                                          \
+    }                                                                                    \
+  } while(0)
   {
     InputArgs &inputs = get_input_args();
     char **argv = inputs.argv;
-    for (int i = 1; i < inputs.argc; i++)
-    {
+    for(int i = 1; i < inputs.argc; i++) {
       INT_ARG("-lpp", locks_per_processor);
       INT_ARG("-cpp", chains_per_processor);
-      INT_ARG("-d",chain_depth);
+      INT_ARG("-d", chain_depth);
     }
     assert(locks_per_processor > 0);
     assert(chains_per_processor > 0);
@@ -168,7 +166,8 @@ void top_level_task(const void *args, size_t arglen,
       wait_event.wait();
     }
   }
-  // Send all the locks to each processor and tell them how many chains and what depth to make the chains
+  // Send all the locks to each processor and tell them how many chains and what depth to
+  // make the chains
   {
     fprintf(stdout,
             "Initializing lock chain experiment with %zu locks per processor, %zu chains "
@@ -199,27 +198,28 @@ void top_level_task(const void *args, size_t arglen,
   assert(final_event.exists());
 
   // Now we're ready to start our simulation
-  fprintf(stdout,"Running experiment...\n");
+  fprintf(stdout, "Running experiment...\n");
   {
     double start, stop;
-    start = Realm::Clock::current_time_in_microseconds();    
+    start = Realm::Clock::current_time_in_microseconds();
     // Trigger the start event
     start_event.trigger();
     // Wait for the final event
     final_event.wait();
-    stop = Realm::Clock::current_time_in_microseconds();    
+    stop = Realm::Clock::current_time_in_microseconds();
 
     double latency = stop - start;
-    fprintf(stdout,"Total time: %7.3f us\n", latency);
-    double grants_per_sec = chains_per_processor * chain_depth * all_procs.size() / (1e-6 * latency);
-    fprintf(stdout,"Reservation Grants/s : %.4g\n", grants_per_sec);
+    fprintf(stdout, "Total time: %7.3f us\n", latency);
+    double grants_per_sec =
+        chains_per_processor * chain_depth * all_procs.size() / (1e-6 * latency);
+    fprintf(stdout, "Reservation Grants/s : %.4g\n", grants_per_sec);
   }
-  
-  fprintf(stdout,"Cleaning up...\n");
+
+  fprintf(stdout, "Cleaning up...\n");
 }
 
-void make_locks_task(const void *args, size_t arglen, 
-                     const void *userdata, size_t userlen, Processor p)
+void make_locks_task(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p)
 {
   assert(arglen == sizeof(MakeLocksParams));
   const MakeLocksParams *param = reinterpret_cast<const MakeLocksParams *>(args);
@@ -239,8 +239,8 @@ void make_locks_task(const void *args, size_t arglen,
   free(rparams);
 }
 
-void return_locks_task(const void *args, size_t arglen, 
-                       const void *userdata, size_t userlen, Processor p)
+void return_locks_task(const void *args, size_t arglen, const void *userdata,
+                       size_t userlen, Processor p)
 {
   assert(arglen >= sizeof(ReturnLocksParams));
   const ReturnLocksParams *params = reinterpret_cast<const ReturnLocksParams *>(args);
@@ -253,8 +253,8 @@ void return_locks_task(const void *args, size_t arglen,
   }
 }
 
-void chain_creation_task(const void *args, size_t arglen, 
-                         const void *userdata, size_t userlen, Processor p)
+void chain_creation_task(const void *args, size_t arglen, const void *userdata,
+                         size_t userlen, Processor p)
 {
   assert(arglen >= sizeof(LaunchChainParams));
   const LaunchChainParams *params = reinterpret_cast<const LaunchChainParams *>(args);
@@ -279,22 +279,22 @@ void chain_creation_task(const void *args, size_t arglen,
     Event next_wait = precondition;
     for(size_t idx = 0; idx < chain_depth; idx++) {
       Reservation next_lock = lock_vector[(rng() % lock_vector.size())];
-      next_wait = next_lock.acquire(0,true,next_wait);
+      next_wait = next_lock.acquire(0, true, next_wait);
       next_lock.release(next_wait);
     }
     wait_for_events.insert(next_wait);
   }
   // Merge all the wait for events together and send back the result
   Event final_event = Event::merge_events(wait_for_events);
-  Event wait_event = orig.spawn(ADD_FINAL_EVENT_TASK,&final_event,sizeof(Event));
+  Event wait_event = orig.spawn(ADD_FINAL_EVENT_TASK, &final_event, sizeof(Event));
   wait_event.wait();
 }
 
-void add_final_event(const void *args, size_t arglen, 
-                     const void *userdata, size_t userlen, Processor p)
+void add_final_event(const void *args, size_t arglen, const void *userdata,
+                     size_t userlen, Processor p)
 {
   assert(arglen == sizeof(Event));
-  Event result = *((Event*)args);
+  Event result = *((Event *)args);
   get_final_events().insert(result);
 }
 
@@ -320,12 +320,11 @@ int main(int argc, char **argv)
   {
     std::set<Processor> all_procs;
     Machine::get_machine().get_all_processors(all_procs);
-    for(std::set<Processor>::const_iterator it = all_procs.begin();
-	it != all_procs.end();
-	it++)
+    for(std::set<Processor>::const_iterator it = all_procs.begin(); it != all_procs.end();
+        it++)
       if(it->kind() == Processor::LOC_PROC) {
-	p = *it;
-	break;
+        p = *it;
+        break;
       }
   }
   assert(p.exists());
@@ -338,7 +337,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   r.wait_for_shutdown();
-  
+
   return 0;
 }
-

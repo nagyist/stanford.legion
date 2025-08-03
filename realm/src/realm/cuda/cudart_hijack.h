@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,9 +70,9 @@ namespace Realm {
 
       RegisteredFunction() = default;
       RegisteredFunction(const FatBin *_fat_bin, const void *_host_fun,
-			 const char *_device_fun);
+                         const char *_device_fun);
     };
-     
+
     struct RegisteredVariable {
       const FatBin *fat_bin = nullptr;
       const void *host_var = nullptr;
@@ -95,7 +97,7 @@ namespace Realm {
       GlobalRegistrations(void);
       ~GlobalRegistrations(void);
 
-      static GlobalRegistrations& get_global_registrations(void);
+      static GlobalRegistrations &get_global_registrations(void);
 
     public:
       // called by a GPU when it has created its context - will result in calls back
@@ -127,7 +129,7 @@ namespace Realm {
       std::unordered_map<const void *, RegisteredVariable> variables;
       std::unordered_map<const void *, RegisteredFunction> functions;
     };
-  };
-};
+  }; // namespace Cuda
+};   // namespace Realm
 
 #endif

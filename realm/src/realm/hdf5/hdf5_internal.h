@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,14 +25,14 @@
 
 #include <hdf5.h>
 
-#define CHECK_HDF5(cmd) \
-  do { \
-    herr_t res = (cmd); \
-    if(res < 0) { \
-      fprintf(stderr, "HDF5 error on %s:\n", #cmd); \
-      H5Eprint2(H5E_DEFAULT, stderr); \
-      assert(0); \
-    } \
+#define CHECK_HDF5(cmd)                                                                  \
+  do {                                                                                   \
+    herr_t res = (cmd);                                                                  \
+    if(res < 0) {                                                                        \
+      fprintf(stderr, "HDF5 error on %s:\n", #cmd);                                      \
+      H5Eprint2(H5E_DEFAULT, stderr);                                                    \
+      assert(0);                                                                         \
+    }                                                                                    \
   } while(0)
 
 namespace Realm {
@@ -39,9 +41,8 @@ namespace Realm {
 
     class HDF5Dataset {
     public:
-      static HDF5Dataset *open(const char *filename,
-			       const char *dsetname,
-			       bool read_only);
+      static HDF5Dataset *open(const char *filename, const char *dsetname,
+                               bool read_only);
       void flush();
       void close();
 
@@ -72,19 +73,17 @@ namespace Realm {
       virtual void *get_direct_ptr(off_t offset, size_t size);
 
       virtual AllocationResult allocate_storage_immediate(RegionInstanceImpl *inst,
-							  bool need_alloc_result,
-							  bool poisoned,
-							  TimeLimit work_until);
+                                                          bool need_alloc_result,
+                                                          bool poisoned,
+                                                          TimeLimit work_until);
 
-      virtual void release_storage_immediate(RegionInstanceImpl *inst,
-					     bool poisoned,
-					     TimeLimit work_until);
+      virtual void release_storage_immediate(RegionInstanceImpl *inst, bool poisoned,
+                                             TimeLimit work_until);
 
       // HDF5Memory supports ExternalHDF5Resource
       virtual bool attempt_register_external_resource(RegionInstanceImpl *inst,
-                                                      size_t& inst_offset);
+                                                      size_t &inst_offset);
       virtual void unregister_external_resource(RegionInstanceImpl *inst);
-
     };
 
     class HDF5Request : public Request {
@@ -98,40 +97,35 @@ namespace Realm {
     class AddressInfoHDF5 : public TransferIterator::AddressInfoCustom {
     public:
       virtual int set_rect(const RegionInstanceImpl *inst,
-                           const InstanceLayoutPieceBase *piece,
-                           size_t field_size, size_t field_offset,
-                           int ndims,
-                           const int64_t lo[/*ndims*/],
-                           const int64_t hi[/*ndims*/],
-                           const int order[/*ndims*/]);
+                           const InstanceLayoutPieceBase *piece, size_t field_size,
+                           size_t field_offset, int ndims, const int64_t lo[/*ndims*/],
+                           const int64_t hi[/*ndims*/], const int order[/*ndims*/]);
 
-      //hid_t dset_id;
-      //hid_t dtype_id;
-      //FieldID field_id;  // used to cache open datasets
+      // hid_t dset_id;
+      // hid_t dtype_id;
+      // FieldID field_id;  // used to cache open datasets
       const std::string *filename;
       const std::string *dsetname;
-      //std::vector<hsize_t> dset_bounds;
+      // std::vector<hsize_t> dset_bounds;
       std::vector<hsize_t> offset; // start location in dataset
       std::vector<hsize_t> extent; // xfer dimensions in memory and dataset
     };
 
     class HDF5XferDes : public XferDes {
     public:
-      HDF5XferDes(uintptr_t _dma_op, Channel *_channel,
-		  NodeID _launch_node, XferDesID _guid,
-		  const std::vector<XferDesPortInfo>& inputs_info,
-		  const std::vector<XferDesPortInfo>& outputs_info,
-		  int _priority,
+      HDF5XferDes(uintptr_t _dma_op, Channel *_channel, NodeID _launch_node,
+                  XferDesID _guid, const std::vector<XferDesPortInfo> &inputs_info,
+                  const std::vector<XferDesPortInfo> &outputs_info, int _priority,
                   const void *_fill_data, size_t _fill_size);
 
-      long get_requests(Request** requests, long nr);
-      void notify_request_read_done(Request* req);
-      void notify_request_write_done(Request* req);
+      long get_requests(Request **requests, long nr);
+      void notify_request_read_done(Request *req);
+      void notify_request_write_done(Request *req);
       void flush();
 
       virtual bool request_available();
-      virtual Request* dequeue_request();
-      virtual void enqueue_request(Request* req);
+      virtual Request *dequeue_request();
+      virtual void enqueue_request(Request *req);
 
       bool progress_xd(HDF5Channel *channel, TimeLimit work_until);
 
@@ -153,17 +147,15 @@ namespace Realm {
       // handle HDF5 requests in order - no concurrency
       static const bool is_ordered = true;
 
-      virtual XferDes *create_xfer_des(uintptr_t dma_op,
-				       NodeID launch_node,
-				       XferDesID guid,
-				       const std::vector<XferDesPortInfo>& inputs_info,
-				       const std::vector<XferDesPortInfo>& outputs_info,
-				       int priority,
-				       XferDesRedopInfo redop_info,
-				       const void *fill_data, size_t fill_size,
+      virtual XferDes *create_xfer_des(uintptr_t dma_op, NodeID launch_node,
+                                       XferDesID guid,
+                                       const std::vector<XferDesPortInfo> &inputs_info,
+                                       const std::vector<XferDesPortInfo> &outputs_info,
+                                       int priority, XferDesRedopInfo redop_info,
+                                       const void *fill_data, size_t fill_size,
                                        size_t fill_total);
 
-      long submit(Request** requests, long nr);
+      long submit(Request **requests, long nr);
     };
 
   }; // namespace HDF5

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "realm.h"
 #include "realm/id.h"
 
@@ -10,12 +27,13 @@ using namespace Realm;
 Logger log_app("app");
 
 // Task IDs, some IDs are reserved so start at first available number
-enum {
-  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE+0,
+enum
+{
+  TOP_LEVEL_TASK = Processor::TASK_ID_FIRST_AVAILABLE + 0,
   WORKER_TASK,
 };
 
-int num_iterations = 1024;  // can't actually test long enough to exhaust IDs
+int num_iterations = 1024; // can't actually test long enough to exhaust IDs
 size_t max_live_instances = 4;
 
 struct WorkerArgs {
@@ -23,25 +41,27 @@ struct WorkerArgs {
   Rect<2> exp_bounds;
 };
 
-void top_level_task(const void *args, size_t arglen,
-		    const void *userdata, size_t userlen, Processor p)
+void top_level_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                    Processor p)
 {
-  log_app.print() << "testing instance reuse: iterations=" << num_iterations << " max_live=" << max_live_instances;
+  log_app.print() << "testing instance reuse: iterations=" << num_iterations
+                  << " max_live=" << max_live_instances;
 
   // choose the last processor to be our worker - it should be remote when
   //  running with more than one node
   Processor p_worker = p;
   Machine::ProcessorQuery pq(Machine::get_machine());
   pq.only_kind(Processor::LOC_PROC);
-  for(Machine::ProcessorQuery::iterator it = pq.begin();
-      it != pq.end();
-      ++it)
+  for(Machine::ProcessorQuery::iterator it = pq.begin(); it != pq.end(); ++it)
     p_worker = *it;
 
   log_app.info() << "top level task on " << p << ", worker is " << p_worker;
 
   // get a memory close to the target processor
-  Memory m_worker = Machine::MemoryQuery(Machine::get_machine()).only_kind(Memory::SYSTEM_MEM).best_affinity_to(p_worker).first();
+  Memory m_worker = Machine::MemoryQuery(Machine::get_machine())
+                        .only_kind(Memory::SYSTEM_MEM)
+                        .best_affinity_to(p_worker)
+                        .first();
   log_app.info() << "memory is " << m_worker;
   assert(m_worker.exists());
 
@@ -53,19 +73,15 @@ void top_level_task(const void *args, size_t arglen,
     // pick different bounds for each instance
     Rect<2> bounds;
     bounds.lo[0] = i;
-    bounds.lo[1] = i+1;
+    bounds.lo[1] = i + 1;
     bounds.hi[0] = i + (i % 31);
     bounds.hi[1] = i + 1 + (i >> 5);
 
     std::vector<size_t> field_sizes(1, 8);
 
     RegionInstance inst;
-    RegionInstance::create_instance(inst,
-				    m_worker,
-				    bounds,
-				    field_sizes,
-				    0 /*SOA*/,
-				    ProfilingRequestSet());
+    RegionInstance::create_instance(inst, m_worker, bounds, field_sizes, 0 /*SOA*/,
+                                    ProfilingRequestSet());
     assert(inst.exists());
 
     // since we can't run long enough to actually exhaust instance IDs, we
@@ -86,8 +102,8 @@ void top_level_task(const void *args, size_t arglen,
     WorkerArgs args;
     args.inst = inst;
     args.exp_bounds = bounds;
-    Event e2 = p_worker.spawn(WORKER_TASK, &args, sizeof(WorkerArgs),
-			      ProfilingRequestSet(), e1);
+    Event e2 =
+        p_worker.spawn(WORKER_TASK, &args, sizeof(WorkerArgs), ProfilingRequestSet(), e1);
 
     instances.push_back(inst);
     finish_events.push_back(e2);
@@ -112,8 +128,8 @@ void top_level_task(const void *args, size_t arglen,
   }
 }
 
-void worker_task(const void *args, size_t arglen,
-		 const void *userdata, size_t userlen, Processor p)
+void worker_task(const void *args, size_t arglen, const void *userdata, size_t userlen,
+                 Processor p)
 {
   const WorkerArgs *wargs = static_cast<const WorkerArgs *>(args);
   GenericAccessor<void *, 2> acc(wargs->inst, 0);
@@ -144,8 +160,8 @@ int main(int argc, char **argv)
   rt.register_task(WORKER_TASK, worker_task);
 
   Processor p = Machine::ProcessorQuery(Machine::get_machine())
-    .only_kind(Processor::LOC_PROC)
-    .first();
+                    .only_kind(Processor::LOC_PROC)
+                    .first();
   assert(p.exists());
 
   // collective launch of a single task - everybody gets the same finish event
@@ -156,7 +172,6 @@ int main(int argc, char **argv)
 
   // now sleep this thread until that shutdown actually happens
   rt.wait_for_shutdown();
-  
+
   return 0;
 }
-

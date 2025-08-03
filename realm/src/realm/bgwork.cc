@@ -1,4 +1,6 @@
-/* Copyright 2024 Stanford University, NVIDIA Corporation
+/*
+ * Copyright 2025 Stanford University, NVIDIA Corporation
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +27,6 @@ namespace Realm {
 
   Logger log_bgwork("bgwork");
 
-
   ////////////////////////////////////////////////////////////////////////
   //
   // class BackgroundWorkThread
@@ -33,11 +34,9 @@ namespace Realm {
 
   class BackgroundWorkThread {
   public:
-    BackgroundWorkThread(BackgroundWorkManager *_manager,
-			 CoreReservationSet& crs,
-			 const std::string& _name,
-			 int _numa_domain,
-			 bool _pin_thread, size_t _stack_size);
+    BackgroundWorkThread(BackgroundWorkManager *_manager, CoreReservationSet &crs,
+                         const std::string &_name, int _numa_domain, bool _pin_thread,
+                         size_t _stack_size);
     ~BackgroundWorkThread(void);
 
     void main_loop(void);
@@ -52,11 +51,9 @@ namespace Realm {
   };
 
   BackgroundWorkThread::BackgroundWorkThread(BackgroundWorkManager *_manager,
-					     CoreReservationSet& crs,
-					     const std::string& _name,
-					     int _numa_domain,
-					     bool _pin_thread,
-					     size_t _stack_size)
+                                             CoreReservationSet &crs,
+                                             const std::string &_name, int _numa_domain,
+                                             bool _pin_thread, size_t _stack_size)
     : manager(_manager)
     , numa_domain(_numa_domain)
   {
@@ -70,9 +67,7 @@ namespace Realm {
     ThreadLaunchParameters tlp;
     tlp.set_stack_size(_stack_size);
     me = Thread::create_kernel_thread<BackgroundWorkThread,
-				      &BackgroundWorkThread::main_loop>(this,
-									tlp,
-									*rsrv);
+                                      &BackgroundWorkThread::main_loop>(this, tlp, *rsrv);
   }
 
   BackgroundWorkThread::~BackgroundWorkThread(void)
@@ -87,7 +82,8 @@ namespace Realm {
     worker.set_manager(manager);
     worker.set_numa_domain(numa_domain);
 
-    log_bgwork.info() << "dedicated worker starting - worker=" << this << " numa=" << numa_domain;
+    log_bgwork.info() << "dedicated worker starting - worker=" << this
+                      << " numa=" << numa_domain;
 
     long long spin_until = -1;
     while(true) {
@@ -100,7 +96,8 @@ namespace Realm {
         spin_until = -1;
 
         // do work until there's none left
-	while(worker.do_work(-1 /*max_time*/, 0 /*interrupt_flag*/)) {}
+        while(worker.do_work(-1 /*max_time*/, 0 /*interrupt_flag*/)) {
+        }
 
         // and then retest state variable
         continue;
@@ -119,8 +116,8 @@ namespace Realm {
           continue;
         } else {
           // if we haven't exhausted the spin timer, spin more
-	  if(Clock::current_time_in_nanoseconds(true /*absolute*/) < spin_until) {
-	    Thread::yield();
+          if(Clock::current_time_in_nanoseconds(true /*absolute*/) < spin_until) {
+            Thread::yield();
             continue;
           }
         }
@@ -131,7 +128,8 @@ namespace Realm {
       //   other workers going to sleep aren't a big deal)
       {
         uint32_t expected = state_val;
-        uint32_t newval = state_val + (1 << BackgroundWorkManager::STATE_SLEEPING_WORKERS_SHIFT);
+        uint32_t newval =
+            state_val + (1 << BackgroundWorkManager::STATE_SLEEPING_WORKERS_SHIFT);
         if(!manager->worker_state.compare_exchange(expected, newval))
           continue;
       }
@@ -153,11 +151,7 @@ namespace Realm {
     log_bgwork.info() << "dedicated worker terminating - worker=" << this;
   }
 
-  void BackgroundWorkThread::join(void)
-  {
-    me->join();
-  }
-	
+  void BackgroundWorkThread::join(void) { me->join(); }
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -224,7 +218,7 @@ namespace Realm {
   {
     unsigned elem = slot / BITMASK_BITS;
     unsigned ofs = slot % BITMASK_BITS;
-    
+
     BitMask mask = BitMask(1) << ofs;
     BitMask prev = active_work_item_mask[elem].fetch_or_acqrel(mask);
     // this workitem has been advertised before, so early exit
@@ -236,8 +230,8 @@ namespace Realm {
     //  any sleeping workers that could help out
     uint32_t state_val = worker_state.fetch_add_acqrel(1 << STATE_ACTIVE_ITEMS_SHIFT);
     bool wake_worker = false;
-    while(((state_val >> STATE_SLEEPING_WORKERS_SHIFT) &
-           STATE_SLEEPING_WORKERS_MASK) != 0) {
+    while(((state_val >> STATE_SLEEPING_WORKERS_SHIFT) & STATE_SLEEPING_WORKERS_MASK) !=
+          0) {
       // use a CAS to decrement without underflowing - retry as needed
       if(worker_state.compare_exchange(state_val,
                                        state_val - (1 << STATE_SLEEPING_WORKERS_SHIFT))) {
@@ -259,7 +253,7 @@ namespace Realm {
     }
   }
 
-  void BackgroundWorkManager::configure_from_cmdline(std::vector<std::string>& cmdline)
+  void BackgroundWorkManager::configure_from_cmdline(std::vector<std::string> &cmdline)
   {
     CommandLineParser cp;
     cp.add_option_int("-ll:bgwork", cfg.generic_workers)
@@ -274,40 +268,35 @@ namespace Realm {
     assert(ok);
   }
 
-  void BackgroundWorkManager::start_dedicated_workers(Realm::CoreReservationSet& crs)
+  void BackgroundWorkManager::start_dedicated_workers(Realm::CoreReservationSet &crs)
   {
     for(unsigned i = 0; i < cfg.generic_workers; i++)
-      dedicated_workers.push_back(new BackgroundWorkThread(this,
-							   crs,
-							   stringbuilder() << "dedicated worker (generic) #" << (i + 1),
-							   -1, // numa
-							   cfg.pin_generic,
-							   cfg.worker_stacksize_in_kb << 10));
+      dedicated_workers.push_back(new BackgroundWorkThread(
+          this, crs, stringbuilder() << "dedicated worker (generic) #" << (i + 1),
+          -1, // numa
+          cfg.pin_generic, cfg.worker_stacksize_in_kb << 10));
 
     if(cfg.per_numa_workers > 0) {
       std::map<int, NumaNodeCpuInfo> cpuinfo;
-      if(numasysif_numa_available() &&
-	 numasysif_get_cpu_info(cpuinfo) &&
-	 !cpuinfo.empty()) {
-	for(std::map<int, NumaNodeCpuInfo>::const_iterator it = cpuinfo.begin();
-	    it != cpuinfo.end();
-	    ++it) {
-	  const NumaNodeCpuInfo& ci = it->second;
-	  // filter out any numa domains with insufficient core counts
+      if(numasysif_numa_available() && numasysif_get_cpu_info(cpuinfo) &&
+         !cpuinfo.empty()) {
+        for(std::map<int, NumaNodeCpuInfo>::const_iterator it = cpuinfo.begin();
+            it != cpuinfo.end(); ++it) {
+          const NumaNodeCpuInfo &ci = it->second;
+          // filter out any numa domains with insufficient core counts
           int cores_needed = cfg.pin_numa ? cfg.per_numa_workers : 1;
           if(ci.cores_available < cores_needed)
-	    continue;
+            continue;
 
-	  for(unsigned i = 0; i < cfg.per_numa_workers; i++)
-	    dedicated_workers.push_back(new BackgroundWorkThread(this,
-								 crs,
-								 stringbuilder() << "dedicated worker (numa " << ci.node_id << ") #" << (i + 1),
-								 ci.node_id,
-								 cfg.pin_numa,
-								 cfg.worker_stacksize_in_kb << 10));
-	}
+          for(unsigned i = 0; i < cfg.per_numa_workers; i++)
+            dedicated_workers.push_back(new BackgroundWorkThread(
+                this, crs,
+                stringbuilder()
+                    << "dedicated worker (numa " << ci.node_id << ") #" << (i + 1),
+                ci.node_id, cfg.pin_numa, cfg.worker_stacksize_in_kb << 10));
+        }
       } else {
-	log_bgwork.warning() << "numa support not found (or not working)";
+        log_bgwork.warning() << "numa support not found (or not working)";
       }
     }
   }
@@ -320,13 +309,13 @@ namespace Realm {
     // use CAS to actually claim workers since work advertisers might get
     //   some of them
     while(true) {
-      unsigned sleepers = ((prev_state >> STATE_SLEEPING_WORKERS_SHIFT) &
-                           STATE_SLEEPING_WORKERS_MASK);
+      unsigned sleepers =
+          ((prev_state >> STATE_SLEEPING_WORKERS_SHIFT) & STATE_SLEEPING_WORKERS_MASK);
       if(sleepers == 0)
         break;
 
-      if(worker_state.compare_exchange(prev_state,
-                                       prev_state - (sleepers << STATE_SLEEPING_WORKERS_SHIFT))) {
+      if(worker_state.compare_exchange(
+             prev_state, prev_state - (sleepers << STATE_SLEEPING_WORKERS_SHIFT))) {
         uint64_t tstate;
         uint64_t act_pops = db_mutex.attempt_enter(sleepers, tstate);
         while(act_pops != 0) {
@@ -342,8 +331,7 @@ namespace Realm {
 
     // now join on all the threads
     for(std::vector<BackgroundWorkThread *>::iterator it = dedicated_workers.begin();
-	it != dedicated_workers.end();
-	++it) {
+        it != dedicated_workers.end(); ++it) {
       (*it)->join();
       delete *it;
     }
@@ -355,7 +343,7 @@ namespace Realm {
   // class BackgroundWorkItem
   //
 
-  BackgroundWorkItem::BackgroundWorkItem(const std::string& _name)
+  BackgroundWorkItem::BackgroundWorkItem(const std::string &_name)
     : name(_name)
     , manager(0)
     , index(0)
@@ -369,38 +357,36 @@ namespace Realm {
 #ifdef DEBUG_REALM
     State old_state = state.load();
     if(old_state != STATE_SHUTDOWN) {
-      log_bgwork.fatal() << "invalid destruction: item=" << ((void *)this)
-			 << " name='" << name
-			 << "' oldstate=" << old_state;
+      log_bgwork.fatal() << "invalid destruction: item=" << ((void *)this) << " name='"
+                         << name << "' oldstate=" << old_state;
       abort();
     }
 #endif
     if(manager)
       manager->release_slot(index);
- }
+  }
 
   void BackgroundWorkItem::add_to_manager(BackgroundWorkManager *_manager,
-					  int _numa_domain /*= -1*/,
-					  long long _min_timeslice_needed /*= -1*/)
+                                          int _numa_domain /*= -1*/,
+                                          long long _min_timeslice_needed /*= -1*/)
   {
     manager = _manager;
     numa_domain = _numa_domain;
     min_timeslice_needed = _min_timeslice_needed;
     index = manager->assign_slot(this);
-    log_bgwork.info() << "new work item: manager=" << manager
-		      << " item=" << this
-		      << " slot=" << index << " name=" << name
-		      << " domain=" << numa_domain
-		      << " timeslice=" << min_timeslice_needed;
+    log_bgwork.info() << "new work item: manager=" << manager << " item=" << this
+                      << " slot=" << index << " name=" << name
+                      << " domain=" << numa_domain
+                      << " timeslice=" << min_timeslice_needed;
   }
 
   // mark this work item as active (i.e. having work to do)
   void BackgroundWorkItem::make_active(void)
   {
-    if(!manager) return;
-    log_bgwork.debug() << "work advertised: manager=" << manager
-		       << " item=" << this
-		       << " slot=" << index;
+    if(!manager)
+      return;
+    log_bgwork.debug() << "work advertised: manager=" << manager << " item=" << this
+                       << " slot=" << index;
 #ifdef DEBUG_REALM
     State old_state = state.exchange(STATE_ACTIVE);
     if(old_state != STATE_IDLE) {
@@ -417,9 +403,8 @@ namespace Realm {
   {
     State old_state = state.exchange(STATE_IDLE);
     if(old_state != STATE_ACTIVE) {
-      log_bgwork.fatal() << "invalid make_inactive: item=" << ((void *)this)
-			 << " name='" << name
-			 << "' oldstate=" << old_state;
+      log_bgwork.fatal() << "invalid make_inactive: item=" << ((void *)this) << " name='"
+                         << name << "' oldstate=" << old_state;
       abort();
     }
   }
@@ -428,14 +413,12 @@ namespace Realm {
   {
     State old_state = state.exchange(STATE_SHUTDOWN);
     if(old_state != STATE_IDLE) {
-      log_bgwork.fatal() << "invalid shutdown: item=" << ((void *)this)
-                         << " name='" << name
-			 << "' oldstate=" << old_state;
+      log_bgwork.fatal() << "invalid shutdown: item=" << ((void *)this) << " name='"
+                         << name << "' oldstate=" << old_state;
       abort();
     }
   }
 #endif
-
 
   ////////////////////////////////////////////////////////////////////////
   //
@@ -454,8 +437,7 @@ namespace Realm {
     }
   }
 
-  BackgroundWorkManager::Worker::~Worker(void)
-  {}
+  BackgroundWorkManager::Worker::~Worker(void) {}
 
   void BackgroundWorkManager::Worker::set_manager(BackgroundWorkManager *_manager)
   {
@@ -486,27 +468,28 @@ namespace Realm {
       allowed_work_item_mask[i] = 0;
     }
   }
-  
+
   bool BackgroundWorkManager::Worker::do_work(long long max_time_in_ns,
-					      atomic<bool> *interrupt_flag)
+                                              atomic<bool> *interrupt_flag)
   {
     // set our deadline for returning
-    long long work_until_time = ((max_time_in_ns > 0) ?
-                                   (Clock::current_time_in_nanoseconds(true /*absolute*/) +
-                                    max_time_in_ns) :
-				   -1);
+    long long work_until_time =
+        ((max_time_in_ns > 0)
+             ? (Clock::current_time_in_nanoseconds(true /*absolute*/) + max_time_in_ns)
+             : -1);
 
     bool did_work = true;
     while(true) {
       // if we've exhausted the known work items, loop back around and
       //  check to see if any new work items have showed up
       if(starting_slot >= manager->num_work_items.load_acquire()) {
-	// if we get here twice in a row without doing any work, return
-	//  to the caller to let them spin/sleep/whatever
-	if(!did_work) return false;
-	did_work = false;
+        // if we get here twice in a row without doing any work, return
+        //  to the caller to let them spin/sleep/whatever
+        if(!did_work)
+          return false;
+        did_work = false;
 
-	starting_slot = 0;
+        starting_slot = 0;
         // TODO: if/when slots are reused, we need a way to invalidate
         //  our known/allowed masks
       }
@@ -514,8 +497,8 @@ namespace Realm {
       // look at a whole BitMask entry at once, skipping over 0's
       unsigned elem = starting_slot / BITMASK_BITS;
       unsigned ofs = starting_slot % BITMASK_BITS;
-      BitMask active_mask = (manager->active_work_item_mask[elem].load() &
-                             (~BitMask(0) << ofs));
+      BitMask active_mask =
+          (manager->active_work_item_mask[elem].load() & (~BitMask(0) << ofs));
 
       // are there any bits set that we've not seen before?
       BitMask unknown_mask = active_mask & ~known_work_item_mask[elem];
@@ -529,24 +512,25 @@ namespace Realm {
         if(prev_count > 0) {
           // slot pointer is valid and can't change until we decrement the
           //  use count again
-	  BackgroundWorkItem *item = manager->work_items[unknown_slot];
+          BackgroundWorkItem *item = manager->work_items[unknown_slot];
           assert(item != 0);
 
           bool allowed = true;
 
-	  // don't take things whose timeslice is too long
-	  if((max_timeslice > 0) && (item->min_timeslice_needed > 0) &&
-	     (max_timeslice < item->min_timeslice_needed)) {
+          // don't take things whose timeslice is too long
+          if((max_timeslice > 0) && (item->min_timeslice_needed > 0) &&
+             (max_timeslice < item->min_timeslice_needed)) {
             allowed = false;
-	  }
+          }
 
-	  // don't take things that are in the wrong numa domain
-	  if((numa_domain >= 0) && (item->numa_domain >= 0) &&
-	     (numa_domain != item->numa_domain)) {
+          // don't take things that are in the wrong numa domain
+          if((numa_domain >= 0) && (item->numa_domain >= 0) &&
+             (numa_domain != item->numa_domain)) {
             allowed = false;
-	  }
+          }
 
-          log_bgwork.info() << "worker " << this << " discovered slot " << unknown_slot << " (" << item->name << ") allowed=" << allowed;
+          log_bgwork.info() << "worker " << this << " discovered slot " << unknown_slot
+                            << " (" << item->name << ") allowed=" << allowed;
 
           if(allowed)
             allowed_work_item_mask[elem] |= unknown_bit;
@@ -563,27 +547,27 @@ namespace Realm {
       BitMask allowed_mask = (active_mask & allowed_work_item_mask[elem]);
 
       while(allowed_mask != 0) {
-	// this leaves only the least significant 1 bit set
-	BitMask target_bit = allowed_mask & ~(allowed_mask - 1);
-	// attempt to clear this bit
-	BitMask prev = manager->active_work_item_mask[elem].fetch_and_acqrel(~target_bit);
-	if(prev & target_bit) {
-	  // success!
+        // this leaves only the least significant 1 bit set
+        BitMask target_bit = allowed_mask & ~(allowed_mask - 1);
+        // attempt to clear this bit
+        BitMask prev = manager->active_work_item_mask[elem].fetch_and_acqrel(~target_bit);
+        if(prev & target_bit) {
+          // success!
 
           // decrement count of active work items - temporary underflow is
           //  possible here, so no way to sanity-check state
-          manager->worker_state.fetch_sub(1 << BackgroundWorkManager::STATE_ACTIVE_ITEMS_SHIFT);
+          manager->worker_state.fetch_sub(
+              1 << BackgroundWorkManager::STATE_ACTIVE_ITEMS_SHIFT);
 
-	  unsigned slot = ((elem * BITMASK_BITS) + ctz(target_bit));
-	  log_bgwork.debug() << "work claimed: manager=" << manager
-			    << " slot=" << slot
-			    << " worker=" << this;
-	  long long t_start = Clock::current_time_in_nanoseconds(true /*absolute*/);
-	  // don't spend more than 1ms on any single task before going on to the
-	  //  next thing - TODO: pull this out as a config variable
-	  long long t_quantum = (manager->cfg.work_item_timeslice + t_start);
-	  if((work_until_time > 0) && (work_until_time < t_quantum))
-	    t_quantum = work_until_time;
+          unsigned slot = ((elem * BITMASK_BITS) + ctz(target_bit));
+          log_bgwork.debug() << "work claimed: manager=" << manager << " slot=" << slot
+                             << " worker=" << this;
+          long long t_start = Clock::current_time_in_nanoseconds(true /*absolute*/);
+          // don't spend more than 1ms on any single task before going on to the
+          //  next thing - TODO: pull this out as a config variable
+          long long t_quantum = (manager->cfg.work_item_timeslice + t_start);
+          if((work_until_time > 0) && (work_until_time < t_quantum))
+            t_quantum = work_until_time;
 
           // increase the use count for this slot - this should NEVER see
           //  an invalid slot because we have claimed a work request and
@@ -592,16 +576,18 @@ namespace Realm {
           assert(prev_usecount > 0);
           (void)prev_usecount;
 
-	  BackgroundWorkItem *item = manager->work_items[slot];
+          BackgroundWorkItem *item = manager->work_items[slot];
 #ifdef DEBUG_REALM
-	  item->make_inactive();
+          item->make_inactive();
 #endif
           while(true) {
             bool requeue = item->do_work(TimeLimit::absolute(t_quantum, interrupt_flag));
             if(requeue) {
               // we can just call this item's work function again if we're not out
               //  of time and if there's nothing else to do
-              uint32_t other_work_items = (manager->worker_state.load() >> BackgroundWorkManager::STATE_ACTIVE_ITEMS_SHIFT);
+              uint32_t other_work_items =
+                  (manager->worker_state.load() >>
+                   BackgroundWorkManager::STATE_ACTIVE_ITEMS_SHIFT);
               if(other_work_items == 0) {
                 long long now = Clock::current_time_in_nanoseconds(true /*absolute*/);
                 if((work_until_time <= 0) || (work_until_time > now)) {
@@ -620,23 +606,22 @@ namespace Realm {
               break;
           }
 #ifdef REALM_BGWORK_PROFILE
-	  long long t_stop = Clock::current_time_in_nanoseconds(true /*absolute*/);
-	  long long elapsed = t_stop - t_start;
-	  long long overshoot = ((t_stop > t_quantum) ?
-	                           (t_stop - t_quantum) :
-	                           0);
-	  log_bgwork.print() << "work: slot=" << slot << " elapsed=" << elapsed << " overshoot=" << overshoot;
+          long long t_stop = Clock::current_time_in_nanoseconds(true /*absolute*/);
+          long long elapsed = t_stop - t_start;
+          long long overshoot = ((t_stop > t_quantum) ? (t_stop - t_quantum) : 0);
+          log_bgwork.print() << "work: slot=" << slot << " elapsed=" << elapsed
+                             << " overshoot=" << overshoot;
 #endif
           // we're done with this slot for now
           manager->work_item_usecounts[slot].fetch_sub_acqrel(1);
 
-	  starting_slot = slot + 1;
-	  did_work = true;
-	  break;
-	} else {
-	  // loop around and try other bits
-	  allowed_mask &= ~target_bit;
-	}
+          starting_slot = slot + 1;
+          did_work = true;
+          break;
+        } else {
+          // loop around and try other bits
+          allowed_mask &= ~target_bit;
+        }
       }
 
       // if we get here with a zero mask, skip ahead to next chunk of bits
@@ -646,16 +631,15 @@ namespace Realm {
       // before we loop around, see if there's been an interupt requested or
       //  we've used all the time permitted
       if(interrupt_flag != 0) {
-	if(interrupt_flag->load())
-	  return true;
+        if(interrupt_flag->load())
+          return true;
       }
       if(work_until_time > 0) {
-	long long now = Clock::current_time_in_nanoseconds(true /*absolute*/);
-	if(now >= work_until_time)
-	  return true;
+        long long now = Clock::current_time_in_nanoseconds(true /*absolute*/);
+        if(now >= work_until_time)
+          return true;
       }
     }
   }
 
-
-};
+}; // namespace Realm
