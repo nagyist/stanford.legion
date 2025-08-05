@@ -126,26 +126,6 @@ namespace Legion {
       void return_resources(
           ResourceTracker* target, std::set<RtEvent>& preconditions);
       void report_leaks_and_duplicates(std::set<RtEvent>& preconditions);
-      void handle_collective_message(Deserializer& derez);
-      void handle_rendezvous_message(Deserializer& derez);
-      void handle_compute_equivalence_sets(Deserializer& derez);
-      void handle_output_equivalence_set(Deserializer& derez);
-      void handle_refine_equivalence_sets(Deserializer& derez);
-      void handle_intra_space_dependence(Deserializer& derez);
-      void handle_resource_update(
-          Deserializer& derez, std::set<RtEvent>& applied);
-      void handle_created_region_contexts(
-          Deserializer& derez, std::set<RtEvent>& applied);
-      void handle_trace_update(Deserializer& derez, AddressSpaceID source);
-      void handle_find_trace_local_sets(
-          Deserializer& derez, AddressSpaceID source);
-      ApBarrier handle_find_trace_shard_event(
-          size_t temp_index, ApEvent event, ShardID remote_shard);
-      ApBarrier handle_find_trace_shard_frontier(
-          size_t temp_index, ApEvent event, ShardID remote_shard);
-      RtEvent handle_pointwise_dependence(
-          uint64_t context_index, const DomainPoint& point, ShardID shard,
-          RtUserEvent to_trigger);
       ReplicateContext* get_replicate_context(void) const;
     public:
       void initialize_implicit_task(TaskID tid, MapperID mid, Processor proxy);

@@ -536,7 +536,7 @@ namespace Legion {
       for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
            it != local_shards.end(); it++)
         if ((*it)->shard_id == shard)
-          return (*it)->handle_pointwise_dependence(
+          return (*it)->get_replicate_context()->find_pointwise_dependence(
               context_index, point, shard, to_trigger);
       const AddressSpaceID target_space = (*address_spaces)[shard];
       legion_assert(target_space != runtime->address_space);
@@ -1512,7 +1512,7 @@ namespace Legion {
       {
         if ((*it)->shard_id == target)
         {
-          (*it)->handle_collective_message(derez);
+          (*it)->get_replicate_context()->handle_collective_message(derez);
           return;
         }
       }
@@ -1552,7 +1552,7 @@ namespace Legion {
       {
         if ((*it)->shard_id == target)
         {
-          (*it)->handle_rendezvous_message(derez);
+          (*it)->get_replicate_context()->handle_rendezvous_message(derez);
           return;
         }
       }
@@ -1592,7 +1592,8 @@ namespace Legion {
       {
         if ((*it)->shard_id == target)
         {
-          (*it)->handle_compute_equivalence_sets(derez);
+          (*it)->get_replicate_context()->handle_compute_equivalence_sets(
+              derez);
           return;
         }
       }
@@ -1696,7 +1697,7 @@ namespace Legion {
       {
         if ((*it)->shard_id == target)
         {
-          (*it)->handle_output_equivalence_set(derez);
+          (*it)->get_replicate_context()->handle_output_equivalence_set(derez);
           return;
         }
       }
@@ -1736,7 +1737,7 @@ namespace Legion {
       {
         if ((*it)->shard_id == target)
         {
-          (*it)->handle_refine_equivalence_sets(derez);
+          (*it)->get_replicate_context()->handle_refine_equivalence_sets(derez);
           return;
         }
       }
@@ -1818,7 +1819,8 @@ namespace Legion {
       {
         if ((*it)->shard_id == target)
         {
-          (*it)->handle_created_region_contexts(derez, applied_events);
+          (*it)->get_replicate_context()->handle_created_region_contexts(
+              derez, applied_events);
           return;
         }
       }
@@ -1893,12 +1895,14 @@ namespace Legion {
         {
           case RESOURCE_UPDATE_KIND:
             {
-              (*it)->handle_resource_update(derez, applied_events);
+              (*it)->get_replicate_context()->handle_resource_update(
+                  derez, applied_events);
               break;
             }
           case CREATED_REGION_UPDATE_KIND:
             {
-              (*it)->handle_created_region_contexts(derez, applied_events);
+              (*it)->get_replicate_context()->handle_created_region_contexts(
+                  derez, applied_events);
               break;
             }
           default:
@@ -1953,12 +1957,14 @@ namespace Legion {
         {
           case RESOURCE_UPDATE_KIND:
             {
-              (*it)->handle_resource_update(derez2, remote_handled);
+              (*it)->get_replicate_context()->handle_resource_update(
+                  derez2, remote_handled);
               break;
             }
           case CREATED_REGION_UPDATE_KIND:
             {
-              (*it)->handle_created_region_contexts(derez2, remote_handled);
+              (*it)->get_replicate_context()->handle_created_region_contexts(
+                  derez2, remote_handled);
               break;
             }
           default:
@@ -2019,8 +2025,9 @@ namespace Legion {
         for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
              it != local_shards.end(); it++)
         {
-          const ApBarrier result = (*it)->handle_find_trace_shard_event(
-              template_index, event, shard_source);
+          const ApBarrier result =
+              (*it)->get_replicate_context()->handle_find_trace_shard_event(
+                  template_index, event, shard_source);
           // If we found it then we are done
           if (result.exists())
           {
@@ -2218,8 +2225,9 @@ namespace Legion {
         for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
              it != local_shards.end(); it++)
         {
-          const ApBarrier result = (*it)->handle_find_trace_shard_frontier(
-              template_index, event, shard_source);
+          const ApBarrier result =
+              (*it)->get_replicate_context()->handle_find_trace_shard_frontier(
+                  template_index, event, shard_source);
           // If we found it then we are done
           if (result.exists())
           {
@@ -2341,7 +2349,7 @@ namespace Legion {
       {
         if ((*it)->shard_id == target)
         {
-          (*it)->handle_trace_update(derez, source);
+          (*it)->get_replicate_context()->handle_trace_update(derez, source);
           return;
         }
       }
@@ -2382,7 +2390,8 @@ namespace Legion {
       {
         if ((*it)->shard_id == target)
         {
-          (*it)->handle_find_trace_local_sets(derez, source);
+          (*it)->get_replicate_context()->handle_find_trace_local_sets(
+              derez, source);
           return;
         }
       }
