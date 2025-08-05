@@ -226,12 +226,6 @@ namespace Realm {
 
     constexpr operator realm_id_t() const { return id; }
 
-    /**
-     * \brief Get the internal ID for derived classes.
-     * \return The event ID
-     */
-    realm_id_t get_id() const { return id; }
-
     bool operator<(const Event &rhs) const { return id < rhs.id; }
     bool operator==(const Event &rhs) const { return id == rhs.id; }
     bool operator!=(const Event &rhs) const { return id != rhs.id; }
@@ -260,8 +254,9 @@ namespace Realm {
     void wait(void) const
     {
       realm_runtime_t runtime;
+      int poisoned;
       REALM_CHECK(realm_runtime_get_runtime(&runtime));
-      REALM_CHECK(realm_event_wait(runtime, id));
+      REALM_CHECK(realm_event_wait(runtime, id, &poisoned));
     }
 
     /**
@@ -362,8 +357,7 @@ namespace Realm {
       realm_runtime_t runtime;
       REALM_CHECK(realm_runtime_get_runtime(&runtime));
       realm_event_t merged_event_id;
-      const realm_event_t wait_for_id = wait_for->get_id();
-      REALM_CHECK(realm_event_merge(runtime, &wait_for_id, num_events, &merged_event_id));
+      REALM_CHECK(realm_event_merge(runtime, reinterpret_cast<const realm_event_t*>(wait_for), num_events, &merged_event_id, 0));
       return Event(merged_event_id);
     }
 
@@ -395,7 +389,11 @@ namespace Realm {
      */
     static Event merge_events_ignorefaults(const Event *wait_for, size_t num_events)
     {
-      throw std::logic_error("Not implemented");
+      realm_runtime_t runtime;
+      REALM_CHECK(realm_runtime_get_runtime(&runtime));
+      realm_event_t merged_event_id;
+      REALM_CHECK(realm_event_merge(runtime, reinterpret_cast<const realm_event_t*>(wait_for), num_events, &merged_event_id, 1));
+      return Event(merged_event_id);
     }
     static Event merge_events_ignorefaults(const span<const Event> &wait_for)
     {
@@ -408,7 +406,7 @@ namespace Realm {
     }
     static Event ignorefaults(Event wait_for)
     {
-      throw std::logic_error("Not implemented");
+      return merge_events_ignorefaults(&wait_for, 1);
     }
 
     /**
@@ -475,7 +473,7 @@ namespace Realm {
     {
       realm_runtime_t runtime;
       REALM_CHECK(realm_runtime_get_runtime(&runtime));
-      REALM_CHECK(realm_user_event_trigger(runtime, get_id()));
+      REALM_CHECK(realm_user_event_trigger(runtime, *this, wait_on, ignore_faults ? 1 : 0));
     }
 
     /*
@@ -617,7 +615,7 @@ namespace Realm {
       realm_event_t event_id_out;
       // Note: Using nullptr for ProfilingRequestSet since it's not available in C API yet
       REALM_CHECK(realm_processor_spawn(runtime, id, func_id, args, arglen, nullptr,
-                                        wait_on.get_id(), priority, &event_id_out));
+                                        wait_on, priority, &event_id_out));
       return Event(event_id_out);
     }
 
@@ -641,7 +639,7 @@ namespace Realm {
       // Note: ProfilingRequestSet needs to be converted to realm_profiling_request_set_t
       // For now, using nullptr until the conversion is implemented
       REALM_CHECK(realm_processor_spawn(runtime, id, func_id, args, arglen, nullptr,
-                                        wait_on.get_id(), priority, &event_id_out));
+                                        wait_on, priority, &event_id_out));
       return Event(event_id_out);
     }
 
@@ -1078,7 +1076,7 @@ namespace Realm {
     {
       realm_event_t eventIdOut;
       REALM_CHECK(realm_runtime_collective_spawn(impl, target_proc.get_id(), task_id,
-                                                 args, arglen, wait_on.get_id(), priority,
+                                                 args, arglen, wait_on, priority,
                                                  &eventIdOut));
       return Event(eventIdOut);
     }
@@ -1119,7 +1117,7 @@ namespace Realm {
      */
     void shutdown(const Event &wait_on = Event::NO_EVENT, int result_code = 0)
     {
-      REALM_CHECK(realm_runtime_signal_shutdown(impl, wait_on.get_id(), result_code));
+      REALM_CHECK(realm_runtime_signal_shutdown(impl, wait_on, result_code));
     }
 
     /**
@@ -1787,7 +1785,7 @@ namespace Realm {
    * Multiple filter predicates can be chained together, and the intersection of
    * all matching criteria is returned.
    */
-  class ProcessorQuery {
+  class Machine::ProcessorQuery {
   public:
     /**
      * \brief Construct a processor query for the given machine.
@@ -1977,7 +1975,7 @@ namespace Realm {
    * MemoryQuery allows filtering memories based on characteristics like kind,
    * capacity, and affinity relationships with processors.
    */
-  class MemoryQuery {
+  class Machine::MemoryQuery {
   public:
     /**
      * \brief Construct a query for all memories in the machine.

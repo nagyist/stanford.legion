@@ -20,10 +20,20 @@
 #include "realm.h"
 #include "realm/cmdline.h"
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
 #ifdef REALM_USE_CUDA
 #include "realm/cuda/cuda_access.h"
 #include <cuda_runtime.h>
+#endif
+
+// MSVC doesn't support the C++17 aligned_alloc
+#if defined(_WIN32)
+#define ALIGNED_ALLOC(s, a) _aligned_malloc(s, a)
+#define ALIGNED_FREE(p) _aligned_free(p)
+#else
+#define ALIGNED_ALLOC(s, a) aligned_alloc(s, a)
+#define ALIGNED_FREE(p) free(p)
 #endif
 
 Realm::Logger log_app("app");
@@ -217,30 +227,30 @@ static void test_copy(realm_runtime_t runtime, realm_memory_t dst_mem,
 
   // system memory
   {
-    external_mem = (int *)aligned_alloc(32, external_mem_size);
+    const size_t MIN_ALIGN = 32;
+    external_mem = static_cast<int *>(ALIGNED_ALLOC(MIN_ALIGN, external_mem_size));
     if(external_mem == nullptr) {
       log_app.error("aligned_alloc failed");
       return;
-    } else {
-      realm_external_instance_resource_t system_mem_res;
-      realm_external_system_memory_resource_create_params_t system_mem_res_params = {
-          .type = REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_SYSTEM_MEMORY,
-          .base = external_mem,
-          .size = external_mem_size,
-          .read_only = 0,
-      };
-      CHECK_REALM(realm_external_instance_resource_create(runtime, &system_mem_res_params,
-                                                          &system_mem_res));
-
-      Realm::IndexSpace<N, T> idx_space(rect);
-      bool success = create_instance_and_copy_and_verify<N, T>(
-          runtime, system_mem_res, external_mem, dst_inst, field_ids, field_sizes, 1,
-          idx_space, coord_type, proc, lower_bound, upper_bound);
-      assert(success);
-      CHECK_REALM(realm_external_instance_resource_destroy(runtime, system_mem_res));
-      free(external_mem);
-      external_mem = nullptr;
     }
+    realm_external_instance_resource_t system_mem_res;
+    realm_external_system_memory_resource_create_params_t system_mem_res_params = {
+        .type = REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_SYSTEM_MEMORY,
+        .base = external_mem,
+        .size = external_mem_size,
+        .read_only = 0,
+    };
+    CHECK_REALM(realm_external_instance_resource_create(runtime, &system_mem_res_params,
+                                                        &system_mem_res));
+
+    Realm::IndexSpace<N, T> idx_space(rect);
+    bool success = create_instance_and_copy_and_verify<N, T>(
+        runtime, system_mem_res, external_mem, dst_inst, field_ids, field_sizes, 1,
+        idx_space, coord_type, proc, lower_bound, upper_bound);
+    assert(success);
+    CHECK_REALM(realm_external_instance_resource_destroy(runtime, system_mem_res));
+    ALIGNED_FREE(external_mem);
+    external_mem = nullptr;
   }
 
   CHECK_REALM(realm_region_instance_destroy(runtime, dst_inst, REALM_NO_EVENT));

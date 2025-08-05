@@ -111,9 +111,9 @@ jobs:
         run: |
           cmake --build build --parallel 4 --config ${{ matrix.config.build }} --target coverage
 
-      #- name: Upload coverage results
-      # uses: codecov/codecov-action@v4.2.0
-      # with:
-      #   token: ${{ secrets.CODECOV_TOKEN }}
-      #   files: ${{ github.workspace }}/build/coverage.xml
-      #   verbose: true
+      - name: Upload coverage results
+        uses: codecov/codecov-action@v4.2.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ github.workspace }}/build/coverage.xml
+          verbose: true

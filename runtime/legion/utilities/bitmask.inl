@@ -1402,7 +1402,7 @@ namespace Legion {
     inline void TLBitMask<T, MAX, SHIFT, MASK>::serialize(ST& rez) const
     //-------------------------------------------------------------------------
     {
-      rez.template serialize(sum_mask);
+      rez.serialize(sum_mask);
       rez.serialize(bit_vector, (MAX / 8));
     }
 
@@ -1412,7 +1412,7 @@ namespace Legion {
     inline void TLBitMask<T, MAX, SHIFT, MASK>::deserialize(DT& derez)
     //-------------------------------------------------------------------------
     {
-      derez.template deserialize(sum_mask);
+      derez.deserialize(sum_mask);
       derez.deserialize(bit_vector, (MAX / 8));
     }
 

@@ -824,6 +824,7 @@ realm_status_t REALM_EXPORT realm_region_instance_copy(
  *
  * @param runtime The runtime instance to use.
  * @param instance The region instance to destroy.
+ * @param wait_on The event to wait on before destroying the region instance.
  * @return Realm status indicating success or failure.
  *
  * @ingroup RegionInstance

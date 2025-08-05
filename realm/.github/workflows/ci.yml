@@ -45,64 +45,72 @@ jobs:
               build: Release,
               cc: "cl", cxx: "cl",
               ccache: sccache,
+              shared_lib: 'OFF',
               cuda: '',
-              shared_lib: 'OFF'
+              openmp: 'OFF'
             }
           - {
               os: ubuntu-24.04-arm,
               build: Release,
               cc: "gcc", cxx: "g++",
               ccache: ccache,
+              shared_lib: 'OFF',
               cuda: '',
-              shared_lib: 'OFF'
+              openmp: 'ON'
             }
           - {
               os: ubuntu-24.04-arm,
               build: Release,
               cc: "clang", cxx: "clang++",
               ccache: ccache,
+              shared_lib: 'OFF',
               cuda: '',
-              shared_lib: 'OFF'
+              openmp: 'ON'
             }
           - {
               os: ubuntu-latest,
               build: Release,
               cc: "gcc", cxx: "g++",
               ccache: ccache,
+              shared_lib: 'OFF',
               cuda: '',
-              shared_lib: 'OFF'
+              openmp: 'ON'
             }
           - {
               os: ubuntu-latest,
               build: Release,
               cc: "gcc", cxx: "g++",
               ccache: ccache,
+              shared_lib: 'OFF',
               cuda: '12.9.0',
-              shared_lib: 'OFF'
+              openmp: 'ON'
             }
           - {
               os: ubuntu-latest,
               build: Release,
               cc: "clang", cxx: "clang++",
               ccache: ccache,
+              shared_lib: 'OFF',
               cuda: '',
-              shared_lib: 'OFF'
+              openmp: 'ON'
             }
           - {
               os: ubuntu-latest,
               build: Debug,
               cc: "gcc", cxx: "g++",
               ccache: ccache,
+              shared_lib: 'ON',
               cuda: '',
-              shared_lib: 'ON'
+              openmp: 'ON'
             }
           - {
               os: macos-latest,
               build: Release,
               cc: "clang", cxx: "clang++",
               ccache: ccache,
+              shared_lib: 'ON',
               cuda: '',
-              shared_lib: 'OFF'
+              openmp: 'ON'
             }
     steps:
       - uses: actions/checkout@v4.2.2
@@ -184,12 +192,40 @@ jobs:
                 -DCMAKE_BUILD_TYPE=${{ matrix.config.build }}
                 -DBUILD_SHARED_LIBS=${{ matrix.config.shared_lib }}
                 -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DREALM_BUILD_TUTORIALS=ON -DREALM_BUILD_EXAMPLES=ON
+                -DREALM_ENABLE_OPENMP=${{ matrix.config.openmp }}
                 -DREALM_ENABLE_UCX=OFF
                 -DREALM_ENABLE_GASNETEX=OFF
 
       - name: Build
+        run:
+          cmake --build build --parallel 4 --config ${{ matrix.config.build }} --verbose | tee build-new.log
+
+      - uses: actions/cache@v4.2.2
+        name: Restore build log cache
+        id: build-log-cache
+        with:
+          path: build.log
+          key: build-log-${{ matrix.config.os }}-${{ matrix.config.cc }}-${{ matrix.config.cuda }}-${{ matrix.config.build }}-${{ github.ref_name }}
+          restore-keys: |
+            build-log-${{ matrix.config.os }}-${{ matrix.config.cc }}-${{ matrix.config.cuda }}-${{ matrix.config.build }}-${{ github.ref_name }}
+            build-log-${{ matrix.config.os }}-${{ matrix.config.cc }}-${{ matrix.config.cuda }}-${{ matrix.config.build }}-main
+
+      - name: Check build log for new warnings
+        if: steps.build-log-cache.outputs.cache-hit == 'true'
+        shell: sh
         run: |
-          cmake --build build --parallel 4 --config ${{ matrix.config.build }} --verbose 
+          old_num=`grep 'warning' build.log | wc -l`
+          new_num=`grep 'warning' build-new.log | wc -l`
+          echo "::debug::Found $new_num warnings, previously $old_num"
+          if [ "$new_num" -gt "$old_num" ]; then
+            echo "::warning::New compiler warnings found (old=$old_num, new=$new_num)"
+          fi
+
+      - name: Update build log cache
+        if: success()
+        run: |
+          rm -f build.log
+          mv build-new.log build.log
 
       - name: Run Tests
         id: run-tests
@@ -365,9 +401,9 @@ jobs:
         id: changed-files
 
       - name: Check copyright year is current for changed files
-        if: steps.changed-files.outputs.test_any_changed
+        if: steps.changed-files.outputs.any_changed
         run: |
-          grep -H "Copyright " ${{ steps.changed-files.outputs.all_changed_files }} | grep -v $(date +%Y) > /tmp/copyright_lines.txt
+          grep -H "Copyright " ${{ steps.changed-files.outputs.all_changed_files }} | grep -v $(date +%Y) > /tmp/copyright_lines.txt || true
           if [ -s copyright_lines.txt ]; then
             echo "Copyright information out of date for files:";
             cut -d':' -f1 /tmp/copyright_lines.txt | sort | uniq
