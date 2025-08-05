@@ -13,10 +13,6 @@
  * limitations under the License.
  */
 
-#ifdef REALM_USE_HIP
-#include "hip_cuda_compat/hip_cuda.h"
-#include "realm/hip/hiphijack_api.h"
-#endif
 #include "legion/api/redop.h"
 #include "legion/api/types.h"
 
