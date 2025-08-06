@@ -2610,8 +2610,17 @@ namespace Legion {
       FutureImpl* future = legion_safe_cast<FutureImpl*>(dc);
       size_t future_size;
       derez.deserialize(future_size);
+#ifdef LEGION_DEBUG
+      // Same case here as above to avoid overzealous assertions
+      legion_no_skip_assert(future->check_global_and_increment(RUNTIME_REF));
+      future->unpack_global_ref();
+      future->set_future_result_size(future_size, source);
+      if (future->remove_base_gc_ref(RUNTIME_REF))
+        delete future;
+#else
       future->set_future_result_size(future_size, source);
       future->unpack_global_ref();
+#endif
     }
 
     //--------------------------------------------------------------------------
@@ -2623,8 +2632,17 @@ namespace Legion {
       derez.deserialize(did);
       DistributedCollectable* dc = runtime->find_distributed_collectable(did);
       FutureImpl* future = legion_safe_cast<FutureImpl*>(dc);
+#ifdef LEGION_DEBUG
+      // Same case here as above to avoid overzealous assertions
+      legion_no_skip_assert(future->check_global_and_increment(RUNTIME_REF));
+      future->unpack_global_ref();
+      future->record_subscription(source, true /*need lock*/);
+      if (future->remove_base_gc_ref(RUNTIME_REF))
+        delete future;
+#else
       future->record_subscription(source, true /*need lock*/);
       future->unpack_global_ref();
+#endif
     }
 
     //--------------------------------------------------------------------------
