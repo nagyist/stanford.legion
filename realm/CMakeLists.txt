@@ -896,6 +896,9 @@ endif()
 # to the interface link libraries of the target, which is not what we want.
 set(REALM_EXTRA_OBJS)
 
+# Generate compile_commands.json for clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(TARGET realm_gex_wrapper_objs AND NOT REALM_ENABLE_GASNETEX_WRAPPER)
   # side rant(cperry) : it would be nice if object libraries were a little more
   # seamless and weren't added part of the interface link libraries for
