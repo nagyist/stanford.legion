@@ -7894,8 +7894,7 @@ namespace Legion {
       GenerationID gen;
       if (shard == owner_shard->shard_id)
       {
-        // We 're just reading so only need the lock in read-only mode
-        AutoLock child_lock(child_op_lock, false /*exclusive*/);
+        AutoLock child_lock(child_op_lock);
         if (reorder_buffer.empty())
         {
           // Already been retired so there is nothing to do

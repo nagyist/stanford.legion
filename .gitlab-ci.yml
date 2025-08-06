@@ -23,28 +23,32 @@ variables:
   REALM_DEFAULT_ARGS: "-ll:report_sparsity_leaks" # Check no sparsity maps are leaked
   GASNET_SHA256: "f3b379b2c650b8deb24e33ca101303c1af2482e996e603291ebf16c02a708da1"
   GASNET_COMMIT: "3db4ea2f92ea6bfba6fe9538cb001b6a34b2f373"
-
+  # Set these to override the local realm source check out
+  REALM_URL: ""
+  REALM_SHA256: ""
+  REALM_COMMIT: ""
 
 workflow:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       variables:
-        CCACHE_POLICY: pull-push
+        CACHE_POLICY: pull-push
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       variables:
-        CCACHE_POLICY: pull
+        CACHE_POLICY: pull
 
 cache: &global_cache
   - key: "$CI_JOB_NAME"
     paths:
       - $CCACHE_DIR
-    policy: $CCACHE_POLICY
+    policy: $CACHE_POLICY
   - key: "cpm_src_cache"
     paths:
       - $CPM_SOURCE_CACHE
   - key: "external-deps"
     paths:
       - $DEP_CACHE
+    policy: $CACHE_POLICY
   - key:
       files:
         - tools/legion_prof_rs/Cargo.lock
@@ -52,6 +56,7 @@ cache: &global_cache
     paths:
       - $CARGO_HOME
       - tools/legion_prof_rs/target/
+    policy: $CACHE_POLICY
 
 # Local variables (included on a case-by-case basis in each job):
 .no_ccache: &no_ccache
@@ -330,9 +335,9 @@ before_script:
     if [[ "$UCX_VERSION" != "" ]]; then
       mkdir -p ucx
       cd ucx
-      if ! echo "$UCX_SHA256  $DEP_CACHE/ucx-$UCX_VERSION.tar.gz" | sha256sum -c; then 
-        wget -nv https://github.com/openucx/ucx/releases/download/v$UCX_VERSION/ucx-$UCX_VERSION.tar.gz -O $DEP_CACHE/ucx-$UCX_VERSION.tar.gz
-        echo "$UCX_SHA256  $DEP_CACHE/ucx-$UCX_VERSION.tar.gz" | sha256sum -c
+      if ! echo "$UCX_SHA256  $DEP_CACHE/ucx-$UCX_VERSION.tar.gz" | shasum -a 256 -c; then 
+        curl -sL https://github.com/openucx/ucx/releases/download/v$UCX_VERSION/ucx-$UCX_VERSION.tar.gz -o $DEP_CACHE/ucx-$UCX_VERSION.tar.gz
+        echo "$UCX_SHA256  $DEP_CACHE/ucx-$UCX_VERSION.tar.gz" | shasum -a 256 -c
       fi
       tar --strip-components=1 -zxf $DEP_CACHE/ucx-$UCX_VERSION.tar.gz
       export UCX_ROOT=$PWD/install
@@ -357,9 +362,9 @@ before_script:
       apt update -qq -yy && apt install -qq -yy autoconf automake libtool # needed for autogen.sh
       mkdir -p ucc
       cd ucc
-      if ! echo "$UCC_SHA256  $DEP_CACHE/ucc-$UCC_VERSION.tar.gz" | sha256sum -c; then
-        wget -nv https://github.com/openucx/ucc/archive/refs/tags/v$UCC_VERSION.tar.gz -O $DEP_CACHE/ucc-$UCC_VERSION.tar.gz
-        echo "$UCC_SHA256  $DEP_CACHE/ucc-$UCC_VERSION.tar.gz" | sha256sum -c
+      if ! echo "$UCC_SHA256  $DEP_CACHE/ucc-$UCC_VERSION.tar.gz" | shasum -a 256 -c; then
+        curl -sL https://github.com/openucx/ucc/archive/refs/tags/v$UCC_VERSION.tar.gz -o $DEP_CACHE/ucc-$UCC_VERSION.tar.gz
+        echo "$UCC_SHA256  $DEP_CACHE/ucc-$UCC_VERSION.tar.gz" | shasum -a 256 -c
       fi
       tar --strip-components=1 -zxf $DEP_CACHE/ucc-$UCC_VERSION.tar.gz
       export UCC_ROOT=$PWD/install
@@ -386,9 +391,9 @@ before_script:
         if [[ "$EMBED_GASNET" -eq 1 ]]; then
           if [[ "$EMBED_GASNET_LOCAL" -eq 1 ]]; then
             # clone gasnet, but make it read only since we want an embedded build
-            if ! echo "$GASNET_SHA256  $DEP_CACHE/gasnet-${GASNET_COMMIT}.tar.gz" | sha256sum -c; then
-              wget -nv https://github.com/StanfordLegion/gasnet/archive/${GASNET_COMMIT}.tar.gz -O ${DEP_CACHE}/gasnet-${GASNET_COMMIT}.tar.gz
-              echo "$GASNET_SHA256  $DEP_CACHE/gasnet-${GASNET_COMMIT}.tar.gz" | sha256sum -c
+            if ! echo "$GASNET_SHA256  $DEP_CACHE/gasnet-${GASNET_COMMIT}.tar.gz" | shasum -a 256 -c; then
+              curl -sL https://github.com/StanfordLegion/gasnet/archive/${GASNET_COMMIT}.tar.gz -o ${DEP_CACHE}/gasnet-${GASNET_COMMIT}.tar.gz
+              echo "$GASNET_SHA256  $DEP_CACHE/gasnet-${GASNET_COMMIT}.tar.gz" | shasum -a 256 -c
             fi
             tar -zxf ${DEP_CACHE}/gasnet-${GASNET_COMMIT}.tar.gz
             rm -rf gasnet
@@ -397,9 +402,9 @@ before_script:
             export EMBED_GASNET_SRC="$PWD/gasnet"
           fi
         else
-          if ! echo "$GASNET_SHA256  $DEP_CACHE/gasnet-${GASNET_COMMIT}.tar.gz" | sha256sum -c; then
-            wget -nv https://github.com/StanfordLegion/gasnet/archive/${GASNET_COMMIT}.tar.gz -O ${DEP_CACHE}/gasnet-${GASNET_COMMIT}.tar.gz
-            echo "$GASNET_SHA256  $DEP_CACHE/gasnet-${GASNET_COMMIT}.tar.gz" | sha256sum -c
+          if ! echo "$GASNET_SHA256  $DEP_CACHE/gasnet-${GASNET_COMMIT}.tar.gz" | shasum -a 256 -c; then
+            curl -sL https://github.com/StanfordLegion/gasnet/archive/${GASNET_COMMIT}.tar.gz -o ${DEP_CACHE}/gasnet-${GASNET_COMMIT}.tar.gz
+            echo "$GASNET_SHA256  $DEP_CACHE/gasnet-${GASNET_COMMIT}.tar.gz" | shasum -a 256 -c
           fi
           tar -zxf ${DEP_CACHE}/gasnet-${GASNET_COMMIT}.tar.gz
           rm -rf gasnet
@@ -426,9 +431,9 @@ before_script:
   - |
     # Download (and cache) the requested cmake version and set up the path accordingly 
     if [[ ! -z "$CMAKE_SHA256" ]]; then
-      if ! echo "$CMAKE_SHA256  $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" | sha256sum -c; then
-        wget -nv https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz -O $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
-        echo "$CMAKE_SHA256  $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" | sha256sum -c
+      if ! echo "$CMAKE_SHA256  $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" | shasum -a 256 -c; then
+        curl -sL https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz -o $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
+        echo "$CMAKE_SHA256  $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" | shasum -a 256 -c
       fi
       rm -rf /cmake-${CMAKE_VERSION}-linux-x86_64
       tar -C / -zxf $DEP_CACHE/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
@@ -448,9 +453,9 @@ before_script:
     fi
   - |
     if [[ "$USE_KOKKOS" -eq 1 ]]; then
-      if ! echo "$KOKKOS_SHA256  $DEP_CACHE/kokkos-$KOKKOS_TAG.tar.gz" | sha256sum -c; then
-        wget -nv https://github.com/kokkos/kokkos/archive/refs/tags/$KOKKOS_TAG.tar.gz -O $DEP_CACHE/kokkos-$KOKKOS_TAG.tar.gz
-        echo "$KOKKOS_SHA256  $DEP_CACHE/kokkos-$KOKKOS_TAG.tar.gz" | sha256sum -c
+      if ! echo "$KOKKOS_SHA256  $DEP_CACHE/kokkos-$KOKKOS_TAG.tar.gz" | shasum -a 256 -c; then
+        curl -sL https://github.com/kokkos/kokkos/archive/refs/tags/$KOKKOS_TAG.tar.gz -o $DEP_CACHE/kokkos-$KOKKOS_TAG.tar.gz
+        echo "$KOKKOS_SHA256  $DEP_CACHE/kokkos-$KOKKOS_TAG.tar.gz" | shasum -a 256 -c
       fi
       tar -zxf $DEP_CACHE/kokkos-$KOKKOS_TAG.tar.gz
       rm -rf kokkos
@@ -491,9 +496,9 @@ before_script:
       export Kokkos_DIR=`pwd`/kokkos/install
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$Kokkos_DIR/lib
 
-      if ! echo "$KKERNELS_SHA256  $DEP_CACHE/kokkoskernels-$KOKKOS_TAG.tar.gz" | sha256sum -c; then
-        wget -nv https://github.com/kokkos/kokkos-kernels/archive/refs/tags/$KOKKOS_TAG.tar.gz -O $DEP_CACHE/kokkoskernels-$KOKKOS_TAG.tar.gz
-        echo "$KKERNELS_SHA256  $DEP_CACHE/kokkoskernels-$KOKKOS_TAG.tar.gz" | sha256sum -c
+      if ! echo "$KKERNELS_SHA256  $DEP_CACHE/kokkoskernels-$KOKKOS_TAG.tar.gz" | shasum -a 256 -c; then
+        curl -sL https://github.com/kokkos/kokkos-kernels/archive/refs/tags/$KOKKOS_TAG.tar.gz -o $DEP_CACHE/kokkoskernels-$KOKKOS_TAG.tar.gz
+        echo "$KKERNELS_SHA256  $DEP_CACHE/kokkoskernels-$KOKKOS_TAG.tar.gz" | shasum -a 256 -c
       fi
       tar -zxf $DEP_CACHE/kokkoskernels-$KOKKOS_TAG.tar.gz
       rm -rf kokkos-kernels
@@ -650,6 +655,16 @@ before_script:
     - which $CXX
     - $CXX --version
     - |
+      if [[ ! -z "${REALM_URL}" ]]; then
+        # Replace realm with the one given
+        rm -rf realm
+        if ! echo "$REALM_SHA256  $DEP_CACHE/realm-$REALM_COMMIT.tar.gz" | shasum -a 256 -c; then
+          curl -sL "${REALM_URL}" -o ${DEP_CACHE}/realm-${REALM_COMMIT}.tar.gz
+          echo "$REALM_SHA256  $DEP_CACHE/realm-$REALM_COMMIT.tar.gz" | shasum -a 256 -c
+        fi
+        tar -zxf ${DEP_CACHE}/realm-${REALM_COMMIT}.tar.gz
+        mv realm-* realm
+      fi
       mkdir -p realm/build realm/install
       REALM_CMAKE_ARGS="-DGASNet_ROOT="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DCMAKE_HIP_PLATFORM=nvidia"
       if [[ "${REALM_NETWORKS}" != "ucx" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF";
@@ -736,6 +751,16 @@ before_script:
         export TEST_PYTHON_EXE=`which python3 python | head -1`
       fi
     - |
+      if [[ ! -z "${REALM_URL}" ]]; then
+        # Replace realm with the one given
+        rm -rf realm
+        if ! echo "$REALM_SHA256  $DEP_CACHE/realm-$REALM_COMMIT.tar.gz" | shasum -a 256 -c; then
+          curl -sL "${REALM_URL}" -o ${DEP_CACHE}/realm-${REALM_COMMIT}.tar.gz
+          echo "$REALM_SHA256  $DEP_CACHE/realm-$REALM_COMMIT.tar.gz" | shasum -a 256 -c
+        fi
+        tar -zxf ${DEP_CACHE}/realm-${REALM_COMMIT}.tar.gz
+        mv realm-* realm
+      fi
       mkdir -p realm/build realm/install
       REALM_CMAKE_ARGS="-DGASNet_ROOT="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DCMAKE_HIP_PLATFORM=nvidia"
       if [[ "${REALM_NETWORKS}" != "ucx" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF";
@@ -806,8 +831,18 @@ before_script:
 .realm_sanitizer_tests: &realm_sanitizer_tests
   <<: *test_rules
   script:
-    - mkdir -p build
     - |
+      if [[ ! -z "${REALM_URL}" ]]; then
+        # Replace realm with the one given
+        rm -rf realm
+        if ! echo "$REALM_SHA256  $DEP_CACHE/realm-$REALM_COMMIT.tar.gz" | shasum -a 256 -c; then
+          curl -sL "${REALM_URL}" -o ${DEP_CACHE}/realm-${REALM_COMMIT}.tar.gz
+          echo "$REALM_SHA256  $DEP_CACHE/realm-$REALM_COMMIT.tar.gz" | shasum -a 256 -c
+        fi
+        tar -zxf ${DEP_CACHE}/realm-${REALM_COMMIT}.tar.gz
+        mv realm-* realm
+      fi
+      mkdir -p build
       REALM_CMAKE_ARGS="-DGASNet_ROOT="${GASNET_ROOT}" -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DCMAKE_HIP_PLATFORM=nvidia"
       if [[ "${REALM_NETWORKS}" != "ucx" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF";
       else REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=ON"; fi
