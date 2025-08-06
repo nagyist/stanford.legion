@@ -407,7 +407,7 @@ namespace Legion {
       const RtUserEvent to_trigger = Runtime::create_rt_user_event();
       CollectiveResult* result = new CollectiveResult(instances);
       result->add_reference();
-      RemoteContextPhysicalRequest rez;
+      RemoteContextFindCollectiveViewRequest rez;
       {
         RezCheck z(rez);
         rez.serialize(did);
