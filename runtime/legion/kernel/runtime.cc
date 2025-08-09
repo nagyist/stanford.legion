@@ -12941,11 +12941,11 @@ namespace Legion {
         else if (implicit_operation != nullptr)
         {
           // Record the task tree context
-          implicit_operation->get_context()->record_task_tree_trace(
-              exception, implicit_operation);
+          InnerContext* context = implicit_operation->get_context();
+          context->record_task_tree_trace(exception, implicit_operation);
           exception.record_backtrace(backtrace);
           ExceptionHandler* handler = runtime->find_exception_handler(
-              implicit_context->get_current_exception_handler());
+              context->get_current_exception_handler());
           if (handler->can_handle(exception.type) &&
               handler->handle_exception(
                   exception,
