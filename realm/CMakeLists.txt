@@ -756,23 +756,21 @@ if(REALM_ENABLE_GASNETEX)
   endif()
   if(NOT GASNet_FOUND)
     message(FATAL_ERROR "Failed to find GASNet")
-  endif()
-endif()
-
-if(GASNet_FOUND)
-  set(GEX_WRAPPER_BUILD_SHARED ${REALM_ENABLE_GASNETEX_WRAPPER})
-  if(GEX_WRAPPER_BUILD_SHARED OR NOT BUILD_SHARED_LIBS)
-    set(GEX_NO_INSTALL FALSE)
   else()
-    set(GEX_NO_INSTALL TRUE)
-  endif()
-  add_subdirectory(
-    ${REALM_SOURCE_DIR}/gasnetex/gasnetex_wrapper ${CMAKE_CURRENT_BINARY_DIR}/gasnetex_wrapper
-    EXCLUDE_FROM_ALL
-  )
-  if(NOT REALM_ENABLE_GASNETEX_WRAPPER)
-    list(APPEND REALM_LIBRARIES GASNet::GASNet)
-    list(APPEND REALM_STATIC_DEPENDS GASNet)
+    set(GEX_WRAPPER_BUILD_SHARED ${REALM_ENABLE_GASNETEX_WRAPPER})
+    if(GEX_WRAPPER_BUILD_SHARED OR NOT BUILD_SHARED_LIBS)
+      set(GEX_NO_INSTALL FALSE)
+    else()
+      set(GEX_NO_INSTALL TRUE)
+    endif()
+    add_subdirectory(
+      ${REALM_SOURCE_DIR}/gasnetex/gasnetex_wrapper ${CMAKE_CURRENT_BINARY_DIR}/gasnetex_wrapper
+      EXCLUDE_FROM_ALL
+    )
+    if(NOT REALM_ENABLE_GASNETEX_WRAPPER)
+      list(APPEND REALM_LIBRARIES GASNet::GASNet)
+      list(APPEND REALM_STATIC_DEPENDS GASNet)
+    endif()
   endif()
 endif()
 

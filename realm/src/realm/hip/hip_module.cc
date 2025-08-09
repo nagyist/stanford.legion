@@ -1312,7 +1312,7 @@ namespace Realm {
                                                          size_t &inst_offset)
     {
       switch(inst->metadata.ext_resource->get_type_id()) {
-      case REALM_HASH_TOKEN(ExternalHipMemoryResource):
+      case REALM_HASH_TOKEN(Realm::ExternalHipMemoryResource):
       {
         ExternalHipMemoryResource *res =
             static_cast<ExternalHipMemoryResource *>(inst->metadata.ext_resource);

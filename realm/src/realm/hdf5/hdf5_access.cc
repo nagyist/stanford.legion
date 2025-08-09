@@ -37,12 +37,12 @@ namespace Realm {
   //
 
   ExternalHDF5Resource::ExternalHDF5Resource()
-    : ExternalInstanceResource(REALM_HASH_TOKEN(ExternalHDF5Resource))
+    : ExternalInstanceResource(REALM_HASH_TOKEN(Realm::ExternalHDF5Resource))
   {}
 
   ExternalHDF5Resource::ExternalHDF5Resource(const std::string &_filename,
                                              bool _read_only)
-    : ExternalInstanceResource(REALM_HASH_TOKEN(ExternalHDF5Resource))
+    : ExternalInstanceResource(REALM_HASH_TOKEN(Realm::ExternalHDF5Resource))
     , filename(_filename)
     , read_only(_read_only)
   {}

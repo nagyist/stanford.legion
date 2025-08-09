@@ -108,6 +108,13 @@ namespace Realm {
     // returns the finish event for the currently running task
     static Event get_current_finish_event(void);
 
+    // Add an event that must be a precondition for triggering
+    // the finish event for the currently running task. This allows
+    // for other asynchronous effects from the task to be accumulated
+    // into finish event dynamically and for the task to exit without
+    // needing to block and wait for these events to trigger.
+    static realm_status_t add_finish_event_precondition(Event precondition);
+
     // a scheduler lock prevents the current thread from releasing its
     //  execution resources even when waiting on an Event - multiple
     //  nested calls to 'enable_scheduler_lock' are permitted, but a

@@ -1701,13 +1701,13 @@ namespace Realm {
   // class ExternalFileResource
 
   ExternalFileResource::ExternalFileResource()
-    : ExternalInstanceResource(REALM_HASH_TOKEN(ExternalFileResource))
+    : ExternalInstanceResource(REALM_HASH_TOKEN(Realm::ExternalFileResource))
   {}
 
   ExternalFileResource::ExternalFileResource(const std::string &_filename,
                                              realm_file_mode_t _mode,
                                              size_t _offset /*= 0*/)
-    : ExternalInstanceResource(REALM_HASH_TOKEN(ExternalFileResource))
+    : ExternalInstanceResource(REALM_HASH_TOKEN(Realm::ExternalFileResource))
     , filename(_filename)
     , offset(_offset)
     , mode(_mode)

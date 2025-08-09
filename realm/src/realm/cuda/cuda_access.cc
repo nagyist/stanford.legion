@@ -94,7 +94,7 @@ namespace Realm {
   //
 
   ExternalCudaMemoryResource::ExternalCudaMemoryResource()
-    : ExternalInstanceResource(REALM_HASH_TOKEN(ExternalCudaMemoryResource))
+    : ExternalInstanceResource(REALM_HASH_TOKEN(Realm::ExternalCudaMemoryResource))
     , cuda_device_id(-1)
     , base(0)
     , size_in_bytes(0)
@@ -169,21 +169,21 @@ namespace Realm {
   //
 
   ExternalCudaArrayResource::ExternalCudaArrayResource()
-    : ExternalInstanceResource(REALM_HASH_TOKEN(ExternalCudaArrayResource))
+    : ExternalInstanceResource(REALM_HASH_TOKEN(Realm::ExternalCudaArrayResource))
     , cuda_device_id(-1)
     , array(0)
   {}
 
   ExternalCudaArrayResource::ExternalCudaArrayResource(int _cuda_device_id,
                                                        CUarray_st *_array)
-    : ExternalInstanceResource(REALM_HASH_TOKEN(ExternalCudaArrayResource))
+    : ExternalInstanceResource(REALM_HASH_TOKEN(Realm::ExternalCudaArrayResource))
     , cuda_device_id(_cuda_device_id)
     , array(_array)
   {}
 
   ExternalCudaArrayResource::ExternalCudaArrayResource(int _cuda_device_id,
                                                        cudaArray *_array)
-    : ExternalInstanceResource(REALM_HASH_TOKEN(ExternalCudaArrayResource))
+    : ExternalInstanceResource(REALM_HASH_TOKEN(Realm::ExternalCudaArrayResource))
     , cuda_device_id(_cuda_device_id)
     , array(reinterpret_cast<CUarray_st *>(_array))
   {}
@@ -228,7 +228,7 @@ namespace Realm {
 
   ExternalCudaPinnedHostResource::ExternalCudaPinnedHostResource()
   {
-    type_id = REALM_HASH_TOKEN(ExternalMemoryResource);
+    type_id = REALM_HASH_TOKEN(Realm::ExternalMemoryResource);
   }
 
   ExternalCudaPinnedHostResource::ExternalCudaPinnedHostResource(uintptr_t _base,
@@ -236,21 +236,21 @@ namespace Realm {
                                                                  bool _read_only)
     : ExternalMemoryResource(_base, _size_in_bytes, _read_only)
   {
-    type_id = REALM_HASH_TOKEN(ExternalMemoryResource);
+    type_id = REALM_HASH_TOKEN(Realm::ExternalMemoryResource);
   }
 
   ExternalCudaPinnedHostResource::ExternalCudaPinnedHostResource(void *_base,
                                                                  size_t _size_in_bytes)
     : ExternalMemoryResource(_base, _size_in_bytes)
   {
-    type_id = REALM_HASH_TOKEN(ExternalMemoryResource);
+    type_id = REALM_HASH_TOKEN(Realm::ExternalMemoryResource);
   }
 
   ExternalCudaPinnedHostResource::ExternalCudaPinnedHostResource(const void *_base,
                                                                  size_t _size_in_bytes)
     : ExternalMemoryResource(_base, _size_in_bytes)
   {
-    type_id = REALM_HASH_TOKEN(ExternalMemoryResource);
+    type_id = REALM_HASH_TOKEN(Realm::ExternalMemoryResource);
   }
 
   // returns the suggested memory in which this resource should be created

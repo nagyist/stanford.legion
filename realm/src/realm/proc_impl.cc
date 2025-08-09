@@ -127,6 +127,15 @@ namespace Realm {
     return op->get_finish_event();
   }
 
+  /*static*/ realm_status_t Processor::add_finish_event_precondition(Event precondition)
+  {
+    Operation *op = Thread::self()->get_operation();
+    if(op == nullptr)
+      return REALM_PROCESSOR_ERROR_OUTSIDE_TASK;
+    op->add_finish_event_precondition(precondition);
+    return REALM_SUCCESS;
+  }
+
   AddressSpace Processor::address_space(void) const
   {
     ID id(*this);

@@ -125,6 +125,7 @@ namespace Realm {
 
   public:
     Event get_finish_event(void) const;
+    void add_finish_event_precondition(Event precondition);
 
   protected:
     typedef ProfilingMeasurements::OperationStatus Status;

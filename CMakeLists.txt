@@ -398,7 +398,8 @@ separate_arguments(Legion_NETWORKS)
 # compatibility mode - Legion_USE_GASNet==ON -> Legion_NETWORKS=gasnet1
 option(Legion_USE_GASNet "Enable the distributed GASNet backend" OFF)
 if(Legion_USE_GASNet)
-  list(APPEND Legion_NETWORKS gasnet1)
+  #list(APPEND Legion_NETWORKS gasnet1)
+  list(APPEND Legion_NETWORKS gasnetex)
 endif()
 
 #------------------------------------------------------------------------------#
