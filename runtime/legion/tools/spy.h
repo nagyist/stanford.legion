@@ -154,7 +154,7 @@ namespace Legion {
       {
         if (spy_logging_level > NO_SPY_LOGGING)
           log_spy.print(
-              "Field Creation %lluu %u %ld %.*s", unique_id, field_id,
+              "Field Creation %llu %u %ld %.*s", unique_id, field_id,
               long(size), int(provenance.length()),
               (provenance.length() == 0) ? "" : provenance.data());
       }
