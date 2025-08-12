@@ -496,14 +496,17 @@ namespace Legion {
       // escape back up the task tree
       if (producer_op == nullptr)
         return;
-      const int context_depth = (implicit_context == nullptr) ?
-                                    producer_depth :
-                                    implicit_context->get_depth();
-      legion_assert(producer_depth <= context_depth);
-      if (producer_depth < context_depth)
-        return;
-      context->record_blocking_call(coordinate.context_index);
-      context->wait_on_future(this, producer_op->get_commit_event(op_gen));
+      if (implicit_context != nullptr)
+      {
+        const int context_depth = implicit_context->get_depth();
+        legion_assert(producer_depth <= context_depth);
+        if (producer_depth < context_depth)
+          return;
+        context->record_blocking_call(coordinate.context_index);
+        context->wait_on_future(this, producer_op->get_commit_event(op_gen));
+      }
+      else
+        get_complete_event().external_wait();
     }
 
     //--------------------------------------------------------------------------

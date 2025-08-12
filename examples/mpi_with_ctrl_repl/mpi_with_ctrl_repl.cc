@@ -96,7 +96,10 @@ void top_level_task(const Task *task,
     // with a LegionMPIHandshake object which will allow you to
     // continue launching more sub-tasks without blocking. 
     // For deferred execution we prefer the later style, but
-    // both will work correctly.
+    // both will work correctly. Note that you can pick one and
+    // only one of these modes of synchronization for each 
+    // iteration of the handshake. Do not try to mix them for the
+    // same iteration of the handshake or undefined behavior will result.
     if (i < (total_iterations/2))
     {
       // This is the blocking way of using handshakes, it

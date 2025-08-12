@@ -359,8 +359,15 @@ namespace Legion {
         bool silence_warnings, const char* warning_string)
     //--------------------------------------------------------------------------
     {
-      legion_assert(implicit_context != nullptr);
-      legion_assert(implicit_context == context);
+      if (implicit_context != context)
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Invalid request to wait on all results of a future map "
+              << *this << " outside of " << *context << " task context where "
+              << "it was created. Future maps can only be used in the task "
+              << "where they were made.";
+        error.raise();
+      }
       if (runtime->runtime_warnings && !silence_warnings &&
           (context != nullptr) && !context->is_leaf_context())
       {
