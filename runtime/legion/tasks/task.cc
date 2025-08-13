@@ -1064,7 +1064,7 @@ namespace Legion {
       {
         if (duplicate_args)
         {
-          arg_manager.save_buffer(rhs->arg_manager.get_buffer(), this->arglen);
+          arg_manager.save_buffer(rhs->args, this->arglen);
           this->args = arg_manager.get_buffer();
         }
         else

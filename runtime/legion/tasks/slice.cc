@@ -794,7 +794,7 @@ namespace Legion {
       result->initialize_base_task(
           parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance());
       result->clone_task_op_from(
-          this, this->target_proc, false /*stealable*/, false /*duplicate*/);
+          this, this->target_proc, false /*stealable*/, true /*duplicate*/);
       result->is_index_space = true;
       result->must_epoch_task = this->must_epoch_task;
       result->index_domain = this->index_domain;
