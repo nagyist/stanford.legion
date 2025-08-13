@@ -51,19 +51,6 @@
 
 using COMPLEX_NAMESPACE::complex;
 
-#if defined (LEGION_USE_CUDA) || defined (LEGION_USE_HIP)
-// We need fabs for situations where we process complex, floating point, and
-// integral types in the same generic call. This is only needed for the thrust
-// version of complex as the std one already has fabs.
-// Overload for __half defined after complex<__half>
-namespace COMPLEX_NAMESPACE {
-template<class T>
-__CUDA_HD__ constexpr T fabs(const complex<T>& arg) {
-  return abs(arg);
-}
-}
-#endif
-
 // Need to put this in COMPLEX_NAMESPACE namespace for ADL. The namespace has to
 // be changed/removed if another implementation of complex is used
 namespace COMPLEX_NAMESPACE {
