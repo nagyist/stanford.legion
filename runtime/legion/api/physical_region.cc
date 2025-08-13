@@ -429,8 +429,15 @@ namespace Legion {
         const char* source)
     //--------------------------------------------------------------------------
     {
-      legion_assert(implicit_context != nullptr);
-      legion_assert(implicit_context == context);
+      if (implicit_context != context)
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error << "Invalid request to wait until a physical region is valid "
+              << "outside of " << *context << " task context where it was "
+              << "created. Physical regions can only be used in the task "
+              << "where they were made.";
+        error.raise();
+      }
       context->record_blocking_call(blocking_index);
       if (runtime->runtime_warnings && !silence_warnings &&
           (context != nullptr) && !context->is_leaf_context())
