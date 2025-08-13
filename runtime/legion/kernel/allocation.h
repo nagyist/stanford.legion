@@ -71,12 +71,12 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime LIFETIME>
+    template<typename T, AllocationLifetime LIFETIME, typename TRACE_TYPE = T>
     inline T* legion_malloc(std::size_t size, std::size_t alignment)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_TRACE_ALLOCATION
-      LegionAllocation::trace_allocation(typeid(T), size);
+      LegionAllocation::trace_allocation(typeid(TRACE_TYPE), size);
 #endif
       if (alignment <= alignof(std::max_align_t))
         return static_cast<T*>(std::malloc(size));
@@ -85,7 +85,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime LIFETIME>
+    template<typename T, AllocationLifetime LIFETIME, typename TRACE_TYPE = T>
     inline T* legion_calloc(std::size_t num)
     //--------------------------------------------------------------------------
     {
@@ -96,8 +96,8 @@ namespace Legion {
       if (num == 1)
       {
         // Need to zero-initialize this to comply with semantics of calloc
-        void* ptr =
-            static_cast<void*>(legion_malloc<T, LIFETIME>(SIZE, ALIGNMENT));
+        void* ptr = static_cast<void*>(
+            legion_malloc<T, LIFETIME, TRACE_TYPE>(SIZE, ALIGNMENT));
         std::memset(ptr, 0 /*value*/, SIZE);
         return static_cast<T*>(ptr);
       }
@@ -109,7 +109,7 @@ namespace Legion {
       // Can subtract any padding off the last element
       const std::size_t bytes = num * (SIZE + PADDING);
 #ifdef LEGION_TRACE_ALLOCATION
-      LegionAllocation::trace_allocation(typeid(T), bytes);
+      LegionAllocation::trace_allocation(typeid(TRACE_TYPE), bytes);
 #endif
       void* ptr = std::aligned_alloc(ALIGNMENT, bytes);
       // Need to zero-initialize this to comply with semantics of calloc
@@ -118,12 +118,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime LIFETIME>
+    template<typename T, AllocationLifetime LIFETIME, typename TRACE_TYPE = T>
     inline T* legion_realloc(T* ptr, std::size_t old_size, std::size_t new_size)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_TRACE_ALLOCATION
-      const std::type_info& info = typeid(T);
+      const std::type_info& info = typeid(TRACE_TYPE);
       LegionAllocation::trace_free(info, old_size);
       LegionAllocation::trace_allocation(info, new_size);
 #endif
@@ -131,12 +131,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T>
+    template<typename T, typename TRACE_TYPE = T>
     inline void legion_free(T* ptr, std::size_t size)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_TRACE_ALLOCATION
-      LegionAllocation::trace_free(typeid(T), size);
+      LegionAllocation::trace_free(typeid(TRACE_TYPE), size);
 #endif
       std::free(ptr);
     }

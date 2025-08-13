@@ -52,8 +52,7 @@ namespace Legion {
       {
         if (buffer != nullptr)
         {
-          legion_free<BufferManager<T, L> >(
-              static_cast<BufferManager<T, L>*>(buffer), size);
+          legion_free<void, BufferManager<T, L> >(buffer, size);
           buffer = nullptr;
           size = 0;
         }
@@ -61,13 +60,12 @@ namespace Legion {
       inline void save_buffer(const void* src, size_t sz)
       {
         if (buffer != nullptr)
-          legion_free<BufferManager<T, L> >(
-              static_cast<BufferManager<T, L>*>(buffer), size);
+          legion_free<void, BufferManager<T, L> >(buffer, size);
         size = sz;
         if (size > 0)
         {
-          buffer = static_cast<void*>(
-              legion_malloc<BufferManager<T, L>, L>(size, alignof(uint8_t)));
+          buffer = legion_malloc<void, L, BufferManager<T, L> >(
+              size, alignof(uint8_t));
           std::memcpy(buffer, src, size);
         }
         else
