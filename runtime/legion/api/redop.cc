@@ -19,28 +19,6 @@
 #include "legion/kernel/runtime.h"
 
 namespace Legion {
-#ifdef LEGION_REDOP_HALF
-  /*static*/ const __half SumReduction<__half>::identity =
-      __half(0, false /*raw*/);
-  /*static*/ const __half DiffReduction<__half>::identity =
-      __half(0, false /*raw*/);
-  /*static*/ const __half ProdReduction<__half>::identity =
-      __half(1, false /*raw*/);
-  /*static*/ const __half DivReduction<__half>::identity =
-      __half(1, false /*raw*/);
-  /*static*/ const __half MaxReduction<__half>::identity = __half(-2e10);
-  /*static*/ const __half MinReduction<__half>::identity = __half(2e10);
-#ifdef LEGION_REDOP_COMPLEX
-  /*static*/ const complex<__half> SumReduction<complex<__half> >::identity =
-      complex<__half>(__half(0, false /*raw*/), __half(0, false /*raw*/));
-  /*static*/ const complex<__half> DiffReduction<complex<__half> >::identity =
-      complex<__half>(__half(0, false /*raw*/), __half(0, false /*raw*/));
-  /*static*/ const complex<__half> ProdReduction<complex<__half> >::identity =
-      complex<__half>(__half(1, false /*raw*/), __half(0, false /*raw*/));
-  /*static*/ const complex<__half> DivReduction<complex<__half> >::identity =
-      complex<__half>(__half(1, false /*raw*/), __half(0, false /*raw*/));
-#endif
-#endif
 
 #define REGISTER_BUILTIN_REDOP(id, type)                                   \
   register_reduction_op(                                                   \

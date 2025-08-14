@@ -188,7 +188,7 @@ namespace Legion {
     typedef __half LHS;
     typedef __half RHS;
 
-    static const __half identity;
+    static inline const __half identity = __half(0, false /*raw*/);
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_FLOAT16;
 
     template<bool EXCLUSIVE>
@@ -236,7 +236,8 @@ namespace Legion {
     typedef complex<__half> LHS;
     typedef complex<__half> RHS;
 
-    static const complex<__half> identity;
+    static inline const complex<__half> identity =
+        complex<__half>(__half(0, false /*raw*/), __half(0, false /*raw*/));
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_COMPLEX32;
 
     template<bool EXCLUSIVE>
@@ -252,7 +253,7 @@ namespace Legion {
     typedef complex<float> LHS;
     typedef complex<float> RHS;
 
-    static constexpr complex<float> identity = complex<float>(0.f, 0.f);
+    static inline const complex<float> identity = complex<float>(0.f, 0.f);
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_COMPLEX64;
 
     template<bool EXCLUSIVE>
@@ -271,7 +272,7 @@ namespace Legion {
     typedef complex<double> LHS;
     typedef complex<double> RHS;
 
-    static constexpr complex<double> identity = complex<double>(0.0, 0.0);
+    static inline const complex<double> identity = complex<double>(0.0, 0.0);
     static constexpr int REDOP_ID = LEGION_REDOP_SUM_COMPLEX128;
 
     template<bool EXCLUSIVE>
@@ -414,7 +415,7 @@ namespace Legion {
     typedef __half LHS;
     typedef __half RHS;
 
-    static const __half identity;
+    static inline const __half identity = __half(0, false /*raw*/);
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_FLOAT16;
 
     template<bool EXCLUSIVE>
@@ -462,7 +463,8 @@ namespace Legion {
     typedef complex<__half> LHS;
     typedef complex<__half> RHS;
 
-    static const complex<__half> identity;
+    static inline const complex<__half> identity =
+        complex<__half>(__half(0, false /*raw*/), __half(0, false /*raw*/));
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_COMPLEX32;
 
     template<bool EXCLUSIVE>
@@ -478,7 +480,7 @@ namespace Legion {
     typedef complex<float> LHS;
     typedef complex<float> RHS;
 
-    static constexpr complex<float> identity = complex<float>(0.f, 0.f);
+    static inline const complex<float> identity = complex<float>(0.f, 0.f);
     static constexpr int REDOP_ID = LEGION_REDOP_DIFF_COMPLEX64;
 
     template<bool EXCLUSIVE>
@@ -636,7 +638,7 @@ namespace Legion {
     typedef __half LHS;
     typedef __half RHS;
 
-    static const __half identity;
+    static inline const __half identity = __half(1, false /*raw*/);
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_FLOAT16;
 
     template<bool EXCLUSIVE>
@@ -684,7 +686,8 @@ namespace Legion {
     typedef complex<__half> LHS;
     typedef complex<__half> RHS;
 
-    static const complex<__half> identity;
+    static inline const complex<__half> identity =
+        complex<__half>(__half(1, false /*raw*/), __half(0, false /*raw*/));
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_COMPLEX32;
 
     template<bool EXCLUSIVE>
@@ -700,7 +703,7 @@ namespace Legion {
     typedef complex<float> LHS;
     typedef complex<float> RHS;
 
-    static constexpr complex<float> identity = complex<float>(1.f, 0.f);
+    static inline const complex<float> identity = complex<float>(1.f, 0.f);
     static constexpr int REDOP_ID = LEGION_REDOP_PROD_COMPLEX64;
 
     template<bool EXCLUSIVE>
@@ -843,7 +846,7 @@ namespace Legion {
     typedef __half LHS;
     typedef __half RHS;
 
-    static const __half identity;
+    static inline const __half identity = __half(1, false /*raw*/);
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_FLOAT16;
 
     template<bool EXCLUSIVE>
@@ -891,7 +894,8 @@ namespace Legion {
     typedef complex<__half> LHS;
     typedef complex<__half> RHS;
 
-    static const complex<__half> identity;
+    static inline const complex<__half> identity =
+        complex<__half>(__half(1, false /*raw*/), __half(0, false /*raw*/));
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_COMPLEX32;
 
     template<bool EXCLUSIVE>
@@ -907,7 +911,7 @@ namespace Legion {
     typedef complex<float> LHS;
     typedef complex<float> RHS;
 
-    static constexpr complex<float> identity = complex<float>(1.f, 0.f);
+    static inline const complex<float> identity = complex<float>(1.f, 0.f);
     static constexpr int REDOP_ID = LEGION_REDOP_DIV_COMPLEX64;
 
     template<bool EXCLUSIVE>
@@ -1065,7 +1069,7 @@ namespace Legion {
     typedef __half LHS;
     typedef __half RHS;
 
-    static const __half identity;
+    static inline const __half identity = __half(-2e10);
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_FLOAT16;
 
     template<bool EXCLUSIVE>
@@ -1253,7 +1257,7 @@ namespace Legion {
     typedef __half LHS;
     typedef __half RHS;
 
-    static const __half identity;
+    static inline const __half identity = __half(2e10);
     static constexpr int REDOP_ID = LEGION_REDOP_MIN_FLOAT16;
 
     template<bool EXCLUSIVE>
