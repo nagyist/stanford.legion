@@ -4768,14 +4768,8 @@ function std.saveobj(main_task, filename, filetype, extra_setup_thunk, link_flag
 
   local flags = terralib.newlist()
   flags:insertall(objfiles)
-  local use_cmake = os.getenv("USE_CMAKE") == "1"
-  local lib_dir = os.getenv("LG_RT_DIR") .. "/../bindings/regent"
   local legion_install_prefix = os.getenv("LEGION_INSTALL_PREFIX")
-  if legion_install_prefix then
-    lib_dir = legion_install_prefix .. "/lib"
-  elseif use_cmake then
-    lib_dir = os.getenv("CMAKE_BUILD_DIR") .. "/lib"
-  end
+  local lib_dir = legion_install_prefix .. "/lib"
   if os.getenv('CRAYPE_VERSION') then
     flags:insert("-Wl,-Bdynamic")
   end
@@ -4803,15 +4797,12 @@ function std.saveobj(main_task, filename, filetype, extra_setup_thunk, link_flag
       flags:insert("-lxpmem")
     end
   end
-  flags:insertall({"-L" .. lib_dir, "-lregent"})
-  if legion_install_prefix or use_cmake then
-    flags:insertall({"-llegion"})
+  local realm_dir = os.getenv("Realm_ROOT")
+  if realm_dir then
+    flags:insertall({"-L" .. realm_dir .. "/lib"})
   end
-  local realm_dir = os.getenv("Realm_ROOT") .. "/lib"
-  flags:insertall({"-L" .. realm_dir, "-lrealm"})
-  if gpuhelper.check_gpu_available() then
-    flags:insertall(gpuhelper.driver_library_link_flags())
-  end
+  -- FIXME: Detect when Legion is a static library.
+  flags:insertall({"-L" .. lib_dir, "-lregent", "-llegion", "-lrealm"})
 
   profile('compile', nil, function()
     if #objfiles > 0 and filetype == 'object' then
@@ -4942,11 +4933,8 @@ function std.save_tasks(header_filename, filename, filetype, link_flags, registr
   local task_wrappers = make_task_wrappers()
   local registration_name, task_impl = write_header(header_filename, registration_name, main_task or false, task_whitelist, need_launcher)
   local _, names = std.setup(main_task, nil, task_wrappers, registration_name)
-  local use_cmake = os.getenv("USE_CMAKE") == "1"
-  local lib_dir = os.getenv("LG_RT_DIR") .. "/../bindings/regent"
-  if use_cmake then
-    lib_dir = os.getenv("CMAKE_BUILD_DIR") .. "/lib"
-  end
+  local legion_install_prefix = os.getenv("LEGION_INSTALL_PREFIX")
+  local lib_dir = legion_install_prefix .. "/lib"
 
   -- Export task interface implementations
   for k, v in task_impl:items() do
@@ -4955,12 +4943,11 @@ function std.save_tasks(header_filename, filename, filetype, link_flags, registr
 
   local flags = terralib.newlist()
   if link_flags then flags:insertall(link_flags) end
-  flags:insertall({"-L" .. lib_dir, "-lregent"})
-  if use_cmake then
-    flags:insertall({"-llegion"})
+  local realm_dir = os.getenv("Realm_ROOT")
+  if realm_dir then
+    flags:insertall({"-L" .. realm_dir .. "/lib"})
   end
-  local realm_dir = os.getenv("Realm_ROOT") .. "/lib"
-  flags:insertall({"-L" .. realm_dir, "-lrealm"})
+  flags:insertall({"-L" .. lib_dir, "-lregent", "-llegion", "-lrealm"})
   profile('compile', nil, function()
     if filetype ~= nil then
       terralib.saveobj(filename, filetype, names, flags, nil, base.opt_profile)

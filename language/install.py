@@ -194,6 +194,7 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
     # Don't blow away an existing directory
     assert not (clean_first and build_dir is not None)
 
+    regent_install_dir = os.path.join(regent_dir, 'install')
     if cmake:
         regent_build_dir = os.path.join(regent_dir, 'build')
         if build_dir is None:
@@ -215,7 +216,8 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
         if not os.path.exists(build_dir):
             os.mkdir(build_dir)
         flags = (
-            ['-DCMAKE_BUILD_TYPE=%s' % ('Debug' if debug else 'Release'),
+            ['-DCMAKE_INSTALL_PREFIX=%s' % regent_install_dir,
+             '-DCMAKE_BUILD_TYPE=%s' % ('Debug' if debug else 'Release'),
              '-DLegion_USE_CUDA=%s' % ('ON' if cuda else 'OFF'),
              '-DLegion_USE_HIP=%s' % ('ON' if hip else 'OFF'),
              '-DLegion_USE_OpenMP=%s' % ('ON' if openmp else 'OFF'),
@@ -255,6 +257,9 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
         subprocess.check_call(
             [make_exe] + make_flags + ['-j', str(thread_count)],
             cwd=build_dir)
+        subprocess.check_call(
+            [make_exe, 'install'],
+            cwd=build_dir)
     else:
         flags = (
             ['LG_RT_DIR=%s' % runtime_dir,
@@ -289,6 +294,9 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
             subprocess.check_call(
                 [make_exe] + flags + ['-j', str(thread_count)],
                 cwd=python_bindings_dir)
+        subprocess.check_call(
+            [make_exe, 'install', 'PREFIX=%s' % regent_install_dir],
+            cwd=bindings_dir)
 
         # This last bit is necessary because Mac OS X shared libraries
         # have paths hard-coded into them, and in this case those paths

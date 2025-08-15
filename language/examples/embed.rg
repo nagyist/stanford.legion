@@ -41,20 +41,19 @@ do
 
   cxx_flags = cxx_flags .. " -O2 -Wall -Werror"
 
-  local use_cmake = os.getenv("USE_CMAKE") == "1"
-  local lib_dir = binding_dir
-  local libs = "-lregent"
-  if use_cmake then
-    lib_dir = os.getenv("CMAKE_BUILD_DIR") .. "/lib"
-    libs = libs .. " -llegion"
+  local realm_dir = os.getenv("Realm_ROOT")
+  local realm_libs = ""
+  if realm_dir then
+    realm_libs = "-L" .. realm_dir .. "/lib "
   end
-  local realm_lib_prefix = os.getenv("Realm_ROOT") .. "/lib"
+  local lib_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib"
+  local libs = "-lregent -llegion -lrealm"
+
   local cmd = (cxx .. " " .. cxx_flags .. " " .. include_path .. " " ..
                  embed_cc ..
 		 " -I " .. embed_tasks_dir ..
                  " -L " .. embed_tasks_dir .. " " .. " -lembed_tasks " ..
-                 " -L " .. lib_dir .. " " .. libs .. " " ..
-                 " -L " .. realm_lib_prefix .. " -lrealm " ..
+                 realm_libs .. " -L " .. lib_dir .. " " .. libs .. " " ..
                  " -o " .. exe)
   if os.execute(cmd) ~= 0 then
     print("Error: failed to compile " .. embed_cc)

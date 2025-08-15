@@ -61,7 +61,7 @@ if os.getenv('SAVEOBJ') == '1' then
   local link_flags = terralib.newlist({"-L" .. out_dir})
 
   if os.getenv('STANDALONE') == '1' then
-    os.execute('cp ' .. os.getenv('LG_RT_DIR') .. '/../bindings/regent/' ..
+    os.execute('cp ' .. os.getenv('LEGION_INSTALL_PREFIX') .. '/lib/' ..
         regentlib.binding_library .. ' ' .. out_dir)
   end
 

@@ -51,18 +51,12 @@ for _, part in ipairs({"tasks_part1", "tasks_part2", "main"}) do
 end
 
 -- Link code copied from regentlib.save_tasks.
-local use_cmake = os.getenv("USE_CMAKE") == "1"
-local lib_dir = os.getenv("LG_RT_DIR") .. "/../bindings/regent"
-if use_cmake then
-  lib_dir = os.getenv("CMAKE_BUILD_DIR") .. "/lib"
+local realm_dir = os.getenv("Realm_ROOT")
+if realm_dir then
+  link_libraries:insertall({"-L" .. realm_dir .. "/lib"})
 end
-link_libraries:insertall({"-L" .. lib_dir, "-lregent"})
-if use_cmake then
-  link_libraries:insertall({"-llegion"})
-end
-
-local realm_lib_prefix = os.getenv("Realm_ROOT") .. "/lib"
-link_libraries:insertall({"-L" .. realm_lib_prefix, "-lrealm"})
+local lib_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib"
+link_libraries:insertall({"-L" .. lib_dir, "-lregent", "-llegion", "-lrealm"})
 
 terra main(argc : int, argv : &rawstring)
   escape
