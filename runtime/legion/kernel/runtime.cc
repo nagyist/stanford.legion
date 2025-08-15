@@ -56,7 +56,6 @@
 #include "mappers/test_mapper.h"
 #include "mappers/replay_mapper.h"
 #include "mappers/debug_mapper.h"
-#include "realm/cmdline.h"
 
 #include <algorithm>
 #include <stdlib.h>
@@ -10992,6 +10991,161 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    bool Runtime::LegionConfiguration::parse_bool(
+        const std::string& parameter, const std::string_view& flag, bool& value)
+    //--------------------------------------------------------------------------
+    {
+      if (parameter.compare(flag) != 0)
+        return false;
+      value = true;
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T>
+    bool Runtime::LegionConfiguration::parse_int(
+        std::vector<std::string>::const_iterator it,
+        std::vector<std::string>::const_iterator end,
+        const std::string_view& flag, T& value, bool& bad)
+    //--------------------------------------------------------------------------
+    {
+      if (it->compare(flag) != 0)
+        return false;
+      it = std::next(it);
+      if (it != end)
+      {
+        const int result = std::atoi(it->c_str());
+        if (result == 0)
+        {
+          // Check to see if the string contains only zeros
+          for (unsigned idx = 0; idx < it->size(); idx++)
+          {
+            if (it->at(idx) == '0')
+              continue;
+            bad = true;
+            return true;
+          }
+          value = result;
+        }
+        else if (std::is_unsigned<T>::value && (result < 0))
+          bad = true;
+        else
+          value = result;
+      }
+      else
+        bad = true;
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::LegionConfiguration::parse_string(
+        std::vector<std::string>::const_iterator it,
+        std::vector<std::string>::const_iterator end,
+        const std::string_view& flag, std::string& value, bool& bad)
+    //--------------------------------------------------------------------------
+    {
+      if (it->compare(flag) != 0)
+        return false;
+      it = std::next(it);
+      if (it != end)
+        value = *it;
+      else
+        bad = true;
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    size_t Runtime::LegionConfiguration::parse_option(
+        std::vector<std::string>::const_iterator it,
+        std::vector<std::string>::const_iterator end, unsigned& spy_level,
+        bool& bad_parameter)
+    //--------------------------------------------------------------------------
+    {
+      if (parse_bool(*it, "-lg:warn_backtrace", warnings_backtrace) ||
+          parse_bool(*it, "-lg:warn", runtime_warnings) ||
+          parse_bool(*it, "-lg:werror", warnings_are_errors) ||
+          parse_bool(*it, "-lg:registration", record_registration) ||
+          parse_bool(*it, "-lg:nosteal", stealing_disabled) ||
+          parse_bool(*it, "-lg:nosteal", stealing_disabled) ||
+          parse_bool(*it, "-lg:resilient", resilient_mode) ||
+          parse_bool(*it, "-lg:unsafe_launch", unsafe_launch) ||
+          parse_bool(*it, "-lg:unsafe_mapper", unsafe_mapper) ||
+          parse_bool(*it, "-lg:safe_mapper", safe_mapper) ||
+          parse_bool(*it, "-lg:safe_model", safe_model) ||
+          parse_bool(*it, "-lg:safe_tracing", safe_tracing) ||
+          parse_bool(*it, "-lg:inorder", program_order_execution) ||
+          parse_bool(*it, "-lg:dump_physical_traces", dump_physical_traces) ||
+          parse_bool(*it, "-lg:no_tracing", no_tracing) ||
+          parse_bool(*it, "-lg:no_physical_tracing", no_physical_tracing) ||
+          parse_bool(*it, "-lg:no_auto_tracing", no_auto_tracing) ||
+          parse_bool(*it, "-lg:no_trace_optimization", no_trace_optimization) ||
+          parse_bool(*it, "-lg:no_fence_elision", no_fence_elision) ||
+          parse_bool(
+              *it, "-lg:no_transitive_reduction", no_transitive_reduction) ||
+          parse_bool(
+              *it, "-lg:inline_transitive_reduction",
+              inline_transitive_reduction) ||
+          parse_bool(*it, "-lg:replay_on_cpus", replay_on_cpus) ||
+          parse_bool(*it, "-lg:disjointness", verify_partitions) ||
+          parse_bool(*it, "-lg:partcheck", verify_partitions) ||
+          parse_bool(*it, "-lg:dump_free_ranges", dump_free_ranges) ||
+          parse_bool(*it, "-lg:no_dyn", disable_independence_tests) ||
+          parse_bool(
+              *it, "-lg:enable_pointwise_analysis",
+              enable_pointwise_analysis) ||
+          parse_bool(*it, "-lg:verbose", verbose_logging) ||
+          parse_bool(*it, "-lg:prof_self", prof_self_profile) ||
+          parse_bool(
+              *it, "-lg:prof_no_critical_paths", prof_no_critical_paths) ||
+          parse_bool(
+              *it, "-lg:prof_all_critical_arrivals",
+              prof_all_critical_arrivals) ||
+          parse_bool(*it, "-lg:debug_ok", slow_config_ok) ||
+          parse_bool(*it, "-lg:test", enable_test_mapper))
+        return 1;
+      if (parse_int(
+              it, end, "-lg:safe_ctrlrepl", safe_control_replication,
+              bad_parameter) ||
+          parse_int(
+              it, end, "-lg:window", initial_task_window_size, bad_parameter) ||
+          parse_int(
+              it, end, "-lg:hysteresis", initial_task_window_hysteresis,
+              bad_parameter) ||
+          parse_int(
+              it, end, "-lg:sched", initial_tasks_to_schedule, bad_parameter) ||
+          parse_int(
+              it, end, "-lg:vector", initial_meta_task_vector_width,
+              bad_parameter) ||
+          parse_int(it, end, "-lg:message", max_message_size, bad_parameter) ||
+          parse_int(it, end, "-lg:epoch", gc_epoch_size, bad_parameter) ||
+          parse_int(it, end, "-lg:local", max_local_fields, bad_parameter) ||
+          parse_int(
+              it, end, "-lg:parallel_replay", max_replay_parallelism,
+              bad_parameter) ||
+          parse_int(it, end, "-lg:spy", spy_level, bad_parameter) ||
+          parse_int(it, end, "-lg:delay", delay_start, bad_parameter) ||
+          parse_int(it, end, "-lg:prof", num_profiling_nodes, bad_parameter) ||
+          parse_int(
+              it, end, "-lg:prof_footprint", prof_footprint_threshold,
+              bad_parameter) ||
+          parse_int(
+              it, end, "-lg:prof_latency", prof_target_latency,
+              bad_parameter) ||
+          parse_int(
+              it, end, "-lg:prof_call_threshold", prof_call_threshold,
+              bad_parameter))
+        return 2;
+      if (parse_string(it, end, "-lg:replay", replay_file, bad_parameter) ||
+          parse_string(it, end, "-lg:ldb", ldb_file, bad_parameter) ||
+          parse_string(
+              it, end, "-lg:serializer", serializer_type, bad_parameter) ||
+          parse_string(
+              it, end, "-lg:prof_logfile", prof_logfile, bad_parameter))
+        return 2;
+      return 0;
+    }
+
+    //--------------------------------------------------------------------------
     /*static*/ const Runtime::LegionConfiguration& Runtime::initialize(
         int* argc, char*** argv, bool parse, bool filter)
     //--------------------------------------------------------------------------
@@ -11055,156 +11209,99 @@ namespace Legion {
         }
       }
       size_t num_args = *argc;
-      cmdline.reserve(cmdline.size() + ((num_args > 0) ? num_args - 1 : 0));
-      for (unsigned i = 1; i < num_args; i++) cmdline.emplace_back((*argv)[i]);
+      legion_assert(num_args > 0);  // should always have a binary name
+      cmdline.reserve(cmdline.size() + num_args);
+      for (unsigned i = 0; i < num_args; i++) cmdline.emplace_back((*argv)[i]);
       realm.parse_command_line(cmdline, filter);
       unsigned spy_level = spy_logging_level;
-      Realm::CommandLineParser cp;
-      cp.add_option_bool(
-            "-lg:warn_backtrace", config.warnings_backtrace, !filter)
-          .add_option_bool("-lg:warn", config.runtime_warnings, !filter)
-          .add_option_bool("-lg:werror", config.warnings_are_errors, !filter)
-          .add_option_bool("-lg:leaks", config.report_leaks, !filter)
-          .add_option_bool(
-              "-lg:registration", config.record_registration, !filter)
-          .add_option_bool("-lg:nosteal", config.stealing_disabled, !filter)
-          .add_option_bool("-lg:resilient", config.resilient_mode, !filter)
-          .add_option_bool("-lg:unsafe_launch", config.unsafe_launch, !filter)
-          .add_option_bool("-lg:unsafe_mapper", config.unsafe_mapper, !filter)
-          .add_option_bool("-lg:safe_mapper", config.safe_mapper, !filter)
-          .add_option_bool("-lg:safe_model", config.safe_model, !filter)
-          .add_option_bool("-lg:safe_tracing", config.safe_tracing, !filter)
-          .add_option_int(
-              "-lg:safe_ctrlrepl", config.safe_control_replication, !filter)
-          .add_option_bool(
-              "-lg:inorder", config.program_order_execution, !filter)
-          .add_option_bool(
-              "-lg:dump_physical_traces", config.dump_physical_traces, !filter)
-          .add_option_bool("-lg:no_tracing", config.no_tracing, !filter)
-          .add_option_bool(
-              "-lg:no_physical_tracing", config.no_physical_tracing, !filter)
-          .add_option_bool(
-              "-lg:no_auto_tracing", config.no_auto_tracing, !filter)
-          .add_option_bool(
-              "-lg:no_trace_optimization", config.no_trace_optimization,
-              !filter)
-          .add_option_bool(
-              "-lg:no_fence_elision", config.no_fence_elision, !filter)
-          .add_option_bool(
-              "-lg:no_transitive_reduction", config.no_transitive_reduction,
-              !filter)
-          .add_option_bool(
-              "-lg:inline_transitive_reduction",
-              config.inline_transitive_reduction, !filter)
-          .add_option_bool("-lg:replay_on_cpus", config.replay_on_cpus, !filter)
-          .add_option_bool(
-              "-lg:disjointness", config.verify_partitions, !filter)
-          .add_option_bool("-lg:partcheck", config.verify_partitions, !filter)
-          .add_option_int(
-              "-lg:window", config.initial_task_window_size, !filter)
-          .add_option_int(
-              "-lg:hysteresis", config.initial_task_window_hysteresis, !filter)
-          .add_option_int(
-              "-lg:sched", config.initial_tasks_to_schedule, !filter)
-          .add_option_int(
-              "-lg:vector", config.initial_meta_task_vector_width, !filter)
-          .add_option_bool(
-              "-lg:dump_free_ranges", config.dump_free_ranges, !filter)
-          .add_option_int("-lg:message", config.max_message_size, !filter)
-          .add_option_int("-lg:epoch", config.gc_epoch_size, !filter)
-          .add_option_int("-lg:local", config.max_local_fields, !filter)
-          .add_option_int(
-              "-lg:parallel_replay", config.max_replay_parallelism, !filter)
-          .add_option_bool(
-              "-lg:no_dyn", config.disable_independence_tests, !filter)
-          .add_option_bool(
-              "-lg:enable_pointwise_analysis", config.enable_pointwise_analysis,
-              !filter)
-          .add_option_int("-lg:spy", spy_level, !filter)
-          .add_option_bool("-lg:test", config.enable_test_mapper, !filter)
-          .add_option_int("-lg:delay", config.delay_start, !filter)
-          .add_option_string("-lg:replay", config.replay_file, !filter)
-          .add_option_string("-lg:ldb", config.ldb_file, !filter)
-          .add_option_bool("-lg:verbose", config.verbose_logging, !filter)
-          .add_option_int("-lg:prof", config.num_profiling_nodes, !filter)
-          .add_option_string("-lg:serializer", config.serializer_type, !filter)
-          .add_option_string("-lg:prof_logfile", config.prof_logfile, !filter)
-          .add_option_int(
-              "-lg:prof_footprint", config.prof_footprint_threshold, !filter)
-          .add_option_int(
-              "-lg:prof_latency", config.prof_target_latency, !filter)
-          .add_option_int(
-              "-lg:prof_call_threshold", config.prof_call_threshold, !filter)
-          .add_option_bool("-lg:prof_self", config.prof_self_profile, !filter)
-          .add_option_bool(
-              "-lg:prof_no_critical_paths", config.prof_no_critical_paths,
-              !filter)
-          .add_option_bool(
-              "-lg:prof_all_critical_arrivals",
-              config.prof_all_critical_arrivals, !filter)
-          .add_option_bool("-lg:debug_ok", config.slow_config_ok, !filter)
-          // These are all the deprecated versions of these flag
-          .add_option_bool(
-              "-hl:registration", config.record_registration, !filter)
-          .add_option_bool("-hl:nosteal", config.stealing_disabled, !filter)
-          .add_option_bool("-hl:resilient", config.resilient_mode, !filter)
-          .add_option_bool("-hl:unsafe_launch", config.unsafe_launch, !filter)
-          .add_option_bool("-hl:unsafe_mapper", config.unsafe_mapper, !filter)
-          .add_option_bool("-hl:safe_mapper", config.safe_mapper, !filter)
-          .add_option_bool(
-              "-hl:inorder", config.program_order_execution, !filter)
-          .add_option_bool(
-              "-hl:disjointness", config.verify_partitions, !filter)
-          .add_option_int(
-              "-hl:window", config.initial_task_window_size, !filter)
-          .add_option_int(
-              "-hl:hysteresis", config.initial_task_window_hysteresis, !filter)
-          .add_option_int(
-              "-hl:sched", config.initial_tasks_to_schedule, !filter)
-          .add_option_int("-hl:message", config.max_message_size, !filter)
-          .add_option_int("-hl:epoch", config.gc_epoch_size, !filter)
-          .add_option_bool(
-              "-hl:no_dyn", config.disable_independence_tests, !filter)
-          .add_option_bool("-hl:test", config.enable_test_mapper, !filter)
-          .add_option_int("-hl:delay", config.delay_start, !filter)
-          .add_option_string("-hl:replay", config.replay_file, !filter)
-          .add_option_string("-hl:ldb", config.ldb_file, !filter)
-          .add_option_bool("-hl:verbose", config.verbose_logging, !filter)
-          .add_option_int("-hl:prof", config.num_profiling_nodes, !filter)
-          .add_option_string("-hl:serializer", config.serializer_type, !filter)
-          .add_option_string("-hl:prof_logfile", config.prof_logfile, !filter)
-          .parse_command_line(cmdline);
-      // Restore the legion spy logging level
-      spy_logging_level = (SpyLoggingLevel)spy_level;
-      // If we asked to filter the arguments, now we need to go back in
-      // and update the arguments so that they reflect the pruned data
-      if (filter)
+      // We use the binary name as the demarcation between the default
+      // arguments and the command line arguments, note that it's location
+      // could have changed by the call realm.parse_command_line if
+      // Realm pruned out default arguments
+      std::optional<unsigned> binary_offset;
+      constexpr std::string_view prefix("-lg:");
+      for (std::vector<std::string>::iterator it = cmdline.begin();
+           it != cmdline.end();
+           /*nothing*/)
       {
-        if (!cmdline.empty())
+        // First check if we have a legion prefix
+        if ((it->size() < prefix.size()) ||
+            (it->compare(0, prefix.size(), prefix) != 0))
         {
-          unsigned arg_index = 1;
-          for (unsigned idx = 0; idx < cmdline.size(); idx++)
-          {
-            const char* str = cmdline[idx].c_str();
-            // Find the location of this string in the original
-            // arguments to so that we can get its original pointer
-            legion_assert(arg_index < num_args);
-            while (strcmp(str, (*argv)[arg_index]) != 0)
-            {
-              arg_index++;
-              legion_assert(arg_index < num_args);
-            }
-            // Now that we've got it's original pointer we can move
-            // it to the new location in the outputs
-            if (arg_index == (idx + 1))
-              arg_index++;  // already in the right place
-            else
-              (*argv)[idx + 1] = (*argv)[arg_index++];
-          }
-          *argc = (1 + cmdline.size());
+          // Not a legion flag
+          if (!binary_offset && (it->compare((*argv)[0]) == 0))
+            binary_offset = std::distance(cmdline.begin(), it);
+          it++;
         }
         else
-          *argc = 1;
+        {
+          bool bad_parameter = false;
+          const size_t matched =
+              config.parse_option(it, cmdline.end(), spy_level, bad_parameter);
+          if (bad_parameter)
+          {
+            Error error(LEGION_STARTUP_EXCEPTION);
+            std::vector<std::string>::iterator next = std::next(it);
+            if (next == cmdline.end())
+            {
+              if (binary_offset)
+                error << "Missing parameter for Legion argument '" << *it
+                      << "' in command line arguments.";
+              else
+                error << "Missing argument for Legion option '" << *it
+                      << "' in LEGION_DEFAULT_ARGS.";
+            }
+            else
+            {
+              if (binary_offset)
+                error << "Invalid parameter '" << *next << "' passed to Legion "
+                      << "argument '" << *it << "' in command line arguments.";
+              else
+                error << "Invalid parameter '" << *next << "' passed to Legion "
+                      << "argument '" << *it << "' in LEGION_DEFAULT_ARGS.";
+            }
+            error.raise();
+          }
+          else if (matched == 0)
+          {
+            Error error(LEGION_STARTUP_EXCEPTION);
+            if (binary_offset)
+              error << "Detected unknown Legion option '" << *it
+                    << "' in command line arguments.";
+            else
+              error << "Detected unknown Legion option '" << *it
+                    << "' in LEGION_DEFAULT_ARGS.";
+            error.raise();
+          }
+          else if (filter)
+            it = cmdline.erase(it, it + matched);
+          else
+            it = it + matched;
+        }
+      }
+      // Should never have filtered out the binary name
+      legion_assert(binary_offset);
+      if (filter)
+      {
+        unsigned arg_index = 1;
+        for (unsigned idx = *binary_offset + 1; idx < cmdline.size(); idx++)
+        {
+          // Find the location of this string in the original
+          // arguments so that we can get its original pointer
+          legion_assert(arg_index < num_args);
+          while (cmdline[idx].compare((*argv)[arg_index]) != 0)
+          {
+            arg_index++;
+            legion_assert(arg_index < num_args);
+          }
+          // Now that we've got it's original pointer we can move
+          // it to the new location in the outputs
+          if (arg_index == (idx - *binary_offset))
+            arg_index++;  // already in the right place
+          else
+            (*argv)[idx - *binary_offset] = (*argv)[arg_index++];
+        }
+        *argc = cmdline.size() - *binary_offset;
       }
       if (config.initial_task_window_hysteresis > 100)
       {

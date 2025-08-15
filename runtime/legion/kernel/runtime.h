@@ -177,6 +177,23 @@ namespace Legion {
             prof_no_critical_paths(false), prof_all_critical_arrivals(false)
         { }
       public:
+        size_t parse_option(
+            std::vector<std::string>::const_iterator it,
+            std::vector<std::string>::const_iterator end, unsigned& spy_level,
+            bool& bad_parameter);
+        bool parse_bool(
+            const std::string& parameter, const std::string_view& flag,
+            bool& value);
+        template<typename T>
+        bool parse_int(
+            std::vector<std::string>::const_iterator it,
+            std::vector<std::string>::const_iterator end,
+            const std::string_view& flag, T& value, bool& bad);
+        bool parse_string(
+            std::vector<std::string>::const_iterator it,
+            std::vector<std::string>::const_iterator end,
+            const std::string_view& flag, std::string& value, bool& bad);
+      public:
         int delay_start;
         int legion_collective_radix;
         int initial_task_window_size;
