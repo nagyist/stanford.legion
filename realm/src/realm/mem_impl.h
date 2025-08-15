@@ -279,7 +279,13 @@ namespace Realm {
                        std::vector<RT> &allocs_first, bool missing_ok = false);
 
     // TODO(apryakhin@): consider ifdefing for debug builds only
-    void dump_allocator_status();
+    struct MemoryStats {
+      size_t total_size;
+      size_t total_free_size;
+      size_t total_used_size;
+      size_t largest_free_blocksize;
+    };
+    MemoryStats get_allocator_stats();
     bool free_list_has_cycle();
     bool has_invalid_ranges();
 
@@ -288,6 +294,48 @@ namespace Realm {
     unsigned alloc_range(RT first, RT last);
     void deallocate(unsigned del_idx);
     void free_range(unsigned index);
+  };
+
+  // An alternative memory allocator that keeps track of free ranges grouped
+  // by sizes, these free lists can optionally be kept in sorted order
+  template <typename RT, typename TT, bool SORTED>
+  class SizedRangeAllocator : public BasicRangeAllocator<RT, TT> {
+  public:
+    SizedRangeAllocator(void);
+    ~SizedRangeAllocator(void);
+
+    SizedRangeAllocator(const SizedRangeAllocator &) = default;
+    SizedRangeAllocator &operator=(const SizedRangeAllocator &) = default;
+    SizedRangeAllocator(SizedRangeAllocator &&) noexcept = default;
+    SizedRangeAllocator &operator=(SizedRangeAllocator &&) noexcept = default;
+
+    void swap(SizedRangeAllocator<RT, TT, SORTED> &swap_with);
+
+    void add_range(RT first, RT last);
+    bool can_allocate(TT tag, RT size, RT alignment);
+    bool allocate(TT tag, RT size, RT alignment, RT &first);
+    void deallocate(TT tag, bool missing_ok = false);
+    size_t split_range(TT old_tag, const std::vector<TT> &new_tags,
+                       const std::vector<RT> &sizes, const std::vector<RT> &alignment,
+                       std::vector<RT> &allocs_first, bool missing_ok = false);
+
+    static constexpr unsigned SENTINEL = BasicRangeAllocator<RT, TT>::SENTINEL;
+    using Range = typename BasicRangeAllocator<RT, TT>::Range;
+    void add_to_free_list(unsigned index, Range &range);
+    void remove_from_free_list(unsigned index, Range &range);
+    void grow_hole(unsigned index, Range &range, RT bound, bool before);
+
+    typename BasicRangeAllocator<RT, TT>::MemoryStats get_allocator_stats();
+
+    static unsigned floor_log2(uint64_t size);
+
+  protected:
+    // Free lists associated with a specific sizes by powers of 2
+    // entry[0] = sizes from [2^0,2^1)
+    // entry[1] = sizes from [2^1,2^2)
+    // entry[2] = sizes from [2^2,2^3)
+    // ...
+    std::vector<unsigned> size_based_free_lists;
   };
 
   // a memory that manages its own allocations
@@ -349,7 +397,11 @@ namespace Realm {
     //                all pending allocs and releases
     // release: valid if pending_allocs exist - models heap state with
     //                completed allocations and any ready releases
-    typedef BasicRangeAllocator<size_t, RegionInstance> RangeAllocator;
+
+    // Pick which kind of range allocator we want to use
+    using RangeAllocator = BasicRangeAllocator<size_t, RegionInstance>;
+    // using RangeAllocator = SizedRangeAllocator<size_t, RegionInstance, false>;
+
     RangeAllocator current_allocator, future_allocator, release_allocator;
     unsigned cur_release_seqid;
     struct PendingAlloc {

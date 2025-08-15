@@ -266,7 +266,6 @@ namespace Realm {
     bool has_cycle = free_list_has_cycle();
     bool invalid = has_invalid_ranges();
     if(has_cycle || invalid) {
-      dump_allocator_status();
       assert(has_cycle == false);
       assert(invalid == false);
     }
@@ -324,27 +323,20 @@ namespace Realm {
     return false;
   }
 
-  // TODO(apryakhin@): Consider returning an info struct.
   template <typename RT, typename TT>
-  inline void BasicRangeAllocator<RT, TT>::dump_allocator_status()
+  inline typename BasicRangeAllocator<RT, TT>::MemoryStats BasicRangeAllocator<RT, TT>::get_allocator_stats()
   {
+    typename BasicRangeAllocator<RT, TT>::MemoryStats stats;
     size_t total_size = 0;
     unsigned range_idx = ranges[SENTINEL].next;
-    RT prev_used_last = 0;
     while(range_idx != SENTINEL) {
       unsigned i = range_idx;
       size_t size = ranges[i].last - ranges[i].first;
       total_size += size;
-      prev_used_last = ranges[range_idx].last;
       range_idx = ranges[range_idx].next;
-
-      std::cerr << "ordered_range_idx:" << i << " first:" << ranges[i].first
-                << " last:" << ranges[i].last << " size:" << size
-                << " gap:" << (ranges[i].first - prev_used_last)
-                << " prev_free:" << ranges[i].prev_free
-                << " next_free:" << ranges[i].next_free << " prev:" << ranges[i].prev
-                << " next:" << ranges[i].next << std::endl;
     }
+
+    stats.total_size = total_size;
 
     size_t largest_used_blocksize = 0;
     size_t total_used_size = 0;
@@ -357,59 +349,29 @@ namespace Realm {
         largest_used_blocksize = size;
       }
       total_used_size += size;
-      std::cerr << "allocated_range_idx:" << i << " first:" << ranges[i].first
-                << " last:" << ranges[i].last << " prev:" << ranges[i].prev
-                << " next:" << ranges[i].next << " prev_free:" << ranges[i].prev_free
-                << " next_free:" << ranges[i].next_free << " range_size:" << size
-                << " total:" << total_used_size << std::endl;
     }
 
-    // size_t num_adjacent_free_blocks = 0;
-    size_t max_size_after_defrag = 0;
-    size_t current_defrag_size = 0;
+    stats.total_used_size = total_used_size;
+
     size_t largest_free_blocksize = 0;
     size_t total_free_size = 0;
     unsigned free_idx = ranges[SENTINEL].next_free;
-    RT prev_free_last = 0;
     while(free_idx != SENTINEL) {
       unsigned i = free_idx;
       size_t size = ranges[i].last - ranges[i].first;
-
-      if(prev_free_last == ranges[i].first) {
-        // num_adjacent_free_blocks++;
-        current_defrag_size += size;
-      } else {
-        if(current_defrag_size > max_size_after_defrag) {
-          max_size_after_defrag = current_defrag_size;
-        }
-        current_defrag_size = size;
-      }
 
       total_free_size += size;
       if(largest_free_blocksize < size) {
         largest_free_blocksize = size;
       }
-      prev_free_last = ranges[free_idx].last;
       free_idx = ranges[free_idx].next_free;
-
-      std::cerr << "free_range_idx:" << i << " first:" << ranges[i].first
-                << " last:" << ranges[i].last << " prev:" << ranges[i].prev
-                << " next:" << ranges[i].next << " size:" << size
-                << " gap:" << (ranges[i].first - prev_free_last) << std::endl;
     }
 
-    if(current_defrag_size > max_size_after_defrag) {
-      max_size_after_defrag = current_defrag_size;
-    }
-
-    std::cerr << "%%Stats%% total_size:" << total_size
-              << " total_used_size:" << total_used_size
-              << " largest_used_blocksize:" << largest_used_blocksize
-              << " total_free_size:" << total_free_size
-              << " large_free_blocksize:" << largest_free_blocksize
-              << " max_defrag_block:" << max_size_after_defrag << std::endl;
+    stats.total_free_size = total_free_size;
+    stats.largest_free_blocksize = largest_free_blocksize;
 
     assert(total_size == total_used_size + total_free_size);
+    return stats;
   }
 
   template <typename RT, typename TT>
@@ -680,6 +642,532 @@ namespace Realm {
       return false;
   }
 
+  template <typename RT, typename TT, bool SORTED>
+  inline SizedRangeAllocator<RT,TT,SORTED>::SizedRangeAllocator(void)
+    : BasicRangeAllocator<RT,TT>()
+  {}
+
+  template <typename RT, typename TT, bool SORTED>
+  inline SizedRangeAllocator<RT,TT,SORTED>::~SizedRangeAllocator(void)
+  {}
+  
+  template <typename RT, typename TT, bool SORTED>
+  inline void SizedRangeAllocator<RT,TT,SORTED>::swap(SizedRangeAllocator<RT,TT,SORTED>& swap_with)
+  {
+    BasicRangeAllocator<RT,TT>::swap(swap_with);
+    size_based_free_lists.swap(swap_with.size_based_free_lists);
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  inline typename BasicRangeAllocator<RT,TT>::MemoryStats SizedRangeAllocator<RT,TT,SORTED>::get_allocator_stats()
+  {
+    typename BasicRangeAllocator<RT, TT>::MemoryStats stats;
+    size_t total_size = 0;
+
+    const auto &allocated = this->allocated;
+    const auto& ranges = this->ranges;
+
+    unsigned range_idx = ranges[SENTINEL].next;
+    while(range_idx != SENTINEL) {
+      unsigned i = range_idx;
+      size_t size = ranges[i].last - ranges[i].first;
+      total_size += size;
+      range_idx = ranges[range_idx].next;
+    }
+
+    stats.total_size = total_size;
+
+    size_t largest_used_blocksize = 0;
+    size_t total_used_size = 0;
+    for(auto alloc_it = allocated.begin(); alloc_it != allocated.end(); ++alloc_it) {
+      if(alloc_it->second == SENTINEL)
+        continue;
+      unsigned i = alloc_it->second;
+      size_t size = ranges[i].last - ranges[i].first;
+      if(largest_used_blocksize < size) {
+        largest_used_blocksize = size;
+      }
+      total_used_size += size;
+    }
+
+    stats.total_used_size = total_used_size;
+
+    size_t largest_free_blocksize = 0;
+    size_t total_free_size = 0;
+
+    for(unsigned idx = 1; idx < size_based_free_lists.size(); idx++) {
+      unsigned index = size_based_free_lists[idx];
+      while(index != SENTINEL) {
+        Range *r = &this->ranges[index];
+        size_t size = r->last - r->first;
+        total_free_size += size;
+        if(largest_free_blocksize < size) {
+          largest_free_blocksize = size;
+        }
+        if(index == r->next_free)
+          break;
+        index = r->next_free;
+      }
+    }
+
+    stats.total_free_size = total_free_size;
+    stats.largest_free_blocksize = stats.largest_free_blocksize;
+
+    assert(total_size == total_used_size + total_free_size);
+    return stats;
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  inline void SizedRangeAllocator<RT,TT,SORTED>::add_range(RT first, RT last)
+  {
+    // ignore empty ranges
+    if(first == last)
+      return;
+
+    int new_idx = this->alloc_range(first, last);
+
+    Range& newr = this->ranges[new_idx];
+    Range& sentinel = this->ranges[SENTINEL];
+
+    // simple case - starting range
+    if(sentinel.next == SENTINEL) {
+      // all block list
+      newr.prev = newr.next = SENTINEL;
+      sentinel.prev = sentinel.next = new_idx;
+      // free block list
+      newr.prev_free = newr.next_free = SENTINEL;
+      RT size = last - first;
+      unsigned log2_size = floor_log2(size);
+      size_based_free_lists.resize(log2_size + 1, SENTINEL);
+      size_based_free_lists[log2_size] = new_idx;
+
+#ifdef DEBUG_REALM
+      this->by_first[first] = new_idx;
+#endif
+      return;
+    }
+
+    assert(0);
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  inline bool SizedRangeAllocator<RT,TT,SORTED>::can_allocate(TT tag, RT size, RT alignment)
+  {
+    if(size == 0)
+      return true;
+
+    for (unsigned idx = floor_log2(size); idx < size_based_free_lists.size(); idx++) {
+      unsigned index = size_based_free_lists[idx];
+      while (index != SENTINEL) {
+        Range *r = &this->ranges[index];
+
+        RT offset = 0;
+        if (alignment) {
+          RT remainder = r->first % alignment;
+          if (remainder)
+            offset = alignment - remainder;
+        }
+        // do we have enough space?
+        if ((r->last - r->first) >= (size + offset))
+          return true;
+        // No, keep going
+        index = r->next_free;
+      }
+    }
+    return false;
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  inline bool SizedRangeAllocator<RT,TT,SORTED>::allocate(TT tag, RT size, RT alignment, RT& alloc_first)
+  {
+    // empty allocation requests are trivial
+    if(size == 0) {
+      this->allocated[tag] = SENTINEL;
+      return true;
+    }
+
+    for (unsigned idx = floor_log2(size); idx < size_based_free_lists.size(); idx++) {
+      unsigned index = size_based_free_lists[idx];
+      while (index != SENTINEL) {
+        Range *r = &this->ranges[index];
+
+        RT offset = 0;
+        if (alignment) {
+          RT remainder = r->first % alignment;
+          if (remainder)
+            offset = alignment - remainder;
+        }
+        // do we have enough space?
+        if ((r->last - r->first) < (size + offset)) {
+          // No, keep going
+          index = r->next_free;
+          continue;
+        }
+        // We have enough space
+        // Remove this from the current size free list
+        remove_from_free_list(index, *r);
+        // but we we may to chop things up to make the exact range
+        alloc_first = r->first + offset;
+        RT alloc_last = alloc_first + size;
+        // do we need to carve off a new (free) block before us?
+        if (offset) {
+          unsigned new_index = this->alloc_range(r->first, alloc_first);
+          Range &new_prev = this->ranges[new_index];
+          r = &this->ranges[index];  // alloc may have moved this!
+          r->first = alloc_first;
+          // insert into all-block dllist
+          new_prev.prev = r->prev;
+          new_prev.next = index;
+          this->ranges[r->prev].next = new_index;
+          r->prev = new_index;
+          // Insert into the free list of the appropriate size
+          add_to_free_list(new_index, new_prev); 
+        }
+        // see if we have leftover space and need to make a new range
+        // to represent the remainder
+        if (alloc_last != r->last) {
+          // case 2 - leftover at end - put in new range
+          unsigned after_index = this->alloc_range(alloc_last, r->last);
+          Range &r_after = this->ranges[after_index];
+          r = &this->ranges[index];  // alloc may have moved this!
+          r->last = alloc_last;
+          // r_after goes after r in all block list
+          r_after.prev = index;
+          r_after.next = r->next;
+          r->next = after_index;
+          this->ranges[r_after.next].prev = after_index;
+          // Put r_after in the free list of the right size
+          add_to_free_list(after_index, r_after);
+        }
+        // tie this off because we use it to detect allocated-ness
+        r->prev_free = r->next_free = index;
+        this->allocated[tag] = index;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  inline void SizedRangeAllocator<RT,TT,SORTED>::deallocate(TT tag, bool missing_ok)
+  {
+    typename std::map<TT, unsigned>::iterator it = this->allocated.find(tag);
+    if(it == this->allocated.end()) {
+      assert(missing_ok);
+      return;
+    }
+    unsigned del_idx = it->second;
+    this->allocated.erase(it);
+
+    // if there was no Range associated with this tag, it was an zero-size
+    //  allocation, and there's nothing to add to the free list
+    if(del_idx == SENTINEL)
+      return;
+
+    Range& r = this->ranges[del_idx];
+
+    // See if the previous range is free so we can merge with it
+    unsigned pf_idx = r.prev;
+    bool merge_prev = (pf_idx != SENTINEL) && (this->ranges[pf_idx].prev_free != pf_idx);
+    // See if the next range is free so we can merge with it
+    unsigned nf_idx = r.next;
+    bool merge_next = (nf_idx != SENTINEL) && (this->ranges[nf_idx].next_free != nf_idx);
+
+    // four cases - ordered to match the allocation cases
+    if (!merge_next) 
+    {
+      if (!merge_prev) 
+      {
+        // case 1 - no merging (exact match)
+        // just add ourselves to the free list
+        add_to_free_list(del_idx, r);
+      } 
+      else 
+      {
+        // case 2 - merge before
+        // merge ourselves into the range before
+        Range& r_before = this->ranges[pf_idx];
+        grow_hole(pf_idx, r_before, r.last, false/*before*/);
+        r_before.next = r.next;
+        this->ranges[r.next].prev = pf_idx;
+        this->free_range(del_idx);
+      }
+    } 
+    else 
+    {
+      if (!merge_prev) 
+      {
+        // case 3 - merge after
+        // merge ourselves into the range after
+        Range& r_after = this->ranges[nf_idx];
+        grow_hole(nf_idx, r_after, r.first, true/*before*/);
+        r_after.prev = r.prev;
+        this->ranges[r.prev].next = nf_idx;
+        this->free_range(del_idx);
+      } 
+      else 
+      {
+        // case 4 - merge both
+        // merge both ourselves and range after into range before
+        Range& r_before = this->ranges[pf_idx];
+        Range& r_after = this->ranges[nf_idx];
+        remove_from_free_list(nf_idx, r_after);
+        grow_hole(pf_idx, r_before, r_after.last, false/*before*/);
+        // adjust both normal list and free list
+        r_before.next = r_after.next;
+        this->ranges[r_after.next].prev = pf_idx;
+
+        this->free_range(del_idx);
+        this->free_range(nf_idx);
+      }
+    }
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  size_t SizedRangeAllocator<RT, TT, SORTED>::split_range(TT old_tag,
+                                                        const std::vector<TT> &new_tags,
+                                                        const std::vector<RT> &sizes,
+                                                        const std::vector<RT> &alignments,
+                                                        std::vector<RT> &allocs_first,
+                                                        bool missing_ok)
+  {
+    typename std::map<TT, unsigned>::iterator it = this->allocated.find(old_tag);
+    if(it == this->allocated.end()) {
+      assert(missing_ok);
+      return 0;
+    }
+
+    size_t n = new_tags.size();
+    assert(n == sizes.size() && n == alignments.size());
+
+    unsigned index = it->second;
+    if (index == SENTINEL) {
+      // this is a zero-sized range so we can redistrict only to zero-sized instances
+      for (size_t i = 0; i < n; i++) {
+        // No need to check for duplicate tags here since they are going
+        // to be assigned the same sentinel value anyway
+        if (sizes[i]) {
+          deallocate(old_tag);
+          return i;
+        }
+        this->allocated[new_tags[i]] = SENTINEL;
+        // Make sure zero-sized instances have a valid offset
+        allocs_first[i] = 0;
+      }
+      deallocate(old_tag);
+      return n;
+    }
+
+    Range *r = &this->ranges[index];
+    for (unsigned idx = 0; idx < n; idx++) {
+      RT offset = 0;
+      if (alignments[idx]) {
+        RT remainder = r->first % alignments[idx];
+        if (remainder)
+          offset = alignments[idx] - remainder;
+      }
+      // do we have enough space?
+      if ((r->last - r->first) < (sizes[idx] + offset)) {
+        deallocate(old_tag);
+        return idx;
+      }
+      RT alloc_first = r->first + offset;
+      allocs_first[idx] = r->first + offset;
+      RT alloc_last = alloc_first + sizes[idx];
+      if (offset) {
+        // See if we can merge with a free range before us
+        unsigned pf_idx = r->prev;
+        bool merge_prev = (pf_idx != SENTINEL) && (this->ranges[pf_idx].prev_free != pf_idx);
+        if (merge_prev) {
+          Range &prev = this->ranges[pf_idx];
+          grow_hole(pf_idx, prev, alloc_first, false/*before*/);
+          r->first = alloc_first;
+          add_to_free_list(pf_idx, prev);
+        } else {
+          unsigned new_index = this->alloc_range(r->first, alloc_first);
+          Range &new_prev = this->ranges[new_index];
+          r = &this->ranges[index];  // alloc may have moved this!
+          r->first = alloc_first;
+          // insert into all-block dllist
+          new_prev.prev = r->prev;
+          new_prev.next = index;
+          this->ranges[r->prev].next = new_index;
+          r->prev = new_index;
+          // Insert into the free list of the appropriate size
+          add_to_free_list(new_index, new_prev);
+        }
+      }
+      // Now make the new range for the tag
+      unsigned new_index = this->alloc_range(alloc_first, alloc_last);
+      Range &new_range = this->ranges[new_index];
+      r = &this->ranges[index];  // alloc may have moved this!
+      r->first = alloc_last;
+      new_range.prev = r->prev;
+      new_range.next = index;
+      this->ranges[r->prev].next = new_index;
+      r->prev = new_index;
+      // tie this off because we use it to detect allocated-ness
+      new_range.prev_free = new_range.next_free = new_index;
+      this->allocated[new_tags[idx]] = new_index;
+    }
+    // deallocate whatever is left of the old instance
+    deallocate(old_tag);
+    return n;
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  void SizedRangeAllocator<RT,TT,SORTED>::add_to_free_list(unsigned index, Range& range)
+  {
+    RT size = range.last - range.first;
+    if(size == 0) {
+      // This can happen when we are splitting a range and the remainder ends up
+      // being empty, in which case there is no "hole" to add to the free list
+      // and we just need to remove this entry from the list of ranges and
+      // recycle the tag for later
+      this->ranges[range.prev].next = range.next;
+      this->ranges[range.next].prev = range.prev;
+      this->free_range(index);
+      return;
+    }
+    unsigned log2_size = floor_log2(size);
+    if (size_based_free_lists.size() <= log2_size)
+      size_based_free_lists.resize(log2_size+1, SENTINEL);
+    if (SORTED) {
+      // Insert the range into the list such that it maintains a sorted
+      // list from smallest to largest
+      unsigned prev = SENTINEL;
+      unsigned next = size_based_free_lists[log2_size];
+      while (next != SENTINEL) {
+        Range &next_range = this->ranges[next]; 
+        RT next_size = next_range.last - next_range.first;
+        if (size <= next_size) {
+          // We can insert this here and we're done
+          range.prev_free = next_range.prev_free;
+          if (range.prev_free == SENTINEL)
+            size_based_free_lists[log2_size] = index;
+          else
+            this->ranges[range.prev_free].next_free = index;
+          range.next_free = next;
+          next_range.prev_free = index;
+          return;
+        }
+        // Step to the next entry
+        prev = next;
+        next = next_range.next_free;
+      }
+      // If we get here then we're adding ourselves to the end of the list
+      range.prev_free = prev;
+      range.next_free = SENTINEL;
+      if (prev == SENTINEL)
+        size_based_free_lists[log2_size] = index;
+      else
+        this->ranges[prev].next_free = index;
+    } else {
+      // Not sorted so just add it to the front of the free list
+      range.prev_free = SENTINEL;
+      range.next_free = size_based_free_lists[log2_size];
+      if (range.next_free != SENTINEL)
+        this->ranges[range.next_free].prev_free = index;
+      size_based_free_lists[log2_size] = index;
+    }
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  void SizedRangeAllocator<RT,TT,SORTED>::remove_from_free_list(unsigned index, Range& range)
+  {
+    if (range.prev_free != SENTINEL) {
+      if (range.next_free != SENTINEL) {
+        // Remove an item in the middle of the list
+        this->ranges[range.prev_free].next_free = range.next_free;
+        this->ranges[range.next_free].prev_free = range.prev_free;
+      } else // last item in the list can just be removed
+        this->ranges[range.prev_free].next_free = SENTINEL;
+    } else {
+      // We're the first item in the list
+      RT size = range.last - range.first;
+      unsigned log2_size = floor_log2(size);
+      assert(log2_size < size_based_free_lists.size());
+      assert(size_based_free_lists[log2_size] == index);
+      if (range.next_free != SENTINEL)
+        this->ranges[range.next_free].prev_free = SENTINEL;
+      size_based_free_lists[log2_size] = range.next_free;
+    }
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  void SizedRangeAllocator<RT,TT,SORTED>::grow_hole(unsigned index, Range& range,
+                                                    RT bound, bool before)
+  {
+    // Check to see if it is going to change bin sizes
+    unsigned old_bin = floor_log2(range.last - range.first);
+    RT new_size = (before ? range.last : bound) - (before ? bound : range.first);
+    unsigned new_bin = floor_log2(new_size);
+    if (old_bin == new_bin) {
+      if (before)
+        range.first = bound;
+      else
+        range.last = bound;
+      // Scan up the list until we've inserted ourselves
+      if (SORTED) {
+        // Bubble ourselves up the free list
+        while (range.next_free != SENTINEL) {
+          unsigned next_index = range.next_free;
+          Range &next_range = this->ranges[next_index]; 
+          RT next_size = next_range.last - next_range.first;
+          if (new_size <= next_size)
+            break;
+          // Swap places with the next range
+          if (range.prev_free != SENTINEL)
+            this->ranges[range.prev_free].next_free = next_index;
+          if (next_range.next_free != SENTINEL)
+            this->ranges[next_range.next_free].prev_free = index;
+          next_range.prev_free = range.prev_free;
+          range.next_free = next_range.next_free;
+          range.prev_free = next_index;
+          next_range.next_free = index;
+          // Make sure to handle the case where we're the first entry
+          // in the free lists
+          if (size_based_free_lists[old_bin] == index)
+            size_based_free_lists[old_bin] = next_index;
+        }
+      }
+    } else {
+      remove_from_free_list(index, range);
+      if (before)
+        range.first = bound;
+      else
+        range.last = bound;
+      add_to_free_list(index, range);
+    }
+  }
+
+  template <typename RT, typename TT, bool SORTED>
+  /*static*/ unsigned SizedRangeAllocator<RT,TT,SORTED>::floor_log2(uint64_t size)
+  {
+    // size should be non-zero
+    assert(size);
+    // Round down to the nearest power of two to figure out which range
+    // to put it in using DeBruijin algorithm to compute integer log2
+    // Taken from Hacker's Delight
+    static const unsigned tab64[64] = {
+        63,  0, 58,  1, 59, 47, 53,  2,
+        60, 39, 48, 27, 54, 33, 42,  3,
+        61, 51, 37, 40, 49, 18, 28, 20,
+        55, 30, 34, 11, 43, 14, 22,  4,
+        62, 57, 46, 52, 38, 26, 32, 41,
+        50, 36, 17, 19, 29, 10, 13, 21,
+        56, 45, 25, 31, 35, 16,  9, 12,
+        44, 24, 15,  8, 23,  7,  6,  5 };
+    uint64_t value = size;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value |= value >> 32;
+    return tab64[((uint64_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58];
+  }
+    
 }; // namespace Realm
 
 #endif // ifndef REALM_MEM_IMPL_INL

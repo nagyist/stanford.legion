@@ -1193,7 +1193,7 @@ namespace Realm {
     //  ones that were known good before our experiment
     size_t orig_num_success = successful_allocs.size();
     std::deque<PendingAlloc>::iterator a_now = pending_allocs.begin();
-    BasicRangeAllocator<size_t, RegionInstance> test_allocator = release_allocator;
+    RangeAllocator test_allocator = release_allocator;
     while(a_now != pending_allocs.end()) {
       size_t offset = 0;
       bool ok = test_allocator.allocate(a_now->inst->me, a_now->bytes, a_now->alignment,
@@ -1225,7 +1225,7 @@ namespace Realm {
       return true;
     } else {
       // see if we can still tentatively satisfy remaining allocs
-      BasicRangeAllocator<size_t, RegionInstance> test_future_allocator = test_allocator;
+      RangeAllocator test_future_allocator = test_allocator;
       std::deque<PendingAlloc>::iterator a_future = a_now;
       std::deque<PendingRelease>::iterator it3 = pending_releases.begin();
       while(a_future != pending_allocs.end()) {
