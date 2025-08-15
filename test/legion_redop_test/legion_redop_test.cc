@@ -186,6 +186,23 @@ void check_value(const cuda::std::complex<T> &a, const cuda::std::complex<T> &b,
 }
 #endif
 
+#ifdef LEGION_USE_HIP
+template <typename T>
+void check_value(const thrust::complex<T> &a, const thrust::complex<T> &b,
+                 const char *name, const char *file, int line) {
+  const T epsilon = 2 * std::numeric_limits<T>::epsilon();
+  if (!(fuzzyCompare(a.real(), b.real(), epsilon) &&
+        fuzzyCompare(a.imag(), b.imag(), epsilon))) {
+    const std::complex<T> a1(a.real(), a.imag());
+    const std::complex<T> b1(b.real(), b.imag());
+    std::cout << std::setprecision(10) << "Comparision failed at " << file
+              << ':' << line << '(' << name << ")! Expected " << a1 << ", got "
+              << b1 << std::endl;
+    assert(a == b);
+  }
+}
+#endif
+
 // Just to get a printable version of the value for character types
 template <>
 void check_value<uint8_t>(const uint8_t &a, const uint8_t &b, const char *name,
