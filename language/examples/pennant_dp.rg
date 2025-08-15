@@ -1795,8 +1795,8 @@ if os.getenv('SAVEOBJ') == '1' then
   local link_flags = terralib.newlist({"-L" .. out_dir, "-lpennant", "-lm"})
 
   if os.getenv('STANDALONE') == '1' then
-      os.execute('cp ' .. os.getenv('LEGION_INSTALL_PREFIX') .. '/lib/' ..
-          regentlib.binding_library .. ' ' .. out_dir)
+    os.execute('cp ' .. os.getenv('LEGION_INSTALL_PREFIX') .. '/lib/' ..
+        regentlib.binding_library .. ' ' .. out_dir)
   end
 
   local exe = os.getenv('OBJNAME') or "pennant"
