@@ -414,7 +414,6 @@ namespace Realm {
     void add_code_translator(CodeTranslator *t);
 
     void add_proc_mem_affinity(const Machine::ProcessorMemoryAffinity &pma);
-    void add_mem_mem_affinity(const Machine::MemoryMemoryAffinity &mma);
 
     Memory next_local_memory_id(void);
     Memory next_local_ib_memory_id(void);

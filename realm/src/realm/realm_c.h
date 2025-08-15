@@ -61,9 +61,6 @@ typedef struct realm_memory_query_st *realm_memory_query_t;
 struct realm_sparsity_handle_st;
 typedef struct realm_sparsity_handle_st *realm_sparsity_handle_t;
 
-struct realm_external_instance_resource_st;
-typedef struct realm_external_instance_resource_st *realm_external_instance_resource_t;
-
 typedef unsigned long long realm_id_t;
 typedef realm_id_t realm_event_t;
 typedef realm_id_t realm_user_event_t;
@@ -80,6 +77,39 @@ typedef unsigned realm_event_gen_t;
 typedef int realm_field_id_t;
 typedef unsigned long long realm_barrier_timestamp_t;
 
+// type of external resource
+typedef enum realm_external_resource_type_enum
+{
+  REALM_EXTERNAL_RESOURCE_TYPE_CUDA_MEMORY = 0, // the external resource is a cuda memory
+  REALM_EXTERNAL_RESOURCE_TYPE_SYSTEM_MEMORY, // the external resource is a system memory
+  REALM_EXTERNAL_RESOURCE_TYPE_NUM,
+  REALM_EXTERNAL_RESOURCE_TYPE_MAX = 0x7fffffffULL,
+} realm_external_resource_type_t;
+
+// cuda memory external resource
+typedef struct realm_external_cuda_memory_resource_st {
+  int cuda_device_id; // the cuda device id
+  const void *base;   // the base address of the cuda memory
+  size_t size;        // the size of the cuda memory
+  int read_only;      // whether the cuda memory is read only
+} realm_external_cuda_memory_resource_t;
+
+// system memory external resource
+typedef struct realm_external_system_memory_resource_st {
+  const void *base; // the base address of the system memory
+  size_t size;      // the size of the system memory
+  int read_only;    // whether the system memory is read only
+} realm_external_system_memory_resource_t;
+
+// the struct of different types of external resource
+typedef struct realm_external_resource_st {
+  realm_external_resource_type_t type;
+  union {
+    realm_external_cuda_memory_resource_t cuda_memory;
+    realm_external_system_memory_resource_t system_memory;
+  } resource;
+} realm_external_resource_t;
+
 typedef void *realm_coord_t;
 
 // data type range of realm region instance coordinate
@@ -90,6 +120,14 @@ typedef enum realm_coord_type_enum
   REALM_COORD_TYPE_NUM,
   REALM_COORD_TYPE_MAX = 0x7fffffffULL,
 } realm_coord_type_t;
+
+// Currently, we only support dense index space
+typedef struct realm_index_space_t {
+  realm_coord_t lower_bound;
+  realm_coord_t upper_bound;
+  size_t num_dims;
+  realm_coord_type_t coord_type;
+} realm_index_space_t;
 
 // data type of region instance create params
 typedef struct realm_region_instance_create_params_t {
@@ -103,8 +141,8 @@ typedef struct realm_region_instance_create_params_t {
   size_t *field_sizes;                  // the field sizes of the region instance
   size_t num_fields;                    // the number of fields of the region instance
   size_t block_size;                    // the block size of the region instance
-  realm_external_instance_resource_t
-      external_resource; // the external resource of the region instance
+  const realm_external_resource_t *external_resource; // the external resource of the
+                                                      // region instance
 } realm_region_instance_create_params_t;
 
 typedef struct realm_copy_src_dst_field_t {
@@ -123,43 +161,6 @@ typedef struct realm_region_instance_copy_params_t {
   realm_coord_type_t coord_type;        // the data type of the coordinate
   realm_sparsity_handle_t sparsity_map; // the sparsity map of the region instance
 } realm_region_instance_copy_params_t;
-
-// type of external instance resource
-typedef enum realm_external_instance_resource_type_enum
-{
-  REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_CUDA_MEMORY =
-      0, // the external instance resource is a cuda memory
-  REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_SYSTEM_MEMORY, // the external instance resource
-                                                       // is a system memory
-  REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_NUM,
-  REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_MAX = 0x7fffffffULL,
-} realm_external_instance_resource_type_t;
-
-// base params for creating an external instance resource
-// when creating an external instance resource, please use the inherited params
-typedef struct realm_external_instance_resource_create_params_t {
-  realm_external_instance_resource_type_t
-      type; // the type of the external instance resource
-} realm_external_instance_resource_create_params_t;
-
-// params for creating a cuda memory external instance resource
-typedef struct realm_external_cuda_memory_resource_create_params_t {
-  realm_external_instance_resource_type_t
-      type;           // must be REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_CUDA
-  int cuda_device_id; // the cuda device id
-  const void *base;   // the base address of the cuda memory
-  size_t size;        // the size of the cuda memory
-  int read_only;      // whether the cuda memory is read only
-} realm_external_cuda_memory_resource_create_params_t;
-
-// params for creating a system memory external instance resource
-typedef struct realm_external_system_memory_resource_create_params_t {
-  realm_external_instance_resource_type_t
-      type;         // must be REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_SYSTEM
-  const void *base; // the base address of the system memory
-  size_t size;      // the size of the system memory
-  int read_only;    // whether the system memory is read only
-} realm_external_system_memory_resource_create_params_t;
 
 #define REALM_NO_PROC ((realm_processor_t)0ULL)
 #define REALM_NO_MEM ((realm_memory_t)0ULL)
@@ -204,6 +205,20 @@ typedef enum realm_runtime_attr_enum
   REALM_RUNTIME_ATTR_NUM,
   REALM_RUNTIME_ATTR_MAX = 0xFFFFFFFFFFFFFFFFULL,
 } realm_runtime_attr_t;
+
+typedef enum realm_region_instance_attr_enum
+{
+  REALM_REGION_INSTANCE_ATTR_MEMORY = 0x0ULL, // The memory of the region instance
+  REALM_REGION_INSTANCE_ATTR_NUM,
+  REALM_REGION_INSTANCE_ATTR_MAX = 0xFFFFFFFFFFFFFFFFULL,
+} realm_region_instance_attr_t;
+
+typedef struct realm_region_instance_attr_value_t {
+  realm_region_instance_attr_t type;
+  union {
+    realm_memory_t memory;
+  } value;
+} realm_region_instance_attr_value_t;
 
 // Different Processor types
 // clang-format off
@@ -265,6 +280,11 @@ typedef enum realm_file_mode_t
   LEGION_FILE_CREATE = REALM_FILE_CREATE,
 } realm_file_mode_t;
 
+typedef struct realm_affinity_details_t {
+  unsigned bandwidth; // in MB/s
+  unsigned latency;   // in nanoseconds
+} realm_affinity_details_t;
+
 // Prototype for a Realm task
 typedef void(REALM_FNPTR *realm_task_pointer_t)(const void * /*data*/, size_t /*datalen*/,
                                                 const void * /*userdata*/,
@@ -296,6 +316,7 @@ typedef enum realm_status_enum
   REALM_RUNTIME_ERROR_INVALID_RUNTIME = -3001,
   REALM_RUNTIME_ERROR_NOT_INITIALIZED = -3002,
   REALM_RUNTIME_ERROR_INVALID_ATTRIBUTE = -3003,
+  REALM_RUNTIME_ERROR_INVALID_AFFINITY = -3004,
   REALM_MACHINE_ERROR_INVALID_MACHINE = -4001,
   REALM_MEMORY_ERROR_INVALID_MEMORY = -5001,
   REALM_PROCESSOR_ERROR_INVALID_PROCESSOR = -6001,
@@ -317,12 +338,13 @@ typedef enum realm_status_enum
   REALM_REGION_INSTANCE_ERROR_INVALID_EVENT = -12004,
   REALM_REGION_INSTANCE_ERROR_INVALID_PARAMS = -12005,
   REALM_REGION_INSTANCE_ERROR_INVALID_COORD_TYPE = -12006,
-  REALM_EXTERNAL_INSTANCE_RESOURCE_ERROR_INVALID_RESOURCE = -13001,
-  REALM_EXTERNAL_INSTANCE_RESOURCE_ERROR_INVALID_BASE = -13002,
-  REALM_EXTERNAL_INSTANCE_RESOURCE_ERROR_INVALID_SIZE = -13003,
-  REALM_EXTERNAL_INSTANCE_RESOURCE_ERROR_INVALID_CUDA_DEVICE_ID = -13004,
-  REALM_EXTERNAL_INSTANCE_RESOURCE_ERROR_INVALID_TYPE = -13005,
-  REALM_EXTERNAL_INSTANCE_RESOURCE_ERROR_INVALID_PARAMS = -13006,
+  REALM_REGION_INSTANCE_ERROR_INVALID_ATTRIBUTE = -12007,
+  REALM_EXTERNAL_RESOURCE_ERROR_INVALID_RESOURCE = -13001,
+  REALM_EXTERNAL_RESOURCE_ERROR_INVALID_BASE = -13002,
+  REALM_EXTERNAL_RESOURCE_ERROR_INVALID_SIZE = -13003,
+  REALM_EXTERNAL_RESOURCE_ERROR_INVALID_CUDA_DEVICE_ID = -13004,
+  REALM_EXTERNAL_RESOURCE_ERROR_INVALID_TYPE = -13005,
+  REALM_EXTERNAL_RESOURCE_ERROR_INVALID_PARAMS = -13006,
   REALM_CUDA_ERROR_NOT_ENABLED = -14001,
   REALM_MODULE_CONFIG_ERROR_INVALID_NAME = -16001,
   REALM_MODULE_CONFIG_ERROR_NO_RESOURCE = -16002,
@@ -460,6 +482,37 @@ realm_status_t REALM_EXPORT realm_runtime_collective_spawn(
 realm_status_t REALM_EXPORT realm_runtime_get_attributes(realm_runtime_t runtime,
                                                          realm_runtime_attr_t *attrs,
                                                          uint64_t *values, size_t num);
+
+/**
+ * @brief Checks if two memories have affinity. If there is a affinity, we can do one-hop
+ * copy between them.
+ *
+ * @param runtime The runtime instance to use.
+ * @param mem1 The first memory.
+ * @param mem2 The second memory.
+ * @param[out] details The details of the affinity.
+ * @return Realm status indicating success or failure.
+ *
+ * @ingroup Runtime
+ */
+realm_status_t REALM_EXPORT realm_runtime_get_memory_memory_affinity(
+    realm_runtime_t runtime, realm_memory_t mem1, realm_memory_t mem2,
+    realm_affinity_details_t *details);
+
+/**
+ * @brief Checks if a processor has affinity to a memory. If there is a affinity, the
+ * processor can access the memory directly.
+ * @param runtime The runtime instance to use.
+ * @param proc The processor.
+ * @param mem The memory.
+ * @param[out] details The details of the affinity.
+ * @return Realm status indicating success or failure.
+ *
+ * @ingroup Runtime
+ */
+realm_status_t REALM_EXPORT realm_runtime_get_processor_memory_affinity(
+    realm_runtime_t runtime, realm_processor_t proc, realm_memory_t mem,
+    realm_affinity_details_t *details);
 
 /*
  * @defgroup Processor Processor API
@@ -849,30 +902,43 @@ realm_status_t REALM_EXPORT realm_region_instance_fetch_metadata(
     realm_event_t *event);
 
 /**
- * @brief Creates a new external CUDA memory resource.
+ * @brief Gets the attributes of a region instance.
  *
  * @param runtime The runtime instance to use.
- * @param params The parameters to create the external instance resource.
- * @param[out] resource The external instance resource to be created.
+ * @param instance The region instance to get the attributes of.
+ * @param attrs The attributes to get.
+ * @param[out] values The values of the attributes.
+ * @param num The number of attributes to get.
  * @return Realm status indicating success or failure.
  *
  * @ingroup RegionInstance
  */
-realm_status_t REALM_EXPORT
-realm_external_instance_resource_create(realm_runtime_t runtime, const void *params,
-                                        realm_external_instance_resource_t *resource);
+realm_status_t REALM_EXPORT realm_region_instance_get_attributes(
+    realm_runtime_t runtime, realm_region_instance_t instance,
+    realm_region_instance_attr_t *attrs, realm_region_instance_attr_value_t *values,
+    size_t num);
 
 /**
- * @brief Destroys an external instance resource.
+ * @brief Generates an external instance resource info for a region instance.
  *
  * @param runtime The runtime instance to use.
- * @param resource The external instance resource to destroy.
+ * @param instance The region instance to generate the external instance resource info
+ * for.
+ * @param index_space The index space of the region instance.
+ * @param field_ids The field ids of the region instance.
+ * @param num_fields The number of fields of the region instance.
+ * @param read_only Whether the external instance resource is read only.
+ * @param[out] external_resource The external instance resource info. It should be either
+ * realm_external_cuda_memory_resource_t or realm_external_system_memory_resource_t. It is
+ * caller's responsibility to allocate the memory for the external instance resource.
  * @return Realm status indicating success or failure.
  *
  * @ingroup RegionInstance
  */
-realm_status_t REALM_EXPORT realm_external_instance_resource_destroy(
-    realm_runtime_t runtime, realm_external_instance_resource_t resource);
+realm_status_t REALM_EXPORT realm_region_instance_generate_external_resource_info(
+    realm_runtime_t runtime, realm_region_instance_t instance,
+    const realm_index_space_t *index_space, const realm_field_id_t *field_ids,
+    size_t num_fields, int read_only, realm_external_resource_t *external_resource);
 
 /**
  * @brief Gets the suggested memory for an external instance resource.
@@ -884,8 +950,8 @@ realm_status_t REALM_EXPORT realm_external_instance_resource_destroy(
  *
  * @ingroup RegionInstance
  */
-realm_status_t REALM_EXPORT realm_external_instance_resource_suggested_memory(
-    realm_runtime_t runtime, realm_external_instance_resource_t resource,
+realm_status_t REALM_EXPORT realm_external_resource_suggested_memory(
+    realm_runtime_t runtime, const realm_external_resource_t *external_resource,
     realm_memory_t *memory);
 #ifdef __cplusplus
 }

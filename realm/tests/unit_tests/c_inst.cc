@@ -411,3 +411,108 @@ TEST_F(CInstCreateDestroyTest, DISABLED_CreateFailedTooLarge)
 
   ASSERT_REALM(realm_region_instance_destroy(runtime, inst, event));
 }
+
+class CInstGetAttributesTest : public CInstBaseTest, public ::testing::Test {
+protected:
+  void SetUp() override
+  {
+    CInstBaseTest::initialize(1);
+    addr_space = 0;
+    runtime_impl->setup_mock_proc_mems(
+        MockRuntimeImplMachineModel::ProcessorMemoriesToBeAdded{
+            {{0, Processor::Kind::LOC_PROC, addr_space}},
+            {{0, Memory::Kind::SYSTEM_MEM, 1024, addr_space}},
+            {{0, 0, 1000, 1}}});
+    mem = ID::make_memory(addr_space, 0).convert<Memory>();
+
+    realm_runtime_t runtime = *runtime_impl;
+    realm_region_instance_create_params_t params;
+    int lower_bound[1] = {0};
+    int upper_bound[1] = {9};
+    int field_ids[1] = {0};
+    size_t field_sizes[1] = {sizeof(int)};
+    params.memory = mem;
+    params.lower_bound = lower_bound;
+    params.upper_bound = upper_bound;
+    params.coord_type = REALM_COORD_TYPE_INT;
+    params.num_dims = 1;
+    params.num_fields = 1;
+    params.field_ids = field_ids;
+    params.field_sizes = field_sizes;
+    params.external_resource = nullptr;
+    realm_event_t event;
+    ASSERT_REALM(realm_region_instance_create(runtime, &params, nullptr, REALM_NO_EVENT,
+                                              &inst, &event));
+  }
+
+  void TearDown() override
+  {
+    realm_runtime_t runtime = *runtime_impl;
+    ASSERT_REALM(realm_region_instance_destroy(runtime, inst, REALM_NO_EVENT));
+    CInstBaseTest::finalize();
+    inst = REALM_NO_INST;
+  }
+
+  realm_region_instance_t inst{REALM_NO_INST};
+  Realm::Memory mem{REALM_NO_MEM};
+  Realm::AddressSpace addr_space{0};
+};
+
+TEST_F(CInstGetAttributesTest, NullRuntime)
+{
+  realm_region_instance_attr_t attrs[1] = {REALM_REGION_INSTANCE_ATTR_MEMORY};
+  realm_region_instance_attr_value_t values[1];
+  realm_status_t status =
+      realm_region_instance_get_attributes(nullptr, inst, attrs, values, 1);
+  EXPECT_EQ(status, REALM_RUNTIME_ERROR_NOT_INITIALIZED);
+}
+
+TEST_F(CInstGetAttributesTest, NullInstance)
+{
+  realm_runtime_t runtime = *runtime_impl;
+  realm_region_instance_attr_t attrs[1] = {REALM_REGION_INSTANCE_ATTR_MEMORY};
+  realm_region_instance_attr_value_t values[1];
+  realm_status_t status =
+      realm_region_instance_get_attributes(runtime, REALM_NO_INST, attrs, values, 1);
+  EXPECT_EQ(status, REALM_REGION_INSTANCE_ERROR_INVALID_INSTANCE);
+}
+
+TEST_F(CInstGetAttributesTest, NullAttrs)
+{
+  realm_runtime_t runtime = *runtime_impl;
+  realm_region_instance_attr_value_t values[1];
+  realm_status_t status =
+      realm_region_instance_get_attributes(runtime, inst, nullptr, values, 1);
+  EXPECT_EQ(status, REALM_REGION_INSTANCE_ERROR_INVALID_ATTRIBUTE);
+}
+
+TEST_F(CInstGetAttributesTest, NullValues)
+{
+  realm_runtime_t runtime = *runtime_impl;
+  realm_region_instance_attr_t attrs[1] = {REALM_REGION_INSTANCE_ATTR_MEMORY};
+  realm_status_t status =
+      realm_region_instance_get_attributes(runtime, inst, attrs, nullptr, 1);
+  EXPECT_EQ(status, REALM_REGION_INSTANCE_ERROR_INVALID_ATTRIBUTE);
+}
+
+TEST_F(CInstGetAttributesTest, InvalidAttribute)
+{
+  realm_runtime_t runtime = *runtime_impl;
+  realm_region_instance_attr_t attrs[1] = {REALM_REGION_INSTANCE_ATTR_MAX};
+  realm_region_instance_attr_value_t values[1];
+  realm_status_t status =
+      realm_region_instance_get_attributes(runtime, inst, attrs, values, 1);
+  EXPECT_EQ(status, REALM_REGION_INSTANCE_ERROR_INVALID_ATTRIBUTE);
+}
+
+TEST_F(CInstGetAttributesTest, MemoryLocation)
+{
+  realm_runtime_t runtime = *runtime_impl;
+  realm_region_instance_attr_t attrs[1] = {REALM_REGION_INSTANCE_ATTR_MEMORY};
+  realm_region_instance_attr_value_t values[1];
+  realm_status_t status =
+      realm_region_instance_get_attributes(runtime, inst, attrs, values, 1);
+  EXPECT_EQ(status, REALM_SUCCESS);
+  EXPECT_EQ(values[0].type, REALM_REGION_INSTANCE_ATTR_MEMORY);
+  EXPECT_EQ(values[0].value.memory, mem);
+}

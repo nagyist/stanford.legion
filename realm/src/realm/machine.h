@@ -52,10 +52,7 @@ namespace Realm {
     class ProcessorQuery;
     class MemoryQuery;
 
-    struct AffinityDetails {
-      unsigned bandwidth;
-      unsigned latency;
-    };
+    typedef realm_affinity_details_t AffinityDetails;
 
     bool has_affinity(Processor p, Memory m, AffinityDetails *details = 0) const;
     bool has_affinity(Memory m1, Memory m2, AffinityDetails *details = 0) const;

@@ -76,7 +76,7 @@ void fill(Realm::RegionInstance inst, Realm::IndexSpace<N, T> idx_space, int fil
 
 template <int N, typename T>
 bool create_instance_and_copy_and_verify(
-    realm_runtime_t runtime, realm_external_instance_resource_t external_mem_res,
+    realm_runtime_t runtime, const realm_external_resource_t *external_mem_res,
     int *external_mem, realm_region_instance_t dst_inst, realm_field_id_t *field_ids,
     size_t *field_sizes, int num_fields, Realm::IndexSpace<N, T> idx_space,
     realm_coord_type_t coord_type, realm_processor_t proc, T lower_bound[N],
@@ -85,8 +85,8 @@ bool create_instance_and_copy_and_verify(
   // create external instance from external memory resource
   realm_region_instance_t src_inst;
   realm_memory_t src_mem;
-  CHECK_REALM(realm_external_instance_resource_suggested_memory(runtime, external_mem_res,
-                                                                &src_mem));
+  CHECK_REALM(
+      realm_external_resource_suggested_memory(runtime, external_mem_res, &src_mem));
   realm_region_instance_create_params_t src_instance_params = {
       .memory = src_mem,
       .lower_bound = lower_bound,
@@ -145,6 +145,19 @@ bool create_instance_and_copy_and_verify(
       }
     }
   }
+
+  // test generate external resource info
+  realm_index_space_t ispace = {
+      .lower_bound = lower_bound,
+      .upper_bound = upper_bound,
+      .num_dims = N,
+      .coord_type = coord_type,
+  };
+  realm_external_resource_t external_resource;
+  CHECK_REALM(realm_region_instance_generate_external_resource_info(
+      runtime, src_inst, &ispace, field_ids, 1, 0, &external_resource));
+  assert(external_resource.type == external_mem_res->type);
+
   CHECK_REALM(realm_region_instance_destroy(runtime, src_inst, REALM_NO_EVENT));
   return success;
 }
@@ -202,23 +215,18 @@ static void test_copy(realm_runtime_t runtime, realm_memory_t dst_mem,
       log_app.error("cudaMalloc failed");
       return;
     } else {
-      realm_external_instance_resource_t cuda_mem_res;
-      realm_external_cuda_memory_resource_create_params_t cuda_mem_res_params = {
-          .type = REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_CUDA_MEMORY,
-          .cuda_device_id = 0,
-          .base = external_mem,
-          .size = external_mem_size,
-          .read_only = 0,
-      };
-      CHECK_REALM(realm_external_instance_resource_create(runtime, &cuda_mem_res_params,
-                                                          &cuda_mem_res));
+      realm_external_resource_t external_resource;
+      external_resource.type = REALM_EXTERNAL_RESOURCE_TYPE_CUDA_MEMORY;
+      external_resource.resource.cuda_memory.cuda_device_id = 0;
+      external_resource.resource.cuda_memory.base = external_mem;
+      external_resource.resource.cuda_memory.size = external_mem_size;
+      external_resource.resource.cuda_memory.read_only = 0;
 
       Realm::IndexSpace<N, T> idx_space(rect);
       bool success = create_instance_and_copy_and_verify<N, T>(
-          runtime, cuda_mem_res, external_mem, dst_inst, field_ids, field_sizes, 1,
+          runtime, &external_resource, external_mem, dst_inst, field_ids, field_sizes, 1,
           idx_space, coord_type, proc, lower_bound, upper_bound);
       assert(success);
-      CHECK_REALM(realm_external_instance_resource_destroy(runtime, cuda_mem_res));
       cudaFree(external_mem);
       external_mem = nullptr;
     }
@@ -233,22 +241,18 @@ static void test_copy(realm_runtime_t runtime, realm_memory_t dst_mem,
       log_app.error("aligned_alloc failed");
       return;
     }
-    realm_external_instance_resource_t system_mem_res;
-    realm_external_system_memory_resource_create_params_t system_mem_res_params = {
-        .type = REALM_EXTERNAL_INSTANCE_RESOURCE_TYPE_SYSTEM_MEMORY,
-        .base = external_mem,
-        .size = external_mem_size,
-        .read_only = 0,
-    };
-    CHECK_REALM(realm_external_instance_resource_create(runtime, &system_mem_res_params,
-                                                        &system_mem_res));
+
+    realm_external_resource_t external_resource;
+    external_resource.type = REALM_EXTERNAL_RESOURCE_TYPE_SYSTEM_MEMORY;
+    external_resource.resource.system_memory.base = external_mem;
+    external_resource.resource.system_memory.size = external_mem_size;
+    external_resource.resource.system_memory.read_only = 0;
 
     Realm::IndexSpace<N, T> idx_space(rect);
     bool success = create_instance_and_copy_and_verify<N, T>(
-        runtime, system_mem_res, external_mem, dst_inst, field_ids, field_sizes, 1,
+        runtime, &external_resource, external_mem, dst_inst, field_ids, field_sizes, 1,
         idx_space, coord_type, proc, lower_bound, upper_bound);
     assert(success);
-    CHECK_REALM(realm_external_instance_resource_destroy(runtime, system_mem_res));
     ALIGNED_FREE(external_mem);
     external_mem = nullptr;
   }

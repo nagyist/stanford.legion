@@ -140,6 +140,7 @@ legion_cmake_rocm571:
   tags:
     - slurm
     - frontier
+    - login12
   variables:
     <<: [*legion, *cmake, *ctest, *rocm571, *nodes1]
 
@@ -149,6 +150,7 @@ legion_cmake_rocm600:
   tags:
     - slurm
     - frontier
+    - login12
   variables:
     <<: [*legion, *cmake, *ctest, *rocm600, *nodes2]
 
@@ -158,6 +160,7 @@ legion_cmake_rocm613:
   tags:
     - slurm
     - frontier
+    - login12
   variables:
     <<: [*legion, *cmake, *ctest, *rocm613, *nodes1_1hr]
 
@@ -167,6 +170,7 @@ legion_cmake_rocm624:
   tags:
     - slurm
     - frontier
+    - login12
   variables:
     <<: [*legion, *cmake, *ctest, *rocm624, *nodes1_1hr]
 
@@ -176,6 +180,7 @@ legion_cmake_rocm631:
   tags:
     - slurm
     - frontier
+    - login12
   variables:
     <<: [*legion, *cmake, *ctest, *rocm631, *nodes1_1hr]
 
@@ -185,6 +190,7 @@ legion_cmake_rocm641:
   tags:
     - slurm
     - frontier
+    - login12
   variables:
     <<: [*legion, *cmake, *ctest, *rocm641, *nodes2_1hr]
 
@@ -194,6 +200,7 @@ legion_cmake_rocm641:
 #   tags:
 #     - slurm
 #     - frontier
+#     - login12
 #   variables:
 #     <<: [*regent, *rocm600, *nodes1]
 
@@ -203,6 +210,7 @@ legion_cmake_rocm641:
 #   tags:
 #     - slurm
 #     - frontier
+#     - login12
 #   variables:
 #     <<: [*regent, *cmake, *rocm600, *nodes2]
 
@@ -212,6 +220,7 @@ legion_cmake_rocm641:
 #   tags:
 #     - slurm
 #     - frontier
+#     - login12
 #   variables:
 #     <<: [*regent, *rocm624, *nodes1_1hr]
 
@@ -221,6 +230,7 @@ legion_cmake_rocm641:
 #   tags:
 #     - slurm
 #     - frontier
+#     - login12
 #   variables:
 #     <<: [*regent, *cmake, *rocm624, *nodes2_1hr]
 
