@@ -11279,6 +11279,8 @@ namespace Legion {
             it = it + matched;
         }
       }
+      // Restore the legion spy logging level
+      spy_logging_level = (SpyLoggingLevel)spy_level;
       // Should never have filtered out the binary name
       legion_assert(binary_offset);
       if (filter)
