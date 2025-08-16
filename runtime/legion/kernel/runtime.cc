@@ -11057,8 +11057,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     size_t Runtime::LegionConfiguration::parse_option(
         std::vector<std::string>::const_iterator it,
-        std::vector<std::string>::const_iterator end, unsigned& spy_level,
-        bool& bad_parameter)
+        std::vector<std::string>::const_iterator end, bool& bad_parameter)
     //--------------------------------------------------------------------------
     {
       if (parse_bool(*it, "-lg:warn_backtrace", warnings_backtrace) ||
@@ -11213,7 +11212,6 @@ namespace Legion {
       cmdline.reserve(cmdline.size() + num_args);
       for (unsigned i = 0; i < num_args; i++) cmdline.emplace_back((*argv)[i]);
       realm.parse_command_line(cmdline, filter);
-      unsigned spy_level = spy_logging_level;
       // We use the binary name as the demarcation between the default
       // arguments and the command line arguments, note that it's location
       // could have changed by the call realm.parse_command_line if
@@ -11237,7 +11235,7 @@ namespace Legion {
         {
           bool bad_parameter = false;
           const size_t matched =
-              config.parse_option(it, cmdline.end(), spy_level, bad_parameter);
+              config.parse_option(it, cmdline.end(), bad_parameter);
           if (bad_parameter)
           {
             Error error(LEGION_STARTUP_EXCEPTION);
@@ -11280,7 +11278,7 @@ namespace Legion {
         }
       }
       // Restore the legion spy logging level
-      spy_logging_level = (SpyLoggingLevel)spy_level;
+      spy_logging_level = (SpyLoggingLevel)config.spy_level;
       // Should never have filtered out the binary name
       legion_assert(binary_offset);
       if (filter)

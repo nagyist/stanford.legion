@@ -150,6 +150,7 @@ namespace Legion {
             max_control_replication_contexts(
                 LEGION_DEFAULT_MAX_CONTROL_REPLICATION_CONTEXTS),
             max_local_fields(LEGION_DEFAULT_LOCAL_FIELDS),
+            spy_level(spy_logging_level),
             max_replay_parallelism(LEGION_DEFAULT_MAX_REPLAY_PARALLELISM),
             safe_control_replication(0), program_order_execution(false),
             dump_physical_traces(false), enable_automatic_tracing(false),
@@ -179,8 +180,7 @@ namespace Legion {
       public:
         size_t parse_option(
             std::vector<std::string>::const_iterator it,
-            std::vector<std::string>::const_iterator end, unsigned& spy_level,
-            bool& bad_parameter);
+            std::vector<std::string>::const_iterator end, bool& bad_parameter);
         bool parse_bool(
             const std::string& parameter, const std::string_view& flag,
             bool& value);
@@ -204,6 +204,7 @@ namespace Legion {
         unsigned gc_epoch_size;
         unsigned max_control_replication_contexts;
         unsigned max_local_fields;
+        unsigned spy_level;
         unsigned max_replay_parallelism;
         unsigned safe_control_replication;
       public:
