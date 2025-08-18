@@ -7807,7 +7807,7 @@ namespace Legion {
       if (!pending_pointwise_dependences.empty())
       {
         std::map<uint64_t, std::map<DomainPoint, RtUserEvent> >::iterator
-            finder = pending_pointwise_dependences.end();
+            finder = pending_pointwise_dependences.find(context_index);
         if (finder != pending_pointwise_dependences.end())
         {
           std::map<DomainPoint, RtUserEvent> to_trigger;
