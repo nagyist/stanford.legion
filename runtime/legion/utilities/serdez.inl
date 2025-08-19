@@ -65,6 +65,20 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
+  template<typename T>
+  inline void Serializer::serialize(const std::optional<T>& opt)
+  //--------------------------------------------------------------------------
+  {
+    if (opt)
+    {
+      serialize<bool>(true);
+      serialize(*opt);
+    }
+    else
+      serialize<bool>(false);
+  }
+
+  //--------------------------------------------------------------------------
   template<typename T, typename A>
   inline void Serializer::serialize(const std::vector<T, A>& vector)
   //--------------------------------------------------------------------------
@@ -375,6 +389,17 @@ namespace Legion {
     uint32_t flag;
     deserialize<uint32_t>(flag);
     element = (flag != 0);
+  }
+
+  //--------------------------------------------------------------------------
+  template<typename T>
+  inline void Deserializer::deserialize(std::optional<T>& opt)
+  //--------------------------------------------------------------------------
+  {
+    bool valid;
+    deserialize<bool>(valid);
+    if (valid)
+      deserialize(*opt);
   }
 
   //--------------------------------------------------------------------------

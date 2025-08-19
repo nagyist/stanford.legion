@@ -40,6 +40,8 @@ namespace Legion {
     template<typename T>
     inline void serialize(const T& element);
     // help for serializing STL data structures
+    template<typename T>
+    inline void serialize(const std::optional<T>& opt);
     template<typename T, typename A>
     inline void serialize(const std::vector<T, A>& vector);
     template<typename T, typename C, typename A>
@@ -139,6 +141,8 @@ namespace Legion {
     template<typename T>
     inline void deserialize(T& element);
     // help for serializing STL data structures
+    template<typename T>
+    inline void deserialize(std::optional<T>& opt);
     template<typename T, typename A>
     inline void deserialize(std::vector<T, A>& vector);
     template<typename T, typename C, typename A>
