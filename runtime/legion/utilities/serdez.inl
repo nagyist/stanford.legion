@@ -399,7 +399,11 @@ namespace Legion {
     bool valid;
     deserialize<bool>(valid);
     if (valid)
-      deserialize(*opt);
+    {
+      T value;
+      deserialize(value);
+      opt = value;
+    }
   }
 
   //--------------------------------------------------------------------------

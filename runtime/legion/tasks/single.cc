@@ -169,7 +169,8 @@ namespace Legion {
           rez.serialize(target_processors[idx]);
         for (unsigned idx = 0; idx < logical_regions.size(); idx++)
         {
-          rez.serialize<bool>(virtual_mapped[idx]);
+          // C++ is stupid and tries to convert to a std::optional<bool> here
+          rez.serialize<bool>(bool(virtual_mapped[idx]));
           if (virtual_mapped[idx])
             version_infos[idx].pack_equivalence_sets(rez);
         }
