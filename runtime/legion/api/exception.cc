@@ -61,7 +61,7 @@ namespace Legion {
         }
       case LEGION_RESOURCE_EXCEPTION:
         {
-          stream << "LEGION RESOURCE EXCEPTION";
+          stream << "LEGION RESOURCE EXCEPTION: ";
           break;
         }
       case LEGION_STARTUP_EXCEPTION:
