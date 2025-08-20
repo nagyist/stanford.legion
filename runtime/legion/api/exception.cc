@@ -41,27 +41,32 @@ namespace Legion {
         }
       case LEGION_INTERFACE_EXCEPTION:
         {
-          stream << "LEGION API USAGE ERROR: ";
+          stream << "LEGION API USAGE EXCEPTION: ";
           break;
         }
       case LEGION_DYNAMIC_TYPE_EXCEPTION:
         {
-          stream << "LEGION DYNAMIC TYPE ERROR: ";
+          stream << "LEGION DYNAMIC TYPE EXCEPTION: ";
           break;
         }
       case LEGION_PROGRAMMING_MODEL_EXCEPTION:
         {
-          stream << "LEGION PROGRAMMING MODEL ERROR: ";
+          stream << "LEGION PROGRAMMING MODEL EXCEPTION: ";
           break;
         }
       case LEGION_MAPPER_EXCEPTION:
         {
-          stream << "LEGION MAPPER ERROR: ";
+          stream << "LEGION MAPPER EXCEPTION: ";
+          break;
+        }
+      case LEGION_RESOURCE_EXCEPTION:
+        {
+          stream << "LEGION RESOURCE EXCEPTION";
           break;
         }
       case LEGION_STARTUP_EXCEPTION:
         {
-          stream << "LEGION STARTUP ERROR: ";
+          stream << "LEGION STARTUP EXCEPTION: ";
           break;
         }
       case LEGION_FATAL_EXCEPTION:
