@@ -2957,9 +2957,13 @@ namespace Legion {
         if (!it->second.is_bounded())
           unbounded_pools.emplace_back(manager);
       }
-      // Tell our unbounded pools that we're done allocating
-      for (unsigned idx = 0; idx < unbounded_pools.size(); idx++)
-        unbounded_pools[idx]->end_collective_unbounded_pools_task();
+      if (concurrent_task || must_epoch_task ||
+          !check_collective_regions.empty())
+      {
+        // Tell our unbounded pools that we're done allocating
+        for (unsigned idx = 0; idx < unbounded_pools.size(); idx++)
+          unbounded_pools[idx]->end_collective_unbounded_pools_task();
+      }
       // If we have any pools left in the acquired set we can delete them
       // since we're not going to need them
       for (std::map<Memory, MemoryPool*>::const_iterator it =
