@@ -74,9 +74,10 @@ namespace Legion {
   public:
     TaskLauncher(void);
     TaskLauncher(
-        TaskID tid, UntypedBuffer arg, Predicate pred = Predicate::TRUE_PRED,
-        MapperID id = 0, MappingTagID tag = 0,
-        UntypedBuffer map_arg = UntypedBuffer(), const char* provenance = "");
+        TaskID tid, UntypedBuffer arg = UntypedBuffer(),
+        Predicate pred = Predicate::TRUE_PRED, MapperID id = 0,
+        MappingTagID tag = 0, UntypedBuffer map_arg = UntypedBuffer(),
+        const char* provenance = "");
   public:
     inline IndexSpaceRequirement& add_index_requirement(
         const IndexSpaceRequirement& req);
@@ -178,13 +179,14 @@ namespace Legion {
   public:
     IndexTaskLauncher(void);
     IndexTaskLauncher(
-        TaskID tid, Domain domain, UntypedBuffer global_arg, ArgumentMap map,
-        Predicate pred = Predicate::TRUE_PRED, bool must = false,
-        MapperID id = 0, MappingTagID tag = 0,
+        TaskID tid, Domain domain, UntypedBuffer global_arg = UntypedBuffer(),
+        ArgumentMap map = ArgumentMap(), Predicate pred = Predicate::TRUE_PRED,
+        bool must = false, MapperID id = 0, MappingTagID tag = 0,
         UntypedBuffer map_arg = UntypedBuffer(), const char* provenance = "");
     IndexTaskLauncher(
-        TaskID tid, IndexSpace launch_space, UntypedBuffer global_arg,
-        ArgumentMap map, Predicate pred = Predicate::TRUE_PRED,
+        TaskID tid, IndexSpace launch_space,
+        UntypedBuffer global_arg = UntypedBuffer(),
+        ArgumentMap map = ArgumentMap(), Predicate pred = Predicate::TRUE_PRED,
         bool must = false, MapperID id = 0, MappingTagID tag = 0,
         UntypedBuffer map_arg = UntypedBuffer(), const char* provenance = "");
   public:
