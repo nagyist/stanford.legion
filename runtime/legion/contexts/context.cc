@@ -355,18 +355,25 @@ namespace Legion {
       std::ostream stream(&exception);
       stream << "\n-----------------------------------\n";
       stream << "Task Tree Trace:\n";
-      unsigned depth = 0;
-      if (op != nullptr)
-        stream << "[" << depth++ << "]" << op->get_task_tree_coordinate()
-               << ": " << *op << "\n";
+      std::vector<const TaskContext*> contexts;
       const TaskContext* context = this;
       while (context->owner_task != nullptr)
       {
+        contexts.push_back(context);
+        context = context->owner_task->get_context();
+      }
+      unsigned depth = 0;
+      while (!contexts.empty())
+      {
+        context = contexts.back();
         stream << "[" << depth++ << "]"
                << context->owner_task->get_task_tree_coordinate() << ": "
                << *context << "\n";
-        context = context->owner_task->get_context();
+        contexts.pop_back();
       }
+      if (op != nullptr)
+        stream << "[" << depth << "]" << op->get_task_tree_coordinate() << ": "
+               << *op << "\n";
     }
 
     //--------------------------------------------------------------------------
