@@ -389,7 +389,7 @@ namespace Legion {
       src_indirect_instance = manager->get_instance();
       src_indirect_instance_event = manager->get_unique_event();
       src_indirect_type = src_req.region.get_index_space().get_type_tag();
-      both_are_range = are_range;
+      is_range_indirection = are_range;
       possible_src_out_of_range = possible_out_of_range;
       src_fields.resize(src_req.instance_fields.size());
       FieldSpaceNode* fs = runtime->get_node(src_req.region.get_field_space());
@@ -417,7 +417,7 @@ namespace Legion {
       dst_indirect_instance = manager->get_instance();
       dst_indirect_instance_event = manager->get_unique_event();
       dst_indirect_type = dst_req.region.get_index_space().get_type_tag();
-      both_are_range = are_range;
+      is_range_indirection = are_range;
       possible_dst_out_of_range = possible_out_of_range;
       possible_dst_aliasing = possible_aliasing;
       dst_fields.resize(dst_req.instance_fields.size());

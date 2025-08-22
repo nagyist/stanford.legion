@@ -175,12 +175,12 @@ namespace Legion {
       void initialize_source_indirections(
           std::vector<IndirectRecord>& records,
           const RegionRequirement& src_req, const RegionRequirement& idx_req,
-          const InstanceRef& indirect_instance, const bool both_are_range,
+          const InstanceRef& indirect_instance, const bool is_range_indirection,
           const bool possible_out_of_range);
       void initialize_destination_indirections(
           std::vector<IndirectRecord>& records,
           const RegionRequirement& dst_req, const RegionRequirement& idx_req,
-          const InstanceRef& indirect_instance, const bool both_are_range,
+          const InstanceRef& indirect_instance, const bool is_range_indirection,
           const bool possible_out_of_range, const bool possible_aliasing,
           const bool exclusive_redop);
     protected:
@@ -218,7 +218,7 @@ namespace Legion {
       RtEvent prev_done;
       ApEvent last_copy;
     public:
-      bool both_are_range;
+      bool is_range_indirection;
       bool possible_src_out_of_range;
       bool possible_dst_out_of_range;
       bool possible_dst_aliasing;

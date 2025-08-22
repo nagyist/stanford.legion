@@ -709,7 +709,7 @@ namespace Legion {
           precondition = indirect_spaces_precondition;
       }
       ApEvent result;
-      if (both_are_range)
+      if (is_range_indirection)
       {
         // Range preimage
         typedef Realm::FieldDataDescriptor<
@@ -867,8 +867,8 @@ namespace Legion {
               std::map<Memory, unsigned>::iterator finder =
                   indirect_memories.find(location);
               if (finder == indirect_memories.end())
-                indirect_memories[location] = nonempty_index;
-              else if (finder->second != nonempty_index)
+                indirect_memories[location] = idx;
+              else if (finder->second != idx)
                 finder->second = nonempty_indexes.size();  // sentinel value
             }
           }
@@ -929,9 +929,6 @@ namespace Legion {
               if (shadow_indirections &&
                   (unstructured->inst.get_location() != memory))
               {
-                // Should only be gather/scatter and not full indirection so
-                // that we know the indirection field is the size of a point
-                legion_assert(!both_are_range);
                 // First check to see if we already have a new shadow
                 // indirection instance to use
                 std::map<Memory, ShadowInstance>::iterator finder =
@@ -960,15 +957,15 @@ namespace Legion {
                           (memory_finder->second == nonempty_index) ?
                               new_preimages[idx] :
                               copy_domain,
-                          op, sizeof(Point<D2, T2>), source);
+                          op,
+                          is_range_indirection ? sizeof(Rect<D2, T2>) :
+                                                 sizeof(Point<D2, T2>),
+                          source);
                       shadow_instances.emplace(std::make_pair(
                           memory, ShadowInstance{shadow, ready, unique_event}));
                       shadow_preconditions.emplace_back(ready);
                     }
-                    else
-                      // Otherwise default to using the original indirection
-                      unstructured->inst = source ? src_indirect_instance :
-                                                    dst_indirect_instance;
+                    // else default to using the original indirection
                   }
                   else
                   {
@@ -986,7 +983,10 @@ namespace Legion {
                         (memory_finder->second == nonempty_index) ?
                             new_preimages[idx] :
                             copy_domain,
-                        op, sizeof(Point<D2, T2>), source);
+                        op,
+                        is_range_indirection ? sizeof(Rect<D2, T2>) :
+                                               sizeof(Point<D2, T2>),
+                        source);
                     // Update the new shadows instances
                     shadow_instances.emplace(std::make_pair(
                         memory, ShadowInstance{
@@ -1003,7 +1003,7 @@ namespace Legion {
                   shadow_preconditions.emplace_back(finder->second.ready);
                 }
               }
-              unstructured->is_ranges = both_are_range;
+              unstructured->is_ranges = is_range_indirection;
               unstructured->oor_possible = false;
               unstructured->aliasing_possible =
                   source ? false /*no aliasing*/ : possible_dst_aliasing;
@@ -1090,7 +1090,7 @@ namespace Legion {
                 source ? src_indirect_field : dst_indirect_field;
             unstructured->inst =
                 source ? src_indirect_instance : dst_indirect_instance;
-            unstructured->is_ranges = both_are_range;
+            unstructured->is_ranges = is_range_indirection;
             unstructured->oor_possible = compute_preimages ? false :
                                          source ? possible_src_out_of_range :
                                                   possible_dst_out_of_range;
