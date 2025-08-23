@@ -7057,7 +7057,11 @@ namespace Legion {
       // Perform our operations
       for (std::vector<Operation*>::const_iterator it = to_perform.begin();
            it != to_perform.end(); it++)
+      {
+        implicit_operation = (*it);
         (*it)->execute_dependence_analysis();
+      }
+      implicit_operation = nullptr;
       // Then launch the next task if needed
       if (launch_next_op != nullptr)
       {
