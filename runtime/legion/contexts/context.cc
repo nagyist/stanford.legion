@@ -355,6 +355,7 @@ namespace Legion {
       std::ostream stream(&exception);
       stream << "\n-----------------------------------\n";
       stream << "Task Tree Trace:\n";
+      stream << "[depth]<op#,(point)>\n";
       std::vector<const TaskContext*> contexts;
       const TaskContext* context = this;
       while (context->owner_task != nullptr)
