@@ -2086,6 +2086,21 @@ namespace Legion {
        * while a larger value will cause you to wait longer to start replaying
        * traces but could lead to finding more robust traces that are going
        * to be replayed for the duration of the application.
+       *
+       * The 'auto_tracing_tubro_lag' parameter trades-off how quickly the
+       * auto tracing infrastructure will recognize traces at the cost of
+       * potentially blocking task issue rate from the task context. The
+       * larger the parameter the larger the lag in recognizing traces but
+       * the smaller the overhead incurred by the parent task when launching
+       * sub-tasks. The smaller the parameter, the faster traces will be
+       * recognized, but at the cost of potentially large task issue latencies
+       * even when traces cannot be found. Setting the parameter to zero will
+       * guarantee that traces are found as fast as possible, but will run
+       * all the auto-tracing analysis inline during task launches and not in
+       * the background. The naming for this parameter is based on the
+       * analogy with internal combustion engines that are outfitted with
+       * turbo-chargers: the larger the turbo-charger, the less responsive
+       * the throttle usually is to acceleration.
        */
       struct ContextConfigOutput {
         unsigned max_window_size;                // = 1024
@@ -2102,6 +2117,7 @@ namespace Legion {
         unsigned auto_tracing_min_trace_length;  // = 5
         unsigned auto_tracing_max_trace_length;  // = UINT_MAX
         unsigned auto_tracing_visit_threshold;   // = 10
+        unsigned auto_tracing_turbo_lag;         // = 16
       };
       //------------------------------------------------------------------------
       virtual void configure_context(

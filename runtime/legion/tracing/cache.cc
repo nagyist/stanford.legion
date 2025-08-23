@@ -42,7 +42,12 @@ namespace Legion {
       // also makes the it clearer that there is no lazy evaluation until
       // we actually start observing traces.
       if (trie.empty())
-        return false;
+      {
+        operation_start_idx++;
+        context->add_to_dependence_queue(
+            op, nullptr, false /*unordered*/, false /*outermost*/);
+        return true;
+      }
       // We only start lazily
       operations.emplace(op);
       // Update all watching pointers. This is very similar to the advancing
@@ -279,7 +284,12 @@ namespace Legion {
     {
       legion_assert(is_operation_ignorable_in_traces(op));
       if (trie.empty())
-        return false;
+      {
+        operation_start_idx++;
+        context->add_to_dependence_queue(
+            op, nullptr, false /*unordered*/, false /*outermost*/);
+        return true;
+      }
       // If the operation is a noop during traces, then the replayer
       // takes a much simpler process. In particular, none of the pointers
       // advance or are cancelled, but their depth increases to account

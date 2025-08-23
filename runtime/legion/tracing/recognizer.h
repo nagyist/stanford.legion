@@ -98,6 +98,7 @@ namespace Legion {
       const uint64_t multi_scale_factor;
       const uint64_t min_trace_length;
       const uint64_t max_trace_length;
+      const unsigned max_inflight_requests;
       static constexpr Murmur3Hasher::Hash SENTINEL = {};
     private:
       OccurrenceWatcher watcher;

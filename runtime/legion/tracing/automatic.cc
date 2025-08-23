@@ -33,7 +33,8 @@ namespace Legion {
       // If we're unordered or inside an explicit trace then pass through
       // Note that we might set outermost to false if we're being flushed
       // from the trace cache so set it back to true for the context
-      if (unordered || (this->current_trace != nullptr) || !outermost)
+      if (unordered || (this->current_trace != nullptr) || !outermost ||
+          this->task_executed)
         return T::add_to_dependence_queue(
             op, dependences, unordered, true /*outermost*/);
       else if (op->record_trace_hash(this->recognizer, this->opidx))
@@ -73,6 +74,24 @@ namespace Legion {
       }
       // Need to also do whatever the base context was going to do.
       T::record_blocking_call(blocking_index, invalidate_trace);
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T>
+    void AutoTracing<T>::end_task(
+        const void* res, size_t res_size, bool owned,
+        PhysicalInstance deferred_result_instance,
+        FutureFunctor* callback_functor,
+        const Realm::ExternalInstanceResource* resource,
+        void (*freefunc)(const Realm::ExternalInstanceResource&),
+        const void* metadataptr, size_t metadatasize, ApEvent effects)
+    //--------------------------------------------------------------------------
+    {
+      // Flush any buffered operations
+      this->recognizer.record_operation_untraceable(opidx++);
+      T::end_task(
+          res, res_size, owned, deferred_result_instance, callback_functor,
+          resource, freefunc, metadataptr, metadatasize, effects);
     }
 
     template class AutoTracing<InnerContext>;
