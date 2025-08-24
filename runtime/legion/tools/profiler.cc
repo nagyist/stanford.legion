@@ -2369,7 +2369,7 @@ namespace Legion {
 #endif
           runtime->program_order_execution,
           runtime->safe_mapper,
-          runtime->check_privileges,
+          runtime->safe_model,
           runtime->safe_control_replication > 0,
           runtime->verify_partitions,
 #ifdef LEGION_BOUNDS_CHECKS

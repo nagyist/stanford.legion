@@ -2911,7 +2911,7 @@ namespace Legion {
           parent_ctx->get_unique_id(), unique_op_id, copy_kind,
           collective_src_indirect_points, collective_dst_indirect_points);
       log_launch_space(launch_space->handle);
-      if (runtime->check_privileges)
+      if (runtime->safe_model)
         perform_type_checking();
     }
 

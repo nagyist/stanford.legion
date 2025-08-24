@@ -171,11 +171,11 @@ namespace Legion {
             safe_tracing(false), disable_independence_tests(false),
             enable_pointwise_analysis(false), enable_test_mapper(false),
             slow_config_ok(false), verbose_logging(false),
-            check_privileges(true), dump_free_ranges(false),
-            num_profiling_nodes(0), serializer_type("binary"),
-            prof_footprint_threshold(128 << 20), prof_target_latency(100),
-            prof_call_threshold(0), prof_self_profile(false),
-            prof_no_critical_paths(false), prof_all_critical_arrivals(false)
+            dump_free_ranges(false), num_profiling_nodes(0),
+            serializer_type("binary"), prof_footprint_threshold(128 << 20),
+            prof_target_latency(100), prof_call_threshold(0),
+            prof_self_profile(false), prof_no_critical_paths(false),
+            prof_all_critical_arrivals(false)
         { }
       public:
         size_t parse_option(
@@ -239,7 +239,6 @@ namespace Legion {
         std::string ldb_file;
         bool slow_config_ok;
         bool verbose_logging;
-        bool check_privileges;
         bool dump_free_ranges;
       public:
         unsigned num_profiling_nodes;
@@ -367,7 +366,6 @@ namespace Legion {
       const bool legion_ldb_enabled;
       const std::string replay_file;
       const bool verbose_logging;
-      const bool check_privileges;
       const bool dump_free_ranges;
     public:
       const int legion_collective_radix;

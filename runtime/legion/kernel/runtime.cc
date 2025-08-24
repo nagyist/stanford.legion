@@ -373,7 +373,6 @@ namespace Legion {
         legion_ldb_enabled(!config.ldb_file.empty()),
         replay_file(legion_ldb_enabled ? config.ldb_file : config.replay_file),
         verbose_logging(config.verbose_logging),
-        check_privileges(config.check_privileges),
         dump_free_ranges(config.dump_free_ranges),
         legion_collective_radix(config.legion_collective_radix),
         mpi_rank_table(
