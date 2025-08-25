@@ -772,13 +772,13 @@ namespace Legion {
        *     mappings between the point tasks.
        */
       struct TaskOptions {
-        Processor initial_proc;        // = current
-        bool inline_task;              // = false
-        bool stealable;                // = false
-        bool map_locally;              // = false
-        bool valid_instances;          // = true
-        bool memoize;                  // = false
-        bool replicate;                // = false
+        Processor initial_proc;  // = current
+        bool inline_task = false;
+        bool stealable = false;
+        bool map_locally = false;
+        bool valid_instances = true;
+        bool memoize = false;
+        bool replicate = false;
         TaskPriority parent_priority;  // = current
         std::set<unsigned> check_collective_regions;
       };
@@ -888,7 +888,7 @@ namespace Legion {
       };
       struct SliceTaskOutput {
         std::vector<TaskSlice> slices;
-        bool verify_correctness;  // = false
+        bool verify_correctness = false;
       };
       //------------------------------------------------------------------------
       virtual void slice_task(
@@ -1001,14 +1001,14 @@ namespace Legion {
         std::vector<Memory> future_locations;
         std::vector<Processor> target_procs;
         std::map<Memory, PoolBounds> leaf_pool_bounds;
-        VariantID chosen_variant;    // = 0
-        TaskPriority task_priority;  // = 0
-        RealmPriority copy_fill_priority;
-        RealmPriority profiling_priority;
+        VariantID chosen_variant = 0;
+        TaskPriority task_priority = 0;
+        RealmPriority copy_fill_priority = 0;
+        RealmPriority profiling_priority = 0;
         ProfilingRequest task_prof_requests;
         ProfilingRequest copy_prof_requests;
-        bool postmap_task;   // = false
-        bool abort_mapping;  // = false
+        bool postmap_task = false;
+        bool abort_mapping = false;
       };
       //------------------------------------------------------------------------
       virtual void map_task(
@@ -1053,7 +1053,7 @@ namespace Legion {
         // Nothing here for now
       };
       struct ReplicateTaskOutput {
-        VariantID chosen_variant;
+        VariantID chosen_variant = 0;
         std::vector<Processor> target_processors;
         // The following outputs are optional
         std::vector<VariantID> leaf_variants;
@@ -1091,7 +1091,7 @@ namespace Legion {
         std::vector<std::vector<PhysicalInstance> > chosen_instances;
       };
       struct SelectVariantOutput {
-        VariantID chosen_variant;
+        VariantID chosen_variant = 0;
       };
       //------------------------------------------------------------------------
       virtual void select_task_variant(
@@ -1226,8 +1226,8 @@ namespace Legion {
         std::vector<Processor> shard_mapping;
       };
       struct SelectShardingFunctorOutput {
-        ShardingID chosen_functor;
-        bool slice_recurse;
+        ShardingID chosen_functor = std::numeric_limits<ShardingID>::max();
+        bool slice_recurse = false;
       };
       //------------------------------------------------------------------------
       virtual void select_sharding_functor(
@@ -1265,10 +1265,10 @@ namespace Legion {
       struct MapInlineOutput {
         std::vector<PhysicalInstance> chosen_instances;
         std::vector<PhysicalInstance> source_instances;
-        RealmPriority copy_fill_priority;
+        RealmPriority copy_fill_priority = 0;
         ProfilingRequest profiling_requests;
-        RealmPriority profiling_priority;
-        bool track_valid_region; /*=true*/
+        RealmPriority profiling_priority = 0;
+        bool track_valid_region = true;
       };
       //------------------------------------------------------------------------
       virtual void map_inline(
@@ -1416,10 +1416,10 @@ namespace Legion {
         std::set<unsigned> untracked_valid_ind_srcs;
         std::set<unsigned> untracked_valid_ind_dsts;
         ProfilingRequest profiling_requests;
-        RealmPriority profiling_priority;
-        RealmPriority copy_fill_priority;
-        bool compute_preimages;
-        bool shadow_indirections;
+        RealmPriority profiling_priority = 0;
+        RealmPriority copy_fill_priority = 0;
+        bool compute_preimages = false;
+        bool shadow_indirections = false;
       };
       //------------------------------------------------------------------------
       virtual void map_copy(
@@ -1629,8 +1629,8 @@ namespace Legion {
       };
       struct MapAcquireOutput {
         ProfilingRequest profiling_requests;
-        RealmPriority profiling_priority;
-        RealmPriority copy_fill_priority;
+        RealmPriority profiling_priority = 0;
+        RealmPriority copy_fill_priority = 0;
       };
       //------------------------------------------------------------------------
       virtual void map_acquire(
@@ -1700,8 +1700,8 @@ namespace Legion {
       struct MapReleaseOutput {
         std::vector<PhysicalInstance> source_instances;
         ProfilingRequest profiling_requests;
-        RealmPriority profiling_priority;
-        RealmPriority copy_fill_priority;
+        RealmPriority profiling_priority = 0;
+        RealmPriority copy_fill_priority = 0;
       };
       //------------------------------------------------------------------------
       virtual void map_release(
@@ -1855,9 +1855,9 @@ namespace Legion {
         std::vector<PhysicalInstance> chosen_instances;
         std::vector<PhysicalInstance> source_instances;
         ProfilingRequest profiling_requests;
-        RealmPriority profiling_priority;
-        RealmPriority copy_fill_priority;
-        bool track_valid_region; /*=true*/
+        RealmPriority profiling_priority = 0;
+        RealmPriority copy_fill_priority = 0;
+        bool track_valid_region = true;
       };
       //------------------------------------------------------------------------
       virtual void map_partition(
@@ -1993,7 +1993,7 @@ namespace Legion {
       };
       struct FutureMapReductionOutput {
         std::vector<Memory> destination_memories;
-        size_t serdez_upper_bound;  // =SIZE_MAX
+        size_t serdez_upper_bound = std::numeric_limits<size_t>::max();
       };
       //------------------------------------------------------------------------
       virtual void map_future_map_reduction(
@@ -2103,21 +2103,23 @@ namespace Legion {
        * the throttle usually is to acceleration.
        */
       struct ContextConfigOutput {
-        unsigned max_window_size;                // = 1024
-        unsigned hysteresis_percentage;          // = 25
-        unsigned max_outstanding_frames;         // = 2
-        unsigned min_tasks_to_schedule;          // = 64
-        unsigned min_frames_to_schedule;         // = 0
-        unsigned meta_task_vector_width;         // = 16
-        unsigned max_templates_per_trace;        // = 16
-        bool mutable_priority;                   // = false
-        bool auto_tracing_enabled;               // = true
-        unsigned auto_tracing_window_size;       // = 1000
-        unsigned auto_tracing_ruler_function;    // = 100
-        unsigned auto_tracing_min_trace_length;  // = 5
-        unsigned auto_tracing_max_trace_length;  // = UINT_MAX
-        unsigned auto_tracing_visit_threshold;   // = 10
-        unsigned auto_tracing_turbo_lag;         // = 16
+        unsigned max_window_size = LEGION_DEFAULT_MAX_TASK_WINDOW;
+        unsigned hysteresis_percentage = LEGION_DEFAULT_TASK_WINDOW_HYSTERESIS;
+        unsigned max_outstanding_frames = 0;
+        unsigned min_tasks_to_schedule = LEGION_DEFAULT_MIN_TASKS_TO_SCHEDULE;
+        unsigned min_frames_to_schedule = 0;
+        unsigned meta_task_vector_width = LEGION_DEFAULT_META_TASK_VECTOR_WIDTH;
+        unsigned max_templates_per_trace =
+            LEGION_DEFAULT_MAX_TEMPLATES_PER_TRACE;
+        bool mutable_priority = false;
+        bool auto_tracing_enabled = true;
+        unsigned auto_tracing_window_size = 1000;
+        unsigned auto_tracing_ruler_function = 100;
+        unsigned auto_tracing_min_trace_length = 5;
+        unsigned auto_tracing_max_trace_length =
+            std::numeric_limits<unsigned>::max();
+        unsigned auto_tracing_visit_threshold = 10;
+        unsigned auto_tracing_turbo_lag = 16;
       };
       //------------------------------------------------------------------------
       virtual void configure_context(
@@ -2148,9 +2150,9 @@ namespace Legion {
         size_t size;
       };
       struct SelectTunableOutput {
-        void* value;
-        size_t size;
-        bool take_ownership;  // = true
+        void* value = nullptr;
+        size_t size = 0;
+        bool take_ownership = true;
       };
       //------------------------------------------------------------------------
       virtual void select_tunable_value(

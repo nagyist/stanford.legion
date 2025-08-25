@@ -176,9 +176,6 @@ namespace Legion {
       input.futures = futures;
       input.args = arg;
       input.size = argsize;
-      output.value = nullptr;
-      output.size = 0;
-      output.take_ownership = true;
       mapper->invoke_select_tunable_value(
           parent_ctx->get_owner_task(), input, output);
       process_result(mapper, output.value, output.size);

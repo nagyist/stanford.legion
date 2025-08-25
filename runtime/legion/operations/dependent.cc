@@ -776,8 +776,6 @@ namespace Legion {
     {
       Mapper::MapPartitionInput input;
       Mapper::MapPartitionOutput output;
-      output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
-      output.track_valid_region = true;
       // Invoke the mapper
       if (mapper == nullptr)
       {
@@ -1933,8 +1931,7 @@ namespace Legion {
         mapper =
             runtime->find_mapper(parent_ctx->get_executing_processor(), map_id);
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
-      Mapper::SelectShardingFunctorOutput output = {
-          std::numeric_limits<ShardingID>::max(), true};
+      Mapper::SelectShardingFunctorOutput output;
       mapper->invoke_partition_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
       {

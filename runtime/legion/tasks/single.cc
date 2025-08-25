@@ -497,14 +497,6 @@ namespace Legion {
                 input.valid_instances[idx], input.valid_collectives[idx]);
         }
       }
-      // Prepare the output too
-      output.chosen_variant = 0;
-      output.postmap_task = false;
-      output.task_priority = 0;
-      output.postmap_task = false;
-      output.abort_mapping = false;
-      output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
-      output.copy_fill_priority = 0;
     }
 
     //--------------------------------------------------------------------------
@@ -1467,17 +1459,6 @@ namespace Legion {
       context_configuration.min_frames_to_schedule = 0;
       context_configuration.meta_task_vector_width =
           runtime->initial_meta_task_vector_width;
-      context_configuration.max_templates_per_trace =
-          LEGION_DEFAULT_MAX_TEMPLATES_PER_TRACE;
-      context_configuration.mutable_priority = false;
-      context_configuration.auto_tracing_enabled = !runtime->no_auto_tracing;
-      context_configuration.auto_tracing_window_size = 1000;
-      context_configuration.auto_tracing_ruler_function = 100;
-      context_configuration.auto_tracing_min_trace_length = 5;
-      context_configuration.auto_tracing_max_trace_length =
-          std::numeric_limits<unsigned>::max();
-      context_configuration.auto_tracing_visit_threshold = 10;
-      context_configuration.auto_tracing_turbo_lag = 16;
       if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_configure_context(this, context_configuration);
@@ -1692,7 +1673,6 @@ namespace Legion {
       }
       Mapper::ReplicateTaskInput input;
       Mapper::ReplicateTaskOutput output;
-      output.chosen_variant = 0;
       mapper->invoke_replicate_task(this, input, output);
       // If we don't have more than one target processor then we're not
       // actually going to replicate this task

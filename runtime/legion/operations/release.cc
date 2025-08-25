@@ -541,13 +541,11 @@ namespace Legion {
     {
       Mapper::MapReleaseInput input;
       Mapper::MapReleaseOutput output;
-      output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
       if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
         mapper = runtime->find_mapper(exec_proc, map_id);
       }
-      output.copy_fill_priority = 0;
       mapper->invoke_map_release(this, input, output);
       copy_fill_priority = output.copy_fill_priority;
       if (!output.profiling_requests.empty())

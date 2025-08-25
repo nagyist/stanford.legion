@@ -333,10 +333,8 @@ namespace Legion {
     void AllReduceOp::invoke_mapper(void)
     //--------------------------------------------------------------------------
     {
-      Mapper::FutureMapReductionInput input;
+      Mapper::FutureMapReductionInput input{tag};
       Mapper::FutureMapReductionOutput output;
-      input.tag = tag;
-      output.serdez_upper_bound = SIZE_MAX;
       Processor exec_proc = parent_ctx->get_executing_processor();
       MapperManager* mapper = runtime->find_mapper(exec_proc, mapper_id);
       mapper->invoke_map_future_map_reduction(this, input, output);

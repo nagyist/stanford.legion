@@ -129,7 +129,6 @@ namespace Legion {
       else
         input.sharding_is = launch_space->handle;
       runtime->find_domain(internal_space, input.domain);
-      output.verify_correctness = false;
       if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_slice_task(this, input, output);

@@ -1051,10 +1051,6 @@ namespace Legion {
           src_indirect_requirements.size());
       output.dst_indirect_source_instances.resize(
           dst_indirect_requirements.size());
-      output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
-      output.copy_fill_priority = 0;
-      output.compute_preimages = false;
-      output.shadow_indirections = false;
       if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
@@ -4203,8 +4199,7 @@ namespace Legion {
         mapper =
             runtime->find_mapper(parent_ctx->get_executing_processor(), map_id);
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
-      Mapper::SelectShardingFunctorOutput output = {
-          std::numeric_limits<ShardingID>::max(), true};
+      Mapper::SelectShardingFunctorOutput output;
       mapper->invoke_copy_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
       {
@@ -4387,8 +4382,7 @@ namespace Legion {
         mapper =
             runtime->find_mapper(parent_ctx->get_executing_processor(), map_id);
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
-      Mapper::SelectShardingFunctorOutput output = {
-          std::numeric_limits<ShardingID>::max(), true};
+      Mapper::SelectShardingFunctorOutput output;
       mapper->invoke_copy_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == std::numeric_limits<ShardingID>::max())
       {

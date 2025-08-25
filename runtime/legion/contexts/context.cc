@@ -1251,7 +1251,6 @@ namespace Legion {
         }
         legion_assert(!mask);
       }
-      output.chosen_variant = 0;
       // Always do this with the child mapper
       MapperManager* child_mapper =
           runtime->find_mapper(executing_processor, child->map_id);

@@ -504,9 +504,6 @@ namespace Legion {
     {
       Mapper::MapInlineInput input;
       Mapper::MapInlineOutput output;
-      output.copy_fill_priority = 0;
-      output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
-      output.track_valid_region = true;
       // Invoke the mapper
       if (mapper == nullptr)
       {
