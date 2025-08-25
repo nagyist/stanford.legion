@@ -53,13 +53,14 @@ CC_FLAGS += -fPIC
 NVCC_FLAGS += -Xcompiler -fPIC
 HIPCC_FLAGS += -fPIC
 ifeq ($(shell uname), Darwin)
-	LD_FLAGS += -dynamiclib -single_module -undefined dynamic_lookup -fPIC
+	LD_FLAGS += -dynamiclib -undefined dynamic_lookup -fPIC
 else
 	LD_FLAGS += -shared
 endif
 
 ifeq ($(shell uname), Darwin)
-	LD_FLAGS += -Wl,-force_load,liblegion.a -Wl,-force_load,librealm.a
+	# No longer need these for Darwin apparently
+	#LD_FLAGS += -Wl,-force_load,liblegion.a -Wl,-force_load,librealm.a
 else
 	LD_FLAGS += -Wl,--whole-archive -llegion -lrealm -Wl,--no-whole-archive
 endif
@@ -72,6 +73,17 @@ USE_CUDART_HIJACK = 0
 
 # terra already includes LLVM libs, so we don't want them in our .so
 LLVM_LIBS_OPTIONAL = 1
+
+# Set these for helping with installation
+INSTALL_INC_FILES += bishop_c.h \
+		     bishop_mapper.h \
+		     murmur_hash3.h \
+		     regent.h \
+		     regent_gpu.h \
+		     regent_partitions.h \
+		     regent_partitions_cxx.h \
+		     regent_redop.h \
+		     regent_util.h
 
 ###########################################################################
 #
