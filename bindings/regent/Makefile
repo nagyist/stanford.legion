@@ -75,7 +75,6 @@ USE_CUDART_HIJACK = 0
 LLVM_LIBS_OPTIONAL = 1
 
 # Set these for helping with installation
-INSTALL_LIB_FILES += $(OUTFILE)
 INSTALL_INC_FILES += bishop_c.h \
 		     bishop_mapper.h \
 		     murmur_hash3.h \
