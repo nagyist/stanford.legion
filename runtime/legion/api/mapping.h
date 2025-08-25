@@ -2274,7 +2274,7 @@ namespace Legion {
         TraceID trace_id;
       };
       struct MemoizeOutput {
-        bool memoize;  // = true
+        bool memoize = true;
       };
       //------------------------------------------------------------------------
       virtual void memoize_operation(
