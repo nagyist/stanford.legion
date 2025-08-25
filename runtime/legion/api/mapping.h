@@ -1227,7 +1227,7 @@ namespace Legion {
       };
       struct SelectShardingFunctorOutput {
         ShardingID chosen_functor = std::numeric_limits<ShardingID>::max();
-        bool slice_recurse = false;
+        bool slice_recurse = true;
       };
       //------------------------------------------------------------------------
       virtual void select_sharding_functor(
