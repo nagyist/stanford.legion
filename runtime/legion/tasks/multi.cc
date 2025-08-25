@@ -211,7 +211,7 @@ namespace Legion {
               << get_task_name() << " (ID " << get_unique_id() << ").";
         error.raise();
       }
-      if (output.verify_correctness)
+      if (output.verify_correctness || runtime->safe_mapper)
       {
         std::vector<IndexSpace> slice_spaces(slices.size());
         for (unsigned idx = 0; idx < output.slices.size(); idx++)
