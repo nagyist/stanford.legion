@@ -1480,7 +1480,46 @@ namespace Legion {
     void TraceViewSet::dump(void) const
     //--------------------------------------------------------------------------
     {
-      RegionNode* region = runtime->get_tree(tree_id);
+      RegionNode* region = runtime->get_tree(tree_id, true /*can fail*/);
+      FieldSpaceNode* space = nullptr;
+      if (region == nullptr)
+      {
+        // Try to find the field space from a physical instance somewhere
+        // if possible, if that doesn't work then we toss up our hands
+        // Note that all views in this condidtion have to be from the same
+        // region tree and therefore if we can find a field space for one
+        // of them then we've got it for all of them
+        for (ViewExprs::const_iterator it = conditions.begin();
+             it != conditions.end(); ++it)
+        {
+          if (it->first->is_fill_view())
+            continue;
+          if (it->first->is_collective_view())
+          {
+            CollectiveView* collective = it->first->as_collective_view();
+            if (collective->instances.empty())
+              continue;
+            RtEvent ready;
+            PhysicalManager* manager =
+                runtime->find_or_request_instance_manager(
+                    collective->instances.back(), ready);
+            if (ready.exists())
+              ready.wait();
+            space = manager->field_space_node;
+          }
+          else
+            space = it->first->as_individual_view()
+                        ->get_manager()
+                        ->field_space_node;
+          break;
+        }
+        if (space == nullptr)
+          log_tracing.warning()
+              << "Trace dump occurring after region tree" << tree_id
+              << " has been deleted so field names are omitted.";
+      }
+      else
+        space = region->column_source;
       for (ViewExprs::const_iterator vit = conditions.begin();
            vit != conditions.end(); ++vit)
       {
@@ -1489,7 +1528,9 @@ namespace Legion {
                  vit->second.begin();
              it != vit->second.end(); ++it)
         {
-          char* mask = region->column_source->to_string(it->second, context);
+          const char* mask = (space == nullptr) ?
+                                 "(missing)" :
+                                 space->to_string(it->second, context);
           if (view->is_fill_view())
           {
             log_tracing.info()
@@ -1531,7 +1572,8 @@ namespace Legion {
                 << ", Index expr: " << it->first->expr_id
                 << ", Fields: " << mask;
           }
-          free(mask);
+          if (space != nullptr)
+            free(const_cast<char*>(mask));
         }
       }
     }
