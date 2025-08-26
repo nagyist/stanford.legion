@@ -100,6 +100,7 @@ namespace Legion {
       virtual void serialize(const LegionProfInstance::RuntimeCallInfo&) = 0;
       virtual void serialize(
           const LegionProfInstance::ApplicationCallInfo&) = 0;
+      virtual void serialize(const LegionProfInstance::AsyncEffectInfo&) = 0;
       virtual void serialize(const LegionProfInstance::GPUTaskInfo&) = 0;
       virtual void serialize(
           const LegionProfInstance::CopyInstInfo&,
@@ -186,6 +187,7 @@ namespace Legion {
       void serialize(const LegionProfInstance::MapperCallInfo&);
       void serialize(const LegionProfInstance::RuntimeCallInfo&);
       void serialize(const LegionProfInstance::ApplicationCallInfo&);
+      void serialize(const LegionProfInstance::AsyncEffectInfo&);
       void serialize(const LegionProfInstance::GPUTaskInfo&);
       void serialize(
           const LegionProfInstance::CopyInstInfo&,
@@ -242,6 +244,7 @@ namespace Legion {
         MAPPER_CALL_INFO_ID,
         RUNTIME_CALL_INFO_ID,
         APPLICATION_CALL_INFO_ID,
+        ASYNC_EFFECT_INFO_ID,
         IMPLICIT_TASK_INFO_ID,
         GPU_TASK_INFO_ID,
         PROC_MEM_DESC_ID,
@@ -338,6 +341,7 @@ namespace Legion {
       void serialize(const LegionProfInstance::MapperCallInfo&);
       void serialize(const LegionProfInstance::RuntimeCallInfo&);
       void serialize(const LegionProfInstance::ApplicationCallInfo&);
+      void serialize(const LegionProfInstance::AsyncEffectInfo&);
       void serialize(const LegionProfInstance::GPUTaskInfo&);
       void serialize(
           const LegionProfInstance::CopyInstInfo&,

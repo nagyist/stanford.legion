@@ -487,6 +487,13 @@ namespace Legion {
         ProcID proc_id;
         LgEvent finish_event;
       };
+      struct AsyncEffectInfo {
+        LgEvent external;
+        LgEvent fevent;
+        timestamp_t created;
+        timestamp_t triggered;
+        ProvenanceID pid;
+      };
       struct EventWaitInfo {
       public:
         ProcID proc_id;
@@ -670,6 +677,9 @@ namespace Legion {
       void process_arrival(
           const ProfilingInfo* info,
           const Realm::ProfilingMeasurements::OperationTimeline& timeline);
+      void process_async_effect(
+          const ProfilingInfo* info,
+          const Realm::ProfilingMeasurements::OperationTimeline& timeline);
       void process_implicit(
           UniqueID op_id, TaskID tid, long long start, long long stop,
           std::deque<WaitInfo>& waits, LgEvent finish_event);
@@ -687,6 +697,7 @@ namespace Legion {
           RuntimeCallKind kind, timestamp_t start, timestamp_t stop);
       void record_application_range(
           ProvenanceID pid, timestamp_t start, timestamp_t stop);
+      void record_async_effect(ApEvent effect, const char* provenance);
       void record_event_wait(LgEvent event, Realm::Backtrace& bt);
       void begin_external_wait(LgEvent event);
       void end_external_wait(LgEvent event);
@@ -737,6 +748,7 @@ namespace Legion {
       std::deque<MapperCallInfo> mapper_call_infos;
       std::deque<RuntimeCallInfo> runtime_call_infos;
       std::deque<ApplicationCallInfo> application_call_infos;
+      std::deque<AsyncEffectInfo> async_effect_infos;
       std::deque<EventWaitInfo> event_wait_infos;
       std::deque<EventMergerInfo> event_merger_infos;
       std::deque<EventTriggerInfo> event_trigger_infos;
@@ -766,6 +778,7 @@ namespace Legion {
         LEGION_PROF_PARTITION,
         LEGION_PROF_ARRIVAL,
         LEGION_PROF_BARRIER,
+        LEGION_PROF_TRIGGER,
         LEGION_PROF_LAST,
       };
       struct ProfilingInfo : public LegionProfInstance::ProfilingInfo {
@@ -885,7 +898,6 @@ namespace Legion {
       void record_mapper_call_kinds(
           const char* const * const mapper_call_names,
           unsigned int num_mapper_call_kinds);
-
       void record_runtime_call_kinds(
           const char* const * const runtime_calls,
           unsigned int num_runtime_call_kinds);
@@ -899,6 +911,8 @@ namespace Legion {
           ProfilingKind kind, unsigned cnt = 1);
       void decrement_total_outstanding_requests(
           ProfilingKind kind, unsigned cnt = 1);
+    public:
+      void measure_effect_trigger(ApEvent effect, const char* prov);
     public:
       void update_footprint(size_t diff, LegionProfInstance* inst);
     public:

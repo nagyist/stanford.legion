@@ -534,6 +534,7 @@ namespace Legion {
           LocalVariableID id, const void* value, void (*destructor)(void*));
     public:
       void yield(void);
+      void record_asynchronous_effect(ApEvent effect, const char* provenance);
       void concurrent_task_barrier(void);
     public:
       void increment_inlined(void);
@@ -594,6 +595,7 @@ namespace Legion {
         long long start_time;
       };
       ImplicitTaskProfiler* implicit_task_profiler;
+      std::vector<ApEvent>* implicit_effects;
     protected:
       std::map<LocalVariableID, std::pair<void*, void (*)(void*)> >
           task_local_variables;

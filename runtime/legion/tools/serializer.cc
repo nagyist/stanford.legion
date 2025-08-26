@@ -417,6 +417,16 @@ namespace Legion {
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
+      // This is called an external event info because PRealm got here first
+      // but for Legion we call it an async effect info
+      ss << "ExternalEventInfo {" << "id:" << ASYNC_EFFECT_INFO_ID << delim
+         << "external:unsigned long long:" << sizeof(LgEvent) << delim
+         << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
+         << "created:timestamp_t:" << sizeof(timestamp_t) << delim
+         << "trigger:timestamp_t:" << sizeof(timestamp_t) << delim
+         << "prov:unsigned long long:" << sizeof(unsigned long long) << "}"
+         << std::endl;
+
       ss << "BacktraceDesc {" << "id:" << BACKTRACE_DESC_ID << delim
          << "backtrace_id:unsigned long long:" << sizeof(unsigned long long)
          << delim << "backtrace:string:" << "-1" << "}" << std::endl;
@@ -1329,6 +1339,20 @@ namespace Legion {
       lp_fwrite(
           f, (char*)&(application_call_info.finish_event),
           sizeof(application_call_info.finish_event));
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfBinarySerializer::serialize(
+        const LegionProfInstance::AsyncEffectInfo& info)
+    //--------------------------------------------------------------------------
+    {
+      int ID = ASYNC_EFFECT_INFO_ID;
+      lp_fwrite(f, (char*)&ID, sizeof(ID));
+      lp_fwrite(f, (char*)&info.external.id, sizeof(info.external.id));
+      lp_fwrite(f, (char*)&info.fevent.id, sizeof(info.fevent.id));
+      lp_fwrite(f, (char*)&info.created, sizeof(info.triggered));
+      lp_fwrite(f, (char*)&info.triggered, sizeof(info.triggered));
+      lp_fwrite(f, (char*)&info.pid, sizeof(info.pid));
     }
 
     //--------------------------------------------------------------------------
@@ -2350,6 +2374,18 @@ namespace Legion {
           application_call_info.pid, application_call_info.proc_id,
           application_call_info.start, application_call_info.stop,
           application_call_info.finish_event.id);
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfASCIISerializer::serialize(
+        const LegionProfInstance::AsyncEffectInfo& async_effect_info)
+    //--------------------------------------------------------------------------
+    {
+      log_prof.print(
+          "Prof Async Effect Info " IDFMT " " IDFMT " %llu %llu %llu",
+          async_effect_info.external.id, async_effect_info.fevent.id,
+          async_effect_info.created, async_effect_info.triggered,
+          async_effect_info.pid);
     }
 
     //--------------------------------------------------------------------------

@@ -3423,6 +3423,26 @@ namespace Legion {
     void yield(Context ctx);
 
     /**
+     * Record an asynchronous completion effect for this task. An
+     * "asynchronous effect" can be whatever you want it to be as long
+     * as Realm permits you to make an event for it. For example it
+     * could be a CUDA event or a CUDA stream that you have converted to
+     * a Realm event and you want to make sure any asynchronous GPU work
+     * represented by one of those primitives is reflected in the
+     * completion of this task eventhough you're going to exit the
+     * host-side execution of this task before it is finished. Legion
+     * will make sure this event is reflected in the complete of the
+     * task meaning the task won't be considered done until all its
+     * effects are done as well. You technically don't have to use this
+     * API for correctness; you can invoke the Realm version of this
+     * API directly as well, but it will not work with implicit top-level
+     * tasks and you also will not get support for analyzing these efffects
+     * as part of Legion's critical path infrastructure without using it.
+     */
+    void record_asynchronous_effect(
+        Context ctx, Realm::Event effect, const char* provenance = nullptr);
+
+    /**
      * This method provides a mechanism for performing a blocking barrier
      * inside the point tasks of concurrent index space task launch. This
      * may seem very un-Legion-like and indeed it is. However, there is one

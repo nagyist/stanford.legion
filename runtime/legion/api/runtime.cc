@@ -3207,6 +3207,15 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
+  void Runtime::record_asynchronous_effect(
+      Context ctx, Realm::Event effect, const char* provenance)
+  //--------------------------------------------------------------------------
+  {
+    AutoCall<Internal::RUNTIME_ASYNC_EFFECT_CALL> call(ctx, __func__);
+    ctx->record_asynchronous_effect(Internal::ApEvent(effect), provenance);
+  }
+
+  //--------------------------------------------------------------------------
   void Runtime::concurrent_task_barrier(Context ctx)
   //--------------------------------------------------------------------------
   {

@@ -40,9 +40,9 @@ namespace Legion {
         owner_task(owner), regions(reqs), output_reqs(out_reqs), depth(d),
         executing_processor(Processor::NO_PROC), inlined_tasks(0),
         total_tunable_count(0), overhead_profiler(nullptr),
-        implicit_task_profiler(nullptr), safe_cast_semaphore(0),
-        task_executed(false), mutable_priority(false), inline_task(inline_t),
-        implicit_task(implicit_t)
+        implicit_task_profiler(nullptr), implicit_effects(nullptr),
+        safe_cast_semaphore(0), task_executed(false), mutable_priority(false),
+        inline_task(inline_t), implicit_task(implicit_t)
     //--------------------------------------------------------------------------
     {
       if (implicit_task && (runtime->profiler != nullptr))
@@ -69,6 +69,8 @@ namespace Legion {
         delete overhead_profiler;
       if (implicit_task_profiler != nullptr)
         delete implicit_task_profiler;
+      if (implicit_effects != nullptr)
+        delete implicit_effects;
     }
 
     //--------------------------------------------------------------------------
@@ -606,6 +608,14 @@ namespace Legion {
         const void* metadataptr, size_t metadatasize, ApEvent effects)
     //--------------------------------------------------------------------------
     {
+      if (implicit_effects != nullptr)
+      {
+        // Fold in any asynchronous implicit effects here
+        legion_assert(implicit_task);
+        if (effects.exists())
+          implicit_effects->push_back(effects);
+        effects = Runtime::merge_events(nullptr, *implicit_effects);
+      }
       // Finalize output regions by setting realm instances created during
       // task execution to the output regions' physical managers
       RtEvent safe_effects;
@@ -1079,6 +1089,32 @@ namespace Legion {
       }
       else  // external implicit top-level task
         std::this_thread::yield();
+    }
+
+    //--------------------------------------------------------------------------
+    void TaskContext::record_asynchronous_effect(
+        ApEvent effect, const char* provenance)
+    //--------------------------------------------------------------------------
+    {
+      if (!effect.exists())
+        return;
+      if (implicit_task)
+      {
+        if (implicit_effects == nullptr)
+          implicit_effects = new std::vector<ApEvent>();
+        implicit_effects->push_back(effect);
+        // No need to bother with profiling here since nothing is going
+        // to depend on our implicit top-level task anyway
+      }
+      else
+      {
+        // Ask Realm to add the event to the finish precondition
+        legion_no_skip_assert(
+            Processor::add_finish_event_precondition(effect) == REALM_SUCCESS);
+        // If we have a profiler need to tell it about the async effect
+        if (implicit_profiler != nullptr)
+          implicit_profiler->record_async_effect(effect, provenance);
+      }
     }
 
     //--------------------------------------------------------------------------

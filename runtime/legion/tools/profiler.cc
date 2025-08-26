@@ -1300,6 +1300,21 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void LegionProfInstance::process_async_effect(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingMeasurements::OperationTimeline& timeline)
+    //--------------------------------------------------------------------------
+    {
+      AsyncEffectInfo& info =
+          async_effect_infos.emplace_back(AsyncEffectInfo());
+      info.external = prof_info->critical;
+      info.fevent = prof_info->creator;
+      info.created = timeline.create_time;
+      info.triggered = timeline.ready_time;
+      info.pid = prof_info->id;
+    }
+
+    //--------------------------------------------------------------------------
     void LegionProfInstance::process_implicit(
         UniqueID op_id, TaskID tid, long long start_time, long long stop_time,
         std::deque<WaitInfo>& waits, LgEvent finish_event)
@@ -1441,6 +1456,40 @@ namespace Legion {
       info.proc_id = local_proc.id;
       info.finish_event = implicit_fevent;
       owner->update_footprint(sizeof(ApplicationCallInfo), this);
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfInstance::record_async_effect(
+        ApEvent effect, const char* prov)
+    //--------------------------------------------------------------------------
+    {
+      if (owner->no_critical_paths)
+        return;
+      bool poisoned = false;
+      if (effect.has_triggered_faultaware(poisoned) || poisoned)
+      {
+        AsyncEffectInfo& info =
+            async_effect_infos.emplace_back(AsyncEffectInfo());
+        info.triggered = Realm::Clock::current_time_in_nanoseconds();
+        // Doing created after triggered makes it look like the event was
+        // ready before it was created, which it probably was since it
+        // triggered almost immediately after it was created, so while
+        // not strictly accurate it reflects what actually happened so
+        // the profiler can give good feedback
+        info.created = Realm::Clock::current_time_in_nanoseconds();
+        info.external = effect;
+        info.fevent = implicit_fevent;
+        if (prov != nullptr)
+        {
+          Provenance* provenance =
+              runtime->find_or_create_provenance(prov, strlen(prov));
+          info.pid = provenance->pid;
+        }
+        else
+          info.pid = 0;
+      }
+      else
+        owner->measure_effect_trigger(effect, prov);
     }
 
     //--------------------------------------------------------------------------
@@ -1700,6 +1749,12 @@ namespace Legion {
       for (std::deque<ApplicationCallInfo>::const_iterator it =
                application_call_infos.begin();
            it != application_call_infos.end(); it++)
+      {
+        serializer->serialize(*it);
+      }
+      for (std::deque<AsyncEffectInfo>::const_iterator it =
+               async_effect_infos.begin();
+           it != async_effect_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
@@ -2115,6 +2170,16 @@ namespace Legion {
         serializer->serialize(front);
         diff += sizeof(front);
         application_call_infos.pop_front();
+        const long long t_curr = Realm::Clock::current_time_in_microseconds();
+        if (t_curr >= t_stop)
+          return diff;
+      }
+      while (!async_effect_infos.empty())
+      {
+        AsyncEffectInfo& front = async_effect_infos.front();
+        serializer->serialize(front);
+        diff += sizeof(front);
+        async_effect_infos.pop_front();
         const long long t_curr = Realm::Clock::current_time_in_microseconds();
         if (t_curr >= t_stop)
           return diff;
@@ -3143,6 +3208,13 @@ namespace Legion {
             }
             break;
           }
+        case LEGION_PROF_TRIGGER:
+          {
+            Realm::ProfilingMeasurements::OperationTimeline timeline;
+            if (response.get_measurement(timeline))
+              implicit_profiler->process_async_effect(info, timeline);
+            break;
+          }
         default:
           std::abort();
       }
@@ -3287,7 +3359,7 @@ namespace Legion {
       AutoLock prof_lock(profiler_lock);
       message_fevents[fevent] = original_fevent;
 #ifdef LEGION_DEBUG
-      total_outstanding_requests[LegionProfiler::LEGION_PROF_MESSAGE]++;
+      total_outstanding_requests[LEGION_PROF_MESSAGE]++;
 #else
       total_outstanding_requests.fetch_add(1);
 #endif
@@ -3352,6 +3424,36 @@ namespace Legion {
         done_event.trigger();
       }
 #endif
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfiler::measure_effect_trigger(
+        ApEvent effect, const char* prov)
+    //--------------------------------------------------------------------------
+    {
+      increment_total_outstanding_requests(LEGION_PROF_TRIGGER);
+      ProfilingInfo info(this, LEGION_PROF_TRIGGER, implicit_provenance);
+      if (prov != nullptr)
+      {
+        Provenance* provenance =
+            runtime->find_or_create_provenance(prov, strlen(prov));
+        info.id = provenance->pid;
+      }
+      else
+        info.id = 0;
+      info.creator = implicit_fevent;
+      info.critical = effect;
+      Realm::ProfilingRequestSet requests;
+      Realm::ProfilingRequest& request = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      request
+          .add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
+      // Spawn a no-op task with a profiling response to measure when
+      // the effect triggered
+      target_proc.spawn(
+          Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0, requests,
+          Runtime::protect_event(effect), LG_MIN_PRIORITY);
     }
 
     //--------------------------------------------------------------------------

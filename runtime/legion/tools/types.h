@@ -306,6 +306,7 @@ namespace Legion {
       RUNTIME_QUERY_AVAILABLE_MEMORY_CALL,
       RUNTIME_RAISE_REGION_EXCEPTION_CALL,
       RUNTIME_YIELD_CALL,
+      RUNTIME_ASYNC_EFFECT_CALL,
       RUNTIME_CONCURRENT_TASK_BARRIER_CALL,
       RUNTIME_PRINT_ONCE_CALL,
       RUNTIME_LOG_ONCE_CALL,
@@ -669,6 +670,7 @@ namespace Legion {
       "Runtime::query_available_memory",                     \
       "Runtime::raise_region_exception",                     \
       "Runtime::yield",                                      \
+      "Runtime::record_asynchronous_effect",                 \
       "Runtime::concurrent_task_barrier",                    \
       "Runtime::print_once",                                 \
       "Runtime::log_once",                                   \
