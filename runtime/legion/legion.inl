@@ -244,6 +244,25 @@ namespace Legion {
           return (*((const DeferredValue<T>*)result));
         }
       }; 
+      template<bool FINAL>
+      struct NonPODSerializer<UntypedDeferredValue,false,FINAL> {
+        static inline void end_task(Context ctx,
+                                    UntypedDeferredValue *result)
+        {
+          result->finalize(ctx);
+        }
+        static inline Future from_value(const UntypedDeferredValue *value)
+        {
+          // should never be called
+          std::abort();
+        }
+        static inline UntypedDeferredValue unpack(const Future &f,
+            bool silence_warnings, const char *warning_string)
+        {
+          // should never be called
+          std::abort();
+        }
+      };
       
       template<typename T, bool FINAL>
       struct NonPODSerializer<T,false,FINAL> {
