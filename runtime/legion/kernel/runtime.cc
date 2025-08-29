@@ -287,10 +287,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PendingRegistrationCallback::PendingRegistrationCallback(
         PendingRegistrationCallback&& rhs)
-      : withargs(nullptr), dedup_tag(rhs.dedup_tag),
+      : withargs(nullptr), buffer(rhs.buffer), dedup_tag(rhs.dedup_tag),
         deduplicate(rhs.deduplicate), has_args(rhs.has_args)
     //--------------------------------------------------------------------------
     {
+      rhs.buffer = UntypedBuffer();
       if (has_args)
         withargs = std::move(rhs.withargs);
       else
