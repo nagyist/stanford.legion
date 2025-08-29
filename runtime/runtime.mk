@@ -1320,7 +1320,13 @@ endif
 # Provide support for installing legion with the make build system
 .PHONY: install COPY_FILES_AFTER_BUILD
 ifneq ($(strip $(PREFIX)),)
-INSTALL_BIN_FILES += $(OUTFILE)
+ifeq ($(suffix $(strip $(OUTFILE))),.a)
+  INSTALL_LIB_FILES += $(OUTFILE)
+else ifeq ($(suffix $(strip $(OUTFILE))),$(if $(DARWIN),.dylib,.so))
+  INSTALL_LIB_FILES += $(OUTFILE)
+else
+  INSTALL_BIN_FILES += $(OUTFILE)
+endif
 INSTALL_INC_FILES += legion_defines.h
 INSTALL_LIB_FILES += $(SLIB_REALM) $(SLIB_LEGION) $(SLIB_REALM_CUHOOK)
 INSTALL_SHARE_FILES := runtime.mk
