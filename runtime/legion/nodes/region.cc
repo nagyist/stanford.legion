@@ -1477,6 +1477,8 @@ namespace Legion {
       const size_t volume = row_source->get_volume();
       if (EquivalenceSet::MINIMUM_SIZE <= volume)
         return true;
+      if (volume == 0)
+        return false;
       const size_t parent_volume = parent->parent->row_source->get_volume();
       legion_assert(volume <= parent_volume);
       const size_t ratio = parent_volume / volume;
