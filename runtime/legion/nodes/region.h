@@ -86,10 +86,9 @@ namespace Legion {
           LogicalRegion privilege_root, LogicalUser& user,
           const RegionTreePath& path, const LogicalTraceInfo& trace_info,
           const ProjectionInfo& projection_info, const FieldMask& user_mask,
-          FieldMask& unopened_field_mask, FieldMask& refinement_mask,
+          FieldMask& unopened_field_mask, const FieldMask& refinement_mask,
           LogicalAnalysis& logical_analysis,
-          FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements,
-          const bool root_node);
+          FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements);
       void add_open_field_state(
           LogicalState& state, const LogicalUser& user,
           const FieldMask& open_mask, RegionTreeNode* next_child);
@@ -155,6 +154,7 @@ namespace Legion {
       virtual bool is_complete(void) = 0;
       virtual bool intersects_with(
           RegionTreeNode* other, bool compute = true) = 0;
+      virtual bool track_refinements(void) const = 0;
     public:
       virtual size_t get_num_children(void) const = 0;
       virtual void send_node(Serializer& rez, AddressSpaceID target) = 0;
@@ -263,6 +263,7 @@ namespace Legion {
       virtual bool visit_node(NodeTraverser* traverser);
       virtual bool is_complete(void);
       virtual bool intersects_with(RegionTreeNode* other, bool compute = true);
+      virtual bool track_refinements(void) const;
       virtual size_t get_num_children(void) const;
       virtual void send_node(Serializer& rez, AddressSpaceID target);
       static void handle_node_creation(
@@ -363,6 +364,7 @@ namespace Legion {
       virtual bool visit_node(NodeTraverser* traverser);
       virtual bool is_complete(void);
       virtual bool intersects_with(RegionTreeNode* other, bool compute = true);
+      virtual bool track_refinements(void) const;
       virtual size_t get_num_children(void) const;
       virtual void send_node(Serializer& rez, AddressSpaceID target);
     public:

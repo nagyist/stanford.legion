@@ -14,6 +14,7 @@
  */
 
 #include "legion/nodes/region.h"
+#include "legion/analysis/equivalence_set.h"
 #include "legion/analysis/projection.h"
 #include "legion/contexts/inner.h"
 #include "legion/operations/refinement.h"
@@ -255,10 +256,10 @@ namespace Legion {
         LogicalRegion privilege_root, LogicalUser& user,
         const RegionTreePath& path, const LogicalTraceInfo& trace_info,
         const ProjectionInfo& proj_info, const FieldMask& user_mask,
-        FieldMask& unopened_field_mask, FieldMask& refinement_mask,
+        FieldMask& unopened_field_mask,
+        const FieldMask& current_refinement_mask,
         LogicalAnalysis& logical_analysis,
-        FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements,
-        const bool root_node)
+        FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements)
     //--------------------------------------------------------------------------
     {
       const ContextID ctx =
@@ -311,32 +312,29 @@ namespace Legion {
         }
         // If we've arrived add ourselves as a user
         state.register_local_user(user, user_mask);
-        // If we still have a refinement mask then we record that we should
-        // do a refinement operation from this node before the operation
-        if (!!refinement_mask)
+        if (proj_info.is_projecting() && !!current_refinement_mask)
         {
-          if (proj_info.is_projecting())
+          // Update the refinement information here for deciding if we need
+          // to change refinements later
+          FieldMask new_refinements;
+          if (user.shard_proj == nullptr)
           {
-            if (user.shard_proj == nullptr)
-            {
-              ProjectionSummary* summary =
-                  state.find_or_create_projection_summary(
-                      user.op, user.idx, trace_info.req, logical_analysis,
-                      proj_info);
-              state.update_refinement_projection(
-                  ctx, summary, user.usage, refinement_mask);
-            }
-            else
-              state.update_refinement_projection(
-                  ctx, user.shard_proj, user.usage, refinement_mask);
+            ProjectionSummary* summary =
+                state.find_or_create_projection_summary(
+                    user.op, user.idx, trace_info.req, logical_analysis,
+                    proj_info);
+            state.update_refinement_projection(
+                ctx, summary, user.usage, current_refinement_mask,
+                new_refinements);
           }
           else
-            state.update_refinement_arrival(ctx, user.usage, refinement_mask);
-          // We can skip performing refinements at the root node
-          if (!!refinement_mask && !root_node)
+            state.update_refinement_projection(
+                ctx, user.shard_proj, user.usage, current_refinement_mask,
+                new_refinements);
+          if (!!new_refinements)
             logical_analysis.record_pending_refinement(
                 privilege_root, user.idx, user.op->find_parent_index(user.idx),
-                this, refinement_mask, refinements);
+                this, new_refinements, refinements);
         }
       }
       else
@@ -358,13 +356,27 @@ namespace Legion {
         {
           legion_assert(!open_below);
         }
-        if (!!refinement_mask)
+        // Figure out which fields the child is part of the current refinement
+        // When this mask goes down to the child it tells which fields are
+        // in the current refinement for that node, when it comes back up
+        // it represents which fields should be updated in the state above
+        // regardless of whether they are in the current refinement or not
+        FieldMask child_refinement_mask;
+        if (!!current_refinement_mask && next_child->track_refinements())
+        {
+          FieldMask new_refinements;
           state.update_refinement_child(
-              ctx, next_child, user.usage, refinement_mask);
+              ctx, next_child, user.usage, current_refinement_mask,
+              child_refinement_mask, new_refinements);
+          if (!!new_refinements)
+            logical_analysis.record_pending_refinement(
+                privilege_root, user.idx, user.op->find_parent_index(user.idx),
+                this, new_refinements, refinements);
+        }
         next_child->register_logical_user(
             privilege_root, user, path, trace_info, proj_info, user_mask,
-            unopened_field_mask, refinement_mask, logical_analysis, refinements,
-            false /*root node*/);
+            unopened_field_mask, child_refinement_mask, logical_analysis,
+            refinements);
       }
       // If we have any refinement operations then we need to perform their
       // dependence analysis now on the way back up the tree after having
@@ -1449,6 +1461,29 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    bool RegionNode::track_refinements(void) const
+    //--------------------------------------------------------------------------
+    {
+      if (parent == nullptr)
+        return true;
+      // One of two conditions needs to be met:
+      // 1. this region is "large" enough on its own to track a refinement
+      // 2. this region needs to be at least some fraction of the volume of
+      //    the parent region of the partition
+      // The first case makes sure we don't make equivalence sets that are
+      // too small in general. The second case allows for some degree of
+      // small equivalence sets as long as the degree of parallelism is
+      // bounded to a certain extent.
+      const size_t volume = row_source->get_volume();
+      if (EquivalenceSet::MINIMUM_SIZE <= volume)
+        return true;
+      const size_t parent_volume = parent->parent->row_source->get_volume();
+      legion_assert(volume <= parent_volume);
+      const size_t ratio = parent_volume / volume;
+      return (ratio <= EquivalenceSet::MINIMUM_RATIO);
+    }
+
+    //--------------------------------------------------------------------------
     size_t RegionNode::get_num_children(void) const
     //--------------------------------------------------------------------------
     {
@@ -2133,6 +2168,18 @@ namespace Legion {
       else
         return row_source->intersects_with(
             other->as_partition_node()->row_source, compute);
+    }
+
+    //--------------------------------------------------------------------------
+    bool PartitionNode::track_refinements(void) const
+    //--------------------------------------------------------------------------
+    {
+      // Always track partitions
+      // Complete: should always track these
+      // Incomplete: either we're going to traverse to a child region and
+      // we'll determine whether to traverse that child or we're projecting
+      // from this partition and we'll refine the parent when partitions change
+      return true;
     }
 
     //--------------------------------------------------------------------------

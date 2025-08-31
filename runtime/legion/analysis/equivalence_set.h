@@ -942,6 +942,16 @@ namespace Legion {
           user_samples[MIGRATION_EPOCHS];
       unsigned migration_index;
       unsigned sample_count;
+    public:
+      // These magic numbers help to protect Legion from making lots of really
+      // tiny equivalence sets. The first one sets a general guideline for how
+      // small equivalence sets can be (no smaller than 16K points). The second
+      // number allows for an exception to that rule in the cases where the
+      // ratio between the volumes of a parent region and child region is no
+      // more than 64 to allow some limited refinement of equivalence sets
+      // on small degrees of parallelism cases.
+      static constexpr size_t MINIMUM_SIZE = 16384;
+      static constexpr size_t MINIMUM_RATIO = 64;
     };
 
   }  // namespace Internal

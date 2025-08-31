@@ -147,12 +147,11 @@ namespace Legion {
       void initialize_no_refine_fields(const FieldMask& mask);
       void update_refinement_child(
           ContextID ctx, RegionTreeNode* child, const RegionUsage& usage,
-          FieldMask& refinement_mask);
+          const FieldMask& current_mask, FieldMask& child_mask,
+          FieldMask& updated_refinements);
       void update_refinement_projection(
           ContextID ctx, ProjectionSummary* summary, const RegionUsage& usage,
-          FieldMask& refinement_mask);
-      void update_refinement_arrival(
-          ContextID ctx, const RegionUsage& usage, FieldMask& refinement_mask);
+          const FieldMask& proj_mask, FieldMask& updated_refinements);
       void invalidate_refinements(ContextID ctx, FieldMask invalidation_mask);
       void record_refinement_dependences(
           ContextID ctx, const LogicalUser& refinement_user,
