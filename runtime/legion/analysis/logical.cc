@@ -905,7 +905,6 @@ namespace Legion {
         if (!invalidation_mask)
           break;
       }
-      legion_assert(!invalidation_mask);  // should have seen all the fields
       for (std::vector<RefinementTracker*>::const_iterator it =
                to_delete.begin();
            it != to_delete.end(); it++)

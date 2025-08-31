@@ -137,25 +137,22 @@ namespace Legion {
               refinement_state = IS_WRITE(usage) ?
                                      INCOMPLETE_WRITE_REFINED_STATE :
                                      INCOMPLETE_NONWRITE_REFINED_STATE;
-            update_refinement(child, ctx, current_mask);
-            return true;
+            return update_refinement(child, ctx, current_mask);
           }
         case INCOMPLETE_NONWRITE_REFINED_STATE:
           {
             // See if we need to change states
             if (child->row_source->is_complete())
             {
-              update_refinement(child, ctx, current_mask);
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
                                      COMPLETE_NONWRITE_REFINED_STATE;
-              return true;
+              return update_refinement(child, ctx, current_mask);
             }
             else if (IS_WRITE(usage))
             {
-              update_refinement(child, ctx, current_mask);
               refinement_state = INCOMPLETE_WRITE_REFINED_STATE;
-              return true;
+              return update_refinement(child, ctx, current_mask);
             }
             break;
           }
@@ -163,11 +160,10 @@ namespace Legion {
           {
             if (child->row_source->is_complete())
             {
-              update_refinement(child, ctx, current_mask);
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
                                      COMPLETE_NONWRITE_REFINED_STATE;
-              return true;
+              return update_refinement(child, ctx, current_mask);
             }
             else if (!IS_WRITE(usage))
               return false;
@@ -179,9 +175,8 @@ namespace Legion {
               return false;
             if (IS_WRITE(usage))
             {
-              update_refinement(child, ctx, current_mask);
               refinement_state = COMPLETE_WRITE_REFINED_STATE;
-              return true;
+              return update_refinement(child, ctx, current_mask);
             }
             break;
           }
@@ -233,10 +228,7 @@ namespace Legion {
           // invalidating all the other candidates so they can start
           // again
           if (child != refined_child)
-          {
-            update_refinement(child, ctx, current_mask);
-            return true;
-          }
+            return update_refinement(child, ctx, current_mask);
           else
             invalidate_unused_candidates();
         }
@@ -290,25 +282,22 @@ namespace Legion {
               refinement_state = IS_WRITE(usage) ?
                                      INCOMPLETE_WRITE_REFINED_STATE :
                                      INCOMPLETE_NONWRITE_REFINED_STATE;
-            update_refinement(summary, ctx, current_mask);
-            return true;
+            return update_refinement(summary, ctx, current_mask);
           }
         case INCOMPLETE_NONWRITE_REFINED_STATE:
           {
             // See if we need to change states
             if (summary->is_complete())
             {
-              update_refinement(summary, ctx, current_mask);
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
                                      COMPLETE_NONWRITE_REFINED_STATE;
-              return true;
+              return update_refinement(summary, ctx, current_mask);
             }
             else if (IS_WRITE(usage))
             {
-              update_refinement(summary, ctx, current_mask);
               refinement_state = INCOMPLETE_WRITE_REFINED_STATE;
-              return true;
+              return update_refinement(summary, ctx, current_mask);
             }
             break;
           }
@@ -316,11 +305,10 @@ namespace Legion {
           {
             if (summary->is_complete())
             {
-              update_refinement(summary, ctx, current_mask);
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
                                      COMPLETE_NONWRITE_REFINED_STATE;
-              return true;
+              return update_refinement(summary, ctx, current_mask);
             }
             else if (!IS_WRITE(usage))
               return false;
@@ -332,9 +320,8 @@ namespace Legion {
               return false;
             if (IS_WRITE(usage))
             {
-              update_refinement(summary, ctx, current_mask);
               refinement_state = COMPLETE_WRITE_REFINED_STATE;
-              return true;
+              return update_refinement(summary, ctx, current_mask);
             }
             break;
           }
@@ -385,10 +372,7 @@ namespace Legion {
           // invalidating all the other candidates so they can start
           // again
           if (projection != refined_projection)
-          {
-            update_refinement(summary, ctx, current_mask);
-            return true;
-          }
+            return update_refinement(summary, ctx, current_mask);
           else
             invalidate_unused_candidates();
         }
@@ -527,7 +511,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionRefinementTracker::update_refinement(
+    bool RegionRefinementTracker::update_refinement(
         PartitionNode* child, ContextID ctx, const FieldMask& current_mask)
     //--------------------------------------------------------------------------
     {
@@ -537,7 +521,8 @@ namespace Legion {
           delete refined_projection;
         refined_projection = nullptr;
       }
-      if (child != refined_child)
+      const bool changed = (child != refined_child);
+      if (changed)
       {
         if (refined_child != nullptr)
         {
@@ -549,10 +534,11 @@ namespace Legion {
         refined_child->add_base_resource_ref(REFINEMENT_REF);
       }
       invalidate_unused_candidates();
+      return changed;
     }
 
     //--------------------------------------------------------------------------
-    void RegionRefinementTracker::update_refinement(
+    bool RegionRefinementTracker::update_refinement(
         ProjectionSummary* summary, ContextID ctx,
         const FieldMask& current_mask)
     //--------------------------------------------------------------------------
@@ -566,7 +552,8 @@ namespace Legion {
           delete refined_child;
         refined_child = nullptr;
       }
-      if (projection != refined_projection)
+      const bool changed = (projection != refined_projection);
+      if (changed)
       {
         if ((refined_projection != nullptr) &&
             refined_projection->remove_reference())
@@ -575,6 +562,7 @@ namespace Legion {
         refined_projection->add_reference();
       }
       invalidate_unused_candidates();
+      return changed;
     }
 
     //--------------------------------------------------------------------------

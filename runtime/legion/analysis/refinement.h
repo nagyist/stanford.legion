@@ -104,9 +104,9 @@ namespace Legion {
           const RefinementTracker* other) const override;
     protected:
       bool is_dominant_candidate(double score, bool is_current);
-      void update_refinement(
+      bool update_refinement(
           PartitionNode* child, ContextID ctx, const FieldMask& current_mask);
-      void update_refinement(
+      bool update_refinement(
           ProjectionSummary* summary, ContextID ctx,
           const FieldMask& current_mask);
       void invalidate_unused_candidates(void);
