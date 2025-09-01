@@ -49,7 +49,9 @@ namespace Legion {
       creator_req_idx = intern_idx;
       trace = creator->get_trace();
       if (trace != nullptr)
-        tracing = trace->initialize_op_tracing(this);
+        // Use is_recording and not is_fixed because we're in the
+        // logical dependence analysis stage of the pipeline
+        tracing = trace->is_recording();
     }
 
     //--------------------------------------------------------------------------

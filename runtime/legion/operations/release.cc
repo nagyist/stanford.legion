@@ -391,7 +391,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool ReleaseOp::record_trace_hash(
-        TraceRecognizer& recognizer, uint64_t opidx)
+        TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       Murmur3Hasher hasher;
@@ -401,7 +401,7 @@ namespace Legion {
       for (std::set<FieldID>::const_iterator it = fields.begin();
            it != fields.end(); it++)
         hasher.hash(*it);
-      return recognizer.record_operation_hash(this, hasher, opidx);
+      return recorder.record_operation_hash(this, hasher, opidx);
     }
 
     //--------------------------------------------------------------------------

@@ -1624,7 +1624,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool CopyOp::record_trace_hash(TraceRecognizer& recognizer, uint64_t opidx)
+    bool CopyOp::record_trace_hash(TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       Murmur3Hasher hasher;
@@ -1649,7 +1649,7 @@ namespace Legion {
       hasher.hash<bool>(is_index_space);
       if (is_index_space)
         hasher.hash(index_domain);
-      return recognizer.record_operation_hash(this, hasher, opidx);
+      return recorder.record_operation_hash(this, hasher, opidx);
     }
 
     //--------------------------------------------------------------------------

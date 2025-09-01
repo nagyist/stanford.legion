@@ -108,7 +108,7 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void report_interfering_requirements(
           unsigned idx1, unsigned idx2);
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
     public:
       virtual void trigger_ready(void);
       virtual void predicate_false(void);

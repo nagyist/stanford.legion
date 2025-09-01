@@ -532,6 +532,7 @@ namespace Legion {
     class BarrierArrival;
     class BarrierAdvance;
     class TraceRecognizer;
+    class TraceHashRecorder;
 
     class CopyAcrossExecutor;
     class CopyAcrossUnstructured;

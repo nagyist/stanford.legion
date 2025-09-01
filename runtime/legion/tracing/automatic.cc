@@ -69,7 +69,7 @@ namespace Legion {
         // the identifier, and flush the watcher and replayer. We identify
         // whether a wait is coming from the application by seeing if the
         // future being waited on has a valid coordinate.
-        this->recognizer.record_operation_untraceable(this->opidx);
+        this->recognizer.record_operation_untraceable(nullptr, this->opidx);
         this->current_trace_blocking_index = this->next_blocking_index;
       }
       // Need to also do whatever the base context was going to do.
@@ -88,7 +88,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Flush any buffered operations
-      this->recognizer.record_operation_untraceable(opidx++);
+      this->recognizer.record_operation_untraceable(nullptr, opidx++);
       T::end_task(
           res, res_size, owned, deferred_result_instance, callback_functor,
           resource, freefunc, metadataptr, metadatasize, effects);

@@ -72,7 +72,7 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
       virtual void trigger_complete(ApEvent complete);
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
     public:
       virtual void predicate_false(void);
     public:

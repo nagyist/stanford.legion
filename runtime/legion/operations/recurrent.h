@@ -58,7 +58,7 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceRecognizer& identifier, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
     public:
       virtual FenceOp* get_begin_operation(void) { return this; }
       virtual ApEvent get_begin_completion(void)
@@ -108,7 +108,7 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceRecognizer& identifier, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
     protected:
       LogicalTrace* previous;
       bool has_blocking_call;

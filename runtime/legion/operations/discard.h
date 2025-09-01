@@ -60,7 +60,7 @@ namespace Legion {
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
           std::set<RtEvent>& applied) const;
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
     protected:
       void discard_fields(const PhysicalTraceInfo& trace_info);
     public:

@@ -157,13 +157,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool FenceOp::record_trace_hash(TraceRecognizer& recognizer, uint64_t opidx)
+    bool FenceOp::record_trace_hash(TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       Murmur3Hasher hasher;
       hasher.hash(get_operation_kind());
       hasher.hash(fence_kind);
-      return recognizer.record_operation_hash(this, hasher, opidx);
+      return recorder.record_operation_hash(this, hasher, opidx);
     }
 
     //--------------------------------------------------------------------------

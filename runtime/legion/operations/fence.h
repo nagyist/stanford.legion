@@ -87,7 +87,7 @@ namespace Legion {
       virtual void trigger_replay(void);
       virtual void complete_replay(ApEvent complete_event);
       virtual void trigger_complete(ApEvent complete);
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
       virtual const VersionInfo& get_version_info(unsigned idx) const;
     public:
       virtual void perform_measurement(void);

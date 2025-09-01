@@ -65,201 +65,150 @@ namespace Legion {
       legion_assert(end_provenance == nullptr);
       fixed = true;
       end_provenance = provenance;
+      verification_index = 0;  // reset this back to zero
       if (end_provenance != nullptr)
         end_provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
-    bool LogicalTrace::initialize_op_tracing(
-        Operation* op, const std::vector<StaticDependence>* dependences)
+    bool LogicalTrace::record_operation_hash(
+        Operation* op, Murmur3Hasher& hasher, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
-      if (op->is_internal_op())
+      const OpKind kind = op->get_operation_kind();
+      TaskID task_id = 0;
+      if (kind == TASK_OP_KIND)
       {
-        if (!recording)
-          return false;
+        TaskOp* task = legion_safe_cast<TaskOp*>(op);
+        task_id = task->task_id;
+      }
+      const unsigned num_regions = op->get_region_count();
+      uint64_t hash[2];
+      hasher.finalize(hash);
+      if (fixed)
+      {
+        if (verification_infos.size() <= opidx)
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
+              << "Detected " << opidx << " operations in trace " << tid
+              << " of parent task " << *context << " which differs from the "
+              << verification_infos.size()
+              << " operations that were recorded in the first execution "
+              << "of the trace. The number of operations in the trace "
+              << "must always be the same across all executions of the trace.";
+          error.raise();
+        }
+        const VerificationInfo& info = verification_infos[opidx];
+        if (info.kind != kind)
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Operation " << *op << " does not match the recorded "
+                << "operation kind " << Operation::get_string_rep(info.kind)
+                << " for the " << opidx << " operation in trace " << tid
+                << " of parent task " << *context << ". The same order of "
+                << "operations must be issued every time a trace is executed.";
+          error.raise();
+        }
+        if (info.task_id != task_id)
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Task " << task_id << " of " << *op
+                << " does not match the recorded task " << info.task_id
+                << " for the " << opidx << " task in trace " << tid
+                << " of parent task " << *context << ". The same order of "
+                << "operations must be issued every time a trace is executed.";
+          error.raise();
+        }
+        if (info.regions != num_regions)
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
+              << ((task_id > 0) ? "Task " : "Operation ") << *op << " recorded "
+              << info.regions << " region requirements for trace " << tid
+              << " in parent task " << *context << " but was re-executed "
+              << "with " << num_regions
+              << " region requirements. The number of "
+              << "region requirements must always match the number re-executed "
+              << "for each corresponding operation in the trace.";
+          error.raise();
+        }
+        if ((info.hash[0] != hash[0]) || (info.hash[1] != hash[1]))
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << ((task_id > 0) ? "Task " : "Operation ") << *op
+                << " was replayed with different region requirements for trace "
+                << tid << " in parent task " << *context << " than what it had "
+                << "when the trace was recorded. Region requirement arguments "
+                << "must match exactly every time a trace is executed.";
+          error.raise();
+        }
       }
       else
       {
-        if (has_physical_trace() && (op->get_memoizable() == nullptr))
-        {
-          Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-          e << "Illegal operation in physical trace. The application launched "
-               "a "
-            << op->get_logging_name() << " operation inside of physical trace "
-            << tid << " of parent task " << context->get_task_name() << " (UID "
-            << context->get_unique_id()
-            << ") but this kind of operation is not "
-            << "supported for physical traces at the moment. You can request "
+        legion_assert(opidx == verification_infos.size());
+        verification_infos.emplace_back(
+            VerificationInfo(kind, task_id, num_regions, hash));
+      }
+      return false;  // return value doesn't matter
+    }
+
+    //--------------------------------------------------------------------------
+    bool LogicalTrace::record_operation_noop(Operation* op, uint64_t opidx)
+    //--------------------------------------------------------------------------
+    {
+      const OpKind kind = op->get_operation_kind();
+      // Cheat a bit and compute a hash based on any region requirements
+      // and then call the method for normal operations
+      Murmur3Hasher hasher;
+      hasher.hash(kind);
+      if (kind == TASK_OP_KIND)
+      {
+        // This can happen with traces with output regions
+        TaskOp* task = legion_safe_cast<TaskOp*>(op);
+        hasher.hash(task->task_id);
+      }
+      const unsigned num_regions = op->get_region_count();
+      for (unsigned idx = 0; idx < num_regions; idx++)
+        Operation::hash_requirement(hasher, op->get_requirement(idx));
+      return record_operation_hash(op, hasher, opidx);
+    }
+
+    //--------------------------------------------------------------------------
+    bool LogicalTrace::record_operation_untraceable(
+        Operation* op, uint64_t opidx)
+    //--------------------------------------------------------------------------
+    {
+      // Make sure we're not a physical trace
+      if (has_physical_trace())
+      {
+        Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+        error
+            << "Illegal operation in physical trace. The application launched"
+            << " " << *op << " inside of physical trace " << tid
+            << " of parent "
+            << "task " << *context << " but this kind of operation is not "
+            << "supported for physical traces currently. You can request "
                "support "
             << "but we cannot guarantee support for all kinds of operations in "
             << "physical traces.";
-          e.raise();
-        }
-        // Check to see if we are doing safe tracing checks or not
-        if (runtime->safe_tracing)
-        {
-          // Compute the hash for this operation
-          Murmur3Hasher hasher;
-          const OpKind kind = op->get_operation_kind();
-          hasher.hash(kind);
-          TaskID task_id = 0;
-          if (kind == TASK_OP_KIND)
-          {
-            TaskOp* task = legion_safe_cast<TaskOp*>(op);
-            task_id = task->task_id;
-            hasher.hash(task_id);
-          }
-          const unsigned num_regions = op->get_region_count();
-          for (unsigned idx = 0; idx < num_regions; idx++)
-          {
-            const RegionRequirement& req = op->get_requirement(idx);
-            hasher.hash(req.parent);
-            hasher.hash(req.handle_type);
-            if (req.handle_type == LEGION_PARTITION_PROJECTION)
-              hasher.hash(req.partition);
-            else
-              hasher.hash(req.region);
-            for (std::set<FieldID>::const_iterator it =
-                     req.privilege_fields.begin();
-                 it != req.privilege_fields.end(); it++)
-              hasher.hash(*it);
-            for (std::vector<FieldID>::const_iterator it =
-                     req.instance_fields.begin();
-                 it != req.instance_fields.end(); it++)
-              hasher.hash(*it);
-            hasher.hash(req.privilege);
-            hasher.hash(req.prop);
-            hasher.hash(req.redop);
-            hasher.hash(req.tag);
-            hasher.hash(req.flags);
-            if (req.handle_type != LEGION_SINGULAR_PROJECTION)
-              hasher.hash(req.projection);
-            size_t projection_size = 0;
-            const void* projection_args =
-                req.get_projection_args(&projection_size);
-            if (projection_size > 0)
-              hasher.hash(projection_args, projection_size);
-          }
-          uint64_t hash[2];
-          hasher.finalize(hash);
-          if (fixed)
-          {
-            if (verification_infos.size() <= verification_index)
-            {
-              Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-              e << "Detected " << verification_index << " operations in trace "
-                << tid << " of parent task " << context->get_task_name()
-                << " (UID " << context->get_unique_id()
-                << ") which differs from the " << verification_infos.size()
-                << " operations that were recorded in the "
-                << "first execution of the trace. The number of operations in "
-                   "the trace "
-                << "must always be the same across all executions of the "
-                   "trace.";
-              e.raise();
-            }
-            const VerificationInfo& info =
-                verification_infos[verification_index++];
-            if (info.kind != kind)
-            {
-              Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-              e << "Operation " << Operation::get_string_rep(kind)
-                << " does not match the "
-                << "recorded operation kind " << op->get_logging_name()
-                << " for the " << (verification_index - 1)
-                << " operation in trace " << tid << " of parent task "
-                << context->get_task_name() << " (UID "
-                << context->get_unique_id()
-                << "). The same order of operations must be "
-                << "issued every time a trace is executed.";
-              e.raise();
-            }
-            if (info.task_id != task_id)
-            {
-              Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-              e << "Task " << task_id << " does not match the recorded task "
-                << info.task_id << " for the " << (verification_index - 1)
-                << " task in trace " << tid << " of parent task "
-                << context->get_task_name() << " (UID "
-                << context->get_unique_id()
-                << "). The same order of operations must be "
-                << "issued every time a trace is executed.";
-              e.raise();
-            }
-            if (info.regions != num_regions)
-            {
-              if (kind == TASK_OP_KIND)
-              {
-                Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-                e << "Task " << op->get_logging_name() << " recorded "
-                  << info.regions << " region requirements for trace " << tid
-                  << " in parent task " << context->get_task_name() << " (UID "
-                  << context->get_unique_id() << ") but was re-executed with "
-                  << num_regions
-                  << " region requirements. The number of region requirements "
-                     "recorded "
-                  << "must always match the number re-executed for each "
-                     "corresponding "
-                  << "operation in the trace.";
-                e.raise();
-              }
-              else
-              {
-                Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-                e << "Operation " << op->get_logging_name() << " recorded "
-                  << info.regions << " region requirements for trace " << tid
-                  << " in parent task " << context->get_task_name() << " (UID "
-                  << context->get_unique_id() << ") but was re-executed with "
-                  << num_regions
-                  << " region requirements. The number of region requirements "
-                     "must "
-                  << "always match the number re-executed for each "
-                     "corresponding "
-                  << "operation in the trace.";
-                e.raise();
-              }
-            }
-            if ((info.hash[0] != hash[0]) || (info.hash[1] != hash[1]))
-            {
-              if (kind == TASK_OP_KIND)
-              {
-                Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-                e << "Task " << op->get_logging_name()
-                  << " was replayed with different "
-                  << "region requirements for trace " << tid
-                  << " in parent task " << context->get_task_name() << " (UID "
-                  << context->get_unique_id()
-                  << ") than what it had when it was recorded. Region "
-                     "requirement arguments "
-                  << "must match exactly every time a trace is executed.";
-                e.raise();
-              }
-              else
-              {
-                Error e(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-                e << "Operation " << op->get_logging_name()
-                  << " was replayed with different "
-                  << "region requirements for trace " << tid
-                  << " in parent task " << context->get_task_name() << " (UID "
-                  << context->get_unique_id()
-                  << ") than what it had when it was recorded. Region "
-                     "requirement arguments "
-                  << "must match exactly every time a trace is executed.";
-                e.raise();
-              }
-            }
-          }
-          else
-            verification_infos.emplace_back(
-                VerificationInfo(kind, task_id, num_regions, hash));
-        }
-        if (fixed)
-          return false;
+        error.raise();
       }
+      // Can now call the no-op version of this meethod to compute the hash
+      // and record/verify it since logical traces can actually handle
+      // untraceable operations which are more for physical analysis
+      return record_operation_noop(op, opidx);
+    }
+
+    //--------------------------------------------------------------------------
+    void LogicalTrace::initialize_operation(
+        Operation* op, const std::vector<StaticDependence>* dependences)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(!op->is_internal_op());
       if (static_translator != nullptr)
         static_translator->push_dependences(dependences);
-      return true;
+      op->set_trace(this, !fixed, verification_index++);
     }
 
     //--------------------------------------------------------------------------

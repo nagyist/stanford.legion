@@ -76,7 +76,7 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void) override;
       virtual void trigger_ready(void) override;
       virtual bool record_trace_hash(
-          TraceRecognizer& recognizer, uint64_t opidx) override;
+          TraceHashRecorder& recorder, uint64_t opidx) override;
     };
 
   }  // namespace Internal

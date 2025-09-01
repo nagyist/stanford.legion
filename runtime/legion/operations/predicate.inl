@@ -94,7 +94,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename OP>
     bool Predicated<OP>::record_trace_hash(
-        TraceRecognizer& recognizer, uint64_t opidx)
+        TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       // TODO: Right now we don't support tracing of predicated operations
@@ -106,9 +106,9 @@ namespace Legion {
           break;
         case OP::PENDING_PREDICATE_STATE:
         case OP::PREDICATED_FALSE_STATE:
-          return Operation::record_trace_hash(recognizer, opidx);
+          return Operation::record_trace_hash(recorder, opidx);
       }
-      return OP::record_trace_hash(recognizer, opidx);
+      return OP::record_trace_hash(recorder, opidx);
     }
 
   }  // namespace Internal

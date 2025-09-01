@@ -181,14 +181,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Operation::set_trace(
-        LogicalTrace* t, const std::vector<StaticDependence>* dependences)
+    void Operation::set_trace(LogicalTrace* t, bool recording, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       legion_assert(trace == nullptr);
       legion_assert(t != nullptr);
       trace = t;
-      tracing = trace->initialize_op_tracing(this, dependences);
+      tracing = recording;
+      if (runtime->safe_tracing)
+        record_trace_hash(*trace, opidx);
     }
 
     //--------------------------------------------------------------------------
@@ -882,12 +883,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool Operation::record_trace_hash(
-        TraceRecognizer& recognizer, uint64_t opidx)
+        TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
-      log_auto_trace.debug() << "Encountered untraceable operation: "
-                             << get_string_rep(get_operation_kind());
-      return recognizer.record_operation_untraceable(opidx);
+      return recorder.record_operation_untraceable(this, opidx);
     }
 
     //--------------------------------------------------------------------------

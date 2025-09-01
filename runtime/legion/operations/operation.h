@@ -186,9 +186,7 @@ namespace Legion {
       // guaranteed to have a parent task.
       unsigned get_operation_depth(void) const;
     public:
-      void set_trace(
-          LogicalTrace* trace,
-          const std::vector<StaticDependence>* dependences);
+      void set_trace(LogicalTrace* trace, bool recording, uint64_t opidx);
       void set_must_epoch(MustEpochOp* epoch, bool do_registration);
     public:
       // Localize a region requirement to its parent context
@@ -273,7 +271,7 @@ namespace Legion {
       // Determine if this operation is a tracing fence
       virtual bool is_tracing_fence(void) const { return false; }
       // Record the trace hash for this operation
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
       static void hash_requirement(
           Murmur3Hasher& hasher, const RegionRequirement& req);
     public:  // virtual methods for mapping

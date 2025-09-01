@@ -1000,11 +1000,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool IndexTask::record_trace_hash(
-        TraceRecognizer& recognizer, uint64_t opidx)
+        TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       if (output_regions.size() > 0)
-        return recognizer.record_operation_untraceable(opidx);
+        return recorder.record_operation_untraceable(this, opidx);
       Murmur3Hasher hasher;
       hasher.hash(get_operation_kind());
       hasher.hash(task_id);
@@ -1019,7 +1019,7 @@ namespace Legion {
         hasher.hash(*future_return_size);
       if (reduction_future_size)
         hasher.hash(*reduction_future_size);
-      return recognizer.record_operation_hash(this, hasher, opidx);
+      return recorder.record_operation_hash(this, hasher, opidx);
     }
 
     //--------------------------------------------------------------------------

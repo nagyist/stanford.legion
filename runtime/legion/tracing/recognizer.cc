@@ -64,16 +64,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool TraceRecognizer::record_operation_noop(Operation* op)
+    bool TraceRecognizer::record_operation_noop(Operation* op, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       return watcher.record_noop(op);
     }
 
     //--------------------------------------------------------------------------
-    bool TraceRecognizer::record_operation_untraceable(uint64_t opidx)
+    bool TraceRecognizer::record_operation_untraceable(
+        Operation* op, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
+      log_auto_trace.debug() << "Encountered untraceable operation: " << *op;
       // When encountering a non-traceable operation, insert a
       // dummy hash value into the trace identifier so that the
       // traces it finds don't span across these operations.

@@ -478,7 +478,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool FillOp::record_trace_hash(TraceRecognizer& recognizer, uint64_t opidx)
+    bool FillOp::record_trace_hash(TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       Murmur3Hasher hasher;
@@ -491,7 +491,7 @@ namespace Legion {
         hasher.hash(future.impl->did);
       else
         hasher.hash(value, value_size);
-      return recognizer.record_operation_hash(this, hasher, opidx);
+      return recorder.record_operation_hash(this, hasher, opidx);
     }
 
     //--------------------------------------------------------------------------

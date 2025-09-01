@@ -17,6 +17,7 @@
 #define __LEGION_LOGICAL_TRACE_H__
 
 #include "legion/operations/operation.h"
+#include "legion/tracing/recording.h"
 
 namespace Legion {
   namespace Internal {
@@ -27,7 +28,8 @@ namespace Legion {
      * for the logical dependence analysis so that it can be
      * replayed without needing to perform the analysis again
      */
-    class LogicalTrace : public Collectable {
+    class LogicalTrace : public TraceHashRecorder,
+                         public Collectable {
     public:
       struct DependenceRecord {
       public:
@@ -101,7 +103,7 @@ namespace Legion {
       };
       struct VerificationInfo {
       public:
-        VerificationInfo(OpKind k, TaskID tid, unsigned r, uint64_t h[2])
+        VerificationInfo(OpKind k, TaskID tid, unsigned r, const uint64_t h[2])
           : kind(k), task_id(tid), regions(r)
         {
           hash[0] = h[0];
@@ -153,6 +155,13 @@ namespace Legion {
           InnerContext* ctx, TraceID tid, bool logical_only, bool static_trace,
           Provenance* provenance, const std::set<RegionTreeID>* trees);
       ~LogicalTrace(void);
+    public:  // From TraceHashRecorder
+      virtual bool record_operation_hash(
+          Operation* op, Murmur3Hasher& hasher, uint64_t opidx) override;
+      virtual bool record_operation_noop(
+          Operation* op, uint64_t opidx) override;
+      virtual bool record_operation_untraceable(
+          Operation* op, uint64_t opidx) override;
     public:
       inline TraceID get_trace_id(void) const { return tid; }
       inline size_t get_operation_count(void) const
@@ -160,9 +169,8 @@ namespace Legion {
         return replay_info.size();
       }
     public:
-      bool initialize_op_tracing(
-          Operation* op,
-          const std::vector<StaticDependence>* dependences = nullptr);
+      void initialize_operation(
+          Operation* op, const std::vector<StaticDependence>* dependences);
       void check_operation_count(void);
       bool skip_analysis(RegionTreeID tid) const;
       size_t register_operation(Operation* op, GenerationID gen);
@@ -244,7 +252,7 @@ namespace Legion {
     protected:
       // Application stage of the pipeline
       std::vector<VerificationInfo> verification_infos;
-      unsigned verification_index;
+      uint64_t verification_index;
       bool blocking_call_observed;
       bool fixed;
       bool intermediate_fence;

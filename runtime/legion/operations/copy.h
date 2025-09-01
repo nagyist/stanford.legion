@@ -135,7 +135,7 @@ namespace Legion {
       virtual void trigger_mapping(void);
       virtual void trigger_complete(ApEvent complete);
       virtual void trigger_commit(void);
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
       virtual void report_interfering_requirements(
           unsigned idx1, unsigned idx2);
       virtual RtEvent exchange_indirect_records(

@@ -366,7 +366,8 @@ namespace Legion {
 #else
         safe_mapper(config.safe_mapper),
 #endif
-        safe_model(config.safe_model), safe_tracing(config.safe_tracing),
+        safe_model(config.safe_model),
+        safe_tracing(config.safe_tracing || config.safe_model),
         disable_independence_tests(config.disable_independence_tests),
         enable_pointwise_analysis(config.enable_pointwise_analysis),
         supply_default_mapper(default_mapper),

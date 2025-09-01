@@ -16,6 +16,7 @@
 #ifndef __LEGION_TRACE_RECOGNIZER_H__
 #define __LEGION_TRACE_RECOGNIZER_H__
 
+#include "legion/tracing/recording.h"
 #include "legion/tracing/watcher.h"
 
 namespace Legion {
@@ -27,7 +28,7 @@ namespace Legion {
      * corresponding to the sequence of operations and their arguments
      * and looks for repeats within the sequence for which we can replay.
      */
-    class TraceRecognizer {
+    class TraceRecognizer : public TraceHashRecorder {
     public:
       // Non overlapping repeats implementation.
       struct NonOverlappingRepeatsResult {
@@ -62,14 +63,16 @@ namespace Legion {
       TraceRecognizer(
           InnerContext* context, const Mapper::ContextConfigOutput& config);
       TraceRecognizer(const TraceRecognizer& rhs) = delete;
-      ~TraceRecognizer(void);
+      virtual ~TraceRecognizer(void);
     public:
       TraceRecognizer& operator=(const TraceRecognizer& rhs) = delete;
-    public:
-      bool record_operation_hash(
-          Operation* op, Murmur3Hasher& hasher, uint64_t opidx);
-      bool record_operation_noop(Operation* op);
-      bool record_operation_untraceable(uint64_t opidx);
+    public:  // From TraceHashRecorder
+      virtual bool record_operation_hash(
+          Operation* op, Murmur3Hasher& hasher, uint64_t opidx) override;
+      virtual bool record_operation_noop(
+          Operation* op, uint64_t opidx) override;
+      virtual bool record_operation_untraceable(
+          Operation* op, uint64_t opidx) override;
     private:
       bool check_for_repeats(uint64_t opidx);
       void update_watcher(uint64_t opidx);
