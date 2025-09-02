@@ -624,6 +624,17 @@ namespace Legion {
                 << "use of uninitialized data and is therefore illegal.";
           error.raise();
         }
+        if (IS_WRITE_ONLY(req) && IS_READ_DISCARD(req))
+        {
+          Warning warning;
+          warning
+              << "Region requirement " << index << " of " << *this
+              << "combinded output-discard qualifer with a write-only "
+                 "privilege "
+              << "which means this region is never used anywhere. Are you sure "
+              << "you know what you are doing?";
+          warning.raise();
+        }
       }
       // Make sure that none of the unused bits are set for coherence
       if (req.prop & ~LEGION_COLLECTIVE_RELAXED)
