@@ -39,14 +39,14 @@ namespace Legion {
       public:
         inline ReorderBufferEntry(Operation* op, size_t index)
           : operation(op), operation_index(index), complete(false),
-            child_complete(false)
+            committed(false)
         { }
       public:
         Operation* operation;
         uint64_t operation_index;
         ApEvent complete_event;
         bool complete;
-        bool child_complete;
+        bool committed;
       };
     public:
       // Prepipeline stages need to hold a reference since the
@@ -819,11 +819,13 @@ namespace Legion {
       bool process_deferred_completion_queue(
           RtEvent precondition, LgEvent fevent, long long performed);
     public:
+      void add_to_trigger_commit_queue(Operation* op);
+      bool process_trigger_commit_queue(void);
+    public:
       void add_to_deferred_commit_queue(
           Operation* op, RtEvent ready, bool deactivate);
       bool process_deferred_commit_queue(
           RtEvent precondition, LgEvent fevent, long long performed);
-      bool process_trigger_commit_queue(void);
     public:
       void register_executing_child(Operation* op);
       void register_child_complete(Operation* op);
@@ -1172,6 +1174,9 @@ namespace Legion {
       // Uses the child op lock
       std::list<CompletionEntry> deferred_completion_queue;
       CompletionQueue deferred_completion_comp_queue;
+    protected:
+      mutable LocalLock trigger_commit_lock;
+      std::map<uint64_t, Operation*> commit_priority_queue;
     protected:
       mutable LocalLock deferred_commit_lock;
       std::list<QueueEntry<std::pair<Operation*, bool> > >

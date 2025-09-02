@@ -82,7 +82,12 @@ namespace Legion {
       unique_op_id = runtime->get_unique_operation_id();
       context_index = 0;
       exception_handler = 0;
-      remaining_mapping_dependences.store(0);
+      // Set a guard reference that will be removed when the logical
+      // dependence analysis finishes
+      remaining_mapping_dependences.store(1);
+      // Set a guard reference that will be removed when the operation
+      // becomes complete
+      remaining_commit_dependences.store(1);
       outstanding_mapping_references = 0;
       hardened_notifications = 0;
       prepipelined = 0;
@@ -1326,8 +1331,8 @@ namespace Legion {
       {
         if (track_parent)
           parent_ctx->register_child_complete(this);
-        else
-          trigger_commit();
+        // Remove the guard reference for commit
+        satisfy_commit_dependence();
       }
     }
 
@@ -1467,6 +1472,12 @@ namespace Legion {
         // after we have committed the operation
         gen++;
       }
+      // Signal all of our dependent operations that they have a commit
+      // reference satisfied before anything happends that can clean up
+      for (std::map<Operation*, GenerationID>::const_iterator it =
+               outgoing.begin();
+           it != outgoing.end(); it++)
+        it->first->satisfy_commit_dependence();
       // Trigger the commit event
       if (commit_event.exists())
       {
@@ -1489,9 +1500,8 @@ namespace Legion {
     void Operation::begin_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      legion_assert(remaining_mapping_dependences.load() == 0);
-      // Set the guard for the remaining mapping dependences
-      remaining_mapping_dependences.store(1);
+      // Should have a guard reference here already
+      legion_assert(remaining_mapping_dependences.load() == 1);
       // Register ourselves with our trace if there is one
       // This will also add any necessary dependences
       if ((trace != nullptr) && !is_tracing_fence())
@@ -1543,7 +1553,8 @@ namespace Legion {
       const bool prune =
           target->perform_registration(
               target_gen, this, gen, registered_dependence,
-              remaining_mapping_dependences, verification_notifications) &&
+              remaining_mapping_dependences, remaining_commit_dependences,
+              verification_notifications) &&
           !tracing;
       if (registered_dependence)
         incoming[target] = target_gen;
@@ -1587,11 +1598,11 @@ namespace Legion {
       bool registered_dependence = false;
       if (do_registration)
       {
-        prune =
-            target->perform_registration(
-                target_gen, this, gen, registered_dependence,
-                remaining_mapping_dependences, verification_notifications) &&
-            !tracing;
+        prune = target->perform_registration(
+                    target_gen, this, gen, registered_dependence,
+                    remaining_mapping_dependences, remaining_commit_dependences,
+                    verification_notifications) &&
+                !tracing;
       }
       if (registered_dependence)
         incoming[target] = target_gen;
@@ -1601,7 +1612,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool Operation::perform_registration(
         GenerationID our_gen, Operation* op, GenerationID op_gen,
-        bool& registered_dependence, std::atomic<unsigned>& dependences,
+        bool& registered_dependence, std::atomic<unsigned>& mapping_dependences,
+        std::atomic<unsigned>& commit_dependences,
         std::set<Operation*>& notifications)
     //--------------------------------------------------------------------------
     {
@@ -1627,7 +1639,8 @@ namespace Legion {
           {
             outgoing[op] = op_gen;
             if (!mapped)
-              dependences.fetch_add(1);
+              mapping_dependences.fetch_add(1);
+            commit_dependences.fetch_add(1);
             // If we're a hardened operation then have the operation
             // tell us when it is complete so we know our data is good
             if (hardened)
@@ -1662,6 +1675,21 @@ namespace Legion {
           parent_ctx->add_to_ready_queue(this);
         else
           must_epoch->satisfy_mapping_dependence();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Operation::satisfy_commit_dependence(void)
+    //--------------------------------------------------------------------------
+    {
+      const unsigned remaining = remaining_commit_dependences.fetch_sub(1);
+      legion_assert(remaining > 0);
+      if (remaining == 1)
+      {
+        if (track_parent)
+          parent_ctx->add_to_trigger_commit_queue(this);
+        else
+          trigger_commit();
       }
     }
 
@@ -1728,8 +1756,8 @@ namespace Legion {
       {
         if (track_parent)
           parent_ctx->register_child_complete(this);
-        else
-          trigger_commit();
+        // Remove the guard reference for commit
+        satisfy_commit_dependence();
       }
     }
 
@@ -1768,8 +1796,8 @@ namespace Legion {
       {
         if (track_parent)
           parent_ctx->register_child_complete(this);
-        else
-          trigger_commit();
+        // Remove the guard reference for commit
+        satisfy_commit_dependence();
       }
     }
 

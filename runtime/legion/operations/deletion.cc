@@ -273,6 +273,11 @@ namespace Legion {
       // use these data structures in the case of recycling, e.g. in the
       // case that we recycle a field index
       analyze_region_requirements();
+      // Deletions act as upwards acting fences so that we can record
+      // dependences on all the operations in front of us in program
+      // order and thereby ensure we only commit after they have all
+      // committed so deletion effects don't show up out of order.
+      parent_ctx->perform_mapping_fence_analysis(this);
       // Now we can invalidate the context since all internal operations
       // have been recorded in the tree
       const ContextID ctx = parent_ctx->get_logical_tree_context();
