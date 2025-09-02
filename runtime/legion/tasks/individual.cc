@@ -114,7 +114,7 @@ namespace Legion {
         {
           Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
           error << "Output requirements are disallowed for tasks launched with "
-                << "predicates, but preidcated task launch for task " << *this
+                << "predicates, but predicated task launch for task " << *this
                 << " in parent task " << *parent_ctx
                 << " is used with output requirements.";
           error.raise();
