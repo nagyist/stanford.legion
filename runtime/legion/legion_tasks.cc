@@ -697,11 +697,11 @@ namespace Legion {
             "disallowed.", idx, get_task_name(), get_unique_id())
         if (IS_WRITE_ONLY(req) && ((req.privilege & LEGION_DISCARD_OUTPUT_MASK)
               == LEGION_DISCARD_OUTPUT_MASK))
-          REPORT_LEGION_ERROR(ERROR_INVALID_DISCARD_QUALIFIER,
+          REPORT_LEGION_WARNING(LEGION_WARNING_REGION_REQUIREMENT_TASK,
             "Region requirement %d of %s (UID %lld) combined output-discard "
-            "qualifier with write-only privilege which will result in "
-            "undefined behavior, therefore this privilege combination is "
-            "disallowed.", idx, get_task_name(), get_unique_id())
+            "qualifier with write-only privilege which means this region is "
+            "never used anywhere. Are you sure you know what you are doing?",
+            idx, get_task_name(), get_unique_id())
         if (IS_REDUCE(req) && ((req.privilege & (LEGION_DISCARD_INPUT_MASK | 
               LEGION_DISCARD_OUTPUT_MASK)) != LEGION_NO_ACCESS))
           REPORT_LEGION_ERROR(ERROR_INVALID_DISCARD_QUALIFIER,
