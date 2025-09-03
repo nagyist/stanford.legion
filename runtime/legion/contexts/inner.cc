@@ -8472,7 +8472,7 @@ namespace Legion {
         {
           if (it->operation_index < current_execution_fence_index)
             break;
-          if (next_fence_index <= it->operation_index)
+          if (it->committed || (next_fence_index <= it->operation_index))
             continue;
           previous_events.insert(it->operation->get_completion_event());
         }
