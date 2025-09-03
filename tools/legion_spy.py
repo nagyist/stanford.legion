@@ -6178,11 +6178,20 @@ class Requirement(object):
         elif bool(self.priv & WRITE_PRIV):
             if bool(self.priv & READ_PRIV):
                 if bool(self.priv & INPUT_DISCARD_MASK):
-                    return "WRITE-DISCARD"
+                    if bool(self.priv & OUTPUT_DISCARD_MASK):
+                        return "WRITE-AND-READ-DISCARD"
+                    else:
+                        return "WRITE-DISCARD"
                 else:
-                    return "READ-WRITE"
+                    if bool(self.priv & OUTPUT_DISCARD_MASK):
+                        return "WRITE-WITH-READ-DISCARD"
+                    else:
+                        return "READ-WRITE"
             else:
-                return "WRITE-ONLY"
+                if bool(self.priv & OUTPUT_DISCARD_MASK):
+                    return "WRITE-ONLY-WITH-READ-DISCARD"
+                else:
+                    return "WRITE-ONLY"
         elif bool(self.priv & READ_PRIV):
             if bool(self.priv & OUTPUT_DISCARD_MASK):
                 return "READ-ONLY-DISCARD"
