@@ -95,6 +95,8 @@ namespace Legion {
     const PredEvent PredEvent::NO_PRED_EVENT = {};
     const PredUserEvent PredUserEvent::NO_PRED_USER_EVENT = {};
 
+    /*static*/ Runtime* Runtime::the_runtime = nullptr;
+
     //--------------------------------------------------------------------------
     void LgEvent::begin_wait(Context ctx, bool from_application) const
     //--------------------------------------------------------------------------
@@ -428,6 +430,7 @@ namespace Legion {
     {
       legion_assert(runtime == nullptr);
       runtime = this;
+      the_runtime = this;  // for debugging
       legion_assert((unique_constraint_id % runtime_stride) == unique);
       if (LEGION_MAX_NUM_NODES <= address_space)
       {
