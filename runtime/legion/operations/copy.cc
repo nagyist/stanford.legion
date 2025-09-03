@@ -403,7 +403,7 @@ namespace Legion {
           scatter_parent_indexes[idx] = parent_ctx->find_parent_region_index(
               this, dst_indirect_requirements[idx]);
         }
-        if (launcher.src_indirect_is_range.size() != scatter_size)
+        if (launcher.dst_indirect_is_range.size() != scatter_size)
         {
           Error error(LEGION_INTERFACE_EXCEPTION);
           error << "Invalid 'dst_indirect_is_range' "
