@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <optional>
 #include <fstream>
+#include <stdlib.h>
 
 #include <stdio.h>
 #include <legion.h>
@@ -94,8 +95,17 @@ void top_level_task(const Task *task,
   launcher.add_region_requirement(
       RegionRequirement(two, LEGION_READ_ONLY, LEGION_EXCLUSIVE, two));
   launcher.add_field(1, FID_DATA);
+
+  DiscardLauncher discard(one, one);
+  discard.add_field(FID_DATA);
+
   for (unsigned idx = 0; idx < 1000; idx++)
+  {
     runtime->execute_task(ctx, launcher);
+    // Periodically insert a random discard operation to keep the trace honest
+    if ((lrand48() % 10) == 0)
+      runtime->discard_fields(ctx, discard);
+  }
   
   // Clean up
   runtime->destroy_logical_region(ctx, one);
