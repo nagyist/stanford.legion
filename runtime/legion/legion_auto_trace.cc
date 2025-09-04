@@ -391,10 +391,15 @@ namespace Legion {
       unsigned traced_ops = 0;
       for (uint64_t idx = 0; idx < difference; idx++)
       {
-        if (!is_operation_ignorable_in_traces(operations.front()))
+        Operation* next = operations.front();
+        if (!is_operation_ignorable_in_traces(next))
+        {
           traced_ops++;
-        context->add_to_dependence_queue(operations.front(),
-            NULL/*dependences*/, false/*unordered*/, false/*outermost*/);
+          context->add_to_dependence_queue(next,
+              NULL/*dependences*/, false/*unordered*/, false/*outermost*/);
+        }
+        else // Can just return the operation to the runtime
+          next->deactivate();
         operations.pop();
       }
       context->end_trace(tid, false/*deprecated*/, NULL/*provenance*/,
