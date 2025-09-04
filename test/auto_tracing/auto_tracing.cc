@@ -17,7 +17,6 @@
 #include <unistd.h>
 #include <optional>
 #include <fstream>
-#include <stdlib.h>
 
 #include <stdio.h>
 #include <legion.h>
@@ -67,6 +66,17 @@ void leaf_task(const Task *task,
   // Nothing to do 
 }
 
+// Simple LFSR for deterministic random numbers
+uint16_t lfsr_step(uint16_t lfsr)
+{
+  // Example: taps at bits 16 and 14 (polynomial x^16 + x^14 + 1)
+  uint16_t lsb = lfsr & 1;
+  lfsr >>= 1;
+  if (lsb)
+    lfsr ^= 0xB400;
+  return lfsr;
+}
+
 void top_level_task(const Task *task,
     const std::vector<PhysicalRegion> &regions,
     Context ctx, Runtime *runtime)
@@ -96,6 +106,7 @@ void top_level_task(const Task *task,
       RegionRequirement(two, LEGION_READ_ONLY, LEGION_EXCLUSIVE, two));
   launcher.add_field(1, FID_DATA);
 
+  uint16_t lfsr = 0xACE1; // Any non-zero seed
   DiscardLauncher discard(one, one);
   discard.add_field(FID_DATA);
 
@@ -103,7 +114,8 @@ void top_level_task(const Task *task,
   {
     runtime->execute_task(ctx, launcher);
     // Periodically insert a random discard operation to keep the trace honest
-    if ((lrand48() % 10) == 0)
+    lfsr = lfsr_step(lfsr);
+    if ((lfsr % 10) == 0)
       runtime->discard_fields(ctx, discard);
   }
   
