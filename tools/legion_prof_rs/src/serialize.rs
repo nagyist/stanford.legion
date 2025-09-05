@@ -4,6 +4,7 @@ use std::io;
 use std::io::{Read, Seek};
 use std::num::NonZeroU64;
 use std::path::Path;
+use std::str;
 
 use flate2::read::GzDecoder;
 
