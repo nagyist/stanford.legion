@@ -66,6 +66,17 @@ void leaf_task(const Task *task,
   // Nothing to do 
 }
 
+// Simple LFSR for deterministic random numbers
+uint16_t lfsr_step(uint16_t lfsr)
+{
+  // Example: taps at bits 16 and 14 (polynomial x^16 + x^14 + 1)
+  uint16_t lsb = lfsr & 1;
+  lfsr >>= 1;
+  if (lsb)
+    lfsr ^= 0xB400;
+  return lfsr;
+}
+
 void top_level_task(const Task *task,
     const std::vector<PhysicalRegion> &regions,
     Context ctx, Runtime *runtime)
@@ -88,14 +99,26 @@ void top_level_task(const Task *task,
 
   // Run a thousand iterations of the leaf task
   TaskLauncher launcher(LEAF_TASK_ID, UntypedBuffer());
-  launcher.add_region_requirement(
+  RegionRequirement& req = launcher.add_region_requirement(
       RegionRequirement(one, LEGION_READ_WRITE, LEGION_EXCLUSIVE, one));
+  req.flags = LEGION_SUPPRESS_WARNINGS_FLAG;
   launcher.add_field(0, FID_DATA);
   launcher.add_region_requirement(
       RegionRequirement(two, LEGION_READ_ONLY, LEGION_EXCLUSIVE, two));
   launcher.add_field(1, FID_DATA);
+
+  uint16_t lfsr = 0xACE1; // Any non-zero seed
+  DiscardLauncher discard(one, one);
+  discard.add_field(FID_DATA);
+
   for (unsigned idx = 0; idx < 1000; idx++)
+  {
     runtime->execute_task(ctx, launcher);
+    // Periodically insert a random discard operation to keep the trace honest
+    lfsr = lfsr_step(lfsr);
+    if ((lfsr % 10) == 0)
+      runtime->discard_fields(ctx, discard);
+  }
   
   // Clean up
   runtime->destroy_logical_region(ctx, one);
@@ -139,6 +162,11 @@ int main(int argc, char **argv)
     int status = 0;
     pid_t finished = waitpid(child, &status, 0);
     assert(finished == child);
+    if (status != 0)
+    {
+      printf("Child process crashed\n");
+      return 1;
+    }
     // Must have a logfile
     if (!file_index)
     {
