@@ -852,7 +852,7 @@ CPMFindPackage(NAME Realm
                "REALM_ENABLE_LLVM ${Legion_USE_LLVM}"
                "REALM_ENABLE_HDF5 ${Legion_USE_HDF5}"
                "REALM_ENABLE_MPI ${Legion_USE_MPI}"
-               "REALM_ENABLE_OpenMP ${Legion_USE_OpenMP}"
+               "REALM_ENABLE_OPENMP ${Legion_USE_OpenMP}"
                "REALM_OPENMP_SYSTEM_RUNTIME ${Legion_OpenMP_SYSTEM_RUNTIME}"
                "REALM_OPENMP_GOMP_SUPPORT ${Legion_OpenMP_GOMP_SUPPORT}"
                "REALM_OPENMP_KMP_SUPPORT ${Legion_OpenMP_KMP_SUPPORT}"
