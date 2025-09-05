@@ -202,19 +202,13 @@ fn newline(input: &[u8]) -> IResult<&[u8], ()> {
 fn parse_text_i32(input: &[u8]) -> IResult<&[u8], i32> {
     let (input, sign) = opt(tag("-"))(input)?;
     let (input, value) = take_while1(is_digit)(input)?;
-    let value: i32 = String::from_utf8(value.to_owned())
-        .unwrap()
-        .parse()
-        .unwrap();
+    let value: i32 = str::from_utf8(value).unwrap().parse().unwrap();
     Ok((input, if sign.is_none() { value } else { -value }))
 }
 
 fn parse_text_u32(input: &[u8]) -> IResult<&[u8], u32> {
     let (input, value) = take_while1(is_digit)(input)?;
-    let value = String::from_utf8(value.to_owned())
-        .unwrap()
-        .parse()
-        .unwrap();
+    let value = str::from_utf8(value).unwrap().parse().unwrap();
     Ok((input, value))
 }
 
@@ -235,17 +229,17 @@ pub fn is_nul(chr: u8) -> bool {
 
 fn parse_text_name(input: &[u8]) -> IResult<&[u8], String> {
     let (input, name) = take_while1(is_alphanumeric_underscore)(input)?;
-    Ok((input, String::from_utf8(name.to_owned()).unwrap()))
+    Ok((input, str::from_utf8(name).unwrap().to_owned()))
 }
 
 fn parse_text_type(input: &[u8]) -> IResult<&[u8], String> {
     let (input, name) = take_while1(is_alphanumeric_space)(input)?;
-    Ok((input, String::from_utf8(name.to_owned()).unwrap()))
+    Ok((input, str::from_utf8(name).unwrap().to_owned()))
 }
 
 fn parse_text_version(input: &[u8]) -> IResult<&[u8], String> {
     let (input, name) = take_till(is_newline)(input)?;
-    Ok((input, String::from_utf8(name.to_owned()).unwrap()))
+    Ok((input, str::from_utf8(name).unwrap().to_owned()))
 }
 
 //
@@ -311,12 +305,10 @@ fn parse_cuda_device_uuid(input: &[u8]) -> IResult<&[u8], Uuid> {
     Ok((input, Uuid(values)))
 }
 fn parse_string(input: &[u8]) -> IResult<&[u8], String> {
-    let (input, value) = map_res(take_till(is_nul), |x: &[u8]| {
-        String::from_utf8(x.to_owned())
-    })(input)?;
+    let (input, value) = map_res(take_till(is_nul), |x: &[u8]| str::from_utf8(x))(input)?;
     let (input, terminator) = le_u8(input)?;
     assert!(is_nul(terminator));
-    Ok((input, value))
+    Ok((input, value.to_owned()))
 }
 
 //
