@@ -1263,11 +1263,11 @@ namespace Legion {
           // First check to that we can convert the std::function back into
           // a function pointer, if we can't do that then there's no hope
           const Realm::FunctionPointerImplementation impl(
-              callback.has_args ?
-                  (void (*)())callback.withargs
-                      .target<RegistrationWithArgsCallbackFnptr>() :
-                  (void (*)())
-                      callback.withoutargs.target<RegistrationCallbackFnptr>());
+              *(callback.has_args ?
+                    (void (* const *)())callback.withargs
+                        .target<RegistrationWithArgsCallbackFnptr>() :
+                    (void (* const *)())callback.withoutargs
+                        .target<RegistrationCallbackFnptr>()));
           if (impl.fnptr == nullptr)
           {
             Fatal fatal;
@@ -1372,12 +1372,12 @@ namespace Legion {
         }
         else
         {
-          void* fnptr =
+          void* fnptr = *(
               callback.has_args ?
-                  (void*)callback.withargs
+                  (void**)callback.withargs
                       .target<RegistrationWithArgsCallbackFnptr>() :
-                  (void*)
-                      callback.withoutargs.target<RegistrationCallbackFnptr>();
+                  (void**)
+                      callback.withoutargs.target<RegistrationCallbackFnptr>());
           if (fnptr == nullptr)
           {
             Fatal fatal;
