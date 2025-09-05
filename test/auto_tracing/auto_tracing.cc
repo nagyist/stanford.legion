@@ -99,8 +99,9 @@ void top_level_task(const Task *task,
 
   // Run a thousand iterations of the leaf task
   TaskLauncher launcher(LEAF_TASK_ID, UntypedBuffer());
-  launcher.add_region_requirement(
+  RegionRequirement& req = launcher.add_region_requirement(
       RegionRequirement(one, LEGION_READ_WRITE, LEGION_EXCLUSIVE, one));
+  req.flags = LEGION_SUPPRESS_WARNINGS_FLAG;
   launcher.add_field(0, FID_DATA);
   launcher.add_region_requirement(
       RegionRequirement(two, LEGION_READ_ONLY, LEGION_EXCLUSIVE, two));
@@ -161,6 +162,11 @@ int main(int argc, char **argv)
     int status = 0;
     pid_t finished = waitpid(child, &status, 0);
     assert(finished == child);
+    if (status != 0)
+    {
+      printf("Child process crashed\n");
+      return 1;
+    }
     // Must have a logfile
     if (!file_index)
     {
