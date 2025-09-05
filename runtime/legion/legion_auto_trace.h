@@ -294,6 +294,7 @@ namespace Legion {
     public:
       TraceRecognizer(InnerContext *context,
           const Mapper::ContextConfigOutput &config);
+      ~TraceRecognizer(void);
     public:
       bool record_operation_hash(Operation *op, 
           Murmur3Hasher &hasher, uint64_t opidx);
