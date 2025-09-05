@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   build:
-    name: ${{ matrix.config.os }}-${{ matrix.config.cc }}-${{ matrix.config.cuda }}-${{ matrix.config.build }}
+    name: ${{ matrix.config.os }}-${{ matrix.config.shared == 'ON' && 'shared' || 'static' }}-${{ matrix.config.cc }}-${{ matrix.config.build }}${{ matrix.config.cuda && format('-cuda{0}', matrix.config.cuda) || '' }}${{ matrix.config.ucx == 'ON' && '-ucx' || '' }}${{ matrix.config.gasnet == 'ON' && '-gasnet' || '' }}${{ matrix.config.kokkos == 'ON' && '-kokkos' || '' }}${{ matrix.config.openmp == 'ON' && '-openmp' || '' }}${{ matrix.config.python == 'ON' && '-python' || '' }}${{ matrix.config.sanitizer != 'NONE' && format('-{0}', matrix.config.sanitizer) || '' }}
     runs-on: ${{ matrix.config.os }}
     env:
       CPM_SOURCE_CACHE: "${{ github.workspace }}/.cache/cpm"
@@ -47,61 +47,12 @@ jobs:
               ccache: sccache,
               shared_lib: 'OFF',
               cuda: '',
-              openmp: 'OFF'
-            }
-          - {
-              os: ubuntu-24.04-arm,
-              build: Release,
-              cc: "gcc", cxx: "g++",
-              ccache: ccache,
-              shared_lib: 'OFF',
-              cuda: '',
-              openmp: 'ON'
-            }
-          - {
-              os: ubuntu-24.04-arm,
-              build: Release,
-              cc: "clang", cxx: "clang++",
-              ccache: ccache,
-              shared_lib: 'OFF',
-              cuda: '',
-              openmp: 'ON'
-            }
-          - {
-              os: ubuntu-latest,
-              build: Release,
-              cc: "gcc", cxx: "g++",
-              ccache: ccache,
-              shared_lib: 'OFF',
-              cuda: '',
-              openmp: 'ON'
-            }
-          - {
-              os: ubuntu-latest,
-              build: Release,
-              cc: "gcc", cxx: "g++",
-              ccache: ccache,
-              shared_lib: 'OFF',
-              cuda: '12.9.0',
-              openmp: 'ON'
-            }
-          - {
-              os: ubuntu-latest,
-              build: Release,
-              cc: "clang", cxx: "clang++",
-              ccache: ccache,
-              shared_lib: 'OFF',
-              cuda: '',
-              openmp: 'ON'
-            }
-          - {
-              os: ubuntu-latest,
-              build: Debug,
-              cc: "gcc", cxx: "g++",
-              ccache: ccache,
-              shared_lib: 'ON',
-              cuda: '',
-              openmp: 'ON'
+              openmp: 'OFF',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'OFF',
+              kokkos: 'OFF',
+              sanitizer: 'NONE'
             }
           - {
               os: macos-latest,
@@ -110,7 +61,166 @@ jobs:
               ccache: ccache,
               shared_lib: 'ON',
               cuda: '',
-              openmp: 'ON'
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'OFF',
+              kokkos: 'OFF',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-24.04-arm,
+              build: Release,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'ON',
+              kokkos: 'OFF',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-24.04-arm,
+              build: Release,
+              cc: "clang", cxx: "clang++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'ON',
+              kokkos: 'OFF',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Release,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'ON',
+              python: 'ON',
+              kokkos: 'ON',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Release,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'ON',
+              gasnet: 'OFF',
+              python: 'ON',
+              kokkos: 'ON',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Release,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '13.0.0',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'ON',
+              kokkos: 'OFF',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Release,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '12.9.1',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'ON',
+              kokkos: 'ON',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Release,
+              cc: "clang", cxx: "clang++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'ON',
+              kokkos: 'OFF',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Debug,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'ON',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'ON',
+              kokkos: 'OFF',
+              sanitizer: 'NONE'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Debug,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'OFF',
+              kokkos: 'OFF',
+              sanitizer: 'ASAN'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Debug,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'OFF',
+              kokkos: 'OFF',
+              sanitizer: 'UBSAN'
+            }
+          - {
+              os: ubuntu-latest,
+              build: Debug,
+              cc: "gcc", cxx: "g++",
+              ccache: ccache,
+              shared_lib: 'OFF',
+              cuda: '',
+              openmp: 'ON',
+              ucx: 'OFF',
+              gasnet: 'OFF',
+              python: 'OFF',
+              kokkos: 'OFF',
+              sanitizer: 'TSAN'
             }
     steps:
       - uses: actions/checkout@v4.2.2
@@ -126,11 +236,18 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         name: Get Linux Packages
-        if: ${{ matrix.config.os == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         with:
-          packages: ${{ matrix.config.cc }} ${{ matrix.config.cxx }} ccache libopenmpi-dev abi-compliance-checker abi-dumper
+          packages: ${{ matrix.config.cc }} ${{ matrix.config.cxx }} ccache abi-compliance-checker abi-dumper
+          execute_install_scripts: true
 
-      - uses: Jimver/cuda-toolkit@v0.2.25
+      # Unfortunately the openmpi package does a bunch of things that doesn't
+      # allow it to be cached
+      - name: Get Linux OpenMPI
+        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+        run: $(which sudo) apt install -yy libopenmpi-dev
+
+      - uses: Jimver/cuda-toolkit@v0.2.27
         name: Get CUDA
         if: ${{ matrix.config.cuda != '' }}
         with:
@@ -174,6 +291,29 @@ jobs:
 
       - uses: lukka/get-cmake@latest
 
+      - name: Checkout kokkos
+        if: matrix.config.kokkos == 'ON'
+        uses: actions/checkout@v4.2.2
+        with:
+          repository: kokkos/kokkos
+          ref: 4.0.01
+          path: kokkos
+
+      - name: Build Kokkos
+        if: matrix.config.kokkos == 'ON'
+        run: |
+          cmake -S kokkos -B kokkos/build \
+            ${{ matrix.config.cuda != '' && '-DKokkos_ARCH_AMPERE80=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ENABLE_CUDA_UVM=OFF -DCMAKE_CXX_FLAGS=-DKOKKOS_IMPL_TURN_OFF_CUDA_HOST_INIT_CHECK' || ''}} \
+            -DKokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DKokkos_ENABLE_SERIAL=ON \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/kokkos/install
+          cmake --build kokkos/build --parallel 4 --config Release
+          cmake --install kokkos/build --parallel 4 --prefix kokkos/install --config Release
+          echo REALM_MIN_CUDA_ARCH=60 >> "${GITHUB_ENV}"
+
       - name: Check for GPU
         if: ${{ matrix.config.cuda != '' }}
         id: check_gpu
@@ -193,8 +333,15 @@ jobs:
                 -DBUILD_SHARED_LIBS=${{ matrix.config.shared_lib }}
                 -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DREALM_BUILD_TUTORIALS=ON -DREALM_BUILD_EXAMPLES=ON
                 -DREALM_ENABLE_OPENMP=${{ matrix.config.openmp }}
-                -DREALM_ENABLE_UCX=OFF
-                -DREALM_ENABLE_GASNETEX=OFF
+                -DREALM_ENABLE_UCX=${{ matrix.config.ucx }}
+                -DREALM_ENABLE_PYTHON=${{ matrix.config.python }}
+                -DREALM_ENABLE_CUDA=${{ matrix.config.cuda != '' && 'ON' || 'OFF' }}
+                -DREALM_MIN_CUDA_ARCH=$REALM_MIN_CUDA_ARCH
+                -DREALM_ENABLE_KOKKOS=${{ matrix.config.kokkos }}
+                -DKokkos_ROOT=kokkos/install
+                -DGASNET_CONDUIT=mpi
+                -DREALM_ENABLE_GASNETEX=${{ matrix.config.gasnet }}
+                -DREALM_SANITIZER=${{ matrix.config.sanitizer }}
 
       - name: Build
         run:
@@ -224,8 +371,7 @@ jobs:
       - name: Update build log cache
         if: success()
         run: |
-          rm -f build.log
-          mv build-new.log build.log
+          cmake -E copy_if_different build-new.log build.log
 
       - name: Run Tests
         id: run-tests
@@ -243,6 +389,12 @@ jobs:
         if: always() && hashFiles('test-results.xml')
         with:
           paths: "test-results.xml"
+
+      - name: Upload test results to Codecov
+        if: always() && hashFiles('test-results.xml')
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Run Install
         run:

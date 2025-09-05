@@ -25,14 +25,15 @@ endif()
 # request Kokkos "separable_compilation" to avoid messing with the compilation
 #  of other projects
 find_package(Kokkos REQUIRED OPTIONAL_COMPONENTS separable_compilation)
+enable_language(${Kokkos_COMPILE_LANGUAGE})
 
 # see if we have kokkos-kernels available
 find_package(KokkosKernels QUIET)
 
+set_source_files_properties(kokkos_saxpy.cc PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE})
 add_executable(kokkos_saxpy kokkos_saxpy.cc)
 
-target_link_libraries(kokkos_saxpy Kokkos::kokkoscore)
-target_link_libraries(kokkos_saxpy Legion::Legion)
+target_link_libraries(kokkos_saxpy Kokkos::kokkoscore Legion::Legion)
 target_compile_options(kokkos_saxpy PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CXX_BUILD_WARNING_FLAGS}>)
 
 if(KokkosKernels_FOUND)
@@ -40,18 +41,12 @@ if(KokkosKernels_FOUND)
   target_compile_definitions(kokkos_saxpy PRIVATE USE_KOKKOS_KERNELS)
 endif()
 
-if(Kokkos_ENABLE_CUDA)
-  # have to use Kokkos' choice of compiler for cuda-related options to work
-  set(CMAKE_CXX_COMPILER ${KOKKOS_CXX_COMPILER})
-  if(KOKKOS_CXX_COMPILER MATCHES ".*clang.*")
-    target_compile_options(kokkos_saxpy PRIVATE --cuda-path=${CUDAToolkit_LIBRARY_ROOT})
-  endif()
+if(Kokkos_COMPILE_LANGUAGE STREQUAL "CUDA")
+  target_compile_options(kokkos_saxpy PRIVATE --expt-extended-lambda)
 endif()
 
-if(Kokkos_ENABLE_HIP)
-  # have to use Kokkos' choice of compiler for cuda-related options to work
-  set(CMAKE_CXX_COMPILER ${KOKKOS_CXX_COMPILER})
-  target_compile_options(kokkos_saxpy PRIVATE "${kokkos_compile_options}")
+if(Kokkos_${Kokkos_COMPILE_LANGUAGE}_ARCHITECTURES)
+  set_property(TARGET kokkos_saxpy PROPERTY ${Kokkos_COMPILE_LANGUAGE}_ARCHITECTURES ${Kokkos_${Kokkos_COMPILE_LANGUAGE}_ARCHITECTURES})
 endif()
 
 if(Legion_ENABLE_TESTING)
