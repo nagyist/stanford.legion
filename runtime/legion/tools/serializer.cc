@@ -56,7 +56,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::stringstream ss;
-      ss << "FileType: BinaryLegionProf v: 1.0" << std::endl;
+      ss << "FileType: BinaryLegionProf v: " << LEGION_PROF_VERSION
+         << std::endl;
+      ss << LEGION_VERSION << std::endl;
 
       std::string delim = ", ";
 
@@ -106,7 +108,6 @@ namespace Legion {
       ss << "MachineDesc {" << "id:" << MACHINE_DESC_ID << delim
          << "node_id:unsigned:" << sizeof(unsigned) << delim
          << "num_nodes:unsigned:" << sizeof(unsigned) << delim
-         << "version:unsigned:" << sizeof(unsigned) << delim
          << "hostname:string:" << "-1" << delim
          << "host_id:unsigned long long:" << sizeof(unsigned long long) << delim
          << "process_id:unsigned:" << sizeof(unsigned) << "}" << std::endl;
@@ -616,8 +617,6 @@ namespace Legion {
           f, (char*)&(machine_desc.node_id), sizeof(machine_desc.node_id));
       lp_fwrite(
           f, (char*)&(machine_desc.num_nodes), sizeof(machine_desc.num_nodes));
-      lp_fwrite(
-          f, (char*)&(machine_desc.version), sizeof(machine_desc.version));
       lp_fwrite(
           f, machine_desc.process_info.hostname,
           strlen(machine_desc.process_info.hostname) + 1);
@@ -2063,9 +2062,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       log_prof.print(
-          "Machine Desc %d %d %d %s %llu %d", machine_desc.node_id,
-          machine_desc.num_nodes, machine_desc.version,
-          machine_desc.process_info.hostname,
+          "Machine Desc %d %d %s %llu %d", machine_desc.node_id,
+          machine_desc.num_nodes, machine_desc.process_info.hostname,
           (unsigned long long)machine_desc.process_info.hostid,
           machine_desc.process_info.processid);
     }

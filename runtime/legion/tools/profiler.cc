@@ -2378,7 +2378,6 @@ namespace Legion {
       machine_desc.node_id = static_cast<unsigned>(runtime->address_space);
       machine_desc.num_nodes =
           static_cast<unsigned>(runtime->total_address_spaces);
-      machine_desc.version = LEGION_PROF_VERSION;
 
       serializer->serialize(machine_desc);
 
