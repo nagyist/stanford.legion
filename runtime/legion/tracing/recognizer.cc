@@ -43,11 +43,15 @@ namespace Legion {
     TraceRecognizer::~TraceRecognizer(void)
     //--------------------------------------------------------------------------
     {
-      // Wait for any repeat result meta-tasks to finish to avoid cleanup races
-      for (std::deque<FindRepeatsResult>::const_iterator it =
-               repeat_results.begin();
-           it != repeat_results.end(); it++)
-        it->finish_event.wait();
+      // Cancel any outstanding meta-tasks and then wait for them to be done
+      // They shoud all be chained off each other so poisoning the first one
+      // and waiting for the last one should be sufficient to cancel everything
+      if (!repeat_results.empty())
+      {
+        repeat_results.front().finish_event.cancel_operation(nullptr, 0);
+        bool do_not_care = false;
+        repeat_results.back().finish_event.wait_faultaware(do_not_care, false);
+      }
     }
 
     //--------------------------------------------------------------------------
