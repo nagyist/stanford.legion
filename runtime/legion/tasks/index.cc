@@ -236,17 +236,23 @@ namespace Legion {
 
             const DomainPoint& neighbor_extent =
                 output_extents.find(neighbor)->second;
-            if (extent[dim] != neighbor_extent[dim])
+            // For all dimensions that are not the one we just traversed
+            // then the colors should be the same
+            for (int32_t dim2 = 0; dim2 < ndim; dim2++)
             {
-              Error error(LEGION_INTERFACE_EXCEPTION);
-              error << "Point task " << color
-                    << " returned an output of extent " << extent[dim]
-                    << " for dimension " << dim
-                    << ", but an adjacent point task returned an output of "
-                       "extent "
-                    << neighbor_extent[dim] << ". Please make sure the outputs "
-                    << "from point tasks are aligned.";
-              error.raise();
+              if (dim == dim2)
+                continue;
+              if (extent[dim2] != neighbor_extent[dim2])
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Point task " << color
+                      << " returned an output of extent " << extent[dim2]
+                      << " for dimension " << dim2 << ", but point task "
+                      << neighbor << " returned an output of extent "
+                      << neighbor_extent[dim2] << ". Please make sure "
+                      << "the outputs from point tasks are aligned.";
+                error.raise();
+              }
             }
           }
         }
