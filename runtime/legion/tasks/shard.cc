@@ -517,11 +517,10 @@ namespace Legion {
       }
       else
       {
-        for (std::map<Memory, MemoryPool*>::const_iterator it =
-                 leaf_memory_pools.begin();
-             it != leaf_memory_pools.end(); it++)
+        for (const std::pair<const Memory, MemoryPool*>& pool_pair :
+             leaf_memory_pools)
         {
-          const ApEvent ready = it->second->get_ready_event();
+          const ApEvent ready = pool_pair.second->get_ready_event();
           if (ready.exists())
             launch_events.insert(ready);
         }

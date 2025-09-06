@@ -456,12 +456,11 @@ namespace Legion {
         }
         else
         {
-          for (std::map<DomainPoint, DistributedID>::const_iterator it =
-                   handles.begin();
-               it != handles.end(); it++)
+          for (const std::pair<const DomainPoint, DistributedID>& handle_pair :
+               handles)
           {
-            rez.serialize(it->first);
-            rez.serialize(it->second);
+            rez.serialize(handle_pair.first);
+            rez.serialize(handle_pair.second);
           }
         }
         rez.serialize(future_map_coordinate);
@@ -480,15 +479,14 @@ namespace Legion {
       {
         rez.serialize(concurrent_functor);
         rez.serialize<size_t>(concurrent_groups.size());
-        for (std::map<Color, ConcurrentGroup>::const_iterator it =
-                 concurrent_groups.begin();
-             it != concurrent_groups.end(); it++)
+        for (const std::pair<const Color, ConcurrentGroup>& group_pair :
+             concurrent_groups)
         {
-          rez.serialize(it->first);
+          rez.serialize(group_pair.first);
           if (is_replaying())
-            rez.serialize(it->second.precondition.traced);
+            rez.serialize(group_pair.second.precondition.traced);
           else
-            rez.serialize(it->second.precondition.interpreted);
+            rez.serialize(group_pair.second.precondition.interpreted);
         }
       }
       if (!is_origin_mapped())
@@ -500,10 +498,8 @@ namespace Legion {
         {
           rez.serialize(pit->first);
           rez.serialize<size_t>(pit->second.size());
-          for (std::vector<PointwiseDependence>::const_iterator it =
-                   pit->second.begin();
-               it != pit->second.end(); it++)
-            it->serialize(rez);
+          for (const PointwiseDependence& dependence : pit->second)
+            dependence.serialize(rez);
         }
       }
     }

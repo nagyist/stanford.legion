@@ -54,10 +54,9 @@ namespace Legion {
         pack_output_requirement(output_regions[idx], rez);
       rez.serialize(futures.size());
       // If we are remote we can just do the normal pack
-      for (std::vector<Future>::const_iterator it = futures.begin();
-           it != futures.end(); it++)
-        if (it->impl != nullptr)
-          it->impl->pack_future(rez, target);
+      for (const Future& future : futures)
+        if (future.impl != nullptr)
+          future.impl->pack_future(rez, target);
         else
           rez.serialize<DistributedID>(0);
       rez.serialize(grants.size());
@@ -428,12 +427,10 @@ namespace Legion {
       if (map_origin)
       {
         rez.serialize<size_t>(atomic_locks.size());
-        for (std::map<Reservation, bool>::const_iterator it =
-                 atomic_locks.begin();
-             it != atomic_locks.end(); it++)
+        for (const std::pair<const Reservation, bool>& lock_pair : atomic_locks)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(lock_pair.first);
+          rez.serialize(lock_pair.second);
         }
       }
       else
@@ -710,24 +707,23 @@ namespace Legion {
       {
         if (!options.check_collective_regions.empty())
         {
-          for (std::set<unsigned>::const_iterator it =
-                   options.check_collective_regions.begin();
-               it != options.check_collective_regions.end(); it++)
+          for (const unsigned& region_idx : options.check_collective_regions)
           {
-            if ((*it) >= regions.size())
+            if (region_idx >= regions.size())
               continue;
-            const RegionRequirement& req = regions[*it];
+            const RegionRequirement& req = regions[region_idx];
             if (IS_NO_ACCESS(req) || req.privilege_fields.empty())
               continue;
             if (!IS_WRITE(req))
-              check_collective_regions.emplace_back(*it);
+              check_collective_regions.emplace_back(region_idx);
             else if (!IS_COLLECTIVE(req))
             {
               Warning warning;
               warning
                   << "Ignoring request by mapper " << *mapper
                   << " to check for collective usage for region requirement "
-                  << *it << " of " << *this << " because region requirement "
+                  << region_idx << " of " << *this
+                  << " because region requirement "
                   << "has writing privileges.";
               warning.raise();
             }
@@ -1124,13 +1120,12 @@ namespace Legion {
       if (phase_barriers.empty())
         return;
       const ApEvent arrive_pre = get_completion_event();
-      for (std::vector<PhaseBarrier>::const_iterator it =
-               phase_barriers.begin();
-           it != phase_barriers.end(); it++)
+      for (const PhaseBarrier& barrier : phase_barriers)
       {
-        arrive_barriers.emplace_back(*it);
-        runtime->phase_barrier_arrive(*it, 1 /*count*/, arrive_pre);
-        LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
+        arrive_barriers.emplace_back(barrier);
+        runtime->phase_barrier_arrive(barrier, 1 /*count*/, arrive_pre);
+        LegionSpy::log_phase_barrier_arrival(
+            unique_op_id, barrier.phase_barrier);
       }
     }
 
@@ -1191,13 +1186,12 @@ namespace Legion {
       unsigned cur_id = 0;
       // fields explicitly specified in any constraint for region requirement
       std::set<FieldID> explicit_fields, align_fields, offset_fields;
-      for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
-               layout_constraints.layouts.begin();
-           it != layout_constraints.layouts.end(); it++)
+      for (const std::pair<const unsigned, LayoutConstraintID>&
+               constraint_pair : layout_constraints.layouts)
       {
         // obtain all fields explicitly specified in task layout constraints for
         // a region requirement
-        cur_id = it->first;
+        cur_id = constraint_pair.first;
         if (req_id == cur_id)
         {
           explicit_fields.clear();
@@ -1205,8 +1199,10 @@ namespace Legion {
           offset_fields.clear();
           req_id++;
           for (std::multimap<unsigned, LayoutConstraintID>::const_iterator
-                   lay_it = layout_constraints.layouts.lower_bound(it->first);
-               lay_it != layout_constraints.layouts.upper_bound(it->first);
+                   lay_it = layout_constraints.layouts.lower_bound(
+                       constraint_pair.first);
+               lay_it !=
+               layout_constraints.layouts.upper_bound(constraint_pair.first);
                lay_it++)
           {
             // Get the layout constraints from the task layout set
@@ -1254,26 +1250,27 @@ namespace Legion {
                 if (finder == explicit_fields.end())
                 {
                   explicit_fields.insert(fid);
-                  offset_fields.insert(fid);
+                  align_fields.insert(fid);
                 }
               }
             }
           }
         }
         // Might have constraints for extra region requirements
-        if (it->first >= physical_instances.size())
+        if (constraint_pair.first >= physical_instances.size())
           continue;
-        const InstanceSet& instances = physical_instances[it->first];
-        if (IS_NO_ACCESS(regions[it->first]))
+        const InstanceSet& instances =
+            physical_instances[constraint_pair.first];
+        if (IS_NO_ACCESS(regions[constraint_pair.first]))
           continue;
         LayoutConstraints* constraints =
-            runtime->find_layout_constraints(it->second);
+            runtime->find_layout_constraints(constraint_pair.second);
 
         const std::vector<FieldID>& field_vec =
             constraints->field_constraint.field_set;
         FieldMask constraint_mask;
-        FieldSpaceNode* field_node =
-            runtime->get_node(regions[it->first].region.get_field_space());
+        FieldSpaceNode* field_node = runtime->get_node(
+            regions[constraint_pair.first].region.get_field_space());
         std::set<FieldID> field_set(field_vec.begin(), field_vec.end());
         if (!field_vec.empty())
         {
@@ -1312,7 +1309,7 @@ namespace Legion {
               (constraints->padding_constraint.delta.get_dim() > 0))
           {
             std::vector<LogicalRegion> regions_to_check(
-                1, regions[it->first].region);
+                1, regions[constraint_pair.first].region);
             PhysicalManager* phy = manager->as_physical_manager();
             if (!phy->meets_regions(
                     regions_to_check,
@@ -1336,7 +1333,8 @@ namespace Legion {
                 << local_mapper->get_mapper_name() << "selected variant "
                 << *impl << " for " << *this
                 << ", but instance selected for region requirement "
-                << it->first << " fails to satisfy the corresponding "
+                << constraint_pair.first
+                << " fails to satisfy the corresponding "
                 << conflict_constraint->get_constraint_kind()
                 << " layout constraint.";
           error.raise();
@@ -1364,59 +1362,51 @@ namespace Legion {
         }
       }
       // Then check the colocation constraints
-      for (std::vector<ColocationConstraint>::const_iterator con_it =
-               execution_constraints.colocation_constraints.begin();
-           con_it != execution_constraints.colocation_constraints.end();
-           con_it++)
+      for (const ColocationConstraint& constraint :
+           execution_constraints.colocation_constraints)
       {
-        if (con_it->indexes.size() < 2)
+        if (constraint.indexes.size() < 2)
           continue;
-        unsigned idx = 0;
         bool first = true;
         DistributedID tree_id = 0;
         FieldSpaceNode* field_space_node = nullptr;
         std::map<
             unsigned /*field index*/, std::pair<PhysicalManager*, unsigned> >
             colocation_instances;
-        for (std::set<unsigned>::const_iterator iit = con_it->indexes.begin();
-             iit != con_it->indexes.end(); iit++, idx++)
+        for (const unsigned& region_idx : constraint.indexes)
         {
           legion_assert(
-              regions[*iit].handle_type == LEGION_SINGULAR_PROJECTION);
-          const RegionRequirement& req = regions[*iit];
+              regions[region_idx].handle_type == LEGION_SINGULAR_PROJECTION);
+          const RegionRequirement& req = regions[region_idx];
           if (first)
           {
             first = false;
             tree_id = req.region.get_tree_id();
             field_space_node = runtime->get_node(req.region.get_field_space());
-            const InstanceSet& insts = physical_instances[*iit];
+            const InstanceSet& insts = physical_instances[region_idx];
             FieldMask colocation_mask;
-            if (con_it->fields.empty())
+            if (constraint.fields.empty())
             {
               // If there are no explicit fields then we are
               // just going through and checking all of them
-              for (std::set<FieldID>::const_iterator it =
-                       req.privilege_fields.begin();
-                   it != req.privilege_fields.end(); it++)
+              for (const FieldID& field_id : req.privilege_fields)
               {
-                unsigned index = field_space_node->get_field_index(*it);
+                unsigned index = field_space_node->get_field_index(field_id);
                 colocation_instances[index] =
-                    std::pair<PhysicalManager*, unsigned>(nullptr, *iit);
+                    std::pair<PhysicalManager*, unsigned>(nullptr, region_idx);
                 colocation_mask.set_bit(index);
               }
             }
             else
             {
-              for (std::set<FieldID>::const_iterator it =
-                       con_it->fields.begin();
-                   it != con_it->fields.end(); it++)
+              for (const FieldID& field_id : constraint.fields)
               {
-                if (req.privilege_fields.find(*it) ==
+                if (req.privilege_fields.find(field_id) ==
                     req.privilege_fields.end())
                   continue;
-                unsigned index = field_space_node->get_field_index(*it);
+                unsigned index = field_space_node->get_field_index(field_id);
                 colocation_instances[index] =
-                    std::pair<PhysicalManager*, unsigned>(nullptr, *iit);
+                    std::pair<PhysicalManager*, unsigned>(nullptr, region_idx);
                 colocation_mask.set_bit(index);
               }
             }
@@ -1449,7 +1439,7 @@ namespace Legion {
                     iterator finder = colocation_instances.find(index);
                 legion_assert(finder != colocation_instances.end());
                 legion_assert(finder->second.first == nullptr);
-                legion_assert(finder->second.second == *iit);
+                legion_assert(finder->second.second == region_idx);
                 finder->second.first = manager;
                 index = overlap.find_next_set(index + 1);
               }
@@ -1464,7 +1454,7 @@ namespace Legion {
               Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
               error << "Invalid location constraint. Location constraint "
                     << "specified on region requirements "
-                    << *(con_it->indexes.begin()) << " and " << *iit
+                    << *(constraint.indexes.begin()) << " and " << region_idx
                     << " of variant " << *impl << " of " << *this
                     << ", but region requirements contain regions that "
                     << "from different region trees (" << tree_id << " and "
@@ -1474,7 +1464,7 @@ namespace Legion {
                     << "from the same region tree.";
               error.raise();
             }
-            const InstanceSet& insts = physical_instances[*iit];
+            const InstanceSet& insts = physical_instances[region_idx];
             if (local_mapper == nullptr)
               local_mapper = runtime->find_mapper(current_proc, map_id);
             for (unsigned idx = 0; idx < insts.size(); idx++)
@@ -1488,8 +1478,8 @@ namespace Legion {
                     << "Invalid mapper output. Mapper "
                     << local_mapper->get_mapper_name()
                     << " selected a virtual instance for region requirement "
-                    << *iit << " of " << *this << ", but also selected variant "
-                    << *impl
+                    << region_idx << " of " << *this
+                    << ", but also selected variant " << *impl
                     << " which contains a colocation constraint for this "
                     << "region requirement. It is illegal to request a virtual "
                     << "mapping for a region requirement with a colocation "
@@ -1518,10 +1508,10 @@ namespace Legion {
                           << " selected variant " << *impl << " for " << *this
                           << ". However, this variant requires that field "
                           << field_names[name_index]
-                          << " of region requirements " << *iit
+                          << " of region requirements " << region_idx
                           << " be co-located with prior requirement "
                           << finder->second.second
-                          << " but it is not. Requirement " << *iit
+                          << " but it is not. Requirement " << region_idx
                           << " mapped to instance " << manager->get_instance()
                           << " while prior requirement "
                           << finder->second.second << " mapped to instance "
@@ -1531,15 +1521,16 @@ namespace Legion {
                 }
                 else
                 {
-                  if (!con_it->fields.empty())
+                  if (!constraint.fields.empty())
                   {
-                    if (con_it->fields.find(field_names[name_index]) !=
-                        con_it->fields.end())
+                    if (constraint.fields.find(field_names[name_index]) !=
+                        constraint.fields.end())
                       colocation_instances[index] =
-                          std::make_pair(manager, *iit);
+                          std::make_pair(manager, region_idx);
                   }
                   else
-                    colocation_instances[index] = std::make_pair(manager, *iit);
+                    colocation_instances[index] =
+                        std::make_pair(manager, region_idx);
                 }
                 index = inst_mask.find_next_set(index + 1);
                 name_index++;
@@ -1746,22 +1737,20 @@ namespace Legion {
         AutoLock t_lock(task_lock, false /*exclusive*/);
         valid_variants.resize(variants.size());
         unsigned idx = 0;
-        for (std::map<VariantID, VariantImpl*>::const_iterator it =
-                 variants.begin();
-             it != variants.end(); it++, idx++)
+        for (const std::pair<const VariantID, VariantImpl*>& variant_pair :
+             variants)
         {
-          valid_variants[idx] = it->first;
+          valid_variants[idx++] = variant_pair.first;
         }
       }
       else
       {
         AutoLock t_lock(task_lock, false /*exclusive*/);
-        for (std::map<VariantID, VariantImpl*>::const_iterator it =
-                 variants.begin();
-             it != variants.end(); it++)
+        for (const std::pair<const VariantID, VariantImpl*>& variant_pair :
+             variants)
         {
-          if (it->second->can_use(kind, true /*warn*/))
-            valid_variants.emplace_back(it->first);
+          if (variant_pair.second->can_use(kind, true /*warn*/))
+            valid_variants.emplace_back(variant_pair.first);
         }
       }
     }
@@ -2208,11 +2197,9 @@ namespace Legion {
       else if (proc_constraint.valid_kinds.size() > 1)
       {
         std::set<ApEvent> ready_events;
-        for (std::vector<Processor::Kind>::const_iterator it =
-                 proc_constraint.valid_kinds.begin();
-             it != proc_constraint.valid_kinds.end(); it++)
+        for (const Processor::Kind& proc_kind : proc_constraint.valid_kinds)
           ready_events.insert(ApEvent(Processor::register_task_by_kind(
-              *it, false /*global*/, descriptor_id, realm_descriptor,
+              proc_kind, false /*global*/, descriptor_id, realm_descriptor,
               profiling_requests, user_data, user_data_size)));
         ready_event = Runtime::merge_events(nullptr, ready_events);
       }
@@ -2266,7 +2253,7 @@ namespace Legion {
       bool result = false;
       for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
                layout_constraints.layouts.lower_bound(idx);
-           it != layout_constraints.layouts.upper_bound(idx); it++)
+           it != layout_constraints.layouts.upper_bound(idx); ++it)
       {
         result = true;
         LayoutConstraints* constraints =
@@ -2378,12 +2365,11 @@ namespace Legion {
             if (leaf_variant)
             {
               rez.serialize<size_t>(leaf_pool_bounds.size());
-              for (std::map<Memory::Kind, PoolBounds>::const_iterator it =
-                       leaf_pool_bounds.begin();
-                   it != leaf_pool_bounds.end(); it++)
+              for (const std::pair<const Memory::Kind, PoolBounds>& pool_pair :
+                   leaf_pool_bounds)
               {
-                rez.serialize(it->first);
-                rez.serialize(it->second);
+                rez.serialize(pool_pair.first);
+                rez.serialize(pool_pair.second);
               }
             }
             rez.serialize(inner_variant);
@@ -2413,29 +2399,28 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(needs_padding);
-      for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
-               layout_constraints.layouts.begin();
-           it != layout_constraints.layouts.end(); it++)
+      for (const std::pair<const unsigned, LayoutConstraintID>&
+               constraint_pair : layout_constraints.layouts)
       {
         const LayoutConstraints* layout =
-            runtime->find_layout_constraints(it->second);
+            runtime->find_layout_constraints(constraint_pair.second);
         if (layout->padding_constraint.delta.get_dim() == 0)
           continue;
-        legion_assert(it->first < regions.size());
-        legion_assert(it->first < physical_instances.size());
-        const RegionRequirement& req = regions[it->first];
-        const InstanceSet& instances = physical_instances[it->first];
+        legion_assert(constraint_pair.first < regions.size());
+        legion_assert(constraint_pair.first < physical_instances.size());
+        const RegionRequirement& req = regions[constraint_pair.first];
+        const InstanceSet& instances =
+            physical_instances[constraint_pair.first];
         // Check to see if we have any explicit fields
         std::set<FieldID> padded_fields;
         if (!layout->field_constraint.field_set.empty())
         {
-          for (std::vector<FieldID>::const_iterator fit =
-                   layout->field_constraint.field_set.begin();
-               fit != layout->field_constraint.field_set.end(); fit++)
+          for (const FieldID& field_id : layout->field_constraint.field_set)
           {
             legion_assert(
-                req.privilege_fields.find(*fit) != req.privilege_fields.end());
-            padded_fields.insert(*fit);
+                req.privilege_fields.find(field_id) !=
+                req.privilege_fields.end());
+            padded_fields.insert(field_id);
           }
         }
         else  // Add all the fields for this region requirement
@@ -2450,7 +2435,8 @@ namespace Legion {
           if (!overlap)
             continue;
           PhysicalManager* manager = ref.get_physical_manager();
-          manager->find_padded_reservations(overlap, task, it->first);
+          manager->find_padded_reservations(
+              overlap, task, constraint_pair.first);
           padded_mask -= overlap;
           if (!padded_mask)
             break;
@@ -2466,37 +2452,33 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(needs_padding);
-      for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
-               layout_constraints.layouts.begin();
-           it != layout_constraints.layouts.end(); it++)
+      for (const std::pair<const unsigned, LayoutConstraintID>&
+               constraint_pair : layout_constraints.layouts)
       {
         const LayoutConstraints* layout =
-            runtime->find_layout_constraints(it->second);
+            runtime->find_layout_constraints(constraint_pair.second);
         if (layout->padding_constraint.delta.get_dim() == 0)
           continue;
-        legion_assert(it->first < regions.size());
-        legion_assert(it->first < physical_regions.size());
-        const RegionRequirement& req = regions[it->first];
-        const PhysicalRegion& region = physical_regions[it->first];
+        legion_assert(constraint_pair.first < regions.size());
+        legion_assert(constraint_pair.first < physical_regions.size());
+        const RegionRequirement& req = regions[constraint_pair.first];
+        const PhysicalRegion& region = physical_regions[constraint_pair.first];
         // Check to see if we have any explicit fields
         if (layout->field_constraint.field_set.empty())
         {
           // Add all the fields for this region requirement
-          for (std::set<FieldID>::const_iterator fit =
-                   req.privilege_fields.begin();
-               fit != req.privilege_fields.end(); fit++)
-            region.impl->add_padded_field(*fit);
+          for (const FieldID& field_id : req.privilege_fields)
+            region.impl->add_padded_field(field_id);
         }
         else
         {
           // Only add the fields specified by the constraint
-          for (std::vector<FieldID>::const_iterator fit =
-                   layout->field_constraint.field_set.begin();
-               fit != layout->field_constraint.field_set.end(); fit++)
+          for (const FieldID& field_id : layout->field_constraint.field_set)
           {
             legion_assert(
-                req.privilege_fields.find(*fit) != req.privilege_fields.end());
-            region.impl->add_padded_field(*fit);
+                req.privilege_fields.find(field_id) !=
+                req.privilege_fields.end());
+            region.impl->add_padded_field(field_id);
           }
         }
       }
@@ -2507,12 +2489,11 @@ namespace Legion {
         const TaskLayoutConstraintSet& constraints)
     //--------------------------------------------------------------------------
     {
-      for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
-               constraints.layouts.begin();
-           it != constraints.layouts.end(); it++)
+      for (const std::pair<const unsigned, LayoutConstraintID>&
+               constraint_pair : constraints.layouts)
       {
         const LayoutConstraints* layout =
-            runtime->find_layout_constraints(it->second);
+            runtime->find_layout_constraints(constraint_pair.second);
         if (layout->padding_constraint.delta.get_dim() > 0)
           return true;
       }

@@ -627,20 +627,19 @@ namespace Legion {
       if (!point_futures.empty())
       {
         const int context_depth = parent_ctx->get_depth();
-        for (std::vector<FutureMap>::const_iterator it = point_futures.begin();
-             it != point_futures.end(); it++)
+        for (const FutureMap& future_map : point_futures)
         {
-          if (!it->impl->future_map_domain->contains_point(point))
+          if (!future_map.impl->future_map_domain->contains_point(point))
           {
             this->futures.emplace_back(Future());
             continue;
           }
           this->futures.emplace_back(
-              it->impl->get_future(point, true /*internal*/));
+              future_map.impl->get_future(point, true /*internal*/));
           if (record_future_pointwise_dependences)
           {
-            const RtEvent pre =
-                it->impl->find_pointwise_dependence(point, context_depth);
+            const RtEvent pre = future_map.impl->find_pointwise_dependence(
+                point, context_depth);
             if (pre.exists() && !std::binary_search(
                                     pointwise_mapping_dependences.begin(),
                                     pointwise_mapping_dependences.end(), pre))
@@ -877,14 +876,12 @@ namespace Legion {
       if (pointwise_mapping_dependences.empty())
         return false;
       unsigned count = 0;
-      for (std::vector<RtEvent>::const_iterator it =
-               pointwise_mapping_dependences.begin();
-           it != pointwise_mapping_dependences.end(); it++)
+      for (const RtEvent& event : pointwise_mapping_dependences)
       {
-        if (it->has_triggered())
+        if (event.has_triggered())
           continue;
         count++;
-        event_deps[*it].emplace_back(const_cast<PointTask*>(this));
+        event_deps[event].emplace_back(const_cast<PointTask*>(this));
       }
       if (count > 0)
       {
