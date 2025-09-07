@@ -44,7 +44,7 @@ namespace Legion {
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
         RegionNode* node, ApEvent pre, ReleaseAnalysis* t,
         std::vector<PhysicalManager*>&& target_insts,
-        op::vector<op::FieldMaskMap<InstanceView> >&& target_vws,
+        op::vector<op::FieldMaskMap<InstanceView>>&& target_vws,
         std::vector<IndividualView*>&& source_vws,
         const PhysicalTraceInfo& info, CollectiveMapping* mapping,
         const bool first)
@@ -87,44 +87,38 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> remote_events;
-      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
-               const_iterator rit = remote_sets.begin();
-           rit != remote_sets.end(); rit++)
+      for (const std::pair<
+               const AddressSpaceID, op::FieldMaskMap<EquivalenceSet>>& rit :
+           remote_sets)
       {
-        legion_assert(!rit->second.empty());
-        const AddressSpaceID target = rit->first;
+        legion_assert(!rit.second.empty());
+        const AddressSpaceID target = rit.first;
         const RtUserEvent returned = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
         RemoteReleaseAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
-          rez.serialize<size_t>(rit->second.size());
-          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
-                   rit->second.begin();
-               it != rit->second.end(); it++)
+          rez.serialize<size_t>(rit.second.size());
+          for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           rez.serialize<size_t>(target_instances.size());
           for (unsigned idx = 0; idx < target_instances.size(); idx++)
           {
             rez.serialize(target_instances[idx]->did);
             rez.serialize<size_t>(target_views[idx].size());
-            for (op::FieldMaskMap<InstanceView>::const_iterator it =
-                     target_views[idx].begin();
-                 it != target_views[idx].end(); it++)
+            for (const std::pair<InstanceView*, FieldMask>& it :
+                 target_views[idx])
             {
-              rez.serialize(it->first->did);
-              rez.serialize(it->second);
+              rez.serialize(it.first->did);
+              rez.serialize(it.second);
             }
           }
           rez.serialize<size_t>(source_views.size());
-          for (std::vector<IndividualView*>::const_iterator it =
-                   source_views.begin();
-               it != source_views.end(); it++)
-            rez.serialize((*it)->did);
+          for (IndividualView* const it : source_views) rez.serialize(it->did);
           rez.serialize(region->handle);
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
@@ -174,12 +168,11 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (op::FieldMaskMap<LogicalView>::const_iterator it =
-                     recorded_instances->begin();
-                 it != recorded_instances->end(); it++)
+            for (const std::pair<LogicalView*, FieldMask>& it :
+                 *recorded_instances)
             {
-              rez.serialize(it->first->did);
-              rez.serialize(it->second);
+              rez.serialize(it.first->did);
+              rez.serialize(it.second);
             }
             rez.serialize<bool>(restricted);
           }
@@ -244,7 +237,7 @@ namespace Legion {
       size_t num_targets;
       derez.deserialize(num_targets);
       std::vector<PhysicalManager*> targets(num_targets);
-      op::vector<op::FieldMaskMap<InstanceView> > target_views(num_targets);
+      op::vector<op::FieldMaskMap<InstanceView>> target_views(num_targets);
       for (unsigned idx1 = 0; idx1 < num_targets; idx1++)
       {
         DistributedID did;

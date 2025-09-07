@@ -58,10 +58,8 @@ namespace Legion {
       if ((runtime->address_space != original_source) ||
           (previous != original_source))
       {
-        for (op::FieldMaskMap<InstanceView>::const_iterator it =
-                 filter_views.begin();
-             it != filter_views.end(); it++)
-          it->first->unpack_global_ref();
+        for (const std::pair<InstanceView*, FieldMask>& it : filter_views)
+          it.first->unpack_global_ref();
       }
     }
 
@@ -106,36 +104,32 @@ namespace Legion {
         return defer_remote(perform_precondition, applied_events);
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
-      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
-               const_iterator rit = remote_sets.begin();
-           rit != remote_sets.end(); rit++)
+      for (const std::pair<
+               const AddressSpaceID, op::FieldMaskMap<EquivalenceSet>>& rit :
+           remote_sets)
       {
-        legion_assert(!rit->second.empty());
-        const AddressSpaceID target = rit->first;
+        legion_assert(!rit.second.empty());
+        const AddressSpaceID target = rit.first;
         const RtUserEvent applied = Runtime::create_rt_user_event();
         RemoteFilterAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
-          rez.serialize<size_t>(rit->second.size());
-          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
-                   rit->second.begin();
-               it != rit->second.end(); it++)
+          rez.serialize<size_t>(rit.second.size());
+          for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           rez.serialize(region->handle);
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
           rez.serialize<size_t>(filter_views.size());
-          for (op::FieldMaskMap<InstanceView>::const_iterator it =
-                   filter_views.begin();
-               it != filter_views.end(); it++)
+          for (const std::pair<InstanceView*, FieldMask>& it : filter_views)
           {
-            it->first->pack_global_ref();
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            it.first->pack_global_ref();
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           rez.serialize(remove_restriction);
           trace_info.pack_trace_info(rez);

@@ -35,7 +35,7 @@ namespace Legion {
         Operation* o, unsigned src_idx, unsigned dst_idx,
         const RegionRequirement& src_req, const RegionRequirement& dst_req,
         const InstanceSet& target_insts,
-        const op::vector<op::FieldMaskMap<InstanceView> >& target_vws,
+        const op::vector<op::FieldMaskMap<InstanceView>>& target_vws,
         const std::vector<IndividualView*>& source_vws, const ApEvent pre,
         const ApEvent dst_ready, const PredEvent pred, const ReductionOpID red,
         const std::vector<unsigned>& src_idxes,
@@ -69,7 +69,7 @@ namespace Legion {
         const RegionUsage& dst_use, const LogicalRegion src_reg,
         const LogicalRegion dst_reg, const ApEvent dst_ready,
         std::vector<PhysicalManager*>&& target_insts,
-        op::vector<op::FieldMaskMap<InstanceView> >&& target_vws,
+        op::vector<op::FieldMaskMap<InstanceView>>&& target_vws,
         std::vector<IndividualView*>&& source_vws, const ApEvent pre,
         const PredEvent pred, const ReductionOpID red,
         const std::vector<unsigned>& src_idxes,
@@ -101,10 +101,7 @@ namespace Legion {
     {
       legion_assert(
           !aggregator_guard.exists() || aggregator_guard.has_triggered());
-      for (std::vector<CopyAcrossHelper*>::const_iterator it =
-               across_helpers.begin();
-           it != across_helpers.end(); it++)
-        delete (*it);
+      for (CopyAcrossHelper* const it : across_helpers) delete it;
     }
 
     //--------------------------------------------------------------------------
@@ -162,25 +159,23 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       legion_assert(target_instances.size() == target_views.size());
       legion_assert(src_indexes.size() == dst_indexes.size());
-      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
-               const_iterator rit = remote_sets.begin();
-           rit != remote_sets.end(); rit++)
+      for (const std::pair<
+               const AddressSpaceID, op::FieldMaskMap<EquivalenceSet>>& rit :
+           remote_sets)
       {
-        legion_assert(!rit->second.empty());
-        const AddressSpaceID target = rit->first;
+        legion_assert(!rit.second.empty());
+        const AddressSpaceID target = rit.first;
         const ApUserEvent copy = Runtime::create_ap_user_event(&trace_info);
         const RtUserEvent applied = Runtime::create_rt_user_event();
         RemoteCopyAcrossAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
-          rez.serialize<size_t>(rit->second.size());
-          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
-                   rit->second.begin();
-               it != rit->second.end(); it++)
+          rez.serialize<size_t>(rit.second.size());
+          for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(src_index);
@@ -193,12 +188,11 @@ namespace Legion {
           {
             rez.serialize(target_instances[idx]->did);
             rez.serialize<size_t>(target_views[idx].size());
-            for (op::FieldMaskMap<InstanceView>::const_iterator it =
-                     target_views[idx].begin();
-                 it != target_views[idx].end(); it++)
+            for (const std::pair<InstanceView*, FieldMask>& it :
+                 target_views[idx])
             {
-              rez.serialize(it->first->did);
-              rez.serialize(it->second);
+              rez.serialize(it.first->did);
+              rez.serialize(it.second);
             }
           }
           rez.serialize<size_t>(source_views.size());
@@ -266,15 +260,14 @@ namespace Legion {
         else
           Runtime::trigger_event(aggregator_guard);
         // Record the event field preconditions for each view
-        std::map<InstanceView*, std::vector<ApEvent> > dst_events;
+        std::map<InstanceView*, std::vector<ApEvent>> dst_events;
         for (unsigned idx = 0; idx < target_views.size(); idx++)
         {
-          for (op::FieldMaskMap<InstanceView>::const_iterator it =
-                   target_views[idx].begin();
-               it != target_views[idx].end(); it++)
+          for (const std::pair<InstanceView*, FieldMask>& it :
+               target_views[idx])
           {
             // Always instantiate the entry in the map
-            dst_events[it->first].emplace_back(targets_ready);
+            dst_events[it.first].emplace_back(targets_ready);
           }
         }
         // This is a copy-across aggregator so the destination events
@@ -346,7 +339,7 @@ namespace Legion {
       size_t num_dsts;
       derez.deserialize(num_dsts);
       std::vector<PhysicalManager*> dst_instances(num_dsts);
-      op::vector<op::FieldMaskMap<InstanceView> > dst_views(num_dsts);
+      op::vector<op::FieldMaskMap<InstanceView>> dst_views(num_dsts);
       for (unsigned idx1 = 0; idx1 < num_dsts; idx1++)
       {
         DistributedID did;

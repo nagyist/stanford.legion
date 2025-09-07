@@ -75,25 +75,23 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> ready_events;
-      for (std::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
-               const_iterator rit = remote_sets.begin();
-           rit != remote_sets.end(); rit++)
+      for (const std::pair<
+               const AddressSpaceID, op::FieldMaskMap<EquivalenceSet>>& rit :
+           remote_sets)
       {
-        legion_assert(!rit->second.empty());
-        const AddressSpaceID target = rit->first;
+        legion_assert(!rit.second.empty());
+        const AddressSpaceID target = rit.first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
         EquivalenceSetRequestInstances rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
-          rez.serialize<size_t>(rit->second.size());
-          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
-                   rit->second.begin();
-               it != rit->second.end(); it++)
+          rez.serialize<size_t>(rit.second.size());
+          for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           analysis_expr->pack_expression(rez, target);
           op->pack_remote_operation(rez, target, applied_events);
@@ -130,12 +128,11 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (op::FieldMaskMap<LogicalView>::const_iterator it =
-                     recorded_instances->begin();
-                 it != recorded_instances->end(); it++)
+            for (const std::pair<LogicalView*, FieldMask>& it :
+                 *recorded_instances)
             {
-              rez.serialize(it->first->did);
-              rez.serialize(it->second);
+              rez.serialize(it.first->did);
+              rez.serialize(it.second);
             }
             rez.serialize<bool>(restricted);
           }
@@ -280,36 +277,32 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> ready_events;
-      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
-               const_iterator rit = remote_sets.begin();
-           rit != remote_sets.end(); rit++)
+      for (const std::pair<
+               const AddressSpaceID, op::FieldMaskMap<EquivalenceSet>>& rit :
+           remote_sets)
       {
-        legion_assert(!rit->second.empty());
-        const AddressSpaceID target = rit->first;
+        legion_assert(!rit.second.empty());
+        const AddressSpaceID target = rit.first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
         EquivalenceSetRequestInvalid rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
-          rez.serialize<size_t>(rit->second.size());
-          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
-                   rit->second.begin();
-               it != rit->second.end(); it++)
+          rez.serialize<size_t>(rit.second.size());
+          for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           analysis_expr->pack_expression(rez, target);
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
           rez.serialize<size_t>(valid_instances.size());
-          for (op::FieldMaskMap<LogicalView>::const_iterator it =
-                   valid_instances.begin();
-               it != valid_instances.end(); it++)
+          for (const std::pair<LogicalView*, FieldMask>& it : valid_instances)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           rez.serialize(target_analysis);
           rez.serialize(ready);
@@ -342,12 +335,11 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (op::FieldMaskMap<LogicalView>::const_iterator it =
-                     recorded_instances->begin();
-                 it != recorded_instances->end(); it++)
+            for (const std::pair<LogicalView*, FieldMask>& it :
+                 *recorded_instances)
             {
-              rez.serialize(it->first->did);
-              rez.serialize(it->second);
+              rez.serialize(it.first->did);
+              rez.serialize(it.second);
             }
             rez.serialize<bool>(restricted);
           }
@@ -504,36 +496,33 @@ namespace Legion {
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> ready_events;
-      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
-               const_iterator rit = remote_sets.begin();
-           rit != remote_sets.end(); rit++)
+      for (const std::pair<
+               const AddressSpaceID, op::FieldMaskMap<EquivalenceSet>>& rit :
+           remote_sets)
       {
-        legion_assert(!rit->second.empty());
-        const AddressSpaceID target = rit->first;
+        legion_assert(!rit.second.empty());
+        const AddressSpaceID target = rit.first;
         const RtUserEvent ready = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
         EquivalenceSetRequestAntivalid rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
-          rez.serialize<size_t>(rit->second.size());
-          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
-                   rit->second.begin();
-               it != rit->second.end(); it++)
+          rez.serialize<size_t>(rit.second.size());
+          for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           analysis_expr->pack_expression(rez, target);
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
           rez.serialize<size_t>(antivalid_instances.size());
-          for (op::FieldMaskMap<LogicalView>::const_iterator it =
-                   antivalid_instances.begin();
-               it != antivalid_instances.end(); it++)
+          for (const std::pair<LogicalView*, FieldMask>& it :
+               antivalid_instances)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           rez.serialize(target_analysis);
           rez.serialize(ready);
@@ -566,12 +555,11 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (op::FieldMaskMap<LogicalView>::const_iterator it =
-                     recorded_instances->begin();
-                 it != recorded_instances->end(); it++)
+            for (const std::pair<LogicalView*, FieldMask>& it :
+                 *recorded_instances)
             {
-              rez.serialize(it->first->did);
-              rez.serialize(it->second);
+              rez.serialize(it.first->did);
+              rez.serialize(it.second);
             }
             rez.serialize<bool>(restricted);
           }
