@@ -3399,8 +3399,8 @@ namespace Legion {
       // The only fields left here are the partial restrictions
       local::FieldMaskMap<IndexSpaceExpression> restrictions;
       for (const std::pair<
-               IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView>>& it :
-           restricted_instances)
+               IndexSpaceExpression* const, shrt::FieldMaskMap<InstanceView>>&
+               it : restricted_instances)
       {
         if (it.first == finder->first)
           continue;
@@ -3972,8 +3972,8 @@ namespace Legion {
       // computing the intefering expression sets
       local::FieldMaskMap<IndexSpaceExpression> restricted_sets;
       for (const std::pair<
-               IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView>>& it :
-           restricted_instances)
+               IndexSpaceExpression* const, shrt::FieldMaskMap<InstanceView>>&
+               it : restricted_instances)
       {
         const FieldMask overlap = it.second.get_valid_mask() & filter_mask;
         if (!overlap)
@@ -5569,8 +5569,8 @@ namespace Legion {
         return;
       // Iterate through the restrictions looking for overlaps
       for (const std::pair<
-               IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView>>& rit :
-           restricted_instances)
+               IndexSpaceExpression* const, shrt::FieldMaskMap<InstanceView>>&
+               rit : restricted_instances)
       {
         const FieldMask overlap = rit.second.get_valid_mask() & restricted_mask;
         if (!overlap)
@@ -5818,8 +5818,8 @@ namespace Legion {
       }
       restricted_fields.clear();
       for (const std::pair<
-               IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView>>& it :
-           restricted_instances)
+               IndexSpaceExpression* const, shrt::FieldMaskMap<InstanceView>>&
+               it : restricted_instances)
         restricted_fields |= it.second.get_valid_mask();
     }
 
@@ -7731,8 +7731,8 @@ namespace Legion {
         // Rebuild the restricted fields
         restricted_fields.clear();
         for (const std::pair<
-                 IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView>>& it :
-             restricted_instances)
+                 IndexSpaceExpression* const, shrt::FieldMaskMap<InstanceView>>&
+                 it : restricted_instances)
           restricted_fields |= it.second.get_valid_mask();
         // If the data was restricted then we just removed the only
         // valid copy so we need to filter the initialized data
@@ -9140,8 +9140,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (const std::pair<
-               IndexSpaceExpression*, shrt::FieldMaskMap<LogicalView>>& it :
-           valid)
+               IndexSpaceExpression* const, shrt::FieldMaskMap<LogicalView>>&
+               it : valid)
         if (expr_references->insert(it.first).second)
           it.first->add_base_expression_reference(META_TASK_REF);
       valid_updates->swap(valid);
@@ -9158,7 +9158,7 @@ namespace Legion {
           it->first->add_base_expression_reference(META_TASK_REF);
       invalidated_updates->swap(invd);
       for (const std::pair<
-               unsigned,
+               const unsigned,
                std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>&
                rit : reductions)
         for (const std::pair<InstanceView*, IndexSpaceExpression*>& it :
@@ -9167,14 +9167,14 @@ namespace Legion {
             it.second->add_base_expression_reference(META_TASK_REF);
       reduction_updates->swap(reductions);
       for (const std::pair<
-               IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView>>& it :
-           restricted)
+               IndexSpaceExpression* const, shrt::FieldMaskMap<InstanceView>>&
+               it : restricted)
         if (expr_references->insert(it.first).second)
           it.first->add_base_expression_reference(META_TASK_REF);
       restricted_updates->swap(restricted);
       for (const std::pair<
-               IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView>>& it :
-           released)
+               IndexSpaceExpression* const, shrt::FieldMaskMap<InstanceView>>&
+               it : released)
         if (expr_references->insert(it.first).second)
           it.first->add_base_expression_reference(META_TASK_REF);
       released_updates->swap(released);
@@ -9883,8 +9883,8 @@ namespace Legion {
       if (!released_instances.empty())
       {
         for (const std::pair<
-                 IndexSpaceExpression*, shrt::FieldMaskMap<InstanceView>>& rit :
-             released_instances)
+                 IndexSpaceExpression* const, shrt::FieldMaskMap<InstanceView>>&
+                 rit : released_instances)
         {
           if (mask * rit.second.get_valid_mask())
             continue;
@@ -12105,8 +12105,9 @@ namespace Legion {
             mapping->pack(rez);
             rez.serialize(local_ready);
             rez.serialize<size_t>(to_notify.size());
-            for (const std::pair<AddressSpaceID, local::FieldMaskMap<EqKDTree>>&
-                     nit : to_notify)
+            for (const std::pair<
+                     const AddressSpaceID, local::FieldMaskMap<EqKDTree>>& nit :
+                 to_notify)
             {
               rez.serialize(nit.first);
               rez.serialize(nit.second.size());
@@ -12243,8 +12244,9 @@ namespace Legion {
           mapping.pack(rez);
           rez.serialize(ready_event);
           rez.serialize<size_t>(to_notify.size());
-          for (const std::pair<AddressSpaceID, local::FieldMaskMap<EqKDTree>>&
-                   nit : to_notify)
+          for (const std::pair<
+                   const AddressSpaceID, local::FieldMaskMap<EqKDTree>>& nit :
+               to_notify)
           {
             rez.serialize(nit.first);
             rez.serialize(nit.second.size());
