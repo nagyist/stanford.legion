@@ -1273,19 +1273,18 @@ namespace Legion {
           legion_assert(manage_dst_events);
           CollectiveView* target_collective = target->as_collective_view();
           std::map<IndividualView*, IndexSpaceExpression*> view_exprs;
-          for (std::map<IndividualView*, std::vector<CopyUpdate*>>::iterator
-                   cit = fused_gather_copies.begin();
-               cit != fused_gather_copies.end(); cit++)
+          for (const std::pair<IndividualView* const, std::vector<CopyUpdate*>>&
+                   cit : fused_gather_copies)
           {
-            if (cit->second.size() > 1)
+            if (cit.second.size() > 1)
             {
               std::set<IndexSpaceExpression*> union_exprs;
-              for (CopyUpdate* const it : cit->second)
+              for (CopyUpdate* const it : cit.second)
                 union_exprs.insert(it->expr);
-              view_exprs[cit->first] = runtime->union_index_spaces(union_exprs);
+              view_exprs[cit.first] = runtime->union_index_spaces(union_exprs);
             }
             else
-              view_exprs[cit->first] = (*(cit->second.begin()))->expr;
+              view_exprs[cit.first] = (*(cit.second.begin()))->expr;
           }
           const ApEvent result = target_collective->collective_fuse_gather(
               view_exprs, precondition, predicate_guard, analysis->op,
@@ -1313,21 +1312,20 @@ namespace Legion {
                 original.end(), next->second.begin(), next->second.end());
         }
       }
-      for (std::map<InstanceView*, std::vector<CopyUpdate*>>::const_iterator
-               cit = copies.begin();
-           cit != copies.end(); cit++)
+      for (const std::pair<InstanceView* const, std::vector<CopyUpdate*>>& cit :
+           copies)
       {
-        legion_assert(!cit->second.empty());
+        legion_assert(!cit.second.empty());
         // Should only have across helpers for across copies
         legion_assert(
-            (cit->second[0]->across_helper == nullptr) || !manage_dst_events);
-        if (cit->second.size() == 1)
+            (cit.second[0]->across_helper == nullptr) || !manage_dst_events);
+        if (cit.second.size() == 1)
         {
           // Easy case of a single update copy
-          CopyUpdate* update = cit->second[0];
-          if (cit->second[0]->across_helper != nullptr)
+          CopyUpdate* update = cit.second[0];
+          if (cit.second[0]->across_helper != nullptr)
             legion_assert(
-                !(cit->second[0]->across_helper->convert_dst_to_src(copy_mask) -
+                !(cit.second[0]->across_helper->convert_dst_to_src(copy_mask) -
                   update->src_mask));
           else
             // Should cover all the fields
@@ -1338,7 +1336,7 @@ namespace Legion {
               source, precondition, predicate_guard, update->redop, copy_expr,
               analysis->op, manage_dst_events ? dst_index : src_index,
               match_space, copy_mask, update->src_man, trace_info,
-              recorded_events, effects, cit->second[0]->across_helper,
+              recorded_events, effects, cit.second[0]->across_helper,
               manage_dst_events, restricted_output, track_events);
           if (result.exists())
           {
@@ -1352,9 +1350,9 @@ namespace Legion {
         {
 #ifdef LEGION_DEBUG
           FieldMask src_mask;
-          if (cit->second[0]->across_helper != nullptr)
+          if (cit.second[0]->across_helper != nullptr)
             src_mask =
-                cit->second[0]->across_helper->convert_dst_to_src(copy_mask);
+                cit.second[0]->across_helper->convert_dst_to_src(copy_mask);
           else
             src_mask = copy_mask;
 #endif
@@ -1366,15 +1364,15 @@ namespace Legion {
               std::pair<InstanceView*, PhysicalManager*>,
               std::set<IndexSpaceExpression*>>
               fused_exprs;
-          const ReductionOpID redop = cit->second[0]->redop;
-          for (CopyUpdate* const it : cit->second)
+          const ReductionOpID redop = cit.second[0]->redop;
+          for (CopyUpdate* const it : cit.second)
           {
             // Should cover all the fields
             legion_assert(!(src_mask - it->src_mask));
             // Should have the same redop
             legion_assert(redop == it->redop);
             // Should also have the same across helper as the first one
-            legion_assert(cit->second[0]->across_helper == it->across_helper);
+            legion_assert(cit.second[0]->across_helper == it->across_helper);
             const std::pair<InstanceView*, PhysicalManager*> key(
                 it->source, it->src_man);
             fused_exprs[key].insert(it->expr);
@@ -1394,7 +1392,7 @@ namespace Legion {
                 copy_expr, analysis->op,
                 manage_dst_events ? dst_index : src_index, match_space,
                 copy_mask, it->first.second, trace_info, recorded_events,
-                effects, cit->second[0]->across_helper, manage_dst_events,
+                effects, cit.second[0]->across_helper, manage_dst_events,
                 restricted_output, track_events);
             if (result.exists())
             {

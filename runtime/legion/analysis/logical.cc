@@ -1214,38 +1214,35 @@ namespace Legion {
         // Need to issue these close operations in order in case we are
         // control replicated and therefore all the shards need to see
         // the closes in the same order for things to work correctly
-        std::map<LogicalRegion, RegionTreeNode*> ordered_region_closes;
-        std::map<LogicalPartition, RegionTreeNode*> ordered_partition_closes;
-        for (std::map<RegionTreeNode*, MergeCloseOp*>::const_iterator it =
-                 pending_closes.begin();
-             it != pending_closes.end(); it++)
+        local::map<LogicalRegion, RegionTreeNode*> ordered_region_closes;
+        local::map<LogicalPartition, RegionTreeNode*> ordered_partition_closes;
+        for (const std::pair<RegionTreeNode* const, MergeCloseOp*>& it :
+             pending_closes)
         {
-          if (it->first->is_region())
+          if (it.first->is_region())
           {
-            RegionNode* region = it->first->as_region_node();
-            ordered_region_closes[region->handle] = it->first;
+            RegionNode* region = it.first->as_region_node();
+            ordered_region_closes[region->handle] = it.first;
           }
           else
           {
-            PartitionNode* partition = it->first->as_partition_node();
-            ordered_partition_closes[partition->handle] = it->first;
+            PartitionNode* partition = it.first->as_partition_node();
+            ordered_partition_closes[partition->handle] = it.first;
           }
         }
-        for (std::map<LogicalRegion, RegionTreeNode*>::const_iterator it =
-                 ordered_region_closes.begin();
-             it != ordered_region_closes.end(); it++)
+        for (const std::pair<const LogicalRegion, RegionTreeNode*>& it :
+             ordered_region_closes)
         {
-          MergeCloseOp* close = pending_closes[it->second];
+          MergeCloseOp* close = pending_closes[it.second];
           issue_internal_operation(
-              it->second, close, close->get_close_mask(), internal_index++);
+              it.second, close, close->get_close_mask(), internal_index++);
         }
-        for (std::map<LogicalPartition, RegionTreeNode*>::const_iterator it =
-                 ordered_partition_closes.begin();
-             it != ordered_partition_closes.end(); it++)
+        for (const std::pair<const LogicalPartition, RegionTreeNode*>& it :
+             ordered_partition_closes)
         {
-          MergeCloseOp* close = pending_closes[it->second];
+          MergeCloseOp* close = pending_closes[it.second];
           issue_internal_operation(
-              it->second, close, close->get_close_mask(), internal_index++);
+              it.second, close, close->get_close_mask(), internal_index++);
         }
       }
     }

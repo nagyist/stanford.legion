@@ -959,21 +959,20 @@ namespace Legion {
       }
       if (!reduction_instances.empty())
       {
-        for (std::map<
-                 unsigned,
-                 std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>::
-                 iterator it = reduction_instances.begin();
-             it != reduction_instances.end(); it++)
+        for (std::pair<
+                 const unsigned,
+                 std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>&
+                 it : reduction_instances)
         {
-          while (!it->second.empty())
+          while (!it.second.empty())
           {
             std::pair<InstanceView*, IndexSpaceExpression*>& back =
-                it->second.back();
+                it.second.back();
             if (back.first->remove_nested_valid_ref(did))
               delete back.first;
             if (back.second->remove_nested_expression_reference(did))
               delete back.second;
-            it->second.pop_back();
+            it.second.pop_back();
           }
         }
         reduction_instances.clear();
@@ -3235,7 +3234,7 @@ namespace Legion {
               else
               {
                 // Filter out the ones we now subsume
-                std::vector<IndexSpaceExpression*> to_delete;
+                local::vector<IndexSpaceExpression*> to_delete;
                 for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator eit =
                          finder->second.begin();
                      eit != finder->second.end(); eit++)
@@ -3244,7 +3243,7 @@ namespace Legion {
                   if (!eit->second)
                     to_delete.emplace_back(eit->first);
                 }
-                for (std::vector<IndexSpaceExpression*>::const_iterator eit =
+                for (local::vector<IndexSpaceExpression*>::const_iterator eit =
                          to_delete.begin();
                      eit != to_delete.end(); eit++)
                 {
@@ -3306,7 +3305,7 @@ namespace Legion {
               else
               {
                 // Filter out the ones we now subsume
-                std::vector<IndexSpaceExpression*> to_delete;
+                local::vector<IndexSpaceExpression*> to_delete;
                 for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator eit =
                          finder->second.begin();
                      eit != finder->second.end(); eit++)
@@ -3315,7 +3314,7 @@ namespace Legion {
                   if (!eit->second)
                     to_delete.emplace_back(eit->first);
                 }
-                for (std::vector<IndexSpaceExpression*>::const_iterator eit =
+                for (local::vector<IndexSpaceExpression*>::const_iterator eit =
                          to_delete.begin();
                      eit != to_delete.end(); eit++)
                 {
@@ -5036,23 +5035,23 @@ namespace Legion {
                   if (red_view->aliases(it->first))
                   {
                     // Check for the ABA problem
-                    for (std::map<ReductionOpID, IndexSpaceExpression*>::
-                             const_iterator mit = masked_exprs.begin();
-                         mit != masked_exprs.end(); mit++)
+                    for (const std::pair<
+                             const ReductionOpID, IndexSpaceExpression*>& mit :
+                         masked_exprs)
                     {
                       IndexSpaceExpression* overlap =
                           (it->second != set_expr) ?
                               runtime->intersect_index_spaces(
-                                  mit->second, it->second) :
-                              mit->second;
+                                  mit.second, it->second) :
+                              mit.second;
                       if (!overlap->is_empty())
                       {
                         // If we make it here, report the ABA violation
                         Fatal fatal;
                         fatal << "Unsafe re-use of reduction instance "
                               << "detected due to alternating un-flushed "
-                              << "reduction operations " << mit->first
-                              << " and " << view_redop << ". Please report "
+                              << "reduction operations " << mit.first << " and "
+                              << view_redop << ". Please report "
                               << "this use case to the Legion developer's "
                               << "mailing list so that we can help you address "
                                  "it.";
@@ -5627,8 +5626,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Already holding the eq_lock from EquivalenceSet::analyze method
-      std::vector<IndexSpaceExpression*> to_delete;
-      std::map<IndexSpaceExpression*, IndexSpaceExpression*> to_add;
+      local::vector<IndexSpaceExpression*> to_delete;
+      local::map<IndexSpaceExpression*, IndexSpaceExpression*> to_add;
       // Now we need to lock the analysis if we're going to do this traversal
       AutoLock a_lock(analysis);
       for (ExprViewMaskSets::iterator eit = restricted_instances.begin();
@@ -5764,17 +5763,15 @@ namespace Legion {
         if (done_early)
           break;
       }
-      for (std::map<IndexSpaceExpression*, IndexSpaceExpression*>::
-               const_iterator eit = to_add.begin();
-           eit != to_add.end(); eit++)
+      for (const std::pair<IndexSpaceExpression* const, IndexSpaceExpression*>&
+               eit : to_add)
       {
-        if (restricted_instances.find(eit->second) ==
-            restricted_instances.end())
-          eit->second->add_nested_expression_reference(did);
+        if (restricted_instances.find(eit.second) == restricted_instances.end())
+          eit.second->add_nested_expression_reference(did);
         shrt::FieldMaskMap<InstanceView>& old_insts =
-            restricted_instances[eit->first];
+            restricted_instances[eit.first];
         shrt::FieldMaskMap<InstanceView>& new_insts =
-            restricted_instances[eit->second];
+            restricted_instances[eit.second];
         if (!new_insts.empty() || !!(old_insts.get_valid_mask() & acquire_mask))
         {
           std::vector<InstanceView*> to_erase;
@@ -5798,17 +5795,17 @@ namespace Legion {
               delete it;
           }
           if (old_insts.empty())
-            to_delete.emplace_back(eit->first);
+            to_delete.emplace_back(eit.first);
           else
             old_insts.tighten_valid_mask();
         }
         else
         {
           new_insts.swap(old_insts);
-          to_delete.emplace_back(eit->first);
+          to_delete.emplace_back(eit.first);
         }
       }
-      for (std::vector<IndexSpaceExpression*>::const_iterator it =
+      for (local::vector<IndexSpaceExpression*>::const_iterator it =
                to_delete.begin();
            it != to_delete.end(); it++)
       {
@@ -5841,8 +5838,8 @@ namespace Legion {
       {
         local::map<IndexSpaceExpression*, local::FieldMaskMap<InstanceView>>
             to_update;
-        std::vector<IndexSpaceExpression*> to_delete;
-        std::map<IndexSpaceExpression*, IndexSpaceExpression*> to_add;
+        local::vector<IndexSpaceExpression*> to_delete;
+        local::map<IndexSpaceExpression*, IndexSpaceExpression*> to_add;
         for (ExprViewMaskSets::iterator eit = released_instances.begin();
              eit != released_instances.end(); eit++)
         {
@@ -5934,16 +5931,16 @@ namespace Legion {
           }
         }
         // Record updates to the released sets
-        for (std::map<IndexSpaceExpression*, IndexSpaceExpression*>::
-                 const_iterator eit = to_add.begin();
-             eit != to_add.end(); eit++)
+        for (const std::pair<
+                 IndexSpaceExpression* const, IndexSpaceExpression*>& eit :
+             to_add)
         {
-          if (released_instances.find(eit->first) == released_instances.end())
-            eit->first->add_nested_expression_reference(did);
+          if (released_instances.find(eit.first) == released_instances.end())
+            eit.first->add_nested_expression_reference(did);
           shrt::FieldMaskMap<InstanceView>& new_insts =
-              released_instances[eit->first];
+              released_instances[eit.first];
           shrt::FieldMaskMap<InstanceView>& old_insts =
-              released_instances[eit->second];
+              released_instances[eit.second];
           if (!new_insts.empty() ||
               !!(old_insts.get_valid_mask() & release_mask))
           {
@@ -5970,17 +5967,17 @@ namespace Legion {
                 delete (*it);
             }
             if (old_insts.empty())
-              to_delete.emplace_back(eit->first);
+              to_delete.emplace_back(eit.first);
             else
               old_insts.tighten_valid_mask();
           }
           else
           {
             new_insts.swap(old_insts);
-            to_delete.emplace_back(eit->first);
+            to_delete.emplace_back(eit.first);
           }
         }
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
+        for (local::vector<IndexSpaceExpression*>::const_iterator it =
                  to_delete.begin();
              it != to_delete.end(); it++)
         {
@@ -6096,7 +6093,7 @@ namespace Legion {
       {
         // Check to see if we can union this expression with any others
         local::FieldMaskMap<IndexSpaceExpression> to_union;
-        std::vector<IndexSpaceExpression*> to_delete;
+        local::vector<IndexSpaceExpression*> to_delete;
         for (ExprViewMaskSets::iterator eit = restricted_instances.begin();
              eit != restricted_instances.end(); eit++)
         {
@@ -6195,7 +6192,7 @@ namespace Legion {
                        restrict_view, restrict_mask))
             restrict_view->add_nested_valid_ref(did);
         }
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
+        for (local::vector<IndexSpaceExpression*>::const_iterator it =
                  to_delete.begin();
              it != to_delete.end(); it++)
         {
@@ -7529,19 +7526,17 @@ namespace Legion {
       // can remove the references that were being held
       if (!deferred_refs_to_remove.empty())
       {
-        for (std::map<DeferredView*, unsigned>::const_iterator it =
-                 deferred_refs_to_remove.begin();
-             it != deferred_refs_to_remove.end(); it++)
-          if (it->first->remove_nested_valid_ref(did, it->second))
-            delete it->first;
+        for (const std::pair<DeferredView* const, unsigned>& it :
+             deferred_refs_to_remove)
+          if (it.first->remove_nested_valid_ref(did, it.second))
+            delete it.first;
       }
       if (!expr_refs_to_remove.empty())
       {
-        for (std::map<IndexSpaceExpression*, unsigned>::const_iterator it =
-                 expr_refs_to_remove.begin();
-             it != expr_refs_to_remove.end(); it++)
-          if (it->first->remove_nested_expression_reference(did, it->second))
-            delete it->first;
+        for (const std::pair<IndexSpaceExpression* const, unsigned>& it :
+             expr_refs_to_remove)
+          if (it.first->remove_nested_expression_reference(did, it.second))
+            delete it.first;
       }
       if (need_partial_rebuild)
       {
@@ -8756,17 +8751,16 @@ namespace Legion {
         rez.serialize(it->second);
       }
       rez.serialize<size_t>(reduction_updates.size());
-      for (std::map<
-               unsigned,
-               std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>::
-               const_iterator rit = reduction_updates.begin();
-           rit != reduction_updates.end(); rit++)
+      for (const std::pair<
+               const unsigned,
+               std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>&
+               rit : reduction_updates)
       {
-        rez.serialize(rit->first);
-        rez.serialize<size_t>(rit->second.size());
+        rez.serialize(rit.first);
+        rez.serialize<size_t>(rit.second.size());
         for (std::list<std::pair<InstanceView*, IndexSpaceExpression*>>::
-                 const_iterator it = rit->second.begin();
-             it != rit->second.end(); it++)
+                 const_iterator it = rit.second.begin();
+             it != rit.second.end(); it++)
         {
           rez.serialize(it->first->did);
           it->second->pack_expression(rez, target);
@@ -9473,15 +9467,14 @@ namespace Legion {
             std::sort(temp_refs.begin(), temp_refs.end());
           }
         }
-        for (std::map<
-                 unsigned,
-                 std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>::
-                 const_iterator rit = reduction_updates.begin();
-             rit != reduction_updates.end(); rit++)
+        for (const std::pair<
+                 const unsigned,
+                 std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>&
+                 rit : reduction_updates)
         {
           for (std::list<std::pair<InstanceView*, IndexSpaceExpression*>>::
-                   const_iterator it = rit->second.begin();
-               it != rit->second.end(); it++)
+                   const_iterator it = rit.second.begin();
+               it != rit.second.end(); it++)
           {
             it->first->pack_valid_ref();
             if (!std::binary_search(
@@ -9801,17 +9794,16 @@ namespace Legion {
       // Get updates from the reductions
       if (!reduction_instances.empty() && !(mask * reduction_fields))
       {
-        for (std::map<
-                 unsigned,
-                 std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>::
-                 const_iterator rit = reduction_instances.begin();
-             rit != reduction_instances.end(); rit++)
+        for (const std::pair<
+                 const unsigned,
+                 std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>&
+                 rit : reduction_instances)
         {
-          if (!mask.is_set(rit->first))
+          if (!mask.is_set(rit.first))
             continue;
           std::list<std::pair<InstanceView*, IndexSpaceExpression*>>& updates =
-              reduction_updates[rit->first];
-          updates = rit->second;
+              reduction_updates[rit.first];
+          updates = rit.second;
           if (!overlap_covers)
           {
             for (std::list<std::pair<InstanceView*, IndexSpaceExpression*>>::
@@ -10155,21 +10147,20 @@ namespace Legion {
           if (partial_invalidations.insert(it->first, it->second))
             it->first->add_nested_expression_reference(did);
       }
-      for (std::map<
-               unsigned,
-               std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>::
-               iterator it = reduction_updates.begin();
-           it != reduction_updates.end(); it++)
+      for (std::pair<
+               const unsigned,
+               std::list<std::pair<InstanceView*, IndexSpaceExpression*>>>& it :
+           reduction_updates)
       {
         // Need to make a local copy here since this can destroy the list
         std::vector<InstanceView*> local_reductions;
-        local_reductions.reserve(it->second.size());
+        local_reductions.reserve(it.second.size());
         for (std::list<std::pair<InstanceView*, IndexSpaceExpression*>>::
-                 const_iterator vit = it->second.begin();
-             vit != it->second.end(); vit++)
+                 const_iterator vit = it.second.begin();
+             vit != it.second.end(); vit++)
           local_reductions.emplace_back(vit->first);
         // Update the reductions
-        update_reductions(it->first, it->second);
+        update_reductions(it.first, it.second);
         // Then unpack our valid references
         for (std::vector<InstanceView*>::const_iterator it =
                  local_reductions.begin();
@@ -10546,17 +10537,15 @@ namespace Legion {
       // If we have just one response, we can just move things over
       if ((total_responses == 1) && !to_create.empty())
       {
-        for (std::map<EqKDTree*, Domain>::const_iterator it =
-                 creation_rects.begin();
-             it != creation_rects.end(); it++)
+        for (const std::pair<EqKDTree* const, Domain>& it : creation_rects)
         {
-          legion_assert(to_create.find(it->first) != to_create.end());
+          legion_assert(to_create.find(it.first) != to_create.end());
           op::map<Domain, FieldMask>::iterator finder =
-              create_now_rectangles.find(it->second);
+              create_now_rectangles.find(it.second);
           if (finder != create_now_rectangles.end())
-            finder->second |= to_create[it->first];
+            finder->second |= to_create[it.first];
           else
-            create_now_rectangles[it->second] = to_create[it->first];
+            create_now_rectangles[it.second] = to_create[it.first];
         }
         create_now[source].swap(to_create);
         create_now_sources.swap(creation_srcs);

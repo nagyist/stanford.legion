@@ -239,12 +239,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(ranges.size());
-      for (std::map<LegionColor, LegionColor>::const_iterator it =
-               ranges.begin();
-           it != ranges.end(); it++)
+      for (const std::pair<const LegionColor, LegionColor>& it : ranges)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
     }
 
@@ -1392,31 +1390,29 @@ namespace Legion {
       rez.serialize<bool>(leaves_only);
       rez.serialize<bool>(unique_shards);
       rez.serialize<size_t>(region_summaries.size());
-      for (std::map<LogicalRegion, RegionSummary>::const_iterator it =
-               region_summaries.begin();
-           it != region_summaries.end(); it++)
+      for (const std::pair<const LogicalRegion, RegionSummary>& it :
+           region_summaries)
       {
-        rez.serialize(it->first);
-        it->second.children.serialize(rez);
-        rez.serialize(it->second.users.size());
-        for (unsigned idx = 0; idx < it->second.users.size(); idx++)
-          rez.serialize(it->second.users[idx]);
+        rez.serialize(it.first);
+        it.second.children.serialize(rez);
+        rez.serialize(it.second.users.size());
+        for (unsigned idx = 0; idx < it.second.users.size(); idx++)
+          rez.serialize(it.second.users[idx]);
       }
       rez.serialize<size_t>(partition_summaries.size());
-      for (std::map<LogicalPartition, PartitionSummary>::const_iterator it =
-               partition_summaries.begin();
-           it != partition_summaries.end(); it++)
+      for (const std::pair<const LogicalPartition, PartitionSummary>& it :
+           partition_summaries)
       {
-        rez.serialize(it->first);
-        it->second.children.serialize(rez);
+        rez.serialize(it.first);
+        it.second.children.serialize(rez);
 #ifdef LEGION_NAME_BASED_CHILDREN_SHARDS
         if (disjoint && leaves_only)
         {
           rez.serialize<size_t>(
-              it->second.disjoint_complete_child_shards.size());
+              it.second.disjoint_complete_child_shards.size());
           for (std::unordered_map<LegionColor, ShardSet>::const_iterator cit =
-                   it->second.disjoint_complete_child_shards.begin();
-               cit != it->second.disjoint_complete_child_shards.end(); cit++)
+                   it.second.disjoint_complete_child_shards.begin();
+               cit != it.second.disjoint_complete_child_shards.end(); cit++)
           {
             rez.serialize(cit->first);
             cit->second.serialize(rez, context->total_shards);
