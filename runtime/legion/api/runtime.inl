@@ -490,7 +490,7 @@ namespace Legion {
     struct ReturnSize {
       static constexpr size_t value = std::conditional<
           IsSerdezType<T>::value, SerdezBound<T, HasSerdezBound<T>::value>,
-          SizeBound<T> >::type::value;
+          SizeBound<T>>::type::value;
     };
 
   };  // Serialization namespace
@@ -576,12 +576,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   template<int DIM, typename T>
   IndexSpaceT<DIM, T> Runtime::create_index_space(
-      Context ctx, const std::vector<Point<DIM, T> >& points,
+      Context ctx, const std::vector<Point<DIM, T>>& points,
       const char* provenance)
   //--------------------------------------------------------------------------
   {
     // C++ type system is dumb
-    std::vector<Realm::Point<DIM, T> > realm_points(points.size());
+    std::vector<Realm::Point<DIM, T>> realm_points(points.size());
     for (unsigned idx = 0; idx < points.size(); idx++)
       realm_points[idx] = points[idx];
     const DomainT<DIM, T> realm_is((Realm::IndexSpace<DIM, T>(realm_points)));
@@ -594,12 +594,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   template<int DIM, typename T>
   IndexSpaceT<DIM, T> Runtime::create_index_space(
-      Context ctx, const std::vector<Rect<DIM, T> >& rects,
+      Context ctx, const std::vector<Rect<DIM, T>>& rects,
       const char* provenance)
   //--------------------------------------------------------------------------
   {
     // C++ type system is dumb
-    std::vector<Realm::Rect<DIM, T> > realm_rects(rects.size());
+    std::vector<Realm::Rect<DIM, T>> realm_rects(rects.size());
     for (unsigned idx = 0; idx < rects.size(); idx++)
       realm_rects[idx] = rects[idx];
     const DomainT<DIM, T> realm_is((Realm::IndexSpace<DIM, T>(realm_rects)));
@@ -612,7 +612,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   template<int DIM, typename T>
   IndexSpaceT<DIM, T> Runtime::union_index_spaces(
-      Context ctx, const std::vector<IndexSpaceT<DIM, T> >& spaces,
+      Context ctx, const std::vector<IndexSpaceT<DIM, T>>& spaces,
       const char* provenance)
   //--------------------------------------------------------------------------
   {
@@ -625,7 +625,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   template<int DIM, typename T>
   IndexSpaceT<DIM, T> Runtime::intersect_index_spaces(
-      Context ctx, const std::vector<IndexSpaceT<DIM, T> >& spaces,
+      Context ctx, const std::vector<IndexSpaceT<DIM, T>>& spaces,
       const char* provenance)
   //--------------------------------------------------------------------------
   {
@@ -670,10 +670,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     std::map<DomainPoint, int> untyped_weights;
-    for (typename std::map<Point<COLOR_DIM, COLOR_T>, int>::const_iterator it =
-             weights.begin();
-         it != weights.end(); it++)
-      untyped_weights[DomainPoint(it->first)] = it->second;
+    for (const std::pair<const Point<COLOR_DIM, COLOR_T>, int>& weight_pair :
+         weights)
+      untyped_weights[DomainPoint(weight_pair.first)] = weight_pair.second;
     return IndexPartitionT<DIM, T>(create_partition_by_weights(
         ctx, IndexSpace(parent), untyped_weights, IndexSpace(color_space),
         granularity, color, prov));
@@ -689,10 +688,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     std::map<DomainPoint, size_t> untyped_weights;
-    for (typename std::map<Point<COLOR_DIM, COLOR_T>, size_t>::const_iterator
-             it = weights.begin();
-         it != weights.end(); it++)
-      untyped_weights[DomainPoint(it->first)] = it->second;
+    for (const std::pair<const Point<COLOR_DIM, COLOR_T>, size_t>& weight_pair :
+         weights)
+      untyped_weights[DomainPoint(weight_pair.first)] = weight_pair.second;
     return IndexPartitionT<DIM, T>(create_partition_by_weights(
         ctx, IndexSpace(parent), untyped_weights, IndexSpace(color_space),
         granularity, color, prov));
@@ -774,27 +772,23 @@ namespace Legion {
   Color Runtime::create_cross_product_partitions(
       Context ctx, IndexPartitionT<DIM, T> handle1,
       IndexPartitionT<DIM, T> handle2,
-      typename std::map<IndexSpaceT<DIM, T>, IndexPartitionT<DIM, T> >& handles,
+      typename std::map<IndexSpaceT<DIM, T>, IndexPartitionT<DIM, T>>& handles,
       PartitionKind part_kind, Color color, const char* prov)
   //--------------------------------------------------------------------------
   {
     std::map<IndexSpace, IndexPartition> untyped_handles;
-    for (typename std::map<
-             IndexSpaceT<DIM, T>, IndexPartitionT<DIM, T> >::const_iterator it =
-             handles.begin();
-         it != handles.end(); it++)
-      untyped_handles[it->first] = IndexPartition::NO_PART;
+    for (const std::pair<const IndexSpaceT<DIM, T>, IndexPartitionT<DIM, T>>&
+             handle_pair : handles)
+      untyped_handles[handle_pair.first] = IndexPartition::NO_PART;
     Color result = create_cross_product_partitions(
         ctx, handle1, handle2, untyped_handles, part_kind, color, prov);
-    for (typename std::map<
-             IndexSpaceT<DIM, T>, IndexPartitionT<DIM, T> >::iterator it =
-             handles.begin();
-         it != handles.end(); it++)
+    for (std::pair<const IndexSpaceT<DIM, T>, IndexPartitionT<DIM, T>>&
+             handle_pair : handles)
     {
       std::map<IndexSpace, IndexPartition>::const_iterator finder =
-          untyped_handles.find(it->first);
+          untyped_handles.find(handle_pair.first);
       legion_assert(finder != untyped_handles.end());
-      it->second = IndexPartitionT<DIM, T>(finder->second);
+      handle_pair.second = IndexPartitionT<DIM, T>(finder->second);
     }
     return result;
   }
@@ -903,18 +897,17 @@ namespace Legion {
   template<int DIM, typename T, int COLOR_DIM, typename COLOR_T>
   IndexPartitionT<DIM, T> Runtime::create_partition_by_domain(
       Context ctx, IndexSpaceT<DIM, T> parent,
-      const std::map<Point<COLOR_DIM, COLOR_T>, DomainT<DIM, T> >& domains,
+      const std::map<Point<COLOR_DIM, COLOR_T>, DomainT<DIM, T>>& domains,
       IndexSpaceT<COLOR_DIM, COLOR_T> color_space, bool perform_intersections,
       PartitionKind part_kind, Color color, const char* provenance,
       bool take_ownership)
   //--------------------------------------------------------------------------
   {
     std::map<DomainPoint, Domain> converted_domains;
-    for (typename std::map<
-             Point<COLOR_DIM, COLOR_T>, DomainT<DIM, T> >::const_iterator it =
-             domains.begin();
-         it != domains.end(); it++)
-      converted_domains[DomainPoint(it->first)] = Domain(it->second);
+    for (const std::pair<const Point<COLOR_DIM, COLOR_T>, DomainT<DIM, T>>&
+             domain_pair : domains)
+      converted_domains[DomainPoint(domain_pair.first)] =
+          Domain(domain_pair.second);
     return IndexPartitionT<DIM, T>(create_partition_by_domain(
         ctx, IndexSpace(parent), converted_domains, IndexSpace(color_space),
         perform_intersections, part_kind, color, provenance, take_ownership));
@@ -938,7 +931,7 @@ namespace Legion {
   template<int DIM, typename T, int COLOR_DIM, typename COLOR_T>
   IndexPartitionT<DIM, T> Runtime::create_partition_by_rectangles(
       Context ctx, IndexSpaceT<DIM, T> parent,
-      const std::map<Point<COLOR_DIM, COLOR_T>, std::vector<Rect<DIM, T> > >&
+      const std::map<Point<COLOR_DIM, COLOR_T>, std::vector<Rect<DIM, T>>>&
           rectangles,
       IndexSpaceT<COLOR_DIM, COLOR_T> color_space, bool perform_intersections,
       PartitionKind part_kind, Color color, const char* provenance,
@@ -948,14 +941,12 @@ namespace Legion {
     if (collective)
     {
       std::map<DomainPoint, Future> futures;
-      for (typename std::map<
-               Point<COLOR_DIM, COLOR_T>,
-               std::vector<Rect<DIM, T> > >::const_iterator it =
-               rectangles.begin();
-           it != rectangles.end(); it++)
+      for (const std::pair<
+               const Point<COLOR_DIM, COLOR_T>,
+               typename std::vector<Rect<DIM, T>>>& rect : rectangles)
       {
-        const DomainT<DIM, T> domain(it->second);
-        futures[DomainPoint(it->first)] =
+        const DomainT<DIM, T> domain(rect.second);
+        futures[DomainPoint(rect.first)] =
             Future::from_domain(Domain(domain), true /*take ownership*/);
       }
       FutureMap fm = construct_future_map(
@@ -971,12 +962,11 @@ namespace Legion {
       // the base domain version of this method which takes ownership of the
       // sparsity maps that have been created
       std::map<DomainPoint, Domain> domains;
-      for (typename std::map<
-               Point<COLOR_DIM, COLOR_T>,
-               std::vector<Rect<DIM, T> > >::const_iterator it =
-               rectangles.begin();
-           it != rectangles.end(); it++)
-        domains[DomainPoint(it->first)] = DomainT<DIM, T>(it->second);
+      for (const std::pair<
+               const Point<COLOR_DIM, COLOR_T>, std::vector<Rect<DIM, T>>>&
+               rect_pair : rectangles)
+        domains[DomainPoint(rect_pair.first)] =
+            DomainT<DIM, T>(rect_pair.second);
       return IndexPartitionT<DIM, T>(create_partition_by_domain(
           ctx, IndexSpace(parent), domains, IndexSpace(color_space),
           perform_intersections, part_kind, color, provenance,
@@ -1092,7 +1082,7 @@ namespace Legion {
   IndexSpaceT<DIM, T> Runtime::create_index_space_union(
       Context ctx, IndexPartitionT<DIM, T> parent,
       Point<COLOR_DIM, COLOR_T> color,
-      const typename std::vector<IndexSpaceT<DIM, T> >& handles,
+      const typename std::vector<IndexSpaceT<DIM, T>>& handles,
       const char* provenance)
   //--------------------------------------------------------------------------
   {
@@ -1124,7 +1114,7 @@ namespace Legion {
   IndexSpaceT<DIM, T> Runtime::create_index_space_intersection(
       Context ctx, IndexPartitionT<DIM, T> parent,
       Point<COLOR_DIM, COLOR_T> color,
-      const typename std::vector<IndexSpaceT<DIM, T> >& handles,
+      const typename std::vector<IndexSpaceT<DIM, T>>& handles,
       const char* provenance)
   //--------------------------------------------------------------------------
   {
@@ -1156,7 +1146,7 @@ namespace Legion {
   IndexSpaceT<DIM, T> Runtime::create_index_space_difference(
       Context ctx, IndexPartitionT<DIM, T> parent,
       Point<COLOR_DIM, COLOR_T> color, IndexSpaceT<DIM, T> initial,
-      const typename std::vector<IndexSpaceT<DIM, T> >& handles,
+      const typename std::vector<IndexSpaceT<DIM, T>>& handles,
       const char* provenance)
   //--------------------------------------------------------------------------
   {

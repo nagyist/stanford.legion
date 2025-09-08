@@ -790,7 +790,7 @@ namespace Legion {
       if (!(refinement_mask * refinement_trackers.get_valid_mask()))
       {
         local::FieldMaskMap<RefinementTracker> to_add;
-        std::vector<RefinementTracker*> to_delete;
+        local::vector<RefinementTracker*> to_delete;
         for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
@@ -821,7 +821,7 @@ namespace Legion {
           }
         }
         // Remove old entries
-        for (std::vector<RefinementTracker*>::const_iterator it =
+        for (local::vector<RefinementTracker*>::const_iterator it =
                  to_delete.begin();
              it != to_delete.end(); it++)
         {
@@ -858,7 +858,7 @@ namespace Legion {
       if (!(refinement_mask * refinement_trackers.get_valid_mask()))
       {
         local::FieldMaskMap<RefinementTracker> to_add;
-        std::vector<RefinementTracker*> to_delete;
+        local::vector<RefinementTracker*> to_delete;
         for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
@@ -886,7 +886,7 @@ namespace Legion {
           }
         }
         // Remove old entries
-        for (std::vector<RefinementTracker*>::const_iterator it =
+        for (local::vector<RefinementTracker*>::const_iterator it =
                  to_delete.begin();
              it != to_delete.end(); it++)
         {
@@ -913,7 +913,7 @@ namespace Legion {
         ContextID ctx, FieldMask invalidation_mask)
     //--------------------------------------------------------------------------
     {
-      std::vector<RefinementTracker*> to_delete;
+      local::vector<RefinementTracker*> to_delete;
       for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                refinement_trackers.begin();
            it != refinement_trackers.end(); it++)
@@ -930,7 +930,7 @@ namespace Legion {
           break;
       }
       legion_assert(!invalidation_mask);  // should have seen all the fields
-      for (std::vector<RefinementTracker*>::const_iterator it =
+      for (local::vector<RefinementTracker*>::const_iterator it =
                to_delete.begin();
            it != to_delete.end(); it++)
       {
