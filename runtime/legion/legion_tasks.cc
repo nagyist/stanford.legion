@@ -8645,6 +8645,7 @@ namespace Legion {
       {
         if (dependences[idx] == index_point)
         {
+          RegionRequirement& req = logical_regions[index];
           // If we've got a prior dependence then record it
           if (idx > 0)
           {
@@ -8657,6 +8658,10 @@ namespace Legion {
               std::sort(pointwise_mapping_dependences.begin(),
                         pointwise_mapping_dependences.end());
             }
+            // If we're not the first point in line for this region requirement
+            // then we shouldn't have a discard qualifier
+            if (IS_WRITE_DISCARD(req))
+              req.privilege &= ~LEGION_DISCARD_INPUT_MASK;
             if (runtime->legion_spy_enabled)
             {
               // We know we only need a dependence on the previous point but
@@ -8666,7 +8671,12 @@ namespace Legion {
                 LegionSpy::log_intra_space_dependence(unique_op_id,
                                                       dependences[idx2]);
             }
+            
           }
+          // If we're not the last point in line for this region requirement
+          // then we shouldn't have an output discard qualifier
+          else if (IS_READ_DISCARD(req) && (dependences.size() > 1))
+            req.privilege &= ~LEGION_DISCARD_OUTPUT_MASK;
           return;
         }
       }
@@ -10099,33 +10109,18 @@ namespace Legion {
         // projection functor from an upper bound region to make sure they
         // know what they are doing
         if (IS_WRITE(req) && (req.projection == 0) &&
-            (req.handle_type == LEGION_REGION_PROJECTION))
+            (req.handle_type == LEGION_REGION_PROJECTION) &&
+            runtime->runtime_warnings)
         {
-          if (IS_WRITE_DISCARD(req))
-          {
-            if (!IS_COLLECTIVE(req))
-              REPORT_LEGION_ERROR(ERROR_ALIASED_INTERFERING_REGION,
-                  "Parent task %s (UID %lld) issued index space task %s "
-                  "(UID %lld) with interfering region requirement %d that "
-                  "requested write-discard privileges for all point tasks "
-                  "on the same logical region without indicating that they "
-                  "should be performed concurrently. If you intend for all "
-                  "the point tasks to perform independent writes to the same "
-                  "logical region then you must mark the region requirement "
-                  "as being a collective write.", parent_ctx->get_task_name(),
-                  parent_ctx->get_unique_id(), get_task_name(),
-                  get_unique_op_id(), idx)
-          }
-          else if (runtime->runtime_warnings)
-            REPORT_LEGION_WARNING(
-                LEGION_WARNING_NON_SCALABLE_IDENTITY_PROJECTION,
-                "Parent task %s (UID %lld) issued index space task %s "
-                "(UID %lld) with non-scalable projection region requirement %d "
-                "that ensures all point tasks will be reading and writing to "
-                "the same logical region. This implies there will be no task "
-                "parallelism in this index space task launch.",
-                parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                get_task_name(), get_unique_op_id(), idx)
+          REPORT_LEGION_WARNING(
+              LEGION_WARNING_NON_SCALABLE_IDENTITY_PROJECTION,
+              "Parent task %s (UID %lld) issued index space task %s "
+              "(UID %lld) with non-scalable projection region requirement %d "
+              "that ensures all point tasks will be reading and writing to "
+              "the same logical region. This implies there will be no task "
+              "parallelism in this index space task launch.",
+              parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
+              get_task_name(), get_unique_op_id(), idx)
         }
       }
     }
@@ -11993,16 +11988,23 @@ namespace Legion {
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
         const RegionRequirement &req = regions[idx];
-        if (!IS_WRITE(req))
+        if (!IS_WRITE(req) && !IS_READ_DISCARD(req))
           continue;
         // If the projection functions are invertible then we don't have to 
         // worry about interference because the runtime knows how to hook
         // up those kinds of dependences
         if (req.handle_type != LEGION_SINGULAR_PROJECTION)
         {
-          ProjectionFunction *func = 
-            runtime->find_projection_function(req.projection);   
-          if (func->is_invertible)
+          if (req.projection != 0)
+          {
+            ProjectionFunction *func = 
+              runtime->find_projection_function(req.projection);   
+            if (func->is_invertible)
+              continue;
+          }
+          // Already know how to handle dependences when all points
+          // project to the same logical region
+          else if (req.handle_type == LEGION_REGION_PROJECTION)
             continue;
         }
         local_interfering.insert(std::pair<unsigned,unsigned>(idx,idx));

@@ -19108,8 +19108,9 @@ namespace Legion {
       // requirement so we'll detect that case that specially and handle
       // it here inside the runtime since we control the implementation of
       // the identity projection function
-      const bool find_dependences = IS_WRITE(req) && !IS_COLLECTIVE(req) &&
-        !replaying && (is_invertible || ((projection_id == 0) && 
+      const bool find_dependences = ((IS_WRITE(req) && !IS_COLLECTIVE(req)) ||
+          IS_READ_DISCARD(req)) && !replaying &&
+        (is_invertible || ((projection_id == 0) && 
                            (req.handle_type == LEGION_REGION_PROJECTION)));
       // Can skip pointwise analysis if we're replaying
       if (replaying)
