@@ -823,6 +823,7 @@ namespace Legion {
       {
         if (dependences[idx] == index_point)
         {
+          RegionRequirement& req = logical_regions[index];
           // If we've got a prior dependence then record it
           if (idx > 0)
           {
@@ -837,6 +838,10 @@ namespace Legion {
                   pointwise_mapping_dependences.begin(),
                   pointwise_mapping_dependences.end());
             }
+            // If we're not the first point in line for this region requirement
+            // then we shouldn't have a discard qualifier
+            if (IS_WRITE_DISCARD(req))
+              req.privilege &= ~LEGION_DISCARD_INPUT_MASK;
             // We know we only need a dependence on the previous point but
             // Legion Spy is stupid, so log everything we have a
             // precondition on even if it is transitively implied
@@ -844,6 +849,10 @@ namespace Legion {
               LegionSpy::log_intra_space_dependence(
                   unique_op_id, dependences[idx2]);
           }
+          // If we're not the last point in line for this region requirement
+          // then we shouldn't have an output discard qualifier
+          else if (IS_READ_DISCARD(req) && (dependences.size() > 1))
+            req.privilege &= ~LEGION_DISCARD_OUTPUT_MASK;
           return;
         }
       }
