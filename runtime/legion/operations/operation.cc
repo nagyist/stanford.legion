@@ -624,15 +624,15 @@ namespace Legion {
                 << "use of uninitialized data and is therefore illegal.";
           error.raise();
         }
-        if (IS_WRITE_ONLY(req) && IS_READ_DISCARD(req))
+        if (IS_WRITE_ONLY(req) && IS_READ_DISCARD(req) &&
+            ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0))
         {
           Warning warning;
           warning
               << "Region requirement " << index << " of " << *this
               << "combinded output-discard qualifer with a write-only "
-                 "privilege "
-              << "which means this region is never used anywhere. Are you sure "
-              << "you know what you are doing?";
+              << "privilege which means this region is never used anywhere. "
+              << "Are you sure you know what you are doing?";
           warning.raise();
         }
       }
@@ -645,7 +645,8 @@ namespace Legion {
               << req.prop << std::dec << ".";
         error.raise();
       }
-      if (req.privilege_fields.empty())
+      if (req.privilege_fields.empty() &&
+          ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0))
       {
         Warning warning;
         warning << "Region requirement " << index << " of " << *this

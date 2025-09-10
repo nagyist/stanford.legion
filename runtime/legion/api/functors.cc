@@ -651,7 +651,8 @@ namespace Legion {
       // it here inside the runtime since we control the implementation of
       // the identity projection function
       const bool find_dependences =
-          IS_WRITE(req) && !IS_COLLECTIVE(req) && !replaying &&
+          (IS_WRITE(req) || IS_READ_DISCARD(req)) && !IS_COLLECTIVE(req) &&
+          !replaying &&
           (is_invertible || ((projection_id == 0) &&
                              (req.handle_type == LEGION_REGION_PROJECTION)));
       // Can skip pointwise analysis if we're replaying
