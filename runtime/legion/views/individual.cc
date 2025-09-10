@@ -18,6 +18,7 @@
 #include "legion/instances/physical.h"
 #include "legion/nodes/across.h"
 #include "legion/nodes/index.h"
+#include "legion/nodes/region.h"
 #include "legion/views/allreduce.h"
 #include "legion/views/collective.h"
 #include "legion/views/fill.h"
@@ -51,143 +52,136 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // ExprView
+    // NodeView
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ExprView::ExprView(
-        DistributedID did, IndexSpaceExpression* exp, bool unbound)
-      : view_expr(unbound ? exp : exp->get_canonical_expression()),
-        view_volume(std::numeric_limits<size_t>::max()), view_did(did),
-        invalid_fields(FieldMask(LEGION_FIELD_MASK_FIELD_ALL_ONES))
+    NodeView::NodeView(IndexSpaceNode* n) : node(n)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    NodeView::~NodeView(void)
     //--------------------------------------------------------------------------
     {
-      view_expr->add_nested_expression_reference(view_did);
+      legion_assert(current_epoch_users.empty());
+      legion_assert(previous_epoch_users.empty());
+      legion_assert(subviews.empty());
     }
 
     //--------------------------------------------------------------------------
-    ExprView::~ExprView(void)
+    bool NodeView::is_empty(void) const
     //--------------------------------------------------------------------------
     {
-      if (view_expr->remove_nested_expression_reference(view_did))
-        delete view_expr;
-      if (!subviews.empty())
-      {
-        for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
-             it != subviews.end(); it++)
-          if (it->first->remove_reference())
-            delete it->first;
-      }
-      // If we have any current or previous users filter them out now
-      if (!current_epoch_users.empty())
-      {
-        for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
-                 current_epoch_users.begin();
-             it != current_epoch_users.end(); it++)
-          if (it->first->remove_reference())
-            delete it->first;
-        current_epoch_users.clear();
-      }
-      if (!previous_epoch_users.empty())
-      {
-        for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
-                 previous_epoch_users.begin();
-             it != previous_epoch_users.end(); it++)
-          if (it->first->remove_reference())
-            delete it->first;
-        previous_epoch_users.clear();
-      }
+      AutoLock v_lock(view_lock, false /*exclusive*/);
+      return (
+          current_epoch_users.empty() && previous_epoch_users.empty() &&
+          subviews.empty());
     }
 
     //--------------------------------------------------------------------------
-    size_t ExprView::get_view_volume(void)
+    void NodeView::invalidate_users(const IndividualView* view)
     //--------------------------------------------------------------------------
     {
-      size_t result = view_volume.load();
-      if (result != std::numeric_limits<size_t>::max())
-        return result;
-      result = view_expr->get_volume();
-      legion_assert(result != std::numeric_limits<size_t>::max());
-      view_volume.store(result);
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
-    void ExprView::find_all_done_events(std::set<ApEvent>& all_done) const
-    //--------------------------------------------------------------------------
-    {
-      // No need for any locks here since we're in the view destructor
-      // and there should be no more races between anything
+      // Shouldn't be any races on deleteions so no need for the lock
       for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                current_epoch_users.begin();
            it != current_epoch_users.end(); it++)
-        all_done.insert(it->first->term_event);
+        if (it->first->remove_reference())
+          delete it->first;
+      current_epoch_users.clear();
       for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
                previous_epoch_users.begin();
            it != previous_epoch_users.end(); it++)
-        all_done.insert(it->first->term_event);
-      for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-           it != subviews.end(); it++)
-        it->first->find_all_done_events(all_done);
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ void ExprView::verify_current_to_filter(
-        const FieldMask& dominated,
-        local::FieldMaskMap<PhysicalUser>& current_to_filter)
-    //--------------------------------------------------------------------------
-    {
-      if (!!dominated)
-      {
-        const FieldMask non_dominated =
-            current_to_filter.get_valid_mask() - dominated;
-        if (!non_dominated)
-          return;
-        if (non_dominated != current_to_filter.get_valid_mask())
-        {
-          // Selectively filter
-          std::vector<PhysicalUser*> to_delete;
-          for (local::FieldMaskMap<PhysicalUser>::iterator it =
-                   current_to_filter.begin();
-               it != current_to_filter.end(); it++)
-          {
-            it.filter(non_dominated);
-            if (!it->second)
-              to_delete.emplace_back(it->first);
-          }
-          for (std::vector<PhysicalUser*>::const_iterator it =
-                   to_delete.begin();
-               it != to_delete.end(); it++)
-          {
-            current_to_filter.erase(*it);
-            if ((*it)->remove_reference())
-              delete (*it);
-          }
-          current_to_filter.tighten_valid_mask();
-          return;
-        }
-      }
-      // Otherwise we fall through here and clean out all the users
-      for (local::FieldMaskMap<PhysicalUser>::const_iterator it =
-               current_to_filter.begin();
-           it != current_to_filter.end(); it++)
         if (it->first->remove_reference())
           delete it->first;
-      current_to_filter.clear();
+      previous_epoch_users.clear();
+      for (lng::FieldMaskMap<IndexPartNode>::const_iterator it =
+               subviews.begin();
+           it != subviews.end(); it++)
+      {
+        it->first->view_invalidate_users(view);
+        if (it->first->remove_nested_gc_ref(view->did))
+          delete it->first;
+      }
+      subviews.clear();
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::find_user_preconditions(
-        const RegionUsage& usage, IndexSpaceExpression* user_expr,
-        const bool user_dominates, const FieldMask& user_mask,
-        ApEvent term_event, UniqueID op_id, unsigned index,
-        std::set<ApEvent>& preconditions, const bool trace_recording)
+    void NodeView::find_last_users(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* expr, const bool expr_dominates,
+        const FieldMask& mask, std::set<ApEvent>& last_events) const
+    //--------------------------------------------------------------------------
+    {
+      local::FieldMaskMap<IndexPartNode> to_traverse;
+      {
+        FieldMask dominated;
+        AutoLock v_lock(view_lock, false /*exclusive*/);
+        // We dominate in this case so we can do filtering
+        if (!current_epoch_users.empty())
+        {
+          FieldMask observed, non_dominated;
+          find_current_preconditions(
+              usage, mask, expr, expr_dominates, last_events, observed,
+              non_dominated);
+          if (!!observed)
+            dominated = observed - non_dominated;
+        }
+        if (!previous_epoch_users.empty())
+        {
+          const FieldMask previous_mask = mask - dominated;
+          if (!!previous_mask)
+            find_previous_preconditions(
+                usage, previous_mask, expr, expr_dominates, last_events);
+        }
+        find_subviews_to_traverse(view, mask, to_traverse);
+      }
+      for (local::FieldMaskMap<IndexPartNode>::const_iterator it =
+               to_traverse.begin();
+           it != to_traverse.end(); it++)
+      {
+        it->first->view_find_last_users(
+            view, usage, expr, expr_dominates, it->second, last_events);
+        if (it->first->remove_nested_gc_ref(view->did))
+          delete it->first;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void NodeView::find_subviews_to_traverse(
+        const IndividualView* view, const FieldMask& mask,
+        local::FieldMaskMap<IndexPartNode>& to_traverse) const
+    //--------------------------------------------------------------------------
+    {
+      if (!(subviews.get_valid_mask() * mask))
+      {
+        for (lng::FieldMaskMap<IndexPartNode>::const_iterator it =
+                 subviews.begin();
+             it != subviews.end(); it++)
+        {
+          const FieldMask overlap = it->second & mask;
+          if (!overlap)
+            continue;
+          if (to_traverse.insert(it->first, overlap))
+            it->first->add_nested_gc_ref(view->did);
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    bool NodeView::find_user_preconditions(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* user_expr, const bool user_dominates,
+        const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
+        unsigned index, std::set<ApEvent>& preconditions,
+        const bool trace_recording)
     //--------------------------------------------------------------------------
     {
       FieldMask dominated;
-      std::set<PhysicalUser*> dead_users;
+      local::set<PhysicalUser*> dead_users;
       local::FieldMaskMap<PhysicalUser> current_to_filter, previous_to_filter;
-      // Perform the analysis with a read-only lock
+      local::FieldMaskMap<IndexPartNode> to_traverse;
       {
         AutoLock v_lock(view_lock, false /*exclusive*/);
         // Check to see if we dominate when doing this analysis and
@@ -236,6 +230,7 @@ namespace Legion {
                 user_dominates, preconditions, dead_users, trace_recording,
                 false /*copy*/);
         }
+        find_subviews_to_traverse(view, user_mask, to_traverse);
       }
       // It's possible that we recorded some users for fields which
       // are not actually fully dominated, if so we need to prune them
@@ -254,78 +249,41 @@ namespace Legion {
         if (!current_to_filter.empty())
           filter_current_users(current_to_filter);
       }
-      // Then see if there are any users below that we need to traverse
-      if (!subviews.empty() && !(subviews.get_valid_mask() * user_mask))
+      for (local::FieldMaskMap<IndexPartNode>::const_iterator it =
+               to_traverse.begin();
+           it != to_traverse.end(); it++)
       {
-        local::FieldMaskMap<ExprView> to_traverse;
-        std::map<ExprView*, IndexSpaceExpression*> traverse_exprs;
-        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-             it != subviews.end(); it++)
+        if (it->first->view_find_user_preconditions(
+                view, usage, user_expr, user_dominates, it->second, term_event,
+                op_id, index, preconditions, trace_recording))
         {
-          FieldMask overlap = it->second & user_mask;
-          if (!overlap)
-            continue;
-          // If we've already determined the user dominates
-          // then we don't even have to do this test
-          if (user_dominates)
+          AutoLock v_lock(view_lock);
+          lng::FieldMaskMap<IndexPartNode>::iterator finder =
+              subviews.find(it->first);
+          if ((finder != subviews.end()) && it->first->view_is_empty(view))
           {
-            to_traverse.insert(it->first, overlap);
-            continue;
-          }
-          if (it->first->view_expr == user_expr)
-          {
-            to_traverse.insert(it->first, overlap);
-            traverse_exprs[it->first] = user_expr;
-            continue;
-          }
-          IndexSpaceExpression* expr_overlap =
-              runtime->intersect_index_spaces(user_expr, it->first->view_expr);
-          if (!expr_overlap->is_empty())
-          {
-            to_traverse.insert(it->first, overlap);
-            traverse_exprs[it->first] = expr_overlap;
+            subviews.erase(finder);
+            // No deletion check since we're holding another reference
+            it->first->remove_nested_gc_ref(view->did);
           }
         }
-        if (!to_traverse.empty())
-        {
-          if (user_dominates)
-          {
-            for (local::FieldMaskMap<ExprView>::const_iterator it =
-                     to_traverse.begin();
-                 it != to_traverse.end(); it++)
-              it->first->find_user_preconditions(
-                  usage, it->first->view_expr, true /*dominate*/, it->second,
-                  term_event, op_id, index, preconditions, trace_recording);
-          }
-          else
-          {
-            for (local::FieldMaskMap<ExprView>::const_iterator it =
-                     to_traverse.begin();
-                 it != to_traverse.end(); it++)
-            {
-              IndexSpaceExpression* intersect = traverse_exprs[it->first];
-              const bool user_dominates =
-                  (intersect->expr_id == it->first->view_expr->expr_id) ||
-                  (intersect->get_volume() == it->first->get_view_volume());
-              it->first->find_user_preconditions(
-                  usage, intersect, user_dominates, it->second, term_event,
-                  op_id, index, preconditions, trace_recording);
-            }
-          }
-        }
+        if (it->first->remove_nested_gc_ref(view->did))
+          delete it->first;
       }
+      return is_empty();
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::find_copy_preconditions(
-        const RegionUsage& usage, IndexSpaceExpression* copy_expr,
-        const bool copy_dominates, const FieldMask& copy_mask, UniqueID op_id,
-        unsigned index, std::set<ApEvent>& preconditions,
-        const bool trace_recording)
+    bool NodeView::find_copy_preconditions(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* copy_expr, const bool copy_dominates,
+        const FieldMask& copy_mask, UniqueID op_id, unsigned index,
+        std::set<ApEvent>& preconditions, const bool trace_recording)
     //--------------------------------------------------------------------------
     {
       FieldMask dominated;
-      std::set<PhysicalUser*> dead_users;
+      local::set<PhysicalUser*> dead_users;
+      local::FieldMaskMap<IndexPartNode> to_traverse;
       local::FieldMaskMap<PhysicalUser> current_to_filter, previous_to_filter;
       // Do the first pass with a read-only lock on the events
       {
@@ -376,6 +334,7 @@ namespace Legion {
                 copy_dominates, preconditions, dead_users, trace_recording,
                 true /*copy user*/);
         }
+        find_subviews_to_traverse(view, copy_mask, to_traverse);
       }
       // It's possible that we recorded some users for fields which
       // are not actually fully dominated, if so we need to prune them
@@ -394,415 +353,112 @@ namespace Legion {
         if (!current_to_filter.empty())
           filter_current_users(current_to_filter);
       }
-      // Then see if there are any users below that we need to traverse
-      if (!subviews.empty() && !(subviews.get_valid_mask() * copy_mask))
+      for (local::FieldMaskMap<IndexPartNode>::const_iterator it =
+               to_traverse.begin();
+           it != to_traverse.end(); it++)
       {
-        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-             it != subviews.end(); it++)
+        if (it->first->view_find_copy_preconditions(
+                view, usage, copy_expr, copy_dominates, it->second, op_id,
+                index, preconditions, trace_recording))
         {
-          FieldMask overlap = it->second & copy_mask;
-          if (!overlap)
-            continue;
-          // If the copy dominates then we don't even have
-          // to do the intersection test
-          if (copy_dominates)
+          AutoLock v_lock(view_lock);
+          lng::FieldMaskMap<IndexPartNode>::iterator finder =
+              subviews.find(it->first);
+          if ((finder != subviews.end()) && it->first->view_is_empty(view))
           {
-            it->first->find_copy_preconditions(
-                usage, it->first->view_expr, true /*dominate*/, overlap, op_id,
-                index, preconditions, trace_recording);
-            continue;
-          }
-          if (it->first->view_expr == copy_expr)
-          {
-            it->first->find_copy_preconditions(
-                usage, copy_expr, true /*dominate*/, overlap, op_id, index,
-                preconditions, trace_recording);
-            continue;
-          }
-          IndexSpaceExpression* expr_overlap =
-              runtime->intersect_index_spaces(it->first->view_expr, copy_expr);
-          if (!expr_overlap->is_empty())
-          {
-            const bool copy_dominates =
-                (expr_overlap->expr_id == it->first->view_expr->expr_id) ||
-                (expr_overlap->get_volume() == it->first->get_view_volume());
-            it->first->find_copy_preconditions(
-                usage, expr_overlap, copy_dominates, overlap, op_id, index,
-                preconditions, trace_recording);
+            subviews.erase(finder);
+            // No deletion check since we're holding another reference
+            it->first->remove_nested_gc_ref(view->did);
           }
         }
+        if (it->first->remove_nested_gc_ref(view->did))
+          delete it->first;
       }
+      return is_empty();
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::find_last_users(
-        const RegionUsage& usage, IndexSpaceExpression* expr,
-        const bool expr_dominates, const FieldMask& mask,
-        std::set<ApEvent>& last_events) const
+    void NodeView::insert_child(
+        const IndividualView* view, IndexPartNode* child,
+        const FieldMask& child_mask)
     //--------------------------------------------------------------------------
     {
-      // See if there are any users below that we need to traverse
-      if (!subviews.empty() && !(subviews.get_valid_mask() * mask))
-      {
-        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-             it != subviews.end(); it++)
-        {
-          FieldMask overlap = it->second & mask;
-          if (!overlap)
-            continue;
-          // If the expr dominates then we don't even have
-          // to do the intersection test
-          if (expr_dominates)
-          {
-            it->first->find_last_users(
-                usage, it->first->view_expr, true /*dominate*/, overlap,
-                last_events);
-            continue;
-          }
-          if (it->first->view_expr == expr)
-          {
-            it->first->find_last_users(
-                usage, expr, true /*dominate*/, overlap, last_events);
-            continue;
-          }
-          IndexSpaceExpression* expr_overlap =
-              runtime->intersect_index_spaces(it->first->view_expr, expr);
-          if (!expr_overlap->is_empty())
-          {
-            const bool dominates =
-                (expr_overlap->expr_id == it->first->view_expr->expr_id) ||
-                (expr_overlap->get_volume() == it->first->get_view_volume());
-            it->first->find_last_users(
-                usage, expr_overlap, dominates, overlap, last_events);
-          }
-        }
-      }
-      FieldMask dominated;
-      // Now we can traverse at this level
-      AutoLock v_lock(view_lock, false /*exclusive*/);
-      // We dominate in this case so we can do filtering
-      if (!current_epoch_users.empty())
-      {
-        FieldMask observed, non_dominated;
-        find_current_preconditions(
-            usage, mask, expr, expr_dominates, last_events, observed,
-            non_dominated);
-        if (!!observed)
-          dominated = observed - non_dominated;
-      }
-      if (!previous_epoch_users.empty())
-      {
-        const FieldMask previous_mask = mask - dominated;
-        if (!!previous_mask)
-          find_previous_preconditions(
-              usage, previous_mask, expr, expr_dominates, last_events);
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    void ExprView::insert_subview(ExprView* subview, FieldMask& subview_mask)
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(this != subview);
-      // Iterate over all subviews and see which ones we dominate and which
-      // ones dominate the subview
-      if (!subviews.empty() && !(subviews.get_valid_mask() * subview_mask))
-      {
-        bool need_tighten = true;
-        std::vector<ExprView*> to_delete;
-        local::FieldMaskMap<ExprView> dominating_subviews;
-
-        for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
-             it != subviews.end(); it++)
-        {
-          // See if we intersect on fields
-          FieldMask overlap_mask = it->second & subview_mask;
-          if (!overlap_mask)
-            continue;
-          IndexSpaceExpression* overlap = runtime->intersect_index_spaces(
-              subview->view_expr, it->first->view_expr);
-          const size_t overlap_volume = overlap->get_volume();
-          if (overlap_volume == 0)
-            continue;
-          // See if we dominate or just intersect
-          if (overlap_volume == subview->get_view_volume())
-          {
-            // Should only strictly dominate if they were congruent
-            // then we wouldn't be inserting in the first place
-            legion_assert(overlap_volume < it->first->get_view_volume());
-            // Dominator so we can just continue traversing
-            dominating_subviews.insert(it->first, overlap_mask);
-          }
-          else if (overlap_volume == it->first->get_view_volume())
-          {
-            legion_assert(overlap_mask * dominating_subviews.get_valid_mask());
-            // We dominate this view so we can just pull it
-            // in underneath of us now
-            it.filter(overlap_mask);
-            subview->insert_subview(it->first, overlap_mask);
-            need_tighten = true;
-            // See if we need to remove this subview
-            if (!it->second)
-              to_delete.emplace_back(it->first);
-          }
-          // Otherwise it's just a normal intersection
-        }
-        // See if we had any dominators
-        if (!dominating_subviews.empty())
-        {
-          if (dominating_subviews.size() > 1)
-          {
-            // We need to deduplicate finding or making the new ExprView
-            // First check to see if we have it already in one sub-tree
-            // If not, we'll pick the one with the smallest bounding volume
-            local::map<std::pair<size_t /*volume*/, ExprView*>, FieldMask>
-                sorted_subviews;
-            for (local::FieldMaskMap<ExprView>::const_iterator it =
-                     dominating_subviews.begin();
-                 it != dominating_subviews.end(); it++)
-            {
-              FieldMask overlap = it->second;
-              // Channeling Tuco here
-              it->first->find_tightest_subviews(
-                  subview->view_expr, overlap, sorted_subviews);
-            }
-            for (local::map<std::pair<size_t, ExprView*>, FieldMask>::
-                     const_iterator it = sorted_subviews.begin();
-                 it != sorted_subviews.end(); it++)
-            {
-              FieldMask overlap = it->second & subview_mask;
-              if (!overlap)
-                continue;
-              subview_mask -= overlap;
-              it->first.second->insert_subview(subview, overlap);
-              if (!subview_mask ||
-                  (subview_mask * dominating_subviews.get_valid_mask()))
-                break;
-            }
-            legion_assert(subview_mask * dominating_subviews.get_valid_mask());
-          }
-          else
-          {
-            local::FieldMaskMap<ExprView>::const_iterator first =
-                dominating_subviews.begin();
-            FieldMask dominated_mask = first->second;
-            subview_mask -= dominated_mask;
-            first->first->insert_subview(subview, dominated_mask);
-          }
-        }
-        if (!to_delete.empty())
-        {
-          for (std::vector<ExprView*>::const_iterator it = to_delete.begin();
-               it != to_delete.end(); it++)
-          {
-            subviews.erase(*it);
-            if ((*it)->remove_reference())
-              delete (*it);
-          }
-        }
-        if (need_tighten)
-          subviews.tighten_valid_mask();
-      }
-      // If we make it here and there are still fields then we need to
-      // add it locally
-      if (!!subview_mask && subviews.insert(subview, subview_mask))
-        subview->add_reference();
-    }
-
-    //--------------------------------------------------------------------------
-    void ExprView::find_tightest_subviews(
-        IndexSpaceExpression* expr, FieldMask& expr_mask,
-        local::map<std::pair<size_t, ExprView*>, FieldMask>& bounding_views)
-    //--------------------------------------------------------------------------
-    {
-      if (!subviews.empty() && !(expr_mask * subviews.get_valid_mask()))
-      {
-        FieldMask dominated_mask;
-        for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
-             it != subviews.end(); it++)
-        {
-          // See if we intersect on fields
-          FieldMask overlap_mask = it->second & expr_mask;
-          if (!overlap_mask)
-            continue;
-          IndexSpaceExpression* overlap =
-              runtime->intersect_index_spaces(expr, it->first->view_expr);
-          const size_t overlap_volume = overlap->get_volume();
-          if (overlap_volume == 0)
-            continue;
-          // See if we dominate or just intersect
-          if (overlap_volume == expr->get_volume())
-          {
-            // Should strictly dominate otherwise we'd be congruent
-            legion_assert(overlap_volume < it->first->get_view_volume());
-            dominated_mask |= overlap_mask;
-            // Continute the traversal
-            it->first->find_tightest_subviews(
-                expr, overlap_mask, bounding_views);
-          }
-        }
-        // Remove any dominated fields from below
-        if (!!dominated_mask)
-          expr_mask -= dominated_mask;
-      }
-      // If we still have fields then record ourself
-      if (!!expr_mask)
-      {
-        std::pair<size_t, ExprView*> key(get_view_volume(), this);
-        bounding_views[key] |= expr_mask;
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    void ExprView::add_partial_user(
-        const RegionUsage& usage, UniqueID op_id, unsigned index,
-        FieldMask user_mask, const ApEvent term_event,
-        IndexSpaceExpression* user_expr, const size_t user_volume,
-        PhysicalUser*& covered_user, PhysicalUser*& uncovered_user)
-    //--------------------------------------------------------------------------
-    {
-      // We're going to try to put this user as far down the ExprView tree
-      // as we can in order to avoid doing unnecessary intersection tests later
-      {
-        // Find all the intersecting subviews to see if we can
-        // continue the traversal
-        // No need for the view lock anymore since we're protected
-        // by the expr_lock at the top of the tree
-        // AutoLock v_lock(view_lock,1,false/*exclusive*/);
-        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-             it != subviews.end(); it++)
-        {
-          // If the fields don't overlap then we don't care
-          const FieldMask overlap_mask = it->second & user_mask;
-          if (!overlap_mask)
-            continue;
-          IndexSpaceExpression* overlap =
-              runtime->intersect_index_spaces(user_expr, it->first->view_expr);
-          const size_t overlap_volume = overlap->get_volume();
-          if (overlap_volume == user_volume)
-          {
-            // Check for the cases where we dominated perfectly
-            if (overlap_volume == it->first->get_view_volume())
-            {
-              if (covered_user == nullptr)
-              {
-                covered_user = new PhysicalUser(
-                    usage, user_expr, term_event, op_id, index, true /*copy*/,
-                    true /*covers*/);
-                covered_user->add_reference();
-              }
-              it->first->add_current_user(covered_user, overlap_mask);
-            }
-            else
-            {
-              // Continue the traversal on this node
-              it->first->add_partial_user(
-                  usage, op_id, index, overlap_mask, term_event, user_expr,
-                  user_volume, covered_user, uncovered_user);
-            }
-            // We only need to record the partial user in one sub-tree
-            // where it is dominated in order to be sound
-            user_mask -= overlap_mask;
-            if (!user_mask)
-              break;
-          }
-          // Otherwise for all other cases we're going to record it here
-          // because they don't dominate the user to be recorded
-        }
-      }
-      // If we still have local fields, make a user and record it here
-      if (!!user_mask)
-      {
-        if (uncovered_user == nullptr)
-        {
-          uncovered_user = new PhysicalUser(
-              usage, user_expr, term_event, op_id, index, true /*copy*/,
-              false /*covers*/);
-          uncovered_user->add_reference();
-        }
-        add_current_user(uncovered_user, user_mask);
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    void ExprView::add_current_user(PhysicalUser* user, const FieldMask& mask)
-    //--------------------------------------------------------------------------
-    {
+      legion_assert(child->parent == node);
       AutoLock v_lock(view_lock);
-      if (current_epoch_users.insert(user, mask))
+      if (subviews.insert(child, child_mask))
+        child->add_nested_gc_ref(view->did);
+    }
+
+    //--------------------------------------------------------------------------
+    void NodeView::insert_user(
+        const IndividualView* view, PhysicalUser* user,
+        const FieldMask& user_mask, local::vector<LegionColor>& path,
+        AutoLock& parent_lock)
+    //--------------------------------------------------------------------------
+    {
+      // Do hand-over-hand locking
+      AutoLock v_lock(view_lock);
+      parent_lock.release();
+      if (!path.empty())
+      {
+        IndexPartNode* child = node->get_child(path.back());
+        path.pop_back();
+        if (subviews.insert(child, user_mask))
+          child->add_nested_gc_ref(view->did);
+        child->view_insert_user(view, path, user, user_mask, v_lock);
+      }
+      else if (current_epoch_users.insert(user, user_mask))
         user->add_reference();
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::clean_views(
-        FieldMask& valid_mask, local::FieldMaskMap<ExprView>& clean_set)
+    /*static*/ void NodeView::verify_current_to_filter(
+        const FieldMask& dominated,
+        local::FieldMaskMap<PhysicalUser>& current_to_filter)
     //--------------------------------------------------------------------------
     {
-      // Handle the base case if we already did it
-      local::FieldMaskMap<ExprView>::const_iterator finder =
-          clean_set.find(this);
-      if (finder != clean_set.end())
+      if (!!dominated)
       {
-        valid_mask = finder->second;
-        return;
-      }
-      // No need to hold the lock for this part we know that no one
-      // is going to be modifying this data structure at the same time
-      lng::FieldMaskMap<ExprView> new_subviews;
-      std::vector<ExprView*> to_delete;
-      for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
-           it != subviews.end(); it++)
-      {
-        FieldMask new_mask;
-        it->first->clean_views(new_mask, clean_set);
-        // Save this as part of the valid mask without filtering
-        valid_mask |= new_mask;
-        // Have to make sure to filter this by the previous set of fields
-        // since we could get more than we initially had
-        // We also need update the invalid fields if we remove a path
-        // to the subview
-        if (!!new_mask)
+        const FieldMask non_dominated =
+            current_to_filter.get_valid_mask() - dominated;
+        if (!non_dominated)
+          return;
+        if (non_dominated != current_to_filter.get_valid_mask())
         {
-          new_mask &= it->second;
-          const FieldMask new_invalid = it->second - new_mask;
-          if (!!new_invalid)
+          // Selectively filter
+          std::vector<PhysicalUser*> to_delete;
+          for (local::FieldMaskMap<PhysicalUser>::iterator it =
+                   current_to_filter.begin();
+               it != current_to_filter.end(); it++)
           {
-            // Should only have been one path here
-            legion_assert(it->first->invalid_fields * new_invalid);
-            it->first->invalid_fields |= new_invalid;
+            it.filter(non_dominated);
+            if (!it->second)
+              to_delete.emplace_back(it->first);
           }
+          for (std::vector<PhysicalUser*>::const_iterator it =
+                   to_delete.begin();
+               it != to_delete.end(); it++)
+          {
+            current_to_filter.erase(*it);
+            if ((*it)->remove_reference())
+              delete (*it);
+          }
+          current_to_filter.tighten_valid_mask();
+          return;
         }
-        else
-        {
-          // Should only have been one path here
-          legion_assert(it->first->invalid_fields * it->second);
-          it->first->invalid_fields |= it->second;
-        }
-        if (!!new_mask)
-          new_subviews.insert(it->first, new_mask);
-        else
-          to_delete.emplace_back(it->first);
       }
-      subviews.swap(new_subviews);
-      if (!to_delete.empty())
-      {
-        for (std::vector<ExprView*>::const_iterator it = to_delete.begin();
-             it != to_delete.end(); it++)
-          if ((*it)->remove_reference())
-            delete (*it);
-      }
-      AutoLock v_lock(view_lock);
-      if (!current_epoch_users.empty())
-        valid_mask |= current_epoch_users.get_valid_mask();
-      if (!previous_epoch_users.empty())
-        valid_mask |= previous_epoch_users.get_valid_mask();
-      // Save this for the future so we don't need to compute it again
-      if (clean_set.insert(this, valid_mask))
-        add_reference();
+      // Otherwise we fall through here and clean out all the users
+      for (local::FieldMaskMap<PhysicalUser>::const_iterator it =
+               current_to_filter.begin();
+           it != current_to_filter.end(); it++)
+        if (it->first->remove_reference())
+          delete it->first;
+      current_to_filter.clear();
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::filter_dead_users(const std::set<PhysicalUser*>& dead_users)
+    void NodeView::filter_dead_users(
+        const local::set<PhysicalUser*>& dead_users)
     //--------------------------------------------------------------------------
     {
       // Don't do this if we are in Legion Spy since we want to see
@@ -833,7 +489,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::filter_current_users(
+    void NodeView::filter_current_users(
         const FieldMapView<PhysicalUser>& to_filter)
     //--------------------------------------------------------------------------
     {
@@ -868,7 +524,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::filter_previous_users(
+    void NodeView::filter_previous_users(
         const FieldMapView<PhysicalUser>& to_filter)
     //--------------------------------------------------------------------------
     {
@@ -896,11 +552,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::find_current_preconditions(
+    void NodeView::find_current_preconditions(
         const RegionUsage& usage, const FieldMask& user_mask,
         IndexSpaceExpression* user_expr, ApEvent term_event,
         const UniqueID op_id, const unsigned index, const bool user_covers,
-        std::set<ApEvent>& preconditions, std::set<PhysicalUser*>& dead_users,
+        std::set<ApEvent>& preconditions, local::set<PhysicalUser*>& dead_users,
         local::FieldMaskMap<PhysicalUser>& filter_users, FieldMask& observed,
         FieldMask& non_dominated, const bool trace_recording,
         const bool copy_user)
@@ -957,11 +613,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::find_previous_preconditions(
+    void NodeView::find_previous_preconditions(
         const RegionUsage& usage, const FieldMask& user_mask,
         IndexSpaceExpression* user_expr, ApEvent term_event,
         const UniqueID op_id, const unsigned index, const bool user_covers,
-        std::set<ApEvent>& preconditions, std::set<PhysicalUser*>& dead_users,
+        std::set<ApEvent>& preconditions, local::set<PhysicalUser*>& dead_users,
         const bool trace_recording, const bool copy_user)
     //--------------------------------------------------------------------------
     {
@@ -1003,7 +659,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::find_current_preconditions(
+    void NodeView::find_current_preconditions(
         const RegionUsage& usage, const FieldMask& mask,
         IndexSpaceExpression* expr, const bool expr_covers,
         std::set<ApEvent>& last_events, FieldMask& observed,
@@ -1039,7 +695,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::find_previous_preconditions(
+    void NodeView::find_previous_preconditions(
         const RegionUsage& usage, const FieldMask& mask,
         IndexSpaceExpression* expr, const bool expr_covers,
         std::set<ApEvent>& last_users) const
@@ -1065,7 +721,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExprView::find_previous_filter_users(
+    void NodeView::find_previous_filter_users(
         const FieldMask& dom_mask,
         local::FieldMaskMap<PhysicalUser>& filter_users)
     //--------------------------------------------------------------------------
@@ -1086,6 +742,259 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
+    // PartitionView
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    PartitionView::PartitionView(IndexPartNode* n) : node(n)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    PartitionView::~PartitionView(void)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(subviews.empty());
+    }
+
+    //--------------------------------------------------------------------------
+    bool PartitionView::is_empty(void) const
+    //--------------------------------------------------------------------------
+    {
+      AutoLock v_lock(view_lock, false /*exclusive*/);
+      return subviews.empty();
+    }
+
+    //--------------------------------------------------------------------------
+    void PartitionView::invalidate_users(const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      // Shouldn't be any races on deleteions so no need for the lock
+      for (lng::FieldMaskMap<IndexSpaceNode>::const_iterator it =
+               subviews.begin();
+           it != subviews.end(); it++)
+      {
+        it->first->view_invalidate_users(view);
+        if (it->first->remove_nested_gc_ref(view->did))
+          delete it->first;
+      }
+      subviews.clear();
+    }
+
+    //--------------------------------------------------------------------------
+    void PartitionView::find_last_users(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* expr, const bool expr_dominates,
+        const FieldMask& mask, std::set<ApEvent>& last_events) const
+    //--------------------------------------------------------------------------
+    {
+      // First find the interfering children for this partition
+      local::FieldMaskMap<IndexSpaceNode> to_traverse;
+      find_subviews_to_traverse(view, expr, expr_dominates, mask, to_traverse);
+      for (local::FieldMaskMap<IndexSpaceNode>::const_iterator it =
+               to_traverse.begin();
+           it != to_traverse.end(); it++)
+      {
+        if (expr_dominates || (expr == it->first))
+          it->first->view_find_last_users(
+              view, usage, expr, true /*expr dominates*/, it->second,
+              last_events);
+        else  // Test for whether the expression dominates or not
+          it->first->view_find_last_users(
+              view, usage, expr, it->first->view_dominated_by(expr), it->second,
+              last_events);
+        if (it->first->remove_nested_gc_ref(view->did))
+          delete it->first;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    bool PartitionView::find_subviews_to_traverse(
+        const IndividualView* view, IndexSpaceExpression* expr,
+        bool expr_dominates, const FieldMask& mask,
+        local::FieldMaskMap<IndexSpaceNode>& to_traverse) const
+    //--------------------------------------------------------------------------
+    {
+      if (expr_dominates)
+      {
+        // Interferes with everything
+        AutoLock v_lock(view_lock, false /*exclusive*/);
+        if (subviews.empty())
+          return true;
+        for (lng::FieldMaskMap<IndexSpaceNode>::const_iterator it =
+                 subviews.begin();
+             it != subviews.end(); it++)
+        {
+          const FieldMask overlap = mask & it->second;
+          if (!overlap)
+            continue;
+          if (to_traverse.insert(it->first, overlap))
+            it->first->add_nested_gc_ref(view->did);
+        }
+      }
+      else
+      {
+        std::vector<LegionColor> interfering_colors;
+        // This is where the magic happens because this query is
+        // backed by an acceleration data structure
+        node->find_interfering_children(expr, interfering_colors);
+        if (!interfering_colors.empty())
+        {
+          if (interfering_colors.size() < subviews.size())
+          {
+            AutoLock v_lock(view_lock, false /*exclusive*/);
+            if (subviews.empty())
+              return true;
+            for (const LegionColor& color : interfering_colors)
+            {
+              IndexSpaceNode* child = node->get_child(color);
+              lng::FieldMaskMap<IndexSpaceNode>::const_iterator finder =
+                  subviews.find(child);
+              if (finder != subviews.end())
+              {
+                const FieldMask overlap = mask & finder->second;
+                if (!overlap)
+                  continue;
+                if (to_traverse.insert(child, overlap))
+                  child->add_nested_gc_ref(view->did);
+              }
+            }
+          }
+          else
+          {
+            std::sort(interfering_colors.begin(), interfering_colors.end());
+            AutoLock v_lock(view_lock, false /*exclusive*/);
+            if (subviews.empty())
+              return true;
+            for (lng::FieldMaskMap<IndexSpaceNode>::const_iterator it =
+                     subviews.begin();
+                 it != subviews.end(); it++)
+            {
+              const FieldMask overlap = mask & it->second;
+              if (!overlap)
+                continue;
+              if (!std::binary_search(
+                      interfering_colors.begin(), interfering_colors.end(),
+                      it->first->color))
+                continue;
+              if (to_traverse.insert(it->first, overlap))
+                it->first->add_nested_gc_ref(view->did);
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
+    bool PartitionView::find_user_preconditions(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* user_expr, const bool expr_dominates,
+        const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
+        unsigned index, std::set<ApEvent>& preconditions,
+        const bool trace_recording)
+    //--------------------------------------------------------------------------
+    {
+      // First find the interfering children for this partition
+      local::FieldMaskMap<IndexSpaceNode> to_traverse;
+      const bool empty = find_subviews_to_traverse(
+          view, user_expr, expr_dominates, user_mask, to_traverse);
+      for (local::FieldMaskMap<IndexSpaceNode>::const_iterator it =
+               to_traverse.begin();
+           it != to_traverse.end(); it++)
+      {
+        const bool child_dominated = expr_dominates ||
+                                     (user_expr == it->first) ||
+                                     it->first->view_dominated_by(user_expr);
+        if (it->first->view_find_user_preconditions(
+                view, usage, user_expr, child_dominated, it->second, term_event,
+                op_id, index, preconditions, trace_recording))
+        {
+          AutoLock v_lock(view_lock);
+          lng::FieldMaskMap<IndexSpaceNode>::iterator finder =
+              subviews.find(it->first);
+          if ((finder != subviews.end()) && it->first->view_is_empty(view))
+          {
+            subviews.erase(finder);
+            // No deletion check since we're holding another reference
+            it->first->remove_nested_gc_ref(view->did);
+          }
+        }
+        if (it->first->remove_nested_gc_ref(view->did))
+          delete it->first;
+      }
+      return empty;
+    }
+
+    //--------------------------------------------------------------------------
+    bool PartitionView::find_copy_preconditions(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* copy_expr, const bool expr_dominates,
+        const FieldMask& copy_mask, UniqueID op_id, unsigned index,
+        std::set<ApEvent>& preconditions, const bool trace_recording)
+    //--------------------------------------------------------------------------
+    {
+      local::FieldMaskMap<IndexSpaceNode> to_traverse;
+      const bool empty = find_subviews_to_traverse(
+          view, copy_expr, expr_dominates, copy_mask, to_traverse);
+      for (local::FieldMaskMap<IndexSpaceNode>::const_iterator it =
+               to_traverse.begin();
+           it != to_traverse.end(); it++)
+      {
+        const bool child_dominated = expr_dominates ||
+                                     (copy_expr == it->first) ||
+                                     it->first->view_dominated_by(copy_expr);
+        if (it->first->view_find_copy_preconditions(
+                view, usage, copy_expr, child_dominated, it->second, op_id,
+                index, preconditions, trace_recording))
+        {
+          AutoLock v_lock(view_lock);
+          lng::FieldMaskMap<IndexSpaceNode>::iterator finder =
+              subviews.find(it->first);
+          if ((finder != subviews.end()) && it->first->view_is_empty(view))
+          {
+            subviews.erase(finder);
+            // No deletion check since we're holding another reference
+            it->first->remove_nested_gc_ref(view->did);
+          }
+        }
+        if (it->first->remove_nested_gc_ref(view->did))
+          delete it->first;
+      }
+      return empty;
+    }
+
+    //--------------------------------------------------------------------------
+    void PartitionView::insert_child(
+        const IndividualView* view, IndexSpaceNode* child,
+        const FieldMask& child_mask)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(child->parent == node);
+      AutoLock v_lock(view_lock);
+      if (subviews.insert(child, child_mask))
+        child->add_nested_gc_ref(view->did);
+    }
+
+    //--------------------------------------------------------------------------
+    void PartitionView::insert_user(
+        const IndividualView* view, PhysicalUser* user,
+        const FieldMask& user_mask, local::vector<LegionColor>& path,
+        AutoLock& parent_lock)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(!path.empty());
+      // Do hand-over-hand locking
+      AutoLock v_lock(view_lock);
+      parent_lock.release();
+      IndexSpaceNode* child = node->get_child(path.back());
+      path.pop_back();
+      if (subviews.insert(child, user_mask))
+        child->add_nested_gc_ref(view->did);
+      child->view_insert_user(view, path, user, user_mask, v_lock);
+    }
+
+    /////////////////////////////////////////////////////////////
     // IndividualView
     /////////////////////////////////////////////////////////////
 
@@ -1094,22 +1003,13 @@ namespace Legion {
         DistributedID did, PhysicalManager* man, AddressSpaceID log_owner,
         bool register_now, CollectiveMapping* mapping)
       : InstanceView(did, register_now, mapping), manager(man),
-        logical_owner(log_owner),
-        current_users(
-            (log_owner == local_space) ?
-                new ExprView(
-                    this->did, manager->instance_domain,
-                    manager->is_unbound()) :
-                nullptr),
-        expr_cache_uses(0), outstanding_additions(0)
+        logical_owner(log_owner)
     //--------------------------------------------------------------------------
     {
       legion_assert(manager != nullptr);
       // Keep the manager from being collected
       manager->add_nested_resource_ref(did);
       manager->add_nested_gc_ref(did);
-      if (current_users != nullptr)
-        current_users->add_reference();
     }
 
     //--------------------------------------------------------------------------
@@ -1118,8 +1018,21 @@ namespace Legion {
     {
       if (is_logical_owner() && !view_reservations.empty())
       {
+        RegionUsage usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0 /*redop*/);
         std::set<ApEvent> done_events;
-        current_users->find_all_done_events(done_events);
+        for (lng::FieldMaskMap<IndexTreeNode>::const_iterator it =
+                 roots.begin();
+             it != roots.end(); it++)
+        {
+          if (it->first->is_index_space_node())
+            it->first->view_find_last_users(
+                this, usage, it->first->as_index_space_node(),
+                true /*expr dominates*/, it->second, done_events);
+          else
+            it->first->view_find_last_users(
+                this, usage, it->first->as_index_part_node()->parent,
+                true /*expr dominates*/, it->second, done_events);
+        }
         const ApEvent all_done = Runtime::merge_events(nullptr, done_events);
         // No need for the lock here since we should be in a destructor
         // and there should be no more races
@@ -1128,8 +1041,22 @@ namespace Legion {
              it != view_reservations.end(); it++)
           it->second.destroy_reservation(all_done);
       }
-      if ((current_users != nullptr) && current_users->remove_reference())
-        delete current_users;
+      for (lng::FieldMaskMap<IndexTreeNode>::const_iterator it = roots.begin();
+           it != roots.end(); it++)
+      {
+        it->first->view_invalidate_users(this);
+        if (it->first->remove_nested_gc_ref(did))
+          delete it->first;
+      }
+      for (const std::pair<
+               IndexSpaceExpression* const,
+               std::pair<IndexSpaceNode*, uint64_t> >& cache_entry : expr_cache)
+      {
+        if (cache_entry.first->remove_nested_expression_reference(did))
+          delete cache_entry.first;
+        if (cache_entry.second.first->remove_nested_gc_ref(did))
+          delete cache_entry.second.first;
+      }
       if (manager->remove_nested_resource_ref(did))
         delete manager;
     }
@@ -1617,7 +1544,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void IndividualView::add_initial_user(
         ApEvent term_event, const RegionUsage& usage,
-        const FieldMask& user_mask, IndexSpaceExpression* user_expr,
+        const FieldMask& user_mask, IndexSpaceNode* user_expr,
         const UniqueID op_id, const unsigned index)
     //--------------------------------------------------------------------------
     {
@@ -1699,15 +1626,52 @@ namespace Legion {
         if (start_use_event.exists())
           wait_on_events.insert(start_use_event);
         // Find the preconditions
-        const bool user_dominates =
-            (user_expr->expr_id == current_users->view_expr->expr_id) ||
-            (user_expr->get_volume() == current_users->get_view_volume());
+        local::FieldMaskMap<IndexTreeNode> to_traverse;
         {
-          // Traversing the tree so need the expr_view lock
-          AutoLock e_lock(expr_lock, false /*exclusive*/);
-          current_users->find_user_preconditions(
-              usage, user_expr, user_dominates, user_mask, term_event, op_id,
-              index, wait_on_events, trace_info.recording);
+          AutoLock v_lock(view_lock, false /*exclusive*/);
+          for (lng::FieldMaskMap<IndexTreeNode>::const_iterator it =
+                   roots.begin();
+               it != roots.end(); it++)
+          {
+            const FieldMask overlap = user_mask & it->second;
+            if (!overlap)
+              continue;
+            to_traverse.insert(it->first, overlap);
+            it->first->add_nested_gc_ref(did);
+          }
+        }
+        for (local::FieldMaskMap<IndexTreeNode>::const_iterator it =
+                 to_traverse.begin();
+             it != to_traverse.end(); it++)
+        {
+          // First check that they overlap
+          IndexSpaceNode* parent = it->first->is_index_space_node() ?
+                                       it->first->as_index_space_node() :
+                                       it->first->as_index_part_node()->parent;
+          IndexSpaceExpression* overlap =
+              (parent == user_expr) ?
+                  user_expr :
+                  runtime->intersect_index_spaces(parent, user_expr);
+          const size_t overlap_volume = overlap->get_volume();
+          if ((overlap_volume > 0) &&
+              it->first->view_find_user_preconditions(
+                  this, usage, user_expr,
+                  (overlap_volume == parent->get_volume()), it->second,
+                  term_event, op_id, index, wait_on_events,
+                  trace_info.recording))
+          {
+            AutoLock v_lock(view_lock);
+            lng::FieldMaskMap<IndexTreeNode>::iterator finder =
+                roots.find(it->first);
+            if ((finder != roots.end()) && it->first->view_is_empty(this))
+            {
+              roots.erase(finder);
+              // No deletion check since we're holding another reference
+              it->first->remove_nested_gc_ref(did);
+            }
+          }
+          if (it->first->remove_nested_gc_ref(did))
+            delete it->first;
         }
         // Add our local user
         add_internal_task_user(
@@ -1779,15 +1743,52 @@ namespace Legion {
             (redop > 0) ? LEGION_REDUCE :
                           LEGION_READ_WRITE,
             LEGION_EXCLUSIVE, redop);
-        const bool copy_dominates =
-            (copy_expr->expr_id == current_users->view_expr->expr_id) ||
-            (copy_expr->get_volume() == current_users->get_view_volume());
+        // Find the preconditions
+        local::FieldMaskMap<IndexTreeNode> to_traverse;
         {
-          // Need a read-only copy of the expr_lock to traverse the tree
-          AutoLock e_lock(expr_lock, false /*exclusive*/);
-          current_users->find_copy_preconditions(
-              usage, copy_expr, copy_dominates, copy_mask, op_id, index,
-              preconditions, trace_info.recording);
+          AutoLock v_lock(view_lock, false /*exclusive*/);
+          for (lng::FieldMaskMap<IndexTreeNode>::const_iterator it =
+                   roots.begin();
+               it != roots.end(); it++)
+          {
+            const FieldMask overlap = copy_mask & it->second;
+            if (!overlap)
+              continue;
+            to_traverse.insert(it->first, overlap);
+            it->first->add_nested_gc_ref(did);
+          }
+        }
+        for (local::FieldMaskMap<IndexTreeNode>::const_iterator it =
+                 to_traverse.begin();
+             it != to_traverse.end(); it++)
+        {
+          // First check that they overlap
+          IndexSpaceNode* parent = it->first->is_index_space_node() ?
+                                       it->first->as_index_space_node() :
+                                       it->first->as_index_part_node()->parent;
+          IndexSpaceExpression* overlap =
+              (parent == copy_expr) ?
+                  copy_expr :
+                  runtime->intersect_index_spaces(parent, copy_expr);
+          const size_t overlap_volume = overlap->get_volume();
+          if ((overlap_volume > 0) &&
+              it->first->view_find_copy_preconditions(
+                  this, usage, copy_expr,
+                  (overlap_volume == parent->get_volume()), it->second, op_id,
+                  index, preconditions, trace_info.recording))
+          {
+            AutoLock v_lock(view_lock);
+            lng::FieldMaskMap<IndexTreeNode>::iterator finder =
+                roots.find(it->first);
+            if ((finder != roots.end()) && it->first->view_is_empty(this))
+            {
+              roots.erase(finder);
+              // No deletion check since we're holding another reference
+              it->first->remove_nested_gc_ref(did);
+            }
+          }
+          if (it->first->remove_nested_gc_ref(did))
+            delete it->first;
         }
         if (preconditions.empty())
           return ApEvent::NO_AP_EVENT;
@@ -1870,175 +1871,53 @@ namespace Legion {
       }
       else
       {
-        const bool expr_dominates =
-            (expr->expr_id == current_users->view_expr->expr_id) ||
-            (expr->get_volume() == current_users->get_view_volume());
+        local::FieldMaskMap<IndexTreeNode> to_traverse;
         {
-          // Need a read-only copy of the expr_lock to traverse the tree
-          AutoLock e_lock(expr_lock, false /*exclusive*/);
-          current_users->find_last_users(
-              usage, expr, expr_dominates, mask, events);
+          AutoLock v_lock(view_lock, false /*exclusive*/);
+          for (lng::FieldMaskMap<IndexTreeNode>::const_iterator it =
+                   roots.begin();
+               it != roots.end(); it++)
+          {
+            const FieldMask overlap = mask & it->second;
+            if (!overlap)
+              continue;
+            to_traverse.insert(it->first, overlap);
+            it->first->add_nested_gc_ref(did);
+          }
+        }
+        for (local::FieldMaskMap<IndexTreeNode>::const_iterator it =
+                 to_traverse.begin();
+             it != to_traverse.end(); it++)
+        {
+          // First check that they overlap
+          IndexSpaceNode* parent = it->first->is_index_space_node() ?
+                                       it->first->as_index_space_node() :
+                                       it->first->as_index_part_node()->parent;
+          IndexSpaceExpression* overlap =
+              (parent == expr) ? expr :
+                                 runtime->intersect_index_spaces(parent, expr);
+          const size_t overlap_volume = overlap->get_volume();
+          if (overlap_volume > 0)
+            it->first->view_find_last_users(
+                this, usage, expr, (overlap_volume == parent->get_volume()),
+                mask, events);
+          if (it->first->remove_nested_gc_ref(did))
+            delete it->first;
         }
       }
     }
 
     //--------------------------------------------------------------------------
     void IndividualView::add_internal_task_user(
-        const RegionUsage& usage, IndexSpaceExpression* user_expr,
+        const RegionUsage& usage, IndexSpaceNode* user_expr,
         const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
         const unsigned index)
     //--------------------------------------------------------------------------
     {
-      // Convert to the canonical expression if it is not the root expr
-      if (user_expr != current_users->view_expr)
-      {
-        // Handle the dumb case of output region expr views
-        // Since we cannot make the root expr view have a canonical
-        // expression then we need to check to make sure we're just not
-        // finding it because it is congruent to the output region
-        const size_t user_volume = user_expr->get_volume();
-        const size_t root_volume = current_users->view_expr->get_volume();
-        legion_assert(user_volume <= root_volume);
-        if (user_volume < root_volume)
-          user_expr = user_expr->get_canonical_expression();
-        else
-          user_expr = current_users->view_expr;
-      }
       PhysicalUser* user = new PhysicalUser(
           usage, user_expr, term_event, op_id, index, false /*copy user*/,
           true /*covers*/);
-      // Hold a reference to this in case it finishes before we're done
-      // with the analysis and its get pruned/deleted
-      user->add_reference();
-      ExprView* target_view = nullptr;
-      bool has_target_view = false;
-      // Handle an easy case first, if the user_expr is the same as the
-      // view_expr for the root then this is easy
-      bool update_count = true;
-      if (user_expr == current_users->view_expr)
-      {
-        // This is just going to add at the top so never needs to wait
-        target_view = current_users;
-        update_count = false;
-        has_target_view = true;
-      }
-      else if (expr_cache_uses.fetch_add(1) < USER_CACHE_TIMEOUT)
-      {
-        // Hard case where we will have subviews
-        AutoLock e_lock(expr_lock, false /*exclusive*/);
-        // See if we can find the entry in the cache and it's valid
-        // for all of our fields
-        lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
-            expr_cache.find(user_expr->expr_id);
-        if (finder != expr_cache.end())
-        {
-          target_view = finder->second;
-          if (finder->second->invalid_fields * user_mask)
-            has_target_view = true;
-        }
-        // increment the number of outstanding additions
-        outstanding_additions.fetch_add(1);
-      }
-      else
-      {
-        // This is the path where we clean the cache, multiple threads
-        // can race to get here
-        AutoLock e_lock(expr_lock);
-        // Block waiting for the prior additions to drain
-        while (USER_CACHE_TIMEOUT <= expr_cache_uses.load())
-        {
-          // Wait for the prior outstanding additions to drain
-          if (outstanding_additions.load() > 0)
-          {
-            if (!clean_waiting.exists())
-              clean_waiting = Runtime::create_rt_user_event();
-            const RtEvent wait_on = clean_waiting;
-            e_lock.release();
-            wait_on.wait();
-            e_lock.reacquire();
-          }
-          else  // We won the race to wake up and clean the cache
-            clean_cache();
-        }
-        // Now we can do the normal lookup
-        // Have the lock in exclusive mode so can make nodes if needed
-        lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
-            expr_cache.find(user_expr->expr_id);
-        if (finder == expr_cache.end())
-        {
-          target_view = new ExprView(this->did, user_expr);
-          expr_cache[user_expr->expr_id] = target_view;
-        }
-        else
-          target_view = finder->second;
-        if (target_view != current_users)
-        {
-          // Now see if we need to insert it
-          FieldMask insert_mask = user_mask & target_view->invalid_fields;
-          if (!!insert_mask)
-          {
-            // Remove these fields from being invalid before we
-            // destroy the insert mask
-            target_view->invalid_fields -= insert_mask;
-            // Do the insertion into the tree
-            current_users->insert_subview(target_view, insert_mask);
-          }
-        }
-        has_target_view = true;
-        // increment the number of outstanding additions
-        outstanding_additions.fetch_add(1);
-      }
-      if (!has_target_view)
-      {
-        // This could change the shape of the view tree so we need
-        // exclusive privileges on the expr lock to serialize it
-        // with everything else traversing the tree
-        AutoLock e_lock(expr_lock);
-        // If we don't have a target view see if there is a
-        // congruent one already in the tree
-        if (target_view == nullptr)
-        {
-          // Check to see if someone else made it when we released the lock
-          lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
-              expr_cache.find(user_expr->expr_id);
-          if (finder == expr_cache.end())
-          {
-            target_view = new ExprView(this->did, user_expr);
-            expr_cache[user_expr->expr_id] = target_view;
-          }
-          else
-            target_view = finder->second;
-        }
-        if (target_view != current_users)
-        {
-          // Now see if we need to insert it
-          FieldMask insert_mask = user_mask & target_view->invalid_fields;
-          if (!!insert_mask)
-          {
-            // Remove these fields from being invalid before we
-            // destroy the insert mask
-            target_view->invalid_fields -= insert_mask;
-            // Do the insertion into the tree
-            current_users->insert_subview(target_view, insert_mask);
-          }
-        }
-      }
-      // Now we know the target view and it's valid for all fields
-      // so we can add it to the expr view
-      target_view->add_current_user(user, user_mask);
-      if (user->remove_reference())
-        delete user;
-      if (update_count && (outstanding_additions.fetch_sub(1) == 1) &&
-          (USER_CACHE_TIMEOUT <= expr_cache_uses.load()))
-      {
-        AutoLock e_lock(expr_lock);
-        if (clean_waiting.exists())
-        {
-          // Wake up the clean waiter
-          Runtime::trigger_event(clean_waiting);
-          clean_waiting = RtUserEvent::NO_RT_USER_EVENT;
-        }
-      }
+      add_internal_node_user(user, user_mask, user_expr);
     }
 
     //--------------------------------------------------------------------------
@@ -2048,199 +1927,177 @@ namespace Legion {
         const unsigned index)
     //--------------------------------------------------------------------------
     {
-      // Convert to the canonical expression if it is not the root
-      if (user_expr != current_users->view_expr)
+      IndexSpaceNode* target = dynamic_cast<IndexSpaceNode*>(user_expr);
+      if (target != nullptr)
       {
-        // Handle the dumb case of output region expr views
-        // Since we cannot make the root expr view have a canonical
-        // expression then we need to check to make sure we're just not
-        // finding it because it is congruent to the output region
-        const size_t user_volume = user_expr->get_volume();
-        const size_t root_volume = current_users->view_expr->get_volume();
-        legion_assert(user_volume <= root_volume);
-        if (user_volume < root_volume)
-          user_expr = user_expr->get_canonical_expression();
-        else
-          user_expr = current_users->view_expr;
-      }
-      // First we're going to check to see if we can add this directly to
-      // an existing ExprView with the same expresssion in which case
-      // we'll be able to mark this user as being precise
-      ExprView* target_view = nullptr;
-      bool has_target_view = false;
-      bool skip_check = false;
-      // Handle an easy case first, if the user_expr is the same as the
-      // view_expr for the root then this is easy
-      bool update_count = true;
-      if (user_expr == current_users->view_expr)
-      {
-        // This is just going to add at the top so never needs to wait
-        target_view = current_users;
-        update_count = false;
-        has_target_view = true;
-      }
-      else if (expr_cache_uses.fetch_add(1) < USER_CACHE_TIMEOUT)
-      {
-        // Hard case where we will have subviews
-        AutoLock e_lock(expr_lock, false /*exclusive*/);
-        // See if we can find the entry in the cache and it's valid
-        // for all of our fields
-        lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
-            expr_cache.find(user_expr->expr_id);
-        if (finder != expr_cache.end())
-        {
-          target_view = finder->second;
-          if (finder->second->invalid_fields * user_mask)
-            has_target_view = true;
-        }
-        // increment the number of outstanding additions
-        outstanding_additions.fetch_add(1);
-      }
-      else
-      {
-        // This is the path where we clean the cache, multiple threads
-        // can race to get here
-        AutoLock e_lock(expr_lock);
-        // Block waiting for the prior additions to drain
-        while (USER_CACHE_TIMEOUT <= expr_cache_uses.load())
-        {
-          // Wait for the prior outstanding additions to drain
-          if (outstanding_additions.load() > 0)
-          {
-            if (!clean_waiting.exists())
-              clean_waiting = Runtime::create_rt_user_event();
-            const RtEvent wait_on = clean_waiting;
-            e_lock.release();
-            wait_on.wait();
-            e_lock.reacquire();
-          }
-          else  // We won the race to wake up and clean the cache
-            clean_cache();
-        }
-        // Now we can do the normal lookup
-        lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
-            expr_cache.find(user_expr->expr_id);
-        if (finder != expr_cache.end())
-        {
-          target_view = finder->second;
-          // No need to insert this if it's the root
-          if (target_view != current_users)
-          {
-            FieldMask insert_mask = target_view->invalid_fields & user_mask;
-            if (!!insert_mask)
-            {
-              target_view->invalid_fields -= insert_mask;
-              current_users->insert_subview(target_view, insert_mask);
-            }
-          }
-          has_target_view = true;
-        }
-        else
-          skip_check = true;  // No point in checking again
-        // increment the number of outstanding additions
-        outstanding_additions.fetch_add(1);
-      }
-      if (!has_target_view && !skip_check)
-      {
-        // This could change the shape of the view tree so we need
-        // exclusive privileges on the expr lock to serialize it
-        // with everything else traversing the tree
-        AutoLock e_lock(expr_lock);
-        // If we don't have a target view see if there is a
-        // congruent one already in the tree
-        if (target_view == nullptr)
-        {
-          // Check to see if someone else made it when we released the lock
-          lng::map<IndexSpaceExprID, ExprView*>::const_iterator finder =
-              expr_cache.find(user_expr->expr_id);
-          if (finder != expr_cache.end())
-            target_view = finder->second;
-        }
-        // Don't make it though if we don't already have it
-        if (target_view != nullptr)
-        {
-          // No need to insert this if it's the root
-          if (target_view != current_users)
-          {
-            FieldMask insert_mask = target_view->invalid_fields & user_mask;
-            if (!!insert_mask)
-            {
-              target_view->invalid_fields -= insert_mask;
-              current_users->insert_subview(target_view, insert_mask);
-            }
-          }
-          has_target_view = true;
-        }
-      }
-      if (has_target_view)
-      {
-        // If we have a target view, then we know we cover it because
-        // the expressions match directly
         PhysicalUser* user = new PhysicalUser(
             usage, user_expr, term_event, op_id, index, true /*copy user*/,
             true /*covers*/);
-        // Hold a reference to this in case it finishes before we're done
-        // with the analysis and its get pruned/deleted
-        user->add_reference();
-        // We already know the view so we can just add the user directly
-        // there and then do any updates that we need to
-        target_view->add_current_user(user, user_mask);
-        if (user->remove_reference())
-          delete user;
+        add_internal_node_user(user, user_mask, target);
+        return;
       }
-      else
+      // Check to see if the canonical expressin is an index space node
+      IndexSpaceExpression* canonical = user_expr->get_canonical_expression();
+      target = dynamic_cast<IndexSpaceNode*>(canonical);
+      if (target != nullptr)
       {
-        // We're traversing the view tree but not modifying it so
-        // we need a read-only copy of the expr_lock
-        AutoLock e_lock(expr_lock, false /*exclusive*/);
-        PhysicalUser* covered_user = nullptr;
-        PhysicalUser* uncovered_user = nullptr;
-        current_users->add_partial_user(
-            usage, op_id, index, user_mask, term_event, user_expr,
-            user_expr->get_volume(), covered_user, uncovered_user);
-        // Remove the reference that was added when this was made
-        if ((covered_user != nullptr) && covered_user->remove_reference())
-          delete covered_user;
-        if ((uncovered_user != nullptr) && uncovered_user->remove_reference())
-          delete uncovered_user;
+        PhysicalUser* user = new PhysicalUser(
+            usage, canonical, term_event, op_id, index, true /*copy user*/,
+            true /*covers*/);
+        add_internal_node_user(user, user_mask, target);
+        return;
       }
-      if (update_count && (outstanding_additions.fetch_sub(1) == 1) &&
-          (USER_CACHE_TIMEOUT <= expr_cache_uses.load()))
+      const size_t expr_volume = user_expr->get_volume();
       {
-        AutoLock e_lock(expr_lock);
-        if (clean_waiting.exists())
+        // See if we can find a root that covers the expression
+        AutoLock v_lock(view_lock);
+        // Check to see if we have it in the cache
+        lng::map<IndexSpaceExpression*, std::pair<IndexSpaceNode*, uint64_t> >::
+            iterator finder = expr_cache.find(canonical);
+        if (finder == expr_cache.end())
         {
-          // Wake up the clean waiter
-          Runtime::trigger_event(clean_waiting);
-          clean_waiting = RtUserEvent::NO_RT_USER_EVENT;
+          // See if we can find a root that contains the expression
+          for (lng::FieldMaskMap<IndexTreeNode>::iterator it = roots.begin();
+               it != roots.end(); it++)
+          {
+            // Don't need to bother to check if it is partition, we'll figure
+            // it out soon enough
+            if (it->first->is_index_space_node())
+            {
+              IndexSpaceExpression* overlap = runtime->intersect_index_spaces(
+                  user_expr, it->first->as_index_space_node());
+              if (overlap->get_volume() < expr_volume)
+                continue;
+            }
+            target = it->first->view_find_tightest_enclosing(this, user_expr);
+            if (target != nullptr)
+              break;
+          }
+          // Can always find the root index space for this region tree
+          if (target == nullptr)
+          {
+            RegionNode* root = runtime->get_tree(manager->tree_id);
+            target =
+                root->row_source->view_find_tightest_enclosing(this, user_expr);
+            legion_assert(target != nullptr);
+          }
+          canonical->add_nested_expression_reference(did);
+          target->add_nested_gc_ref(did);
+          expr_cache.emplace(std::make_pair(
+              canonical, std::make_pair(target, expr_cache_clock++)));
+          static_assert(MAXIMUM_EXPR_CACHE_SIZE > 0);
+          if (MAXIMUM_EXPR_CACHE_SIZE < expr_cache.size())
+          {
+            // Remove the oldest entry
+            uint64_t oldest_clock = 0;
+            IndexSpaceExpression* oldest = nullptr;
+            for (const std::pair<
+                     IndexSpaceExpression* const,
+                     std::pair<IndexSpaceNode*, uint64_t> >& cache_entry :
+                 expr_cache)
+            {
+              if ((oldest == nullptr) ||
+                  (cache_entry.second.second < oldest_clock))
+              {
+                oldest = cache_entry.first;
+                oldest_clock = cache_entry.second.second;
+              }
+            }
+            legion_assert(oldest != nullptr);
+            finder = expr_cache.find(oldest);
+            legion_assert(finder != expr_cache.end());
+            if (oldest->remove_nested_expression_reference(did))
+              delete oldest;
+            if (finder->second.first->remove_nested_gc_ref(did))
+              delete finder->second.first;
+            expr_cache.erase(finder);
+          }
+        }
+        else
+        {
+          target = finder->second.first;
+          target->add_nested_gc_ref(did);
+          finder->second.second = expr_cache_clock++;
+        }
+        if (expr_cache_clock == 0)  // check for overflow
+        {
+          // flush the cache
+          for (const std::pair<
+                   IndexSpaceExpression* const,
+                   std::pair<IndexSpaceNode*, uint64_t> >& cache_entry :
+               expr_cache)
+          {
+            if (cache_entry.first->remove_nested_expression_reference(did))
+              delete cache_entry.first;
+            if (cache_entry.second.first->remove_nested_gc_ref(did))
+              delete cache_entry.second.first;
+          }
+          expr_cache.clear();
         }
       }
+      PhysicalUser* user = new PhysicalUser(
+          usage, user_expr, term_event, op_id, index, true /*copy user*/,
+          (target->get_volume() == expr_volume));
+      add_internal_node_user(user, user_mask, target);
+      if (target->remove_nested_gc_ref(did))
+        delete target;
     }
 
     //--------------------------------------------------------------------------
-    void IndividualView::clean_cache(void)
+    void IndividualView::add_internal_node_user(
+        PhysicalUser* user, const FieldMask& user_mask,
+        IndexSpaceNode* user_expr)
     //--------------------------------------------------------------------------
     {
-      // Clear the cache
-      expr_cache.clear();
-      // Reset the cache use counter
-      expr_cache_uses.store(0);
-      // Anytime we clean the cache, we also traverse the
-      // view tree and see if there are any views we can
-      // remove because they no longer have live users
-      FieldMask dummy_mask;
-      local::FieldMaskMap<ExprView> clean_set;
-      current_users->clean_views(dummy_mask, clean_set);
-      // We can safely repopulate the cache with any view expressions which
-      // are still valid, remove all references for views in the clean set
-      for (local::FieldMaskMap<ExprView>::const_iterator it = clean_set.begin();
-           it != clean_set.end(); it++)
+      // Now take the root lock and see if we need to insert the child
+      // and update the roots
+      AutoLock v_lock(view_lock);
+      // Traverse upwards to see if we can find a root to insert
+      local::vector<LegionColor> path;
+      IndexTreeNode* node = user_expr;
+      while (node != nullptr)
       {
-        if (!!(~(it->first->invalid_fields)))
-          expr_cache[it->first->view_expr->expr_id] = it->first;
-        if (it->first->remove_reference())
-          delete it->first;
+        // First check to see if the parent is a root
+        lng::FieldMaskMap<IndexTreeNode>::iterator finder = roots.find(node);
+        if (finder != roots.end())
+        {
+          finder.merge(user_mask);
+          // Insert going down
+          node->view_insert_user(this, path, user, user_mask, v_lock);
+          return;
+        }
+        // Check if any of the roots share the same parent so we can
+        // merge into a new root if necessary, note there will always
+        // be at most one that we can merge with
+        for (lng::FieldMaskMap<IndexTreeNode>::iterator it = roots.begin();
+             it != roots.end(); it++)
+        {
+          if (it->first->get_parent() == node)
+          {
+            // Shared parent so create a new root
+            node->view_insert_child(this, it->first, it->second);
+            const FieldMask root_mask = user_mask | it->second;
+            // No need to check for deletions, added another reference
+            // with the view_insert_child call
+            it->first->remove_nested_gc_ref(did);
+            roots.erase(it);
+            // Be careful! Doing the insertion might invalidate
+            // the iterator
+            if (roots.insert(node, root_mask))
+              node->add_nested_gc_ref(did);
+            node->view_insert_user(this, path, user, user_mask, v_lock);
+            return;
+          }
+        }
+        path.push_back(node->color);
+        node = node->get_parent();
       }
+      // If we get here we couldn't find anything to merge with so the
+      // node is its own root
+      path.clear();
+      if (roots.insert(user_expr, user_mask))
+        user_expr->add_nested_gc_ref(did);
+      user_expr->view_insert_user(this, path, user, user_mask, v_lock);
     }
 
     //--------------------------------------------------------------------------

@@ -610,9 +610,10 @@ namespace Legion {
     class LogicalView;  // base class for instance and reduction
     class InstanceKey;
     class InstanceView;
-    class ExprView;
     class CollectableView;  // pure virtual class
     class IndividualView;
+    class NodeView;
+    class PartitionView;
     class CollectiveView;
     class MaterializedView;
     class ReplicatedView;
@@ -1120,7 +1121,7 @@ namespace Legion {
       {
 #ifdef LEGION_DEBUG_REENTRANT_LOCKS
         if (previous != nullptr)
-          previous->check_for_reentrant_locks(&local_lock);
+          previous->check_for_reentrant_locks(&local_lock, this);
 #endif
         if (exclusive)
         {
@@ -1147,9 +1148,10 @@ namespace Legion {
       inline AutoLock(bool excl, LocalLock& r)
         : local_lock(r), previous(local_lock_list), exclusive(excl), held(false)
       {
+        local_lock_list = this;
 #ifdef LEGION_DEBUG_REENTRANT_LOCKS
         if (previous != nullptr)
-          previous->check_for_reentrant_locks(&local_lock);
+          previous->check_for_reentrant_locks(&local_lock, this);
 #endif
       }
     public:
@@ -1158,13 +1160,9 @@ namespace Legion {
       inline ~AutoLock(void)
       {
         if (held)
-        {
-          legion_assert(local_lock_list == this);
           local_lock.unlock();
-          local_lock_list = previous;
-        }
-        else
-          legion_assert(local_lock_list == previous);
+        legion_assert(local_lock_list == this);
+        local_lock_list = previous;
       }
     public:
       AutoLock& operator=(AutoLock&& rhs) = delete;
@@ -1173,18 +1171,14 @@ namespace Legion {
       inline void release(void)
       {
         legion_assert(held);
-        legion_assert(local_lock_list == this);
         local_lock.unlock();
-        local_lock_list = previous;
         held = false;
       }
       inline void reacquire(void)
       {
         legion_assert(!held);
-        legion_assert(local_lock_list == previous);
 #ifdef LEGION_DEBUG_REENTRANT_LOCKS
-        if (previous != nullptr)
-          previous->check_for_reentrant_locks(&local_lock);
+        local_lock_list->check_for_reentrant_locks(&local_lock, this);
 #endif
         if (exclusive)
         {
@@ -1204,7 +1198,6 @@ namespace Legion {
             ready = local_lock.rdlock();
           }
         }
-        local_lock_list = this;
         held = true;
       }
     public:
@@ -1223,11 +1216,12 @@ namespace Legion {
           previous->advise_sleep_exit();
       }
 #ifdef LEGION_DEBUG_REENTRANT_LOCKS
-      inline void check_for_reentrant_locks(LocalLock* to_acquire) const
+      inline void check_for_reentrant_locks(
+          LocalLock* to_acquire, const AutoLock* acquirer) const
       {
-        legion_assert(to_acquire != &local_lock);
+        legion_assert((to_acquire != &local_lock) || (this == acquirer));
         if (previous != nullptr)
-          previous->check_for_reentrant_locks(to_acquire);
+          previous->check_for_reentrant_locks(to_acquire, acquirer);
       }
 #endif
     protected:
@@ -1247,8 +1241,6 @@ namespace Legion {
         else
           ready = local_lock.rdlock();
         held = !ready.exists();
-        if (held)
-          local_lock_list = this;
       }
       AutoTryLock(const AutoTryLock& rhs) = delete;
     public:

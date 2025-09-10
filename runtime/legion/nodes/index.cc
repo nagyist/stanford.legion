@@ -1678,6 +1678,188 @@ namespace Legion {
       return diff->is_empty();
     }
 
+    //--------------------------------------------------------------------------
+    bool IndexSpaceNode::view_is_empty(const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      NodeView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return true;
+      if (!node_view->is_empty())
+        return false;
+      // If it's empty then we can remove it
+      AutoLock n_lock(node_lock);
+      instance_views.erase(view->did);
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    bool IndexSpaceNode::view_dominated_by(IndexSpaceExpression* expr)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceExpression* overlap =
+          runtime->intersect_index_spaces(this, expr);
+      return (overlap->get_volume() == get_volume());
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexSpaceNode::view_invalidate_users(const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      NodeView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return;
+      node_view->invalidate_users(view);
+      // Now we can remove it
+      AutoLock n_lock(node_lock);
+      instance_views.erase(view->did);
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexSpaceNode::view_find_last_users(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* expr, const bool expr_dominates,
+        const FieldMask& mask, std::set<ApEvent>& last_events)
+    //--------------------------------------------------------------------------
+    {
+      NodeView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return;
+      node_view->find_last_users(
+          view, usage, expr, expr_dominates, mask, last_events);
+    }
+
+    //--------------------------------------------------------------------------
+    bool IndexSpaceNode::view_find_user_preconditions(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* user_expr, const bool expr_dominates,
+        const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
+        unsigned index, std::set<ApEvent>& preconditions,
+        const bool trace_recording)
+    //--------------------------------------------------------------------------
+    {
+      NodeView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return true;
+      return node_view->find_user_preconditions(
+          view, usage, user_expr, expr_dominates, user_mask, term_event, op_id,
+          index, preconditions, trace_recording);
+    }
+
+    //--------------------------------------------------------------------------
+    bool IndexSpaceNode::view_find_copy_preconditions(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* copy_expr, const bool expr_dominates,
+        const FieldMask& copy_mask, UniqueID op_id, unsigned index,
+        std::set<ApEvent>& preconditions, const bool trace_recording)
+    //--------------------------------------------------------------------------
+    {
+      NodeView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return true;
+      return node_view->find_copy_preconditions(
+          view, usage, copy_expr, expr_dominates, copy_mask, op_id, index,
+          preconditions, trace_recording);
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexPartNode::view_insert_child(
+        const IndividualView* view, IndexTreeNode* child,
+        const FieldMask& child_mask)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(child->is_index_space_node());
+      PartitionView& node_view = find_or_create_instance_view(view);
+      node_view.insert_child(view, child->as_index_space_node(), child_mask);
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexSpaceNode::view_insert_user(
+        const IndividualView* view, local::vector<LegionColor>& path,
+        PhysicalUser* user, const FieldMask& user_mask, AutoLock& v_lock)
+    //--------------------------------------------------------------------------
+    {
+      NodeView& node_view = find_or_create_instance_view(view);
+      node_view.insert_user(view, user, user_mask, path, v_lock);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* IndexSpaceNode::view_find_tightest_enclosing(
+        const IndividualView* view, IndexSpaceExpression* expr)
+    //--------------------------------------------------------------------------
+    {
+      // If we haven't set this index space node yet then skip out since it
+      // might not be safe to wait for it to be set
+      if (!index_space_set.load())
+        return nullptr;
+      // Get copies of all the partitions that are alive here
+      local::vector<IndexPartNode*> to_traverse;
+      {
+        AutoLock n_lock(node_lock, false /*exclusive*/);
+        to_traverse.reserve(color_map.size());
+        for (const std::pair<const LegionColor, IndexPartNode*>& partition :
+             color_map)
+        {
+          partition.second->add_nested_gc_ref(view->did);
+          to_traverse.push_back(partition.second);
+        }
+      }
+      size_t smallest_volume = 0;
+      IndexSpaceNode* smallest = nullptr;
+      for (IndexPartNode* partition : to_traverse)
+      {
+        IndexSpaceNode* result =
+            partition->view_find_tightest_enclosing(view, expr);
+        if (partition->remove_nested_gc_ref(view->did))
+          delete partition;
+        if (result == nullptr)
+          continue;
+        const size_t result_volume = result->get_volume();
+        if ((smallest == nullptr) || (result_volume < smallest_volume))
+        {
+          if ((smallest != nullptr) &&
+              smallest->remove_nested_gc_ref(view->did))
+            delete smallest;
+          smallest = result;
+          smallest_volume = result_volume;
+        }
+        else if (result->remove_nested_gc_ref(view->did))
+          delete result;
+      }
+      if (smallest == nullptr)
+      {
+        add_nested_gc_ref(view->did);
+        return this;
+      }
+      else
+        return smallest;
+    }
+
+    //--------------------------------------------------------------------------
+    NodeView* IndexSpaceNode::find_instance_view(const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock n_lock(node_lock, false /*exclusive*/);
+      lng::map<DistributedID, NodeView>::iterator finder =
+          instance_views.find(view->did);
+      if (finder == instance_views.end())
+        return nullptr;
+      else
+        return &finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    NodeView& IndexSpaceNode::find_or_create_instance_view(
+        const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      NodeView* node_view = find_instance_view(view);
+      if (node_view != nullptr)
+        return *node_view;
+      AutoLock n_lock(node_lock);
+      return instance_views.try_emplace(view->did, this).first->second;
+    }
+
     /////////////////////////////////////////////////////////////
     // Index Partition Node
     /////////////////////////////////////////////////////////////
@@ -3164,9 +3346,6 @@ namespace Legion {
         IndexSpaceExpression* expr, std::vector<LegionColor>& colors)
     //--------------------------------------------------------------------------
     {
-      // This should only be called on disjoint and complete partitions
-      legion_assert(is_disjoint());
-      legion_assert(is_complete());
       legion_assert(colors.empty());
       // Check to see if we have this in the cache
       {
@@ -3197,7 +3376,7 @@ namespace Legion {
       // Do a quick test to see if this expression is below us in the
       // index space tree which makes this computation simple
       LegionColor below_color = 0;
-      if (!expr->is_below_in_tree(this, below_color))
+      if (!is_disjoint() || !expr->is_below_in_tree(this, below_color))
       {
         // We can only test this here after we've ruled out the symbolic check
         if (expr->is_empty())
@@ -3735,6 +3914,178 @@ namespace Legion {
         }
       }
       return false;
+    }
+
+    //--------------------------------------------------------------------------
+    bool IndexPartNode::view_is_empty(const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      PartitionView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return true;
+      if (!node_view->is_empty())
+        return false;
+      // If it's empty then we can remove it
+      AutoLock n_lock(node_lock);
+      instance_views.erase(view->did);
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    bool IndexPartNode::view_dominated_by(IndexSpaceExpression* expr)
+    //--------------------------------------------------------------------------
+    {
+      return parent->view_dominated_by(expr);
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexPartNode::view_invalidate_users(const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      PartitionView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return;
+      node_view->invalidate_users(view);
+      // Now we can remove it
+      AutoLock n_lock(node_lock);
+      instance_views.erase(view->did);
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexPartNode::view_find_last_users(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* expr, const bool expr_dominates,
+        const FieldMask& mask, std::set<ApEvent>& last_events)
+    //--------------------------------------------------------------------------
+    {
+      PartitionView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return;
+      node_view->find_last_users(
+          view, usage, expr, expr_dominates, mask, last_events);
+    }
+
+    //--------------------------------------------------------------------------
+    bool IndexPartNode::view_find_user_preconditions(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* user_expr, const bool expr_dominates,
+        const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
+        unsigned index, std::set<ApEvent>& preconditions,
+        const bool trace_recording)
+    //--------------------------------------------------------------------------
+    {
+      PartitionView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return true;
+      return node_view->find_user_preconditions(
+          view, usage, user_expr, expr_dominates, user_mask, term_event, op_id,
+          index, preconditions, trace_recording);
+    }
+
+    //--------------------------------------------------------------------------
+    bool IndexPartNode::view_find_copy_preconditions(
+        const IndividualView* view, const RegionUsage& usage,
+        IndexSpaceExpression* copy_expr, const bool expr_dominates,
+        const FieldMask& copy_mask, UniqueID op_id, unsigned index,
+        std::set<ApEvent>& preconditions, const bool trace_recording)
+    //--------------------------------------------------------------------------
+    {
+      PartitionView* node_view = find_instance_view(view);
+      if (node_view == nullptr)
+        return true;
+      return node_view->find_copy_preconditions(
+          view, usage, copy_expr, expr_dominates, copy_mask, op_id, index,
+          preconditions, trace_recording);
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexSpaceNode::view_insert_child(
+        const IndividualView* view, IndexTreeNode* child,
+        const FieldMask& child_mask)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(!child->is_index_space_node());
+      NodeView& node_view = find_or_create_instance_view(view);
+      node_view.insert_child(view, child->as_index_part_node(), child_mask);
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexPartNode::view_insert_user(
+        const IndividualView* view, local::vector<LegionColor>& path,
+        PhysicalUser* user, const FieldMask& user_mask, AutoLock& v_lock)
+    //--------------------------------------------------------------------------
+    {
+      PartitionView& node_view = find_or_create_instance_view(view);
+      node_view.insert_user(view, user, user_mask, path, v_lock);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* IndexPartNode::view_find_tightest_enclosing(
+        const IndividualView* view, IndexSpaceExpression* expr)
+    //--------------------------------------------------------------------------
+    {
+      // Before we do anything check to see if we can find at least one
+      // child node that is set, if not then it might not be safe to
+      // consider this partition because it might still be in the
+      // process of being computed
+      {
+        bool found_set = false;
+        AutoLock n_lock(node_lock, false /*exclusive*/);
+      }
+      std::vector<LegionColor> children;
+      find_interfering_children(expr, children);
+      size_t smallest_volume = 0;
+      IndexSpaceNode* smallest = nullptr;
+      const size_t expr_volume = expr->get_volume();
+      for (LegionColor color : children)
+      {
+        IndexSpaceNode* child = get_child(color);
+        // Check to see if the child dominates the expr
+        IndexSpaceExpression* overlap =
+            runtime->intersect_index_spaces(child, expr);
+        if (overlap->get_volume() < expr_volume)
+          continue;
+        IndexSpaceNode* result =
+            child->view_find_tightest_enclosing(view, expr);
+        legion_assert(result != nullptr);
+        const size_t result_volume = result->get_volume();
+        if ((smallest == nullptr) || (result_volume < smallest_volume))
+        {
+          if ((smallest != nullptr) &&
+              smallest->remove_nested_gc_ref(view->did))
+            delete smallest;
+          smallest = result;
+          smallest_volume = result_volume;
+        }
+        else if (result->remove_nested_gc_ref(view->did))
+          delete result;
+      }
+      return smallest;
+    }
+
+    //--------------------------------------------------------------------------
+    PartitionView* IndexPartNode::find_instance_view(const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock n_lock(node_lock, false /*exclusive*/);
+      lng::map<DistributedID, PartitionView>::iterator finder =
+          instance_views.find(view->did);
+      if (finder == instance_views.end())
+        return nullptr;
+      else
+        return &finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    PartitionView& IndexPartNode::find_or_create_instance_view(
+        const IndividualView* view)
+    //--------------------------------------------------------------------------
+    {
+      PartitionView* node_view = find_instance_view(view);
+      if (node_view != nullptr)
+        return *node_view;
+      AutoLock n_lock(node_lock);
+      return instance_views.try_emplace(view->did, this).first->second;
     }
 
     //--------------------------------------------------------------------------
