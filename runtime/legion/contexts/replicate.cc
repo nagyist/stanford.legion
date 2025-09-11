@@ -347,17 +347,14 @@ namespace Legion {
               registrar.task_variant_name, strlen(registrar.task_variant_name),
               "task_variant_name");
         hash_execution_constraints(hasher, registrar.execution_constraints);
-        for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
-                 registrar.layout_constraints.layouts.begin();
-             it != registrar.layout_constraints.layouts.end(); it++)
+        for (const std::multimap<unsigned, LayoutConstraintID>::value_type& it :
+             registrar.layout_constraints.layouts)
         {
-          hasher.hash(it->first, "layout constraints");
-          hasher.hash(it->second, "layout_constraints");
+          hasher.hash(it.first, "layout constraints");
+          hasher.hash(it.second, "layout_constraints");
         }
-        for (std::set<TaskID>::const_iterator it =
-                 registrar.generator_tasks.begin();
-             it != registrar.generator_tasks.end(); it++)
-          hasher.hash(*it, "generator_tasks");
+        for (const TaskID& it : registrar.generator_tasks)
+          hasher.hash(it, "generator_tasks");
         hasher.hash(registrar.leaf_variant, "leaf_variant");
         hasher.hash(registrar.inner_variant, "inner_variant");
         hasher.hash(registrar.idempotent_variant, "idempotent_variant");
@@ -915,9 +912,8 @@ namespace Legion {
       if (reqs.empty())
         return;
       Serializer rez;
-      for (std::vector<IndexSpaceRequirement>::const_iterator it = reqs.begin();
-           it != reqs.end(); it++)
-        ExternalMappable::pack_index_space_requirement(*it, rez);
+      for (const IndexSpaceRequirement& it : reqs)
+        ExternalMappable::pack_index_space_requirement(it, rez);
       hasher.hash(
           rez.get_buffer(), rez.get_used_bytes(), "index space requirement");
     }
@@ -930,9 +926,8 @@ namespace Legion {
       if (regions.empty())
         return;
       Serializer rez;
-      for (std::vector<RegionRequirement>::const_iterator it = regions.begin();
-           it != regions.end(); it++)
-        ExternalMappable::pack_region_requirement(*it, rez);
+      for (const RegionRequirement& it : regions)
+        ExternalMappable::pack_region_requirement(it, rez);
       hasher.hash(rez.get_buffer(), rez.get_used_bytes(), "region requirement");
     }
 
@@ -944,9 +939,8 @@ namespace Legion {
       if (outputs.empty())
         return;
       Serializer rez;
-      for (std::vector<OutputRequirement>::const_iterator it = outputs.begin();
-           it != outputs.end(); it++)
-        ExternalTask::pack_output_requirement(*it, rez);
+      for (const OutputRequirement& it : outputs)
+        ExternalTask::pack_output_requirement(it, rez);
       hasher.hash(rez.get_buffer(), rez.get_used_bytes(), "output requirement");
     }
 
@@ -958,9 +952,7 @@ namespace Legion {
       if (grants.empty())
         return;
       Serializer rez;
-      for (std::vector<Grant>::const_iterator it = grants.begin();
-           it != grants.end(); it++)
-        ExternalMappable::pack_grant(*it, rez);
+      for (const Grant& it : grants) ExternalMappable::pack_grant(it, rez);
       hasher.hash(rez.get_buffer(), rez.get_used_bytes(), "grants");
     }
 
@@ -977,9 +969,8 @@ namespace Legion {
       if (!hasher.precise)
         return;
       Serializer rez;
-      for (std::vector<PhaseBarrier>::const_iterator it = barriers.begin();
-           it != barriers.end(); it++)
-        ExternalMappable::pack_phase_barrier(*it, rez);
+      for (const PhaseBarrier& it : barriers)
+        ExternalMappable::pack_phase_barrier(it, rez);
       hasher.hash(rez.get_buffer(), rez.get_used_bytes(), "phase barriers");
     }
 
@@ -1020,22 +1011,18 @@ namespace Legion {
       if ((dependences == nullptr) || dependences->empty())
         return;
       Serializer rez;
-      for (std::vector<StaticDependence>::const_iterator it =
-               dependences->begin();
-           it != dependences->end(); it++)
+      for (const StaticDependence& it : *dependences)
       {
-        hasher.hash(it->previous_offset, "static dependence previous_offset");
+        hasher.hash(it.previous_offset, "static dependence previous_offset");
         hasher.hash(
-            it->previous_req_index, "static dependence previous_req_index");
+            it.previous_req_index, "static dependence previous_req_index");
         hasher.hash(
-            it->current_req_index, "static dependence current_req_index");
-        hasher.hash(it->dependence_type, "static dependence dependence_type");
-        hasher.hash(it->validates, "static dependence validates");
-        hasher.hash(it->shard_only, "static dependence shard_only");
-        for (std::set<FieldID>::const_iterator fit =
-                 it->dependent_fields.begin();
-             fit != it->dependent_fields.end(); fit++)
-          hasher.hash(*fit, "static dependence field");
+            it.current_req_index, "static dependence current_req_index");
+        hasher.hash(it.dependence_type, "static dependence dependence_type");
+        hasher.hash(it.validates, "static dependence validates");
+        hasher.hash(it.shard_only, "static dependence shard_only");
+        for (const FieldID& fit : it.dependent_fields)
+          hasher.hash(fit, "static dependence field");
       }
     }
 
@@ -1048,9 +1035,8 @@ namespace Legion {
       hasher.hash(launcher.task_id, "task_id");
       hash_index_space_requirements(hasher, launcher.index_requirements);
       hash_region_requirements(hasher, launcher.region_requirements);
-      for (std::vector<Future>::const_iterator it = launcher.futures.begin();
-           it != launcher.futures.end(); it++)
-        hash_future(hasher, safe_level, *it, "futures");
+      for (const Future& it : launcher.futures)
+        hash_future(hasher, safe_level, it, "futures");
       hash_grants(hasher, launcher.grants);
       hash_phase_barriers(hasher, launcher.wait_barriers);
       hash_phase_barriers(hasher, launcher.arrive_barriers);
@@ -1088,14 +1074,11 @@ namespace Legion {
       hasher.hash(launcher.sharding_space, "sharding_space");
       hash_index_space_requirements(hasher, launcher.index_requirements);
       hash_region_requirements(hasher, launcher.region_requirements);
-      for (std::vector<Future>::const_iterator it = launcher.futures.begin();
-           it != launcher.futures.end(); it++)
-        hash_future(hasher, safe_level, *it, "futures");
-      for (std::vector<ArgumentMap>::const_iterator it =
-               launcher.point_futures.begin();
-           it != launcher.point_futures.end(); it++)
+      for (const Future& it : launcher.futures)
+        hash_future(hasher, safe_level, it, "futures");
+      for (const ArgumentMap& it : launcher.point_futures)
         hash_future_map(
-            hasher, it->impl->freeze(this, hasher.provenance), "point_futures");
+            hasher, it.impl->freeze(this, hasher.provenance), "point_futures");
       hash_grants(hasher, launcher.grants);
       hash_phase_barriers(hasher, launcher.wait_barriers);
       hash_phase_barriers(hasher, launcher.arrive_barriers);
@@ -1131,37 +1114,28 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       hasher.hash(constraints.isa_constraint.isa_prop, "ISA Constraint");
-      for (std::vector<Processor::Kind>::const_iterator it =
-               constraints.processor_constraint.valid_kinds.begin();
-           it != constraints.processor_constraint.valid_kinds.end(); it++)
-        hasher.hash(*it, "Processor Constraint");
-      for (std::vector<ResourceConstraint>::const_iterator it =
-               constraints.resource_constraints.begin();
-           it != constraints.resource_constraints.end(); it++)
+      for (const Processor::Kind& it :
+           constraints.processor_constraint.valid_kinds)
+        hasher.hash(it, "Processor Constraint");
+      for (const ResourceConstraint& it : constraints.resource_constraints)
       {
-        hasher.hash(it->resource_kind, "Resource Constraint resource_kind");
-        hasher.hash(it->equality_kind, "Resource Constraint equality_kind");
-        hasher.hash(it->value, "Resource Constraint value");
+        hasher.hash(it.resource_kind, "Resource Constraint resource_kind");
+        hasher.hash(it.equality_kind, "Resource Constraint equality_kind");
+        hasher.hash(it.value, "Resource Constraint value");
       }
-      for (std::vector<LaunchConstraint>::const_iterator it =
-               constraints.launch_constraints.begin();
-           it != constraints.launch_constraints.end(); it++)
+      for (const LaunchConstraint& it : constraints.launch_constraints)
       {
-        hasher.hash(it->launch_kind, "Launch Constraint launch_kind");
-        hasher.hash(it->dims, "Launch Constraint dims");
-        for (int i = 0; i < it->dims; i++)
-          hasher.hash(it->values[i], "Launch Constraint value");
+        hasher.hash(it.launch_kind, "Launch Constraint launch_kind");
+        hasher.hash(it.dims, "Launch Constraint dims");
+        for (int i = 0; i < it.dims; i++)
+          hasher.hash(it.values[i], "Launch Constraint value");
       }
-      for (std::vector<ColocationConstraint>::const_iterator cit =
-               constraints.colocation_constraints.begin();
-           cit != constraints.colocation_constraints.end(); cit++)
+      for (const ColocationConstraint& cit : constraints.colocation_constraints)
       {
-        for (std::set<FieldID>::const_iterator it = cit->fields.begin();
-             it != cit->fields.end(); it++)
-          hasher.hash(*it, "Colocation Constraint fields");
-        for (std::set<unsigned>::const_iterator it = cit->indexes.begin();
-             it != cit->indexes.end(); it++)
-          hasher.hash(*it, "Colocation Constraint indexes");
+        for (const FieldID& it : cit.fields)
+          hasher.hash(it, "Colocation Constraint fields");
+        for (const unsigned& it : cit.indexes)
+          hasher.hash(it, "Colocation Constraint indexes");
       }
     }
 
@@ -1189,10 +1163,8 @@ namespace Legion {
       hasher.hash(
           constraints.specialized_constraint.exact,
           "Specialized Constraint exact");
-      for (std::vector<FieldID>::const_iterator it =
-               constraints.field_constraint.field_set.begin();
-           it != constraints.field_constraint.field_set.end(); it++)
-        hasher.hash(*it, "Field Constraint fields");
+      for (const FieldID& it : constraints.field_constraint.field_set)
+        hasher.hash(it, "Field Constraint fields");
       hasher.hash(
           constraints.field_constraint.contiguous,
           "Field Constraint contiguous");
@@ -1208,43 +1180,33 @@ namespace Legion {
         hasher.hash(
             constraints.pointer_constraint.ptr, "Pointer Constraint ptr");
       }
-      for (std::vector<DimensionKind>::const_iterator it =
-               constraints.ordering_constraint.ordering.begin();
-           it != constraints.ordering_constraint.ordering.end(); it++)
-        hasher.hash(*it, "Ordering Constraint ordering");
+      for (const DimensionKind& it : constraints.ordering_constraint.ordering)
+        hasher.hash(it, "Ordering Constraint ordering");
       hasher.hash(
           constraints.ordering_constraint.contiguous,
           "Ordering Constraint contiguous");
-      for (std::vector<TilingConstraint>::const_iterator it =
-               constraints.tiling_constraints.begin();
-           it != constraints.tiling_constraints.end(); it++)
+      for (const TilingConstraint& it : constraints.tiling_constraints)
       {
-        hasher.hash(it->dim, "Tiling Constraint dim");
-        hasher.hash(it->value, "Tiling Constraint value");
-        hasher.hash(it->tiles, "Tiling Constraint tiles");
+        hasher.hash(it.dim, "Tiling Constraint dim");
+        hasher.hash(it.value, "Tiling Constraint value");
+        hasher.hash(it.tiles, "Tiling Constraint tiles");
       }
-      for (std::vector<DimensionConstraint>::const_iterator it =
-               constraints.dimension_constraints.begin();
-           it != constraints.dimension_constraints.end(); it++)
+      for (const DimensionConstraint& it : constraints.dimension_constraints)
       {
-        hasher.hash(it->kind, "Dimension Constraint kind");
-        hasher.hash(it->eqk, "Dimension Constraint eqk");
-        hasher.hash(it->value, "Splitting Constraint value");
+        hasher.hash(it.kind, "Dimension Constraint kind");
+        hasher.hash(it.eqk, "Dimension Constraint eqk");
+        hasher.hash(it.value, "Splitting Constraint value");
       }
-      for (std::vector<AlignmentConstraint>::const_iterator it =
-               constraints.alignment_constraints.begin();
-           it != constraints.alignment_constraints.end(); it++)
+      for (const AlignmentConstraint& it : constraints.alignment_constraints)
       {
-        hasher.hash(it->fid, "Alignment Constraint fid");
-        hasher.hash(it->eqk, "Alignment Constraint eqk");
-        hasher.hash(it->alignment, "Alignment Constraint alignment");
+        hasher.hash(it.fid, "Alignment Constraint fid");
+        hasher.hash(it.eqk, "Alignment Constraint eqk");
+        hasher.hash(it.alignment, "Alignment Constraint alignment");
       }
-      for (std::vector<OffsetConstraint>::const_iterator it =
-               constraints.offset_constraints.begin();
-           it != constraints.offset_constraints.end(); it++)
+      for (const OffsetConstraint& it : constraints.offset_constraints)
       {
-        hasher.hash(it->fid, "Offset Constraint fid");
-        hasher.hash(it->offset, "Offset Constraint offset");
+        hasher.hash(it.fid, "Offset Constraint fid");
+        hasher.hash(it.offset, "Offset Constraint offset");
       }
     }
 
@@ -1324,34 +1286,32 @@ namespace Legion {
             created_trees[idx]->find_shard_equivalence_sets(
                 eq_sets, source_shard, 0 /*lower shard id*/,
                 total_shards - 1 /*upper shard id*/, created_nodes[idx]);
-        for (local::map<
+        for (const local::map<
                  ShardID,
                  local::map<
                      RegionNode*, local::FieldMaskMap<EquivalenceSet> > >::
-                 const_iterator sit = eq_sets.begin();
-             sit != eq_sets.end(); sit++)
+                 value_type& sit : eq_sets)
         {
           ReplCreatedRegions rez;
           rez.serialize(shard_manager->did);
-          rez.serialize(sit->first);
-          rez.serialize<size_t>(sit->second.size());
-          for (local::map<RegionNode*, local::FieldMaskMap<EquivalenceSet> >::
-                   const_iterator rit = sit->second.begin();
-               rit != sit->second.end(); rit++)
+          rez.serialize(sit.first);
+          rez.serialize<size_t>(sit.second.size());
+          for (const local::map<
+                   RegionNode*,
+                   local::FieldMaskMap<EquivalenceSet> >::value_type& rit :
+               sit.second)
           {
-            rez.serialize(rit->first->handle);
-            rez.serialize(rit->second.size());
-            for (local::FieldMaskMap<EquivalenceSet>::const_iterator it =
-                     rit->second.begin();
-                 it != rit->second.end(); it++)
+            rez.serialize(rit.first->handle);
+            rez.serialize(rit.second.size());
+            for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
             {
-              it->first->pack_global_ref();
-              rez.serialize(it->first->did);
-              rez.serialize(it->second);
+              it.first->pack_global_ref();
+              rez.serialize(it.first->did);
+              rez.serialize(it.second);
             }
           }
           shard_manager->send_created_region_contexts(
-              sit->first, rez, applied_events);
+              sit.first, rez, applied_events);
         }
       }
       else
@@ -1483,9 +1443,8 @@ namespace Legion {
         }
       }
       // Do the identity check
-      for (std::multimap<ShardID, ShardID>::const_iterator it = result.begin();
-           it != result.end(); it++)
-        if (it->first != it->second)
+      for (const std::multimap<ShardID, ShardID>::value_type& it : result)
+        if (it.first != it.second)
           return false;
       // If we get here we passed the identity check so clear the result
       result.clear();
@@ -1830,21 +1789,18 @@ namespace Legion {
         HashVerifier hasher(
             this, runtime->safe_control_replication > 1, i > 0, provenance);
         hasher.hash(REPLICATE_UNION_INDEX_SPACES, __func__);
-        for (std::vector<IndexSpace>::const_iterator it = spaces.begin();
-             it != spaces.end(); it++)
-          hasher.hash(*it, "spaces");
+        for (const IndexSpace& it : spaces) hasher.hash(it, "spaces");
         if (hasher.verify(__func__))
           break;
       }
       if (spaces.empty())
         return IndexSpace::NO_SPACE;
       bool none_exists = true;
-      for (std::vector<IndexSpace>::const_iterator it = spaces.begin();
-           it != spaces.end(); it++)
+      for (const IndexSpace& it : spaces)
       {
-        if (none_exists && it->exists())
+        if (none_exists && it.exists())
           none_exists = false;
-        if (spaces[0].get_type_tag() != it->get_type_tag())
+        if (spaces[0].get_type_tag() != it.get_type_tag())
         {
           Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
           error << "Dynamic type mismatch in 'union_index_spaces' performed in "
@@ -1931,21 +1887,18 @@ namespace Legion {
         HashVerifier hasher(
             this, runtime->safe_control_replication > 1, i > 0, provenance);
         hasher.hash(REPLICATE_INTERSECT_INDEX_SPACES, __func__);
-        for (std::vector<IndexSpace>::const_iterator it = spaces.begin();
-             it != spaces.end(); it++)
-          hasher.hash(*it, "spaces");
+        for (const IndexSpace& it : spaces) hasher.hash(it, "spaces");
         if (hasher.verify(__func__))
           break;
       }
       if (spaces.empty())
         return IndexSpace::NO_SPACE;
       bool none_exists = true;
-      for (std::vector<IndexSpace>::const_iterator it = spaces.begin();
-           it != spaces.end(); it++)
+      for (const IndexSpace& it : spaces)
       {
-        if (none_exists && it->exists())
+        if (none_exists && it.exists())
           none_exists = false;
-        if (spaces[0].get_type_tag() != it->get_type_tag())
+        if (spaces[0].get_type_tag() != it.get_type_tag())
         {
           Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
           error << "Dynamic type mismatch in 'intersect_index_spaces' "
@@ -2999,15 +2952,14 @@ namespace Legion {
         collective.exchange_partitions(handles);
         // Record these partition handles that were created
         AutoLock priv_lock(privilege_lock);
-        for (std::map<IndexSpace, IndexPartition>::const_iterator it =
-                 handles.begin();
-             it != handles.end(); it++)
+        for (const std::map<IndexSpace, IndexPartition>::value_type& it :
+             handles)
         {
           legion_assert(
-              (created_index_partitions.find(it->second) ==
+              (created_index_partitions.find(it.second) ==
                created_index_partitions.end()) ||
-              (created_index_partitions[it->second] == 1));
-          created_index_partitions[it->second] = 1;
+              (created_index_partitions[it.second] == 1));
+          created_index_partitions[it.second] = 1;
         }
       }
       // Update our allocation shard
@@ -3682,9 +3634,7 @@ namespace Legion {
         hasher.hash(parent, "parent");
         hasher.hash(realm_color, color_size, "realm_color");
         hasher.hash(type_tag, "type_tag");
-        for (std::vector<IndexSpace>::const_iterator it = handles.begin();
-             it != handles.end(); it++)
-          hasher.hash(*it, "handles");
+        for (const IndexSpace& it : handles) hasher.hash(it, "handles");
         if (hasher.verify(__func__))
           break;
       }
@@ -3745,9 +3695,7 @@ namespace Legion {
         hasher.hash(parent, "parent");
         hasher.hash(realm_color, color_size, "realm_color");
         hasher.hash(type_tag, "type_tag");
-        for (std::vector<IndexSpace>::const_iterator it = handles.begin();
-             it != handles.end(); it++)
-          hasher.hash(*it, "handles");
+        for (const IndexSpace& it : handles) hasher.hash(it, "handles");
         if (hasher.verify(__func__))
           break;
       }
@@ -3811,9 +3759,7 @@ namespace Legion {
         hasher.hash(realm_color, color_size, "realm_color");
         hasher.hash(type_tag, "type_tag");
         hasher.hash(initial, "initial");
-        for (std::vector<IndexSpace>::const_iterator it = handles.begin();
-             it != handles.end(); it++)
-          hasher.hash(*it, "handles");
+        for (const IndexSpace& it : handles) hasher.hash(it, "handles");
         if (hasher.verify(__func__))
           break;
       }
@@ -4073,12 +4019,9 @@ namespace Legion {
         HashVerifier hasher(
             this, runtime->safe_control_replication > 1, i > 0, provenance);
         hasher.hash(REPLICATE_CREATE_FIELD_SPACE, __func__);
-        for (std::vector<size_t>::const_iterator it = sizes.begin();
-             it != sizes.end(); it++)
-          hasher.hash(*it, "sizes");
-        for (std::vector<FieldID>::const_iterator it = resulting_fields.begin();
-             it != resulting_fields.end(); it++)
-          hasher.hash(*it, "resulting_fields");
+        for (const size_t& it : sizes) hasher.hash(it, "sizes");
+        for (const FieldID& it : resulting_fields)
+          hasher.hash(it, "resulting_fields");
         hasher.hash(serdez_id, "serdez_id");
         if (hasher.verify(__func__))
           break;
@@ -4185,12 +4128,10 @@ namespace Legion {
         HashVerifier hasher(
             this, runtime->safe_control_replication > 1, i > 0, provenance);
         hasher.hash(REPLICATE_CREATE_FIELD_SPACE, __func__);
-        for (std::vector<Future>::const_iterator it = sizes.begin();
-             it != sizes.end(); it++)
-          hash_future(hasher, runtime->safe_control_replication, *it, "sizes");
-        for (std::vector<FieldID>::const_iterator it = resulting_fields.begin();
-             it != resulting_fields.end(); it++)
-          hasher.hash(*it, "resulting_fields");
+        for (const Future& it : sizes)
+          hash_future(hasher, runtime->safe_control_replication, it, "sizes");
+        for (const FieldID& it : resulting_fields)
+          hasher.hash(it, "resulting_fields");
         hasher.hash(serdez_id, "serdez_id");
         if (hasher.verify(__func__))
           break;
@@ -4384,16 +4325,14 @@ namespace Legion {
           // that still need to be deleted before we can remove the
           // list of created fields
           std::set<LogicalRegion> latent_regions;
-          for (std::map<LogicalRegion, unsigned>::const_iterator it =
-                   created_regions.begin();
-               it != created_regions.end(); it++)
-            if (it->first.get_field_space() == handle)
-              latent_regions.insert(it->first);
-          for (std::map<LogicalRegion, bool>::const_iterator it =
-                   local_regions.begin();
-               it != local_regions.end(); it++)
-            if (it->first.get_field_space() == handle)
-              latent_regions.insert(it->first);
+          for (const std::map<LogicalRegion, unsigned>::value_type& it :
+               created_regions)
+            if (it.first.get_field_space() == handle)
+              latent_regions.insert(it.first);
+          for (const std::map<LogicalRegion, bool>::value_type& it :
+               local_regions)
+            if (it.first.get_field_space() == handle)
+              latent_regions.insert(it.first);
           if (latent_regions.empty())
           {
             // No remaining regions so we can remove any created fields now
@@ -4767,12 +4706,9 @@ namespace Legion {
             this, runtime->safe_control_replication > 1, i > 0, provenance);
         hasher.hash(REPLICATE_ALLOCATE_FIELDS, __func__);
         hasher.hash(space, "space");
-        for (std::vector<size_t>::const_iterator it = sizes.begin();
-             it != sizes.end(); it++)
-          hasher.hash(*it, "sizes");
-        for (std::vector<FieldID>::const_iterator it = resulting_fields.begin();
-             it != resulting_fields.end(); it++)
-          hasher.hash(*it, "resulting_fields");
+        for (const size_t& it : sizes) hasher.hash(it, "sizes");
+        for (const FieldID& it : resulting_fields)
+          hasher.hash(it, "resulting_fields");
         hasher.hash(local, "local");
         hasher.hash(serdez_id, "serdez_id");
         if (hasher.verify(__func__))
@@ -4879,12 +4815,10 @@ namespace Legion {
             this, runtime->safe_control_replication > 1, i > 0, provenance);
         hasher.hash(REPLICATE_ALLOCATE_FIELDS, __func__);
         hasher.hash(space, "space");
-        for (std::vector<Future>::const_iterator it = sizes.begin();
-             it != sizes.end(); it++)
-          hash_future(hasher, runtime->safe_control_replication, *it, "sizes");
-        for (std::vector<FieldID>::const_iterator it = resulting_fields.begin();
-             it != resulting_fields.end(); it++)
-          hasher.hash(*it, "resulting_fields");
+        for (const Future& it : sizes)
+          hash_future(hasher, runtime->safe_control_replication, it, "sizes");
+        for (const FieldID& it : resulting_fields)
+          hasher.hash(it, "resulting_fields");
         hasher.hash(local, "local");
         hasher.hash(serdez_id, "serdez_id");
         if (hasher.verify("allocate_fields"))
@@ -5011,9 +4945,7 @@ namespace Legion {
             this, runtime->safe_control_replication > 1, i > 0, provenance);
         hasher.hash(REPLICATE_FREE_FIELDS, __func__);
         hasher.hash(space, "space");
-        for (std::set<FieldID>::const_iterator it = to_free.begin();
-             it != to_free.end(); it++)
-          hasher.hash(*it, "to_free");
+        for (const FieldID& it : to_free) hasher.hash(it, "to_free");
         if (hasher.verify(__func__))
           break;
       }
@@ -5021,10 +4953,9 @@ namespace Legion {
       {
         AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         // These fields will actually be removed in analyze_destroy_fields
-        for (std::set<FieldID>::const_iterator it = to_free.begin();
-             it != to_free.end(); it++)
+        for (const FieldID& it : to_free)
         {
-          const std::pair<FieldSpace, FieldID> key(space, *it);
+          const std::pair<FieldSpace, FieldID> key(space, it);
           std::set<std::pair<FieldSpace, FieldID> >::const_iterator finder =
               created_fields.find(key);
           if (finder == created_fields.end())
@@ -5034,13 +4965,13 @@ namespace Legion {
             if (local_finder != local_fields.end())
             {
               local_finder->second = true;
-              free_now.insert(*it);
+              free_now.insert(it);
             }
             else
-              deleted_fields.emplace_back(DeletedField(space, *it, provenance));
+              deleted_fields.emplace_back(DeletedField(space, it, provenance));
           }
           else
-            free_now.insert(*it);
+            free_now.insert(it);
         }
       }
       if (free_now.empty())
@@ -5344,9 +5275,7 @@ namespace Legion {
         hasher.hash(REPLICATE_RESET_EQUIVALENCE_SETS, __func__);
         hasher.hash(parent, "parent");
         hasher.hash(region, "region");
-        for (std::set<FieldID>::const_iterator it = fields.begin();
-             it != fields.end(); it++)
-          hasher.hash(*it, "fields");
+        for (const FieldID& it : fields) hasher.hash(it, "fields");
         if (hasher.verify(__func__))
           break;
       }
@@ -5983,13 +5912,12 @@ namespace Legion {
           hasher.hash(space, "space");
         if (!collective)
         {
-          for (std::map<DomainPoint, UntypedBuffer>::const_iterator it =
-                   data.begin();
-               it != data.end(); it++)
+          for (const std::map<DomainPoint, UntypedBuffer>::value_type& it :
+               data)
           {
-            hasher.hash(it->first, "data");
+            hasher.hash(it.first, "data");
             if (runtime->safe_control_replication > 1)
-              hasher.hash(it->second.get_ptr(), it->second.get_size(), "data");
+              hasher.hash(it.second.get_ptr(), it.second.get_size(), "data");
           }
         }
         else if (!implicit)
@@ -6029,10 +5957,8 @@ namespace Legion {
           map->set_sharding_function(function, false /*own*/);
         }
         // Check that all the points abide by the sharding function
-        for (std::map<DomainPoint, UntypedBuffer>::const_iterator it =
-                 data.begin();
-             it != data.end(); it++)
-          if (function->find_owner(it->first, domain) != owner_shard->shard_id)
+        for (const std::map<DomainPoint, UntypedBuffer>::value_type& it : data)
+          if (function->find_owner(it.first, domain) != owner_shard->shard_id)
           {
             Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
             error << "Sharding function does not match described sharding for "
@@ -6059,11 +5985,9 @@ namespace Legion {
             this, domain_node, did, NO_BLOCKING_INDEX,
             std::optional<uint64_t>(), provenance));
       }
-      for (std::map<DomainPoint, UntypedBuffer>::const_iterator it =
-               data.begin();
-           it != data.end(); it++)
+      for (const std::map<DomainPoint, UntypedBuffer>::value_type& it : data)
       {
-        if (!domain.contains(it->first))
+        if (!domain.contains(it.first))
         {
           Error error(LEGION_INTERFACE_EXCEPTION);
           error << "Point passed into future map construction is not contained "
@@ -6072,12 +5996,12 @@ namespace Legion {
                 << " (UID " << get_unique_id() << ").";
           error.raise();
         }
-        const size_t future_size = it->second.get_size();
+        const size_t future_size = it.second.get_size();
         FutureImpl* future = new FutureImpl(
             this, true /*register*/, runtime->get_available_distributed_id(),
             provenance);
-        future->set_local(it->second.get_ptr(), future_size);
-        result.impl->set_future(it->first, future);
+        future->set_local(it.second.get_ptr(), future_size);
+        result.impl->set_future(it.first, future);
       }
       return result;
     }
@@ -6101,13 +6025,11 @@ namespace Legion {
           hasher.hash(space, "space");
         if (!collective)
         {
-          for (std::map<DomainPoint, Future>::const_iterator it =
-                   futures.begin();
-               it != futures.end(); it++)
+          for (const std::map<DomainPoint, Future>::value_type& it : futures)
           {
-            hasher.hash(it->first, "futures");
+            hasher.hash(it.first, "futures");
             hash_future(
-                hasher, runtime->safe_control_replication, it->second,
+                hasher, runtime->safe_control_replication, it.second,
                 "futures");
           }
         }
@@ -6150,9 +6072,8 @@ namespace Legion {
         }
         // Check that all the points abide by the sharding function
         Domain domain = domain_node->get_tight_domain();
-        for (std::map<DomainPoint, Future>::const_iterator it = futures.begin();
-             it != futures.end(); it++)
-          if (function->find_owner(it->first, domain) != owner_shard->shard_id)
+        for (const std::map<DomainPoint, Future>::value_type& it : futures)
+          if (function->find_owner(it.first, domain) != owner_shard->shard_id)
           {
             Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
             error << "Sharding function does not match described sharding for "
@@ -6322,9 +6243,7 @@ namespace Legion {
             hasher, runtime->safe_control_replication, launcher.future,
             "future");
         hash_predicate(hasher, launcher.predicate, "predicate");
-        for (std::set<FieldID>::const_iterator it = launcher.fields.begin();
-             it != launcher.fields.end(); it++)
-          hasher.hash(*it, "fields");
+        for (const FieldID& it : launcher.fields) hasher.hash(it, "fields");
         hash_grants(hasher, launcher.grants);
         hash_phase_barriers(hasher, launcher.wait_barriers);
         hash_phase_barriers(hasher, launcher.arrive_barriers);
@@ -6408,9 +6327,7 @@ namespace Legion {
             hasher, runtime->safe_control_replication, launcher.future,
             "future");
         hash_predicate(hasher, launcher.predicate, "predicate");
-        for (std::set<FieldID>::const_iterator it = launcher.fields.begin();
-             it != launcher.fields.end(); it++)
-          hasher.hash(*it, "fields");
+        for (const FieldID& it : launcher.fields) hasher.hash(it, "fields");
         hash_grants(hasher, launcher.grants);
         hash_phase_barriers(hasher, launcher.wait_barriers);
         hash_phase_barriers(hasher, launcher.arrive_barriers);
@@ -6488,9 +6405,7 @@ namespace Legion {
         hasher.hash(REPLICATE_DISCARD_FIELDS, __func__);
         hasher.hash(launcher.handle, "handle");
         hasher.hash(launcher.parent, "parent");
-        for (std::set<FieldID>::const_iterator it = launcher.fields.begin();
-             it != launcher.fields.end(); it++)
-          hasher.hash(*it, "fields");
+        for (const FieldID& it : launcher.fields) hasher.hash(it, "fields");
         hash_static_dependences(hasher, launcher.static_dependences);
         hasher.hash(launcher.silence_warnings, "silence_warnings");
         if (hasher.verify(__func__))
@@ -6551,14 +6466,10 @@ namespace Legion {
         hash_region_requirements(hasher, launcher.dst_requirements);
         hash_region_requirements(hasher, launcher.src_indirect_requirements);
         hash_region_requirements(hasher, launcher.dst_indirect_requirements);
-        for (std::vector<bool>::const_iterator it =
-                 launcher.src_indirect_is_range.begin();
-             it != launcher.src_indirect_is_range.end(); it++)
-          hasher.hash<bool>(*it, "src_indirect_is_range");
-        for (std::vector<bool>::const_iterator it =
-                 launcher.dst_indirect_is_range.begin();
-             it != launcher.dst_indirect_is_range.end(); it++)
-          hasher.hash<bool>(*it, "dst_indirect_is_range");
+        for (const bool& it : launcher.src_indirect_is_range)
+          hasher.hash<bool>(it, "src_indirect_is_range");
+        for (const bool& it : launcher.dst_indirect_is_range)
+          hasher.hash<bool>(it, "dst_indirect_is_range");
         hash_grants(hasher, launcher.grants);
         hash_phase_barriers(hasher, launcher.wait_barriers);
         hash_phase_barriers(hasher, launcher.arrive_barriers);
@@ -6632,14 +6543,10 @@ namespace Legion {
         hash_region_requirements(hasher, launcher.dst_requirements);
         hash_region_requirements(hasher, launcher.src_indirect_requirements);
         hash_region_requirements(hasher, launcher.dst_indirect_requirements);
-        for (std::vector<bool>::const_iterator it =
-                 launcher.src_indirect_is_range.begin();
-             it != launcher.src_indirect_is_range.end(); it++)
-          hasher.hash<bool>(*it, "src_indirect_is_range");
-        for (std::vector<bool>::const_iterator it =
-                 launcher.dst_indirect_is_range.begin();
-             it != launcher.dst_indirect_is_range.end(); it++)
-          hasher.hash<bool>(*it, "dst_indirect_is_range");
+        for (const bool& it : launcher.src_indirect_is_range)
+          hasher.hash<bool>(it, "src_indirect_is_range");
+        for (const bool& it : launcher.dst_indirect_is_range)
+          hasher.hash<bool>(it, "dst_indirect_is_range");
         hash_grants(hasher, launcher.grants);
         hash_phase_barriers(hasher, launcher.wait_barriers);
         hash_phase_barriers(hasher, launcher.arrive_barriers);
@@ -6729,9 +6636,7 @@ namespace Legion {
         hasher.hash(REPLICATE_ACQUIRE, __func__);
         hasher.hash(launcher.logical_region, "logical_region");
         hasher.hash(launcher.parent_region, "parent_region");
-        for (std::set<FieldID>::const_iterator it = launcher.fields.begin();
-             it != launcher.fields.end(); it++)
-          hasher.hash(*it, "fields");
+        for (const FieldID& it : launcher.fields) hasher.hash(it, "fields");
         hash_grants(hasher, launcher.grants);
         hash_phase_barriers(hasher, launcher.wait_barriers);
         hash_phase_barriers(hasher, launcher.arrive_barriers);
@@ -6796,9 +6701,7 @@ namespace Legion {
         hasher.hash(REPLICATE_RELEASE, __func__);
         hasher.hash(launcher.logical_region, "logical_region");
         hasher.hash(launcher.parent_region, "parent_region");
-        for (std::set<FieldID>::const_iterator it = launcher.fields.begin();
-             it != launcher.fields.end(); it++)
-          hasher.hash(*it, "fields");
+        for (const FieldID& it : launcher.fields) hasher.hash(it, "fields");
         hash_grants(hasher, launcher.grants);
         hash_phase_barriers(hasher, launcher.wait_barriers);
         hash_phase_barriers(hasher, launcher.arrive_barriers);
@@ -6870,19 +6773,16 @@ namespace Legion {
         hasher.hash(launcher.collective, "collective");
         hasher.hash(
             launcher.deduplicate_across_shards, "deduplicate_across_shards");
-        for (std::map<FieldID, const char*>::const_iterator it =
-                 launcher.field_files.begin();
-             it != launcher.field_files.end(); it++)
+        for (const std::map<FieldID, const char*>::value_type& it :
+             launcher.field_files)
         {
-          hasher.hash(it->first, "field_files");
-          hasher.hash(it->second, strlen(it->second), "field_files");
+          hasher.hash(it.first, "field_files");
+          hasher.hash(it.second, strlen(it.second), "field_files");
         }
         hash_layout_constraints(
             hasher, launcher.constraints, false /*pointers*/);
-        for (std::set<FieldID>::const_iterator it =
-                 launcher.privilege_fields.begin();
-             it != launcher.privilege_fields.end(); it++)
-          hasher.hash(*it, "privilege_fields");
+        for (const FieldID& it : launcher.privilege_fields)
+          hasher.hash(it, "privilege_fields");
         hasher.hash(launcher.footprint, "footprint");
         hash_static_dependences(hasher, launcher.static_dependences);
         if (hasher.verify(__func__))
@@ -6957,14 +6857,11 @@ namespace Legion {
         // Effectively the direct privilege fields or privilege fields
         // mentioned by any of the other data structures need to be the same
         std::set<FieldID> all_privilege_fields(launcher.privilege_fields);
-        for (std::map<FieldID, std::vector<const char*> >::const_iterator it =
-                 launcher.field_files.begin();
-             it != launcher.field_files.end(); it++)
-          all_privilege_fields.insert(it->first);
-        for (std::set<FieldID>::const_iterator it =
-                 all_privilege_fields.begin();
-             it != all_privilege_fields.end(); it++)
-          hasher.hash(*it, "privilege_fields");
+        for (const std::map<FieldID, std::vector<const char*> >::value_type&
+                 it : launcher.field_files)
+          all_privilege_fields.insert(it.first);
+        for (const FieldID& it : all_privilege_fields)
+          hasher.hash(it, "privilege_fields");
         hash_static_dependences(hasher, launcher.static_dependences);
         if (hasher.verify(__func__))
           break;
@@ -7134,10 +7031,8 @@ namespace Legion {
         if (resources.impl != nullptr)
         {
           hasher.hash(resources.impl->parent, "parent");
-          for (std::vector<FieldID>::const_iterator it =
-                   resources.impl->privilege_fields.begin();
-               it != resources.impl->privilege_fields.end(); it++)
-            hasher.hash(*it, "privilege_fields");
+          for (const FieldID& it : resources.impl->privilege_fields)
+            hasher.hash(it, "privilege_fields");
           if (resources.impl->upper_bound->is_region())
             hasher.hash(
                 resources.impl->upper_bound->as_region_node()->handle,
@@ -7187,14 +7082,10 @@ namespace Legion {
         hasher.hash(REPLICATE_MUST_EPOCH, __func__);
         hasher.hash(launcher.map_id, "map_id");
         hasher.hash(launcher.mapping_tag, "mapping_tag");
-        for (std::vector<TaskLauncher>::const_iterator it =
-                 launcher.single_tasks.begin();
-             it != launcher.single_tasks.end(); it++)
-          hash_task_launcher(hasher, runtime->safe_control_replication, *it);
-        for (std::vector<IndexTaskLauncher>::const_iterator it =
-                 launcher.index_tasks.begin();
-             it != launcher.index_tasks.end(); it++)
-          hash_index_launcher(hasher, runtime->safe_control_replication, *it);
+        for (const TaskLauncher& it : launcher.single_tasks)
+          hash_task_launcher(hasher, runtime->safe_control_replication, it);
+        for (const IndexTaskLauncher& it : launcher.index_tasks)
+          hash_index_launcher(hasher, runtime->safe_control_replication, it);
         hasher.hash(launcher.launch_domain, "launch_domain");
         hasher.hash(launcher.launch_space, "launch_space");
         hasher.hash(launcher.sharding_space, "sharding_space");
@@ -7247,11 +7138,9 @@ namespace Legion {
             this, runtime->safe_control_replication > 1, i > 0, provenance);
         hasher.hash(REPLICATE_TIMING_MEASUREMENT, __func__);
         hasher.hash(launcher.measurement, "measurement");
-        for (std::set<Future>::const_iterator it =
-                 launcher.preconditions.begin();
-             it != launcher.preconditions.end(); it++)
+        for (const Future& it : launcher.preconditions)
           hash_future(
-              hasher, runtime->safe_control_replication, *it, "preconditions");
+              hasher, runtime->safe_control_replication, it, "preconditions");
         if (hasher.verify(__func__))
           break;
       }
@@ -7283,10 +7172,8 @@ namespace Legion {
         hasher.hash(launcher.tag, "tag");
         hash_argument(
             hasher, runtime->safe_control_replication, launcher.arg, "arg");
-        for (std::vector<Future>::const_iterator it = launcher.futures.begin();
-             it != launcher.futures.end(); it++)
-          hash_future(
-              hasher, runtime->safe_control_replication, *it, "futures");
+        for (const Future& it : launcher.futures)
+          hash_future(hasher, runtime->safe_control_replication, it, "futures");
         if (hasher.verify(__func__))
           break;
       }
@@ -7358,9 +7245,7 @@ namespace Legion {
         hasher.hash<bool>(static_trace, "static_trace");
         hasher.hash<bool>(deprecated, "deprecated");
         if (trees != nullptr)
-          for (std::set<RegionTreeID>::const_iterator it = trees->begin();
-               it != trees->end(); it++)
-            hasher.hash(*it, "trees");
+          for (const RegionTreeID& it : *trees) hasher.hash(it, "trees");
         if (hasher.verify(__func__))
           break;
       }
@@ -8302,11 +8187,9 @@ namespace Legion {
           pending_rendezvous_updates.erase(finder);
         }
       }
-      for (std::vector<std::pair<void*, size_t> >::const_iterator it =
-               to_handle.begin();
-           it != to_handle.end(); it++)
+      for (const std::pair<void*, size_t>& it : to_handle)
       {
-        Deserializer derez(it->first, it->second);
+        Deserializer derez(it.first, it.second);
         if (rendezvous->receive_message(derez))
         {
           AutoLock repl_lock(replication_lock);
@@ -8316,7 +8199,7 @@ namespace Legion {
           legion_assert(finder->second == rendezvous);
           shard_rendezvous.erase(finder);
         }
-        free(it->first);
+        free(it.first);
       }
     }
 
@@ -8696,111 +8579,84 @@ namespace Legion {
       rez.serialize<size_t>(created_regs.size());
       if (!created_regs.empty())
       {
-        for (std::map<LogicalRegion, unsigned>::const_iterator it =
-                 created_regs.begin();
-             it != created_regs.end(); it++)
+        for (const std::pair<const LogicalRegion, unsigned>& it : created_regs)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(it.first);
+          rez.serialize(it.second);
         }
       }
       rez.serialize<size_t>(deleted_regs.size());
       if (!deleted_regs.empty())
       {
-        for (std::vector<DeletedRegion>::const_iterator it =
-                 deleted_regs.begin();
-             it != deleted_regs.end(); it++)
-          it->serialize(rez);
+        for (const DeletedRegion& it : deleted_regs) it.serialize(rez);
       }
       rez.serialize<size_t>(created_fids.size());
       if (!created_fids.empty())
       {
-        for (std::set<std::pair<FieldSpace, FieldID> >::const_iterator it =
-                 created_fids.begin();
-             it != created_fids.end(); it++)
+        for (const std::pair<FieldSpace, FieldID>& it : created_fids)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(it.first);
+          rez.serialize(it.second);
         }
       }
       rez.serialize<size_t>(deleted_fids.size());
       if (!deleted_fids.empty())
       {
-        for (std::vector<DeletedField>::const_iterator it =
-                 deleted_fids.begin();
-             it != deleted_fids.end(); it++)
-          it->serialize(rez);
+        for (const DeletedField& it : deleted_fids) it.serialize(rez);
       }
       rez.serialize<size_t>(created_fs.size());
       if (!created_fs.empty())
       {
-        for (std::map<FieldSpace, unsigned>::const_iterator it =
-                 created_fs.begin();
-             it != created_fs.end(); it++)
+        for (const std::pair<const FieldSpace, unsigned>& it : created_fs)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(it.first);
+          rez.serialize(it.second);
         }
       }
       rez.serialize<size_t>(latent_fs.size());
       if (!latent_fs.empty())
       {
-        for (std::map<FieldSpace, std::set<LogicalRegion> >::const_iterator it =
-                 latent_fs.begin();
-             it != latent_fs.end(); it++)
+        for (const std::pair<const FieldSpace, std::set<LogicalRegion> >& it :
+             latent_fs)
         {
-          rez.serialize(it->first);
-          rez.serialize<size_t>(it->second.size());
-          for (std::set<LogicalRegion>::const_iterator it2 = it->second.begin();
-               it2 != it->second.end(); it2++)
-            rez.serialize(*it2);
+          rez.serialize(it.first);
+          rez.serialize<size_t>(it.second.size());
+          for (const LogicalRegion& it2 : it.second) rez.serialize(it2);
         }
       }
       rez.serialize<size_t>(deleted_fs.size());
       if (!deleted_fs.empty())
       {
-        for (std::vector<DeletedFieldSpace>::const_iterator it =
-                 deleted_fs.begin();
-             it != deleted_fs.end(); it++)
-          it->serialize(rez);
+        for (const DeletedFieldSpace& it : deleted_fs) it.serialize(rez);
       }
       rez.serialize<size_t>(created_is.size());
       if (!created_is.empty())
       {
-        for (std::map<IndexSpace, unsigned>::const_iterator it =
-                 created_is.begin();
-             it != created_is.end(); it++)
+        for (const std::pair<const IndexSpace, unsigned>& it : created_is)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(it.first);
+          rez.serialize(it.second);
         }
       }
       rez.serialize<size_t>(deleted_is.size());
       if (!deleted_is.empty())
       {
-        for (std::vector<DeletedIndexSpace>::const_iterator it =
-                 deleted_is.begin();
-             it != deleted_is.end(); it++)
-          it->serialize(rez);
+        for (const DeletedIndexSpace& it : deleted_is) it.serialize(rez);
       }
       rez.serialize<size_t>(created_partitions.size());
       if (!created_partitions.empty())
       {
-        for (std::map<IndexPartition, unsigned>::const_iterator it =
-                 created_partitions.begin();
-             it != created_partitions.end(); it++)
+        for (const std::pair<const IndexPartition, unsigned>& it :
+             created_partitions)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(it.first);
+          rez.serialize(it.second);
         }
       }
       rez.serialize<size_t>(deleted_partitions.size());
       if (!deleted_partitions.empty())
       {
-        for (std::vector<DeletedPartition>::const_iterator it =
-                 deleted_partitions.begin();
-             it != deleted_partitions.end(); it++)
-          it->serialize(rez);
+        for (const DeletedPartition& it : deleted_partitions) it.serialize(rez);
       }
       shard_manager->broadcast_resource_update(owner_shard, rez, preconditions);
       // Now we can handle this for ourselves
@@ -8908,20 +8764,19 @@ namespace Legion {
       std::vector<DeletedRegion> delete_now;
       {
         AutoLock priv_lock(privilege_lock);
-        for (std::vector<DeletedRegion>::const_iterator rit = regions.begin();
-             rit != regions.end(); rit++)
+        for (const DeletedRegion& rit : regions)
         {
           std::map<LogicalRegion, unsigned>::iterator region_finder =
-              created_regions.find(rit->region);
+              created_regions.find(rit.region);
           if (region_finder == created_regions.end())
           {
-            if (local_regions.find(rit->region) != local_regions.end())
+            if (local_regions.find(rit.region) != local_regions.end())
             {
               Error error(LEGION_RESOURCE_EXCEPTION);
               error << "Local logical region ("
-                    << rit->region.index_space.get_id() << ","
-                    << rit->region.field_space.get_id() << ","
-                    << rit->region.get_tree_id() << ") in task "
+                    << rit.region.index_space.get_id() << ","
+                    << rit.region.field_space.get_id() << ","
+                    << rit.region.get_tree_id() << ") in task "
                     << get_task_name() << " (UID " << get_unique_id()
                     << ") was not deleted by this task. Local regions can only "
                        "be deleted "
@@ -8929,7 +8784,7 @@ namespace Legion {
               error.raise();
             }
             // Deletion keeps going up
-            deleted_regions.emplace_back(*rit);
+            deleted_regions.emplace_back(rit);
           }
           else
           {
@@ -8939,19 +8794,18 @@ namespace Legion {
             {
               // Don't remove this from created regions yet,
               // That will happen when we make the deletion operation
-              delete_now.emplace_back(*rit);
+              delete_now.emplace_back(rit);
             }
           }
         }
       }
       if (!delete_now.empty())
       {
-        for (std::vector<DeletedRegion>::const_iterator it = delete_now.begin();
-             it != delete_now.end(); it++)
+        for (const DeletedRegion& it : delete_now)
         {
           ReplDeletionOp* op = runtime->get_operation<ReplDeletionOp>();
           op->initialize_logical_region_deletion(
-              this, it->region, true /*unordered*/, it->provenance);
+              this, it.region, true /*unordered*/, it.provenance);
           op->initialize_replication(
               this, shard_manager->is_first_local_shard(owner_shard),
               &ready_barrier, &mapped_barrier, &execution_barrier);
@@ -8974,10 +8828,9 @@ namespace Legion {
           delete_now;
       {
         AutoLock priv_lock(privilege_lock);
-        for (std::vector<DeletedField>::const_iterator fit = fields.begin();
-             fit != fields.end(); fit++)
+        for (const DeletedField& fit : fields)
         {
-          const std::pair<FieldSpace, FieldID> key(fit->space, fit->fid);
+          const std::pair<FieldSpace, FieldID> key(fit.space, fit.fid);
           std::set<std::pair<FieldSpace, FieldID> >::const_iterator
               field_finder = created_fields.find(key);
           if (field_finder == created_fields.end())
@@ -8987,22 +8840,22 @@ namespace Legion {
             if (local_finder != local_fields.end())
             {
               Error error(LEGION_RESOURCE_EXCEPTION);
-              error << "Local field " << fit->fid << " in field space "
-                    << fit->space.get_id() << " in task " << get_task_name()
+              error << "Local field " << fit.fid << " in field space "
+                    << fit.space.get_id() << " in task " << get_task_name()
                     << " (UID " << get_unique_id()
                     << ") was not deleted by this task. Local fields can only "
                        "be deleted "
                     << "by the task that made them.";
               error.raise();
             }
-            deleted_fields.emplace_back(*fit);
+            deleted_fields.emplace_back(fit);
           }
           else
           {
             // One of ours to delete
             std::pair<FieldSpace, Provenance*> now_key(
-                fit->space, fit->provenance);
-            delete_now[now_key].insert(fit->fid);
+                fit.space, fit.provenance);
+            delete_now[now_key].insert(fit.fid);
             // No need to delete this now, it will be deleted
             // when the deletion op makes its region requirements
           }
@@ -9010,16 +8863,16 @@ namespace Legion {
       }
       if (!delete_now.empty())
       {
-        for (std::map<std::pair<FieldSpace, Provenance*>, std::set<FieldID> >::
-                 const_iterator it = delete_now.begin();
-             it != delete_now.end(); it++)
+        for (const std::pair<
+                 const std::pair<FieldSpace, Provenance*>, std::set<FieldID> >&
+                 it : delete_now)
         {
           ReplDeletionOp* op = runtime->get_operation<ReplDeletionOp>();
           FieldAllocatorImpl* allocator =
-              create_field_allocator(it->first.first, true /*unordered*/);
+              create_field_allocator(it.first.first, true /*unordered*/);
           op->initialize_field_deletions(
-              this, it->first.first, it->second, true /*unordered*/, allocator,
-              it->first.second, (owner_shard->shard_id != 0));
+              this, it.first.first, it.second, true /*unordered*/, allocator,
+              it.first.second, (owner_shard->shard_id != 0));
           op->initialize_replication(
               this, shard_manager->is_first_local_shard(owner_shard),
               &ready_barrier, &mapped_barrier, &execution_barrier);
@@ -9041,33 +8894,30 @@ namespace Legion {
       std::vector<DeletedFieldSpace> delete_now;
       {
         AutoLock priv_lock(privilege_lock);
-        for (std::vector<DeletedFieldSpace>::const_iterator fit =
-                 spaces.begin();
-             fit != spaces.end(); fit++)
+        for (const DeletedFieldSpace& fit : spaces)
         {
           std::map<FieldSpace, unsigned>::iterator finder =
-              created_field_spaces.find(fit->space);
+              created_field_spaces.find(fit.space);
           if (finder != created_field_spaces.end())
           {
             legion_assert(finder->second > 0);
             if (--finder->second == 0)
             {
-              delete_now.emplace_back(*fit);
+              delete_now.emplace_back(
+                  DeletedFieldSpace(fit.space, fit.provenance));
               created_field_spaces.erase(finder);
               // Count how many regions are still using this field space
               // that still need to be deleted before we can remove the
               // list of created fields
               std::set<LogicalRegion> remaining_regions;
-              for (std::map<LogicalRegion, unsigned>::const_iterator it =
-                       created_regions.begin();
-                   it != created_regions.end(); it++)
-                if (it->first.get_field_space() == fit->space)
-                  remaining_regions.insert(it->first);
-              for (std::map<LogicalRegion, bool>::const_iterator it =
-                       local_regions.begin();
-                   it != local_regions.end(); it++)
-                if (it->first.get_field_space() == fit->space)
-                  remaining_regions.insert(it->first);
+              for (const std::pair<const LogicalRegion, unsigned>& it :
+                   created_regions)
+                if (it.first.get_field_space() == fit.space)
+                  remaining_regions.insert(it.first);
+              for (const std::pair<const LogicalRegion, bool>& it :
+                   local_regions)
+                if (it.first.get_field_space() == fit.space)
+                  remaining_regions.insert(it.first);
               if (remaining_regions.empty())
               {
                 // No remaining regions so we can remove any created fields now
@@ -9076,7 +8926,7 @@ namespace Legion {
                      it != created_fields.end();
                      /*nothing*/)
                 {
-                  if (it->first == fit->space)
+                  if (it->first == fit.space)
                   {
                     std::set<std::pair<FieldSpace, FieldID> >::iterator
                         to_delete = it++;
@@ -9087,25 +8937,23 @@ namespace Legion {
                 }
               }
               else
-                latent_field_spaces[fit->space] = remaining_regions;
+                latent_field_spaces[fit.space] = remaining_regions;
             }
           }
           else
             // If we didn't make this field space, record the deletion
             // and keep going. It will be handled by the context that
             // made the field space
-            deleted_field_spaces.emplace_back(*fit);
+            deleted_field_spaces.emplace_back(fit);
         }
       }
       if (!delete_now.empty())
       {
-        for (std::vector<DeletedFieldSpace>::const_iterator it =
-                 delete_now.begin();
-             it != delete_now.end(); it++)
+        for (const DeletedFieldSpace& it : delete_now)
         {
           ReplDeletionOp* op = runtime->get_operation<ReplDeletionOp>();
           op->initialize_field_space_deletion(
-              this, it->space, true /*unordered*/, it->provenance);
+              this, it.space, true /*unordered*/, it.provenance);
           op->initialize_replication(
               this, shard_manager->is_first_local_shard(owner_shard),
               &ready_barrier, &mapped_barrier, &execution_barrier);
@@ -9128,21 +8976,19 @@ namespace Legion {
       std::vector<std::vector<IndexPartition> > sub_partitions;
       {
         AutoLock priv_lock(privilege_lock);
-        for (std::vector<DeletedIndexSpace>::const_iterator sit =
-                 spaces.begin();
-             sit != spaces.end(); sit++)
+        for (const DeletedIndexSpace& sit : spaces)
         {
           std::map<IndexSpace, unsigned>::iterator finder =
-              created_index_spaces.find(sit->space);
+              created_index_spaces.find(sit.space);
           if (finder != created_index_spaces.end())
           {
             legion_assert(finder->second > 0);
             if (--finder->second == 0)
             {
-              delete_now.emplace_back(*sit);
+              delete_now.emplace_back(sit);
               sub_partitions.resize(sub_partitions.size() + 1);
               created_index_spaces.erase(finder);
-              if (sit->recurse)
+              if (sit.recurse)
               {
                 std::vector<IndexPartition>& subs = sub_partitions.back();
                 // Also remove any index partitions for this index space tree
@@ -9151,7 +8997,7 @@ namespace Legion {
                      it != created_index_partitions.end();
                      /*nothing*/)
                 {
-                  if (it->first.get_tree_id() == sit->space.get_tree_id())
+                  if (it->first.get_tree_id() == sit.space.get_tree_id())
                   {
                     legion_assert(it->second > 0);
                     if (--it->second == 0)
@@ -9173,7 +9019,7 @@ namespace Legion {
           else
             // If we didn't make the index space in this context, just
             // record it and keep going, it will get handled later
-            deleted_index_spaces.emplace_back(*sit);
+            deleted_index_spaces.emplace_back(sit);
         }
       }
       if (!delete_now.empty())
@@ -9207,20 +9053,19 @@ namespace Legion {
       std::vector<std::vector<IndexPartition> > sub_partitions;
       {
         AutoLock priv_lock(privilege_lock);
-        for (std::vector<DeletedPartition>::const_iterator pit = parts.begin();
-             pit != parts.end(); pit++)
+        for (const DeletedPartition& pit : parts)
         {
           std::map<IndexPartition, unsigned>::iterator finder =
-              created_index_partitions.find(pit->partition);
+              created_index_partitions.find(pit.partition);
           if (finder != created_index_partitions.end())
           {
             legion_assert(finder->second > 0);
             if (--finder->second == 0)
             {
-              delete_now.emplace_back(*pit);
+              delete_now.emplace_back(pit);
               sub_partitions.resize(sub_partitions.size() + 1);
               created_index_partitions.erase(finder);
-              if (pit->recurse)
+              if (pit.recurse)
               {
                 std::vector<IndexPartition>& subs = sub_partitions.back();
                 // Remove any other partitions that this partition dominates
@@ -9229,10 +9074,9 @@ namespace Legion {
                      it != created_index_partitions.end();
                      /*nothing*/)
                 {
-                  if ((pit->partition.get_tree_id() ==
+                  if ((pit.partition.get_tree_id() ==
                        it->first.get_tree_id()) &&
-                      runtime->is_dominated_tree_only(
-                          it->first, pit->partition))
+                      runtime->is_dominated_tree_only(it->first, pit.partition))
                   {
                     legion_assert(it->second > 0);
                     if (--it->second == 0)
@@ -9253,7 +9097,7 @@ namespace Legion {
           }
           else
             // If we didn't make the partition, record it and keep going
-            deleted_index_partitions.emplace_back(*pit);
+            deleted_index_partitions.emplace_back(pit);
         }
       }
       if (!delete_now.empty())
@@ -9369,13 +9213,11 @@ namespace Legion {
       }
       if (!to_apply.empty())
       {
-        for (std::vector<std::pair<void*, size_t> >::const_iterator it =
-                 to_apply.begin();
-             it != to_apply.end(); it++)
+        for (const std::pair<void*, size_t>& it : to_apply)
         {
-          Deserializer derez(it->first, it->second);
+          Deserializer derez(it.first, it.second);
           collective->handle_collective_message(derez);
-          free(it->first);
+          free(it.first);
         }
       }
     }
@@ -9450,13 +9292,11 @@ namespace Legion {
       }
       if (!to_apply.empty())
       {
-        for (std::vector<PendingTemplateUpdate>::const_iterator it =
-                 to_apply.begin();
-             it != to_apply.end(); it++)
+        for (const PendingTemplateUpdate& it : to_apply)
         {
-          Deserializer derez(it->ptr, it->size);
-          physical_template->handle_trace_update(derez, it->source);
-          free(it->ptr);
+          Deserializer derez(it.ptr, it.size);
+          physical_template->handle_trace_update(derez, it.source);
+          free(it.ptr);
         }
       }
       return index;
@@ -9820,12 +9660,10 @@ namespace Legion {
         rez.serialize(target_lock);
         rez.serialize(req_index);
         rez.serialize<size_t>(local_sets.size());
-        for (std::map<EquivalenceSet*, unsigned>::const_iterator it =
-                 local_sets.begin();
-             it != local_sets.end(); it++)
+        for (const std::pair<EquivalenceSet* const, unsigned>& it : local_sets)
         {
-          legion_assert(req_index == it->second);
-          rez.serialize(it->first->did);
+          legion_assert(req_index == it.second);
+          rez.serialize(it.first->did);
         }
         rez.serialize(done);
       }
@@ -10164,11 +10002,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No need for a lock, we're in the logical dependence stage
-      for (std::vector<AttachLaunchSpace*>::const_iterator it =
-               index_attach_launch_spaces.begin();
-           it != index_attach_launch_spaces.end(); it++)
+      for (const AttachLaunchSpace* space : index_attach_launch_spaces)
       {
-        const AttachLaunchSpace* space = *it;
         legion_assert(space->shard_sizes.size() == shard_sizes.size());
         bool match = true;
         for (unsigned idx = 0; idx < shard_sizes.size(); idx++)
@@ -10184,16 +10019,15 @@ namespace Legion {
       // Make the index space first
       // See if we can make this a rect or a ragged collection of rects
       coord_t upper_bound = 0;
-      for (std::vector<size_t>::const_iterator it = shard_sizes.begin();
-           it != shard_sizes.end(); it++)
+      for (const size_t& it : shard_sizes)
       {
-        if (it != shard_sizes.begin())
+        if (&it != &shard_sizes[0])
         {
-          if (coord_t(*it) != upper_bound)
+          if (coord_t(it) != upper_bound)
             upper_bound = -1;
         }
         else
-          upper_bound = *it;
+          upper_bound = it;
       }
       IndexSpace handle;
       if (upper_bound > 0)
@@ -10426,12 +10260,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(unique_hashes.size());
-      for (ShardHashes::const_iterator it = unique_hashes.begin();
-           it != unique_hashes.end(); it++)
+      for (const ShardHashes::value_type& it : unique_hashes)
       {
-        rez.serialize(it->first.first);
-        rez.serialize(it->first.second);
-        rez.serialize(it->second);
+        rez.serialize(it.first.first);
+        rez.serialize(it.first.second);
+        rez.serialize(it.second);
       }
     }
 
@@ -10493,13 +10326,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Only put the non-empty partitions into our local set
-      for (std::map<IndexSpace, IndexPartition>::const_iterator it =
-               handles.begin();
-           it != handles.end(); it++)
+      for (const std::map<IndexSpace, IndexPartition>::value_type& it : handles)
       {
-        if (!it->second.exists())
+        if (!it.second.exists())
           continue;
-        non_empty_handles.insert(*it);
+        non_empty_handles.insert(it);
       }
       // Now we do the exchange
       perform_collective_sync();
@@ -10514,12 +10345,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(non_empty_handles.size());
-      for (std::map<IndexSpace, IndexPartition>::const_iterator it =
-               non_empty_handles.begin();
-           it != non_empty_handles.end(); it++)
+      for (const std::map<IndexSpace, IndexPartition>::value_type& it :
+           non_empty_handles)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
     }
 
@@ -10587,11 +10417,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(counts.size());
-      for (typename std::map<T, unsigned>::const_iterator it = counts.begin();
-           it != counts.end(); it++)
+      for (const typename std::map<T, unsigned>::value_type& it : counts)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
     }
 
@@ -10629,13 +10458,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(counts.size());
-      for (typename std::map<std::pair<T, FieldID>, unsigned>::const_iterator
-               it = counts.begin();
-           it != counts.end(); it++)
+      for (const std::pair<const typename std::pair<T, FieldID>, unsigned>&
+               count : counts)
       {
-        rez.serialize(it->first.first);
-        rez.serialize(it->first.second);
-        rez.serialize(it->second);
+        rez.serialize(count.first.first);
+        rez.serialize(count.first.second);
+        rez.serialize(count.second);
       }
     }
 
@@ -10674,9 +10502,8 @@ namespace Legion {
         const std::map<T, OP*>& ops, std::map<T, unsigned>& counts)
     //--------------------------------------------------------------------------
     {
-      for (typename std::map<T, OP*>::const_iterator it = ops.begin();
-           it != ops.end(); it++)
-        counts[it->first] = 1;
+      for (const typename std::map<T, OP*>::value_type& it : ops)
+        counts[it.first] = 1;
     }
 
     //--------------------------------------------------------------------------
@@ -10750,14 +10577,13 @@ namespace Legion {
       // Sort our operations
       if (!unordered_ops.empty())
       {
-        for (std::vector<Operation*>::const_iterator it = unordered_ops.begin();
-             it != unordered_ops.end(); it++)
+        for (Operation* const & it : unordered_ops)
         {
-          switch ((*it)->get_operation_kind())
+          switch (it->get_operation_kind())
           {
             case DELETION_OP_KIND:
               {
-                ReplDeletionOp* op = legion_safe_cast<ReplDeletionOp*>(*it);
+                ReplDeletionOp* op = legion_safe_cast<ReplDeletionOp*>(it);
                 op->record_unordered_kind(
                     index_space_deletions, index_partition_deletions,
                     field_space_deletions, field_deletions,
@@ -10766,11 +10592,11 @@ namespace Legion {
               }
             case DETACH_OP_KIND:
               {
-                ReplDetachOp* op = dynamic_cast<ReplDetachOp*>(*it);
+                ReplDetachOp* op = dynamic_cast<ReplDetachOp*>(it);
                 if (op == nullptr)
                 {
                   ReplIndexDetachOp* index =
-                      legion_safe_cast<ReplIndexDetachOp*>(*it);
+                      legion_safe_cast<ReplIndexDetachOp*>(it);
                   index->record_unordered_kind(
                       region_detachments, partition_detachments);
                 }
@@ -10859,12 +10685,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(implicit_sharding.size());
-      for (std::map<DomainPoint, ShardID>::const_iterator it =
-               implicit_sharding.begin();
-           it != implicit_sharding.end(); it++)
+      for (const std::pair<const DomainPoint, ShardID>& it : implicit_sharding)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
     }
 

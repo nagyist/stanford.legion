@@ -1377,13 +1377,11 @@ namespace Legion {
       if (launcher.and_op)
       {
         // Check for short circuit cases
-        for (std::vector<Predicate>::const_iterator it =
-                 launcher.predicates.begin();
-             it != launcher.predicates.end(); it++)
+        for (const Predicate& it : launcher.predicates)
         {
-          if ((*it) == Predicate::FALSE_PRED)
+          if (it == Predicate::FALSE_PRED)
             return Predicate::FALSE_PRED;
-          else if ((*it) == Predicate::TRUE_PRED)
+          else if (it == Predicate::TRUE_PRED)
             continue;
           else  // should never get here,
             // all predicates should be eagerly evaluated
@@ -1394,13 +1392,11 @@ namespace Legion {
       else
       {
         // Check for short circuit cases
-        for (std::vector<Predicate>::const_iterator it =
-                 launcher.predicates.begin();
-             it != launcher.predicates.end(); it++)
+        for (const Predicate& it : launcher.predicates)
         {
-          if ((*it) == Predicate::TRUE_PRED)
+          if (it == Predicate::TRUE_PRED)
             return Predicate::TRUE_PRED;
-          else if ((*it) == Predicate::FALSE_PRED)
+          else if (it == Predicate::FALSE_PRED)
             continue;
           else  // should never get here,
             // all predicates should be eagerly evaluated
@@ -2079,32 +2075,29 @@ namespace Legion {
         return;
       if (effects.exists() && !safe_effects.exists())
         safe_effects = Runtime::protect_event(effects);
-      for (std::map<PhysicalInstance, LgEvent>::iterator it =
-               task_local_instances.begin();
-           it != task_local_instances.end(); ++it)
+      for (std::pair<const PhysicalInstance, LgEvent>& it :
+           task_local_instances)
       {
         // Check to see if we have a memory pool that contains this in which
         // case we shouldn't actually free up the instance like this
         std::map<Memory, MemoryPool*>::const_iterator finder =
-            memory_pools.find(it->first.get_location());
+            memory_pools.find(it.first.get_location());
         if ((finder != memory_pools.end()) &&
-            finder->second->contains_instance(it->first))
+            finder->second->contains_instance(it.first))
           continue;
         MemoryManager* manager =
-            runtime->find_memory_manager(it->first.get_location());
+            runtime->find_memory_manager(it.first.get_location());
 #ifdef LEGION_MALLOC_INSTANCES
-        manager->free_legion_instance(safe_effects, it->first);
+        manager->free_legion_instance(safe_effects, it.first);
 #else
-        manager->free_task_local_instance(it->first, safe_effects);
+        manager->free_task_local_instance(it.first, safe_effects);
 #endif
       }
       task_local_instances.clear();
-      for (std::map<Memory, MemoryPool*>::const_iterator it =
-               memory_pools.begin();
-           it != memory_pools.end(); it++)
+      for (const std::map<Memory, MemoryPool*>::value_type& it : memory_pools)
       {
-        it->second->finalize_pool(safe_effects);
-        delete it->second;
+        it.second->finalize_pool(safe_effects);
+        delete it.second;
       }
 #ifdef LEGION_DEBUG
       memory_pools.clear();
@@ -2117,10 +2110,8 @@ namespace Legion {
     {
       if (!memory_pools.empty())
       {
-        for (std::map<Memory, MemoryPool*>::const_iterator it =
-                 memory_pools.begin();
-             it != memory_pools.end(); it++)
-          delete it->second;
+        for (const std::map<Memory, MemoryPool*>::value_type& it : memory_pools)
+          delete it.second;
 #ifdef LEGION_DEBUG
         memory_pools.clear();
 #endif
