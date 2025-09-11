@@ -32,7 +32,7 @@ namespace Legion {
     public:
       OverwriteAnalysis(
           Operation* op, unsigned index, const RegionUsage& usage,
-          IndexSpaceExpression* expr, LogicalView* view, const FieldMask& mask,
+          IndexSpaceNode* node, LogicalView* view, const FieldMask& mask,
           const PhysicalTraceInfo& trace_info,
           CollectiveMapping* collective_mapping, const ApEvent precondition,
           const PredEvent true_guard = PredEvent::NO_PRED_EVENT,
@@ -41,7 +41,7 @@ namespace Legion {
       // Also local but with a full set of instances
       OverwriteAnalysis(
           Operation* op, unsigned index, const RegionUsage& usage,
-          IndexSpaceExpression* expr, const PhysicalTraceInfo& trace_info,
+          IndexSpaceNode* node, const PhysicalTraceInfo& trace_info,
           const ApEvent precondition, const bool add_restriction = false);
       // Also local but with a full set of views
       OverwriteAnalysis(
@@ -53,7 +53,7 @@ namespace Legion {
       OverwriteAnalysis(
           AddressSpaceID src, AddressSpaceID prev, Operation* op,
           unsigned index, IndexSpaceExpression* expr, const RegionUsage& usage,
-          op::FieldMaskMap<LogicalView>& views,
+          IndexSpace upper_bound, op::FieldMaskMap<LogicalView>& views,
           op::FieldMaskMap<InstanceView>& reduction_views,
           const PhysicalTraceInfo& trace_info, const ApEvent precondition,
           const PredEvent true_guard, const PredEvent false_guard,
@@ -88,12 +88,14 @@ namespace Legion {
       virtual ApEvent perform_output(
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
+      virtual IndexSpace get_collective_match_space(void) const;
     public:
       RtEvent convert_views(
           LogicalRegion region, const InstanceSet& targets,
           unsigned analysis_index = 0);
     public:
       const RegionUsage usage;
+      const IndexSpace upper_bound;
       const PhysicalTraceInfo trace_info;
       op::FieldMaskMap<LogicalView> views;
       op::FieldMaskMap<InstanceView> reduction_views;
