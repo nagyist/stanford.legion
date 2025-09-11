@@ -101,7 +101,7 @@ namespace Legion {
            it != subviews.end(); it++)
       {
         it->first->view_invalidate_users(view);
-        if (it->first->remove_nested_gc_ref(view->did))
+        if (it->first->remove_nested_valid_ref(view->did))
           delete it->first;
       }
       subviews.clear();
@@ -143,7 +143,7 @@ namespace Legion {
       {
         it->first->view_find_last_users(
             view, usage, expr, expr_dominates, it->second, last_events);
-        if (it->first->remove_nested_gc_ref(view->did))
+        if (it->first->remove_nested_valid_ref(view->did))
           delete it->first;
       }
     }
@@ -164,7 +164,7 @@ namespace Legion {
           if (!overlap)
             continue;
           if (to_traverse.insert(it->first, overlap))
-            it->first->add_nested_gc_ref(view->did);
+            it->first->add_nested_valid_ref(view->did);
         }
       }
     }
@@ -264,10 +264,10 @@ namespace Legion {
           {
             subviews.erase(finder);
             // No deletion check since we're holding another reference
-            it->first->remove_nested_gc_ref(view->did);
+            it->first->remove_nested_valid_ref(view->did);
           }
         }
-        if (it->first->remove_nested_gc_ref(view->did))
+        if (it->first->remove_nested_valid_ref(view->did))
           delete it->first;
       }
       return is_empty();
@@ -368,10 +368,10 @@ namespace Legion {
           {
             subviews.erase(finder);
             // No deletion check since we're holding another reference
-            it->first->remove_nested_gc_ref(view->did);
+            it->first->remove_nested_valid_ref(view->did);
           }
         }
-        if (it->first->remove_nested_gc_ref(view->did))
+        if (it->first->remove_nested_valid_ref(view->did))
           delete it->first;
       }
       return is_empty();
@@ -386,7 +386,7 @@ namespace Legion {
       legion_assert(child->parent == node);
       AutoLock v_lock(view_lock);
       if (subviews.insert(child, child_mask))
-        child->add_nested_gc_ref(view->did);
+        child->add_nested_valid_ref(view->did);
     }
 
     //--------------------------------------------------------------------------
@@ -404,7 +404,7 @@ namespace Legion {
         IndexPartNode* child = node->get_child(path.back());
         path.pop_back();
         if (subviews.insert(child, user_mask))
-          child->add_nested_gc_ref(view->did);
+          child->add_nested_valid_ref(view->did);
         child->view_insert_user(view, path, user, user_mask, v_lock);
       }
       else if (current_epoch_users.insert(user, user_mask))
@@ -775,7 +775,7 @@ namespace Legion {
            it != subviews.end(); it++)
       {
         it->first->view_invalidate_users(view);
-        if (it->first->remove_nested_gc_ref(view->did))
+        if (it->first->remove_nested_valid_ref(view->did))
           delete it->first;
       }
       subviews.clear();
@@ -803,7 +803,7 @@ namespace Legion {
           it->first->view_find_last_users(
               view, usage, expr, it->first->view_dominated_by(expr), it->second,
               last_events);
-        if (it->first->remove_nested_gc_ref(view->did))
+        if (it->first->remove_nested_valid_ref(view->did))
           delete it->first;
       }
     }
@@ -829,7 +829,7 @@ namespace Legion {
           if (!overlap)
             continue;
           if (to_traverse.insert(it->first, overlap))
-            it->first->add_nested_gc_ref(view->did);
+            it->first->add_nested_valid_ref(view->did);
         }
       }
       else
@@ -856,7 +856,7 @@ namespace Legion {
                 if (!overlap)
                   continue;
                 if (to_traverse.insert(child, overlap))
-                  child->add_nested_gc_ref(view->did);
+                  child->add_nested_valid_ref(view->did);
               }
             }
           }
@@ -878,7 +878,7 @@ namespace Legion {
                       it->first->color))
                 continue;
               if (to_traverse.insert(it->first, overlap))
-                it->first->add_nested_gc_ref(view->did);
+                it->first->add_nested_valid_ref(view->did);
             }
           }
         }
@@ -917,10 +917,10 @@ namespace Legion {
           {
             subviews.erase(finder);
             // No deletion check since we're holding another reference
-            it->first->remove_nested_gc_ref(view->did);
+            it->first->remove_nested_valid_ref(view->did);
           }
         }
-        if (it->first->remove_nested_gc_ref(view->did))
+        if (it->first->remove_nested_valid_ref(view->did))
           delete it->first;
       }
       return empty;
@@ -955,10 +955,10 @@ namespace Legion {
           {
             subviews.erase(finder);
             // No deletion check since we're holding another reference
-            it->first->remove_nested_gc_ref(view->did);
+            it->first->remove_nested_valid_ref(view->did);
           }
         }
-        if (it->first->remove_nested_gc_ref(view->did))
+        if (it->first->remove_nested_valid_ref(view->did))
           delete it->first;
       }
       return empty;
@@ -973,7 +973,7 @@ namespace Legion {
       legion_assert(child->parent == node);
       AutoLock v_lock(view_lock);
       if (subviews.insert(child, child_mask))
-        child->add_nested_gc_ref(view->did);
+        child->add_nested_valid_ref(view->did);
     }
 
     //--------------------------------------------------------------------------
@@ -990,7 +990,7 @@ namespace Legion {
       IndexSpaceNode* child = node->get_child(path.back());
       path.pop_back();
       if (subviews.insert(child, user_mask))
-        child->add_nested_gc_ref(view->did);
+        child->add_nested_valid_ref(view->did);
       child->view_insert_user(view, path, user, user_mask, v_lock);
     }
 
@@ -1045,7 +1045,7 @@ namespace Legion {
            it != roots.end(); it++)
       {
         it->first->view_invalidate_users(this);
-        if (it->first->remove_nested_gc_ref(did))
+        if (it->first->remove_nested_valid_ref(did))
           delete it->first;
       }
       for (const std::pair<
@@ -1054,7 +1054,7 @@ namespace Legion {
       {
         if (cache_entry.first->remove_nested_expression_reference(did))
           delete cache_entry.first;
-        if (cache_entry.second.first->remove_nested_gc_ref(did))
+        if (cache_entry.second.first->remove_nested_valid_ref(did))
           delete cache_entry.second.first;
       }
       if (manager->remove_nested_resource_ref(did))
@@ -1352,6 +1352,7 @@ namespace Legion {
                 rez.serialize(precondition);
                 rez.serialize(predicate_guard);
                 copy_expression->pack_expression(rez, origin);
+                rez.serialize(collective_match_space);
                 op->pack_remote_operation(rez, origin, applied_events);
                 rez.serialize(index);
                 rez.serialize(src_mask);
@@ -1437,6 +1438,7 @@ namespace Legion {
                 rez.serialize(precondition);
                 rez.serialize(predicate_guard);
                 copy_expression->pack_expression(rez, origin);
+                rez.serialize(collective_match_space);
                 op->pack_remote_operation(rez, origin, applied_events);
                 rez.serialize(index);
                 rez.serialize(src_mask);
@@ -1503,6 +1505,7 @@ namespace Legion {
               rez.serialize(precondition);
               rez.serialize(predicate_guard);
               copy_expression->pack_expression(rez, origin);
+              rez.serialize(collective_match_space);
               op->pack_remote_operation(rez, origin, applied_events);
               rez.serialize(index);
               rez.serialize(src_mask);
@@ -1635,7 +1638,7 @@ namespace Legion {
             if (!overlap)
               continue;
             to_traverse.insert(it->first, overlap);
-            it->first->add_nested_gc_ref(did);
+            it->first->add_nested_valid_ref(did);
           }
         }
         for (local::FieldMaskMap<IndexTreeNode>::const_iterator it =
@@ -1665,10 +1668,10 @@ namespace Legion {
             {
               roots.erase(finder);
               // No deletion check since we're holding another reference
-              it->first->remove_nested_gc_ref(did);
+              it->first->remove_nested_valid_ref(did);
             }
           }
-          if (it->first->remove_nested_gc_ref(did))
+          if (it->first->remove_nested_valid_ref(did))
             delete it->first;
         }
         // Add our local user
@@ -1753,7 +1756,7 @@ namespace Legion {
             if (!overlap)
               continue;
             to_traverse.insert(it->first, overlap);
-            it->first->add_nested_gc_ref(did);
+            it->first->add_nested_valid_ref(did);
           }
         }
         for (local::FieldMaskMap<IndexTreeNode>::const_iterator it =
@@ -1782,10 +1785,10 @@ namespace Legion {
             {
               roots.erase(finder);
               // No deletion check since we're holding another reference
-              it->first->remove_nested_gc_ref(did);
+              it->first->remove_nested_valid_ref(did);
             }
           }
-          if (it->first->remove_nested_gc_ref(did))
+          if (it->first->remove_nested_valid_ref(did))
             delete it->first;
         }
         if (preconditions.empty())
@@ -1915,7 +1918,7 @@ namespace Legion {
             if (!overlap)
               continue;
             to_traverse.insert(it->first, overlap);
-            it->first->add_nested_gc_ref(did);
+            it->first->add_nested_valid_ref(did);
           }
         }
         for (local::FieldMaskMap<IndexTreeNode>::const_iterator it =
@@ -1934,7 +1937,7 @@ namespace Legion {
             it->first->view_find_last_users(
                 this, usage, expr, (overlap_volume == parent->get_volume()),
                 mask, events);
-          if (it->first->remove_nested_gc_ref(did))
+          if (it->first->remove_nested_valid_ref(did))
             delete it->first;
         }
       }
@@ -1989,12 +1992,12 @@ namespace Legion {
             const FieldMask root_mask = user_mask | it->second;
             // No need to check for deletions, added another reference
             // with the view_insert_child call
-            it->first->remove_nested_gc_ref(did);
+            it->first->remove_nested_valid_ref(did);
             roots.erase(it);
             // Be careful! Doing the insertion might invalidate
             // the iterator
             if (roots.insert(node, root_mask))
-              node->add_nested_gc_ref(did);
+              node->add_nested_valid_ref(did);
             node->view_insert_user(this, path, user, user_mask, v_lock);
             return;
           }
@@ -2006,7 +2009,7 @@ namespace Legion {
       // node is its own root
       path.clear();
       if (roots.insert(user_expr, user_mask))
-        user_expr->add_nested_gc_ref(did);
+        user_expr->add_nested_valid_ref(did);
       user_expr->view_insert_user(this, path, user, user_mask, v_lock);
     }
 

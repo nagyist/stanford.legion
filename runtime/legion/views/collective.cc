@@ -4509,6 +4509,7 @@ namespace Legion {
           rez.serialize(reduce_pre);
           rez.serialize(predicate_guard);
           copy_expression->pack_expression(rez, origin);
+          rez.serialize(match_space);
           op->pack_remote_operation(rez, origin, applied_events);
           rez.serialize(index);
           rez.serialize(copy_mask);
