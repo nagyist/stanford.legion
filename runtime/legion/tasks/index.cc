@@ -678,41 +678,19 @@ namespace Legion {
         // projection functor from an upper bound region to make sure they
         // know what they are doing
         if (IS_WRITE(req) && (req.projection == 0) &&
-            (req.handle_type == LEGION_REGION_PROJECTION))
+            (req.handle_type == LEGION_REGION_PROJECTION) &&
+            runtime->runtime_warnings)
         {
-          if (IS_WRITE_DISCARD(req))
-          {
-            if (!IS_COLLECTIVE(req))
-            {
-              Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-              error
-                  << "Parent task " << *parent_ctx
+          Warning warning;
+          warning << "Parent task " << *parent_ctx
                   << " issued index space task " << *this
-                  << " with interfering region requirement " << idx << " that "
-                  << "requested write-discard privileges for all point tasks "
-                  << "on the same logical region without indicating that they "
-                  << "should be performed concurrently. If you intend for all "
-                  << "the point tasks to perform independent writes to the "
-                     "same "
-                  << "logical region then you must mark the region requirement "
-                  << "as being a collective write.";
-              error.raise();
-            }
-          }
-          else if (runtime->runtime_warnings)
-          {
-            Warning warning;
-            warning << "Parent task " << *parent_ctx
-                    << " issued index space task " << *this
-                    << " with non-scalable projection region requirement "
-                    << idx
-                    << "that ensures all point tasks will be reading and "
-                       "writing to "
-                    << "the same logical region. This implies there will be no "
-                       "task "
-                    << "parallelism in this index space task launch.";
-            warning.raise();
-          }
+                  << " with non-scalable projection region requirement " << idx
+                  << "that ensures all point tasks will be reading and "
+                     "writing to "
+                  << "the same logical region. This implies there will be no "
+                     "task "
+                  << "parallelism in this index space task launch.";
+          warning.raise();
         }
       }
     }
@@ -2500,7 +2478,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
         const RegionRequirement& req = regions[idx];
-        if (!IS_WRITE(req) || IS_COLLECTIVE(req))
+        if ((!IS_WRITE(req) && !IS_OUTPUT_DISCARD(req)) || IS_COLLECTIVE(req))
           continue;
         // If the projection functions are invertible then we don't have to
         // worry about interference because the runtime knows how to hook
