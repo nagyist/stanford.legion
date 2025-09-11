@@ -1130,7 +1130,7 @@ namespace Legion {
     ApEvent IndividualView::fill_from(
         FillView* fill_view, ApEvent precondition, PredEvent predicate_guard,
         IndexSpaceExpression* fill_expression, Operation* op,
-        const unsigned index, const IndexSpaceID collective_match_space,
+        const unsigned index, const IndexSpace collective_match_space,
         const FieldMask& fill_mask, const PhysicalTraceInfo& trace_info,
         std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
         CopyAcrossHelper* across_helper, const bool manage_dst_events,
@@ -1169,8 +1169,8 @@ namespace Legion {
       if (manage_dst_events && result.exists())
         add_copy_user(
             false /*reading*/, 0 /*redop*/, result, fill_mask, fill_expression,
-            op->get_unique_op_id(), index, recorded_events,
-            trace_info.recording, runtime->address_space);
+            collective_match_space, op->get_unique_op_id(), index,
+            recorded_events, trace_info.recording, runtime->address_space);
       return result;
     }
 
@@ -1179,7 +1179,7 @@ namespace Legion {
         InstanceView* src_view, ApEvent precondition, PredEvent predicate_guard,
         ReductionOpID reduction_op_id, IndexSpaceExpression* copy_expression,
         Operation* op, const unsigned index,
-        const IndexSpaceID collective_match_space, const FieldMask& copy_mask,
+        const IndexSpace collective_match_space, const FieldMask& copy_mask,
         PhysicalManager* src_point, const PhysicalTraceInfo& trace_info,
         std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
         CopyAcrossHelper* across_helper, const bool manage_dst_events,
@@ -1266,13 +1266,13 @@ namespace Legion {
         {
           source_view->add_copy_user(
               true /*reading*/, 0 /*redop*/, result, src_mask, copy_expression,
-              op_id, index, recorded_events, trace_info.recording,
-              runtime->address_space);
+              collective_match_space, op_id, index, recorded_events,
+              trace_info.recording, runtime->address_space);
           if (manage_dst_events)
             add_copy_user(
                 false /*reading*/, reduction_op_id, result, copy_mask,
-                copy_expression, op_id, index, recorded_events,
-                trace_info.recording, runtime->address_space);
+                copy_expression, collective_match_space, op_id, index,
+                recorded_events, trace_info.recording, runtime->address_space);
         }
         if (trace_info.recording)
         {
@@ -1395,10 +1395,11 @@ namespace Legion {
               result = to_trigger;
               allreduce->perform_collective_reduction(
                   dst_fields, reservations, precondition, predicate_guard,
-                  copy_expression, op, index, src_mask, copy_mask,
-                  (src_point != nullptr) ? src_point->did : 0, dst_inst,
-                  manager->get_unique_event(), trace_info, COLLECTIVE_REDUCTION,
-                  recorded_events, applied_events, to_trigger, origin);
+                  copy_expression, collective_match_space, op, index, src_mask,
+                  copy_mask, (src_point != nullptr) ? src_point->did : 0,
+                  dst_inst, manager->get_unique_event(), trace_info,
+                  COLLECTIVE_REDUCTION, recorded_events, applied_events,
+                  to_trigger, origin);
             }
           }
           else
@@ -1470,9 +1471,9 @@ namespace Legion {
             else
               result = allreduce->perform_hammer_reduction(
                   dst_fields, reservations, precondition, predicate_guard,
-                  copy_expression, op, index, src_mask, copy_mask, dst_inst,
-                  manager->get_unique_event(), trace_info, recorded_events,
-                  applied_events, origin);
+                  copy_expression, collective_match_space, op, index, src_mask,
+                  copy_mask, dst_inst, manager->get_unique_event(), trace_info,
+                  recorded_events, applied_events, origin);
           }
         }
         else
@@ -1527,16 +1528,16 @@ namespace Legion {
           else
             result = collective->perform_collective_point(
                 dst_fields, reservations, precondition, predicate_guard,
-                copy_expression, op, index, src_mask, copy_mask, location,
-                dst_inst, manager->get_unique_event(),
+                copy_expression, collective_match_space, op, index, src_mask,
+                copy_mask, location, dst_inst, manager->get_unique_event(),
                 (src_point != nullptr) ? src_point->did : 0, trace_info,
                 recorded_events, applied_events);
         }
         if (result.exists() && manage_dst_events)
           add_copy_user(
               false /*reading*/, reduction_op_id, result, copy_mask,
-              copy_expression, op_id, index, recorded_events,
-              trace_info.recording, runtime->address_space);
+              copy_expression, collective_match_space, op_id, index,
+              recorded_events, trace_info.recording, runtime->address_space);
       }
       return result;
     }
@@ -1557,8 +1558,7 @@ namespace Legion {
     ApEvent IndividualView::register_user(
         const RegionUsage& usage, const FieldMask& user_mask,
         IndexSpaceNode* user_expr, const UniqueID op_id,
-        const size_t op_ctx_index, const unsigned index,
-        const IndexSpaceID match_space, ApEvent term_event,
+        const size_t op_ctx_index, const unsigned index, ApEvent term_event,
         PhysicalManager* target, CollectiveMapping* analysis_mapping,
         size_t local_collective_arrivals, std::vector<RtEvent>& registered,
         std::set<RtEvent>& applied_events, const PhysicalTraceInfo& trace_info,
@@ -1569,10 +1569,9 @@ namespace Legion {
       // Handle the collective rendezvous if necessary
       if (local_collective_arrivals > 0)
         return register_collective_user(
-            usage, user_mask, user_expr, op_id, op_ctx_index, index,
-            match_space, term_event, target, analysis_mapping,
-            local_collective_arrivals, registered, applied_events, trace_info,
-            symbolic);
+            usage, user_mask, user_expr, op_id, op_ctx_index, index, term_event,
+            target, analysis_mapping, local_collective_arrivals, registered,
+            applied_events, trace_info, symbolic);
       // Quick test for empty index space expressions
       if (!symbolic && user_expr->is_empty())
       {
@@ -1604,7 +1603,6 @@ namespace Legion {
             rez.serialize(op_id);
             rez.serialize(op_ctx_index);
             rez.serialize(index);
-            rez.serialize(match_space);
             rez.serialize(term_event);
             rez.serialize(local_collective_arrivals);
             rez.serialize(ready_event);
@@ -1800,10 +1798,12 @@ namespace Legion {
     void IndividualView::add_copy_user(
         bool reading, ReductionOpID redop, ApEvent term_event,
         const FieldMask& copy_mask, IndexSpaceExpression* copy_expr,
-        UniqueID op_id, unsigned index, std::set<RtEvent>& applied_events,
-        const bool trace_recording, const AddressSpaceID source)
+        IndexSpace upper_bound, UniqueID op_id, unsigned index,
+        std::set<RtEvent>& applied_events, const bool trace_recording,
+        const AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
+      legion_assert(upper_bound.exists());
       if (!is_logical_owner())
       {
         // Check to see if this update came from some place other than the
@@ -1820,6 +1820,7 @@ namespace Legion {
             rez.serialize(term_event);
             rez.serialize(copy_mask);
             copy_expr->pack_expression(rez, logical_owner);
+            rez.serialize(upper_bound);
             rez.serialize(op_id);
             rez.serialize(index);
             rez.serialize(applied_event);
@@ -1837,8 +1838,40 @@ namespace Legion {
             (redop > 0) ? LEGION_REDUCE :
                           LEGION_READ_WRITE,
             (redop > 0) ? LEGION_ATOMIC : LEGION_EXCLUSIVE, redop);
-        add_internal_copy_user(
-            usage, copy_expr, copy_mask, term_event, op_id, index);
+        IndexSpaceNode* target = dynamic_cast<IndexSpaceNode*>(copy_expr);
+        if (target != nullptr)
+        {
+          PhysicalUser* user = new PhysicalUser(
+              usage, copy_expr, term_event, op_id, index, true /*copy user*/,
+              true /*covers*/);
+          add_internal_node_user(user, copy_mask, target);
+        }
+        else
+        {
+          // Check to see if the canonical expressin is an index space node
+          IndexSpaceExpression* canonical =
+              copy_expr->get_canonical_expression();
+          target = dynamic_cast<IndexSpaceNode*>(canonical);
+          if (target != nullptr)
+          {
+            PhysicalUser* user = new PhysicalUser(
+                usage, copy_expr, term_event, op_id, index, true /*copy user*/,
+                true /*covers*/);
+            add_internal_node_user(user, copy_mask, target);
+          }
+          else
+          {
+            // Need to use the upper bound to store the user unfortunately
+            // which is sound but not precise, the analysis will still be
+            // precise of course, but more later users might need to test
+            // against this user unnecessarily to prove non-interference
+            target = runtime->get_node(upper_bound);
+            PhysicalUser* user = new PhysicalUser(
+                usage, copy_expr, term_event, op_id, index, true /*copy user*/,
+                false /*covers*/);
+            add_internal_node_user(user, copy_mask, target);
+          }
+        }
         manager->record_instance_user(term_event, applied_events);
       }
     }
@@ -1918,129 +1951,6 @@ namespace Legion {
           usage, user_expr, term_event, op_id, index, false /*copy user*/,
           true /*covers*/);
       add_internal_node_user(user, user_mask, user_expr);
-    }
-
-    //--------------------------------------------------------------------------
-    void IndividualView::add_internal_copy_user(
-        const RegionUsage& usage, IndexSpaceExpression* user_expr,
-        const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
-        const unsigned index)
-    //--------------------------------------------------------------------------
-    {
-      IndexSpaceNode* target = dynamic_cast<IndexSpaceNode*>(user_expr);
-      if (target != nullptr)
-      {
-        PhysicalUser* user = new PhysicalUser(
-            usage, user_expr, term_event, op_id, index, true /*copy user*/,
-            true /*covers*/);
-        add_internal_node_user(user, user_mask, target);
-        return;
-      }
-      // Check to see if the canonical expressin is an index space node
-      IndexSpaceExpression* canonical = user_expr->get_canonical_expression();
-      target = dynamic_cast<IndexSpaceNode*>(canonical);
-      if (target != nullptr)
-      {
-        PhysicalUser* user = new PhysicalUser(
-            usage, canonical, term_event, op_id, index, true /*copy user*/,
-            true /*covers*/);
-        add_internal_node_user(user, user_mask, target);
-        return;
-      }
-      const size_t expr_volume = user_expr->get_volume();
-      {
-        // See if we can find a root that covers the expression
-        AutoLock v_lock(view_lock);
-        // Check to see if we have it in the cache
-        lng::map<IndexSpaceExpression*, std::pair<IndexSpaceNode*, uint64_t> >::
-            iterator finder = expr_cache.find(canonical);
-        if (finder == expr_cache.end())
-        {
-          // See if we can find a root that contains the expression
-          for (lng::FieldMaskMap<IndexTreeNode>::iterator it = roots.begin();
-               it != roots.end(); it++)
-          {
-            // Don't need to bother to check if it is partition, we'll figure
-            // it out soon enough
-            if (it->first->is_index_space_node())
-            {
-              IndexSpaceExpression* overlap = runtime->intersect_index_spaces(
-                  user_expr, it->first->as_index_space_node());
-              if (overlap->get_volume() < expr_volume)
-                continue;
-            }
-            target = it->first->view_find_tightest_enclosing(this, user_expr);
-            if (target != nullptr)
-              break;
-          }
-          // Can always find the root index space for this region tree
-          if (target == nullptr)
-          {
-            RegionNode* root = runtime->get_tree(manager->tree_id);
-            target =
-                root->row_source->view_find_tightest_enclosing(this, user_expr);
-            legion_assert(target != nullptr);
-          }
-          canonical->add_nested_expression_reference(did);
-          target->add_nested_gc_ref(did);
-          expr_cache.emplace(std::make_pair(
-              canonical, std::make_pair(target, expr_cache_clock++)));
-          static_assert(MAXIMUM_EXPR_CACHE_SIZE > 0);
-          if (MAXIMUM_EXPR_CACHE_SIZE < expr_cache.size())
-          {
-            // Remove the oldest entry
-            uint64_t oldest_clock = 0;
-            IndexSpaceExpression* oldest = nullptr;
-            for (const std::pair<
-                     IndexSpaceExpression* const,
-                     std::pair<IndexSpaceNode*, uint64_t> >& cache_entry :
-                 expr_cache)
-            {
-              if ((oldest == nullptr) ||
-                  (cache_entry.second.second < oldest_clock))
-              {
-                oldest = cache_entry.first;
-                oldest_clock = cache_entry.second.second;
-              }
-            }
-            legion_assert(oldest != nullptr);
-            finder = expr_cache.find(oldest);
-            legion_assert(finder != expr_cache.end());
-            if (oldest->remove_nested_expression_reference(did))
-              delete oldest;
-            if (finder->second.first->remove_nested_gc_ref(did))
-              delete finder->second.first;
-            expr_cache.erase(finder);
-          }
-        }
-        else
-        {
-          target = finder->second.first;
-          target->add_nested_gc_ref(did);
-          finder->second.second = expr_cache_clock++;
-        }
-        if (expr_cache_clock == 0)  // check for overflow
-        {
-          // flush the cache
-          for (const std::pair<
-                   IndexSpaceExpression* const,
-                   std::pair<IndexSpaceNode*, uint64_t> >& cache_entry :
-               expr_cache)
-          {
-            if (cache_entry.first->remove_nested_expression_reference(did))
-              delete cache_entry.first;
-            if (cache_entry.second.first->remove_nested_gc_ref(did))
-              delete cache_entry.second.first;
-          }
-          expr_cache.clear();
-        }
-      }
-      PhysicalUser* user = new PhysicalUser(
-          usage, user_expr, term_event, op_id, index, true /*copy user*/,
-          (target->get_volume() == expr_volume));
-      add_internal_node_user(user, user_mask, target);
-      if (target->remove_nested_gc_ref(did))
-        delete target;
     }
 
     //--------------------------------------------------------------------------
@@ -2143,7 +2053,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     CollectiveAnalysis* IndividualView::find_collective_analysis(
-        size_t context_index, unsigned region_index, IndexSpaceID match_space)
+        size_t context_index, unsigned region_index, IndexSpace match_space)
     //--------------------------------------------------------------------------
     {
       legion_assert(is_owner());
@@ -2184,7 +2094,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void IndividualView::unregister_collective_analysis(
         const CollectiveView* source, size_t context_index,
-        unsigned region_index, IndexSpaceID match_space)
+        unsigned region_index, IndexSpace match_space)
     //--------------------------------------------------------------------------
     {
       CollectiveAnalysis* removed = nullptr;
@@ -2220,8 +2130,7 @@ namespace Legion {
     ApEvent IndividualView::register_collective_user(
         const RegionUsage& usage, const FieldMask& user_mask,
         IndexSpaceNode* expr, const UniqueID op_id, const size_t op_ctx_index,
-        const unsigned index, const IndexSpaceID match_space,
-        ApEvent term_event, PhysicalManager* target,
+        const unsigned index, ApEvent term_event, PhysicalManager* target,
         CollectiveMapping* analysis_mapping, size_t local_collective_arrivals,
         std::vector<RtEvent>& registered_events,
         std::set<RtEvent>& applied_events, const PhysicalTraceInfo& trace_info,
@@ -2250,7 +2159,7 @@ namespace Legion {
       RtUserEvent applied, registered;
       std::vector<ApEvent> term_events;
       PhysicalTraceInfo* result_info = nullptr;
-      const RendezvousKey key(op_ctx_index, index, match_space);
+      const RendezvousKey key(op_ctx_index, index, expr->handle);
       {
         AutoLock v_lock(view_lock);
         // Check to see if we're the first one to arrive on this node
@@ -2358,7 +2267,7 @@ namespace Legion {
           rez.serialize(did);
           rez.serialize(op_ctx_index);
           rez.serialize(index);
-          rez.serialize(match_space);
+          rez.serialize(expr->handle);
           rez.serialize(origin);
           result_info->pack_trace_info(rez);
           analysis_mapping->pack(rez);
@@ -2374,10 +2283,10 @@ namespace Legion {
         std::vector<RtEvent> local_registered;
         std::set<RtEvent> local_applied;
         const ApEvent ready = register_user(
-            usage, user_mask, expr, op_id, op_ctx_index, index, match_space,
-            term_event, target, nullptr /*analysis*/,
-            0 /*no collective arrivals*/, local_registered, local_applied,
-            *result_info, runtime->address_space, symbolic);
+            usage, user_mask, expr, op_id, op_ctx_index, index, term_event,
+            target, nullptr /*analysis*/, 0 /*no collective arrivals*/,
+            local_registered, local_applied, *result_info,
+            runtime->address_space, symbolic);
         Runtime::trigger_event(result, ready, *result_info, local_applied);
         if (!local_registered.empty())
           Runtime::trigger_event(
@@ -2400,7 +2309,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void IndividualView::process_collective_user_registration(
         const size_t op_ctx_index, const unsigned index,
-        const IndexSpaceID match_space, const AddressSpaceID origin,
+        const IndexSpace match_space, const AddressSpaceID origin,
         const PhysicalTraceInfo& trace_info,
         CollectiveMapping* analysis_mapping, ApEvent remote_term_event,
         ApUserEvent remote_ready_event, RtUserEvent remote_registered,
@@ -2497,11 +2406,10 @@ namespace Legion {
         std::set<RtEvent> applied_events;
         const ApEvent ready = register_user(
             to_perform.usage, *to_perform.mask, to_perform.expr,
-            to_perform.op_id, op_ctx_index, index, match_space, term_event,
-            manager, nullptr /*no analysis mapping*/,
-            0 /*no collective arrivals*/, registered_events, applied_events,
-            *to_perform.trace_info, runtime->address_space,
-            to_perform.symbolic);
+            to_perform.op_id, op_ctx_index, index, term_event, manager,
+            nullptr /*no analysis mapping*/, 0 /*no collective arrivals*/,
+            registered_events, applied_events, *to_perform.trace_info,
+            runtime->address_space, to_perform.symbolic);
         Runtime::trigger_event(
             to_perform.ready_event, ready, *to_perform.trace_info,
             applied_events);
@@ -2540,7 +2448,7 @@ namespace Legion {
       derez.deserialize(op_ctx_index);
       unsigned index;
       derez.deserialize(index);
-      IndexSpaceID match_space;
+      IndexSpace match_space;
       derez.deserialize(match_space);
       AddressSpaceID origin;
       derez.deserialize(origin);
@@ -2838,6 +2746,8 @@ namespace Legion {
       derez.deserialize(copy_mask);
       IndexSpaceExpression* copy_expr =
           IndexSpaceExpression::unpack_expression(derez, source);
+      IndexSpace upper_bound;
+      derez.deserialize(upper_bound);
       UniqueID op_id;
       derez.deserialize(op_id);
       unsigned index;
@@ -2854,8 +2764,8 @@ namespace Legion {
 
       std::set<RtEvent> applied_events;
       inst_view->add_copy_user(
-          reading, redop, term_event, copy_mask, copy_expr, op_id, index,
-          applied_events, trace_recording, source);
+          reading, redop, term_event, copy_mask, copy_expr, upper_bound, op_id,
+          index, applied_events, trace_recording, source);
       if (!applied_events.empty())
         Runtime::trigger_event(
             applied_event, Runtime::merge_events(applied_events));

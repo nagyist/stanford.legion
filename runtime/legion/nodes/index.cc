@@ -1784,58 +1784,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexSpaceNode* IndexSpaceNode::view_find_tightest_enclosing(
-        const IndividualView* view, IndexSpaceExpression* expr)
-    //--------------------------------------------------------------------------
-    {
-      // If we haven't set this index space node yet then skip out since it
-      // might not be safe to wait for it to be set
-      if (!index_space_set.load())
-        return nullptr;
-      // Get copies of all the partitions that are alive here
-      local::vector<IndexPartNode*> to_traverse;
-      {
-        AutoLock n_lock(node_lock, false /*exclusive*/);
-        to_traverse.reserve(color_map.size());
-        for (const std::pair<const LegionColor, IndexPartNode*>& partition :
-             color_map)
-        {
-          partition.second->add_nested_gc_ref(view->did);
-          to_traverse.push_back(partition.second);
-        }
-      }
-      size_t smallest_volume = 0;
-      IndexSpaceNode* smallest = nullptr;
-      for (IndexPartNode* partition : to_traverse)
-      {
-        IndexSpaceNode* result =
-            partition->view_find_tightest_enclosing(view, expr);
-        if (partition->remove_nested_gc_ref(view->did))
-          delete partition;
-        if (result == nullptr)
-          continue;
-        const size_t result_volume = result->get_volume();
-        if ((smallest == nullptr) || (result_volume < smallest_volume))
-        {
-          if ((smallest != nullptr) &&
-              smallest->remove_nested_gc_ref(view->did))
-            delete smallest;
-          smallest = result;
-          smallest_volume = result_volume;
-        }
-        else if (result->remove_nested_gc_ref(view->did))
-          delete result;
-      }
-      if (smallest == nullptr)
-      {
-        add_nested_gc_ref(view->did);
-        return this;
-      }
-      else
-        return smallest;
-    }
-
-    //--------------------------------------------------------------------------
     NodeView* IndexSpaceNode::find_instance_view(const IndividualView* view)
     //--------------------------------------------------------------------------
     {
@@ -4017,50 +3965,6 @@ namespace Legion {
     {
       PartitionView& node_view = find_or_create_instance_view(view);
       node_view.insert_user(view, user, user_mask, path, v_lock);
-    }
-
-    //--------------------------------------------------------------------------
-    IndexSpaceNode* IndexPartNode::view_find_tightest_enclosing(
-        const IndividualView* view, IndexSpaceExpression* expr)
-    //--------------------------------------------------------------------------
-    {
-      // Before we do anything check to see if we can find at least one
-      // child node that is set, if not then it might not be safe to
-      // consider this partition because it might still be in the
-      // process of being computed
-      {
-        bool found_set = false;
-        AutoLock n_lock(node_lock, false /*exclusive*/);
-      }
-      std::vector<LegionColor> children;
-      find_interfering_children(expr, children);
-      size_t smallest_volume = 0;
-      IndexSpaceNode* smallest = nullptr;
-      const size_t expr_volume = expr->get_volume();
-      for (LegionColor color : children)
-      {
-        IndexSpaceNode* child = get_child(color);
-        // Check to see if the child dominates the expr
-        IndexSpaceExpression* overlap =
-            runtime->intersect_index_spaces(child, expr);
-        if (overlap->get_volume() < expr_volume)
-          continue;
-        IndexSpaceNode* result =
-            child->view_find_tightest_enclosing(view, expr);
-        legion_assert(result != nullptr);
-        const size_t result_volume = result->get_volume();
-        if ((smallest == nullptr) || (result_volume < smallest_volume))
-        {
-          if ((smallest != nullptr) &&
-              smallest->remove_nested_gc_ref(view->did))
-            delete smallest;
-          smallest = result;
-          smallest_volume = result_volume;
-        }
-        else if (result->remove_nested_gc_ref(view->did))
-          delete result;
-      }
-      return smallest;
     }
 
     //--------------------------------------------------------------------------

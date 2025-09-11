@@ -1147,7 +1147,7 @@ namespace Legion {
       // Should only have across helper on across copies
       legion_assert((fills[0]->across_helper == nullptr) || !manage_dst_events);
       legion_assert((dst_events == nullptr) || track_events);
-      const IndexSpaceID match_space = analysis->get_collective_match_space();
+      const IndexSpace match_space = analysis->get_collective_match_space();
       if (fills.size() == 1)
       {
         FillUpdate* update = fills[0];
@@ -1241,7 +1241,7 @@ namespace Legion {
       legion_assert(!!copy_mask);
       legion_assert((src_index == dst_index) || !manage_dst_events);
       legion_assert((dst_events == nullptr) || track_events);
-      const IndexSpaceID match_space = analysis->get_collective_match_space();
+      const IndexSpace match_space = analysis->get_collective_match_space();
       // We'll also look for an interesting optimization case here
       // that was identified by cuNumeric tensor contractions, in
       // some cases we'll have a group of individual views in the

@@ -205,7 +205,10 @@ namespace Legion {
       virtual ApEvent perform_output(
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
-      virtual IndexSpaceID get_collective_match_space(void) const { return 0; }
+      virtual IndexSpace get_collective_match_space(void) const
+      {
+        std::abort();
+      }
     public:
       void process_remote_instances(
           Deserializer& derez, std::set<RtEvent>& ready_events);

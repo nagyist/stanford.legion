@@ -227,8 +227,6 @@ namespace Legion {
       virtual void view_insert_user(
           const IndividualView* view, local::vector<LegionColor>& path,
           PhysicalUser* user, const FieldMask& user_mask, AutoLock& v_lock) = 0;
-      virtual IndexSpaceNode* view_find_tightest_enclosing(
-          const IndividualView* view, IndexSpaceExpression* expr) = 0;
     public:
       void attach_semantic_information(
           SemanticTag tag, AddressSpaceID source, const void* buffer,
@@ -586,8 +584,6 @@ namespace Legion {
       virtual void view_insert_user(
           const IndividualView* view, local::vector<LegionColor>& path,
           PhysicalUser* user, const FieldMask& user_mask, AutoLock& v_lock);
-      virtual IndexSpaceNode* view_find_tightest_enclosing(
-          const IndividualView* view, IndexSpaceExpression* expr);
     protected:
       NodeView* find_instance_view(const IndividualView* view);
       NodeView& find_or_create_instance_view(const IndividualView* view);
@@ -1556,8 +1552,6 @@ namespace Legion {
       virtual void view_insert_user(
           const IndividualView* view, local::vector<LegionColor>& path,
           PhysicalUser* user, const FieldMask& user_mask, AutoLock& v_lock);
-      virtual IndexSpaceNode* view_find_tightest_enclosing(
-          const IndividualView* view, IndexSpaceExpression* expr);
     protected:
       PartitionView* find_instance_view(const IndividualView* view);
       PartitionView& find_or_create_instance_view(const IndividualView* view);

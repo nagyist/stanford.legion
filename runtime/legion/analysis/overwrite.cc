@@ -287,7 +287,6 @@ namespace Legion {
       // In this case we know the expression should be a region
       IndexSpaceNode* expr_node =
           legion_safe_cast<IndexSpaceNode*>(analysis_expr);
-      const IndexSpaceID match_space = expr_node->handle.get_id();
       std::vector<RtEvent> registered_events;
       std::vector<ApEvent> inst_ready_events;
       for (unsigned idx = 0; idx < target_views.size(); idx++)
@@ -306,9 +305,9 @@ namespace Legion {
           }
           const ApEvent ready = it->first->register_user(
               usage, it->second, expr_node, op_id, op_ctx_index, index,
-              match_space, termination, target_instances[idx],
-              collective_mapping, view_collective_arrivals, registered_events,
-              applied_events, trace_info, local_space, symbolic);
+              termination, target_instances[idx], collective_mapping,
+              view_collective_arrivals, registered_events, applied_events,
+              trace_info, local_space, symbolic);
           if (ready.exists())
             inst_ready_events.emplace_back(ready);
         }

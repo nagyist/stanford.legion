@@ -17,6 +17,7 @@
 #define __LEGION_INSTANCE_VIEW_H__
 
 #include "legion/views/logical.h"
+#include "legion/api/data.h"
 #include "legion/utilities/fieldmask_map.h"
 
 namespace Legion {
@@ -37,8 +38,8 @@ namespace Legion {
       struct RendezvousKey {
       public:
         RendezvousKey(void) : op_context_index(0), match(0), index(0) { }
-        RendezvousKey(size_t ctx, unsigned idx, IndexSpaceID m)
-          : op_context_index(ctx), match(m), index(idx)
+        RendezvousKey(size_t ctx, unsigned idx, const IndexSpace& m)
+          : op_context_index(ctx), match(m.get_id()), index(idx)
         { }
       public:
         inline bool operator<(const RendezvousKey& rhs) const
@@ -66,7 +67,7 @@ namespace Legion {
       virtual ApEvent fill_from(
           FillView* fill_view, ApEvent precondition, PredEvent predicate_guard,
           IndexSpaceExpression* expression, Operation* op, const unsigned index,
-          const IndexSpaceID collective_match_space, const FieldMask& fill_mask,
+          const IndexSpace collective_match_space, const FieldMask& fill_mask,
           const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           CopyAcrossHelper* across_helper, const bool manage_dst_events,
@@ -75,7 +76,7 @@ namespace Legion {
           InstanceView* src_view, ApEvent precondition,
           PredEvent predicate_guard, ReductionOpID redop,
           IndexSpaceExpression* expression, Operation* op, const unsigned index,
-          const IndexSpaceID collective_match_space, const FieldMask& copy_mask,
+          const IndexSpace collective_match_space, const FieldMask& copy_mask,
           PhysicalManager* src_point, const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           CopyAcrossHelper* across_helper, const bool manage_dst_events,
@@ -84,8 +85,7 @@ namespace Legion {
       virtual ApEvent register_user(
           const RegionUsage& usage, const FieldMask& user_mask,
           IndexSpaceNode* expr, const UniqueID op_id, const size_t op_ctx_index,
-          const unsigned index, const IndexSpaceID collective_match_space,
-          ApEvent term_event, PhysicalManager* target,
+          const unsigned index, ApEvent term_event, PhysicalManager* target,
           CollectiveMapping* collective_mapping,
           size_t local_collective_arrivals,
           std::vector<RtEvent>& registered_events,

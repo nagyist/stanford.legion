@@ -41,7 +41,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RemoteCollectiveAnalysis::RemoteCollectiveAnalysis(
-        size_t ctx_index, unsigned req_index, IndexSpaceID match, RemoteOp* op,
+        size_t ctx_index, unsigned req_index, IndexSpace match, RemoteOp* op,
         Deserializer& derez)
       : context_index(ctx_index), requirement_index(req_index),
         match_space(match), operation(op),
@@ -72,7 +72,7 @@ namespace Legion {
       derez.deserialize(context_index);
       unsigned requirement_index;
       derez.deserialize(requirement_index);
-      IndexSpaceID match_space;
+      IndexSpace match_space;
       derez.deserialize(match_space);
       RemoteOp* op = RemoteOp::unpack_remote_operation(derez);
       return new RemoteCollectiveAnalysis(

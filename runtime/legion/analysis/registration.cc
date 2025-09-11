@@ -166,7 +166,6 @@ namespace Legion {
       legion_assert(expr_node == analysis_expr);
       std::vector<RtEvent> registered_events;
       std::vector<ApEvent> inst_ready_events;
-      const IndexSpaceID match_space = get_collective_match_space();
       for (unsigned idx = 0; idx < target_views.size(); idx++)
       {
         for (op::FieldMaskMap<InstanceView>::const_iterator it =
@@ -183,9 +182,9 @@ namespace Legion {
           }
           const ApEvent ready = it->first->register_user(
               usage, it->second, expr_node, op_id, op_ctx_index, index,
-              match_space, termination, target_instances[idx],
-              collective_mapping, view_collective_arrivals, registered_events,
-              applied_events, trace_info, local_space, symbolic);
+              termination, target_instances[idx], collective_mapping,
+              view_collective_arrivals, registered_events, applied_events,
+              trace_info, local_space, symbolic);
           if (ready.exists())
             inst_ready_events.emplace_back(ready);
         }
@@ -217,10 +216,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexSpaceID RegistrationAnalysis::get_collective_match_space(void) const
+    IndexSpace RegistrationAnalysis::get_collective_match_space(void) const
     //--------------------------------------------------------------------------
     {
-      return region->row_source->handle.get_id();
+      return region->row_source->handle;
     }
 
   }  // namespace Internal

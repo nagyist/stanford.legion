@@ -80,6 +80,10 @@ namespace Legion {
       virtual ApEvent perform_output(
           RtEvent precondition, std::set<RtEvent>& applied_events,
           const bool already_deferred = false);
+      virtual IndexSpace get_collective_match_space(void) const
+      {
+        return dst_region.get_index_space();
+      }
     public:
       static inline FieldMask initialize_mask(const std::vector<unsigned>& idxs)
       {

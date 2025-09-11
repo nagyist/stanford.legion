@@ -47,10 +47,10 @@ namespace Legion {
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& reservations, ApEvent precondition,
           PredEvent predicate_guard, IndexSpaceExpression* copy_expresison,
-          Operation* op, const unsigned index, const FieldMask& copy_mask,
-          const FieldMask& dst_mask, const DistributedID src_inst_did,
-          const UniqueInst& dst_inst, const LgEvent dst_unique_event,
-          const PhysicalTraceInfo& trace_info,
+          IndexSpace upper_bound, Operation* op, const unsigned index,
+          const FieldMask& copy_mask, const FieldMask& dst_mask,
+          const DistributedID src_inst_did, const UniqueInst& dst_inst,
+          const LgEvent dst_unique_event, const PhysicalTraceInfo& trace_info,
           const CollectiveKind collective_kind,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           ApUserEvent result, AddressSpaceID origin);
@@ -59,15 +59,16 @@ namespace Legion {
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& reservations, ApEvent precondition,
           PredEvent predicate_guard, IndexSpaceExpression* copy_expresison,
-          Operation* op, const unsigned index, const FieldMask& copy_mask,
-          const FieldMask& dst_mask, const UniqueInst& dst_inst,
-          const LgEvent dst_unique_event, const PhysicalTraceInfo& trace_info,
+          IndexSpace upper_bound, Operation* op, const unsigned index,
+          const FieldMask& copy_mask, const FieldMask& dst_mask,
+          const UniqueInst& dst_inst, const LgEvent dst_unique_event,
+          const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           AddressSpaceID origin);
       void perform_collective_allreduce(
           ApEvent precondition, PredEvent predicate_guard,
-          IndexSpaceExpression* copy_expresison, Operation* op,
-          const unsigned index, const FieldMask& copy_mask,
+          IndexSpaceExpression* copy_expresison, IndexSpace upper_bound,
+          Operation* op, const unsigned index, const FieldMask& copy_mask,
           const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           const uint64_t allreduce_tag);
@@ -96,28 +97,30 @@ namespace Legion {
       void perform_single_allreduce(
           const uint64_t allreduce_tag, Operation* op, unsigned index,
           ApEvent precondition, PredEvent predicate_guard,
-          IndexSpaceExpression* copy_expression, const FieldMask& copy_mask,
-          const PhysicalTraceInfo& trace_info,
+          IndexSpaceExpression* copy_expression, IndexSpace upper_bound,
+          const FieldMask& copy_mask, const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events,
           std::set<RtEvent>& applied_events);
       void perform_multi_allreduce(
           const uint64_t allreduce_tag, Operation* op, unsigned index,
           ApEvent precondition, PredEvent predicate_guard,
-          IndexSpaceExpression* copy_expression, const FieldMask& copy_mask,
-          const PhysicalTraceInfo& trace_info,
+          IndexSpaceExpression* copy_expression, IndexSpace upper_bound,
+          const FieldMask& copy_mask, const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events,
           std::set<RtEvent>& applied_events);
       ApEvent initialize_allreduce_with_reductions(
           ApEvent precondition, PredEvent predicate_guard, Operation* op,
           unsigned index, IndexSpaceExpression* copy_expression,
-          const FieldMask& copy_mask, const PhysicalTraceInfo& trace_info,
+          IndexSpace upper_bound, const FieldMask& copy_mask,
+          const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& applied_events,
           std::vector<ApEvent>& instance_events,
           std::vector<std::vector<CopySrcDstField> >& local_fields,
           std::vector<std::vector<Reservation> >& reservations);
       void complete_initialize_allreduce_with_reductions(
           Operation* op, unsigned index, IndexSpaceExpression* copy_expression,
-          const FieldMask& copy_mask, const PhysicalTraceInfo& trace_info,
+          IndexSpace upper_bound, const FieldMask& copy_mask,
+          const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           std::vector<ApEvent>& instance_events,
           std::vector<std::vector<CopySrcDstField> >& local_fields,
@@ -125,30 +128,32 @@ namespace Legion {
       void initialize_allreduce_without_reductions(
           ApEvent precondition, PredEvent predicate_guard, Operation* op,
           unsigned index, IndexSpaceExpression* copy_expression,
-          const FieldMask& copy_mask, const PhysicalTraceInfo& trace_info,
+          IndexSpace upper_bound, const FieldMask& copy_mask,
+          const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           std::vector<ApEvent>& instance_events,
           std::vector<std::vector<CopySrcDstField> >& local_fields,
           std::vector<std::vector<Reservation> >& reservations);
       ApEvent finalize_allreduce_with_broadcasts(
           PredEvent predicate_guard, Operation* op, unsigned index,
-          IndexSpaceExpression* copy_expression, const FieldMask& copy_mask,
-          const PhysicalTraceInfo& trace_info,
+          IndexSpaceExpression* copy_expression, IndexSpace upper_bound,
+          const FieldMask& copy_mask, const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           std::vector<ApEvent>& instance_events,
           const std::vector<std::vector<CopySrcDstField> >& local_fields,
           const unsigned final_index = 0);
       void complete_finalize_allreduce_with_broadcasts(
           Operation* op, unsigned index, IndexSpaceExpression* copy_expression,
-          const FieldMask& copy_mask, const PhysicalTraceInfo& trace_info,
+          IndexSpace upper_bound, const FieldMask& copy_mask,
+          const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events,
           const std::vector<ApEvent>& instance_events,
           std::vector<ApEvent>* broadcast = nullptr,
           const unsigned final_index = 0);
       void finalize_allreduce_without_broadcasts(
           PredEvent predicate_guard, Operation* op, unsigned index,
-          IndexSpaceExpression* copy_expression, const FieldMask& copy_mask,
-          const PhysicalTraceInfo& trace_info,
+          IndexSpaceExpression* copy_expression, IndexSpace upper_bound,
+          const FieldMask& copy_mask, const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           std::vector<ApEvent>& instance_events,
           const std::vector<std::vector<CopySrcDstField> >& local_fields,
@@ -174,8 +179,8 @@ namespace Legion {
       void reduce_local(
           const PhysicalManager* dst_manager, const unsigned dst_index,
           Operation* op, const unsigned index, IndexSpaceExpression* copy_expr,
-          const FieldMask& copy_mask, ApEvent precondition,
-          PredEvent predicate_guard,
+          IndexSpace upper_bound, const FieldMask& copy_mask,
+          ApEvent precondition, PredEvent predicate_guard,
           const std::vector<CopySrcDstField>& dst_fields,
           const std::vector<Reservation>& dst_reservations,
           const UniqueInst& dst_inst, const PhysicalTraceInfo& trace_info,
