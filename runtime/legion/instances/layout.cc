@@ -84,10 +84,8 @@ namespace Legion {
     {
       if (spy_logging_level == NO_SPY_LOGGING)
         return;
-      for (std::map<FieldID, unsigned>::const_iterator it =
-               field_indexes.begin();
-           it != field_indexes.end(); it++)
-        LegionSpy::log_physical_instance_field(inst_event, it->first);
+      for (const std::pair<const FieldID, unsigned>& it : field_indexes)
+        LegionSpy::log_physical_instance_field(inst_event, it.first);
     }
 
     //--------------------------------------------------------------------------
@@ -177,10 +175,8 @@ namespace Legion {
     void LayoutDescription::get_fields(std::set<FieldID>& fields) const
     //--------------------------------------------------------------------------
     {
-      for (std::map<FieldID, unsigned>::const_iterator it =
-               field_indexes.begin();
-           it != field_indexes.end(); ++it)
-        fields.insert(it->first);
+      for (const std::pair<const FieldID, unsigned>& it : field_indexes)
+        fields.insert(it.first);
     }
 
     //--------------------------------------------------------------------------
@@ -194,13 +190,12 @@ namespace Legion {
     void LayoutDescription::has_fields(std::map<FieldID, bool>& to_test) const
     //--------------------------------------------------------------------------
     {
-      for (std::map<FieldID, bool>::iterator it = to_test.begin();
-           it != to_test.end(); it++)
+      for (std::pair<const FieldID, bool>& test_pair : to_test)
       {
-        if (field_indexes.find(it->first) != field_indexes.end())
-          it->second = true;
+        if (field_indexes.find(test_pair.first) != field_indexes.end())
+          test_pair.second = true;
         else
-          it->second = false;
+          test_pair.second = false;
       }
     }
 
@@ -209,17 +204,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<FieldID> to_remove;
-      for (std::set<FieldID>::const_iterator it = filter.begin();
-           it != filter.end(); it++)
+      for (const FieldID& field_id : filter)
       {
-        if (field_indexes.find(*it) != field_indexes.end())
-          to_remove.emplace_back(*it);
+        if (field_indexes.find(field_id) != field_indexes.end())
+          to_remove.emplace_back(field_id);
       }
       if (!to_remove.empty())
       {
-        for (std::vector<FieldID>::const_iterator it = to_remove.begin();
-             it != to_remove.end(); it++)
-          filter.erase(*it);
+        for (const FieldID& field_id : to_remove) filter.erase(field_id);
       }
     }
 
@@ -239,12 +231,7 @@ namespace Legion {
     {
       size_t result = 0;
       // Add up all the field sizes
-      for (std::vector<CopySrcDstField>::const_iterator it =
-               field_infos.begin();
-           it != field_infos.end(); it++)
-      {
-        result += it->size;
-      }
+      for (const CopySrcDstField& it : field_infos) result += it.size;
       return result;
     }
 
@@ -261,13 +248,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // See if we have any special fields which need serdez deletion
-      for (std::vector<CopySrcDstField>::const_iterator it =
-               field_infos.begin();
-           it != field_infos.end(); it++)
+      for (const CopySrcDstField& it : field_infos)
       {
-        if (it->serdez_id > 0)
+        if (it.serdez_id > 0)
           serdez_fields.emplace_back(PhysicalInstance::DestroyedField(
-              it->field_id, it->size, it->serdez_id));
+              it.field_id, it.size, it.serdez_id));
       }
     }
 
