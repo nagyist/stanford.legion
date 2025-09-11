@@ -2498,7 +2498,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
         const RegionRequirement& req = regions[idx];
-        if ((!IS_WRITE(req) && !IS_READ_DISCARD(req)) || IS_COLLECTIVE(req))
+        if ((!IS_WRITE(req) && !IS_OUTPUT_DISCARD(req)) || IS_COLLECTIVE(req))
           continue;
         // If the projection functions are invertible then we don't have to
         // worry about interference because the runtime knows how to hook

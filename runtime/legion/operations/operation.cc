@@ -592,7 +592,7 @@ namespace Legion {
                 << "permitted to specify any kind of discard modifier.";
           error.raise();
         }
-        if (IS_READ_DISCARD(req))
+        if (IS_OUTPUT_DISCARD(req))
         {
           Error error(LEGION_INTERFACE_EXCEPTION);
           error << "Region requirement " << index << " of " << *this
@@ -624,7 +624,7 @@ namespace Legion {
                 << "use of uninitialized data and is therefore illegal.";
           error.raise();
         }
-        if (IS_WRITE_ONLY(req) && IS_READ_DISCARD(req) &&
+        if (IS_WRITE_ONLY(req) && IS_OUTPUT_DISCARD(req) &&
             ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0))
         {
           Warning warning;

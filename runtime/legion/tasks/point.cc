@@ -851,7 +851,7 @@ namespace Legion {
           }
           // If we're not the last point in line for this region requirement
           // then we shouldn't have an output discard qualifier
-          else if (IS_READ_DISCARD(req) && (dependences.size() > 1))
+          else if (IS_OUTPUT_DISCARD(req) && (dependences.size() > 1))
             req.privilege &= ~LEGION_DISCARD_OUTPUT_MASK;
           return;
         }
