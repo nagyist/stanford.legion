@@ -41,9 +41,9 @@
 #define IS_WRITE_DISCARD(req) \
   (((req).privilege & (LEGION_WRITE_ONLY | LEGION_DISCARD_INPUT_MASK)) \
    == (LEGION_WRITE_PRIV | LEGION_DISCARD_INPUT_MASK))
-#define IS_READ_DISCARD(req) \
-  (((req).privilege & (LEGION_READ_PRIV | LEGION_DISCARD_OUTPUT_MASK)) \
-   == (LEGION_READ_PRIV | LEGION_DISCARD_OUTPUT_MASK))
+#define IS_OUTPUT_DISCARD(req) \
+  (((req).privilege & LEGION_DISCARD_OUTPUT_MASK) \
+   == LEGION_DISCARD_OUTPUT_MASK)
 #define FILTER_DISCARD(req) \
   ((req).privilege & ~(LEGION_DISCARD_INPUT_MASK | LEGION_DISCARD_OUTPUT_MASK))
 #define IS_COLLECTIVE(req) \
@@ -300,7 +300,7 @@ namespace Legion {
       if (IS_READ_ONLY(u1) && IS_READ_ONLY(u2))
       {
         // Two readers are never a dependence unless the second is discarding
-        if (READ_DISCARD_EXCLUSIVE && IS_READ_DISCARD(u2))
+        if (READ_DISCARD_EXCLUSIVE && IS_OUTPUT_DISCARD(u2))
           return LEGION_TRUE_DEPENDENCE;
         else
           return LEGION_NO_DEPENDENCE;

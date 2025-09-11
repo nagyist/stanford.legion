@@ -14151,7 +14151,7 @@ namespace Legion {
         }
       }
       // If we're doing a read-discard then we can invalidate the state
-      if (IS_READ_DISCARD(analysis.usage))
+      if (IS_OUTPUT_DISCARD(analysis.usage))
         invalidate_state(expr, expr_covers, user_mask, false/*record*/);
     }
 

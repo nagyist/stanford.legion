@@ -8677,7 +8677,7 @@ namespace Legion {
           }
           // If we're not the last point in line for this region requirement
           // then we shouldn't have an output discard qualifier
-          else if (IS_READ_DISCARD(req) && (dependences.size() > 1))
+          else if (IS_OUTPUT_DISCARD(req) && (dependences.size() > 1))
             req.privilege &= ~LEGION_DISCARD_OUTPUT_MASK;
           return;
         }
@@ -11990,7 +11990,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
         const RegionRequirement &req = regions[idx];
-        if (!IS_WRITE(req) && !IS_READ_DISCARD(req))
+        if (!IS_WRITE(req) && !IS_OUTPUT_DISCARD(req))
           continue;
         // If the projection functions are invertible then we don't have to 
         // worry about interference because the runtime knows how to hook
