@@ -142,7 +142,6 @@ namespace Legion {
   typedef ::legion_exception_handler_id_t ExceptionHandlerID;
   typedef ::legion_region_tree_id_t RegionTreeID;
   typedef ::legion_distributed_id_t DistributedID;
-  typedef ::legion_distributed_id_t IndexSpaceID;
   typedef ::legion_address_space_t AddressSpaceID;
   typedef ::legion_tunable_id_t TunableID;
   typedef ::legion_local_variable_id_t LocalVariableID;
@@ -613,6 +612,7 @@ namespace Legion {
     class CollectableView;  // pure virtual class
     class IndividualView;
     class NodeView;
+    class SpaceView;
     class PartitionView;
     class CollectiveView;
     class MaterializedView;

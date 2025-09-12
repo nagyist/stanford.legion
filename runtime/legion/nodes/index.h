@@ -202,32 +202,6 @@ namespace Legion {
 #endif
       virtual AddressSpaceID get_owner_space(void) const = 0;
     public:
-      // Individual view analysis methods
-      virtual bool view_is_empty(const IndividualView* view) = 0;
-      virtual bool view_dominated_by(IndexSpaceExpression* expr) = 0;
-      virtual void view_invalidate_users(const IndividualView* view) = 0;
-      virtual void view_find_last_users(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* expr, const bool expr_dominates,
-          const FieldMask& mask, std::set<ApEvent>& last_events) = 0;
-      virtual bool view_find_user_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* user_expr, const bool expr_dominates,
-          const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
-          unsigned index, std::set<ApEvent>& preconditions,
-          const bool trace_recording) = 0;
-      virtual bool view_find_copy_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* copy_expr, const bool expr_dominates,
-          const FieldMask& copy_mask, UniqueID op_id, unsigned index,
-          std::set<ApEvent>& preconditions, const bool trace_recording) = 0;
-      virtual void view_insert_child(
-          const IndividualView* view, IndexTreeNode* child,
-          const FieldMask& child_mask) = 0;
-      virtual void view_insert_user(
-          const IndividualView* view, local::vector<LegionColor>& path,
-          PhysicalUser* user, const FieldMask& user_mask, AutoLock& v_lock) = 0;
-    public:
       void attach_semantic_information(
           SemanticTag tag, AddressSpaceID source, const void* buffer,
           size_t size, bool is_mutable, bool local_only);
@@ -559,35 +533,6 @@ namespace Legion {
           local::map<ShardID, FieldMask>& remote_shards,
           ShardID local_shard) = 0;
     public:
-      // Individual view analysis methods
-      virtual bool view_is_empty(const IndividualView* view);
-      virtual bool view_dominated_by(IndexSpaceExpression* expr);
-      virtual void view_invalidate_users(const IndividualView* view);
-      virtual void view_find_last_users(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* expr, const bool expr_dominates,
-          const FieldMask& mask, std::set<ApEvent>& last_events);
-      virtual bool view_find_user_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* user_expr, const bool expr_dominates,
-          const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
-          unsigned index, std::set<ApEvent>& preconditions,
-          const bool trace_recording);
-      virtual bool view_find_copy_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* copy_expr, const bool expr_dominates,
-          const FieldMask& copy_mask, UniqueID op_id, unsigned index,
-          std::set<ApEvent>& preconditions, const bool trace_recording);
-      virtual void view_insert_child(
-          const IndividualView* view, IndexTreeNode* child,
-          const FieldMask& child_mask);
-      virtual void view_insert_user(
-          const IndividualView* view, local::vector<LegionColor>& path,
-          PhysicalUser* user, const FieldMask& user_mask, AutoLock& v_lock);
-    protected:
-      NodeView* find_instance_view(const IndividualView* view);
-      NodeView& find_or_create_instance_view(const IndividualView* view);
-    public:
       const IndexSpace handle;
       IndexPartNode* const parent;
     protected:
@@ -598,8 +543,6 @@ namespace Legion {
       std::set<std::pair<LegionColor, LegionColor> > disjoint_subsets;
       std::set<std::pair<LegionColor, LegionColor> > aliased_subsets;
       std::deque<ApEvent> index_space_users;
-      // For physical dependence analysis of individual views
-      lng::map<DistributedID /*view did*/, NodeView> instance_views;
     protected:
       static constexpr uintptr_t REMOVED_CHILD = 0xdead;
       Color next_uncollected_color;
@@ -1527,35 +1470,6 @@ namespace Legion {
       bool process_shard_rects_response(Deserializer& derez, AddressSpace src);
       bool perform_shard_rects_notification(void);
     public:
-      // Individual view analysis methods
-      virtual bool view_is_empty(const IndividualView* view);
-      virtual bool view_dominated_by(IndexSpaceExpression* expr);
-      virtual void view_invalidate_users(const IndividualView* view);
-      virtual void view_find_last_users(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* expr, const bool expr_dominates,
-          const FieldMask& mask, std::set<ApEvent>& last_events);
-      virtual bool view_find_user_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* user_expr, const bool expr_dominates,
-          const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
-          unsigned index, std::set<ApEvent>& preconditions,
-          const bool trace_recording);
-      virtual bool view_find_copy_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* copy_expr, const bool expr_dominates,
-          const FieldMask& copy_mask, UniqueID op_id, unsigned index,
-          std::set<ApEvent>& preconditions, const bool trace_recording);
-      virtual void view_insert_child(
-          const IndividualView* view, IndexTreeNode* child,
-          const FieldMask& child_mask);
-      virtual void view_insert_user(
-          const IndividualView* view, local::vector<LegionColor>& path,
-          PhysicalUser* user, const FieldMask& user_mask, AutoLock& v_lock);
-    protected:
-      PartitionView* find_instance_view(const IndividualView* view);
-      PartitionView& find_or_create_instance_view(const IndividualView* view);
-    public:
       const IndexPartition handle;
       IndexSpaceNode* const parent;
       IndexSpaceNode* const color_space;
@@ -1569,8 +1483,6 @@ namespace Legion {
       std::set<std::pair<LegionColor, LegionColor> > disjoint_subspaces;
       std::set<std::pair<LegionColor, LegionColor> > aliased_subspaces;
       std::list<PartitionTracker*> partition_trackers;
-      // For physical dependence analysis of individual views
-      lng::map<DistributedID, PartitionView> instance_views;
     protected:
       // Support for computing disjointness locally
       uint64_t total_children_volume, total_intersection_volume;

@@ -24,48 +24,96 @@
 namespace Legion {
   namespace Internal {
 
+    template<typename T>
+    class ViewComparator {
+    public:
+      using is_transparent = std::true_type;
+      inline bool operator()(const T* lhs, const T* rhs) const
+      {
+        return (lhs->node->color < rhs->node->color);
+      }
+      inline bool operator()(const T* lhs, const LegionColor& rhs) const
+      {
+        return (lhs->node->color < rhs);
+      }
+      inline bool operator()(const LegionColor& lhs, const T* rhs) const
+      {
+        return (lhs < rhs->node->color);
+      }
+    };
+
+    class NodeView : public Collectable {
+    public:
+      NodeView(IndexTreeNode* node, IndividualView* view);
+      virtual ~NodeView(void);
+    public:
+      virtual bool is_empty(void) const = 0;
+      virtual void invalidate_users(void) = 0;
+      virtual void find_last_users(
+          const RegionUsage& usage, IndexSpaceExpression* expr,
+          const bool expr_dominates, const FieldMask& mask,
+          std::set<ApEvent>& last_events) const = 0;
+      virtual bool find_user_preconditions(
+          const RegionUsage& usage, IndexSpaceExpression* user_expr,
+          const bool expr_dominates, const FieldMask& user_mask,
+          ApEvent term_event, UniqueID op_id, unsigned index,
+          std::set<ApEvent>& preconditions, const bool trace_recording) = 0;
+      virtual bool find_copy_preconditions(
+          const RegionUsage& usage, IndexSpaceExpression* copy_expr,
+          const bool expr_dominates, const FieldMask& copy_mask, UniqueID op_id,
+          unsigned index, std::set<ApEvent>& preconditions,
+          const bool trace_recording) = 0;
+      virtual void insert_child(
+          NodeView* child, const FieldMask& child_mask) = 0;
+      virtual void insert_user(
+          PhysicalUser* user, const FieldMask& user_mask,
+          local::vector<LegionColor>& path, AutoLock& parent_lock) = 0;
+    public:
+      IndexTreeNode* const tree_node;
+      IndividualView* const view;
+    };
+
     /**
-     * \class NodeView
+     * \class SpaceView
      * Users for the an individual view on a particular index space node
      */
-    class NodeView {
+    class SpaceView : public NodeView {
     public:
-      NodeView(IndexSpaceNode* node);
-      NodeView(const NodeView&) = delete;
-      NodeView(NodeView&&) = delete;
-      ~NodeView(void);
+      SpaceView(IndexSpaceNode* node, IndividualView* view);
+      SpaceView(const SpaceView&) = delete;
+      SpaceView(SpaceView&&) = delete;
+      ~SpaceView(void);
     public:
-      NodeView& operator=(const NodeView&) = delete;
-      NodeView& operator=(NodeView&&) = delete;
+      SpaceView& operator=(const SpaceView&) = delete;
+      SpaceView& operator=(SpaceView&&) = delete;
     public:
-      bool is_empty(void) const;
-      void invalidate_users(const IndividualView* view);
-      void find_last_users(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* expr, const bool expr_dominates,
-          const FieldMask& mask, std::set<ApEvent>& last_events) const;
-      bool find_user_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* user_expr, const bool expr_dominates,
-          const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
+      bool dominated_by(IndexSpaceExpression* expr) const;
+      virtual bool is_empty(void) const override;
+      virtual void invalidate_users(void) override;
+      virtual void find_last_users(
+          const RegionUsage& usage, IndexSpaceExpression* expr,
+          const bool expr_dominates, const FieldMask& mask,
+          std::set<ApEvent>& last_events) const override;
+      virtual bool find_user_preconditions(
+          const RegionUsage& usage, IndexSpaceExpression* user_expr,
+          const bool expr_dominates, const FieldMask& user_mask,
+          ApEvent term_event, UniqueID op_id, unsigned index,
+          std::set<ApEvent>& preconditions,
+          const bool trace_recording) override;
+      virtual bool find_copy_preconditions(
+          const RegionUsage& usage, IndexSpaceExpression* copy_expr,
+          const bool expr_dominates, const FieldMask& copy_mask, UniqueID op_id,
           unsigned index, std::set<ApEvent>& preconditions,
-          const bool trace_recording);
-      bool find_copy_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* copy_expr, const bool expr_dominates,
-          const FieldMask& copy_mask, UniqueID op_id, unsigned index,
-          std::set<ApEvent>& preconditions, const bool trace_recording);
-      void insert_child(
-          const IndividualView* view, IndexPartNode* child,
-          const FieldMask& child_mask);
-      void insert_user(
-          const IndividualView* view, PhysicalUser* user,
-          const FieldMask& user_mask, local::vector<LegionColor>& path,
-          AutoLock& parent_lock);
+          const bool trace_recording) override;
+      virtual void insert_child(
+          NodeView* child, const FieldMask& child_mask) override;
+      virtual void insert_user(
+          PhysicalUser* user, const FieldMask& user_mask,
+          local::vector<LegionColor>& path, AutoLock& parent_lock) override;
     protected:
       void find_subviews_to_traverse(
-          const IndividualView* view, const FieldMask& mask,
-          local::FieldMaskMap<IndexPartNode>& to_traverse) const;
+          const FieldMask& mask,
+          local::FieldMaskMap<PartitionView>& to_traverse) const;
       void find_current_preconditions(
           const RegionUsage& usage, const FieldMask& user_mask,
           IndexSpaceExpression* user_expr, ApEvent term_event,
@@ -130,58 +178,56 @@ namespace Legion {
       // the view tree that less frequently filter their sub-users.
       shrt::FieldMaskMap<PhysicalUser> current_epoch_users;
       shrt::FieldMaskMap<PhysicalUser> previous_epoch_users;
-      lng::FieldMaskMap<IndexPartNode> subviews;
+      lng::FieldMaskMap<PartitionView, ViewComparator<PartitionView> > subviews;
     };
 
     /**
      * \class PartitionView
      * Tracking which child nodes have users below in the tree
      */
-    class PartitionView {
+    class PartitionView : public NodeView {
     public:
-      PartitionView(IndexPartNode* node);
+      PartitionView(IndexPartNode* node, IndividualView* view);
       PartitionView(const PartitionView&) = delete;
       PartitionView(PartitionView&&) = delete;
-      ~PartitionView(void);
+      virtual ~PartitionView(void);
     public:
       PartitionView& operator=(const PartitionView&) = delete;
       PartitionView& operator=(PartitionView&&) = delete;
     public:
-      bool is_empty(void) const;
-      void invalidate_users(const IndividualView* view);
-      void find_last_users(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* expr, const bool expr_dominates,
-          const FieldMask& mask, std::set<ApEvent>& last_events) const;
-      bool find_user_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* user_expr, const bool expr_dominates,
-          const FieldMask& user_mask, ApEvent term_event, UniqueID op_id,
+      virtual bool is_empty(void) const override;
+      virtual void invalidate_users(void) override;
+      virtual void find_last_users(
+          const RegionUsage& usage, IndexSpaceExpression* expr,
+          const bool expr_dominates, const FieldMask& mask,
+          std::set<ApEvent>& last_events) const override;
+      virtual bool find_user_preconditions(
+          const RegionUsage& usage, IndexSpaceExpression* user_expr,
+          const bool expr_dominates, const FieldMask& user_mask,
+          ApEvent term_event, UniqueID op_id, unsigned index,
+          std::set<ApEvent>& preconditions,
+          const bool trace_recording) override;
+      virtual bool find_copy_preconditions(
+          const RegionUsage& usage, IndexSpaceExpression* copy_expr,
+          const bool expr_dominates, const FieldMask& copy_mask, UniqueID op_id,
           unsigned index, std::set<ApEvent>& preconditions,
-          const bool trace_recording);
-      bool find_copy_preconditions(
-          const IndividualView* view, const RegionUsage& usage,
-          IndexSpaceExpression* copy_expr, const bool expr_dominates,
-          const FieldMask& copy_mask, UniqueID op_id, unsigned index,
-          std::set<ApEvent>& preconditions, const bool trace_recording);
-      void insert_child(
-          const IndividualView* view, IndexSpaceNode* child,
-          const FieldMask& child_mask);
-      void insert_user(
-          const IndividualView* view, PhysicalUser* user,
-          const FieldMask& user_mask, local::vector<LegionColor>& path,
-          AutoLock& parent_lock);
+          const bool trace_recording) override;
+      virtual void insert_child(
+          NodeView* child, const FieldMask& child_mask) override;
+      virtual void insert_user(
+          PhysicalUser* user, const FieldMask& user_mask,
+          local::vector<LegionColor>& path, AutoLock& parent_lock) override;
     protected:
       bool find_subviews_to_traverse(
-          const IndividualView* view, IndexSpaceExpression* expr,
-          bool expr_dominates, const FieldMask& mask,
-          local::FieldMaskMap<IndexSpaceNode>& to_traverse) const;
+          IndexSpaceExpression* expr, bool expr_dominates,
+          const FieldMask& mask,
+          local::FieldMaskMap<SpaceView>& to_traverse) const;
     public:
       IndexPartNode* const node;
     protected:
       mutable LocalLock view_lock;
       // Keep these sorted by their color so we can easily look them up
-      lng::FieldMaskMap<IndexSpaceNode> subviews;
+      lng::FieldMaskMap<SpaceView, ViewComparator<SpaceView> > subviews;
     };
 
     /**
@@ -333,11 +379,7 @@ namespace Legion {
       // need to do more analysis and have larger fan-in event mergers as a
       // result. The results of the dependence analysis though will still be
       // sound and precise.
-      lng::FieldMaskMap<IndexTreeNode> roots;
-      lng::map<IndexSpaceExpression*, std::pair<IndexSpaceNode*, uint64_t> >
-          expr_cache;
-      static constexpr size_t MAXIMUM_EXPR_CACHE_SIZE = 32;
-      uint64_t expr_cache_clock = 0;
+      lng::FieldMaskMap<NodeView> roots;
       std::map<unsigned, Reservation> view_reservations;
     protected:
       // This is an infrequently used data structure for handling collective

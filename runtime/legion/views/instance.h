@@ -56,7 +56,7 @@ namespace Legion {
         }
       public:
         size_t op_context_index;  // unique name operation in context
-        IndexSpaceID match;       // index space of regions that should match
+        DistributedID match;      // index space of regions that should match
         unsigned index;  // uniquely name analysis for op by region req index
       };
     public:

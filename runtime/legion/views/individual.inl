@@ -30,7 +30,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline bool NodeView::has_local_precondition(
+    inline bool SpaceView::has_local_precondition(
         PhysicalUser* user, const RegionUsage& next_user,
         IndexSpaceExpression* expr, const UniqueID op_id, const unsigned index,
         const bool next_covers, const bool copy_user, bool* dominates) const
