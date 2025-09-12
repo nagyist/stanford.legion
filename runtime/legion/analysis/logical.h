@@ -41,20 +41,22 @@ namespace Legion {
     public:
       LogicalUser& operator=(const LogicalUser& rhs) = delete;
     public:
-      // For providing deterministic ordering of users in sorted
-      // sets which is crucial for control replication
-      inline bool deterministic_pointer_less(const LogicalUser* rhs) const
-      {
-        if (ctx_index < rhs->ctx_index)
-          return true;
-        if (ctx_index > rhs->ctx_index)
-          return false;
-        if (internal_idx < rhs->internal_idx)
-          return true;
-        if (internal_idx > rhs->internal_idx)
-          return false;
-        return (idx < rhs->idx);
-      }
+      struct Comparator {
+      public:
+        inline bool operator()(
+            const LogicalUser* lhs, const LogicalUser* rhs) const
+        {
+          if (lhs->ctx_index < rhs->ctx_index)
+            return true;
+          if (lhs->ctx_index > rhs->ctx_index)
+            return false;
+          if (lhs->internal_idx < rhs->internal_idx)
+            return true;
+          if (lhs->internal_idx > rhs->internal_idx)
+            return false;
+          return (lhs->idx < rhs->idx);
+        }
+      };
     public:
       const RegionUsage usage;
       Operation* const op;
@@ -105,7 +107,17 @@ namespace Legion {
       void add_child(RegionTreeNode* child, const FieldMask& mask);
       void remove_child(RegionTreeNode* child);
     public:
-      typedef FieldMaskMap<RegionTreeNode, SHORT_LIFETIME, true /*ordered*/>
+      // Template trickery to avoid issues with undefined types
+      template<typename T>
+      struct NodeComparator {
+      public:
+        inline bool operator()(const T* lhs, const T* rhs) const
+        {
+          return lhs->get_color() < rhs->get_color();
+        }
+      };
+      typedef FieldMaskMap<
+          RegionTreeNode, SHORT_LIFETIME, NodeComparator<RegionTreeNode> >
           OrderedFieldMaskChildren;
       OrderedFieldMaskChildren open_children;
       OpenState open_state;
@@ -171,7 +183,7 @@ namespace Legion {
       // Note that even though these are field mask sets keyed on pointers
       // we mark them as determinsitic so that shards always iterate over
       // these elements in the same order
-      typedef FieldMaskMap<LogicalUser, SHORT_LIFETIME, true /*determinisitic*/>
+      typedef FieldMaskMap<LogicalUser, SHORT_LIFETIME, LogicalUser::Comparator>
           OrderedFieldMaskUsers;
       OrderedFieldMaskUsers curr_epoch_users, prev_epoch_users;
     protected:
@@ -247,7 +259,18 @@ namespace Legion {
     public:
       LogicalAnalysis& operator=(const LogicalAnalysis& rhs) = delete;
     public:
-      typedef FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true /*ordered*/>
+      // Template trickery to avoid issues with undefined types
+      template<typename T>
+      struct OpComparator {
+      public:
+        inline bool operator()(const T* lhs, const T* rhs) const
+        {
+          return (lhs->get_unique_op_id() < rhs->get_unique_op_id());
+        }
+      };
+      typedef OpComparator<RefinementOp> RefinementComparator;
+      typedef FieldMaskMap<
+          RefinementOp, TASK_LOCAL_LIFETIME, RefinementComparator>
           OrderedRefinements;
       void record_pending_refinement(
           LogicalRegion privilege, unsigned req_index,
