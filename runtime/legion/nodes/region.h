@@ -60,11 +60,6 @@ namespace Legion {
       {
         return current_versions.lookup_entry(ctx, this, ctx);
       }
-      // For OrderedFieldMaskChildren
-      inline bool deterministic_pointer_less(const RegionTreeNode* rhs) const
-      {
-        return (get_color() < rhs->get_color());
-      }
       typedef FieldState::OrderedFieldMaskChildren OrderedFieldMaskChildren;
     public:
       void attach_semantic_information(
@@ -88,7 +83,9 @@ namespace Legion {
           const ProjectionInfo& projection_info, const FieldMask& user_mask,
           FieldMask& unopened_field_mask, FieldMask& refinement_mask,
           LogicalAnalysis& logical_analysis,
-          FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements,
+          FieldMaskMap<
+              RefinementOp, TASK_LOCAL_LIFETIME,
+              LogicalAnalysis::RefinementComparator>& refinements,
           const bool root_node);
       void add_open_field_state(
           LogicalState& state, const LogicalUser& user,
@@ -160,7 +157,7 @@ namespace Legion {
       virtual void send_node(Serializer& rez, AddressSpaceID target) = 0;
     public:
       // Logical helper operations
-      typedef FieldMaskMap<LogicalUser, SHORT_LIFETIME, true /*deterministic*/>
+      typedef FieldMaskMap<LogicalUser, SHORT_LIFETIME, LogicalUser::Comparator>
           OrderedFieldMaskUsers;
       template<bool TRACK_DOM>
       FieldMask perform_dependence_checks(

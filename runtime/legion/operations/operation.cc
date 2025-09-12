@@ -592,7 +592,7 @@ namespace Legion {
                 << "permitted to specify any kind of discard modifier.";
           error.raise();
         }
-        if (IS_READ_DISCARD(req))
+        if (IS_OUTPUT_DISCARD(req))
         {
           Error error(LEGION_INTERFACE_EXCEPTION);
           error << "Region requirement " << index << " of " << *this
@@ -624,7 +624,7 @@ namespace Legion {
                 << "use of uninitialized data and is therefore illegal.";
           error.raise();
         }
-        if (IS_WRITE_ONLY(req) && IS_READ_DISCARD(req) &&
+        if (IS_WRITE_ONLY(req) && IS_OUTPUT_DISCARD(req) &&
             ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0))
         {
           Warning warning;
@@ -2128,7 +2128,10 @@ namespace Legion {
         if ((get_must_epoch_op() == nullptr) &&
             (get_operation_kind() != RESET_OP_KIND))
           refinement_mask = user_mask;
-        FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true> refinements;
+        FieldMaskMap<
+            RefinementOp, TASK_LOCAL_LIFETIME,
+            LogicalAnalysis::RefinementComparator>
+            refinements;
         parent_node->register_logical_user(
             req.parent, *user, path, trace_info, proj_info, user_mask,
             unopened_mask, refinement_mask, logical_analysis, refinements,
