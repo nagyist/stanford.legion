@@ -166,10 +166,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool DiscardOp::record_trace_hash(
-        TraceRecognizer& recognizer, uint64_t opidx)
+        TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
-      return recognizer.record_operation_noop(this);
+      return recorder.record_operation_noop(this, opidx);
     }
 
     //--------------------------------------------------------------------------

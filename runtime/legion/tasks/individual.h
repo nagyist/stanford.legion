@@ -67,7 +67,7 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void report_interfering_requirements(
           unsigned idx1, unsigned idx2);
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
       // Virtual method for creating the future for this task so that
       // we can overload for control replication
       virtual Future create_future(void);

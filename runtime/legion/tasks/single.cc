@@ -1459,6 +1459,7 @@ namespace Legion {
       context_configuration.min_frames_to_schedule = 0;
       context_configuration.meta_task_vector_width =
           runtime->initial_meta_task_vector_width;
+      context_configuration.auto_tracing_enabled = !runtime->no_auto_tracing;
       if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_configure_context(this, context_configuration);

@@ -21,6 +21,7 @@
 #include "legion/api/types.h"
 #include "legion/tools/types.h"
 #include "legion/utilities/coordinates.h"
+#include "legion/utilities/hasher.h"
 
 namespace Legion {
   namespace Internal {
@@ -40,6 +41,21 @@ namespace Legion {
       const unsigned req_idx;
       const RegionRequirement& req;
       const bool skip_analysis;
+    };
+
+    /**
+     * \interface TraceHashRecorder
+     * An interface for recording hashes for traces
+     */
+    class TraceHashRecorder {
+    public:
+      virtual ~TraceHashRecorder(void) { }
+    public:
+      virtual bool record_operation_hash(
+          Operation* op, Murmur3Hasher& hasher, uint64_t opidx) = 0;
+      virtual bool record_operation_noop(Operation* op, uint64_t opidx) = 0;
+      virtual bool record_operation_untraceable(
+          Operation* op, uint64_t opidx) = 0;
     };
 
     /**

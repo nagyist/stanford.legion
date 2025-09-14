@@ -62,7 +62,7 @@ namespace Legion {
       virtual void trigger_mapping(void);
       virtual void trigger_execution(void);
       virtual void trigger_replay(void);
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
     protected:
       // These are virtual methods to override for control replication
       virtual void populate_sources(void);

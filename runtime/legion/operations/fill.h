@@ -89,7 +89,7 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
       virtual void trigger_complete(ApEvent effects_done);
-      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
     public:
       // This is a helper method for ReplFillOp
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }

@@ -6109,9 +6109,6 @@ class Requirement(object):
             assert proj_func is self.projection_function
         else:
             self.projection_function = proj_func
-        # Special case here for depth 0 and is_reg
-        if self.projection_function.depth == 0 and self.is_reg:
-            self.projection_function = None
 
     def is_no_access(self):
         return self.priv == NO_ACCESS
@@ -6178,11 +6175,20 @@ class Requirement(object):
         elif bool(self.priv & WRITE_PRIV):
             if bool(self.priv & READ_PRIV):
                 if bool(self.priv & INPUT_DISCARD_MASK):
-                    return "WRITE-DISCARD"
+                    if bool(self.priv & OUTPUT_DISCARD_MASK):
+                        return "WRITE-AND-READ-DISCARD"
+                    else:
+                        return "WRITE-DISCARD"
                 else:
-                    return "READ-WRITE"
+                    if bool(self.priv & OUTPUT_DISCARD_MASK):
+                        return "WRITE-WITH-READ-DISCARD"
+                    else:
+                        return "READ-WRITE"
             else:
-                return "WRITE-ONLY"
+                if bool(self.priv & OUTPUT_DISCARD_MASK):
+                    return "WRITE-ONLY-WITH-READ-DISCARD"
+                else:
+                    return "WRITE-ONLY"
         elif bool(self.priv & READ_PRIV):
             if bool(self.priv & OUTPUT_DISCARD_MASK):
                 return "READ-ONLY-DISCARD"
@@ -7176,7 +7182,13 @@ class Operation(object):
                         # the runtime knows how to handle their dependences
                         if req1.index == req2.index and \
                                 self.reqs[req1.index].projection_function is not None and \
-                                self.reqs[req1.index].projection_function.invertible:
+                                (self.reqs[req1.index].projection_function.invertible or \
+                                 self.reqs[req1.index].projection_function.pid == 0):
+                            if req1.logical_node is not req2.logical_node:
+                                print(("Non-name-based intra-space dependence between "+
+                                "requirements %d and %d of points %s and %s of %s in %s") %
+                                   (req1.index,req2.index,str(op1),str(op2),
+                                       str(self),str(self.context)))
                             # Check to make sure we find a dependence going one way or
                             # the other between the two operations
                             if op1.intra_space_dependences is not None and \

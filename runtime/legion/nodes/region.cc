@@ -259,7 +259,9 @@ namespace Legion {
         FieldMask& unopened_field_mask,
         const FieldMask& current_refinement_mask,
         LogicalAnalysis& logical_analysis,
-        FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements)
+        FieldMaskMap<
+            RefinementOp, TASK_LOCAL_LIFETIME,
+            LogicalAnalysis::RefinementComparator>& refinements)
     //--------------------------------------------------------------------------
     {
       const ContextID ctx =
@@ -387,7 +389,8 @@ namespace Legion {
             nullptr, nullptr, nullptr, IndexSpace::NO_SPACE);
         const RegionUsage ref_usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
         for (FieldMaskMap<
-                 RefinementOp, TASK_LOCAL_LIFETIME, true>::const_iterator it =
+                 RefinementOp, TASK_LOCAL_LIFETIME,
+                 LogicalAnalysis::RefinementComparator>::const_iterator it =
                  refinements.begin();
              it != refinements.end(); it++)
         {

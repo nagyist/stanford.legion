@@ -403,7 +403,7 @@ namespace Legion {
           scatter_parent_indexes[idx] = parent_ctx->find_parent_region_index(
               this, dst_indirect_requirements[idx]);
         }
-        if (launcher.src_indirect_is_range.size() != scatter_size)
+        if (launcher.dst_indirect_is_range.size() != scatter_size)
         {
           Error error(LEGION_INTERFACE_EXCEPTION);
           error << "Invalid 'dst_indirect_is_range' "
@@ -1624,7 +1624,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool CopyOp::record_trace_hash(TraceRecognizer& recognizer, uint64_t opidx)
+    bool CopyOp::record_trace_hash(TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       Murmur3Hasher hasher;
@@ -1649,7 +1649,7 @@ namespace Legion {
       hasher.hash<bool>(is_index_space);
       if (is_index_space)
         hasher.hash(index_domain);
-      return recognizer.record_operation_hash(this, hasher, opidx);
+      return recorder.record_operation_hash(this, hasher, opidx);
     }
 
     //--------------------------------------------------------------------------

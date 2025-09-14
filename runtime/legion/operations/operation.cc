@@ -181,14 +181,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Operation::set_trace(
-        LogicalTrace* t, const std::vector<StaticDependence>* dependences)
+    void Operation::set_trace(LogicalTrace* t, bool recording, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       legion_assert(trace == nullptr);
       legion_assert(t != nullptr);
       trace = t;
-      tracing = trace->initialize_op_tracing(this, dependences);
+      tracing = recording;
+      if (runtime->safe_tracing)
+        record_trace_hash(*trace, opidx);
     }
 
     //--------------------------------------------------------------------------
@@ -591,7 +592,7 @@ namespace Legion {
                 << "permitted to specify any kind of discard modifier.";
           error.raise();
         }
-        if (IS_READ_DISCARD(req))
+        if (IS_OUTPUT_DISCARD(req))
         {
           Error error(LEGION_INTERFACE_EXCEPTION);
           error << "Region requirement " << index << " of " << *this
@@ -623,6 +624,17 @@ namespace Legion {
                 << "use of uninitialized data and is therefore illegal.";
           error.raise();
         }
+        if (IS_WRITE_ONLY(req) && IS_OUTPUT_DISCARD(req) &&
+            ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0))
+        {
+          Warning warning;
+          warning
+              << "Region requirement " << index << " of " << *this
+              << "combinded output-discard qualifer with a write-only "
+              << "privilege which means this region is never used anywhere. "
+              << "Are you sure you know what you are doing?";
+          warning.raise();
+        }
       }
       // Make sure that none of the unused bits are set for coherence
       if (req.prop & ~LEGION_COLLECTIVE_RELAXED)
@@ -633,7 +645,8 @@ namespace Legion {
               << req.prop << std::dec << ".";
         error.raise();
       }
-      if (req.privilege_fields.empty())
+      if (req.privilege_fields.empty() &&
+          ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0))
       {
         Warning warning;
         warning << "Region requirement " << index << " of " << *this
@@ -882,12 +895,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool Operation::record_trace_hash(
-        TraceRecognizer& recognizer, uint64_t opidx)
+        TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
-      log_auto_trace.debug() << "Encountered untraceable operation: "
-                             << get_string_rep(get_operation_kind());
-      return recognizer.record_operation_untraceable(opidx);
+      return recorder.record_operation_untraceable(this, opidx);
     }
 
     //--------------------------------------------------------------------------
@@ -2117,7 +2128,10 @@ namespace Legion {
         if ((get_must_epoch_op() == nullptr) &&
             (get_operation_kind() != RESET_OP_KIND))
           refinement_mask = user_mask;
-        FieldMaskMap<RefinementOp, TASK_LOCAL_LIFETIME, true> refinements;
+        FieldMaskMap<
+            RefinementOp, TASK_LOCAL_LIFETIME,
+            LogicalAnalysis::RefinementComparator>
+            refinements;
         parent_node->register_logical_user(
             req.parent, *user, path, trace_info, proj_info, user_mask,
             unopened_mask, refinement_mask, logical_analysis, refinements);

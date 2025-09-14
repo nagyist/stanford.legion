@@ -6917,7 +6917,7 @@ namespace Legion {
         }
         // Set the trace for the operation
         if (current_trace != nullptr)
-          op->set_trace(current_trace, dependences);
+          current_trace->initialize_operation(op, dependences);
         // Enqueue this in the reorder buffer and then see if we need to
         // perform a window wait because there are too many outstanding ops
         AutoLock child_lock(child_op_lock);

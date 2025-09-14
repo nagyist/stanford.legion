@@ -107,7 +107,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool TraceCompleteOp::record_trace_hash(
-        TraceRecognizer& recognizer, uint64_t opidx)
+        TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       return false;
@@ -441,7 +441,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool ReplTraceCompleteOp::record_trace_hash(
-        TraceRecognizer& recognizer, uint64_t opidx)
+        TraceHashRecorder& recorder, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       return false;

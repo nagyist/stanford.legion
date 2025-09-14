@@ -161,7 +161,7 @@ namespace Legion {
         indiv_tasks[idx]->set_concurrent_postcondition(concurrent_mapped);
         // If we have a trace, set it for this operation as well
         if (trace != nullptr)
-          indiv_tasks[idx]->set_trace(trace, nullptr);
+          trace->initialize_operation(indiv_tasks[idx], nullptr);
       }
       index_tasks.resize(launcher.index_tasks.size());
       for (unsigned idx = 0; idx < launcher.index_tasks.size(); idx++)
@@ -186,7 +186,7 @@ namespace Legion {
         index_tasks[idx]->initialize_must_epoch_concurrent_group(
             0 /*color*/, concurrent_mapped);
         if (trace != nullptr)
-          index_tasks[idx]->set_trace(trace, nullptr);
+          trace->initialize_operation(index_tasks[idx], nullptr);
       }
     }
 
@@ -1932,7 +1932,7 @@ namespace Legion {
         task->set_must_epoch(this, idx, true /*register*/);
         // If we have a trace, set it for this operation as well
         if (trace != nullptr)
-          task->set_trace(trace, nullptr);
+          trace->initialize_operation(task, nullptr);
         task->must_epoch_task = true;
         task->initialize_replication(repl_ctx);
         task->index_domain = this->launch_domain;
@@ -1956,7 +1956,7 @@ namespace Legion {
             false /*track*/);
         task->set_must_epoch(this, indiv_tasks.size() + idx, true /*register*/);
         if (trace != nullptr)
-          task->set_trace(trace, nullptr);
+          trace->initialize_operation(task, nullptr);
         task->must_epoch_task = true;
         task->initialize_replication(repl_ctx);
         task->sharding_space = launcher.sharding_space;

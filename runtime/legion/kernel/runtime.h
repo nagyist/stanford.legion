@@ -162,20 +162,19 @@ namespace Legion {
             warnings_backtrace(false), warnings_are_errors(false),
             report_leaks(false), record_registration(false),
             stealing_disabled(false), resilient_mode(false),
-            unsafe_launch(false), unsafe_mapper(false), safe_mapper(false),
+            unsafe_launch(false), unsafe_mapper(false),
 #ifdef LEGION_DEBUG
-            safe_model(true),
+            safe_mapper(true), safe_model(true), safe_tracing(true),
 #else
-            safe_model(false),
+            safe_mapper(false), safe_model(false), safe_tracing(false),
 #endif
-            safe_tracing(false), disable_independence_tests(false),
-            enable_pointwise_analysis(false), enable_test_mapper(false),
-            slow_config_ok(false), verbose_logging(false),
-            dump_free_ranges(false), num_profiling_nodes(0),
-            serializer_type("binary"), prof_footprint_threshold(128 << 20),
-            prof_target_latency(100), prof_call_threshold(0),
-            prof_self_profile(false), prof_no_critical_paths(false),
-            prof_all_critical_arrivals(false)
+            disable_independence_tests(false), enable_pointwise_analysis(false),
+            enable_test_mapper(false), slow_config_ok(false),
+            verbose_logging(false), dump_free_ranges(false),
+            num_profiling_nodes(0), serializer_type("binary"),
+            prof_footprint_threshold(128 << 20), prof_target_latency(100),
+            prof_call_threshold(0), prof_self_profile(false),
+            prof_no_critical_paths(false), prof_all_critical_arrivals(false)
         { }
       public:
         size_t parse_option(
@@ -1707,6 +1706,8 @@ namespace Legion {
       static inline std::atomic<bool> background_wait = {0};
       static inline void (*meta_task_table[LG_LAST_TASK_ID])(
           const void*, size_t) = {0};
+      // This isn't used anywhere anymore but we keep it around for debugging
+      static Runtime* the_runtime;
       // Shutdown error condition
       static inline int return_code = 0;
       // Static member variables for MPI interop

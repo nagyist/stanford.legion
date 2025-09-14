@@ -61,12 +61,6 @@ namespace Legion {
       IndexSpaceExpression(TypeTag tag, IndexSpaceExprID id, LocalLock& lock);
       virtual ~IndexSpaceExpression(void);
     public:
-      inline bool deterministic_pointer_less(
-          const IndexSpaceExpression* rhs) const
-      {
-        return (expr_id < rhs->expr_id);
-      }
-    public:
       virtual bool is_sparse(void) = 0;
       virtual Domain get_tight_domain(void) = 0;
       [[nodiscard]] virtual ApEvent get_loose_domain(
