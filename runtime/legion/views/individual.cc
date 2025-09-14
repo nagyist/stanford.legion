@@ -2042,6 +2042,7 @@ namespace Legion {
         AutoLock v_lock(view_lock, false /*exclusive*/);
         while (node != nullptr)
         {
+          bool need_mutable = false;
           for (lng::FieldMaskMap<NodeView>::const_iterator it = roots.begin();
                it != roots.end(); it++)
           {
@@ -2055,8 +2056,13 @@ namespace Legion {
             // See if we have a shared parent along this path
             // If so we need to break out to go down the exclusive path
             if (it->first->tree_node->get_parent() == node)
+            {
+              need_mutable = true;
               break;
+            }
           }
+          if (need_mutable)
+            break;
           path.push_back(node->color);
           node = node->get_parent();
         }
