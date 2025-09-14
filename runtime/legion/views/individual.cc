@@ -2047,11 +2047,19 @@ namespace Legion {
                it != roots.end(); it++)
           {
             // First check to see if the parent is a root
-            if ((it->first->tree_node == node) && !(user_mask - it->second))
+            if (it->first->tree_node == node)
             {
-              // Insert going down
-              it->first->insert_user(user, user_mask, path, v_lock);
-              return;
+              if (!(user_mask - it->second))
+              {
+                // Insert going down
+                it->first->insert_user(user, user_mask, path, v_lock);
+                return;
+              }
+              else
+              {
+                need_mutable = true;
+                break;
+              }
             }
             // See if we have a shared parent along this path
             // If so we need to break out to go down the exclusive path
