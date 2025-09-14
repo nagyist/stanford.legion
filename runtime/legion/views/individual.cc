@@ -427,6 +427,20 @@ namespace Legion {
         local::vector<LegionColor>& path, AutoLock& parent_lock)
     //--------------------------------------------------------------------------
     {
+      // Quick test to see if we can do this read-only
+      if (!path.empty())
+      {
+        AutoLock v_lock(view_lock, false /*exclusive*/);
+        lng::FieldMaskMap<PartitionView, ViewComparator<PartitionView> >::
+            const_iterator finder = subviews.find(path.back());
+        if ((finder != subviews.end()) && !(user_mask - finder->second))
+        {
+          parent_lock.release();
+          path.pop_back();
+          finder->first->insert_user(user, user_mask, path, v_lock);
+          return;
+        }
+      }
       // Do hand-over-hand locking
       AutoLock v_lock(view_lock);
       parent_lock.release();
@@ -1031,6 +1045,19 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(!path.empty());
+      // Quick test to see if we can do this read-only
+      {
+        AutoLock v_lock(view_lock, false /*exclusive*/);
+        lng::FieldMaskMap<SpaceView, ViewComparator<SpaceView> >::const_iterator
+            finder = subviews.find(path.back());
+        if ((finder != subviews.end()) && !(user_mask - finder->second))
+        {
+          parent_lock.release();
+          path.pop_back();
+          finder->first->insert_user(user, user_mask, path, v_lock);
+          return;
+        }
+      }
       // Do hand-over-hand locking
       AutoLock v_lock(view_lock);
       parent_lock.release();
@@ -2007,12 +2034,40 @@ namespace Legion {
         IndexSpaceNode* user_expr)
     //--------------------------------------------------------------------------
     {
-      // Now take the root lock and see if we need to insert the child
-      // and update the roots
-      AutoLock v_lock(view_lock);
       // Traverse upwards to see if we can find a root to insert
       local::vector<LegionColor> path;
       IndexTreeNode* node = user_expr;
+      // The common case for this should be read-only
+      {
+        AutoLock v_lock(view_lock, false /*exclusive*/);
+        while (node != nullptr)
+        {
+          for (lng::FieldMaskMap<NodeView>::const_iterator it = roots.begin();
+               it != roots.end(); it++)
+          {
+            // First check to see if the parent is a root
+            if ((it->first->tree_node == node) && !(user_mask - it->second))
+            {
+              // Insert going down
+              it->first->insert_user(user, user_mask, path, v_lock);
+              return;
+            }
+            // See if we have a shared parent along this path
+            // If so we need to break out to go down the exclusive path
+            if (it->first->tree_node->get_parent() == node)
+              break;
+          }
+          path.push_back(node->color);
+          node = node->get_parent();
+        }
+        // Failed so we are falling through to the mutable path
+      }
+      // Reset so we can try again
+      path.clear();
+      node = user_expr;
+      // Now take the root lock and see if we need to insert the child
+      // and update the roots
+      AutoLock v_lock(view_lock);
       while (node != nullptr)
       {
         for (lng::FieldMaskMap<NodeView>::iterator it = roots.begin();
