@@ -291,7 +291,8 @@ namespace Legion {
           lng::FieldMaskMap<
               PartitionView, ViewComparator<PartitionView> >::iterator finder =
               subviews.find(it->first);
-          if ((finder != subviews.end()) && it->first->is_empty())
+          if ((finder != subviews.end()) && (it->first == finder->first) &&
+              it->first->is_empty())
           {
             subviews.erase(finder);
             refs_to_remove++;
@@ -396,7 +397,8 @@ namespace Legion {
           lng::FieldMaskMap<
               PartitionView, ViewComparator<PartitionView> >::iterator finder =
               subviews.find(it->first);
-          if ((finder != subviews.end()) && it->first->is_empty())
+          if ((finder != subviews.end()) && (it->first == finder->first) &&
+              it->first->is_empty())
           {
             subviews.erase(finder);
             refs_to_remove++;
@@ -958,7 +960,8 @@ namespace Legion {
           AutoLock v_lock(view_lock);
           lng::FieldMaskMap<SpaceView, ViewComparator<SpaceView> >::iterator
               finder = subviews.find(it->first);
-          if ((finder != subviews.end()) && it->first->is_empty())
+          if ((finder != subviews.end()) && (it->first == finder->first) &&
+              it->first->is_empty())
           {
             subviews.erase(finder);
             refs_to_remove++;
@@ -996,7 +999,8 @@ namespace Legion {
           AutoLock v_lock(view_lock);
           lng::FieldMaskMap<SpaceView, ViewComparator<SpaceView> >::iterator
               finder = subviews.find(it->first);
-          if ((finder != subviews.end()) && it->first->is_empty())
+          if ((finder != subviews.end()) && (it->first == finder->first) &&
+              it->first->is_empty())
           {
             subviews.erase(finder);
             refs_to_remove++;
