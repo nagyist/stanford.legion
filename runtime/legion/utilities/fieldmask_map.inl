@@ -229,8 +229,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline FieldMaskMap<T, L, D>::FieldMaskMap(
+    template<typename T, AllocationLifetime L, typename C>
+    inline FieldMaskMap<T, L, C>::FieldMaskMap(
         T* init, const FieldMask& mask, bool no_null)
       : single(true)
     //--------------------------------------------------------------------------
@@ -243,8 +243,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline FieldMaskMap<T, L, D>::FieldMaskMap(const FieldMaskMap<T, L, D>& rhs)
+    template<typename T, AllocationLifetime L, typename C>
+    inline FieldMaskMap<T, L, C>::FieldMaskMap(const FieldMaskMap<T, L, C>& rhs)
       : valid_fields(rhs.valid_fields), single(rhs.single)
     //--------------------------------------------------------------------------
     {
@@ -257,10 +257,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
+    template<typename T, AllocationLifetime L, typename C>
     template<AllocationLifetime L2>
-    inline FieldMaskMap<T, L, D>::FieldMaskMap(
-        const FieldMaskMap<T, L2, D>& rhs)
+    inline FieldMaskMap<T, L, C>::FieldMaskMap(
+        const FieldMaskMap<T, L2, C>& rhs)
       : valid_fields(rhs.valid_fields), single(rhs.single)
     //--------------------------------------------------------------------------
     {
@@ -273,9 +273,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline FieldMaskMap<T, L, D>::FieldMaskMap(
-        FieldMaskMap<T, L, D>&& rhs) noexcept
+    template<typename T, AllocationLifetime L, typename C>
+    inline FieldMaskMap<T, L, C>::FieldMaskMap(
+        FieldMaskMap<T, L, C>&& rhs) noexcept
       : valid_fields(rhs.valid_fields), single(rhs.single)
     //--------------------------------------------------------------------------
     {
@@ -289,9 +289,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline FieldMaskMap<T, L, D>::FieldMaskMap(
-        FieldMaskMap<T, L, D>& rhs, bool copy)
+    template<typename T, AllocationLifetime L, typename C>
+    inline FieldMaskMap<T, L, C>::FieldMaskMap(
+        FieldMaskMap<T, L, C>& rhs, bool copy)
       : valid_fields(rhs.valid_fields), single(rhs.single)
     //--------------------------------------------------------------------------
     {
@@ -317,9 +317,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline FieldMaskMap<T, L, D>& FieldMaskMap<T, L, D>::operator=(
-        const FieldMaskMap<T, L, D>& rhs)
+    template<typename T, AllocationLifetime L, typename C>
+    inline FieldMaskMap<T, L, C>& FieldMaskMap<T, L, C>::operator=(
+        const FieldMaskMap<T, L, C>& rhs)
     //--------------------------------------------------------------------------
     {
       // Check our current state
@@ -358,9 +358,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline FieldMaskMap<T, L, D>& FieldMaskMap<T, L, D>::operator=(
-        FieldMaskMap<T, L, D>&& rhs) noexcept
+    template<typename T, AllocationLifetime L, typename C>
+    inline FieldMaskMap<T, L, C>& FieldMaskMap<T, L, C>::operator=(
+        FieldMaskMap<T, L, C>&& rhs) noexcept
     //--------------------------------------------------------------------------
     {
       // Check our current state
@@ -400,8 +400,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline const FieldMask& FieldMaskMap<T, L, D>::tighten_valid_mask(void)
+    template<typename T, AllocationLifetime L, typename C>
+    inline const FieldMask& FieldMaskMap<T, L, C>::tighten_valid_mask(void)
     //--------------------------------------------------------------------------
     {
       // If we're single then there is nothing to do as we're already tight
@@ -415,8 +415,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::relax_valid_mask(const FieldMask& m)
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::relax_valid_mask(const FieldMask& m)
     //--------------------------------------------------------------------------
     {
       if (single && (entries.single_entry != nullptr))
@@ -433,24 +433,24 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::filter_valid_mask(const FieldMask& m)
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::filter_valid_mask(const FieldMask& m)
     //--------------------------------------------------------------------------
     {
       valid_fields -= m;
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::restrict_valid_mask(const FieldMask& m)
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::restrict_valid_mask(const FieldMask& m)
     //--------------------------------------------------------------------------
     {
       valid_fields &= m;
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline const FieldMask& FieldMaskMap<T, L, D>::operator[](T* entry) const
+    template<typename T, AllocationLifetime L, typename C>
+    inline const FieldMask& FieldMaskMap<T, L, C>::operator[](T* entry) const
     //--------------------------------------------------------------------------
     {
       if (single)
@@ -468,8 +468,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline bool FieldMaskMap<T, L, D>::insert(T* entry, const FieldMask& mask)
+    template<typename T, AllocationLifetime L, typename C>
+    inline bool FieldMaskMap<T, L, C>::insert(T* entry, const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
       bool result = true;
@@ -513,8 +513,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::filter(
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::filter(
         const FieldMask& filter, bool tighten)
     //--------------------------------------------------------------------------
     {
@@ -587,8 +587,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::erase(T* to_erase)
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::erase(T* to_erase)
     //--------------------------------------------------------------------------
     {
       if (single)
@@ -616,8 +616,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::clear(void)
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::clear(void)
     //--------------------------------------------------------------------------
     {
       if (single)
@@ -633,8 +633,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline size_t FieldMaskMap<T, L, D>::size(void) const
+    template<typename T, AllocationLifetime L, typename C>
+    inline size_t FieldMaskMap<T, L, C>::size(void) const
     //--------------------------------------------------------------------------
     {
       if (single)
@@ -649,8 +649,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::swap(FieldMaskMap& other)
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::swap(FieldMaskMap& other)
     //--------------------------------------------------------------------------
     {
       // Just use single, doesn't matter for swap
@@ -668,9 +668,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline typename FieldMaskMap<T, L, D>::iterator
-        FieldMaskMap<T, L, D>::begin(void)
+    template<typename T, AllocationLifetime L, typename C>
+    inline typename FieldMaskMap<T, L, C>::iterator
+        FieldMaskMap<T, L, C>::begin(void)
     //--------------------------------------------------------------------------
     {
       // Scariness!
@@ -679,7 +679,7 @@ namespace Legion {
         // If we're empty return end
         if (entries.single_entry == nullptr)
           return end();
-        FieldMaskMap<T, L, D>* ptr = this;
+        FieldMaskMap<T, L, C>* ptr = this;
         std::pair<T* const, FieldMask>* result = nullptr;
         static_assert(sizeof(result) == sizeof(ptr));
         memcpy(&result, &ptr, sizeof(result));
@@ -690,8 +690,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline typename FieldMaskMap<T, L, D>::iterator FieldMaskMap<T, L, D>::find(
+    template<typename T, AllocationLifetime L, typename C>
+    inline typename FieldMaskMap<T, L, C>::iterator FieldMaskMap<T, L, C>::find(
         T* e)
     //--------------------------------------------------------------------------
     {
@@ -699,7 +699,7 @@ namespace Legion {
       {
         if ((entries.single_entry == nullptr) || (entries.single_entry != e))
           return end();
-        FieldMaskMap<T, L, D>* ptr = this;
+        FieldMaskMap<T, L, C>* ptr = this;
         std::pair<T* const, FieldMask>* result = nullptr;
         static_assert(sizeof(result) == sizeof(ptr));
         memcpy(&result, &ptr, sizeof(result));
@@ -715,8 +715,36 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::erase(iterator& it)
+    template<typename T, AllocationLifetime L, typename C>
+    template<typename T2>
+    inline typename FieldMaskMap<T, L, C>::iterator FieldMaskMap<T, L, C>::find(
+        const T2& key)
+    //--------------------------------------------------------------------------
+    {
+      if (single)
+      {
+        if (entries.single_entry == nullptr)
+          return end();
+        if (C{}(entries.single_entry, key) || C{}(key, entries.single_entry))
+          return end();
+        FieldMaskMap<T, L, C>* ptr = this;
+        std::pair<T* const, FieldMask>* result = nullptr;
+        static_assert(sizeof(result) == sizeof(ptr));
+        memcpy(&result, &ptr, sizeof(result));
+        return iterator(this, result);
+      }
+      else
+      {
+        typename FMMap::iterator finder = entries.multi_entries->find(key);
+        if (finder == entries.multi_entries->end())
+          return end();
+        return iterator(this, finder);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::erase(iterator& it)
     //--------------------------------------------------------------------------
     {
       legion_assert(it != end());
@@ -743,8 +771,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline typename FieldMaskMap<T, L, D>::iterator FieldMaskMap<T, L, D>::end(
+    template<typename T, AllocationLifetime L, typename C>
+    inline typename FieldMaskMap<T, L, C>::iterator FieldMaskMap<T, L, C>::end(
         void)
     //--------------------------------------------------------------------------
     {
@@ -755,9 +783,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline typename FieldMaskMap<T, L, D>::const_iterator
-        FieldMaskMap<T, L, D>::begin(void) const
+    template<typename T, AllocationLifetime L, typename C>
+    inline typename FieldMaskMap<T, L, C>::const_iterator
+        FieldMaskMap<T, L, C>::begin(void) const
     //--------------------------------------------------------------------------
     {
       // Scariness!
@@ -766,7 +794,7 @@ namespace Legion {
         // If we're empty return end
         if (entries.single_entry == nullptr)
           return end();
-        FieldMaskMap<T, L, D>* ptr = const_cast<FieldMaskMap<T, L, D>*>(this);
+        FieldMaskMap<T, L, C>* ptr = const_cast<FieldMaskMap<T, L, C>*>(this);
         std::pair<T* const, FieldMask>* result = nullptr;
         static_assert(sizeof(ptr) == sizeof(result));
         memcpy(&result, &ptr, sizeof(result));
@@ -777,9 +805,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline typename FieldMaskMap<T, L, D>::const_iterator
-        FieldMaskMap<T, L, D>::cbegin(void) const
+    template<typename T, AllocationLifetime L, typename C>
+    inline typename FieldMaskMap<T, L, C>::const_iterator
+        FieldMaskMap<T, L, C>::cbegin(void) const
     //--------------------------------------------------------------------------
     {
       // Scariness!
@@ -788,7 +816,7 @@ namespace Legion {
         // If we're empty return end
         if (entries.single_entry == nullptr)
           return end();
-        FieldMaskMap<T, L, D>* ptr = const_cast<FieldMaskMap<T, L, D>*>(this);
+        FieldMaskMap<T, L, C>* ptr = const_cast<FieldMaskMap<T, L, C>*>(this);
         std::pair<T* const, FieldMask>* result = nullptr;
         static_assert(sizeof(ptr) == sizeof(result));
         memcpy(&result, &ptr, sizeof(result));
@@ -799,16 +827,45 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline typename FieldMaskMap<T, L, D>::const_iterator
-        FieldMaskMap<T, L, D>::find(T* e) const
+    template<typename T, AllocationLifetime L, typename C>
+    template<typename T2>
+    inline typename FieldMaskMap<T, L, C>::const_iterator
+        FieldMaskMap<T, L, C>::find(const T2& key) const
+    //--------------------------------------------------------------------------
+    {
+      if (single)
+      {
+        if (entries.single_entry == nullptr)
+          return end();
+        if (C{}(entries.single_entry, key) || C{}(key, entries.single_entry))
+          return end();
+        FieldMaskMap<T, L, C>* ptr = const_cast<FieldMaskMap<T, L, C>*>(this);
+        std::pair<T* const, FieldMask>* result = nullptr;
+        static_assert(sizeof(ptr) == sizeof(result));
+        memcpy(&result, &ptr, sizeof(result));
+        return const_iterator(result);
+      }
+      else
+      {
+        typename FMMap::const_iterator finder =
+            entries.multi_entries->find(key);
+        if (finder == entries.multi_entries->end())
+          return end();
+        return const_iterator(finder);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L, typename C>
+    inline typename FieldMaskMap<T, L, C>::const_iterator
+        FieldMaskMap<T, L, C>::find(T* e) const
     //--------------------------------------------------------------------------
     {
       if (single)
       {
         if ((entries.single_entry == nullptr) || (entries.single_entry != e))
           return end();
-        FieldMaskMap<T, L, D>* ptr = const_cast<FieldMaskMap<T, L, D>*>(this);
+        FieldMaskMap<T, L, C>* ptr = const_cast<FieldMaskMap<T, L, C>*>(this);
         std::pair<T* const, FieldMask>* result = nullptr;
         static_assert(sizeof(ptr) == sizeof(result));
         memcpy(&result, &ptr, sizeof(result));
@@ -824,9 +881,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline typename FieldMaskMap<T, L, D>::const_iterator
-        FieldMaskMap<T, L, D>::end(void) const
+    template<typename T, AllocationLifetime L, typename C>
+    inline typename FieldMaskMap<T, L, C>::const_iterator
+        FieldMaskMap<T, L, C>::end(void) const
     //--------------------------------------------------------------------------
     {
       if (single)
@@ -836,9 +893,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline typename FieldMaskMap<T, L, D>::const_iterator
-        FieldMaskMap<T, L, D>::cend(void) const
+    template<typename T, AllocationLifetime L, typename C>
+    inline typename FieldMaskMap<T, L, C>::const_iterator
+        FieldMaskMap<T, L, C>::cend(void) const
     //--------------------------------------------------------------------------
     {
       if (single)
@@ -848,8 +905,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, AllocationLifetime L, bool D>
-    inline void FieldMaskMap<T, L, D>::compute_field_sets(
+    template<typename T, AllocationLifetime L, typename C>
+    inline void FieldMaskMap<T, L, C>::compute_field_sets(
         FieldMask universe_mask, local::list<FieldSet<T*> >& output_sets) const
     //--------------------------------------------------------------------------
     {
@@ -1098,8 +1155,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T, bool D>
-    inline void FieldMapView<T, D>::compute_field_sets(
+    template<typename T, typename C>
+    inline void FieldMapView<T, C>::compute_field_sets(
         FieldMask universe_mask, local::list<FieldSet<T*> >& output_sets) const
     //--------------------------------------------------------------------------
     {

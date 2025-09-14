@@ -20,6 +20,14 @@ install/
 # IDE-specific files (e.g., CLion)
 .idea/
 .vscode/
+.cursor/
+
+# clangd LSP cache
+.cache/
+
+# this is a file that github copilot likes to create when it is
+# "thinking" about various plans. should not be checked in.
+Copilot-Processing.md
 
 # Core dumps
 *core

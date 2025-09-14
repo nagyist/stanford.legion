@@ -35,13 +35,6 @@ namespace Legion {
     public:
       RefinementOp& operator=(const RefinementOp& rhs) = delete;
     public:
-      // For ordering refinement operations in the logical analysis
-      // based on their monotonically increasing unique ID
-      inline bool deterministic_pointer_less(const RefinementOp* rhs) const
-      {
-        return (unique_op_id < rhs->get_unique_op_id());
-      }
-    public:
       void initialize(
           Operation* creator, unsigned idx, LogicalRegion parent,
           RegionTreeNode* refinement_node, unsigned parent_req_index);

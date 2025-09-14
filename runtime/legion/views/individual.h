@@ -274,11 +274,6 @@ namespace Legion {
     public:
       ExprView& operator=(const ExprView& rhs) = delete;
     public:
-      inline bool deterministic_pointer_less(const ExprView* rhs) const
-      {
-        return view_expr->deterministic_pointer_less(rhs->view_expr);
-      }
-    public:
       void find_user_preconditions(
           const RegionUsage& usage, IndexSpaceExpression* user_expr,
           const bool user_dominates, const FieldMask& user_mask,

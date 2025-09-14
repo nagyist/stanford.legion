@@ -55,8 +55,10 @@ endif()
 
 if(Realm_SHORT_VERSION STREQUAL "" AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/VERSION)
   file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION _REALM_FULL_VERSION)
-  string(REGEX REPLACE "[\\-\\+].*$" "" Realm_SHORT_VERSION "${_REALM_FULL_VERSION}")
-  string(REPLACE "${Realm_SHORT_VERSION}" "" Realm_VERSION_META "${_REALM_FULL_VERSION}")
+  string(STRIP "${_REALM_FULL_VERSION}" _REALM_FULL_VERSION)
+  string(REGEX MATCH "v([0-9\.]+)(-.+)?"  "${_REALM_FULL_VERSION}")
+  set(Realm_SHORT_VERSION ${CMAKE_MATCH_1})
+  set(Realm_VERSION_META ${CMAKE_MATCH_2})
 else()
   if(Realm_SHORT_VERSION STREQUAL "")
     set(Realm_SHORT_VERSION 0.0.1)
@@ -79,6 +81,8 @@ set(REALM_VERSION "${Realm_SHORT_VERSION}${Realm_VERSION_META}")
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #region External built-ins
 include(GenerateExportHeader)
@@ -328,7 +332,7 @@ endif()
 if(REALM_ENABLE_CUDA OR (REALM_ENABLE_HIP AND CMAKE_HIP_PLATFORM STREQUAL "nvidia"))
   find_package(CUDAToolkit 11.7)
   if(CUDAToolkit_FOUND)
-    if (NOT DEFINED CMAKE_CUDA_COMPILER)
+    if(NOT DEFINED CMAKE_CUDA_COMPILER)
       set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
     endif()
     if(NOT CMAKE_CUDA_ARCHITECTURES)
@@ -337,6 +341,20 @@ if(REALM_ENABLE_CUDA OR (REALM_ENABLE_HIP AND CMAKE_HIP_PLATFORM STREQUAL "nvidi
       )
       string(REPLACE "compute_" "" compute_archs "${compute_archs}")
       string(REPLACE "\n" ";" compute_archs "${compute_archs}")
+      list(FILTER compute_archs EXCLUDE REGEX "^$")
+      if (REALM_MIN_CUDA_ARCH)
+        set(filtered_compute_archs)
+        foreach(arch IN LISTS compute_archs)
+          if (arch GREATER_EQUAL REALM_MIN_CUDA_ARCH)
+            list(APPEND filtered_compute_archs ${arch})
+          endif()
+        endforeach()
+        set(compute_archs ${filtered_compute_archs})
+      endif()
+      list(SORT compute_archs COMPARE NATURAL)
+      list(GET compute_archs -1 newest_compute_arch)
+      list(TRANSFORM compute_archs APPEND "-real")
+      list(APPEND compute_archs ${newest_compute_arch}-virtual)
       set(CMAKE_CUDA_ARCHITECTURES ${compute_archs})
     endif()
     set(CMAKE_CUDA_RUNTIME_LIBRARY Static)
@@ -466,52 +484,17 @@ if(REALM_ENABLE_PYTHON)
 endif()
 
 if(REALM_ENABLE_KOKKOS)
-  if(TARGET CUDA::cuda_driver)
-    list(APPEND KOKKOS_CONFIG_ARGS "Kokkos_ENABLE_CUDA ON" "Kokkos_ENABLE_CUDA_LAMBDA ON"
-         "Kokkos_ENABLE_CUDA_UVM OFF"
-    )
+  # Unfortunately, Kokkos really doesn't like to be used with CPM or anything
+  # when cuda is enabled.  Only certain configuration options are available
+  # when you use it that way and the build environment to get kokkos working
+  # with cuda, hip, etc needs to be very finely tuned.  So we give up and ask
+  # the user to install it themselves.
+  find_package(Kokkos COMPONENTS separable_compilation)
+  if (Kokkos_FOUND)
+    enable_language(${Kokkos_COMPILE_LANGUAGE})
+    list(APPEND REALM_STATIC_DEPENDS Kokkos)
+    list(APPEND REALM_LIBRARIES Kokkos::kokkoscore)
   endif()
-  if(hip_FOUND)
-    list(APPEND KOKKOS_CONFIG_ARGS "Kokkos_ENABLE_HIP ON")
-  endif()
-  if(OpenMP_FOUND)
-    list(APPEND KOKKOS_CONFIG_ARGS "Kokkos_ENABLE_OPENMP ON")
-  endif()
-  list(
-    APPEND
-    KOKKOS_CONFIG_ARGS
-    "Kokkos_INSTALL_TESTING OFF"
-    "CMAKE_SKIP_INSTALL_RULES ON"
-    "BUILD_SHARED_LIBS OFF"
-    "CMAKE_POSITION_INDEPENDENT_CODE ON"
-    "CMAKE_CXX_FLAGS -DKOKKOS_IMPL_TURN_OFF_CUDA_HOST_INIT_CHECK"
-  )
-  cpmfindpackage(
-    NAME
-    Kokkos
-    GIT_REPOSITORY
-    https://github.com/kokkos/kokkos.git
-    GIT_TAG
-    4.0.01
-    EXCLUDE_FROM_ALL
-    YES
-    SYSTEM
-    YES
-    OPTIONS
-    ${KOKKOS_CONFIG_ARGS}
-    FIND_PACKAGE_ARGUMENTS
-    COMPONENTS
-    launch_compiler
-    separable_compilation
-  )
-  if(Kokkos_ADDED)
-    set_property(GLOBAL APPEND PROPERTY PACKAGES_FOUND Kokkos)
-    get_property(_NOT_FOUND GLOBAL PROPERTY PACKAGES_NOT_FOUND)
-    list(REMOVE_ITEM _NOT_FOUND Kokkos)
-    set_property(GLOBAL PROPERTY PACKAGES_NOT_FOUND "${_NOT_FOUND}")
-  endif()
-  list(APPEND REALM_STATIC_DEPENDS Kokkos)
-  list(APPEND REALM_LIBRARIES Kokkos::kokkos)
 endif()
 
 if(REALM_ENABLE_LLVM)
@@ -729,9 +712,7 @@ if(REALM_ENABLE_GASNETEX)
       URL_HASH SHA256=f945e80f71d340664766b66290496d230e021df5e5cd88f404d101258446daa9
       SOURCE_DIR "${GASNet_SOURCE_DIR}" INSTALL_DIR "${GASNet_ROOT}"
     )
-    if(NOT GASNet_populated)
-      FetchContent_Populate(GASNet)
-    endif()
+    FetchContent_MakeAvailable(GASNet)
 
     if(NOT GASNet_CONFIG_ARGS STREQUAL GASNet_CONFIG_ARGS_INTERNAL)
       file(REMOVE ${GASNet_SOURCE_DIR}/config.cache)
@@ -796,22 +777,22 @@ endif()
 
 add_feature_info(nvtx REALM_USE_NVTX "Enables NVTX annotations for profiling visibility")
 
-if(TARGET hip::host)
+if(TARGET hip::host AND REALM_ENABLE_HIP)
   set(REALM_USE_HIP TRUE)
 endif()
-if(TARGET LLVM::LLVM)
+if(TARGET LLVM::LLVM AND REALM_ENABLE_LLVM)
   set(REALM_USE_LLVM TRUE)
 endif()
-if(TARGET hdf5::hdf5)
+if(TARGET hdf5::hdf5 AND REALM_ENABLE_HDF5)
   set(REALM_USE_HDF5 TRUE)
 endif()
-if(TARGET Python3::Python)
+if(TARGET Python3::Python AND REALM_ENABLE_PYTHON)
   set(REALM_USE_PYTHON TRUE)
 endif()
-if(TARGET MPI::MPI_CXX)
+if(TARGET MPI::MPI_CXX AND REALM_ENABLE_MPI)
   set(REALM_USE_MPI TRUE)
 endif()
-if(REALM_ENABLE_OPENMP)
+if(REALM_ENABLE_OPENMP AND REALM_ENABLE_OPENMP)
   set(REALM_USE_OPENMP TRUE)
 endif()
 add_feature_info(openmp REALM_USE_OPENMP "Enables OpenMP support")
@@ -821,22 +802,22 @@ if(TARGET ZLIB::ZLIB)
 endif()
 add_feature_info(prealm REALM_USE_PREALM "Enables Realm Profiling support")
 
-if(TARGET Kokkos::kokkoscore)
+if(TARGET Kokkos::kokkoscore AND REALM_ENABLE_KOKKOS)
   set(REALM_USE_KOKKOS TRUE)
 endif()
-if(TARGET GASNet::GASNet)
+if(TARGET GASNet::GASNet AND REALM_ENABLE_GASNETEX)
   set(REALM_USE_GASNETEX TRUE)
 endif()
-if(TARGET ucx::ucp)
+if(TARGET ucx::ucp AND REALM_ENABLE_UCX)
   set(REALM_USE_UCX TRUE)
 endif()
-if(TARGET HWLOC::HWLOC)
+if(TARGET HWLOC::HWLOC AND REALM_ENABLE_HWLOC)
   set(REALM_USE_HWLOC TRUE)
 endif()
-if(TARGET Papi::Papi)
+if(TARGET Papi::Papi AND REALM_ENABLE_PAPI)
   set(REALM_USE_PAPI TRUE)
 endif()
-if(TARGET cpptrace::cpptrace)
+if(TARGET cpptrace::cpptrace AND REALM_ENABLE_CPPTRACE)
   set(REALM_USE_CPPTRACE TRUE)
 endif()
 
@@ -904,14 +885,14 @@ if(TARGET realm_gex_wrapper_objs AND NOT REALM_ENABLE_GASNETEX_WRAPPER)
   list(APPEND REALM_EXTRA_OBJS $<TARGET_OBJECTS:realm_gex_wrapper_objs>)
 endif()
 
-# Remove NDEBUG from definitions for cxx, c, and cuda release flags.
+# Remove NDEBUG from definitions for cxx, c, and cuda flags for those that might have it
 # TODO(cperry): remove this once we clean up all the asserts that have side effects
-string(REPLACE "/DNDEBUG" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-string(REPLACE "/DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-string(REPLACE "/DNDEBUG" "" CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE}")
-string(REPLACE "-DNDEBUG" "" CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE}")
+foreach(_build RELEASE RELWITHDEBINFO MINSIZEREL)
+  foreach(_lang C CXX CUDA)
+    string(REPLACE "/DNDEBUG" "" CMAKE_${_lang}_FLAGS_${_build} "${CMAKE_${_lang}_FLAGS_${_build}}")
+    string(REPLACE "-DNDEBUG" "" CMAKE_${_lang}_FLAGS_${_build} "${CMAKE_${_lang}_FLAGS_${_build}}")
+  endforeach()
+endforeach()
 
 add_library(realm_obj OBJECT ${REALM_SOURCES})
 set_target_properties(

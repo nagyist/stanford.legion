@@ -224,7 +224,6 @@ namespace Legion {
       struct MachineDesc {
         unsigned node_id;
         unsigned num_nodes;
-        unsigned version;
         Machine::ProcessInfo process_info;
       };
       struct CalibrationErr {

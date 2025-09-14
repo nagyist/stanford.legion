@@ -1085,7 +1085,7 @@ namespace Legion {
     typedef float LHS;
     typedef float RHS;
 
-    static constexpr float identity = std::numeric_limits<float>::min();
+    static constexpr float identity = std::numeric_limits<float>::lowest();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_FLOAT32;
 
     template<bool EXCLUSIVE>
@@ -1100,7 +1100,7 @@ namespace Legion {
     typedef double LHS;
     typedef double RHS;
 
-    static constexpr double identity = std::numeric_limits<double>::min();
+    static constexpr double identity = std::numeric_limits<double>::lowest();
     static constexpr int REDOP_ID = LEGION_REDOP_MAX_FLOAT64;
 
     template<bool EXCLUSIVE>
