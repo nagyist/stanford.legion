@@ -84,24 +84,17 @@ namespace Legion {
       legion_assert(src_preimages.empty());
       legion_assert(dst_preimages.empty());
       // Clean up any preimages that we computed
-      for (typename std::vector<DomainT<DIM, T> >::iterator it =
-               current_src_preimages.begin();
-           it != current_src_preimages.end(); it++)
-        it->destroy(last_copy);
-      for (typename std::vector<DomainT<DIM, T> >::iterator it =
-               current_dst_preimages.begin();
-           it != current_dst_preimages.end(); it++)
-        it->destroy(last_copy);
+      for (DomainT<DIM, T>& preimage : current_src_preimages)
+        preimage.destroy(last_copy);
+      for (DomainT<DIM, T>& preimage : current_dst_preimages)
+        preimage.destroy(last_copy);
       // Destroy any shadow instances that we have
-      for (std::map<Memory, ShadowInstance>::iterator it =
-               shadow_instances.begin();
-           it != shadow_instances.end(); it++)
-        it->second.instance.destroy(last_copy);
+      for (std::pair<const Memory, ShadowInstance>& shadow_entry :
+           shadow_instances)
+        shadow_entry.second.instance.destroy(last_copy);
       // Lastly cleanup the indirections
-      for (typename std::vector<const CopyIndirection*>::const_iterator it =
-               indirections.begin();
-           it != indirections.end(); it++)
-        delete (*it);
+      for (const CopyIndirection* indirection : indirections)
+        delete indirection;
       if (shadow_layout != nullptr)
         delete shadow_layout;
     }
@@ -200,10 +193,8 @@ namespace Legion {
           if (!current_src_preimages.empty())
           {
             // Destroy any previous source preimage spaces
-            for (typename std::vector<DomainT<DIM, T> >::iterator it =
-                     current_src_preimages.begin();
-                 it != current_src_preimages.end(); it++)
-              it->destroy(last_copy);
+            for (DomainT<DIM, T>& preimage : current_src_preimages)
+              preimage.destroy(last_copy);
           }
           if (compute_preimages)
           {
@@ -231,10 +222,8 @@ namespace Legion {
           if (!current_dst_preimages.empty())
           {
             // Destroy any previous destination preimage spaces
-            for (typename std::vector<DomainT<DIM, T> >::iterator it =
-                     current_dst_preimages.begin();
-                 it != current_dst_preimages.end(); it++)
-              it->destroy(last_copy);
+            for (DomainT<DIM, T>& preimage : current_dst_preimages)
+              preimage.destroy(last_copy);
           }
           if (compute_preimages)
           {
@@ -317,11 +306,9 @@ namespace Legion {
         if (!indirections.empty())
           std::abort();
         // No need for tracing to know about the reservations
-        for (std::map<Reservation, bool>::const_iterator it =
-                 reservations.begin();
-             it != reservations.end(); it++)
+        for (const std::pair<const Reservation, bool>& it : reservations)
           copy_pre =
-              Runtime::acquire_ap_reservation(it->first, it->second, copy_pre);
+              Runtime::acquire_ap_reservation(it.first, it.second, copy_pre);
       }
       if (indirections.empty() || individual_field_indexes.empty())
       {
@@ -348,10 +335,8 @@ namespace Legion {
       else
         last_copy = issue_individual_copies(op, copy_pre, requests);
       // Release any reservations
-      for (std::map<Reservation, bool>::const_iterator it =
-               reservations.begin();
-           it != reservations.end(); it++)
-        Runtime::release_reservation(it->first, last_copy);
+      for (const std::pair<const Reservation, bool>& it : reservations)
+        Runtime::release_reservation(it.first, last_copy);
       if (pred_guard.exists())
       {
         // Protect against the poison from predication
@@ -420,10 +405,9 @@ namespace Legion {
     void CopyAcrossUnstructuredT<DIM, T>::release_shadow_instances(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<Memory, ShadowInstance>::const_iterator it =
-               shadow_instances.begin();
-           it != shadow_instances.end(); it++)
-        it->second.instance.destroy(last_copy);
+      for (const std::pair<const Memory, ShadowInstance>& shadow_entry :
+           shadow_instances)
+        shadow_entry.second.instance.destroy(last_copy);
       shadow_instances.clear();
     }
 
@@ -1114,12 +1098,10 @@ namespace Legion {
                   source ? src_indirect_instance_event :
                            dst_indirect_instance_event,
                   unstructured->field_id);
-              for (std::vector<IndirectRecord>::const_iterator it =
-                       indirect_records.begin();
-                   it != indirect_records.end(); it++)
+              for (const IndirectRecord& it : indirect_records)
                 LegionSpy::log_indirect_group(
                     unique_indirections_identifier, indirect_index,
-                    it->instance_events[fidx], it->index_space.get_id());
+                    it.instance_events[fidx], it.index_space.get_id());
             }
           }
           fields[fidx].indirect_index = indirect_index;
@@ -1127,10 +1109,9 @@ namespace Legion {
       }
       // If we have any residual old shadow instances that are no longer
       // needed then we can delete them
-      for (std::map<Memory, ShadowInstance>::const_iterator it =
-               old_shadows.begin();
-           it != old_shadows.end(); it++)
-        it->second.instance.destroy(last_copy);
+      for (const std::pair<const Memory, ShadowInstance>& shadow_entry :
+           old_shadows)
+        shadow_entry.second.instance.destroy(last_copy);
       if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
         if (compute_preimages)
