@@ -2808,10 +2808,20 @@ impl Copy {
         //     Copy.
         //
         //  3. CopyInstInfos are recorded back-to-back with no separator in the
-        //     direct case, and separated by the indirect field in the indirect
-        //     case.
+        //     direct case, and separated by the indirect field(s) in the indirect
+        //     case with the indirect field always being listed first for each
+        //     copy operation. In the case of full indirections there will be
+        //     two indirection fields to start.
         //
-        //  4. Split on these indirects first, and then group by src/dst memories.
+        // Requirements:
+        //
+        //  1. All non-indirect fields from the same pair of memories should
+        //     end up in the same eventual copy to reflect fields that were
+        //     grouped together when they were issued to Realm.
+        //
+        //  2. Indirect copies should be split apart based on their indirection
+        //     fields, and then later split by the src/dst memories.
+        //
 
         // Find the event node for this copy so we can update with the right prof uid
         let node_index = event_lookup.get(&fevent).unwrap();
@@ -2820,9 +2830,7 @@ impl Copy {
 
         let mut result = Vec::new();
 
-        let indirect_groups = self
-            .copy_inst_infos
-            .linear_group_by(|a, b| a.indirect == b.indirect);
+        let indirect_groups = self.copy_inst_infos.linear_group_by(|_, i| !i.indirect);
         for indirect_group in indirect_groups {
             let indirect = indirect_group.first().filter(|i| i.indirect);
             let rest = &indirect_group[(if indirect.is_some() { 1 } else { 0 })..];
