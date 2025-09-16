@@ -4803,6 +4803,9 @@ function std.saveobj(main_task, filename, filetype, extra_setup_thunk, link_flag
   end
   -- FIXME: Detect when Legion is a static library.
   flags:insertall({"-L" .. lib_dir, "-lregent", "-llegion", "-lrealm"})
+  if gpuhelper.check_gpu_available() then
+    flags:insertall(gpuhelper.driver_library_link_flags())
+  end
 
   profile('compile', nil, function()
     if #objfiles > 0 and filetype == 'object' then
