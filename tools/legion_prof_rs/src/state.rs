@@ -2830,7 +2830,7 @@ impl Copy {
 
         let mut result = Vec::new();
 
-        let indirect_groups = self.copy_inst_infos.linear_group_by(|_, i| !i.indirect);
+        let indirect_groups = self.copy_inst_infos.linear_group_by(|a, b| a.indirect || !b.indirect);
         for indirect_group in indirect_groups {
             let indirect = indirect_group.first().filter(|i| i.indirect);
             let rest = &indirect_group[(if indirect.is_some() { 1 } else { 0 })..];
