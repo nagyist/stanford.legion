@@ -109,7 +109,7 @@ namespace Legion {
       futures.resize(future_points.size());
       unsigned index = 0;
       for (const std::pair<const DomainPoint, Future>& it : future_points)
-        futures[index] = it.second;
+        futures[index++] = it.second;
       LegionSpy::log_creation_operation(
           parent_ctx->get_unique_id(), unique_op_id);
     }
