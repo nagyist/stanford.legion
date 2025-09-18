@@ -108,10 +108,8 @@ namespace Legion {
       kind = FUTURE_MAP_CREATION;
       futures.resize(future_points.size());
       unsigned index = 0;
-      for (std::map<DomainPoint, Future>::const_iterator it =
-               future_points.begin();
-           it != future_points.end(); it++, index++)
-        futures[index] = it->second;
+      for (const std::pair<const DomainPoint, Future>& it : future_points)
+        futures[index] = it.second;
       LegionSpy::log_creation_operation(
           parent_ctx->get_unique_id(), unique_op_id);
     }
@@ -156,13 +154,12 @@ namespace Legion {
     void CreationOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<Future>::const_iterator it = futures.begin();
-           it != futures.end(); it++)
+      for (const Future& future : futures)
       {
-        legion_assert(it->impl != nullptr);
+        legion_assert(future.impl != nullptr);
         // Register this operation as dependent on task that
         // generated the future
-        it->impl->register_dependence(this);
+        future.impl->register_dependence(this);
       }
       // Record this with the context as an implicit dependence for all
       // later operations which may rely on this operation for the creation

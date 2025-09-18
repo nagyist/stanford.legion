@@ -368,9 +368,7 @@ namespace Legion {
           false /*free*/);
       resources = ExternalResources();
       // We can deactivate all of our point operations
-      for (std::vector<PointDetachOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
-        (*it)->deactivate();
+      for (PointDetachOp* point : points) point->deactivate();
       points.clear();
       map_applied_conditions.clear();
       result = Future();
@@ -420,9 +418,7 @@ namespace Legion {
         requirement = RegionRequirement(
             upper_bound->as_partition_node()->handle, 0 /*fake*/,
             LEGION_WRITE_DISCARD, LEGION_EXCLUSIVE, parent);
-      for (std::vector<FieldID>::const_iterator it = privilege_fields.begin();
-           it != privilege_fields.end(); it++)
-        requirement.add_field(*it);
+      for (const FieldID& fid : privilege_fields) requirement.add_field(fid);
       if (runtime->safe_model)
         verify_requirement(requirement, 0 /*index*/, true /*allow projection*/);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
@@ -481,29 +477,26 @@ namespace Legion {
         legion_assert(pointwise_dependences.size() == 1);
         legion_assert(pointwise_dependences.begin()->first == 0);
         std::vector<std::vector<RtEvent> > preconditions(points.size());
-        for (std::vector<PointwiseDependence>::const_iterator pit =
-                 pointwise_dependences.begin()->second.begin();
-             pit != pointwise_dependences.begin()->second.end(); pit++)
+        for (const PointwiseDependence& pit :
+             pointwise_dependences.begin()->second)
         {
           std::map<LogicalRegion, std::vector<DomainPoint> > dependences;
-          pit->find_dependences(requirement, regions, dependences);
-          if (pit->sharding != nullptr)
+          pit.find_dependences(requirement, regions, dependences);
+          if (pit.sharding != nullptr)
           {
             const Domain launch_domain =
-                pit->sharding_domain->get_tight_domain();
+                pit.sharding_domain->get_tight_domain();
             for (unsigned idx = 0; idx < points.size(); idx++)
             {
               std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                   finder = dependences.find(regions[idx]);
               legion_assert(finder != dependences.end());
-              for (std::vector<DomainPoint>::const_iterator it =
-                       finder->second.begin();
-                   it != finder->second.end(); it++)
+              for (const DomainPoint& point : finder->second)
               {
-                ShardID shard = pit->sharding->shard(
-                    *it, launch_domain, parent_ctx->get_total_shards());
+                ShardID shard = pit.sharding->shard(
+                    point, launch_domain, parent_ctx->get_total_shards());
                 RtEvent precondition = parent_ctx->find_pointwise_dependence(
-                    pit->context_index, *it, shard);
+                    pit.context_index, point, shard);
                 if (precondition.exists())
                   preconditions[idx].emplace_back(precondition);
               }
@@ -516,12 +509,10 @@ namespace Legion {
               std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                   finder = dependences.find(regions[idx]);
               legion_assert(finder != dependences.end());
-              for (std::vector<DomainPoint>::const_iterator it =
-                       finder->second.begin();
-                   it != finder->second.end(); it++)
+              for (const DomainPoint& point : finder->second)
               {
                 RtEvent precondition = parent_ctx->find_pointwise_dependence(
-                    pit->context_index, *it, 0 /*shard*/);
+                    pit.context_index, point, 0 /*shard*/);
                 if (precondition.exists())
                   preconditions[idx].emplace_back(precondition);
               }
@@ -656,18 +647,17 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       }
       legion_assert(!points.empty());
-      for (std::vector<PointDetachOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      for (PointDetachOp* it : points)
       {
-        if (point != (*it)->index_point)
+        if (point != it->index_point)
           continue;
         if (to_trigger.exists())
         {
-          Runtime::trigger_event(to_trigger, (*it)->get_mapped_event());
+          Runtime::trigger_event(to_trigger, it->get_mapped_event());
           return to_trigger;
         }
         else
-          return (*it)->get_mapped_event();
+          return it->get_mapped_event();
       }
       // Should never get here, if we do that means we couldn't find the point
       std::abort();

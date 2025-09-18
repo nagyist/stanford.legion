@@ -323,11 +323,11 @@ namespace Legion {
         std::map<PhysicalManager*, unsigned>& acquired_instances)
     //--------------------------------------------------------------------------
     {
-      for (std::map<PhysicalManager*, unsigned>::iterator it =
-               acquired_instances.begin();
-           it != acquired_instances.end(); it++)
-        if (it->first->remove_base_valid_ref(MAPPING_ACQUIRE_REF, it->second))
-          delete it->first;
+      for (std::pair<PhysicalManager* const, unsigned>& instance_pair :
+           acquired_instances)
+        if (instance_pair.first->remove_base_valid_ref(
+                MAPPING_ACQUIRE_REF, instance_pair.second))
+          delete instance_pair.first;
       acquired_instances.clear();
     }
 
@@ -357,15 +357,14 @@ namespace Legion {
                 manager->as_physical_manager()->get_unique_event();
         if (spy_logging_level > NO_SPY_LOGGING)
         {
-          for (std::vector<FieldID>::const_iterator it = valid_fields.begin();
-               it != valid_fields.end(); it++)
+          for (const FieldID& field_id : valid_fields)
           {
             if (postmapping)
               LegionSpy::log_post_mapping_decision(
-                  unique_op_id, index, *it, inst_event);
+                  unique_op_id, index, field_id, inst_event);
             else
               LegionSpy::log_mapping_decision(
-                  unique_op_id, index, *it, inst_event);
+                  unique_op_id, index, field_id, inst_event);
           }
         }
         if ((implicit_profiler != nullptr) && !manager->is_virtual_manager())
@@ -381,22 +380,20 @@ namespace Legion {
     {
       if (spy_logging_level == NO_SPY_LOGGING)
         return;
-      for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
-           it != req.privilege_fields.end(); it++)
+      for (const FieldID& field_id : req.privilege_fields)
         LegionSpy::log_mapping_decision(
-            unique_op_id, index, *it, ApEvent::NO_AP_EVENT /*inst event*/);
+            unique_op_id, index, field_id, ApEvent::NO_AP_EVENT /*inst event*/);
     }
 
     //--------------------------------------------------------------------------
     void Operation::DeferReleaseAcquiredArgs::execute(void) const
     //--------------------------------------------------------------------------
     {
-      for (std::vector<std::pair<PhysicalManager*, unsigned> >::const_iterator
-               it = instances->begin();
-           it != instances->end(); it++)
+      for (const std::pair<PhysicalManager*, unsigned>& instance : *instances)
       {
-        if (it->first->remove_base_valid_ref(MAPPING_ACQUIRE_REF, it->second))
-          delete it->first;
+        if (instance.first->remove_base_valid_ref(
+                MAPPING_ACQUIRE_REF, instance.second))
+          delete instance.first;
       }
       delete instances;
     }
@@ -809,12 +806,11 @@ namespace Legion {
       }
       // Check that all the fields are contained in the field space
       FieldSpaceNode* fs = runtime->get_node(req.parent.get_field_space());
-      for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
-           it != req.privilege_fields.end(); it++)
-        if (!fs->has_field(*it))
+      for (const FieldID& field_id : req.privilege_fields)
+        if (!fs->has_field(field_id))
         {
           Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-          error << "Field " << *it
+          error << "Field " << field_id
                 << " in privilege fields of region requirement " << index
                 << " of " << *this << " is not contained with field space "
                 << fs->handle << " of the parent region requirement. All "
@@ -920,13 +916,9 @@ namespace Legion {
         hasher.hash(req.partition.get_field_space().get_id());
         hasher.hash(req.partition.get_tree_id());
       }
-      for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
-           it != req.privilege_fields.end(); it++)
-        hasher.hash(*it);
-      for (std::vector<FieldID>::const_iterator it =
-               req.instance_fields.begin();
-           it != req.instance_fields.end(); it++)
-        hasher.hash(*it);
+      for (const FieldID& field_id : req.privilege_fields)
+        hasher.hash(field_id);
+      for (const FieldID& field_id : req.instance_fields) hasher.hash(field_id);
       hasher.hash(req.privilege);
       hasher.hash(req.prop);
       hasher.hash(req.parent.get_index_space().get_id());
@@ -1124,11 +1116,9 @@ namespace Legion {
         std::vector<ProfilingMeasurementID>& results, bool warn_if_not_copy)
     //--------------------------------------------------------------------------
     {
-      for (std::set<ProfilingMeasurementID>::const_iterator it =
-               requests.begin();
-           it != requests.end(); it++)
+      for (const ProfilingMeasurementID& measurement_id : requests)
       {
-        switch ((Realm::ProfilingMeasurementID)*it)
+        switch ((Realm::ProfilingMeasurementID)measurement_id)
         {
           case Realm::PMID_OP_STATUS:
           case Realm::PMID_OP_STATUS_ABNORMAL:
@@ -1138,7 +1128,7 @@ namespace Legion {
           case Realm::PMID_OP_MEM_USAGE:
           case Realm::PMID_OP_COPY_INFO:
             {
-              results.emplace_back(*it);
+              results.emplace_back(measurement_id);
               break;
             }
           default:
@@ -1147,7 +1137,8 @@ namespace Legion {
               {
                 Warning warning;
                 warning << "Mapper " << *mapper
-                        << "requested a profiling measurement of type " << *it
+                        << "requested a profiling measurement of type "
+                        << measurement_id
                         << "which is not applicable to operation " << *this
                         << "and therefore it will be ignored";
                 warning.raise();
@@ -1187,10 +1178,9 @@ namespace Legion {
         // Notify all our mapping dependences, note we can do this while
         // holding the lock since notifying them doesn't involve taking
         // their locks
-        for (std::map<Operation*, GenerationID>::const_iterator it =
-                 outgoing.begin();
-             it != outgoing.end(); it++)
-          it->first->satisfy_mapping_dependence();
+        for (const std::pair<Operation* const, GenerationID>& op_pair :
+             outgoing)
+          op_pair.first->satisfy_mapping_dependence();
         if (executed)
         {
           trigger_now = true;
@@ -1316,12 +1306,11 @@ namespace Legion {
               // notify our upstream operations that they too are hardened
               // but skip any operations that are themselves hardened as
               // they would already be included from the verification users
-              for (std::map<Operation*, GenerationID>::const_iterator it =
-                       incoming.begin();
-                   it != incoming.end(); it++)
-                if (verification_notifications.find(it->first) ==
+              for (const std::pair<Operation* const, GenerationID>& op_pair :
+                   incoming)
+                if (verification_notifications.find(op_pair.first) ==
                     verification_notifications.end())
-                  to_notify.emplace_back(it->first);
+                  to_notify.emplace_back(op_pair.first);
             }
           }
         }
@@ -1331,9 +1320,8 @@ namespace Legion {
       // finally notify all the operations we dependended on
       // that we validated their regions note we don't need
       // the lock since this was all set when we did our mapping analysis
-      for (std::vector<Operation*>::const_iterator it = to_notify.begin();
-           it != to_notify.end(); it++)
-        (*it)->notify_hardened();
+      for (Operation* const & operation : to_notify)
+        operation->notify_hardened();
       if (do_commit)
       {
         if (track_parent)
@@ -1425,10 +1413,9 @@ namespace Legion {
         return;
       AutoLock o_lock(op_lock);
       legion_assert(!mapped || !executed);
-      for (std::set<ApEvent>::const_iterator it = effects.begin();
-           it != effects.end(); it++)
-        if (it->exists())
-          completion_effects.insert(*it);
+      for (const ApEvent& event : effects)
+        if (event.exists())
+          completion_effects.insert(event);
     }
 
     //--------------------------------------------------------------------------
@@ -1440,10 +1427,9 @@ namespace Legion {
         return;
       AutoLock o_lock(op_lock);
       legion_assert(!mapped || !executed);
-      for (std::vector<ApEvent>::const_iterator it = effects.begin();
-           it != effects.end(); it++)
-        if (it->exists())
-          completion_effects.insert(*it);
+      for (const ApEvent& event : effects)
+        if (event.exists())
+          completion_effects.insert(event);
     }
 
     //--------------------------------------------------------------------------
@@ -1718,12 +1704,11 @@ namespace Legion {
             // If we're hardened we notify all upstream operations that
             // we're officially hardened, if we're not hardened we only
             // notify the upstream ones that are not themselves hardened
-            for (std::map<Operation*, GenerationID>::const_iterator it =
-                     incoming.begin();
-                 it != incoming.end(); it++)
-              if (hardened || (verification_notifications.find(it->first) ==
+            for (const std::pair<Operation* const, GenerationID>& op_pair :
+                 incoming)
+              if (hardened || (verification_notifications.find(op_pair.first) ==
                                verification_notifications.end()))
-                to_notify.emplace_back(it->first);
+                to_notify.emplace_back(op_pair.first);
             if (completed)
               do_commit = true;
           }
@@ -1733,9 +1718,8 @@ namespace Legion {
       // finally notify all the operations we dependended on
       // that we validated their regions note we don't need
       // the lock since this was all set when we did our mapping analysis
-      for (std::vector<Operation*>::const_iterator it = to_notify.begin();
-           it != to_notify.end(); it++)
-        (*it)->notify_hardened();
+      for (Operation* const & operation : to_notify)
+        operation->notify_hardened();
       if (do_commit)
       {
         if (track_parent)
@@ -1763,19 +1747,17 @@ namespace Legion {
           // If we're hardened we notify all upstream operations that
           // we're officially hardened, if we're not hardened we only
           // notify the upstream ones that are not themselves hardened
-          for (std::map<Operation*, GenerationID>::const_iterator it =
-                   incoming.begin();
-               it != incoming.end(); it++)
-            if (hardened || (verification_notifications.find(it->first) ==
+          for (const std::pair<Operation* const, GenerationID>& op_pair :
+               incoming)
+            if (hardened || (verification_notifications.find(op_pair.first) ==
                              verification_notifications.end()))
-              to_notify.emplace_back(it->first);
+              to_notify.emplace_back(op_pair.first);
           if (completed)
             do_commit = true;
         }
       }
-      for (std::vector<Operation*>::const_iterator it = to_notify.begin();
-           it != to_notify.end(); it++)
-        (*it)->notify_hardened();
+      for (Operation* const & operation : to_notify)
+        operation->notify_hardened();
       if (do_commit)
       {
         if (track_parent)
@@ -1846,10 +1828,10 @@ namespace Legion {
       {
         collectives_valid.reserve(
             collectives_valid.size() + collectives.size());
-        for (local::FieldMaskMap<ReplicatedView>::const_iterator it =
-                 collectives.begin();
-             it != collectives.end(); it++)
-          collectives_valid.emplace_back(MappingCollective(it->first));
+        for (const std::pair<ReplicatedView*, FieldMask>& collective_pair :
+             collectives)
+          collectives_valid.emplace_back(
+              MappingCollective(collective_pair.first));
       }
     }
 
@@ -1882,10 +1864,10 @@ namespace Legion {
       {
         collectives_valid.reserve(
             collectives_valid.size() + collectives.size());
-        for (local::FieldMaskMap<ReplicatedView>::const_iterator it =
-                 collectives.begin();
-             it != collectives.end(); it++)
-          collectives_valid.emplace_back(MappingCollective(it->first));
+        for (const std::pair<ReplicatedView*, FieldMask>& collective_pair :
+             collectives)
+          collectives_valid.emplace_back(
+              MappingCollective(collective_pair.first));
       }
     }
 
@@ -1898,10 +1880,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ranking.reserve(output.size());
-      for (std::deque<MappingInstance>::const_iterator it = output.begin();
-           it != output.end(); it++)
+      for (const MappingInstance& mapping_instance : output)
       {
-        const InstanceManager* man = it->impl;
+        const InstanceManager* man = mapping_instance.impl;
         if (!man->is_physical_manager())
           continue;
         PhysicalManager* manager = man->as_physical_manager();
@@ -2193,23 +2174,22 @@ namespace Legion {
       if (analysis.report_instances(instances))
         req.flags |= LEGION_RESTRICTED_FLAG;
       const std::vector<LogicalRegion> to_meet(1, req.region);
-      for (op::FieldMaskMap<LogicalView>::const_iterator it = instances.begin();
-           it != instances.end(); it++)
+      for (const std::pair<LogicalView*, FieldMask>& instance_pair : instances)
       {
-        legion_assert(it->first->is_instance_view());
-        if (it->first->is_individual_view())
+        legion_assert(instance_pair.first->is_instance_view());
+        if (instance_pair.first->is_individual_view())
         {
-          IndividualView* view = it->first->as_individual_view();
+          IndividualView* view = instance_pair.first->as_individual_view();
           PhysicalManager* manager = view->get_manager();
           if (manager->meets_regions(to_meet))
-            targets.add_instance(InstanceRef(manager, it->second));
+            targets.add_instance(InstanceRef(manager, instance_pair.second));
         }
         else
         {
-          legion_assert(it->first->is_replicated_view());
-          ReplicatedView* view = it->first->as_replicated_view();
+          legion_assert(instance_pair.first->is_replicated_view());
+          ReplicatedView* view = instance_pair.first->as_replicated_view();
           if (view->meets_regions(to_meet))
-            collectives.insert(view, it->second);
+            collectives.insert(view, instance_pair.second);
         }
       }
     }
@@ -2338,10 +2318,9 @@ namespace Legion {
     {
       const RegionTreeID req_tid = req.parent.get_tree_id();
       std::vector<PhysicalManager*> unacquired;
-      for (std::vector<MappingInstance>::const_iterator it = sources.begin();
-           it != sources.end(); it++)
+      for (const MappingInstance& instance : sources)
       {
-        InstanceManager* man = it->impl;
+        InstanceManager* man = instance.impl;
         if (man == nullptr)
           continue;
         if (man->is_virtual_manager())
@@ -2398,10 +2377,9 @@ namespace Legion {
       // If we're doing safe mapping, then sort these in order for determinism
       if (runtime->safe_mapper)
         std::sort(chosen.begin(), chosen.end());
-      for (std::vector<MappingInstance>::const_iterator it = chosen.begin();
-           it != chosen.end(); it++)
+      for (const MappingInstance& instance : chosen)
       {
-        InstanceManager* man = it->impl;
+        InstanceManager* man = instance.impl;
         if (man == nullptr)
           continue;
         if (man->is_virtual_manager())
@@ -2490,10 +2468,9 @@ namespace Legion {
       // If we're doing safe mapping, then sort these in order for determinism
       if (runtime->safe_mapper)
         std::sort(chosen.begin(), chosen.end());
-      for (std::vector<MappingInstance>::const_iterator it = chosen.begin();
-           it != chosen.end(); it++)
+      for (const MappingInstance& instance : chosen)
       {
-        InstanceManager* man = it->impl;
+        InstanceManager* man = instance.impl;
         if (man == nullptr)
           continue;
         if (man->is_virtual_manager())
@@ -2592,17 +2569,14 @@ namespace Legion {
       rez.serialize(req.region);
       rez.serialize(req.partition);
       rez.serialize(req.privilege_fields.size());
-      for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
-           it != req.privilege_fields.end(); it++)
+      for (const FieldID& field_id : req.privilege_fields)
       {
-        rez.serialize(*it);
+        rez.serialize(field_id);
       }
       rez.serialize(req.instance_fields.size());
-      for (std::vector<FieldID>::const_iterator it =
-               req.instance_fields.begin();
-           it != req.instance_fields.end(); it++)
+      for (const FieldID& field_id : req.instance_fields)
       {
-        rez.serialize(*it);
+        rez.serialize(field_id);
       }
       rez.serialize(req.privilege);
       rez.serialize(req.prop);

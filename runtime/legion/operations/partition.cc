@@ -256,12 +256,10 @@ namespace Legion {
         std::set<RtEvent>& mapped_events, std::set<RtEvent>& ready_events)
     //--------------------------------------------------------------------------
     {
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               sources.begin();
-           it != sources.end(); it++)
+      for (const std::pair<const DomainPoint, FutureImpl*>& it : sources)
       {
-        it->second->request_runtime_instance(this);
-        const RtEvent ready = it->second->find_runtime_instance_ready();
+        it.second->request_runtime_instance(this);
+        const RtEvent ready = it.second->find_runtime_instance_ready();
         if (ready.exists())
           ready_events.insert(ready);
       }

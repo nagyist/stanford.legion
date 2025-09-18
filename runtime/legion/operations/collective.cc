@@ -139,14 +139,12 @@ namespace Legion {
             size_t local_arrivals = 0;
             const AddressSpaceID inst_space =
                 runtime->determine_owner(inst_did);
-            for (std::vector<DistributedID>::const_iterator it =
-                     vit->first->individual_dids.begin();
-                 it != vit->first->individual_dids.end(); it++)
+            for (const DistributedID& it : vit->first->individual_dids)
             {
-              if (inst_space != runtime->determine_owner(*it))
+              if (inst_space != runtime->determine_owner(it))
                 continue;
               std::map<DistributedID, size_t>::const_iterator count_finder =
-                  counts.find(*it);
+                  counts.find(it);
               if (count_finder != counts.end())
                 local_arrivals += count_finder->second;
               else
@@ -258,12 +256,11 @@ namespace Legion {
       const PendingRendezvousKey key(index, analysis, region);
       AutoLock c_lock(collective_lock);
       std::vector<RendezvousResult*>& pending = pending_rendezvous[key];
-      for (std::vector<RendezvousResult*>::const_iterator it = pending.begin();
-           it != pending.end(); it++)
+      for (RendezvousResult* it : pending)
       {
-        if (!(*it)->matches(targets))
+        if (!it->matches(targets))
           continue;
-        result = (*it);
+        result = it;
         break;
       }
       if (result == nullptr)
@@ -375,8 +372,7 @@ namespace Legion {
         // the realm event registrations go to the same node
         std::map<CollectiveResult*, RtEvent> local_registered_events;
         std::map<CollectiveResult*, RtEvent> local_ready_events;
-        for (std::vector<AddressSpaceID>::const_iterator it = targets.begin();
-             it != targets.end(); it++)
+        for (const AddressSpaceID& target : targets)
         {
           CollectiveFinalizeMapping rez;
           {
@@ -390,12 +386,10 @@ namespace Legion {
               rez.serialize(results[idx].second);
             }
             rez.serialize<size_t>(counts.size());
-            for (std::map<DistributedID, size_t>::const_iterator cit =
-                     counts.begin();
-                 cit != counts.end(); cit++)
+            for (const std::pair<const DistributedID, size_t>& count : counts)
             {
-              rez.serialize(cit->first);
-              rez.serialize(cit->second);
+              rez.serialize(count.first);
+              rez.serialize(count.second);
             }
             rez.serialize<size_t>(views.size());
             for (FieldMapView<CollectiveResult>::const_iterator vit =
@@ -426,7 +420,7 @@ namespace Legion {
               rez.serialize(vit->second);
             }
           }
-          rez.dispatch(*it);
+          rez.dispatch(target);
         }
       }
       // Now handle all of the local results
@@ -538,34 +532,31 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(rendezvous.size());
-      for (std::map<LogicalRegion, CollectiveRendezvous>::const_iterator rit =
-               rendezvous.begin();
-           rit != rendezvous.end(); rit++)
+      for (const std::pair<const LogicalRegion, CollectiveRendezvous>& rit :
+           rendezvous)
       {
-        rez.serialize(rit->first);
-        rez.serialize(rit->second.results.size());
-        for (std::vector<std::pair<AddressSpaceID, RendezvousResult*> >::
-                 const_iterator it = rit->second.results.begin();
-             it != rit->second.results.end(); it++)
+        rez.serialize(rit.first);
+        rez.serialize(rit.second.results.size());
+        for (const std::pair<AddressSpaceID, RendezvousResult*>& it :
+             rit.second.results)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(it.first);
+          rez.serialize(it.second);
         }
-        rez.serialize<size_t>(rit->second.groups.size());
+        rez.serialize<size_t>(rit.second.groups.size());
         for (op::map<DistributedID, FieldMask>::const_iterator it =
-                 rit->second.groups.begin();
-             it != rit->second.groups.end(); it++)
+                 rit.second.groups.begin();
+             it != rit.second.groups.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
         }
-        rez.serialize<size_t>(rit->second.counts.size());
-        for (std::map<DistributedID, size_t>::const_iterator it =
-                 rit->second.counts.begin();
-             it != rit->second.counts.end(); it++)
+        rez.serialize<size_t>(rit.second.counts.size());
+        for (const std::pair<const DistributedID, size_t>& it :
+             rit.second.counts)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(it.first);
+          rez.serialize(it.second);
         }
       }
     }
@@ -929,12 +920,11 @@ namespace Legion {
           std::vector<AddressSpaceID> target_spaces;
           targets.reserve(fit->elements.size());
           target_spaces.reserve(fit->elements.size());
-          for (std::set<std::pair<AddressSpaceID, EqSetTracker*> >::
-                   const_iterator it = fit->elements.begin();
-               it != fit->elements.end(); it++)
+          for (const std::pair<AddressSpaceID, EqSetTracker*>& it :
+               fit->elements)
           {
-            targets.emplace_back(it->second);
-            target_spaces.emplace_back(it->first);
+            targets.emplace_back(it.second);
+            target_spaces.emplace_back(it.first);
           }
           RtEvent precondition;
           if (!std::binary_search(
@@ -1107,15 +1097,14 @@ namespace Legion {
           else
           {
             // Need to do the merge
-            for (std::vector<std::pair<AddressSpaceID, RendezvousResult*> >::
-                     iterator it = rit->second.results.begin();
-                 it != rit->second.results.end(); it++)
+            for (const std::pair<AddressSpaceID, RendezvousResult*>& it :
+                 rit->second.results)
             {
               if (std::binary_search(
                       region_finder->second.results.begin(),
-                      region_finder->second.results.end(), *it))
+                      region_finder->second.results.end(), it))
                 continue;
-              region_finder->second.results.emplace_back(*it);
+              region_finder->second.results.emplace_back(it);
               std::sort(
                   region_finder->second.results.begin(),
                   region_finder->second.results.end());
@@ -1161,15 +1150,14 @@ namespace Legion {
       const RegionTreeID tid = rendezvous.begin()->first.get_tree_id();
       InnerContext* physical_ctx =
           this->find_physical_context(key.region_index);
-      for (std::map<LogicalRegion, CollectiveRendezvous>::iterator rit =
-               rendezvous.begin();
-           rit != rendezvous.end(); rit++)
+      for (std::pair<const LogicalRegion, CollectiveRendezvous>&
+               rendezvous_pair : rendezvous)
       {
         // All the regions should be from the same region tree
-        legion_assert(tid == rit->first.get_tree_id());
+        legion_assert(tid == rendezvous_pair.first.get_tree_id());
         local::list<FieldSet<DistributedID> > field_sets;
         compute_field_sets(
-            FieldMask(), MapView(rit->second.groups), field_sets);
+            FieldMask(), MapView(rendezvous_pair.second.groups), field_sets);
         local::FieldMaskMap<CollectiveResult> results;
         std::vector<RtEvent> ready_events;
         for (local::list<FieldSet<DistributedID> >::const_iterator it =
@@ -1205,16 +1193,17 @@ namespace Legion {
           }
         }
         // Send the resulting views back out to all the RendezvousResults
-        std::sort(rit->second.results.begin(), rit->second.results.end());
+        std::sort(
+            rendezvous_pair.second.results.begin(),
+            rendezvous_pair.second.results.end());
         // First build the collective mapping
         std::vector<AddressSpaceID> unique_spaces;
-        for (std::vector<
-                 std::pair<AddressSpaceID, RendezvousResult*> >::iterator it =
-                 rit->second.results.begin();
-             it != rit->second.results.end(); it++)
+
+        for (const std::pair<AddressSpaceID, RendezvousResult*>& it :
+             rendezvous_pair.second.results)
         {
-          if (unique_spaces.empty() || (unique_spaces.back() != it->first))
-            unique_spaces.emplace_back(it->first);
+          if (unique_spaces.empty() || (unique_spaces.back() != it.first))
+            unique_spaces.emplace_back(it.first);
         }
         CollectiveMapping* mapping = new CollectiveMapping(
             unique_spaces, runtime->legion_collective_radix);
@@ -1232,7 +1221,8 @@ namespace Legion {
             wait_on.wait();
         }
         finalize_collective_mapping(
-            mapping, owner, rit->second.results, rit->second.counts, results);
+            mapping, owner, rendezvous_pair.second.results,
+            rendezvous_pair.second.counts, results);
         if (mapping->remove_reference())
           delete mapping;
         for (local::FieldMaskMap<CollectiveResult>::const_iterator it =

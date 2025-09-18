@@ -44,9 +44,7 @@ namespace Legion {
       rez.serialize(logical_region);
       rez.serialize(parent_region);
       rez.serialize<size_t>(fields.size());
-      for (std::set<FieldID>::const_iterator it = fields.begin();
-           it != fields.end(); it++)
-        rez.serialize(*it);
+      for (const FieldID& fid : fields) rez.serialize(fields);
       rez.serialize(grants.size());
       for (unsigned idx = 0; idx < grants.size(); idx++)
         pack_grant(grants[idx], rez);
@@ -156,13 +154,11 @@ namespace Legion {
       wait_barriers = launcher.wait_barriers;
       if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        for (std::vector<PhaseBarrier>::const_iterator it =
-                 launcher.arrive_barriers.begin();
-             it != launcher.arrive_barriers.end(); it++)
+        for (const PhaseBarrier& bar : launcher.arrive_barriers)
         {
-          arrive_barriers.emplace_back(*it);
+          arrive_barriers.emplace_back(bar);
           LegionSpy::log_event_dependence(
-              it->phase_barrier, arrive_barriers.back().phase_barrier);
+              bar.phase_barrier, arrive_barriers.back().phase_barrier);
         }
       }
       else
@@ -352,12 +348,11 @@ namespace Legion {
       // Chain any arrival barriers
       if (!arrive_barriers.empty())
       {
-        for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
-             it != arrive_barriers.end(); it++)
+        for (const PhaseBarrier& bar : arrive_barriers)
         {
-          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(unique_op_id, bar.phase_barrier);
           runtime->phase_barrier_arrive(
-              it->phase_barrier, 1 /*count*/, complete);
+              bar.phase_barrier, 1 /*count*/, complete);
         }
       }
       complete_operation(complete);
@@ -391,9 +386,7 @@ namespace Legion {
       hasher.hash(get_operation_kind());
       hasher.hash(logical_region);
       hasher.hash(parent_region);
-      for (std::set<FieldID>::const_iterator it = fields.begin();
-           it != fields.end(); it++)
-        hasher.hash(*it);
+      for (const FieldID& fid : fields) hasher.hash(fid);
       return recorder.record_operation_hash(this, hasher, opidx);
     }
 
@@ -478,12 +471,12 @@ namespace Legion {
       // copy complete event
       if (!arrive_barriers.empty())
       {
-        for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
-             it != arrive_barriers.end(); it++)
+        for (PhaseBarrier& barrier : arrive_barriers)
         {
-          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(
+              unique_op_id, barrier.phase_barrier);
           runtime->phase_barrier_arrive(
-              it->phase_barrier, 1 /*count*/, acquire_complete_event);
+              barrier.phase_barrier, 1 /*count*/, acquire_complete_event);
         }
       }
       // Handle the case for marking when the copy completes
@@ -543,12 +536,10 @@ namespace Legion {
           runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
           sizeof(response), profiling_priority);
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it =
-               profiling_requests.begin();
-           it != profiling_requests.end(); it++)
+      for (const ProfilingMeasurementID& it : profiling_requests)
       {
         const Realm::ProfilingMeasurementID measurement =
-            (Realm::ProfilingMeasurementID)*it;
+            (Realm::ProfilingMeasurementID)it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;

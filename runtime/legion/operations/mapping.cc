@@ -122,13 +122,11 @@ namespace Legion {
       wait_barriers = launcher.wait_barriers;
       if (spy_logging_level > NO_SPY_LOGGING)
       {
-        for (std::vector<PhaseBarrier>::const_iterator it =
-                 launcher.arrive_barriers.begin();
-             it != launcher.arrive_barriers.end(); it++)
+        for (const PhaseBarrier& bar : launcher.arrive_barriers)
         {
-          arrive_barriers.emplace_back(*it);
+          arrive_barriers.emplace_back(bar);
           LegionSpy::log_event_dependence(
-              it->phase_barrier, arrive_barriers.back().phase_barrier);
+              bar.phase_barrier, arrive_barriers.back().phase_barrier);
         }
       }
       else
@@ -337,21 +335,19 @@ namespace Legion {
       if (!atomic_locks.empty() || !arrive_barriers.empty())
       {
         // They've already been sorted in order
-        for (std::map<Reservation, bool>::const_iterator it =
-                 atomic_locks.begin();
-             it != atomic_locks.end(); it++)
+        for (const std::pair<const Reservation, bool>& it : atomic_locks)
         {
           map_complete_event = Runtime::acquire_ap_reservation(
-              it->first, it->second, map_complete_event);
+              it.first, it.second, map_complete_event);
           // We can also issue the release condition on our termination
-          Runtime::release_reservation(it->first, termination_event);
+          Runtime::release_reservation(it.first, termination_event);
         }
-        for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
-             it != arrive_barriers.end(); it++)
+        for (PhaseBarrier& barrier : arrive_barriers)
         {
-          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(
+              unique_op_id, barrier.phase_barrier);
           runtime->phase_barrier_arrive(
-              it->phase_barrier, 1 /*count*/, termination_event);
+              barrier.phase_barrier, 1 /*count*/, termination_event);
         }
       }
       LegionSpy::log_operation_events(
@@ -577,30 +573,27 @@ namespace Legion {
               << missing_fields.size() << " fields of the region "
               << "requirement for " << *this << ". The missing fields are: ";
         bool first = true;
-        for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
-             it != missing_fields.end(); it++)
+        for (const FieldID& fid : missing_fields)
         {
           const void* name;
           size_t name_size;
           if (!runtime->retrieve_semantic_information(
-                  requirement.region.get_field_space(), *it,
+                  requirement.region.get_field_space(), fid,
                   LEGION_NAME_SEMANTIC_TAG, name, name_size, true, false))
             name = "(no name)";
           if (first)
             first = false;
           else
             error << ", ";
-          error << static_cast<const char*>(name) << "(FieldID: " << *it << ")";
+          error << static_cast<const char*>(name) << "(FieldID: " << fid << ")";
         }
         error.raise();
       }
       if (!unacquired.empty())
       {
-        for (std::vector<PhysicalManager*>::const_iterator it =
-                 unacquired.begin();
-             it != unacquired.end(); it++)
+        for (PhysicalManager* manager : unacquired)
         {
-          if (acquired_instances.find(*it) == acquired_instances.end())
+          if (acquired_instances.find(manager) == acquired_instances.end())
           {
             Error error(LEGION_MAPPER_EXCEPTION);
             error
@@ -749,22 +742,18 @@ namespace Legion {
           if (!constraints->field_constraint.field_set.empty())
           {
             std::set<FieldID> field_set;
-            for (std::vector<FieldID>::const_iterator it =
-                     constraints->field_constraint.field_set.begin();
-                 it != constraints->field_constraint.field_set.end(); it++)
+            for (const FieldID& fid : constraints->field_constraint.field_set)
             {
-              field_set.insert(*it);
-              region.impl->add_padded_field(*it);
+              field_set.insert(fid);
+              region.impl->add_padded_field(fid);
             }
             padding_mask = fs->get_field_mask(field_set);
           }
           else
           {
             padding_mask = fs->get_field_mask(requirement.privilege_fields);
-            for (std::set<FieldID>::const_iterator it =
-                     requirement.privilege_fields.begin();
-                 it != requirement.privilege_fields.end(); it++)
-              region.impl->add_padded_field(*it);
+            for (const FieldID& fid : requirement.privilege_fields)
+              region.impl->add_padded_field(fid);
           }
           for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
           {
@@ -798,12 +787,10 @@ namespace Legion {
           runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
           sizeof(response), profiling_priority);
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it =
-               profiling_requests.begin();
-           it != profiling_requests.end(); it++)
+      for (const ProfilingMeasurementID& it : profiling_requests)
       {
         const Realm::ProfilingMeasurementID measurement =
-            (Realm::ProfilingMeasurementID)*it;
+            (Realm::ProfilingMeasurementID)it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;
@@ -1117,14 +1104,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(mapped_instances.size());
-      for (std::map<PhysicalInstance, ShardFields>::const_iterator mit =
-               mapped_instances.begin();
-           mit != mapped_instances.end(); mit++)
+      for (const std::pair<const PhysicalInstance, ShardFields>& mit :
+           mapped_instances)
       {
-        rez.serialize(mit->first);
-        rez.serialize<size_t>(mit->second.size());
-        for (ShardFields::const_iterator it = mit->second.begin();
-             it != mit->second.end(); it++)
+        rez.serialize(mit.first);
+        rez.serialize<size_t>(mit.second.size());
+        for (ShardFields::const_iterator it = mit.second.begin();
+             it != mit.second.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
@@ -1222,10 +1208,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(source_instances.size());
-      for (std::vector<DistributedID>::const_iterator it =
-               source_instances.begin();
-           it != source_instances.end(); it++)
-        rez.serialize(*it);
+      for (const DistributedID& it : source_instances) rez.serialize(it);
     }
 
     //--------------------------------------------------------------------------
