@@ -35,11 +35,6 @@ namespace Legion {
           DistributedID did, bool register_now, CollectiveMapping* mapping);
       virtual ~LogicalView(void);
     public:
-      inline bool deterministic_pointer_less(const LogicalView* rhs) const
-      {
-        return (did < rhs->did);
-      }
-    public:
       inline bool is_instance_view(void) const;
       inline bool is_deferred_view(void) const;
       inline bool is_individual_view(void) const;

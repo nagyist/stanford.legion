@@ -1299,8 +1299,10 @@ namespace Legion {
           {
             // Check that all the gather instances are in host memories
             // since Realm doesn't currently support GPU preimages
-            for (PhysicalManager* manager : gather_sources)
+            for (unsigned idx = 0; idx < gather_targets.size(); idx++)
             {
+              PhysicalManager* manager =
+                  gather_targets[idx].get_physical_manager();
               const Memory::Kind kind = manager->memory_manager->memory.kind();
               if ((kind != Memory::GLOBAL_MEM) &&
                   (kind != Memory::SYSTEM_MEM) &&
@@ -1359,8 +1361,10 @@ namespace Legion {
           {
             // Check that all the scatter instances are in host memories
             // since Realm doesn't currently support GPU preimages
-            for (PhysicalManager* manager : scatter_sources)
+            for (unsigned idx = 0; idx < scatter_targets.size(); idx++)
             {
+              PhysicalManager* manager =
+                  scatter_targets[idx].get_physical_manager();
               const Memory::Kind kind = manager->memory_manager->memory.kind();
               if ((kind != Memory::GLOBAL_MEM) &&
                   (kind != Memory::SYSTEM_MEM) &&

@@ -41,24 +41,13 @@ namespace Legion {
      * A template helper class for tracking collections of
      * objects associated with different sets of fields
      */
-    template<typename T, AllocationLifetime L, bool DETERMINISTIC = false>
-    class FieldMaskMap : public Heapify<FieldMaskMap<T, L, DETERMINISTIC>, L> {
+    template<
+        typename T, AllocationLifetime L,
+        typename COMPARATOR = std::less<const T*> >
+    class FieldMaskMap : public Heapify<FieldMaskMap<T, L, COMPARATOR>, L> {
     private:
-      // Call the deterministic pointer less method for
-      // any types that have asked for deterministic sets
-      template<typename U>
-      struct DeterministicComparator {
-      public:
-        inline bool operator()(const U* one, const U* two) const
-        {
-          return one->deterministic_pointer_less(two);
-        }
-      };
-      using Comparator = typename std::conditional<
-          DETERMINISTIC, DeterministicComparator<T>,
-          std::less<const T*> >::type;
       using FMMap = std::map<
-          T*, FieldMask, Comparator,
+          T*, FieldMask, COMPARATOR,
           LegionAllocator<std::pair<T* const, FieldMask>, L> >;
     public:
       // forward declaration
@@ -291,18 +280,17 @@ namespace Legion {
     public:
       FieldMaskMap(void) : single(true) { entries.single_entry = nullptr; }
       inline FieldMaskMap(T* init, const FieldMask& m, bool no_null = true);
-      inline FieldMaskMap(const FieldMaskMap<T, L, DETERMINISTIC>& rhs);
+      inline FieldMaskMap(const FieldMaskMap<T, L, COMPARATOR>& rhs);
       template<AllocationLifetime L2>
-      inline FieldMaskMap(const FieldMaskMap<T, L2, DETERMINISTIC>& rhs);
-      inline FieldMaskMap(FieldMaskMap<T, L, DETERMINISTIC>&& rhs) noexcept;
+      inline FieldMaskMap(const FieldMaskMap<T, L2, COMPARATOR>& rhs);
+      inline FieldMaskMap(FieldMaskMap<T, L, COMPARATOR>&& rhs) noexcept;
       // If copy is set to false then this is a move constructor
-      inline FieldMaskMap(FieldMaskMap<T, L, DETERMINISTIC>& rhs, bool copy);
+      inline FieldMaskMap(FieldMaskMap<T, L, COMPARATOR>& rhs, bool copy);
       ~FieldMaskMap(void) { clear(); }
     public:
+      inline FieldMaskMap& operator=(const FieldMaskMap<T, L, COMPARATOR>& rh);
       inline FieldMaskMap& operator=(
-          const FieldMaskMap<T, L, DETERMINISTIC>& rh);
-      inline FieldMaskMap& operator=(
-          FieldMaskMap<T, L, DETERMINISTIC>&& rhs) noexcept;
+          FieldMaskMap<T, L, COMPARATOR>&& rhs) noexcept;
     public:
       inline bool empty(void) const
       {
@@ -330,12 +318,16 @@ namespace Legion {
     public:
       inline iterator begin(void);
       inline iterator find(T* entry);
+      template<typename T2>
+      inline iterator find(const T2& key);
       inline void erase(iterator& it);
       inline iterator end(void);
     public:
       inline const_iterator begin(void) const;
       inline const_iterator cbegin(void) const;
       inline const_iterator find(T* entry) const;
+      template<typename T2>
+      inline const_iterator find(const T2& key) const;
       inline const_iterator end(void) const;
       inline const_iterator cend(void) const;
     public:
@@ -343,9 +335,9 @@ namespace Legion {
           FieldMask universe_mask,
           local::list<FieldSet<T*> >& output_sets) const;
     protected:
-      template<typename T2, AllocationLifetime L2, bool D2>
+      template<typename T2, AllocationLifetime L2, typename C2>
       friend class FieldMaskMap;
-      template<typename T2, bool D2>
+      template<typename T2, typename C2>
       friend class FieldMapView;
 
       // Fun with C, keep these two fields first and in this order
@@ -361,23 +353,10 @@ namespace Legion {
       bool single;
     };
 
-    template<typename T, bool DETERMINISTIC = false>
+    template<typename T, typename COMPARATOR = std::less<const T*> >
     class FieldMapView {
     public:
-      // Call the deterministic pointer less method for
-      // any types that have asked for deterministic sets
-      template<typename U>
-      struct DeterministicComparator {
-      public:
-        inline bool operator()(const U* one, const U* two) const
-        {
-          return one->deterministic_pointer_less(two);
-        }
-      };
-      using Comparator = typename std::conditional<
-          DETERMINISTIC, DeterministicComparator<T>,
-          std::less<const T*> >::type;
-      using FMMap = std::map<T*, FieldMask, Comparator>;
+      using FMMap = std::map<T*, FieldMask, COMPARATOR>;
       class const_iterator {
       public:
         // explicitly set iterator traits
@@ -391,7 +370,7 @@ namespace Legion {
           : result(_result), it(typename FMMap::const_iterator()), single(true)
         { }
         const_iterator(
-            typename std::map<T*, FieldMask, Comparator>::const_iterator _it)
+            typename std::map<T*, FieldMask, COMPARATOR>::const_iterator _it)
           : result(nullptr), it(_it), single(false)
         { }
       public:
@@ -469,13 +448,13 @@ namespace Legion {
       };
     public:
       template<AllocationLifetime LIFETIME>
-      FieldMapView(const FieldMaskMap<T, LIFETIME, DETERMINISTIC>& map)
+      FieldMapView(const FieldMaskMap<T, LIFETIME, COMPARATOR>& map)
         : start(nullptr), stop(nullptr), full_size(map.size()),
           valid_fields(map.get_valid_mask())
       {
         if (full_size == 1)
         {
-          const FieldMaskMap<T, LIFETIME, DETERMINISTIC>* ptr = &map;
+          const FieldMaskMap<T, LIFETIME, COMPARATOR>* ptr = &map;
           std::pair<T* const, FieldMask>* result = nullptr;
           static_assert(sizeof(ptr) == sizeof(result));
           memcpy(&result, &ptr, sizeof(result));
@@ -511,9 +490,9 @@ namespace Legion {
         const_iterator it = std::lower_bound(
             start, stop, key,
             [](const std::pair<const T*, FieldMask>& pair, const T* k) -> bool {
-              return Comparator()(pair.first, k);
+              return COMPARATOR()(pair.first, k);
             });
-        if ((it != stop) && !Comparator()(key, it->first))
+        if ((it != stop) && !COMPARATOR()(key, it->first))
           return it;
         else
           return stop;
@@ -533,34 +512,34 @@ namespace Legion {
 
     // Create some insantiations of these templates in the lifetime namespaces
     namespace local {
-      template<typename T, bool DETERMINISTIC = false>
+      template<typename T, typename COMPARATOR = std::less<const T*> >
       using FieldMaskMap =
-          Legion::Internal::FieldMaskMap<T, TASK_LOCAL_LIFETIME, DETERMINISTIC>;
+          Legion::Internal::FieldMaskMap<T, TASK_LOCAL_LIFETIME, COMPARATOR>;
     }  // namespace local
     namespace op {
-      template<typename T, bool DETERMINISTIC = false>
+      template<typename T, typename COMPARATOR = std::less<const T*> >
       using FieldMaskMap =
-          Legion::Internal::FieldMaskMap<T, OPERATION_LIFETIME, DETERMINISTIC>;
+          Legion::Internal::FieldMaskMap<T, OPERATION_LIFETIME, COMPARATOR>;
     }  // namespace op
     namespace ctx {
-      template<typename T, bool DETERMINISTIC = false>
+      template<typename T, typename COMPARATOR = std::less<const T*> >
       using FieldMaskMap =
-          Legion::Internal::FieldMaskMap<T, CONTEXT_LIFETIME, DETERMINISTIC>;
+          Legion::Internal::FieldMaskMap<T, CONTEXT_LIFETIME, COMPARATOR>;
     }  // namespace ctx
     namespace shrt {
-      template<typename T, bool DETERMINISTIC = false>
+      template<typename T, typename COMPARATOR = std::less<const T*> >
       using FieldMaskMap =
-          Legion::Internal::FieldMaskMap<T, SHORT_LIFETIME, DETERMINISTIC>;
+          Legion::Internal::FieldMaskMap<T, SHORT_LIFETIME, COMPARATOR>;
     }  // namespace shrt
     namespace lng {
-      template<typename T, bool DETERMINISTIC = false>
+      template<typename T, typename COMPARATOR = std::less<const T*> >
       using FieldMaskMap =
-          Legion::Internal::FieldMaskMap<T, LONG_LIFETIME, DETERMINISTIC>;
+          Legion::Internal::FieldMaskMap<T, LONG_LIFETIME, COMPARATOR>;
     }  // namespace lng
     namespace rt {
-      template<typename T, bool DETERMINISTIC = false>
+      template<typename T, typename COMPARATOR = std::less<const T*> >
       using FieldMaskMap =
-          Legion::Internal::FieldMaskMap<T, RUNTIME_LIFETIME, DETERMINISTIC>;
+          Legion::Internal::FieldMaskMap<T, RUNTIME_LIFETIME, COMPARATOR>;
     }  // namespace rt
 
   }  // namespace Internal

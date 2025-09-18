@@ -44,7 +44,7 @@ namespace Legion {
       rez.serialize(logical_region);
       rez.serialize(parent_region);
       rez.serialize<size_t>(fields.size());
-      for (const FieldID& fid : fields) rez.serialize(fields);
+      for (const FieldID& fid : fields) rez.serialize(fid);
       rez.serialize(grants.size());
       for (unsigned idx = 0; idx < grants.size(); idx++)
         pack_grant(grants[idx], rez);
