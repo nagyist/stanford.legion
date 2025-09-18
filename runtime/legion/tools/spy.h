@@ -249,15 +249,17 @@ namespace Legion {
         const size_t max_chars = 16;
         char* result = (char*)malloc(sources.size() * max_chars);
         char temp[max_chars];
-        for (unsigned idx = 0; idx < sources.size(); idx++)
+        unsigned idx = 0;
+        for (const IndexSpaceExprID& source : sources)
         {
           if (idx > 0)
           {
-            snprintf(temp, max_chars, " %lld", sources[idx]);
+            snprintf(temp, max_chars, " %lld", source);
             strncat(result, temp, max_chars);
           }
           else
-            snprintf(result, max_chars, "%lld", sources[idx]);
+            snprintf(result, max_chars, "%lld", source);
+          idx++;
         }
         log_spy.print(
             "Index Space Union %lld %zd %s", result_id, sources.size(), result);
@@ -272,15 +274,17 @@ namespace Legion {
         const size_t max_chars = 16;
         char* result = (char*)malloc(sources.size() * max_chars);
         char temp[max_chars];
-        for (unsigned idx = 0; idx < sources.size(); idx++)
+        unsigned idx = 0;
+        for (const IndexSpaceExprID& source : sources)
         {
           if (idx > 0)
           {
-            snprintf(temp, max_chars, " %lld", sources[idx]);
+            snprintf(temp, max_chars, " %lld", source);
             strncat(result, temp, max_chars);
           }
           else
-            snprintf(result, max_chars, " %lld", sources[idx]);
+            snprintf(result, max_chars, " %lld", source);
+          idx++;
         }
         log_spy.print(
             "Index Space Intersection %lld %zd %s", res_id, sources.size(),
@@ -670,11 +674,11 @@ namespace Legion {
           const std::set<unsigned>& logical_fields)
       {
         if (spy_logging_level > NO_SPY_LOGGING)
-          for (std::set<unsigned>::const_iterator it = logical_fields.begin();
-               it != logical_fields.end(); it++)
+          for (const unsigned& field : logical_fields)
           {
             log_spy.print(
-                "Logical Requirement Field %llu %u %u", unique_id, index, *it);
+                "Logical Requirement Field %llu %u %u", unique_id, index,
+                field);
           }
       }
 
@@ -683,11 +687,11 @@ namespace Legion {
           const std::vector<FieldID>& logical_fields)
       {
         if (spy_logging_level > NO_SPY_LOGGING)
-          for (std::vector<FieldID>::const_iterator it = logical_fields.begin();
-               it != logical_fields.end(); it++)
+          for (const FieldID& field : logical_fields)
           {
             log_spy.print(
-                "Logical Requirement Field %llu %u %u", unique_id, index, *it);
+                "Logical Requirement Field %llu %u %u", unique_id, index,
+                field);
           }
       }
 
