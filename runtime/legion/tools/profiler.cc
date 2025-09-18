@@ -1092,21 +1092,17 @@ namespace Legion {
             indirect.dst_fid = 0;
             indirect.dst_inst_uid = LgEvent::NO_LG_EVENT;
           }
-          unsigned idx1 = 0;
           for (const PhysicalInstance& src_inst : inst_info_item.src_insts)
           {
             Memory src_location = src_inst.get_location();
             LgEvent src_name = closure->find_instance_name(src_inst);
-            unsigned idx2 = 0;
             for (const PhysicalInstance& dst_inst : inst_info_item.dst_insts)
             {
               Memory dst_location = dst_inst.get_location();
               LgEvent dst_name = closure->find_instance_name(dst_inst);
-              unsigned idx3 = 0;
-              for (const FieldID& src_fid : inst_info_item.src_fields)
+              for (const Realm::FieldID& src_fid : inst_info_item.src_fields)
               {
-                unsigned idx4 = 0;
-                for (const FieldID& dst_fid : inst_info_item.dst_fields)
+                for (const Realm::FieldID& dst_fid : inst_info_item.dst_fields)
                 {
                   CopyInstInfo& inst_info = info.inst_infos[offset++];
                   inst_info.src = src_location.id;
@@ -1117,13 +1113,9 @@ namespace Legion {
                   inst_info.dst_inst_uid = dst_name;
                   inst_info.num_hops = inst_info_item.num_hops;
                   inst_info.indirect = false;
-                  idx4++;
                 }
-                idx3++;
               }
-              idx2++;
             }
-            idx1++;
           }
         }
         else
@@ -1141,7 +1133,7 @@ namespace Legion {
           const unsigned offset = info.inst_infos.size();
           info.inst_infos.resize(offset + inst_info_item.src_fields.size());
           unsigned idx = 0;
-          for (const FieldID& src_field : inst_info_item.src_fields)
+          for (const Realm::FieldID& src_field : inst_info_item.src_fields)
           {
             CopyInstInfo& inst_info = info.inst_infos[offset + idx];
             inst_info.src = src_location.id;
@@ -1212,7 +1204,7 @@ namespace Legion {
         unsigned offset = info.inst_infos.size();
         info.inst_infos.resize(offset + inst_info_item.dst_fields.size());
         unsigned idx = 0;
-        for (const FieldID& dst_field : inst_info_item.dst_fields)
+        for (const Realm::FieldID& dst_field : inst_info_item.dst_fields)
         {
           FillInstInfo& inst_info = info.inst_infos[offset + idx];
           inst_info.dst = location.id;
