@@ -164,8 +164,8 @@ namespace Legion {
         rez.serialize(selected_variant);
         rez.serialize(task_priority);
         rez.serialize<size_t>(target_processors.size());
-        for (unsigned idx = 0; idx < target_processors.size(); idx++)
-          rez.serialize(target_processors[idx]);
+        for (const Processor& processor : target_processors)
+          rez.serialize(processor);
         for (unsigned idx = 0; idx < logical_regions.size(); idx++)
         {
           // C++ is stupid and tries to convert to a std::optional<bool> here
@@ -175,26 +175,24 @@ namespace Legion {
         }
         rez.serialize(single_task_termination);
         rez.serialize<size_t>(physical_instances.size());
-        for (unsigned idx = 0; idx < physical_instances.size(); idx++)
-          physical_instances[idx].pack_references(rez);
+        for (const InstanceSet& instance : physical_instances)
+          instance.pack_references(rez);
         rez.serialize<size_t>(region_preconditions.size());
-        for (unsigned idx = 0; idx < region_preconditions.size(); idx++)
-          rez.serialize(region_preconditions[idx]);
+        for (const ApEvent& event : region_preconditions) rez.serialize(event);
         rez.serialize<size_t>(future_memories.size());
-        for (unsigned idx = 0; idx < future_memories.size(); idx++)
-          rez.serialize(future_memories[idx]);
+        for (const Memory& memory : future_memories) rez.serialize(memory);
         rez.serialize<size_t>(task_profiling_requests.size());
-        for (unsigned idx = 0; idx < task_profiling_requests.size(); idx++)
-          rez.serialize(task_profiling_requests[idx]);
+        for (const ProfilingMeasurementID& request : task_profiling_requests)
+          rez.serialize(request);
         rez.serialize<size_t>(copy_profiling_requests.size());
-        for (unsigned idx = 0; idx < copy_profiling_requests.size(); idx++)
-          rez.serialize(copy_profiling_requests[idx]);
+        for (const ProfilingMeasurementID& request : copy_profiling_requests)
+          rez.serialize(request);
         if (!task_profiling_requests.empty() ||
             !copy_profiling_requests.empty())
           rez.serialize(profiling_priority);
         rez.serialize<size_t>(untracked_valid_regions.size());
-        for (unsigned idx = 0; idx < untracked_valid_regions.size(); idx++)
-          rez.serialize(untracked_valid_regions[idx]);
+        for (unsigned region_idx : untracked_valid_regions)
+          rez.serialize(region_idx);
         rez.serialize<size_t>(leaf_memory_pools.size());
         for (const std::pair<const Memory, MemoryPool*>& pool_pair :
              leaf_memory_pools)
@@ -2914,8 +2912,8 @@ namespace Legion {
           !check_collective_regions.empty())
       {
         // Tell our unbounded pools that we're done allocating
-        for (unsigned idx = 0; idx < unbounded_pools.size(); idx++)
-          unbounded_pools[idx]->end_collective_unbounded_pools_task();
+        for (MemoryManager* manager : unbounded_pools)
+          manager->end_collective_unbounded_pools_task();
       }
       // If we have any pools left in the acquired set we can delete them
       // since we're not going to need them
@@ -3023,15 +3021,14 @@ namespace Legion {
         }
       }
       // Now add get all the other preconditions for the launch
-      for (unsigned idx = 0; idx < grants.size(); idx++)
+      for (const Grant& grant : grants)
       {
-        GrantImpl* impl = grants[idx].impl;
+        GrantImpl* impl = grant.impl;
         wait_on_events.insert(impl->acquire_grant());
       }
-      for (unsigned idx = 0; idx < wait_barriers.size(); idx++)
+      for (const PhaseBarrier& barrier : wait_barriers)
       {
-        ApEvent e =
-            Runtime::get_previous_phase(wait_barriers[idx].phase_barrier);
+        ApEvent e = Runtime::get_previous_phase(barrier.phase_barrier);
         wait_on_events.insert(e);
       }
 
@@ -3211,13 +3208,13 @@ namespace Legion {
             unique_op_id, start_condition, single_task_termination);
         // Chain the start event into the unmap events so Legion Spy can see
         // the dependences between child operations the start of the parent task
-        for (unsigned idx = 0; idx < unmap_events.size(); idx++)
-          if (unmap_events[idx].exists())
-            LegionSpy::log_event_dependence(start_condition, unmap_events[idx]);
+        for (const ApUserEvent& event : unmap_events)
+          if (event.exists())
+            LegionSpy::log_event_dependence(start_condition, event);
         LegionSpy::log_task_priority(unique_op_id, task_priority);
-        for (unsigned idx = 0; idx < futures.size(); idx++)
+        for (const Future& future : futures)
         {
-          FutureImpl* impl = futures[idx].impl;
+          FutureImpl* impl = future.impl;
           LegionSpy::log_future_use(unique_op_id, impl->did);
         }
       }
@@ -3298,8 +3295,8 @@ namespace Legion {
       rez.serialize<size_t>(copy_profiling_requests.size());
       if (!copy_profiling_requests.empty())
       {
-        for (unsigned idx = 0; idx < copy_profiling_requests.size(); idx++)
-          rez.serialize(copy_profiling_requests[idx]);
+        for (const ProfilingMeasurementID& request : copy_profiling_requests)
+          rez.serialize(request);
         rez.serialize(profiling_priority);
         rez.serialize(runtime->find_utility_group());
         // Send a message to the owner with an update for the extra counts

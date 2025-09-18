@@ -910,8 +910,8 @@ namespace Legion {
       parent_ctx->pack_inner_context(rez);
       pack_single_task(rez, target);
       rez.serialize<size_t>(output_region_options.size());
-      for (unsigned idx = 0; idx < output_region_options.size(); idx++)
-        rez.serialize(output_region_options[idx]);
+      for (const OutputOptions& option : output_region_options)
+        rez.serialize(option);
       rez.serialize(orig_task);
       rez.serialize(remote_unique_id);
       rez.serialize(top_level_task);

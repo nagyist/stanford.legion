@@ -1406,12 +1406,10 @@ namespace Legion {
       // out from under us while we are finalizing things
       std::vector<std::pair<PointTask*, ProcessorManager*>> local_copy;
       local_copy.swap(finder->second.point_tasks);
-      for (std::vector<std::pair<PointTask*, ProcessorManager*>>::const_iterator
-               it = local_copy.begin();
-           it != local_copy.end(); it++)
-        if (must_epoch_task || it->first->check_concurrent_variant(vid))
-          it->second->finalize_concurrent_task_order(
-              it->first, lamport_clock, poisoned);
+      for (const std::pair<PointTask*, ProcessorManager*>& it : local_copy)
+        if (must_epoch_task || it.first->check_concurrent_variant(vid))
+          it.second->finalize_concurrent_task_order(
+              it.first, lamport_clock, poisoned);
     }
 
     //--------------------------------------------------------------------------

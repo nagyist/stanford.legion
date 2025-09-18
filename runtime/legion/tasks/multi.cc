@@ -89,10 +89,10 @@ namespace Legion {
         free(reduction_metadata);
       if (!temporary_futures.empty())
       {
-        for (std::map<DomainPoint, std::pair<FutureInstance*, ApEvent> >::
-                 const_iterator it = temporary_futures.begin();
-             it != temporary_futures.end(); it++)
-          delete it->second.first;
+        for (const std::pair<
+                 const DomainPoint, std::pair<FutureInstance*, ApEvent> >&
+                 temp_future : temporary_futures)
+          delete temp_future.second.first;
         temporary_futures.clear();
       }
       concurrent_groups.clear();
@@ -142,9 +142,8 @@ namespace Legion {
         error.raise();
       }
       size_t total_points = 0;
-      for (unsigned idx = 0; idx < output.slices.size(); idx++)
+      for (Mapper::TaskSlice& slice : output.slices)
       {
-        Mapper::TaskSlice& slice = output.slices[idx];
         if (!slice.proc.exists())
         {
           Error error(LEGION_MAPPER_EXCEPTION);
@@ -470,8 +469,8 @@ namespace Legion {
       if (!output_region_options.empty())
       {
         rez.serialize<size_t>(output_region_options.size());
-        for (unsigned idx = 0; idx < output_region_options.size(); idx++)
-          rez.serialize(output_region_options[idx]);
+        for (const OutputOptions& option : output_region_options)
+          rez.serialize(option);
       }
       else
         rez.serialize<size_t>(0);
@@ -492,13 +491,12 @@ namespace Legion {
       if (!is_origin_mapped())
       {
         rez.serialize<size_t>(pointwise_dependences.size());
-        for (std::map<unsigned, std::vector<PointwiseDependence> >::
-                 const_iterator pit = pointwise_dependences.begin();
-             pit != pointwise_dependences.end(); pit++)
+        for (const std::pair<const unsigned, std::vector<PointwiseDependence> >&
+                 pit : pointwise_dependences)
         {
-          rez.serialize(pit->first);
-          rez.serialize<size_t>(pit->second.size());
-          for (const PointwiseDependence& dependence : pit->second)
+          rez.serialize(pit.first);
+          rez.serialize<size_t>(pit.second.size());
+          for (const PointwiseDependence& dependence : pit.second)
             dependence.serialize(rez);
         }
       }

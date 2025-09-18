@@ -44,14 +44,14 @@ namespace Legion {
       RezCheck z(rez);
       rez.serialize(task_id);
       rez.serialize(indexes.size());
-      for (unsigned idx = 0; idx < indexes.size(); idx++)
-        pack_index_space_requirement(indexes[idx], rez);
+      for (const IndexSpaceRequirement& index : indexes)
+        pack_index_space_requirement(index, rez);
       rez.serialize(regions.size());
-      for (unsigned idx = 0; idx < regions.size(); idx++)
-        pack_region_requirement(regions[idx], rez);
+      for (const RegionRequirement& region : regions)
+        pack_region_requirement(region, rez);
       rez.serialize(output_regions.size());
-      for (unsigned idx = 0; idx < output_regions.size(); idx++)
-        pack_output_requirement(output_regions[idx], rez);
+      for (const OutputRequirement& output : output_regions)
+        pack_output_requirement(output, rez);
       rez.serialize(futures.size());
       // If we are remote we can just do the normal pack
       for (const Future& future : futures)
@@ -60,14 +60,13 @@ namespace Legion {
         else
           rez.serialize<DistributedID>(0);
       rez.serialize(grants.size());
-      for (unsigned idx = 0; idx < grants.size(); idx++)
-        pack_grant(grants[idx], rez);
+      for (const Grant& grant : grants) pack_grant(grant, rez);
       rez.serialize(wait_barriers.size());
-      for (unsigned idx = 0; idx < wait_barriers.size(); idx++)
-        pack_phase_barrier(wait_barriers[idx], rez);
+      for (const PhaseBarrier& barrier : wait_barriers)
+        pack_phase_barrier(barrier, rez);
       rez.serialize(arrive_barriers.size());
-      for (unsigned idx = 0; idx < arrive_barriers.size(); idx++)
-        pack_phase_barrier(arrive_barriers[idx], rez);
+      for (const PhaseBarrier& barrier : arrive_barriers)
+        pack_phase_barrier(barrier, rez);
       rez.serialize(arglen);
       if (arglen > 0)
         rez.serialize(args, arglen);
@@ -98,18 +97,18 @@ namespace Legion {
       size_t num_indexes;
       derez.deserialize(num_indexes);
       indexes.resize(num_indexes);
-      for (unsigned idx = 0; idx < indexes.size(); idx++)
-        unpack_index_space_requirement(indexes[idx], derez);
+      for (IndexSpaceRequirement& index : indexes)
+        unpack_index_space_requirement(index, derez);
       size_t num_regions;
       derez.deserialize(num_regions);
       regions.resize(num_regions);
-      for (unsigned idx = 0; idx < regions.size(); idx++)
-        unpack_region_requirement(regions[idx], derez);
+      for (RegionRequirement& region : regions)
+        unpack_region_requirement(region, derez);
       size_t num_output_regions;
       derez.deserialize(num_output_regions);
       output_regions.resize(num_output_regions);
-      for (unsigned idx = 0; idx < output_regions.size(); idx++)
-        unpack_output_requirement(output_regions[idx], derez);
+      for (OutputRequirement& output : output_regions)
+        unpack_output_requirement(output, derez);
       size_t num_futures;
       derez.deserialize(num_futures);
       futures.resize(num_futures);
@@ -118,18 +117,17 @@ namespace Legion {
       size_t num_grants;
       derez.deserialize(num_grants);
       grants.resize(num_grants);
-      for (unsigned idx = 0; idx < grants.size(); idx++)
-        unpack_grant(grants[idx], derez);
+      for (Grant& grant : grants) unpack_grant(grant, derez);
       size_t num_wait_barriers;
       derez.deserialize(num_wait_barriers);
       wait_barriers.resize(num_wait_barriers);
-      for (unsigned idx = 0; idx < wait_barriers.size(); idx++)
-        unpack_phase_barrier(wait_barriers[idx], derez);
+      for (PhaseBarrier& barrier : wait_barriers)
+        unpack_phase_barrier(barrier, derez);
       size_t num_arrive_barriers;
       derez.deserialize(num_arrive_barriers);
       arrive_barriers.resize(num_arrive_barriers);
-      for (unsigned idx = 0; idx < arrive_barriers.size(); idx++)
-        unpack_phase_barrier(arrive_barriers[idx], derez);
+      for (PhaseBarrier& barrier : arrive_barriers)
+        unpack_phase_barrier(barrier, derez);
       derez.deserialize(arglen);
       if (arglen > 0)
       {
@@ -441,8 +439,8 @@ namespace Legion {
           rez.serialize(trace_local_id);
         }
         rez.serialize<size_t>(check_collective_regions.size());
-        for (unsigned idx = 0; idx < check_collective_regions.size(); idx++)
-          rez.serialize(check_collective_regions[idx]);
+        for (unsigned region_idx : check_collective_regions)
+          rez.serialize(region_idx);
       }
       rez.serialize(future_return_size);
       rez.serialize(request_valid_instances);
@@ -1108,8 +1106,8 @@ namespace Legion {
         return;
       grants = requested_grants;
       const ApEvent grant_pre = get_completion_event();
-      for (unsigned idx = 0; idx < grants.size(); idx++)
-        grants[idx].impl->register_operation(grant_pre);
+      for (const Grant& grant : grants)
+        grant.impl->register_operation(grant_pre);
     }
 
     //--------------------------------------------------------------------------

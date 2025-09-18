@@ -1779,8 +1779,8 @@ namespace Legion {
       rez.serialize<size_t>(copy_profiling_requests.size());
       if (!copy_profiling_requests.empty())
       {
-        for (unsigned idx = 0; idx < copy_profiling_requests.size(); idx++)
-          rez.serialize(copy_profiling_requests[idx]);
+        for (const ProfilingMeasurementID& request : copy_profiling_requests)
+          rez.serialize(request);
         rez.serialize(profiling_priority);
         rez.serialize(runtime->find_utility_group());
         // Send a message to the owner with an update for the extra counts
