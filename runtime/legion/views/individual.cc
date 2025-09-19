@@ -73,28 +73,26 @@ namespace Legion {
         delete view_expr;
       if (!subviews.empty())
       {
-        for (lng::FieldMaskMap<ExprView>::iterator it = subviews.begin();
-             it != subviews.end(); it++)
-          if (it->first->remove_reference())
-            delete it->first;
+        for (const std::pair<ExprView* const, FieldMask>& subview_entry :
+             subviews)
+          if (subview_entry.first->remove_reference())
+            delete subview_entry.first;
       }
       // If we have any current or previous users filter them out now
       if (!current_epoch_users.empty())
       {
-        for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
-                 current_epoch_users.begin();
-             it != current_epoch_users.end(); it++)
-          if (it->first->remove_reference())
-            delete it->first;
+        for (const std::pair<PhysicalUser* const, FieldMask>& user_entry :
+             current_epoch_users)
+          if (user_entry.first->remove_reference())
+            delete user_entry.first;
         current_epoch_users.clear();
       }
       if (!previous_epoch_users.empty())
       {
-        for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
-                 previous_epoch_users.begin();
-             it != previous_epoch_users.end(); it++)
-          if (it->first->remove_reference())
-            delete it->first;
+        for (const std::pair<PhysicalUser* const, FieldMask>& user_entry :
+             previous_epoch_users)
+          if (user_entry.first->remove_reference())
+            delete user_entry.first;
         previous_epoch_users.clear();
       }
     }
@@ -118,17 +116,15 @@ namespace Legion {
     {
       // No need for any locks here since we're in the view destructor
       // and there should be no more races between anything
-      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
-               current_epoch_users.begin();
-           it != current_epoch_users.end(); it++)
-        all_done.insert(it->first->term_event);
-      for (shrt::FieldMaskMap<PhysicalUser>::const_iterator it =
-               previous_epoch_users.begin();
-           it != previous_epoch_users.end(); it++)
-        all_done.insert(it->first->term_event);
-      for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-           it != subviews.end(); it++)
-        it->first->find_all_done_events(all_done);
+      for (const std::pair<PhysicalUser* const, FieldMask>& user_entry :
+           current_epoch_users)
+        all_done.insert(user_entry.first->term_event);
+      for (const std::pair<PhysicalUser* const, FieldMask>& user_entry :
+           previous_epoch_users)
+        all_done.insert(user_entry.first->term_event);
+      for (const std::pair<ExprView* const, FieldMask>& subview_entry :
+           subviews)
+        subview_entry.first->find_all_done_events(all_done);
     }
 
     //--------------------------------------------------------------------------
@@ -155,13 +151,11 @@ namespace Legion {
             if (!it->second)
               to_delete.emplace_back(it->first);
           }
-          for (std::vector<PhysicalUser*>::const_iterator it =
-                   to_delete.begin();
-               it != to_delete.end(); it++)
+          for (PhysicalUser* user : to_delete)
           {
-            current_to_filter.erase(*it);
-            if ((*it)->remove_reference())
-              delete (*it);
+            current_to_filter.erase(user);
+            if (user->remove_reference())
+              delete user;
           }
           current_to_filter.tighten_valid_mask();
           return;
@@ -259,31 +253,31 @@ namespace Legion {
       {
         local::FieldMaskMap<ExprView> to_traverse;
         std::map<ExprView*, IndexSpaceExpression*> traverse_exprs;
-        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-             it != subviews.end(); it++)
+        for (const std::pair<ExprView* const, FieldMask>& subview_entry :
+             subviews)
         {
-          FieldMask overlap = it->second & user_mask;
+          FieldMask overlap = subview_entry.second & user_mask;
           if (!overlap)
             continue;
           // If we've already determined the user dominates
           // then we don't even have to do this test
           if (user_dominates)
           {
-            to_traverse.insert(it->first, overlap);
+            to_traverse.insert(subview_entry.first, overlap);
             continue;
           }
-          if (it->first->view_expr == user_expr)
+          if (subview_entry.first->view_expr == user_expr)
           {
-            to_traverse.insert(it->first, overlap);
-            traverse_exprs[it->first] = user_expr;
+            to_traverse.insert(subview_entry.first, overlap);
+            traverse_exprs[subview_entry.first] = user_expr;
             continue;
           }
-          IndexSpaceExpression* expr_overlap =
-              runtime->intersect_index_spaces(user_expr, it->first->view_expr);
+          IndexSpaceExpression* expr_overlap = runtime->intersect_index_spaces(
+              user_expr, subview_entry.first->view_expr);
           if (!expr_overlap->is_empty())
           {
-            to_traverse.insert(it->first, overlap);
-            traverse_exprs[it->first] = expr_overlap;
+            to_traverse.insert(subview_entry.first, overlap);
+            traverse_exprs[subview_entry.first] = expr_overlap;
           }
         }
         if (!to_traverse.empty())
@@ -397,36 +391,38 @@ namespace Legion {
       // Then see if there are any users below that we need to traverse
       if (!subviews.empty() && !(subviews.get_valid_mask() * copy_mask))
       {
-        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-             it != subviews.end(); it++)
+        for (const std::pair<ExprView* const, FieldMask>& subview_entry :
+             subviews)
         {
-          FieldMask overlap = it->second & copy_mask;
+          FieldMask overlap = subview_entry.second & copy_mask;
           if (!overlap)
             continue;
           // If the copy dominates then we don't even have
           // to do the intersection test
           if (copy_dominates)
           {
-            it->first->find_copy_preconditions(
-                usage, it->first->view_expr, true /*dominate*/, overlap, op_id,
-                index, preconditions, trace_recording);
+            subview_entry.first->find_copy_preconditions(
+                usage, subview_entry.first->view_expr, true /*dominate*/,
+                overlap, op_id, index, preconditions, trace_recording);
             continue;
           }
-          if (it->first->view_expr == copy_expr)
+          if (subview_entry.first->view_expr == copy_expr)
           {
-            it->first->find_copy_preconditions(
+            subview_entry.first->find_copy_preconditions(
                 usage, copy_expr, true /*dominate*/, overlap, op_id, index,
                 preconditions, trace_recording);
             continue;
           }
-          IndexSpaceExpression* expr_overlap =
-              runtime->intersect_index_spaces(it->first->view_expr, copy_expr);
+          IndexSpaceExpression* expr_overlap = runtime->intersect_index_spaces(
+              subview_entry.first->view_expr, copy_expr);
           if (!expr_overlap->is_empty())
           {
             const bool copy_dominates =
-                (expr_overlap->expr_id == it->first->view_expr->expr_id) ||
-                (expr_overlap->get_volume() == it->first->get_view_volume());
-            it->first->find_copy_preconditions(
+                (expr_overlap->expr_id ==
+                 subview_entry.first->view_expr->expr_id) ||
+                (expr_overlap->get_volume() ==
+                 subview_entry.first->get_view_volume());
+            subview_entry.first->find_copy_preconditions(
                 usage, expr_overlap, copy_dominates, overlap, op_id, index,
                 preconditions, trace_recording);
           }
@@ -444,35 +440,36 @@ namespace Legion {
       // See if there are any users below that we need to traverse
       if (!subviews.empty() && !(subviews.get_valid_mask() * mask))
       {
-        for (lng::FieldMaskMap<ExprView>::const_iterator it = subviews.begin();
-             it != subviews.end(); it++)
+        for (const std::pair<ExprView* const, FieldMask>& subview_entry :
+             subviews)
         {
-          FieldMask overlap = it->second & mask;
+          FieldMask overlap = subview_entry.second & mask;
           if (!overlap)
             continue;
           // If the expr dominates then we don't even have
           // to do the intersection test
           if (expr_dominates)
           {
-            it->first->find_last_users(
-                usage, it->first->view_expr, true /*dominate*/, overlap,
-                last_events);
+            subview_entry.first->find_last_users(
+                usage, subview_entry.first->view_expr, true /*dominate*/,
+                overlap, last_events);
             continue;
           }
-          if (it->first->view_expr == expr)
+          if (subview_entry.first->view_expr == expr)
           {
-            it->first->find_last_users(
+            subview_entry.first->find_last_users(
                 usage, expr, true /*dominate*/, overlap, last_events);
             continue;
           }
-          IndexSpaceExpression* expr_overlap =
-              runtime->intersect_index_spaces(it->first->view_expr, expr);
+          IndexSpaceExpression* expr_overlap = runtime->intersect_index_spaces(
+              subview_entry.first->view_expr, expr);
           if (!expr_overlap->is_empty())
           {
-            const bool dominates =
-                (expr_overlap->expr_id == it->first->view_expr->expr_id) ||
-                (expr_overlap->get_volume() == it->first->get_view_volume());
-            it->first->find_last_users(
+            const bool dominates = (expr_overlap->expr_id ==
+                                    subview_entry.first->view_expr->expr_id) ||
+                                   (expr_overlap->get_volume() ==
+                                    subview_entry.first->get_view_volume());
+            subview_entry.first->find_last_users(
                 usage, expr_overlap, dominates, overlap, last_events);
           }
         }
@@ -592,12 +589,11 @@ namespace Legion {
         }
         if (!to_delete.empty())
         {
-          for (std::vector<ExprView*>::const_iterator it = to_delete.begin();
-               it != to_delete.end(); it++)
+          for (ExprView* const expr_view : to_delete)
           {
-            subviews.erase(*it);
-            if ((*it)->remove_reference())
-              delete (*it);
+            subviews.erase(expr_view);
+            if (expr_view->remove_reference())
+              delete expr_view;
           }
         }
         if (need_tighten)
@@ -786,10 +782,9 @@ namespace Legion {
       subviews.swap(new_subviews);
       if (!to_delete.empty())
       {
-        for (std::vector<ExprView*>::const_iterator it = to_delete.begin();
-             it != to_delete.end(); it++)
-          if ((*it)->remove_reference())
-            delete (*it);
+        for (ExprView* const expr_view : to_delete)
+          if (expr_view->remove_reference())
+            delete expr_view;
       }
       AutoLock v_lock(view_lock);
       if (!current_epoch_users.empty())
@@ -807,28 +802,27 @@ namespace Legion {
     {
       // Don't do this if we are in Legion Spy since we want to see
       // all of the dependences on an instance
-      for (std::set<PhysicalUser*>::const_iterator it = dead_users.begin();
-           it != dead_users.end(); it++)
+      for (PhysicalUser* const physical_user : dead_users)
       {
         unsigned refs_to_remove = 1;
         if (spy_logging_level <= LIGHT_SPY_LOGGING)
         {
           shrt::FieldMaskMap<PhysicalUser>::iterator finder =
-              current_epoch_users.find(*it);
+              current_epoch_users.find(physical_user);
           if (finder != current_epoch_users.end())
           {
             current_epoch_users.erase(finder);
             refs_to_remove++;
           }
-          finder = previous_epoch_users.find(*it);
+          finder = previous_epoch_users.find(physical_user);
           if (finder != previous_epoch_users.end())
           {
             previous_epoch_users.erase(finder);
             refs_to_remove++;
           }
         }
-        if ((*it)->remove_reference(refs_to_remove))
-          delete (*it);
+        if (physical_user->remove_reference(refs_to_remove))
+          delete physical_user;
       }
     }
 
@@ -1123,10 +1117,9 @@ namespace Legion {
         const ApEvent all_done = Runtime::merge_events(nullptr, done_events);
         // No need for the lock here since we should be in a destructor
         // and there should be no more races
-        for (std::map<unsigned, Reservation>::iterator it =
-                 view_reservations.begin();
-             it != view_reservations.end(); it++)
-          it->second.destroy_reservation(all_done);
+        for (std::pair<const unsigned, Reservation>& reservation :
+             view_reservations)
+          reservation.second.destroy_reservation(all_done);
       }
       if ((current_users != nullptr) && current_users->remove_reference())
         delete current_users;
@@ -2440,14 +2433,13 @@ namespace Legion {
           expr->add_nested_expression_reference(did);
           if (!finder->second.remote_ready_events.empty())
           {
-            for (std::map<ApUserEvent, PhysicalTraceInfo*>::const_iterator it =
-                     finder->second.remote_ready_events.begin();
-                 it != finder->second.remote_ready_events.end(); it++)
+            for (const std::pair<const ApUserEvent, PhysicalTraceInfo*>& it :
+                 finder->second.remote_ready_events)
             {
               Runtime::trigger_event(
-                  it->first, finder->second.ready_event, *it->second,
+                  it.first, finder->second.ready_event, *it.second,
                   applied_events);
-              delete it->second;
+              delete it.second;
             }
             finder->second.remote_ready_events.clear();
           }
@@ -2831,9 +2823,8 @@ namespace Legion {
           rez.serialize(mask);
           rez.serialize(reservations);
           rez.serialize<size_t>(results.size());
-          for (std::vector<Reservation>::const_iterator it = results.begin();
-               it != results.end(); it++)
-            rez.serialize(*it);
+          for (const Reservation& reservation : results)
+            rez.serialize(reservation);
           rez.serialize(to_trigger);
         }
         rez.dispatch(source);
@@ -3049,9 +3040,7 @@ namespace Legion {
           RezCheck z2(rez);
           rez.serialize(target);
           rez.serialize<size_t>(result.size());
-          for (std::set<ApEvent>::const_iterator it = result.begin();
-               it != result.end(); it++)
-            rez.serialize(*it);
+          for (const ApEvent& ap_event : result) rez.serialize(ap_event);
           rez.serialize(done);
           if (!applied.empty())
             rez.serialize(Runtime::merge_events(applied));
