@@ -159,10 +159,12 @@ namespace Legion {
     {
       legion_assert(lhs < tpl.events.size());
       legion_assert(rhs.size() > 0);
+#ifdef LEGION_DEBUG
       for (const unsigned& it : rhs)
       {
         legion_assert(it < tpl.events.size());
       }
+#endif
     }
 
     //--------------------------------------------------------------------------

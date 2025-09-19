@@ -234,12 +234,14 @@ namespace Legion {
             legion_assert(std::is_sorted(
                 completed_commit_pointers.begin(),
                 completed_commit_pointers.end()));
+#ifdef LEGION_DEBUG
             // Since we waited to not cut off any active pointers, there should
             // not be any invalid active pointers.
             for (const CommitPointer& commit_pointer : active_commit_pointers)
             {
               legion_assert(operation_start_idx <= commit_pointer.get_opidx());
             }
+#endif
           }
           else if (earliest_completed == earliest_active)
           {
