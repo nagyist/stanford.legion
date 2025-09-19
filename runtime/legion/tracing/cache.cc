@@ -115,15 +115,13 @@ namespace Legion {
 
       // Find the minimum opidx of the active and completed pointers.
       uint64_t earliest_active = std::numeric_limits<uint64_t>::max();
-      for (std::vector<CommitPointer>::const_iterator it =
-               active_commit_pointers.begin();
-           it != active_commit_pointers.end(); it++)
-        earliest_active = std::min(earliest_active, it->get_opidx());
+      for (const CommitPointer& commit_pointer : active_commit_pointers)
+        earliest_active = std::min(earliest_active, commit_pointer.get_opidx());
       uint64_t earliest_completed = std::numeric_limits<uint64_t>::max();
-      for (std::vector<FrozenCommitPointer>::const_iterator it =
-               completed_commit_pointers.begin();
-           it != completed_commit_pointers.end(); it++)
-        earliest_completed = std::min(earliest_completed, it->get_opidx());
+      for (const FrozenCommitPointer& frozen_pointer :
+           completed_commit_pointers)
+        earliest_completed =
+            std::min(earliest_completed, frozen_pointer.get_opidx());
       uint64_t earliest_opidx = std::min(earliest_active, earliest_completed);
 
       // First, flush all operations until the earliest_opidx, as there is
@@ -150,20 +148,19 @@ namespace Legion {
           legion_assert(std::is_sorted(
               completed_commit_pointers.begin(),
               completed_commit_pointers.end()));
-          for (std::vector<FrozenCommitPointer>::iterator it =
-                   completed_commit_pointers.begin();
-               it != completed_commit_pointers.end(); it++)
+          for (FrozenCommitPointer& frozen_pointer : completed_commit_pointers)
           {
             // If we're considering a pointer that starts earlier than the
             // pending set of operations, then that trace is behind us. So
             // we just continue onto the next trace.
-            if (it->get_opidx() < operation_start_idx)
+            if (frozen_pointer.get_opidx() < operation_start_idx)
               continue;
             // Now, flush the buffer up until the start of this trace.
-            flush_buffer(it->get_opidx());
+            flush_buffer(frozen_pointer.get_opidx());
             // Finally, we can issue the trace.
-            TraceID tid = it->replay(context);
-            replay_trace(it->get_opidx() + it->get_length(), tid);
+            TraceID tid = frozen_pointer.replay(context);
+            replay_trace(
+                frozen_pointer.get_opidx() + frozen_pointer.get_length(), tid);
           }
           // The set of completed pointers is now empty.
           completed_commit_pointers.clear();
@@ -239,11 +236,9 @@ namespace Legion {
                 completed_commit_pointers.end()));
             // Since we waited to not cut off any active pointers, there should
             // not be any invalid active pointers.
-            for (std::vector<CommitPointer>::const_iterator it =
-                     active_commit_pointers.begin();
-                 it != active_commit_pointers.end(); it++)
+            for (const CommitPointer& commit_pointer : active_commit_pointers)
             {
-              legion_assert(operation_start_idx <= it->get_opidx());
+              legion_assert(operation_start_idx <= commit_pointer.get_opidx());
             }
           }
           else if (earliest_completed == earliest_active)
@@ -296,10 +291,8 @@ namespace Legion {
       // for the extra operation. Do a special advance on each active
       // commit pointer.
       operations.emplace(op);
-      for (std::vector<CommitPointer>::iterator it =
-               active_commit_pointers.begin();
-           it != active_commit_pointers.end(); it++)
-        it->advance_for_trace_noop();
+      for (CommitPointer& commit_pointer : active_commit_pointers)
+        commit_pointer.advance_for_trace_noop();
       // Because this operation does not invalidate any pointers,
       // we don't always need to compute a minumum and flush the
       // head of the buffer up until the minimum. This is because
@@ -349,20 +342,19 @@ namespace Legion {
             completed_commit_pointers.begin(),
             completed_commit_pointers.end()));
         // Now that we have some (sorted) completed pointers, issue them.
-        for (std::vector<FrozenCommitPointer>::iterator it =
-                 completed_commit_pointers.begin();
-             it != completed_commit_pointers.end(); it++)
+        for (FrozenCommitPointer& frozen_pointer : completed_commit_pointers)
         {
           // If we're considering a pointer that starts earlier than the
           // pending set of operations, then that trace is behind us. So
           // we just continue onto the next trace.
-          if (it->get_opidx() < operation_start_idx)
+          if (frozen_pointer.get_opidx() < operation_start_idx)
             continue;
           // Now, flush the buffer up until the start of this trace.
-          flush_buffer(it->get_opidx());
+          flush_buffer(frozen_pointer.get_opidx());
           // Finally, we can issue the trace.
-          TraceID tid = it->replay(context);
-          replay_trace(it->get_opidx() + it->get_length(), tid);
+          TraceID tid = frozen_pointer.replay(context);
+          replay_trace(
+              frozen_pointer.get_opidx() + frozen_pointer.get_length(), tid);
         }
         completed_commit_pointers.clear();
       }

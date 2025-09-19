@@ -159,9 +159,9 @@ namespace Legion {
     {
       legion_assert(lhs < tpl.events.size());
       legion_assert(rhs.size() > 0);
-      for (std::set<unsigned>::iterator it = rhs.begin(); it != rhs.end(); ++it)
+      for (const unsigned& it : rhs)
       {
-        legion_assert(*it < tpl.events.size());
+        legion_assert(it < tpl.events.size());
       }
     }
 
@@ -175,11 +175,10 @@ namespace Legion {
     {
       std::vector<ApEvent> to_merge;
       to_merge.reserve(rhs.size());
-      for (std::set<unsigned>::const_iterator it = rhs.begin(); it != rhs.end();
-           it++)
+      for (const unsigned& it : rhs)
       {
-        legion_assert(*it < events.size());
-        to_merge.emplace_back(events[*it]);
+        legion_assert(it < events.size());
+        to_merge.emplace_back(events[it]);
       }
       ApEvent result = Runtime::merge_events(nullptr, to_merge);
       events[lhs] = result;
@@ -192,11 +191,11 @@ namespace Legion {
       std::stringstream ss;
       ss << "events[" << lhs << "] = Runtime::merge_events(";
       unsigned count = 0;
-      for (std::set<unsigned>::iterator it = rhs.begin(); it != rhs.end(); ++it)
+      for (const unsigned& it : rhs)
       {
         if (count++ != 0)
           ss << ",";
-        ss << "events[" << *it << "]";
+        ss << "events[" << it << "]";
       }
       ss << ")    (owner: " << owner << ")";
       return ss.str();
@@ -692,9 +691,8 @@ namespace Legion {
       barrier.destroy_barrier();
       // Make the new barrier
       barrier = runtime->create_ap_barrier(total_arrivals);
-      for (std::vector<ShardID>::const_iterator it = subscribed_shards.begin();
-           it != subscribed_shards.end(); it++)
-        notifications[*it][key] = barrier;
+      for (const ShardID& shard : subscribed_shards)
+        notifications[shard][key] = barrier;
     }
 
     //--------------------------------------------------------------------------

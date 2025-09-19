@@ -305,9 +305,7 @@ namespace Legion {
           rez.serialize(lhs);
           tlid.serialize(rez);
           rez.serialize<size_t>(rhs.size());
-          for (std::set<ApEvent>::const_iterator it = rhs.begin();
-               it != rhs.end(); it++)
-            rez.serialize(*it);
+          for (const ApEvent& event : rhs) rez.serialize(event);
         }
         rez.dispatch(origin_space);
         // Wait to see if lhs changes
@@ -335,9 +333,7 @@ namespace Legion {
           rez.serialize(lhs);
           tlid.serialize(rez);
           rez.serialize<size_t>(rhs.size());
-          for (std::vector<ApEvent>::const_iterator it = rhs.begin();
-               it != rhs.end(); it++)
-            rez.serialize(*it);
+          for (const ApEvent& event : rhs) rez.serialize(event);
         }
         rez.dispatch(origin_space);
         // Wait to see if lhs changes
@@ -737,21 +733,18 @@ namespace Legion {
           for (unsigned idx = 0; idx < output.future_locations.size(); idx++)
             rez.serialize(output.future_locations[idx]);
           rez.serialize<size_t>(output.leaf_pool_bounds.size());
-          for (std::map<Memory, PoolBounds>::const_iterator it =
-                   output.leaf_pool_bounds.begin();
-               it != output.leaf_pool_bounds.end(); it++)
+          for (const std::pair<const Memory, PoolBounds>& it :
+               output.leaf_pool_bounds)
           {
-            rez.serialize(it->first);
-            rez.serialize(it->second);
+            rez.serialize(it.first);
+            rez.serialize(it.second);
           }
           rez.serialize(output.chosen_variant);
           rez.serialize(output.task_priority);
           rez.serialize<bool>(output.postmap_task);
           rez.serialize<size_t>(physical_instances.size());
-          for (std::deque<InstanceSet>::const_iterator it =
-                   physical_instances.begin();
-               it != physical_instances.end(); it++)
-            it->pack_references(rez);
+          for (const InstanceSet& it : physical_instances)
+            it.pack_references(rez);
           rez.serialize<bool>(is_leaf);
           rez.serialize<bool>(has_return_size);
         }
@@ -807,12 +800,11 @@ namespace Legion {
           rez.serialize(done);
           tlid.serialize(rez);
           rez.serialize<size_t>(reservations.size());
-          for (std::map<Reservation, bool>::const_iterator it =
-                   reservations.begin();
-               it != reservations.end(); it++)
+          for (const std::pair<const Reservation, bool>& reservation :
+               reservations)
           {
-            rez.serialize(it->first);
-            rez.serialize<bool>(it->second);
+            rez.serialize(reservation.first);
+            rez.serialize<bool>(reservation.second);
           }
         }
         rez.dispatch(origin_space);

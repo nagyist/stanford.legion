@@ -55,10 +55,9 @@ namespace Legion {
     {
       std::set<RtEvent> deleted_events;
       ApEvent pending_deletion = ApEvent::NO_AP_EVENT;
-      for (std::vector<PhysicalTemplate*>::iterator it = templates.begin();
-           it != templates.end(); ++it)
-        if (!(*it)->defer_template_deletion(pending_deletion, deleted_events))
-          delete (*it);
+      for (PhysicalTemplate* tmpl : templates)
+        if (!tmpl->defer_template_deletion(pending_deletion, deleted_events))
+          delete tmpl;
       templates.clear();
       if (!deleted_events.empty())
       {
@@ -84,10 +83,8 @@ namespace Legion {
     void PhysicalTrace::invalidate_equivalence_sets(void) const
     //--------------------------------------------------------------------------
     {
-      for (std::vector<PhysicalTemplate*>::const_iterator it =
-               templates.begin();
-           it != templates.end(); it++)
-        (*it)->invalidate_equivalence_sets();
+      for (PhysicalTemplate* tmpl : templates)
+        tmpl->invalidate_equivalence_sets();
     }
 
     //--------------------------------------------------------------------------
@@ -109,11 +106,9 @@ namespace Legion {
     {
       // Make sure all the templates have up-to-date equivalence sets for
       // performing any kind of tests on preconditions/postconditions
-      for (std::vector<PhysicalTemplate*>::const_iterator it =
-               templates.begin();
-           it != templates.end(); it++)
-        if ((*it) != current_template)
-          (*it)->refresh_condition_sets(op, ready_events);
+      for (PhysicalTemplate* tmpl : templates)
+        if (tmpl != current_template)
+          tmpl->refresh_condition_sets(op, ready_events);
     }
 
     //--------------------------------------------------------------------------
@@ -184,9 +179,8 @@ namespace Legion {
           // all these will be later in the vector than the current template
           // Note this will delete back to front to avoid invalidating
           // indexes later in the to_delete vector
-          for (std::vector<unsigned>::const_iterator it = to_delete.begin();
-               it != to_delete.end(); it++)
-            templates.erase(templates.begin() + (*it));
+          for (const unsigned& idx : to_delete)
+            templates.erase(templates.begin() + idx);
           // Move the template to the end of the vector as most-recently used
           if (idx < int(templates.size() - 1))
             std::rotate(
@@ -207,9 +201,8 @@ namespace Legion {
             current_ready = next_ready;
         }
       }
-      for (std::vector<unsigned>::const_iterator it = to_delete.begin();
-           it != to_delete.end(); it++)
-        templates.erase(templates.begin() + (*it));
+      for (const unsigned& idx : to_delete)
+        templates.erase(templates.begin() + idx);
       return false;
     }
 
