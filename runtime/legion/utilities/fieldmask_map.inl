@@ -49,15 +49,14 @@ namespace Legion {
         }
         return;
       }
-      for (typename MapView<T, FieldMask>::const_iterator pit = inputs.begin();
-           pit != inputs.end(); pit++)
+      for (const std::pair<T, FieldMask>& input : inputs)
       {
         bool inserted = false;
         // Also keep track of which fields have updates
         // but don't have any members
         if (!!universe_mask)
-          universe_mask -= pit->second;
-        FieldMask remaining = pit->second;
+          universe_mask -= input.second;
+        FieldMask remaining = input.second;
         // Insert this event into the precondition sets
         for (typename local::list<FieldSet<T> >::iterator it =
                  output_sets.begin();
@@ -66,7 +65,7 @@ namespace Legion {
           // Easy case, check for equality
           if (remaining == it->set_mask)
           {
-            it->elements.insert(pit->first);
+            it->elements.insert(input.first);
             inserted = true;
             break;
           }
@@ -83,7 +82,7 @@ namespace Legion {
             output_sets.emplace_back(FieldSet<T>(overlap));
             FieldSet<T>& last = output_sets.back();
             last.elements = it->elements;
-            last.elements.insert(pit->first);
+            last.elements.insert(input.first);
             inserted = true;
             break;
           }
@@ -92,7 +91,7 @@ namespace Legion {
           {
             // Add ourselves to the existing set and then
             // keep going for the remaining fields
-            it->elements.insert(pit->first);
+            it->elements.insert(input.first);
             remaining -= overlap;
             // Can't consider ourselves added yet
             continue;
@@ -105,7 +104,7 @@ namespace Legion {
           const local::set<T>& temp_elements = it->elements;
           it = output_sets.insert(it, FieldSet<T>(overlap));
           it->elements = temp_elements;
-          it->elements.insert(pit->first);
+          it->elements.insert(input.first);
           remaining -= overlap;
           continue;
         }
@@ -113,7 +112,7 @@ namespace Legion {
         {
           output_sets.emplace_back(FieldSet<T>(remaining));
           FieldSet<T>& last = output_sets.back();
-          last.elements.insert(pit->first);
+          last.elements.insert(input.first);
         }
       }
       // For any fields which need copies but don't have

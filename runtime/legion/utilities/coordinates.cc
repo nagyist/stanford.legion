@@ -63,10 +63,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(coordinates.size());
-      for (std::vector<ContextCoordinate>::const_iterator it =
-               coordinates.begin();
-           it != coordinates.end(); it++)
-        it->serialize(rez);
+      for (const ContextCoordinate& coordinate : coordinates)
+        coordinate.serialize(rez);
     }
 
     //--------------------------------------------------------------------------
@@ -76,9 +74,8 @@ namespace Legion {
       size_t num_coordinates;
       derez.deserialize(num_coordinates);
       coordinates.resize(num_coordinates);
-      for (std::vector<ContextCoordinate>::iterator it = coordinates.begin();
-           it != coordinates.end(); it++)
-        it->deserialize(derez);
+      for (ContextCoordinate& coordinate : coordinates)
+        coordinate.deserialize(derez);
     }
 
   }  // namespace Internal

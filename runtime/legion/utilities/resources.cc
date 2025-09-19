@@ -551,121 +551,102 @@ namespace Legion {
       rez.serialize<size_t>(created_regions.size());
       if (!created_regions.empty())
       {
-        for (std::map<LogicalRegion, unsigned>::const_iterator it =
-                 created_regions.begin();
-             it != created_regions.end(); it++)
+        for (const std::pair<const LogicalRegion, unsigned>& region :
+             created_regions)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(region.first);
+          rez.serialize(region.second);
         }
         created_regions.clear();
       }
       rez.serialize<size_t>(deleted_regions.size());
       if (!deleted_regions.empty())
       {
-        for (std::vector<DeletedRegion>::const_iterator it =
-                 deleted_regions.begin();
-             it != deleted_regions.end(); it++)
-          it->serialize(rez);
+        for (const DeletedRegion& region : deleted_regions)
+          region.serialize(rez);
         deleted_regions.clear();
       }
       rez.serialize<size_t>(created_fields.size());
       if (!created_fields.empty())
       {
-        for (std::set<std::pair<FieldSpace, FieldID> >::const_iterator it =
-                 created_fields.begin();
-             it != created_fields.end(); it++)
+        for (const std::pair<FieldSpace, FieldID>& field : created_fields)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(field.first);
+          rez.serialize(field.second);
         }
         created_fields.clear();
       }
       rez.serialize<size_t>(deleted_fields.size());
       if (!deleted_fields.empty())
       {
-        for (std::vector<DeletedField>::const_iterator it =
-                 deleted_fields.begin();
-             it != deleted_fields.end(); it++)
-          it->serialize(rez);
+        for (const DeletedField& field : deleted_fields) field.serialize(rez);
         deleted_fields.clear();
       }
       rez.serialize<size_t>(created_field_spaces.size());
       if (!created_field_spaces.empty())
       {
-        for (std::map<FieldSpace, unsigned>::const_iterator it =
-                 created_field_spaces.begin();
-             it != created_field_spaces.end(); it++)
+        for (const std::pair<const FieldSpace, unsigned>& field_space :
+             created_field_spaces)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(field_space.first);
+          rez.serialize(field_space.second);
         }
         created_field_spaces.clear();
       }
       rez.serialize<size_t>(latent_field_spaces.size());
       if (!latent_field_spaces.empty())
       {
-        for (std::map<FieldSpace, std::set<LogicalRegion> >::const_iterator it =
-                 latent_field_spaces.begin();
-             it != latent_field_spaces.end(); it++)
+        for (const std::pair<const FieldSpace, std::set<LogicalRegion> >&
+                 latent_field_space : latent_field_spaces)
         {
-          rez.serialize(it->first);
-          rez.serialize<size_t>(it->second.size());
-          for (std::set<LogicalRegion>::const_iterator it2 = it->second.begin();
-               it2 != it->second.end(); it2++)
-            rez.serialize(*it2);
+          rez.serialize(latent_field_space.first);
+          rez.serialize<size_t>(latent_field_space.second.size());
+          for (const LogicalRegion& region : latent_field_space.second)
+            rez.serialize(region);
         }
         latent_field_spaces.clear();
       }
       rez.serialize<size_t>(deleted_field_spaces.size());
       if (!deleted_field_spaces.empty())
       {
-        for (std::vector<DeletedFieldSpace>::const_iterator it =
-                 deleted_field_spaces.begin();
-             it != deleted_field_spaces.end(); it++)
-          it->serialize(rez);
+        for (const DeletedFieldSpace& field_space : deleted_field_spaces)
+          field_space.serialize(rez);
         deleted_field_spaces.clear();
       }
       rez.serialize<size_t>(created_index_spaces.size());
       if (!created_index_spaces.empty())
       {
-        for (std::map<IndexSpace, unsigned>::const_iterator it =
-                 created_index_spaces.begin();
-             it != created_index_spaces.end(); it++)
+        for (const std::pair<const IndexSpace, unsigned>& index_space :
+             created_index_spaces)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(index_space.first);
+          rez.serialize(index_space.second);
         }
         created_index_spaces.clear();
       }
       rez.serialize<size_t>(deleted_index_spaces.size());
       if (!deleted_index_spaces.empty())
       {
-        for (std::vector<DeletedIndexSpace>::const_iterator it =
-                 deleted_index_spaces.begin();
-             it != deleted_index_spaces.end(); it++)
-          it->serialize(rez);
+        for (const DeletedIndexSpace& index_space : deleted_index_spaces)
+          index_space.serialize(rez);
         deleted_index_spaces.clear();
       }
       rez.serialize<size_t>(created_index_partitions.size());
       if (!created_index_partitions.empty())
       {
-        for (std::map<IndexPartition, unsigned>::const_iterator it =
-                 created_index_partitions.begin();
-             it != created_index_partitions.end(); it++)
+        for (const std::pair<const IndexPartition, unsigned>& index_partition :
+             created_index_partitions)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(index_partition.first);
+          rez.serialize(index_partition.second);
         }
         created_index_partitions.clear();
       }
       rez.serialize<size_t>(deleted_index_partitions.size());
       if (!deleted_index_partitions.empty())
       {
-        for (std::vector<DeletedPartition>::const_iterator it =
-                 deleted_index_partitions.begin();
-             it != deleted_index_partitions.end(); it++)
-          it->serialize(rez);
+        for (const DeletedPartition& index_partition : deleted_index_partitions)
+          index_partition.serialize(rez);
         deleted_index_partitions.clear();
       }
     }
@@ -822,28 +803,27 @@ namespace Legion {
       {
         if (!latent_field_spaces.empty())
         {
-          for (std::map<LogicalRegion, unsigned>::const_iterator it =
-                   created_regs.begin();
-               it != created_regs.end(); it++)
+          for (const std::pair<const LogicalRegion, unsigned>& created_region :
+               created_regs)
           {
             std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
-                latent_field_spaces.find(it->first.get_field_space());
+                latent_field_spaces.find(
+                    created_region.first.get_field_space());
             if (finder != latent_field_spaces.end())
-              finder->second.insert(it->first);
+              finder->second.insert(created_region.first);
           }
         }
         if (!created_regions.empty())
         {
-          for (std::map<LogicalRegion, unsigned>::const_iterator it =
-                   created_regs.begin();
-               it != created_regs.end(); it++)
+          for (const std::pair<const LogicalRegion, unsigned>& created_region :
+               created_regs)
           {
             std::map<LogicalRegion, unsigned>::iterator finder =
-                created_regions.find(it->first);
+                created_regions.find(created_region.first);
             if (finder == created_regions.end())
-              created_regions.insert(*it);
+              created_regions.insert(created_region);
             else
-              finder->second += it->second;
+              finder->second += created_region.second;
           }
         }
         else
@@ -861,12 +841,12 @@ namespace Legion {
       {
         if (!created_fields.empty())
         {
-          for (std::set<std::pair<FieldSpace, FieldID> >::const_iterator it =
-                   created_fids.begin();
-               it != created_fids.end(); it++)
+          for (const std::pair<FieldSpace, FieldID>& created_field :
+               created_fids)
           {
-            legion_assert(created_fields.find(*it) == created_fields.end());
-            created_fields.insert(*it);
+            legion_assert(
+                created_fields.find(created_field) == created_fields.end());
+            created_fields.insert(created_field);
           }
         }
         else
@@ -885,28 +865,26 @@ namespace Legion {
         if (!latent_field_spaces.empty())
         {
           // Remove any latent field spaces we have ownership for
-          for (std::map<FieldSpace, unsigned>::const_iterator it =
-                   created_fs.begin();
-               it != created_fs.end(); it++)
+          for (const std::pair<const FieldSpace, unsigned>&
+                   created_field_space : created_fs)
           {
             std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
-                latent_field_spaces.find(it->first);
+                latent_field_spaces.find(created_field_space.first);
             if (finder != latent_field_spaces.end())
               latent_field_spaces.erase(finder);
           }
         }
         if (!created_field_spaces.empty())
         {
-          for (std::map<FieldSpace, unsigned>::const_iterator it =
-                   created_fs.begin();
-               it != created_fs.end(); it++)
+          for (const std::pair<const FieldSpace, unsigned>&
+                   created_field_space : created_fs)
           {
             std::map<FieldSpace, unsigned>::iterator finder =
-                created_field_spaces.find(it->first);
+                created_field_spaces.find(created_field_space.first);
             if (finder == created_field_spaces.end())
-              created_field_spaces.insert(*it);
+              created_field_spaces.insert(created_field_space);
             else
-              finder->second += it->second;
+              finder->second += created_field_space.second;
           }
         }
         else
@@ -936,29 +914,29 @@ namespace Legion {
         if (!created_regions.empty())
         {
           // See if any of these regions are copies of our latent spaces
-          for (std::map<LogicalRegion, unsigned>::const_iterator it =
-                   created_regions.begin();
-               it != created_regions.end(); it++)
+          for (const std::pair<const LogicalRegion, unsigned>& created_region :
+               created_regions)
           {
             std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
-                latent_fs.find(it->first.get_field_space());
+                latent_fs.find(created_region.first.get_field_space());
             if (finder != latent_fs.end())
-              finder->second.insert(it->first);
+              finder->second.insert(created_region.first);
           }
         }
         // Now we can do the merge
         if (!latent_field_spaces.empty())
         {
-          for (std::map<FieldSpace, std::set<LogicalRegion> >::const_iterator
-                   it = latent_fs.begin();
-               it != latent_fs.end(); it++)
+          for (const std::pair<const FieldSpace, std::set<LogicalRegion> >&
+                   latent_field_space : latent_fs)
           {
             std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
-                latent_field_spaces.find(it->first);
+                latent_field_spaces.find(latent_field_space.first);
             if (finder != latent_field_spaces.end())
-              finder->second.insert(it->second.begin(), it->second.end());
+              finder->second.insert(
+                  latent_field_space.second.begin(),
+                  latent_field_space.second.end());
             else
-              latent_field_spaces.insert(*it);
+              latent_field_spaces.insert(latent_field_space);
           }
         }
         else
@@ -976,16 +954,15 @@ namespace Legion {
       {
         if (!created_index_spaces.empty())
         {
-          for (std::map<IndexSpace, unsigned>::const_iterator it =
-                   created_is.begin();
-               it != created_is.end(); it++)
+          for (const std::pair<const IndexSpace, unsigned>&
+                   created_index_space : created_is)
           {
             std::map<IndexSpace, unsigned>::iterator finder =
-                created_index_spaces.find(it->first);
+                created_index_spaces.find(created_index_space.first);
             if (finder == created_index_spaces.end())
-              created_index_spaces.insert(*it);
+              created_index_spaces.insert(created_index_space);
             else
-              finder->second += it->second;
+              finder->second += created_index_space.second;
           }
         }
         else
@@ -1003,16 +980,15 @@ namespace Legion {
       {
         if (!created_index_partitions.empty())
         {
-          for (std::map<IndexPartition, unsigned>::const_iterator it =
-                   created_partitions.begin();
-               it != created_partitions.end(); it++)
+          for (const std::pair<const IndexPartition, unsigned>&
+                   created_partition : created_partitions)
           {
             std::map<IndexPartition, unsigned>::iterator finder =
-                created_index_partitions.find(it->first);
+                created_index_partitions.find(created_partition.first);
             if (finder == created_index_partitions.end())
-              created_index_partitions.insert(*it);
+              created_index_partitions.insert(created_partition);
             else
-              finder->second += it->second;
+              finder->second += created_partition.second;
           }
         }
         else

@@ -102,9 +102,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     serialize<size_t>(set.size());
-    for (typename std::set<T, C, A>::const_iterator it = set.begin();
-         it != set.end(); it++)
-      serialize(*it);
+    for (const T& element : set) serialize(element);
   }
 
   //--------------------------------------------------------------------------
@@ -113,11 +111,10 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     serialize<size_t>(map.size());
-    for (typename std::map<T1, T2, C, A>::const_iterator it = map.begin();
-         it != map.end(); it++)
+    for (const std::pair<const T1, T2>& entry : map)
     {
-      serialize(it->first);
-      serialize(it->second);
+      serialize(entry.first);
+      serialize(entry.second);
     }
   }
 
