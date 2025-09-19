@@ -49,7 +49,7 @@ namespace Legion {
         }
         return;
       }
-      for (const std::pair<T, FieldMask>& input : inputs)
+      for (const std::pair<const T, FieldMask>& input : inputs)
       {
         bool inserted = false;
         // Also keep track of which fields have updates
