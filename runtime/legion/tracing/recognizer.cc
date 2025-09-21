@@ -197,10 +197,9 @@ namespace Legion {
       for (unsigned idx = 0; idx < ready; idx++)
       {
         FindRepeatsResult& repeats = repeat_results.front();
-        for (std::vector<NonOverlappingRepeatsResult>::const_iterator it =
-                 repeats.result.begin();
-             it != repeats.result.end(); it++)
-          add_trace(repeats.start + it->start, (it->end - it->start), opidx);
+        for (NonOverlappingRepeatsResult& result : repeats.result)
+          add_trace(
+              repeats.start + result.start, (result.end - result.start), opidx);
         repeat_results.pop_front();
       }
       if (double_wait_interval)

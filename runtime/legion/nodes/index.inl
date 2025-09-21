@@ -375,11 +375,9 @@ namespace Legion {
                 // References were already added on the source node
                 pack_index_space(rez, 0 /*reference count*/);
               }
-              for (std::vector<AddressSpaceID>::const_iterator it =
-                       children.begin();
-                   it != children.end(); it++)
-                if ((*it) != source)
-                  rez.dispatch(*it);
+              for (const AddressSpaceID& child : children)
+                if (child != source)
+                  rez.dispatch(child);
               if (parent_space != source)
                 rez.dispatch(parent_space);
             }
@@ -501,22 +499,20 @@ namespace Legion {
     {
       std::vector<Realm::Rect<DIM, T> > output_rects;
       output_rects.reserve(output_sizes.size());
-      for (std::map<DomainPoint, DomainPoint>::const_iterator it =
-               output_sizes.begin();
-           it != output_sizes.end(); it++)
+      for (const std::pair<const DomainPoint, DomainPoint>& it : output_sizes)
       {
-        legion_assert((it->first.get_dim() + it->second.dim) == DIM);
-        int launch_ndim = DIM - it->second.dim;
+        legion_assert((it.first.get_dim() + it.second.dim) == DIM);
+        int launch_ndim = DIM - it.second.dim;
         Point<DIM, T> lo, hi;
         for (int idx = 0; idx < launch_ndim; idx++)
         {
-          lo[idx] = it->first[idx];
-          hi[idx] = it->first[idx];
+          lo[idx] = it.first[idx];
+          hi[idx] = it.first[idx];
         }
         for (int idx = launch_ndim; idx < DIM; idx++)
         {
           lo[idx] = 0;
-          hi[idx] = it->second[idx - launch_ndim] - 1;
+          hi[idx] = it.second[idx - launch_ndim] - 1;
         }
         output_rects.emplace_back(Realm::Rect<DIM, T>(lo, hi));
       }
@@ -1055,13 +1051,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DomainT<DIM, T> space = get_tight_index_space();
-      for (std::vector<std::pair<DomainPoint, Domain> >::const_iterator it =
-               test_points.begin();
-           it != test_points.end(); it++)
+      for (const std::pair<DomainPoint, Domain>& it : test_points)
       {
-        if (it->first == to_skip)
+        if (it.first == to_skip)
           continue;
-        DomainT<DIM, T> other = it->second;
+        DomainT<DIM, T> other = it.second;
         // Check the bounds first to see if we can skip the test just
         // based on those alone without loading the sparsity map
         if (!space.bounds.overlaps(other.bounds))
@@ -1074,7 +1068,7 @@ namespace Legion {
         }
         if (space.overlaps(other))
         {
-          interfering_point = it->first;
+          interfering_point = it.first;
           return true;
         }
       }

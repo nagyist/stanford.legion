@@ -264,11 +264,10 @@ namespace Legion {
       if (implicit_profiler != nullptr)
       {
         // Log the logical regions and fields that make up this instance
-        for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-             it != regions.end(); it++)
-          if (it->exists())
+        for (const LogicalRegion& region : regions)
+          if (region.exists())
             implicit_profiler->register_physical_instance_region(
-                unique_event, *it);
+                unique_event, region);
         implicit_profiler->register_physical_instance_layout(
             unique_event, layout->owner->handle, *layout->constraints);
       }
@@ -320,19 +319,18 @@ namespace Legion {
       legion_assert(instance_domain == nullptr);
       legion_assert(tree_id == 0);
       std::set<IndexSpaceExpression*> region_exprs;
-      for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-           it != regions.end(); it++)
+      for (const LogicalRegion& region : regions)
       {
-        if (!it->exists())
+        if (!region.exists())
           continue;
         if (field_space_node == nullptr)
-          field_space_node = runtime->get_node(it->get_field_space());
+          field_space_node = runtime->get_node(region.get_field_space());
         if (tree_id == 0)
-          tree_id = it->get_tree_id();
+          tree_id = region.get_tree_id();
         // Check to make sure that all the field spaces have the same handle
-        legion_assert(field_space_node->handle == it->get_field_space());
-        legion_assert(tree_id == it->get_tree_id());
-        region_exprs.insert(runtime->get_node(it->get_index_space()));
+        legion_assert(field_space_node->handle == region.get_field_space());
+        legion_assert(tree_id == region.get_tree_id());
+        region_exprs.insert(runtime->get_node(region.get_index_space()));
       }
       instance_domain = (region_exprs.size() == 1) ?
                             *(region_exprs.begin()) :

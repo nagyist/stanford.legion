@@ -272,9 +272,8 @@ namespace Legion {
       legion_assert(previous.shard_proj != nullptr);
       std::vector<PointwiseDependence>& dependences =
           pointwise_dependences[idx];
-      for (std::vector<PointwiseDependence>::iterator it = dependences.begin();
-           it != dependences.end(); it++)
-        if (it->matches(previous))
+      for (PointwiseDependence& dependence : dependences)
+        if (dependence.matches(previous))
           return;
       dependences.emplace_back(PointwiseDependence(previous));
       if (this->tracing)

@@ -48,16 +48,15 @@ namespace Legion {
       if ((refined_projection != nullptr) &&
           refined_projection->remove_reference())
         delete refined_projection;
-      for (std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
-               const_iterator it = candidate_partitions.begin();
-           it != candidate_partitions.end(); it++)
-        if (it->first->remove_base_resource_ref(REFINEMENT_REF))
-          delete it->first;
-      for (std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t> >::
-               const_iterator it = candidate_projections.begin();
-           it != candidate_projections.end(); it++)
-        if (it->first->remove_reference())
-          delete it->first;
+      for (const std::pair<PartitionNode* const, std::pair<double, uint64_t>>&
+               it : candidate_partitions)
+        if (it.first->remove_base_resource_ref(REFINEMENT_REF))
+          delete it.first;
+      for (const std::pair<
+               ProjectionRegion* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
+        if (it.first->remove_reference())
+          delete it.first;
       if (region->remove_base_resource_ref(REFINEMENT_REF))
         delete region;
     }
@@ -78,19 +77,18 @@ namespace Legion {
         tracker->refined_projection = refined_projection;
         refined_projection->add_reference();
       }
-      for (std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
-               const_iterator it = candidate_partitions.begin();
-           it != candidate_partitions.end(); it++)
+      for (const std::pair<PartitionNode* const, std::pair<double, uint64_t>>&
+               it : candidate_partitions)
       {
-        it->first->add_base_resource_ref(REFINEMENT_REF);
-        tracker->candidate_partitions.insert(*it);
+        it.first->add_base_resource_ref(REFINEMENT_REF);
+        tracker->candidate_partitions.insert(it);
       }
-      for (std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t> >::
-               const_iterator it = candidate_projections.begin();
-           it != candidate_projections.end(); it++)
+      for (const std::pair<
+               ProjectionRegion* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
       {
-        it->first->add_reference();
-        tracker->candidate_projections.insert(*it);
+        it.first->add_reference();
+        tracker->candidate_projections.insert(it);
       }
       tracker->total_traversals = total_traversals;
       tracker->return_timeout = return_timeout;
@@ -171,7 +169,7 @@ namespace Legion {
               // Step the clock for a new traversal
               total_traversals++;
               // Check to see if we've observed this refinement before
-              std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
+              std::unordered_map<PartitionNode*, std::pair<double, uint64_t>>::
                   iterator finder = candidate_partitions.find(child);
               if (finder != candidate_partitions.end())
               {
@@ -336,7 +334,7 @@ namespace Legion {
               total_traversals++;
               // Check to see if we observed this refinement before
               std::unordered_map<
-                  ProjectionRegion*, std::pair<double, uint64_t> >::iterator
+                  ProjectionRegion*, std::pair<double, uint64_t>>::iterator
                   finder = candidate_projections.find(projection);
               if (finder != candidate_projections.end())
               {
@@ -412,14 +410,14 @@ namespace Legion {
               ProjectionRegion* projection =
                   summary->get_tree()->as_region_projection();
               std::unordered_map<
-                  ProjectionRegion*, std::pair<double, uint64_t> >::iterator
+                  ProjectionRegion*, std::pair<double, uint64_t>>::iterator
                   finder = candidate_projections.find(projection);
               if (finder == candidate_projections.end())
               {
                 // Didn't find it so decrement all the prior entries TTLs
                 for (std::unordered_map<
                          ProjectionRegion*,
-                         std::pair<double, uint64_t> >::iterator it =
+                         std::pair<double, uint64_t>>::iterator it =
                          candidate_projections.begin();
                      it != candidate_projections.end();
                      /*nothing*/)
@@ -428,8 +426,7 @@ namespace Legion {
                   {
                     std::unordered_map<
                         ProjectionRegion*,
-                        std::pair<double, uint64_t> >::iterator delete_it =
-                        it++;
+                        std::pair<double, uint64_t>>::iterator delete_it = it++;
                     candidate_projections.erase(delete_it);
                   }
                   else
@@ -445,13 +442,11 @@ namespace Legion {
               {
                 // We already had it, so decrement all TTLs of everything that
                 // came before it and then add it back with a new TTL
-                for (std::unordered_map<
-                         ProjectionRegion*,
-                         std::pair<double, uint64_t> >::iterator it =
-                         candidate_projections.begin();
-                     it != candidate_projections.end(); it++)
-                  if (finder->second.second < it->second.second)
-                    it->second.second--;
+                for (std::pair<
+                         ProjectionRegion* const, std::pair<double, uint64_t>>&
+                         it : candidate_projections)
+                  if (finder->second.second < it.second.second)
+                    it.second.second--;
                 finder->second.second = MAX_INCOMPLETE_WRITES;
               }
             }
@@ -492,38 +487,34 @@ namespace Legion {
           (refined_child != nullptr) || (refined_projection != nullptr));
       bool is_dominant = true;
       // Has to have the most returns
-      for (std::unordered_map<
-               PartitionNode*, std::pair<double, uint64_t> >::iterator it =
-               candidate_partitions.begin();
-           it != candidate_partitions.end(); it++)
+      for (std::pair<PartitionNode* const, std::pair<double, uint64_t>>& it :
+           candidate_partitions)
       {
         // Skip ourselves
-        if (it->second.second == total_traversals)
+        if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(
-                               CHANGE_REFINEMENT_RETURN_WEIGHT,
-                               (total_traversals - it->second.second)) *
-                           it->second.first;
-        it->second.second = total_traversals;
-        if (score < it->second.first)
+        it.second.first = std::pow(
+                              CHANGE_REFINEMENT_RETURN_WEIGHT,
+                              (total_traversals - it.second.second)) *
+                          it.second.first;
+        it.second.second = total_traversals;
+        if (score < it.second.first)
           is_dominant = false;
       }
-      for (std::unordered_map<
-               ProjectionRegion*, std::pair<double, uint64_t> >::iterator it =
-               candidate_projections.begin();
-           it != candidate_projections.end(); it++)
+      for (std::pair<ProjectionRegion* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
       {
         // Skip ourselves
-        if (it->second.second == total_traversals)
+        if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(
-                               CHANGE_REFINEMENT_RETURN_WEIGHT,
-                               (total_traversals - it->second.second)) *
-                           it->second.first;
-        it->second.second = total_traversals;
-        if (score < it->second.first)
+        it.second.first = std::pow(
+                              CHANGE_REFINEMENT_RETURN_WEIGHT,
+                              (total_traversals - it.second.second)) *
+                          it.second.first;
+        it.second.second = total_traversals;
+        if (score < it.second.first)
           is_dominant = false;
       }
       if (!is_dominant)
@@ -538,7 +529,7 @@ namespace Legion {
         // current refinement's score
         if (refined_child != nullptr)
         {
-          std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
+          std::unordered_map<PartitionNode*, std::pair<double, uint64_t>>::
               const_iterator finder = candidate_partitions.find(refined_child);
           // Current refinement is never observed
           if (finder == candidate_partitions.end())
@@ -551,7 +542,7 @@ namespace Legion {
         else
         {
           legion_assert(refined_projection != nullptr);
-          std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t> >::
+          std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t>>::
               const_iterator finder =
                   candidate_projections.find(refined_projection);
           // Current refinement is never observed
@@ -574,7 +565,7 @@ namespace Legion {
       if (!candidate_partitions.empty())
       {
         for (std::unordered_map<
-                 PartitionNode*, std::pair<double, uint64_t> >::iterator it =
+                 PartitionNode*, std::pair<double, uint64_t>>::iterator it =
                  candidate_partitions.begin();
              it != candidate_partitions.end();
              /*nothing*/)
@@ -584,7 +575,7 @@ namespace Legion {
           {
             if (it->first->remove_base_resource_ref(REFINEMENT_REF))
               delete it->first;
-            std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
+            std::unordered_map<PartitionNode*, std::pair<double, uint64_t>>::
                 iterator to_delete = it++;
             candidate_partitions.erase(to_delete);
           }
@@ -595,7 +586,7 @@ namespace Legion {
       if (!candidate_projections.empty())
       {
         for (std::unordered_map<
-                 ProjectionRegion*, std::pair<double, uint64_t> >::iterator it =
+                 ProjectionRegion*, std::pair<double, uint64_t>>::iterator it =
                  candidate_projections.begin();
              it != candidate_projections.end();
              /*nothing*/)
@@ -605,9 +596,8 @@ namespace Legion {
           {
             if (it->first->remove_reference())
               delete it->first;
-            std::unordered_map<
-                ProjectionRegion*, std::pair<double, uint64_t> >::iterator
-                to_delete = it++;
+            std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t>>::
+                iterator to_delete = it++;
             candidate_projections.erase(to_delete);
           }
           else
@@ -637,17 +627,14 @@ namespace Legion {
       if ((refined_projection != nullptr) &&
           refined_projection->remove_reference())
         delete refined_projection;
-      for (std::vector<RegionNode*>::const_iterator it = children.begin();
-           it != children.end(); it++)
-        if ((*it)->remove_base_resource_ref(REFINEMENT_REF))
-          delete (*it);
-      for (std::unordered_map<
-               ProjectionPartition*,
-               std::pair<double, uint64_t> >::const_iterator it =
-               candidate_projections.begin();
-           it != candidate_projections.end(); it++)
-        if (it->first->remove_reference())
-          delete it->first;
+      for (RegionNode* const it : children)
+        if (it->remove_base_resource_ref(REFINEMENT_REF))
+          delete it;
+      for (const std::pair<
+               ProjectionPartition* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
+        if (it.first->remove_reference())
+          delete it.first;
       if (partition->remove_base_resource_ref(REFINEMENT_REF))
         delete partition;
     }
@@ -667,18 +654,15 @@ namespace Legion {
       if (!children.empty())
       {
         tracker->children = children;
-        for (std::vector<RegionNode*>::const_iterator it = children.begin();
-             it != children.end(); it++)
-          (*it)->add_base_resource_ref(REFINEMENT_REF);
+        for (RegionNode* const it : children)
+          it->add_base_resource_ref(REFINEMENT_REF);
       }
-      for (std::unordered_map<
-               ProjectionPartition*,
-               std::pair<double, uint64_t> >::const_iterator it =
-               candidate_projections.begin();
-           it != candidate_projections.end(); it++)
+      for (const std::pair<
+               ProjectionPartition* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
       {
-        it->first->add_reference();
-        tracker->candidate_projections.insert(*it);
+        it.first->add_reference();
+        tracker->candidate_projections.insert(it);
       }
       tracker->children_score = children_score;
       tracker->children_last = children_last;
@@ -901,7 +885,7 @@ namespace Legion {
               ProjectionPartition* projection =
                   summary->get_tree()->as_partition_projection();
               std::unordered_map<
-                  ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+                  ProjectionPartition*, std::pair<double, uint64_t>>::iterator
                   finder = candidate_projections.find(projection);
               if (finder != candidate_projections.end())
               {
@@ -982,14 +966,14 @@ namespace Legion {
               ProjectionPartition* projection =
                   summary->get_tree()->as_partition_projection();
               std::unordered_map<
-                  ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+                  ProjectionPartition*, std::pair<double, uint64_t>>::iterator
                   finder = candidate_projections.find(projection);
               if (finder == candidate_projections.end())
               {
                 // Didn't find it so decrement all the prior entries TTLs
                 for (std::unordered_map<
                          ProjectionPartition*,
-                         std::pair<double, uint64_t> >::iterator it =
+                         std::pair<double, uint64_t>>::iterator it =
                          candidate_projections.begin();
                      it != candidate_projections.end();
                      /*nothing*/)
@@ -998,8 +982,7 @@ namespace Legion {
                   {
                     std::unordered_map<
                         ProjectionPartition*,
-                        std::pair<double, uint64_t> >::iterator delete_it =
-                        it++;
+                        std::pair<double, uint64_t>>::iterator delete_it = it++;
                     candidate_projections.erase(delete_it);
                   }
                   else
@@ -1015,13 +998,12 @@ namespace Legion {
               {
                 // We already had it, so decrement all TTLs of everything that
                 // came before it and then add it back with a new TTL
-                for (std::unordered_map<
-                         ProjectionPartition*,
-                         std::pair<double, uint64_t> >::iterator it =
-                         candidate_projections.begin();
-                     it != candidate_projections.end(); it++)
-                  if (finder->second.second < it->second.second)
-                    it->second.second--;
+                for (std::pair<
+                         ProjectionPartition* const,
+                         std::pair<double, uint64_t>>& it :
+                     candidate_projections)
+                  if (finder->second.second < it.second.second)
+                    it.second.second--;
                 finder->second.second = MAX_INCOMPLETE_WRITES;
               }
             }
@@ -1045,9 +1027,8 @@ namespace Legion {
         ContextID ctx, const FieldMask& invalidation_mask)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<RegionNode*>::const_iterator it = children.begin();
-           it != children.end(); it++)
-        (*it)->invalidate_logical_refinement(ctx, invalidation_mask);
+      for (RegionNode* const it : children)
+        it->invalidate_logical_refinement(ctx, invalidation_mask);
     }
 
     //--------------------------------------------------------------------------
@@ -1068,21 +1049,19 @@ namespace Legion {
         if (score < children_score)
           is_dominant = false;
       }
-      for (std::unordered_map<
-               ProjectionPartition*, std::pair<double, uint64_t> >::iterator
-               it = candidate_projections.begin();
-           it != candidate_projections.end(); it++)
+      for (std::pair<ProjectionPartition* const, std::pair<double, uint64_t>>&
+               it : candidate_projections)
       {
         // Skip ourselves
-        if (it->second.second == total_traversals)
+        if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(
-                               CHANGE_REFINEMENT_RETURN_WEIGHT,
-                               (total_traversals - it->second.second)) *
-                           it->second.first;
-        it->second.second = total_traversals;
-        if (score < it->second.first)
+        it.second.first = std::pow(
+                              CHANGE_REFINEMENT_RETURN_WEIGHT,
+                              (total_traversals - it.second.second)) *
+                          it.second.first;
+        it.second.second = total_traversals;
+        if (score < it.second.first)
           is_dominant = false;
       }
       if (!is_dominant)
@@ -1096,9 +1075,8 @@ namespace Legion {
           // have a score that is at least sqrt(total_candidates) more than the
           // current refinement's score
           std::unordered_map<
-              ProjectionPartition*,
-              std::pair<double, uint64_t> >::const_iterator finder =
-              candidate_projections.find(refined_projection);
+              ProjectionPartition*, std::pair<double, uint64_t>>::const_iterator
+              finder = candidate_projections.find(refined_projection);
           // Current refinement is never observed
           if (finder == candidate_projections.end())
             return true;
@@ -1133,7 +1111,7 @@ namespace Legion {
       if (!candidate_projections.empty())
       {
         for (std::unordered_map<
-                 ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+                 ProjectionPartition*, std::pair<double, uint64_t>>::iterator
                  it = candidate_projections.begin();
              it != candidate_projections.end();
              /*nothing*/)
@@ -1144,7 +1122,7 @@ namespace Legion {
             if (it->first->remove_reference())
               delete it->first;
             std::unordered_map<
-                ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+                ProjectionPartition*, std::pair<double, uint64_t>>::iterator
                 to_delete = it++;
             candidate_projections.erase(to_delete);
           }

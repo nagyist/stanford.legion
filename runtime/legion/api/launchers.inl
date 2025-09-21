@@ -702,10 +702,9 @@ namespace Legion {
     constraints.add_constraint(
         OrderingConstraint(dim_order, false /*contiguous*/));
     if (alignments != nullptr)
-      for (std::map<FieldID, size_t>::const_iterator it = alignments->begin();
-           it != alignments->end(); it++)
+      for (const std::pair<const FieldID, size_t>& it : *alignments)
         constraints.add_constraint(
-            AlignmentConstraint(it->first, LEGION_EQ_EK, it->second));
+            AlignmentConstraint(it.first, LEGION_EQ_EK, it.second));
   }
 
   //--------------------------------------------------------------------------
@@ -740,9 +739,8 @@ namespace Legion {
     field_files = field_map;
     std::vector<FieldID> fields;
     fields.reserve(field_map.size());
-    for (std::map<FieldID, const char*>::const_iterator it = field_map.begin();
-         it != field_map.end(); it++)
-      fields.emplace_back(it->first);
+    for (const std::pair<const FieldID, const char*>& field_pair : field_map)
+      fields.emplace_back(field_pair.first);
     initialize_constraints(true /*column major*/, true /*soa*/, fields);
     privilege_fields.insert(fields.begin(), fields.end());
   }
@@ -807,10 +805,9 @@ namespace Legion {
     constraints.add_constraint(
         OrderingConstraint(dim_order, false /*contiguous*/));
     if (alignments != nullptr)
-      for (std::map<FieldID, size_t>::const_iterator it = alignments->begin();
-           it != alignments->end(); it++)
+      for (const std::pair<const FieldID, size_t>& it : *alignments)
         constraints.add_constraint(
-            AlignmentConstraint(it->first, LEGION_EQ_EK, it->second));
+            AlignmentConstraint(it.first, LEGION_EQ_EK, it.second));
   }
 
   //--------------------------------------------------------------------------
@@ -861,10 +858,8 @@ namespace Legion {
       mode = m;
       std::vector<FieldID> fields;
       fields.reserve(field_map.size());
-      for (std::map<FieldID, const char*>::const_iterator it =
-               field_map.begin();
-           it != field_map.end(); it++)
-        fields.emplace_back(it->first);
+      for (const std::pair<const FieldID, const char*>& it : field_map)
+        fields.emplace_back(it.first);
       initialize_constraints(true /*column major*/, true /*soa*/, fields);
       privilege_fields.insert(fields.begin(), fields.end());
     }
@@ -873,11 +868,11 @@ namespace Legion {
     handles.emplace_back(handle);
     file_names.emplace_back(file_name);
     [[maybe_unused]] const bool first = field_files.empty();
-    for (std::map<FieldID, const char*>::const_iterator it = field_map.begin();
-         it != field_map.end(); it++)
+    for (const std::pair<const FieldID, const char*>& field_pair : field_map)
     {
-      assert(first || (field_files.find(it->first) != field_files.end()));
-      field_files[it->first].emplace_back(it->second);
+      assert(
+          first || (field_files.find(field_pair.first) != field_files.end()));
+      field_files[field_pair.first].emplace_back(field_pair.second);
     }
   }
 
@@ -899,9 +894,8 @@ namespace Legion {
     {
       // Check that the fields are the same
       assert(fields.size() == privilege_fields.size());
-      for (std::vector<FieldID>::const_iterator it = fields.begin();
-           it != fields.end(); it++)
-        assert(privilege_fields.find(*it) != privilege_fields.end());
+      for (const FieldID& field : fields)
+        assert(privilege_fields.find(field) != privilege_fields.end());
       // Check that the layouts are the same
       const OrderingConstraint& order = constraints.ordering_constraint;
       assert(order.ordering.front() == LEGION_DIM_F);
@@ -925,13 +919,12 @@ namespace Legion {
       {
         assert(alignments->size() == constraints.alignment_constraints.size());
         unsigned index = 0;
-        for (std::map<FieldID, size_t>::const_iterator it = alignments->begin();
-             it != alignments->end(); it++, index++)
+        for (const std::pair<const FieldID, size_t>& it : *alignments)
         {
           const AlignmentConstraint& alignment =
               constraints.alignment_constraints[index];
-          assert(alignment.fid == it->first);
-          assert(alignment.alignment == it->second);
+          assert(alignment.fid == it.first);
+          assert(alignment.alignment == it.second);
         }
       }
     }
@@ -957,9 +950,8 @@ namespace Legion {
     {
       // Check that the fields are the same
       assert(fields.size() == privilege_fields.size());
-      for (std::vector<FieldID>::const_iterator it = fields.begin();
-           it != fields.end(); it++)
-        assert(privilege_fields.find(*it) != privilege_fields.end());
+      for (const FieldID& field : fields)
+        assert(privilege_fields.find(field) != privilege_fields.end());
       // Check that the layouts are the same
       const OrderingConstraint& order = constraints.ordering_constraint;
       const int dims = handle.get_index_space().get_dim();
@@ -982,13 +974,12 @@ namespace Legion {
       {
         assert(alignments->size() == constraints.alignment_constraints.size());
         unsigned index = 0;
-        for (std::map<FieldID, size_t>::const_iterator it = alignments->begin();
-             it != alignments->end(); it++, index++)
+        for (const std::pair<const FieldID, size_t>& it : *alignments)
         {
           const AlignmentConstraint& alignment =
               constraints.alignment_constraints[index];
-          assert(alignment.fid == it->first);
-          assert(alignment.alignment == it->second);
+          assert(alignment.fid == it.first);
+          assert(alignment.alignment == it.second);
         }
       }
     }

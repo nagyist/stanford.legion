@@ -69,10 +69,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(address_spaces.size());
-      for (std::vector<AddressSpaceID>::const_iterator it =
-               address_spaces.begin();
-           it != address_spaces.end(); it++)
-        rez.serialize(*it);
+      for (const AddressSpaceID& space : address_spaces) rez.serialize(space);
     }
 
     //--------------------------------------------------------------------------
@@ -155,14 +152,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We can delete our shard tasks
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
-        delete (*it);
+      for (ShardTask* shard_task : local_shards) delete shard_task;
       local_shards.clear();
-      for (std::map<ShardingID, ShardingFunction*>::const_iterator it =
-               sharding_functions.begin();
-           it != sharding_functions.end(); it++)
-        delete it->second;
+      for (const std::pair<const ShardingID, ShardingFunction*>& entry :
+           sharding_functions)
+        delete entry.second;
       sharding_functions.clear();
       // Finally unregister ourselves with the runtime
       if (is_owner() && control_replicated)
@@ -197,9 +191,7 @@ namespace Legion {
     void ShardManager::notify_local(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
-        (*it)->deactivate();
+      for (ShardTask* shard_task : local_shards) shard_task->deactivate();
     }
 
     //--------------------------------------------------------------------------
@@ -217,8 +209,7 @@ namespace Legion {
       {
         std::vector<AddressSpaceID> children;
         collective_mapping->get_children(owner_space, local_space, children);
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
+        for (const AddressSpaceID& child_space : children)
         {
           ReplicateDistribution rez;
           {
@@ -229,14 +220,12 @@ namespace Legion {
             for (unsigned idx = 0; idx < leaf_variants.size(); idx++)
               rez.serialize(leaf_variants[idx]);
             task->get_context()->pack_inner_context(rez);
-            task->pack_single_task(rez, *it);
+            task->pack_single_task(rez, child_space);
           }
-          rez.dispatch(*it);
+          rez.dispatch(child_space);
         }
       }
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
-        (*it)->dispatch();
+      for (ShardTask* shard_task : local_shards) shard_task->dispatch();
     }
 
     //--------------------------------------------------------------------------
@@ -257,8 +246,7 @@ namespace Legion {
         legion_assert(coordinates.back().context_index == 0);
         legion_assert(coordinates.back().index_point[0] == 0);
         const coord_t implicit_coord = coordinates.back().index_point[1];
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
+        for (const AddressSpaceID& child_space : children)
         {
           ReplicateDistribution rez;
           {
@@ -273,7 +261,7 @@ namespace Legion {
             rez.serialize(ctx->get_executing_processor());
             rez.serialize(implicit_coord);
           }
-          rez.dispatch(*it);
+          rez.dispatch(child_space);
         }
       }
     }
@@ -457,9 +445,7 @@ namespace Legion {
           if (!children.empty())
           {
             pack_global_ref(children.size());
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
+            for (const AddressSpaceID& child : children)
             {
               ReplicateVirtualRendezvous rez;
               {
@@ -470,7 +456,7 @@ namespace Legion {
                 for (unsigned idx = 0; idx < virtual_mappings.size(); idx++)
                   rez.serialize<bool>(virtual_mappings[idx]);
               }
-              rez.dispatch(*it);
+              rez.dispatch(child);
             }
           }
         }
@@ -533,10 +519,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // See if it's local or not
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
-        if ((*it)->shard_id == shard)
-          return (*it)->get_replicate_context()->find_pointwise_dependence(
+      for (ShardTask* shard_task : local_shards)
+        if (shard_task->shard_id == shard)
+          return shard_task->get_replicate_context()->find_pointwise_dependence(
               context_index, point, shard, to_trigger);
       const AddressSpaceID target_space = (*address_spaces)[shard];
       legion_assert(target_space != runtime->address_space);
@@ -592,11 +577,9 @@ namespace Legion {
           local_users = 0;
           const ShardMapping& local_mapping = get_mapping();
           std::vector<AddressSpaceID> spaces;
-          for (std::vector<ShardID>::const_iterator it =
-                   creating_shards->begin();
-               it != creating_shards->end(); it++)
+          for (const ShardID& shard : *creating_shards)
           {
-            AddressSpaceID space = local_mapping[*it];
+            AddressSpaceID space = local_mapping[shard];
             if (space == runtime->address_space)
               local_users++;
             if (std::binary_search(spaces.begin(), spaces.end(), space))
@@ -633,10 +616,7 @@ namespace Legion {
           }
           std::vector<AddressSpaceID> children;
           eq_mapping->get_children(owner_space, owner_space, children);
-          for (std::vector<AddressSpaceID>::const_iterator it =
-                   children.begin();
-               it != children.end(); it++)
-            rez.dispatch(*it);
+          for (const AddressSpaceID& child : children) rez.dispatch(child);
         }
         // Now make the equivalence set locally and register it
         EquivalenceSet* result = new EquivalenceSet(
@@ -687,10 +667,8 @@ namespace Legion {
           {
             new_eq.remaining = 0;
             const ShardMapping& local_mapping = get_mapping();
-            for (std::vector<ShardID>::const_iterator it =
-                     creating_shards->begin();
-                 it != creating_shards->end(); it++)
-              if (local_mapping[*it] == runtime->address_space)
+            for (const ShardID& shard : *creating_shards)
+              if (local_mapping[shard] == runtime->address_space)
                 new_eq.remaining++;
           }
           else
@@ -714,10 +692,8 @@ namespace Legion {
             if (creating_shards != nullptr)
             {
               const ShardMapping& local_mapping = get_mapping();
-              for (std::vector<ShardID>::const_iterator it =
-                       creating_shards->begin();
-                   it != creating_shards->end(); it++)
-                if (local_mapping[*it] == runtime->address_space)
+              for (const ShardID& shard : *creating_shards)
+                if (local_mapping[shard] == runtime->address_space)
                   finder->second.remaining++;
             }
             else
@@ -1507,12 +1483,11 @@ namespace Legion {
       // Figure out which shard we are going to
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (shard->shard_id == target)
         {
-          (*it)->get_replicate_context()->handle_collective_message(derez);
+          shard->get_replicate_context()->handle_collective_message(derez);
           return;
         }
       }
@@ -1547,12 +1522,11 @@ namespace Legion {
       // Figure out which shard we are going to
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (shard->shard_id == target)
         {
-          (*it)->get_replicate_context()->handle_rendezvous_message(derez);
+          shard->get_replicate_context()->handle_rendezvous_message(derez);
           return;
         }
       }
@@ -1587,12 +1561,11 @@ namespace Legion {
       // Figure out which shard we are going to
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (shard->shard_id == target)
         {
-          (*it)->get_replicate_context()->handle_compute_equivalence_sets(
+          shard->get_replicate_context()->handle_compute_equivalence_sets(
               derez);
           return;
         }
@@ -1636,9 +1609,7 @@ namespace Legion {
           else
             rez.serialize<size_t>(0);  // use this to indicate all the shards
         }
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
-          rez.dispatch(*it);
+        for (const AddressSpaceID& child : children) rez.dispatch(child);
       }
       // Now we can save this locally and wake up any waiters
       AutoLock m_lock(manager_lock);
@@ -1692,12 +1663,11 @@ namespace Legion {
       // Figure out which shard we are going to
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (shard->shard_id == target)
         {
-          (*it)->get_replicate_context()->handle_output_equivalence_set(derez);
+          shard->get_replicate_context()->handle_output_equivalence_set(derez);
           return;
         }
       }
@@ -1732,12 +1702,11 @@ namespace Legion {
       // Figure out which shard we are going to
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (shard->shard_id == target)
         {
-          (*it)->get_replicate_context()->handle_refine_equivalence_sets(derez);
+          shard->get_replicate_context()->handle_refine_equivalence_sets(derez);
           return;
         }
       }
@@ -1814,12 +1783,11 @@ namespace Legion {
     {
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (shard->shard_id == target)
         {
-          (*it)->get_replicate_context()->handle_created_region_contexts(
+          shard->get_replicate_context()->handle_created_region_contexts(
               derez, applied_events);
           return;
         }
@@ -1847,10 +1815,9 @@ namespace Legion {
       {
         std::vector<AddressSpaceID> children;
         collective_mapping->get_children(owner_space, space, children);
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
+        for (const AddressSpaceID& child : children)
           if (!has_empty_shard_subtree(
-                  *it, sharding, full_space, sharding_space))
+                  child, sharding, full_space, sharding_space))
             return false;
       }
       return true;
@@ -1868,8 +1835,7 @@ namespace Legion {
         legion_assert(collective_mapping->contains(local_space));
         std::vector<AddressSpaceID> targets;
         collective_mapping->get_children(local_space, local_space, targets);
-        for (std::vector<AddressSpaceID>::const_iterator it = targets.begin();
-             it != targets.end(); it++)
+        for (const AddressSpaceID& target : targets)
         {
           RtEvent next_done = Runtime::create_rt_user_event();
           ReplBroadcastUpdate rez2;
@@ -1879,29 +1845,28 @@ namespace Legion {
           rez2.serialize<size_t>(rez.get_used_bytes());
           rez2.serialize(rez.get_buffer(), rez.get_used_bytes());
           rez2.serialize(next_done);
-          rez2.dispatch(*it);
+          rez2.dispatch(target);
           applied_events.insert(next_done);
         }
       }
       // Then send it to any other local shards
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
         // Skip the source since that's where it came from
-        if ((*it) == source)
+        if (shard == source)
           continue;
         Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
         switch (kind)
         {
           case RESOURCE_UPDATE_KIND:
             {
-              (*it)->get_replicate_context()->handle_resource_update(
+              shard->get_replicate_context()->handle_resource_update(
                   derez, applied_events);
               break;
             }
           case CREATED_REGION_UPDATE_KIND:
             {
-              (*it)->get_replicate_context()->handle_created_region_contexts(
+              shard->get_replicate_context()->handle_created_region_contexts(
                   derez, applied_events);
               break;
             }
@@ -1933,8 +1898,7 @@ namespace Legion {
       std::set<RtEvent> remote_handled;
       if (!targets.empty())
       {
-        for (std::vector<AddressSpaceID>::const_iterator it = targets.begin();
-             it != targets.end(); it++)
+        for (const AddressSpaceID& target : targets)
         {
           RtEvent next_done = Runtime::create_rt_user_event();
           ReplBroadcastUpdate rez;
@@ -1944,26 +1908,25 @@ namespace Legion {
           rez.serialize<size_t>(message_size);
           rez.serialize(message, message_size);
           rez.serialize(next_done);
-          rez.dispatch(*it);
+          rez.dispatch(target);
           remote_handled.insert(next_done);
         }
       }
       // Handle it on all our local shards
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
         Deserializer derez2(message, message_size);
         switch (kind)
         {
           case RESOURCE_UPDATE_KIND:
             {
-              (*it)->get_replicate_context()->handle_resource_update(
+              shard->get_replicate_context()->handle_resource_update(
                   derez2, remote_handled);
               break;
             }
           case CREATED_REGION_UPDATE_KIND:
             {
-              (*it)->get_replicate_context()->handle_created_region_contexts(
+              shard->get_replicate_context()->handle_created_region_contexts(
                   derez2, remote_handled);
               break;
             }
@@ -2022,11 +1985,10 @@ namespace Legion {
       else
       {
         // Ask each of our local shards to check for the event in the template
-        for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-             it != local_shards.end(); it++)
+        for (ShardTask* shard : local_shards)
         {
           const ApBarrier result =
-              (*it)->get_replicate_context()->handle_find_trace_shard_event(
+              shard->get_replicate_context()->handle_find_trace_shard_event(
                   template_index, event, shard_source);
           // If we found it then we are done
           if (result.exists())
@@ -2139,10 +2101,9 @@ namespace Legion {
       }
       else
       {
-        for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-             it != local_shards.end(); it++)
+        for (ShardTask* shard : local_shards)
         {
-          ReplicateContext* ctx = (*it)->get_replicate_context();
+          ReplicateContext* ctx = shard->get_replicate_context();
           ShardedPhysicalTemplate* tpl = ctx->find_current_shard_template(tid);
           if (tpl->record_shard_event_trigger(lhs, rhs, tlid))
             return RtEvent::NO_RT_EVENT;
@@ -2222,11 +2183,10 @@ namespace Legion {
       else
       {
         // Ask each of our local shards to check for the event in the template
-        for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-             it != local_shards.end(); it++)
+        for (ShardTask* shard : local_shards)
         {
           const ApBarrier result =
-              (*it)->get_replicate_context()->handle_find_trace_shard_frontier(
+              shard->get_replicate_context()->handle_find_trace_shard_frontier(
                   template_index, event, shard_source);
           // If we found it then we are done
           if (result.exists())
@@ -2344,12 +2304,11 @@ namespace Legion {
       // Figure out which shard we are going to
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (shard->shard_id == target)
         {
-          (*it)->get_replicate_context()->handle_trace_update(derez, source);
+          shard->get_replicate_context()->handle_trace_update(derez, source);
           return;
         }
       }
@@ -2385,12 +2344,11 @@ namespace Legion {
       // Figure out which shard we are going to
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (shard->shard_id == target)
         {
-          (*it)->get_replicate_context()->handle_find_trace_local_sets(
+          shard->get_replicate_context()->handle_find_trace_local_sets(
               derez, source);
           return;
         }
@@ -2446,12 +2404,11 @@ namespace Legion {
     {
       ShardID target;
       derez.deserialize(target);
-      for (std::vector<ShardTask*>::const_iterator it = local_shards.begin();
-           it != local_shards.end(); it++)
+      for (ShardTask* local_shard : local_shards)
       {
-        if ((*it)->shard_id == target)
+        if (local_shard->shard_id == target)
         {
-          InnerContext* context = (*it)->get_replicate_context();
+          InnerContext* context = local_shard->get_replicate_context();
           RegionTreeID tid;
           derez.deserialize(tid);
           size_t num_insts;
@@ -3137,26 +3094,25 @@ namespace Legion {
         error.raise();
       }
       std::vector<Processor> shard_mapping(total_shards);
-      for (std::map<DomainPoint, std::pair<ShardID, Processor> >::const_iterator
-               it = shard_points.begin();
-           it != shard_points.end(); it++)
+      for (const std::pair<const DomainPoint, std::pair<ShardID, Processor> >&
+               it : shard_points)
       {
         if (isomorphic_points &&
-            ((it->first.get_dim() != 1) || (it->first[0] != it->second.first)))
+            ((it.first.get_dim() != 1) || (it.first[0] != it.second.first)))
           isomorphic_points = false;
-        sorted_points.emplace_back(it->first);
-        shard_lookup.emplace_back(it->second.first);
-        legion_assert(it->second.first < points.size());
+        sorted_points.emplace_back(it.first);
+        shard_lookup.emplace_back(it.second.first);
+        legion_assert(it.second.first < points.size());
         // Should not be any duplicate shard IDs
-        if (points[it->second.first].get_dim() > 0)
+        if (points[it.second.first].get_dim() > 0)
         {
           Error error(LEGION_INTERFACE_EXCEPTION);
           error << "Discovered multiple ranks with the same implicit shard ID "
                 << "for implicit control replicated task " << local_task_name;
           error.raise();
         }
-        points[it->second.first] = it->first;
-        shard_mapping[it->second.first] = it->second.second;
+        points[it.second.first] = it.first;
+        shard_mapping[it.second.first] = it.second.second;
       }
       Domain shard_domain;
       if (isomorphic_points)
@@ -3195,13 +3151,12 @@ namespace Legion {
         rez.serialize(kind);
         rez.serialize(shards_per_address_space);
         rez.serialize<size_t>(shard_points.size());
-        for (std::map<DomainPoint, std::pair<ShardID, Processor> >::
-                 const_iterator it = shard_points.begin();
-             it != shard_points.end(); it++)
+        for (const std::pair<const DomainPoint, std::pair<ShardID, Processor> >&
+                 it : shard_points)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second.first);
-          rez.serialize(it->second.second);
+          rez.serialize(it.first);
+          rez.serialize(it.second.first);
+          rez.serialize(it.second.second);
         }
       }
       rez.dispatch(collective_mapping->get_parent(0, runtime->address_space));

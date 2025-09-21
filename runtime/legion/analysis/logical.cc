@@ -116,10 +116,9 @@ namespace Legion {
     FieldState::~FieldState(void)
     //--------------------------------------------------------------------------
     {
-      for (OrderedFieldMaskChildren::const_iterator it = open_children.begin();
-           it != open_children.end(); it++)
-        if (it->first->remove_base_gc_ref(FIELD_STATE_REF))
-          delete it->first;
+      for (const std::pair<RegionTreeNode*, FieldMask>& it : open_children)
+        if (it.first->remove_base_gc_ref(FIELD_STATE_REF))
+          delete it.first;
     }
 
     //--------------------------------------------------------------------------
@@ -168,12 +167,11 @@ namespace Legion {
     {
       if (!rhs.open_children.empty())
       {
-        for (OrderedFieldMaskChildren::const_iterator it =
-                 rhs.open_children.begin();
-             it != rhs.open_children.end(); it++)
+        for (const std::pair<RegionTreeNode*, FieldMask>& it :
+             rhs.open_children)
           // Remove duplicate references if we already had it
-          if (!open_children.insert(it->first, it->second))
-            it->first->remove_base_gc_ref(FIELD_STATE_REF);
+          if (!open_children.insert(it.first, it.second))
+            it.first->remove_base_gc_ref(FIELD_STATE_REF);
         rhs.open_children.clear();
       }
       else
@@ -209,23 +207,19 @@ namespace Legion {
       }
       if (to_delete.size() < open_children.size())
       {
-        for (std::vector<RegionTreeNode*>::const_iterator it =
-                 to_delete.begin();
-             it != to_delete.end(); it++)
+        for (RegionTreeNode* const it : to_delete)
         {
-          open_children.erase(*it);
-          if ((*it)->remove_base_gc_ref(FIELD_STATE_REF))
-            delete (*it);
+          open_children.erase(it);
+          if (it->remove_base_gc_ref(FIELD_STATE_REF))
+            delete it;
         }
       }
       else
       {
         open_children.clear();
-        for (std::vector<RegionTreeNode*>::const_iterator it =
-                 to_delete.begin();
-             it != to_delete.end(); it++)
-          if ((*it)->remove_base_gc_ref(FIELD_STATE_REF))
-            delete (*it);
+        for (RegionTreeNode* const it : to_delete)
+          if (it->remove_base_gc_ref(FIELD_STATE_REF))
+            delete it;
       }
       open_children.tighten_valid_mask();
       return open_children.empty();
@@ -289,38 +283,35 @@ namespace Legion {
     {
       // For every child and every field, it should only be open in one mode
       local::FieldMaskMap<RegionTreeNode> previous_children;
-      for (std::list<FieldState>::const_iterator fit = field_states.begin();
-           fit != field_states.end(); fit++)
+      for (const FieldState& fit : field_states)
       {
         FieldMask actually_valid;
-        for (FieldState::OrderedFieldMaskChildren::const_iterator it =
-                 fit->open_children.begin();
-             it != fit->open_children.end(); it++)
+        for (const std::pair<RegionTreeNode*, FieldMask>& it :
+             fit.open_children)
         {
-          actually_valid |= it->second;
+          actually_valid |= it.second;
           local::FieldMaskMap<RegionTreeNode>::iterator finder =
-              previous_children.find(it->first);
+              previous_children.find(it.first);
           if (finder != previous_children.end())
           {
-            legion_assert(!(finder->second & it->second));
-            finder.merge(it->second);
+            legion_assert(!(finder->second & it.second));
+            finder.merge(it.second);
           }
           else
-            previous_children.insert(it->first, it->second);
+            previous_children.insert(it.first, it.second);
         }
         // Actually valid should be greater than or equal
-        legion_assert(!(actually_valid - fit->valid_fields()));
+        legion_assert(!(actually_valid - fit.valid_fields()));
       }
       // Make sure that each refinement has a disjoint set of fields
       if (!refinement_trackers.empty())
       {
         FieldMask disjoint_refinements;
-        for (lng::FieldMaskMap<RefinementTracker>::const_iterator it =
-                 refinement_trackers.begin();
-             it != refinement_trackers.end(); it++)
+        for (const std::pair<RefinementTracker*, FieldMask>& it :
+             refinement_trackers)
         {
-          legion_assert(disjoint_refinements * it->second);
-          disjoint_refinements |= it->second;
+          legion_assert(disjoint_refinements * it.second);
+          disjoint_refinements |= it.second;
         }
       }
     }
@@ -333,20 +324,16 @@ namespace Legion {
       field_states.clear();
       if (!curr_epoch_users.empty())
       {
-        for (OrderedFieldMaskUsers::const_iterator it =
-                 curr_epoch_users.begin();
-             it != curr_epoch_users.end(); it++)
-          if (it->first->remove_reference())
-            delete it->first;
+        for (const std::pair<LogicalUser*, FieldMask>& it : curr_epoch_users)
+          if (it.first->remove_reference())
+            delete it.first;
         curr_epoch_users.clear();
       }
       if (!prev_epoch_users.empty())
       {
-        for (OrderedFieldMaskUsers::const_iterator it =
-                 prev_epoch_users.begin();
-             it != prev_epoch_users.end(); it++)
-          if (it->first->remove_reference())
-            delete it->first;
+        for (const std::pair<LogicalUser*, FieldMask>& it : prev_epoch_users)
+          if (it.first->remove_reference())
+            delete it.first;
         prev_epoch_users.clear();
       }
       total_timeout_check_iterations = MIN_TIMEOUT_CHECK_SIZE;
@@ -359,10 +346,9 @@ namespace Legion {
       }
       if (!refinement_trackers.empty())
       {
-        for (lng::FieldMaskMap<RefinementTracker>::const_iterator it =
-                 refinement_trackers.begin();
-             it != refinement_trackers.end(); it++)
-          delete it->first;
+        for (const std::pair<RefinementTracker*, FieldMask>& it :
+             refinement_trackers)
+          delete it.first;
         refinement_trackers.clear();
       }
       while (!projection_summary_cache.empty())
@@ -400,12 +386,11 @@ namespace Legion {
           if (!it->second)
             to_delete.emplace_back(it->first);
         }
-        for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
-             it != to_delete.end(); it++)
+        for (LogicalUser* const it : to_delete)
         {
-          curr_epoch_users.erase(*it);
-          if ((*it)->remove_reference())
-            delete (*it);
+          curr_epoch_users.erase(it);
+          if (it->remove_reference())
+            delete it;
         }
         curr_epoch_users.tighten_valid_mask();
       }
@@ -420,12 +405,11 @@ namespace Legion {
           if (!it->second)
             to_delete.emplace_back(it->first);
         }
-        for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
-             it != to_delete.end(); it++)
+        for (LogicalUser* const it : to_delete)
         {
-          prev_epoch_users.erase(*it);
-          if ((*it)->remove_reference())
-            delete (*it);
+          prev_epoch_users.erase(it);
+          if (it->remove_reference())
+            delete it;
         }
         prev_epoch_users.tighten_valid_mask();
       }
@@ -445,12 +429,10 @@ namespace Legion {
           if (!it->second)
             to_delete.emplace_back(it->first);
         }
-        for (std::vector<RefinementTracker*>::const_iterator it =
-                 to_delete.begin();
-             it != to_delete.end(); it++)
+        for (RefinementTracker* const it : to_delete)
         {
-          refinement_trackers.erase(*it);
-          delete (*it);
+          refinement_trackers.erase(it);
+          delete it;
         }
         refinement_trackers.tighten_valid_mask();
       }
@@ -557,10 +539,10 @@ namespace Legion {
             iterator finder = pointwise_dependences.find(summary);
         if (finder != pointwise_dependences.end())
         {
-          for (std::unordered_map<ProjectionSummary*, std::pair<bool, bool> >::
-                   const_iterator it = finder->second.begin();
-               it != finder->second.end(); it++)
-            pointwise_dependences[it->first].erase(summary);
+          for (const std::pair<
+                   ProjectionSummary* const, std::pair<bool, bool> >& it :
+               finder->second)
+            pointwise_dependences[it.first].erase(summary);
           pointwise_dependences.erase(finder);
         }
       }
@@ -570,10 +552,9 @@ namespace Legion {
           iterator finder = interfering_shards.find(summary);
       if (finder != interfering_shards.end())
       {
-        for (std::unordered_map<ProjectionSummary*, std::pair<bool, bool> >::
-                 const_iterator it = finder->second.begin();
-             it != finder->second.end(); it++)
-          interfering_shards[it->first].erase(summary);
+        for (const std::pair<ProjectionSummary* const, std::pair<bool, bool> >&
+                 it : finder->second)
+          interfering_shards[it.first].erase(summary);
         interfering_shards.erase(finder);
       }
     }
@@ -773,18 +754,14 @@ namespace Legion {
           }
         }
         // Remove old entries
-        for (std::vector<RefinementTracker*>::const_iterator it =
-                 to_delete.begin();
-             it != to_delete.end(); it++)
+        for (RefinementTracker* const it : to_delete)
         {
-          refinement_trackers.erase(*it);
-          delete (*it);
+          refinement_trackers.erase(it);
+          delete it;
         }
         // Add new entries
-        for (local::FieldMaskMap<RefinementTracker>::const_iterator it =
-                 to_add.begin();
-             it != to_add.end(); it++)
-          refinement_trackers.insert(it->first, it->second);
+        for (const std::pair<RefinementTracker*, FieldMask>& it : to_add)
+          refinement_trackers.insert(it.first, it.second);
       }
       if (!!need_tracker)
       {
@@ -812,7 +789,7 @@ namespace Legion {
       if (!(refinement_mask * refinement_trackers.get_valid_mask()))
       {
         local::FieldMaskMap<RefinementTracker> to_add;
-        std::vector<RefinementTracker*> to_delete;
+        local::vector<RefinementTracker*> to_delete;
         for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
@@ -843,7 +820,7 @@ namespace Legion {
           }
         }
         // Remove old entries
-        for (std::vector<RefinementTracker*>::const_iterator it =
+        for (local::vector<RefinementTracker*>::const_iterator it =
                  to_delete.begin();
              it != to_delete.end(); it++)
         {
@@ -880,7 +857,7 @@ namespace Legion {
       if (!(refinement_mask * refinement_trackers.get_valid_mask()))
       {
         local::FieldMaskMap<RefinementTracker> to_add;
-        std::vector<RefinementTracker*> to_delete;
+        local::vector<RefinementTracker*> to_delete;
         for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
@@ -908,7 +885,7 @@ namespace Legion {
           }
         }
         // Remove old entries
-        for (std::vector<RefinementTracker*>::const_iterator it =
+        for (local::vector<RefinementTracker*>::const_iterator it =
                  to_delete.begin();
              it != to_delete.end(); it++)
         {
@@ -935,7 +912,7 @@ namespace Legion {
         ContextID ctx, FieldMask invalidation_mask)
     //--------------------------------------------------------------------------
     {
-      std::vector<RefinementTracker*> to_delete;
+      local::vector<RefinementTracker*> to_delete;
       for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                refinement_trackers.begin();
            it != refinement_trackers.end(); it++)
@@ -952,7 +929,7 @@ namespace Legion {
           break;
       }
       legion_assert(!invalidation_mask);  // should have seen all the fields
-      for (std::vector<RefinementTracker*>::const_iterator it =
+      for (local::vector<RefinementTracker*>::const_iterator it =
                to_delete.begin();
            it != to_delete.end(); it++)
       {
@@ -986,27 +963,25 @@ namespace Legion {
       if ((previous_child == nullptr) || !owner->are_all_children_disjoint())
       {
         // Now traverse any open children and record dependences on them as well
-        for (shrt::list<FieldState>::const_iterator fit = field_states.begin();
-             fit != field_states.end(); fit++)
+        for (const FieldState& fit : field_states)
         {
-          const FieldMask field_overlap = fit->valid_fields() & refinement_mask;
+          const FieldMask field_overlap = fit.valid_fields() & refinement_mask;
           if (!field_overlap)
             continue;
-          for (FieldState::OrderedFieldMaskChildren::const_iterator it =
-                   fit->open_children.begin();
-               it != fit->open_children.end(); it++)
+          for (const std::pair<RegionTreeNode*, FieldMask>& it :
+               fit.open_children)
           {
             // Can skip the previous child if we've already done it
-            if (it->first == previous_child)
+            if (it.first == previous_child)
               continue;
-            const FieldMask overlap = refinement_mask & it->second;
+            const FieldMask overlap = refinement_mask & it.second;
             if (!overlap)
               continue;
             if ((previous_child != nullptr) &&
                 owner->are_children_disjoint(
-                    previous_child->get_color(), it->first->get_color()))
+                    previous_child->get_color(), it.first->get_color()))
               continue;
-            it->first->record_refinement_dependences(
+            it.first->record_refinement_dependences(
                 ctx, refinement_user, overlap, no_proj_info,
                 nullptr /*previous child*/, privilege_root, logical_analysis);
           }
@@ -1026,12 +1001,11 @@ namespace Legion {
         if (!it->second)
           to_delete.emplace_back(it->first);
       }
-      for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
-           it != to_delete.end(); it++)
+      for (LogicalUser* const it : to_delete)
       {
-        prev_epoch_users.erase(*it);
-        if ((*it)->remove_reference())
-          delete (*it);
+        prev_epoch_users.erase(it);
+        if (it->remove_reference())
+          delete it;
       }
       prev_epoch_users.filter_valid_mask(field_mask);
     }
@@ -1062,12 +1036,11 @@ namespace Legion {
         if (!it->second)
           to_delete.emplace_back(it->first);
       }
-      for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
-           it != to_delete.end(); it++)
+      for (LogicalUser* const it : to_delete)
       {
-        curr_epoch_users.erase(*it);
-        if ((*it)->remove_reference())
-          delete (*it);
+        curr_epoch_users.erase(it);
+        if (it->remove_reference())
+          delete it;
       }
       curr_epoch_users.filter_valid_mask(field_mask);
     }
@@ -1094,26 +1067,24 @@ namespace Legion {
       // Go through and filter any current or previous epoch users that have
       // been committed and therefore can no longer be rolled back
       std::vector<LogicalUser*> timeout_users;
-      for (OrderedFieldMaskUsers::const_iterator it = curr_epoch_users.begin();
-           it != curr_epoch_users.end(); it++)
+      for (const std::pair<LogicalUser*, FieldMask>& it : curr_epoch_users)
       {
-        if (!it->first->op->is_operation_committed(it->first->gen))
+        if (!it.first->op->is_operation_committed(it.first->gen))
           continue;
-        it->first->add_reference();
-        timeout_users.emplace_back(it->first);
+        it.first->add_reference();
+        timeout_users.emplace_back(it.first);
       }
       const size_t prev_size = timeout_users.size();
-      for (OrderedFieldMaskUsers::const_iterator it = prev_epoch_users.begin();
-           it != prev_epoch_users.end(); it++)
+      for (const std::pair<LogicalUser*, FieldMask>& it : prev_epoch_users)
       {
-        if (!it->first->op->is_operation_committed(it->first->gen))
+        if (!it.first->op->is_operation_committed(it.first->gen))
           continue;
         if (std::binary_search(
                 timeout_users.begin(), timeout_users.begin() + prev_size,
-                it->first))
+                it.first))
           continue;
-        it->first->add_reference();
-        timeout_users.emplace_back(it->first);
+        it.first->add_reference();
+        timeout_users.emplace_back(it.first);
       }
       // Now we do the exchange and record whether we need to double
       // the timeout check iterations
@@ -1124,28 +1095,27 @@ namespace Legion {
       remaining_timeout_check_iterations = total_timeout_check_iterations;
       bool tighten_current = false;
       bool tighten_previous = false;
-      for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
-           it != to_delete.end(); it++)
+      for (LogicalUser* const it : to_delete)
       {
         // One reference from when we were added in the
         // perform dependence checks function
         unsigned references_to_remove = 1;
-        OrderedFieldMaskUsers::iterator finder = curr_epoch_users.find(*it);
+        OrderedFieldMaskUsers::iterator finder = curr_epoch_users.find(it);
         if (finder != curr_epoch_users.end())
         {
           curr_epoch_users.erase(finder);
           references_to_remove++;
           tighten_current = true;
         }
-        finder = prev_epoch_users.find(*it);
+        finder = prev_epoch_users.find(it);
         if (finder != prev_epoch_users.end())
         {
           prev_epoch_users.erase(finder);
           references_to_remove++;
           tighten_previous = true;
         }
-        if ((*it)->remove_reference(references_to_remove))
-          delete (*it);
+        if (it->remove_reference(references_to_remove))
+          delete it;
       }
       if (tighten_current)
         curr_epoch_users.tighten_valid_mask();
@@ -1210,10 +1180,9 @@ namespace Legion {
       // on any pending closes that were done along their path and then
       // issue the refinements
       unsigned internal_index = 0;
-      for (OrderedRefinements::const_iterator it = pending_refinements.begin();
-           it != pending_refinements.end(); it++)
+      for (const std::pair<RefinementOp*, FieldMask>& it : pending_refinements)
       {
-        RegionTreeNode* node = it->first->get_refinement_node();
+        RegionTreeNode* node = it.first->get_refinement_node();
         RegionTreeNode* path_node = node;
         while (path_node != nullptr)
         {
@@ -1221,22 +1190,22 @@ namespace Legion {
               pending_closes.find(path_node);
           if (finder != pending_closes.end())
           {
-            FieldMask overlap = it->second & finder->second->get_close_mask();
+            FieldMask overlap = it.second & finder->second->get_close_mask();
             if (!!overlap)
             {
               LegionSpy::log_mapping_dependence(
                   context->get_unique_id(), finder->second->get_unique_op_id(),
-                  0 /*index*/, it->first->get_unique_op_id(), 0 /*index*/,
+                  0 /*index*/, it.first->get_unique_op_id(), 0 /*index*/,
                   LEGION_TRUE_DEPENDENCE);
-              it->first->register_region_dependence(
+              it.first->register_region_dependence(
                   0 /*index*/, finder->second, finder->second->get_generation(),
                   0 /*index*/, LEGION_TRUE_DEPENDENCE, overlap);
             }
           }
           path_node = path_node->get_parent();
         }
-        it->first->record_refinement_mask(internal_index, it->second);
-        issue_internal_operation(node, it->first, it->second, internal_index++);
+        it.first->record_refinement_mask(internal_index, it.second);
+        issue_internal_operation(node, it.first, it.second, internal_index++);
       }
       // Issue the pending closes
       if (!pending_closes.empty())
@@ -1244,38 +1213,35 @@ namespace Legion {
         // Need to issue these close operations in order in case we are
         // control replicated and therefore all the shards need to see
         // the closes in the same order for things to work correctly
-        std::map<LogicalRegion, RegionTreeNode*> ordered_region_closes;
-        std::map<LogicalPartition, RegionTreeNode*> ordered_partition_closes;
-        for (std::map<RegionTreeNode*, MergeCloseOp*>::const_iterator it =
-                 pending_closes.begin();
-             it != pending_closes.end(); it++)
+        local::map<LogicalRegion, RegionTreeNode*> ordered_region_closes;
+        local::map<LogicalPartition, RegionTreeNode*> ordered_partition_closes;
+        for (const std::pair<RegionTreeNode* const, MergeCloseOp*>& it :
+             pending_closes)
         {
-          if (it->first->is_region())
+          if (it.first->is_region())
           {
-            RegionNode* region = it->first->as_region_node();
-            ordered_region_closes[region->handle] = it->first;
+            RegionNode* region = it.first->as_region_node();
+            ordered_region_closes[region->handle] = it.first;
           }
           else
           {
-            PartitionNode* partition = it->first->as_partition_node();
-            ordered_partition_closes[partition->handle] = it->first;
+            PartitionNode* partition = it.first->as_partition_node();
+            ordered_partition_closes[partition->handle] = it.first;
           }
         }
-        for (std::map<LogicalRegion, RegionTreeNode*>::const_iterator it =
-                 ordered_region_closes.begin();
-             it != ordered_region_closes.end(); it++)
+        for (const std::pair<const LogicalRegion, RegionTreeNode*>& it :
+             ordered_region_closes)
         {
-          MergeCloseOp* close = pending_closes[it->second];
+          MergeCloseOp* close = pending_closes[it.second];
           issue_internal_operation(
-              it->second, close, close->get_close_mask(), internal_index++);
+              it.second, close, close->get_close_mask(), internal_index++);
         }
-        for (std::map<LogicalPartition, RegionTreeNode*>::const_iterator it =
-                 ordered_partition_closes.begin();
-             it != ordered_partition_closes.end(); it++)
+        for (const std::pair<const LogicalPartition, RegionTreeNode*>& it :
+             ordered_partition_closes)
         {
-          MergeCloseOp* close = pending_closes[it->second];
+          MergeCloseOp* close = pending_closes[it.second];
           issue_internal_operation(
-              it->second, close, close->get_close_mask(), internal_index++);
+              it.second, close, close->get_close_mask(), internal_index++);
         }
       }
     }

@@ -921,13 +921,12 @@ namespace Legion {
               if (finder != reorder_stages->end())
               {
                 // Perform the handling for the buffered messages now
-                for (std::vector<std::pair<void*, size_t> >::const_iterator it =
-                         finder->second.begin();
-                     it != finder->second.end(); it++)
+                for (const std::pair<void*, size_t>& buffered_msg :
+                     finder->second)
                 {
-                  Deserializer derez(it->first, it->second);
+                  Deserializer derez(buffered_msg.first, buffered_msg.second);
                   unpack_collective_stage(derez, finder->first);
-                  free(it->first);
+                  free(buffered_msg.first);
                 }
                 reorder_stages->erase(finder);
               }
@@ -1049,13 +1048,11 @@ namespace Legion {
         legion_assert(reorder_stages->size() == 1);
         std::map<int, std::vector<std::pair<void*, size_t> > >::iterator
             remaining = reorder_stages->begin();
-        for (std::vector<std::pair<void*, size_t> >::const_iterator it =
-                 remaining->second.begin();
-             it != remaining->second.end(); it++)
+        for (const std::pair<void*, size_t>& buffered_msg : remaining->second)
         {
-          Deserializer derez(it->first, it->second);
+          Deserializer derez(buffered_msg.first, buffered_msg.second);
           unpack_collective_stage(derez, remaining->first);
-          free(it->first);
+          free(buffered_msg.first);
         }
         reorder_stages->erase(remaining);
       }
@@ -1260,11 +1257,10 @@ namespace Legion {
     BufferExchange::~BufferExchange(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<ShardID, std::pair<void*, size_t> >::const_iterator it =
-               results.begin();
-           it != results.end(); it++)
-        if (it->second.second > 0)
-          free(it->second.first);
+      for (const std::pair<const ShardID, std::pair<void*, size_t> >& result :
+           results)
+        if (result.second.second > 0)
+          free(result.second.first);
     }
 
     //--------------------------------------------------------------------------
@@ -1273,14 +1269,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(results.size());
-      for (std::map<ShardID, std::pair<void*, size_t> >::const_iterator it =
-               results.begin();
-           it != results.end(); it++)
+      for (const std::pair<const ShardID, std::pair<void*, size_t> >& result :
+           results)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second.second);
-        if (it->second.second > 0)
-          rez.serialize(it->second.first, it->second.second);
+        rez.serialize(result.first);
+        rez.serialize(result.second.second);
+        if (result.second.second > 0)
+          rez.serialize(result.second.first, result.second.second);
       }
     }
 
@@ -1663,17 +1658,19 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<ApEvent> postconditions;
-      for (std::map<ShardID, PendingReduction>::const_iterator it =
-               pending_reductions.begin();
-           it != pending_reductions.end(); it++)
+      for (const std::pair<const ShardID, PendingReduction>& pending_reduction :
+           pending_reductions)
       {
         ApEvent post = instance->reduce_from(
-            it->second.instance, op, redop_id, redop, false /*exclusive*/,
+            pending_reduction.second.instance, op, redop_id, redop,
+            false /*exclusive*/,
             Runtime::merge_events(
-                nullptr, instance_ready, it->second.precondition));
-        if (it->second.postcondition.exists())
-          Runtime::trigger_event_untraced(it->second.postcondition, post);
-        delete it->second.instance;
+                nullptr, instance_ready,
+                pending_reduction.second.precondition));
+        if (pending_reduction.second.postcondition.exists())
+          Runtime::trigger_event_untraced(
+              pending_reduction.second.postcondition, post);
+        delete pending_reduction.second.instance;
         if (post.exists())
           postconditions.emplace_back(post);
       }
@@ -1800,10 +1797,9 @@ namespace Legion {
     FutureReductionCollective::~FutureReductionCollective(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<ShardID, std::pair<FutureInstance*, ApEvent> >::
-               const_iterator it = pending_reductions.begin();
-           it != pending_reductions.end(); it++)
-        delete it->second.first;
+      for (const std::pair<const ShardID, std::pair<FutureInstance*, ApEvent> >&
+               pending_reduction : pending_reductions)
+        delete pending_reduction.second.first;
     }
 
     //--------------------------------------------------------------------------
@@ -1876,12 +1872,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Do these in order for determinism
-      for (std::map<ShardID, std::pair<FutureInstance*, ApEvent> >::
-               const_iterator it = pending_reductions.begin();
-           it != pending_reductions.end(); it++)
+      for (const std::pair<const ShardID, std::pair<FutureInstance*, ApEvent> >&
+               pending_reduction : pending_reductions)
         ready = instance->reduce_from(
-            it->second.first, op, redop_id, redop, true /*exclusive*/,
-            Runtime::merge_events(nullptr, ready, it->second.second));
+            pending_reduction.second.first, op, redop_id, redop,
+            true /*exclusive*/,
+            Runtime::merge_events(
+                nullptr, ready, pending_reduction.second.second));
     }
 
     /////////////////////////////////////////////////////////////
@@ -1906,9 +1903,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(participants.size());
-      for (std::set<ShardID>::const_iterator it = participants.begin();
-           it != participants.end(); it++)
-        rez.serialize(*it);
+      for (const ShardID& shard_id : participants) rez.serialize(shard_id);
     }
 
     //--------------------------------------------------------------------------
@@ -1976,18 +1971,16 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(domain_points.size());
-      for (std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >::
-               const_iterator pit = domain_points.begin();
-           pit != domain_points.end(); pit++)
+      for (const std::pair<
+               const unsigned, std::vector<std::pair<DomainPoint, Domain> > >&
+               domain_point : domain_points)
       {
-        rez.serialize(pit->first);
-        rez.serialize<size_t>(pit->second.size());
-        for (std::vector<std::pair<DomainPoint, Domain> >::const_iterator it =
-                 pit->second.begin();
-             it != pit->second.end(); it++)
+        rez.serialize(domain_point.first);
+        rez.serialize<size_t>(domain_point.second.size());
+        for (const std::pair<DomainPoint, Domain>& point : domain_point.second)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(point.first);
+          rez.serialize(point.second);
         }
       }
     }
@@ -2071,11 +2064,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(results.size());
-      for (std::map<ShardID, ShardingID>::const_iterator it = results.begin();
-           it != results.end(); it++)
+      for (const std::pair<const ShardID, ShardingID>& result : results)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(result.first);
+        rez.serialize(result.second);
       }
     }
 
@@ -2112,10 +2104,9 @@ namespace Legion {
       legion_assert(is_target());
       // Wait for the results
       perform_collective_wait();
-      for (std::map<ShardID, ShardingID>::const_iterator it = results.begin();
-           it != results.end(); it++)
+      for (const std::pair<const ShardID, ShardingID>& result : results)
       {
-        if (it->second != value)
+        if (result.second != value)
           return false;
       }
       return true;
@@ -2131,9 +2122,8 @@ namespace Legion {
       : total_spaces(spaces.size()), radix(r)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<AddressSpaceID>::const_iterator it = spaces.begin();
-           it != spaces.end(); it++)
-        unique_sorted_spaces.add(*it);
+      for (const AddressSpaceID& space : spaces)
+        unique_sorted_spaces.add(space);
     }
 
     //--------------------------------------------------------------------------

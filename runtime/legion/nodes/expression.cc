@@ -104,28 +104,24 @@ namespace Legion {
         if (!derived_operations.empty())
         {
           derived.reserve(derived_operations.size());
-          for (std::set<IndexSpaceOperation*>::const_iterator it =
-                   derived_operations.begin();
-               it != derived_operations.end(); it++)
+          for (IndexSpaceOperation* const operation : derived_operations)
           {
-            (*it)->add_nested_resource_ref(did);
-            derived.emplace_back(*it);
+            operation->add_nested_resource_ref(did);
+            derived.emplace_back(operation);
           }
         }
       }
       if (!derived.empty())
       {
-        for (std::vector<IndexSpaceOperation*>::const_iterator it =
-                 derived.begin();
-             it != derived.end(); it++)
+        for (IndexSpaceOperation* const operation : derived)
         {
           // Try to invalidate it and remove the tree reference if we did
-          if ((*it)->invalidate_operation() &&
-              (*it)->remove_base_gc_ref(REGION_TREE_REF))
+          if (operation->invalidate_operation() &&
+              operation->remove_base_gc_ref(REGION_TREE_REF))
             std::abort();  // should never delete since we have a resource ref
           // Remove any references that we have on the parents
-          if ((*it)->remove_nested_resource_ref(did))
-            delete (*it);
+          if (operation->remove_nested_resource_ref(did))
+            delete operation;
         }
       }
     }

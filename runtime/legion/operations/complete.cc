@@ -282,13 +282,12 @@ namespace Legion {
         // contained in the collective mapping for the equivalence sets then
         // we're going to participate in the
         const AddressSpaceID local_space = runtime->address_space;
-        for (std::map<DistributedID, unsigned>::const_iterator it =
-                 collective_sets.begin();
-             it != collective_sets.end(); it++)
+        for (const std::pair<const DistributedID, unsigned>& it :
+             collective_sets)
         {
           // See if we can find the equivalence set on this node
           EquivalenceSet* set = static_cast<EquivalenceSet*>(
-              runtime->weak_find_distributed_collectable(it->first));
+              runtime->weak_find_distributed_collectable(it.first));
           if (set == nullptr)
             continue;
           // If we don't have a collective mapping then this equivalence set
@@ -302,7 +301,7 @@ namespace Legion {
             AddressSpaceID capture_space =
                 set->select_collective_trace_capture_space();
             if (capture_space == local_space)
-              condition_sets[set] = it->second;
+              condition_sets[set] = it.second;
           }
           if (set->remove_base_resource_ref(RUNTIME_REF))
             delete set;
@@ -469,12 +468,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(collective_sets.size());
-      for (std::map<DistributedID, unsigned>::const_iterator it =
-               collective_sets.begin();
-           it != collective_sets.end(); it++)
+      for (const std::pair<const DistributedID, unsigned>& it : collective_sets)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
     }
 

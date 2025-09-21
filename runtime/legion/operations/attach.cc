@@ -64,16 +64,14 @@ namespace Legion {
         const FieldConstraint& field_constraint =
             layout_constraint_set.field_constraint;
         hdf5_field_files.reserve(field_constraint.field_set.size());
-        for (std::vector<FieldID>::const_iterator it =
-                 field_constraint.field_set.begin();
-             it != field_constraint.field_set.end(); it++)
+        for (const FieldID& fid : field_constraint.field_set)
         {
           std::map<FieldID, const char*>::const_iterator finder =
-              launcher.field_files.find(*it);
+              launcher.field_files.find(fid);
           if (finder == launcher.field_files.end())
           {
             Error error(LEGION_INTERFACE_EXCEPTION);
-            error << "Unable to find field file name for field " << *it
+            error << "Unable to find field file name for field " << fid
                   << " of HDF5 file " << *this
                   << ". Every field in an HDF5 attach must have a "
                   << "corresponding field file specified field_files.";
@@ -527,9 +525,7 @@ namespace Legion {
           false /*free*/);
       resources = ExternalResources();
       // We can deactivate all of our point operations
-      for (std::vector<PointAttachOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
-        (*it)->deactivate();
+      for (PointAttachOp* point : points) point->deactivate();
       points.clear();
       map_applied_conditions.clear();
       commit_preconditions.clear();
@@ -656,29 +652,26 @@ namespace Legion {
         legion_assert(pointwise_dependences.size() == 1);
         legion_assert(pointwise_dependences.begin()->first == 0);
         std::vector<std::vector<RtEvent> > preconditions(points.size());
-        for (std::vector<PointwiseDependence>::const_iterator pit =
-                 pointwise_dependences.begin()->second.begin();
-             pit != pointwise_dependences.begin()->second.end(); pit++)
+        for (const PointwiseDependence& pit :
+             pointwise_dependences.begin()->second)
         {
           std::map<LogicalRegion, std::vector<DomainPoint> > dependences;
-          pit->find_dependences(requirement, regions, dependences);
-          if (pit->sharding != nullptr)
+          pit.find_dependences(requirement, regions, dependences);
+          if (pit.sharding != nullptr)
           {
             const Domain launch_domain =
-                pit->sharding_domain->get_tight_domain();
+                pit.sharding_domain->get_tight_domain();
             for (unsigned idx = 0; idx < points.size(); idx++)
             {
               std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                   finder = dependences.find(regions[idx]);
               legion_assert(finder != dependences.end());
-              for (std::vector<DomainPoint>::const_iterator it =
-                       finder->second.begin();
-                   it != finder->second.end(); it++)
+              for (const DomainPoint& point : finder->second)
               {
-                ShardID shard = pit->sharding->shard(
-                    *it, launch_domain, parent_ctx->get_total_shards());
+                ShardID shard = pit.sharding->shard(
+                    point, launch_domain, parent_ctx->get_total_shards());
                 RtEvent precondition = parent_ctx->find_pointwise_dependence(
-                    pit->context_index, *it, shard);
+                    pit.context_index, point, shard);
                 if (precondition.exists())
                   preconditions[idx].emplace_back(precondition);
               }
@@ -691,12 +684,10 @@ namespace Legion {
               std::map<LogicalRegion, std::vector<DomainPoint> >::const_iterator
                   finder = dependences.find(regions[idx]);
               legion_assert(finder != dependences.end());
-              for (std::vector<DomainPoint>::const_iterator it =
-                       finder->second.begin();
-                   it != finder->second.end(); it++)
+              for (const DomainPoint& point : finder->second)
               {
                 RtEvent precondition = parent_ctx->find_pointwise_dependence(
-                    pit->context_index, *it, 0 /*shard*/);
+                    pit.context_index, point, 0 /*shard*/);
                 if (precondition.exists())
                   preconditions[idx].emplace_back(precondition);
               }
@@ -805,14 +796,13 @@ namespace Legion {
           point_domains;
       std::vector<std::pair<DomainPoint, Domain> >& domains = point_domains[0];
       domains.reserve(points.size());
-      for (std::vector<PointAttachOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      for (PointAttachOp* point : points)
       {
-        const RegionRequirement& req = (*it)->get_requirement(0 /*index*/);
+        const RegionRequirement& req = point->get_requirement(0 /*index*/);
         Domain point_domain;
         runtime->find_domain(req.region.get_index_space(), point_domain);
         domains.emplace_back(
-            std::make_pair((*it)->get_index_point(), point_domain));
+            std::make_pair(point->get_index_point(), point_domain));
       }
       finish_check_point_requirements(point_domains);
     }
@@ -825,18 +815,17 @@ namespace Legion {
     {
       legion_assert(point_domains.size() == 1);
       std::vector<std::pair<DomainPoint, Domain> >& domains = point_domains[0];
-      for (std::vector<PointAttachOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      for (PointAttachOp* point : points)
       {
-        const RegionRequirement& req = (*it)->get_requirement(0 /*index*/);
+        const RegionRequirement& req = point->get_requirement(0 /*index*/);
         IndexSpaceNode* node = runtime->get_node(req.region.get_index_space());
         DomainPoint interfering;
         if (node->has_interfering_point(
-                domains, interfering, (*it)->get_index_point()))
+                domains, interfering, point->get_index_point()))
         {
           Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
           error << "Index " << *this << " has interfering region requirements "
-                << "between point " << (*it)->get_index_point() << " and point "
+                << "between point " << point->get_index_point() << " and point "
                 << interfering << ". All regions specified for an index attach "
                 << "operation must have non-interfering regions.";
           error.raise();
@@ -892,18 +881,17 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       }
       legion_assert(!points.empty());
-      for (std::vector<PointAttachOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      for (PointAttachOp* it : points)
       {
-        if (point != (*it)->index_point)
+        if (point != it->index_point)
           continue;
         if (to_trigger.exists())
         {
-          Runtime::trigger_event(to_trigger, (*it)->get_mapped_event());
+          Runtime::trigger_event(to_trigger, it->get_mapped_event());
           return to_trigger;
         }
         else
-          return (*it)->get_mapped_event();
+          return it->get_mapped_event();
       }
       // Should never get here, if we do that means we couldn't find the point
       std::abort();
@@ -967,18 +955,16 @@ namespace Legion {
         const FieldConstraint& field_constraint =
             layout_constraint_set.field_constraint;
         hdf5_field_files.reserve(field_constraint.field_set.size());
-        for (std::vector<FieldID>::const_iterator it =
-                 field_constraint.field_set.begin();
-             it != field_constraint.field_set.end(); it++)
+        for (const FieldID& fid : field_constraint.field_set)
         {
           std::map<FieldID, std::vector<const char*> >::const_iterator finder =
-              launcher.field_files.find(*it);
+              launcher.field_files.find(fid);
           if ((finder == launcher.field_files.end()) ||
               (index >= finder->second.size()))
           {
             Error error(LEGION_INTERFACE_EXCEPTION);
             error
-                << "Unable to find field file name for field " << *it << " of "
+                << "Unable to find field file name for field " << fid << " of "
                 << "HDF5 file " << *this
                 << ". Every field in an HDF5 attach must have a corresponding "
                 << "field file specified field_files.";
@@ -1370,15 +1356,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(shard_spaces.size());
-      for (std::map<ShardID, std::vector<IndexSpace> >::const_iterator sit =
-               shard_spaces.begin();
-           sit != shard_spaces.end(); sit++)
+      for (const std::pair<const ShardID, std::vector<IndexSpace> >& sit :
+           shard_spaces)
       {
-        rez.serialize(sit->first);
-        rez.serialize<size_t>(sit->second.size());
-        for (std::vector<IndexSpace>::const_iterator it = sit->second.begin();
-             it != sit->second.end(); it++)
-          rez.serialize(*it);
+        rez.serialize(sit.first);
+        rez.serialize<size_t>(sit.second.size());
+        for (const IndexSpace& it : sit.second) rez.serialize(it);
       }
     }
 
@@ -1417,22 +1400,20 @@ namespace Legion {
     {
       perform_collective_wait();
       size_t total_spaces = 0;
-      for (std::map<ShardID, std::vector<IndexSpace> >::const_iterator it =
-               shard_spaces.begin();
-           it != shard_spaces.end(); it++)
-        total_spaces += it->second.size();
+      for (const std::pair<const ShardID, std::vector<IndexSpace> >& it :
+           shard_spaces)
+        total_spaces += it.second.size();
       spaces.reserve(total_spaces);
       size_t local_size = 0;
-      for (std::map<ShardID, std::vector<IndexSpace> >::const_iterator it =
-               shard_spaces.begin();
-           it != shard_spaces.end(); it++)
+      for (const std::pair<const ShardID, std::vector<IndexSpace> >& it :
+           shard_spaces)
       {
-        if (it->first == local_shard)
+        if (it.first == local_shard)
         {
           local_start = spaces.size();
-          local_size = it->second.size();
+          local_size = it.second.size();
         }
-        spaces.insert(spaces.end(), it->second.begin(), it->second.end());
+        spaces.insert(spaces.end(), it.second.begin(), it.second.end());
       }
       return local_size;
     }

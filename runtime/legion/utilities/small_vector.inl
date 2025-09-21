@@ -93,9 +93,8 @@ namespace Legion {
         const std::vector<T*>& vector = get_vector();
         if (!SORTED)
         {
-          for (typename std::vector<T*>::const_iterator it = vector.begin();
-               it != vector.end(); it++)
-            if ((*it) == value)
+          for (T* const & element : vector)
+            if (element == value)
               return true;
           return false;
         }

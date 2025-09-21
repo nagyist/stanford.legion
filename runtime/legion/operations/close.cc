@@ -523,12 +523,10 @@ namespace Legion {
           runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
           sizeof(response), profiling_priority);
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it =
-               profiling_requests.begin();
-           it != profiling_requests.end(); it++)
+      for (const ProfilingMeasurementID& it : profiling_requests)
       {
         const Realm::ProfilingMeasurementID measurement =
-            (Realm::ProfilingMeasurementID)*it;
+            (Realm::ProfilingMeasurementID)it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;

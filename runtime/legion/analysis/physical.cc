@@ -434,10 +434,7 @@ namespace Legion {
       }
       if (!to_remove.empty())
       {
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                 to_remove.begin();
-             it != to_remove.end(); it++)
-          exprs.erase(*it);
+        for (IndexSpaceExpression* it : to_remove) exprs.erase(it);
       }
       if (!to_add.empty())
       {

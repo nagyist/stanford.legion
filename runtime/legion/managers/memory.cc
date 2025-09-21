@@ -559,12 +559,11 @@ namespace Legion {
             try_again = true;
             std::vector<RtEvent> done_events;
             done_events.reserve(pending_frees.size());
-            for (std::map<unsigned, RtEvent>::const_iterator it =
-                     pending_frees.begin();
-                 it != pending_frees.end(); it++)
+            for (const std::pair<const unsigned, RtEvent>& entry :
+                 pending_frees)
             {
-              deallocate(it->first);
-              done_events.emplace_back(it->second);
+              deallocate(entry.first);
+              done_events.emplace_back(entry.second);
             }
             pending_frees.clear();
             Runtime::merge_events(done_events).wait();
@@ -960,42 +959,39 @@ namespace Legion {
       if (!released)
       {
         // Release all the pending frees
-        for (std::map<unsigned, RtEvent>::const_iterator it =
-                 pending_frees.begin();
-             it != pending_frees.end(); it++)
-          deallocate(it->first);
+        for (const std::pair<const unsigned, RtEvent>& entry : pending_frees)
+          deallocate(entry.first);
         pending_frees.clear();
         // Iterate over all the existing allocations and escape their ranges
         // and replace their backing stores with the escaped instances
         std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >
             new_backing_instances;
-        for (std::map<PhysicalInstance, unsigned>::const_iterator it =
-                 allocated.begin();
-             it != allocated.end(); it++)
+        for (const std::pair<const PhysicalInstance, unsigned>& entry :
+             allocated)
         {
           // If this is a zero-sized instance we can skip it as it is not
           // backed by any memory so there is nothing to escape
-          if (it->second == SENTINEL)
+          if (entry.second == SENTINEL)
             continue;
           LgEvent unique_event;
           PhysicalInstance backing_instance;
-          const Realm::InstanceLayoutGeneric* layout = it->first.get_layout();
+          const Realm::InstanceLayoutGeneric* layout = entry.first.get_layout();
           const RtEvent ready = escape_range(
-              it->second, 1 /*num results*/, &backing_instance, &unique_event,
+              entry.second, 1 /*num results*/, &backing_instance, &unique_event,
               &layout, creator);
           new_backing_instances.emplace(std::make_pair(
               backing_instance, std::make_pair(ready, unique_event)));
-          Range& range = ranges[it->second];
+          Range& range = ranges[entry.second];
           range.instance = backing_instance;
         }
         // Then go through and delete the remaining backing stores
-        for (std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >::
-                 const_iterator it = backing_instances.begin();
-             it != backing_instances.end(); it++)
+        for (const std::pair<
+                 const PhysicalInstance, std::pair<RtEvent, LgEvent> >& entry :
+             backing_instances)
         {
           manager->update_remaining_capacity(
-              it->first.get_layout()->bytes_used);
-          it->first.destroy(it->second.first);
+              entry.first.get_layout()->bytes_used);
+          entry.first.destroy(entry.second.first);
         }
         // Now the only remaining backing instances are the ones we made
         backing_instances.swap(new_backing_instances);
@@ -1009,12 +1005,12 @@ namespace Legion {
     {
       // Iterate over all the remaining backing stores delete them
       // once the done event is triggered
-      for (std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >::
-               const_iterator it = backing_instances.begin();
-           it != backing_instances.end(); it++)
+      for (const std::pair<
+               const PhysicalInstance, std::pair<RtEvent, LgEvent> >& it :
+           backing_instances)
       {
-        manager->update_remaining_capacity(it->first.get_layout()->bytes_used);
-        it->first.destroy(Runtime::merge_events(it->second.first, done));
+        manager->update_remaining_capacity(it.first.get_layout()->bytes_used);
+        it.first.destroy(Runtime::merge_events(it.second.first, done));
       }
     }
 
@@ -1243,14 +1239,12 @@ namespace Legion {
       // Capture valid references on any instances in the same memory as
       // this unbounded pool to prevent them from being deferred deleted
       // to satisfy allocations done by this pool
-      for (std::map<PhysicalManager*, unsigned>::const_iterator it =
-               instances.begin();
-           it != instances.end(); it++)
+      for (const std::pair<PhysicalManager* const, unsigned>& entry : instances)
       {
-        if (memory != it->first->get_memory())
+        if (memory != entry.first->get_memory())
           continue;
-        it->first->add_base_valid_ref(UNBOUNDED_POOL_REF);
-        captured_instances.push_back(it->first);
+        entry.first->add_base_valid_ref(UNBOUNDED_POOL_REF);
+        captured_instances.push_back(entry.first);
       }
     }
 
@@ -1338,13 +1332,11 @@ namespace Legion {
         // If it doesn't work, free all our freed instances (which are all
         // smaller than the size or we would have found a hole to use) and
         // then try again
-        for (std::map<size_t, std::list<FreedInstance> >::const_iterator fit =
-                 freed_instances.begin();
-             fit != freed_instances.end(); fit++)
-          for (std::list<FreedInstance>::const_iterator it =
-                   fit->second.begin();
-               it != fit->second.end(); it++)
-            manager->free_task_local_instance(it->instance, it->precondition);
+        for (const std::pair<const size_t, std::list<FreedInstance> >&
+                 fit_entry : freed_instances)
+          for (const FreedInstance& freed_instance : fit_entry.second)
+            manager->free_task_local_instance(
+                freed_instance.instance, freed_instance.precondition);
         freed_instances.clear();
         freed_bytes = 0;
       }
@@ -1421,13 +1413,11 @@ namespace Legion {
         // If it doesn't work, free all our freed instances (which are all
         // smaller than the size or we would have found a hole to use) and
         // then try again
-        for (std::map<size_t, std::list<FreedInstance> >::const_iterator fit =
-                 freed_instances.begin();
-             fit != freed_instances.end(); fit++)
-          for (std::list<FreedInstance>::const_iterator it =
-                   fit->second.begin();
-               it != fit->second.end(); it++)
-            manager->free_task_local_instance(it->instance, it->precondition);
+        for (const std::pair<const size_t, std::list<FreedInstance> >&
+                 fit_entry : freed_instances)
+          for (const FreedInstance& freed_instance : fit_entry.second)
+            manager->free_task_local_instance(
+                freed_instance.instance, freed_instance.precondition);
         freed_instances.clear();
         freed_bytes = 0;
       }
@@ -1548,18 +1538,14 @@ namespace Legion {
     {
       if (!released)
       {
-        for (std::map<size_t, std::list<FreedInstance> >::const_iterator fit =
-                 freed_instances.begin();
-             fit != freed_instances.end(); fit++)
-          for (std::list<FreedInstance>::const_iterator it =
-                   fit->second.begin();
-               it != fit->second.end(); it++)
-            manager->free_task_local_instance(it->instance, it->precondition);
-        for (std::vector<PhysicalManager*>::const_iterator it =
-                 captured_instances.begin();
-             it != captured_instances.end(); it++)
-          if ((*it)->remove_base_valid_ref(UNBOUNDED_POOL_REF))
-            delete (*it);
+        for (const std::pair<const size_t, std::list<FreedInstance> >&
+                 fit_entry : freed_instances)
+          for (const FreedInstance& freed_instance : fit_entry.second)
+            manager->free_task_local_instance(
+                freed_instance.instance, freed_instance.precondition);
+        for (PhysicalManager* const & physical_manager : captured_instances)
+          if (physical_manager->remove_base_valid_ref(UNBOUNDED_POOL_REF))
+            delete physical_manager;
         manager->release_unbound_pool();
         freed_instances.clear();
         captured_instances.clear();
@@ -1586,14 +1572,12 @@ namespace Legion {
       rez.serialize(scope);
       coordinates.serialize(rez);
       rez.serialize<size_t>(captured_instances.size());
-      for (std::vector<PhysicalManager*>::const_iterator it =
-               captured_instances.begin();
-           it != captured_instances.end(); it++)
+      for (PhysicalManager* const & physical_manager : captured_instances)
       {
-        rez.serialize((*it)->did);
-        (*it)->pack_valid_ref();
-        if ((*it)->remove_base_valid_ref(UNBOUNDED_POOL_REF))
-          delete (*it);
+        rez.serialize(physical_manager->did);
+        physical_manager->pack_valid_ref();
+        if (physical_manager->remove_base_valid_ref(UNBOUNDED_POOL_REF))
+          delete physical_manager;
       }
       captured_instances.clear();
     }
@@ -1618,12 +1602,10 @@ namespace Legion {
       }
       if (!ready_events.empty())
         Runtime::merge_events(ready_events).wait();
-      for (std::vector<PhysicalManager*>::const_iterator it =
-               captured_instances.begin();
-           it != captured_instances.end(); it++)
+      for (PhysicalManager* const & physical_manager : captured_instances)
       {
-        (*it)->add_base_valid_ref(UNBOUNDED_POOL_REF);
-        (*it)->unpack_valid_ref();
+        physical_manager->add_base_valid_ref(UNBOUNDED_POOL_REF);
+        physical_manager->unpack_valid_ref();
       }
     }
 
@@ -1693,12 +1675,11 @@ namespace Legion {
             to_check.emplace_back(it->first);
           }
       }
-      for (std::vector<PhysicalManager*>::const_iterator it = to_check.begin();
-           it != to_check.end(); it++)
+      for (PhysicalManager* const & physical_manager : to_check)
       {
-        (*it)->find_shutdown_preconditions(preconditions);
-        if ((*it)->remove_base_resource_ref(MEMORY_MANAGER_REF))
-          delete (*it);
+        physical_manager->find_shutdown_preconditions(preconditions);
+        if (physical_manager->remove_base_resource_ref(MEMORY_MANAGER_REF))
+          delete physical_manager;
       }
     }
 
@@ -1750,14 +1731,13 @@ namespace Legion {
         const std::vector<PhysicalManager*>& to_delete)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<PhysicalManager*>::const_iterator it = to_delete.begin();
-           it != to_delete.end(); it++)
+      for (PhysicalManager* const & physical_manager : to_delete)
       {
-        legion_assert(!(*it)->is_external_instance());
+        legion_assert(!physical_manager->is_external_instance());
         RtEvent deletion_done;
-        (*it)->collect(deletion_done);
-        if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
-          delete (*it);
+        physical_manager->collect(deletion_done);
+        if (physical_manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+          delete physical_manager;
       }
     }
 
@@ -1798,10 +1778,9 @@ namespace Legion {
           it->first->force_deletion();
       current_instances.clear();
 #ifdef LEGION_MALLOC_INSTANCES
-      for (std::map<RtEvent, PhysicalInstance>::const_iterator it =
-               pending_collectables.begin();
-           it != pending_collectables.end(); it++)
-        free_legion_instance(it->first, it->second);
+      for (const std::pair<const RtEvent, PhysicalInstance> > &it :
+           pending_collectables)
+        free_legion_instance(it.first, it.second);
       pending_collectables.clear();
 #endif
     }
@@ -3437,12 +3416,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       RegionTreeID tree_id = 0;
-      for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-           it != regions.end(); it++)
+      for (const LogicalRegion& region : regions)
       {
-        if (!it->exists())
+        if (!region.exists())
           continue;
-        tree_id = it->get_tree_id();
+        tree_id = region.get_tree_id();
         break;
       }
       std::deque<PhysicalManager*> candidates;
@@ -3488,35 +3466,32 @@ namespace Legion {
         if (tree_id != 0)
         {
           std::set<IndexSpaceExpression*> region_exprs;
-          for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-               it != regions.end(); it++)
+          for (const LogicalRegion& region : regions)
           {
             // If the region tree IDs don't match that is bad
-            if (tree_id != it->get_tree_id())
+            if (tree_id != region.get_tree_id())
               return false;
-            RegionNode* node = runtime->get_node(*it);
+            RegionNode* node = runtime->get_node(region);
             region_exprs.insert(node->row_source);
           }
           IndexSpaceExpression* space_expr =
               (region_exprs.size() == 1) ?
                   *(region_exprs.begin()) :
                   runtime->union_index_spaces(region_exprs);
-          for (std::deque<PhysicalManager*>::const_iterator it =
-                   candidates.begin();
-               it != candidates.end(); it++)
+          for (PhysicalManager* manager : candidates)
           {
-            if (!(*it)->meets_expression(
+            if (!manager->meets_expression(
                     space_expr, tight_region_bounds,
                     &constraints.padding_constraint.delta))
               continue;
-            if ((*it)->entails(constraints, nullptr))
+            if (manager->entails(constraints, nullptr))
             {
               // Check to see if we need to acquire
               // If we fail to acquire then keep going
-              if (acquire && !(*it)->acquire_instance(MAPPING_ACQUIRE_REF))
+              if (acquire && !manager->acquire_instance(MAPPING_ACQUIRE_REF))
                 continue;
               // If we make it here, we succeeded
-              result = MappingInstance(*it);
+              result = MappingInstance(manager);
               found = true;
               break;
             }
@@ -3525,18 +3500,16 @@ namespace Legion {
         else
         {
           // No region constraints, just check the base constraints
-          for (std::deque<PhysicalManager*>::const_iterator it =
-                   candidates.begin();
-               it != candidates.end(); it++)
+          for (PhysicalManager* manager : candidates)
           {
-            if ((*it)->entails(constraints, nullptr))
+            if (manager->entails(constraints, nullptr))
             {
               // Check to see if we need to acquire
               // If we fail to acquire then keep going
-              if (acquire && !(*it)->acquire_instance(MAPPING_ACQUIRE_REF))
+              if (acquire && !manager->acquire_instance(MAPPING_ACQUIRE_REF))
                 continue;
               // If we make it here, we succeeded
-              result = MappingInstance(*it);
+              result = MappingInstance(manager);
               found = true;
               break;
             }
@@ -3556,12 +3529,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       RegionTreeID tree_id = 0;
-      for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-           it != regions.end(); it++)
+      for (const LogicalRegion& region : regions)
       {
-        if (!it->exists())
+        if (!region.exists())
           continue;
-        tree_id = it->get_tree_id();
+        tree_id = region.get_tree_id();
         break;
       }
       std::deque<PhysicalManager*> candidates;
@@ -3606,53 +3578,48 @@ namespace Legion {
         if (tree_id != 0)
         {
           std::set<IndexSpaceExpression*> region_exprs;
-          for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-               it != regions.end(); it++)
+          for (const LogicalRegion& region : regions)
           {
             // If the region tree IDs don't match that is bad
-            if (tree_id != it->get_tree_id())
+            if (tree_id != region.get_tree_id())
               return;
-            RegionNode* node = runtime->get_node(*it);
+            RegionNode* node = runtime->get_node(region);
             region_exprs.insert(node->row_source);
           }
           IndexSpaceExpression* space_expr =
               (region_exprs.size() == 1) ?
                   *(region_exprs.begin()) :
                   runtime->union_index_spaces(region_exprs);
-          for (std::deque<PhysicalManager*>::const_iterator it =
-                   candidates.begin();
-               it != candidates.end(); it++)
+          for (PhysicalManager* manager : candidates)
           {
-            if (!(*it)->meets_expression(
+            if (!manager->meets_expression(
                     space_expr, tight_region_bounds,
                     &constraints.padding_constraint.delta))
               continue;
-            if ((*it)->entails(constraints, nullptr))
+            if (manager->entails(constraints, nullptr))
             {
               // Check to see if we need to acquire
               // If we fail to acquire then keep going
-              if (acquire && !(*it)->acquire_instance(MAPPING_ACQUIRE_REF))
+              if (acquire && !manager->acquire_instance(MAPPING_ACQUIRE_REF))
                 continue;
               // If we make it here, we succeeded
-              results.emplace_back(MappingInstance(*it));
+              results.emplace_back(MappingInstance(manager));
             }
           }
         }
         else
         {
           // No regions to care about here, just check constraints
-          for (std::deque<PhysicalManager*>::const_iterator it =
-                   candidates.begin();
-               it != candidates.end(); it++)
+          for (PhysicalManager* manager : candidates)
           {
-            if ((*it)->entails(constraints, nullptr))
+            if (manager->entails(constraints, nullptr))
             {
               // Check to see if we need to acquire
               // If we fail to acquire then keep going
-              if (acquire && !(*it)->acquire_instance(MAPPING_ACQUIRE_REF))
+              if (acquire && !manager->acquire_instance(MAPPING_ACQUIRE_REF))
                 continue;
               // If we make it here, we succeeded
-              results.emplace_back(MappingInstance(*it));
+              results.emplace_back(MappingInstance(manager));
             }
           }
         }
@@ -3670,12 +3637,11 @@ namespace Legion {
       if (regions.empty())
         return false;
       RegionTreeID tree_id = 0;
-      for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-           it != regions.end(); it++)
+      for (const LogicalRegion& region : regions)
       {
-        if (!it->exists())
+        if (!region.exists())
           continue;
-        tree_id = it->get_tree_id();
+        tree_id = region.get_tree_id();
         break;
       }
       if (tree_id == 0)
@@ -3702,35 +3668,32 @@ namespace Legion {
       if (!candidates.empty())
       {
         std::set<IndexSpaceExpression*> region_exprs;
-        for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-             it != regions.end(); it++)
+        for (const LogicalRegion& region : regions)
         {
           // If the region tree IDs don't match that is bad
-          if (tree_id != it->get_tree_id())
+          if (tree_id != region.get_tree_id())
             return false;
-          RegionNode* node = runtime->get_node(*it);
+          RegionNode* node = runtime->get_node(region);
           region_exprs.insert(node->row_source);
         }
         IndexSpaceExpression* space_expr =
             (region_exprs.size() == 1) ?
                 *(region_exprs.begin()) :
                 runtime->union_index_spaces(region_exprs);
-        for (std::deque<PhysicalManager*>::const_iterator it =
-                 candidates.begin();
-             it != candidates.end(); it++)
+        for (PhysicalManager* manager : candidates)
         {
-          if (!(*it)->meets_expression(
+          if (!manager->meets_expression(
                   space_expr, tight_region_bounds,
                   &constraints.padding_constraint.delta))
             continue;
-          if ((*it)->entails(constraints, nullptr))
+          if (manager->entails(constraints, nullptr))
           {
             // Check to see if we need to acquire
             // If we fail to acquire then keep going
-            if (acquire && !(*it)->acquire_instance(MAPPING_ACQUIRE_REF))
+            if (acquire && !manager->acquire_instance(MAPPING_ACQUIRE_REF))
               continue;
             // If we make it here, we succeeded
-            result = MappingInstance(*it);
+            result = MappingInstance(manager);
             found = true;
             break;
           }
@@ -3745,12 +3708,9 @@ namespace Legion {
         const std::deque<PhysicalManager*>& candidates) const
     //--------------------------------------------------------------------------
     {
-      for (std::deque<PhysicalManager*>::const_iterator it = candidates.begin();
-           it != candidates.end(); it++)
-      {
-        if ((*it)->remove_base_resource_ref(MEMORY_MANAGER_REF))
-          delete (*it);
-      }
+      for (PhysicalManager* manager : candidates)
+        if (manager->remove_base_resource_ref(MEMORY_MANAGER_REF))
+          delete manager;
     }
 
     //--------------------------------------------------------------------------
@@ -4034,31 +3994,21 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Remove any references to any holes that we are still holding
-      for (std::vector<PhysicalManager*>::const_iterator it =
-               small_holes.begin();
-           it != small_holes.end(); it++)
-        if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
-          delete (*it);
-      for (std::vector<PhysicalManager*>::const_iterator it =
-               perfect_holes.begin();
-           it != perfect_holes.end(); it++)
-        if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
-          delete (*it);
-      for (std::map<size_t, std::vector<PhysicalManager*> >::const_iterator
-               lit = large_holes.begin();
-           lit != large_holes.end(); lit++)
-        for (std::vector<PhysicalManager*>::const_iterator it =
-                 lit->second.begin();
-             it != lit->second.end(); it++)
-          if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
-            delete (*it);
-      for (std::map<uintptr_t, Range>::const_iterator rit = ranges.begin();
-           rit != ranges.end(); rit++)
-        for (std::vector<PhysicalManager*>::const_iterator it =
-                 rit->second.managers.begin();
-             it != rit->second.managers.end(); it++)
-          if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
-            delete (*it);
+      for (PhysicalManager* manager : small_holes)
+        if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+          delete manager;
+      for (PhysicalManager* manager : perfect_holes)
+        if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+          delete manager;
+      for (const std::pair<const size_t, std::vector<PhysicalManager*> >& it :
+           large_holes)
+        for (PhysicalManager* manager : it.second)
+          if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+            delete manager;
+      for (const std::pair<const uintptr_t, Range>& it : ranges)
+        for (PhysicalManager* manager : it.second.managers)
+          if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+            delete manager;
     }
 
     //--------------------------------------------------------------------------
@@ -4236,19 +4186,17 @@ namespace Legion {
           if (needed_size <= rit->second.size)
           {
             std::vector<RtEvent> collected_events;
-            for (std::vector<PhysicalManager*>::const_iterator it =
-                     rit->second.managers.begin();
-                 it != rit->second.managers.end(); it++)
+            for (PhysicalManager* manager : rit->second.managers)
             {
               RtEvent collected;
-              if ((*it)->collect(collected))
+              if (manager->collect(collected))
               {
-                update_capacity((*it)->instance_footprint);
+                update_capacity(manager->instance_footprint);
                 if (collected.exists())
                   collected_events.emplace_back(collected);
               }
-              if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
-                delete (*it);
+              if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+                delete manager;
             }
             ranges.erase(rit);
             if (!collected_events.empty())
@@ -4266,20 +4214,18 @@ namespace Legion {
         while (!ranges.empty())
         {
           std::map<uintptr_t, Range>::iterator rit = ranges.begin();
-          for (std::vector<PhysicalManager*>::const_iterator it =
-                   rit->second.managers.begin();
-               it != rit->second.managers.end(); it++)
+          for (PhysicalManager* manager : rit->second.managers)
           {
             RtEvent collected;
-            if ((*it)->collect(collected))
+            if (manager->collect(collected))
             {
-              update_capacity((*it)->instance_footprint);
+              update_capacity(manager->instance_footprint);
               if (collected.exists())
                 collected_events.emplace_back(collected);
             }
-            freed_size += (*it)->instance_footprint;
-            if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
-              delete (*it);
+            freed_size += manager->instance_footprint;
+            if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+              delete manager;
           }
           ranges.erase(rit);
           if (needed_size <= freed_size)
@@ -4385,22 +4331,20 @@ namespace Legion {
       if (is_owner)
       {
         AutoLock m_lock(manager_lock);
-        for (std::vector<PhysicalManager*>::const_iterator it =
-                 instances.begin();
-             it != instances.end(); it++)
+        for (PhysicalManager* manager : instances)
         {
           lng::map<RegionTreeID, TreeInstances>::iterator current_finder =
-              current_instances.find((*it)->tree_id);
+              current_instances.find(manager->tree_id);
           if (current_finder == current_instances.end())
             continue;
-          TreeInstances::iterator finder = current_finder->second.find(*it);
+          TreeInstances::iterator finder = current_finder->second.find(manager);
           if (finder == current_finder->second.end())
             continue;
           current_finder->second.erase(finder);
           if (current_finder->second.empty())
             current_instances.erase(current_finder);
-          if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
-            delete (*it);
+          if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+            delete manager;
         }
       }
       else
@@ -4411,12 +4355,10 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(memory);
           rez.serialize<size_t>(instances.size());
-          for (std::vector<PhysicalManager*>::const_iterator it =
-                   instances.begin();
-               it != instances.end(); it++)
+          for (PhysicalManager* manager : instances)
           {
-            rez.serialize((*it)->did);
-            (*it)->pack_global_ref();
+            rez.serialize(manager->did);
+            manager->pack_global_ref();
           }
         }
         rez.dispatch(owner_space);
@@ -4792,34 +4734,33 @@ namespace Legion {
       uint64_t min_pending = std::numeric_limits<uint64_t>::max();
       TaskTreeCoordinates next_coords;
       std::vector<SingleTask*> next_tasks;
-      for (std::map<SingleTask*, CollectiveState>::const_iterator it =
-               collective_tasks.begin();
-           it != collective_tasks.end(); it++)
+      for (const std::pair<SingleTask* const, CollectiveState>& it :
+           collective_tasks)
       {
-        if (it->second.max)
+        if (it.second.max)
         {
           if (!next_tasks.empty())
           {
             // Compare the lamport clocks
-            if (it->second.lamport_clock < min_next)
+            if (it.second.lamport_clock < min_next)
             {
               next_tasks.clear();
-              next_tasks.emplace_back(it->first);
+              next_tasks.emplace_back(it.first);
               next_coords.clear();
-              min_next = it->second.lamport_clock;
+              min_next = it.second.lamport_clock;
             }
-            else if (min_next == it->second.lamport_clock)
+            else if (min_next == it.second.lamport_clock)
             {
               // Very bad case, same min of max all-reduce of clocks
               // Resolve this conflict based on task tree coordinates
               TaskTreeCoordinates it_coords;
               if (next_coords.empty())
                 next_tasks.back()->compute_task_tree_coordinates(next_coords);
-              it->first->compute_task_tree_coordinates(it_coords);
+              it.first->compute_task_tree_coordinates(it_coords);
               // See if these are the same index space
               if (next_coords.same_index_space(it_coords))
               {
-                next_tasks.emplace_back(it->first);
+                next_tasks.emplace_back(it.first);
                 continue;
               }
               const size_t lower_bound =
@@ -4834,7 +4775,7 @@ namespace Legion {
                   if (c2.index_point < c1.index_point)
                   {
                     next_tasks.clear();
-                    next_tasks.emplace_back(it->first);
+                    next_tasks.emplace_back(it.first);
                     next_coords.swap(it_coords);
                   }
                   else if (c1.index_point == c2.index_point)
@@ -4843,7 +4784,7 @@ namespace Legion {
                 else if (c2.context_index < c1.context_index)
                 {
                   next_tasks.clear();
-                  next_tasks.emplace_back(it->first);
+                  next_tasks.emplace_back(it.first);
                   next_coords.swap(it_coords);
                 }
                 equal = false;
@@ -4855,7 +4796,7 @@ namespace Legion {
                 if (it_coords.size() < next_coords.size())
                 {
                   next_tasks.clear();
-                  next_tasks.emplace_back(it->first);
+                  next_tasks.emplace_back(it.first);
                   next_coords.swap(it_coords);
                 }
               }
@@ -4863,12 +4804,12 @@ namespace Legion {
           }
           else
           {
-            next_tasks.emplace_back(it->first);
-            min_next = it->second.lamport_clock;
+            next_tasks.emplace_back(it.first);
+            min_next = it.second.lamport_clock;
           }
         }
-        else if (it->second.lamport_clock < min_pending)
-          min_pending = it->second.lamport_clock;
+        else if (it.second.lamport_clock < min_pending)
+          min_pending = it.second.lamport_clock;
       }
       // If all the pending tasks with lamport clocks are
       // larger than our max lamport clock of the next task
@@ -4878,11 +4819,10 @@ namespace Legion {
       if (min_next < min_pending)
       {
         // Start all the next tasks
-        for (std::vector<SingleTask*>::const_iterator it = next_tasks.begin();
-             it != next_tasks.end(); it++)
+        for (SingleTask* next_task : next_tasks)
         {
           std::map<SingleTask*, CollectiveState>::iterator finder =
-              collective_tasks.find(*it);
+              collective_tasks.find(next_task);
           legion_assert(finder != collective_tasks.end());
           if (finder->second.ready_event.exists())
             Runtime::trigger_event(finder->second.ready_event);

@@ -73,9 +73,8 @@ namespace Legion {
         if (layout != nullptr)
           layout->has_fields(fields);
         else
-          for (std::map<FieldID, bool>::iterator it = fields.begin();
-               it != fields.end(); it++)
-            it->second = false;
+          for (std::pair<const FieldID, bool>& field_pair : fields)
+            field_pair.second = false;
       }
       inline void remove_space_fields(std::set<FieldID>& fields) const
       {

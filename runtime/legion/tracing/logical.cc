@@ -412,20 +412,17 @@ namespace Legion {
       // Make a copy of the dependences and then update the context index
       // with the right entry from the list of operations
       std::map<unsigned, std::vector<PointwiseDependence>> copy = dependences;
-      for (std::map<unsigned, std::vector<PointwiseDependence>>::iterator cit =
-               copy.begin();
-           cit != copy.end(); cit++)
+      for (std::pair<const unsigned, std::vector<PointwiseDependence>>& cit :
+           copy)
       {
-        for (std::vector<PointwiseDependence>::iterator it =
-                 cit->second.begin();
-             it != cit->second.end(); it++)
+        for (PointwiseDependence& it : cit.second)
         {
-          const OpInfo& info = operations[it->context_index];
-          it->context_index = info.context_index;
-          it->unique_id = info.unique_id;
+          const OpInfo& info = operations[it.context_index];
+          it.context_index = info.context_index;
+          it.unique_id = info.unique_id;
           LegionSpy::log_mapping_dependence(
               op->get_context()->get_unique_id(), info.unique_id,
-              it->region_index, op->get_unique_op_id(), cit->first,
+              it.region_index, op->get_unique_op_id(), cit.first,
               LEGION_TRUE_DEPENDENCE, true /*pointwise*/);
         }
       }
@@ -734,15 +731,14 @@ namespace Legion {
         trace_fence = nullptr;
         // Register for this fence on every one of the operations in
         // the trace and then clear out the operations data structure
-        for (std::map<std::pair<Operation*, GenerationID>, UniqueID>::iterator
-                 it = frontiers.begin();
-             it != frontiers.end(); ++it)
+        for (std::pair<const std::pair<Operation*, GenerationID>, UniqueID>&
+                 it : frontiers)
         {
-          const std::pair<Operation*, GenerationID>& target = it->first;
+          const std::pair<Operation*, GenerationID>& target = it.first;
           legion_assert(!target.first->is_internal_op());
           op->register_dependence(target.first, target.second);
           LegionSpy::log_mapping_dependence(
-              op->get_context()->get_unique_id(), it->second, 0 /*idx*/,
+              op->get_context()->get_unique_id(), it.second, 0 /*idx*/,
               op->get_unique_op_id(), 0, LEGION_TRUE_DEPENDENCE);
           // Remove any mapping references that we hold
           target.first->remove_mapping_reference(target.second);
@@ -760,14 +756,13 @@ namespace Legion {
           delete static_translator;
           static_translator = nullptr;
           // Also remove the mapping references from all the operations
-          for (std::vector<OpInfo>::const_iterator it = operations.begin();
-               it != operations.end(); it++)
-            it->op->remove_mapping_reference(it->gen);
+          for (const OpInfo& info : operations)
+            info.op->remove_mapping_reference(info.gen);
           // Remove mapping fences on the frontiers which haven't been removed
-          for (std::map<std::pair<Operation*, GenerationID>, UniqueID>::
-                   const_iterator it = frontiers.begin();
-               it != frontiers.end(); it++)
-            it->first.first->remove_mapping_reference(it->second);
+          for (const std::pair<
+                   const std::pair<Operation*, GenerationID>, UniqueID>& it :
+               frontiers)
+            it.first.first->remove_mapping_reference(it.second);
         }
       }
       operations.clear();
@@ -784,10 +779,9 @@ namespace Legion {
           concurrent_colors.find(task->get_trace_local_id());
       if (finder == concurrent_colors.end())
         return false;
-      for (std::vector<Color>::const_iterator it = finder->second.begin();
-           it != finder->second.end(); it++)
+      for (const Color& color : finder->second)
         concurrent_exchange_colors.emplace(
-            std::pair<Color, CollectiveID>(*it, 0));
+            std::make_pair(color, CollectiveID(0)));
       return true;
     }
 
@@ -801,10 +795,9 @@ namespace Legion {
       std::vector<Color>& colors = concurrent_colors[tlid];
       legion_assert(colors.empty());
       colors.reserve(concurrent_exchange_colors.size());
-      for (std::map<Color, CollectiveID>::const_iterator it =
-               concurrent_exchange_colors.begin();
-           it != concurrent_exchange_colors.end(); it++)
-        colors.emplace_back(it->first);
+      for (const std::pair<const Color, CollectiveID>& it :
+           concurrent_exchange_colors)
+        colors.emplace_back(it.first);
     }
 
     //--------------------------------------------------------------------------
@@ -814,37 +807,35 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const bool is_replicated = (context->get_replication_id() > 0);
-      for (std::vector<StaticDependence>::const_iterator it =
-               dependences.begin();
-           it != dependences.end(); it++)
+      for (const StaticDependence& it : dependences)
       {
-        if (it->dependence_type == LEGION_NO_DEPENDENCE)
+        if (it.dependence_type == LEGION_NO_DEPENDENCE)
           continue;
-        legion_assert(it->previous_offset <= index);
+        legion_assert(it.previous_offset <= index);
         // const std::pair<Operation*,GenerationID> &prev =
         std::pair<Operation*, GenerationID> prev = std::make_pair(
-            operations[index - it->previous_offset].op,
-            operations[index - it->previous_offset].gen);
-        unsigned parent_index = op->find_parent_index(it->current_req_index);
+            operations[index - it.previous_offset].op,
+            operations[index - it.previous_offset].gen);
+        unsigned parent_index = op->find_parent_index(it.current_req_index);
         LogicalRegion root_region = context->find_logical_region(parent_index);
         FieldSpaceNode* fs = runtime->get_node(root_region.get_field_space());
-        const FieldMask mask = fs->get_field_mask(it->dependent_fields);
-        if (is_replicated && !it->shard_only)
+        const FieldMask mask = fs->get_field_mask(it.dependent_fields);
+        if (is_replicated && !it.shard_only)
         {
           // Need a merge close op to mediate the dependence
           RegionRequirement req(
               root_region, LEGION_READ_WRITE, LEGION_EXCLUSIVE, root_region);
-          req.privilege_fields = it->dependent_fields;
+          req.privilege_fields = it.dependent_fields;
 #ifdef LEGION_DEBUG_COLLECTIVES
           MergeCloseOp* close_op =
               context->get_merge_close_op(op, runtime->get_node(root_region));
 #else
           MergeCloseOp* close_op = context->get_merge_close_op();
 #endif
-          close_op->initialize(context, req, it->current_req_index, op);
+          close_op->initialize(context, req, it.current_req_index, op);
           close_op->update_close_mask(mask);
           register_close(
-              close_op, it->current_req_index,
+              close_op, it.current_req_index,
 #ifdef LEGION_DEBUG_COLLECTIVES
               runtime->get_node(root_region),
 #endif
@@ -855,11 +846,11 @@ namespace Legion {
           close_op->trigger_dependence_analysis();
           // Record the dependence of the close on the previous op
           close_op->register_region_dependence(
-              0 /*close index*/, prev.first, prev.second,
-              it->previous_req_index, LEGION_TRUE_DEPENDENCE, mask);
+              0 /*close index*/, prev.first, prev.second, it.previous_req_index,
+              LEGION_TRUE_DEPENDENCE, mask);
           // Then record our dependence on the close operation
           op->register_region_dependence(
-              it->current_req_index, close_op, close_op->get_generation(),
+              it.current_req_index, close_op, close_op->get_generation(),
               0 /*close index*/, LEGION_TRUE_DEPENDENCE, mask);
           // Dispatch this close op
           close_op->end_dependence_analysis();
@@ -868,8 +859,8 @@ namespace Legion {
         {
           // Can just record a normal dependence
           op->register_region_dependence(
-              it->current_req_index, prev.first, prev.second,
-              it->previous_req_index, it->dependence_type, mask);
+              it.current_req_index, prev.first, prev.second,
+              it.previous_req_index, it.dependence_type, mask);
         }
       }
     }

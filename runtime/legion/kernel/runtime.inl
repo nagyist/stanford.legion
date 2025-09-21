@@ -200,9 +200,8 @@ namespace Legion {
       {
         if (!result.exists() || (events.find(result) != events.end()))
           rename_event(result);
-        for (std::set<ApEvent>::const_iterator it = events.begin();
-             it != events.end(); it++)
-          LegionSpy::log_event_dependence(*it, result);
+        for (const ApEvent& event : events)
+          LegionSpy::log_event_dependence(event, result);
       }
       if ((implicit_profiler != nullptr) && result.exists())
       {
@@ -271,9 +270,8 @@ namespace Legion {
         }
         else
           rename_event(result);
-        for (std::vector<ApEvent>::const_iterator it = events.begin();
-             it != events.end(); it++)
-          LegionSpy::log_event_dependence(*it, result);
+        for (const ApEvent& event : events)
+          LegionSpy::log_event_dependence(event, result);
       }
       if ((implicit_profiler != nullptr) && result.exists())
       {
