@@ -57,12 +57,12 @@ namespace Legion {
       // Clean up any local variables that we have
       if (!task_local_variables.empty())
       {
-        for (std::map<LocalVariableID, std::pair<void*, void (*)(void*)> >::
-                 iterator it = task_local_variables.begin();
-             it != task_local_variables.end(); it++)
+        for (const std::pair<
+                 const LocalVariableID, std::pair<void*, void (*)(void*)> >&
+                 it : task_local_variables)
         {
-          if (it->second.second != nullptr)
-            (*it->second.second)(it->second.first);
+          if (it.second.second != nullptr)
+            (*it.second.second)(it.second.first);
         }
       }
       if (overhead_profiler != nullptr)
@@ -926,16 +926,15 @@ namespace Legion {
         return;
       if (effects.exists() && !safe_effects.exists())
         safe_effects = Runtime::protect_event(effects);
-      for (std::map<PhysicalInstance, LgEvent>::iterator it =
-               task_local_instances.begin();
-           it != task_local_instances.end(); ++it)
+      for (const std::pair<const PhysicalInstance, LgEvent>& it :
+           task_local_instances)
       {
         MemoryManager* manager =
-            runtime->find_memory_manager(it->first.get_location());
+            runtime->find_memory_manager(it.first.get_location());
 #ifdef LEGION_MALLOC_INSTANCES
-        manager->free_legion_instance(safe_effects, it->first);
+        manager->free_legion_instance(safe_effects, it.first);
 #else
-        manager->free_task_local_instance(it->first, safe_effects);
+        manager->free_task_local_instance(it.first, safe_effects);
 #endif
       }
       task_local_instances.clear();

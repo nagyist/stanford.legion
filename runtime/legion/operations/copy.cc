@@ -45,26 +45,25 @@ namespace Legion {
     {
       RezCheck z(rez);
       rez.serialize<size_t>(src_requirements.size());
-      for (unsigned idx = 0; idx < src_requirements.size(); idx++)
-        pack_region_requirement(src_requirements[idx], rez);
+      for (const RegionRequirement& requirement : src_requirements)
+        pack_region_requirement(requirement, rez);
       rez.serialize<size_t>(dst_requirements.size());
-      for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
-        pack_region_requirement(dst_requirements[idx], rez);
+      for (const RegionRequirement& requirement : dst_requirements)
+        pack_region_requirement(requirement, rez);
       rez.serialize<size_t>(src_indirect_requirements.size());
-      for (unsigned idx = 0; idx < src_indirect_requirements.size(); idx++)
-        pack_region_requirement(src_indirect_requirements[idx], rez);
+      for (const RegionRequirement& requirement : src_indirect_requirements)
+        pack_region_requirement(requirement, rez);
       rez.serialize<size_t>(dst_indirect_requirements.size());
       for (unsigned idx = 0; idx < dst_indirect_requirements.size(); idx++)
         pack_region_requirement(dst_indirect_requirements[idx], rez);
       rez.serialize(grants.size());
-      for (unsigned idx = 0; idx < grants.size(); idx++)
-        pack_grant(grants[idx], rez);
+      for (const Grant& grant : grants) pack_grant(grant, rez);
       rez.serialize(wait_barriers.size());
-      for (unsigned idx = 0; idx < wait_barriers.size(); idx++)
-        pack_phase_barrier(wait_barriers[idx], rez);
+      for (const PhaseBarrier& barrier : wait_barriers)
+        pack_phase_barrier(barrier, rez);
       rez.serialize(arrive_barriers.size());
-      for (unsigned idx = 0; idx < arrive_barriers.size(); idx++)
-        pack_phase_barrier(arrive_barriers[idx], rez);
+      for (const PhaseBarrier& barrier : arrive_barriers)
+        pack_phase_barrier(barrier, rez);
       rez.serialize<bool>(is_index_space);
       rez.serialize(index_domain);
       rez.serialize(index_point);
@@ -100,18 +99,17 @@ namespace Legion {
       size_t num_grants;
       derez.deserialize(num_grants);
       grants.resize(num_grants);
-      for (unsigned idx = 0; idx < grants.size(); idx++)
-        unpack_grant(grants[idx], derez);
+      for (Grant& grant : grants) unpack_grant(grant, derez);
       size_t num_wait_barriers;
       derez.deserialize(num_wait_barriers);
       wait_barriers.resize(num_wait_barriers);
-      for (unsigned idx = 0; idx < wait_barriers.size(); idx++)
-        unpack_phase_barrier(wait_barriers[idx], derez);
+      for (PhaseBarrier& barrier : wait_barriers)
+        unpack_phase_barrier(barrier, derez);
       size_t num_arrive_barriers;
       derez.deserialize(num_arrive_barriers);
       arrive_barriers.resize(num_arrive_barriers);
-      for (unsigned idx = 0; idx < arrive_barriers.size(); idx++)
-        unpack_phase_barrier(arrive_barriers[idx], derez);
+      for (PhaseBarrier& barrier : arrive_barriers)
+        unpack_phase_barrier(barrier, derez);
       derez.deserialize<bool>(is_index_space);
       derez.deserialize(index_domain);
       derez.deserialize(index_point);
@@ -445,18 +443,16 @@ namespace Legion {
 
       grants = launcher.grants;
       // Register ourselves with all the grants
-      for (unsigned idx = 0; idx < grants.size(); idx++)
-        grants[idx].impl->register_operation(get_completion_event());
+      for (const Grant& grant : grants)
+        grant.impl->register_operation(get_completion_event());
       wait_barriers = launcher.wait_barriers;
       if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
-        for (std::vector<PhaseBarrier>::const_iterator it =
-                 launcher.arrive_barriers.begin();
-             it != launcher.arrive_barriers.end(); it++)
+        for (const PhaseBarrier& bar : launcher.arrive_barriers)
         {
-          arrive_barriers.emplace_back(*it);
+          arrive_barriers.emplace_back(bar);
           LegionSpy::log_event_dependence(
-              it->phase_barrier, arrive_barriers.back().phase_barrier);
+              bar.phase_barrier, arrive_barriers.back().phase_barrier);
         }
       }
       else
@@ -1303,11 +1299,11 @@ namespace Legion {
           {
             // Check that all the gather instances are in host memories
             // since Realm doesn't currently support GPU preimages
-            for (std::vector<PhysicalManager*>::const_iterator it =
-                     gather_sources.begin();
-                 it != gather_sources.end(); it++)
+            for (unsigned idx = 0; idx < gather_targets.size(); idx++)
             {
-              const Memory::Kind kind = (*it)->memory_manager->memory.kind();
+              PhysicalManager* manager =
+                  gather_targets[idx].get_physical_manager();
+              const Memory::Kind kind = manager->memory_manager->memory.kind();
               if ((kind != Memory::GLOBAL_MEM) &&
                   (kind != Memory::SYSTEM_MEM) &&
                   (kind != Memory::REGDMA_MEM) &&
@@ -1365,11 +1361,11 @@ namespace Legion {
           {
             // Check that all the scatter instances are in host memories
             // since Realm doesn't currently support GPU preimages
-            for (std::vector<PhysicalManager*>::const_iterator it =
-                     scatter_sources.begin();
-                 it != scatter_sources.end(); it++)
+            for (unsigned idx = 0; idx < scatter_targets.size(); idx++)
             {
-              const Memory::Kind kind = (*it)->memory_manager->memory.kind();
+              PhysicalManager* manager =
+                  scatter_targets[idx].get_physical_manager();
+              const Memory::Kind kind = manager->memory_manager->memory.kind();
               if ((kind != Memory::GLOBAL_MEM) &&
                   (kind != Memory::SYSTEM_MEM) &&
                   (kind != Memory::REGDMA_MEM) &&
@@ -1603,12 +1599,12 @@ namespace Legion {
       // complete event
       if (!arrive_barriers.empty())
       {
-        for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
-             it != arrive_barriers.end(); it++)
+        for (PhaseBarrier& barrier : arrive_barriers)
         {
-          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(
+              unique_op_id, barrier.phase_barrier);
           runtime->phase_barrier_arrive(
-              it->phase_barrier, 1 /*count*/, complete);
+              barrier.phase_barrier, 1 /*count*/, complete);
         }
       }
       complete_operation(complete);
@@ -1629,22 +1625,14 @@ namespace Legion {
     {
       Murmur3Hasher hasher;
       hasher.hash(get_operation_kind());
-      for (std::vector<RegionRequirement>::const_iterator it =
-               src_requirements.begin();
-           it != src_requirements.end(); it++)
-        hash_requirement(hasher, *it);
-      for (std::vector<RegionRequirement>::const_iterator it =
-               dst_requirements.begin();
-           it != dst_requirements.end(); it++)
-        hash_requirement(hasher, *it);
-      for (std::vector<RegionRequirement>::const_iterator it =
-               src_indirect_requirements.begin();
-           it != src_indirect_requirements.end(); it++)
-        hash_requirement(hasher, *it);
-      for (std::vector<RegionRequirement>::const_iterator it =
-               dst_indirect_requirements.begin();
-           it != dst_indirect_requirements.end(); it++)
-        hash_requirement(hasher, *it);
+      for (const RegionRequirement& req : src_requirements)
+        hash_requirement(hasher, req);
+      for (const RegionRequirement& req : dst_requirements)
+        hash_requirement(hasher, req);
+      for (const RegionRequirement& req : src_indirect_requirements)
+        hash_requirement(hasher, req);
+      for (const RegionRequirement& req : dst_indirect_requirements)
+        hash_requirement(hasher, req);
       // Not including the fields grants, wait_barriers, arrive_barriers.
       hasher.hash<bool>(is_index_space);
       if (is_index_space)
@@ -2007,18 +1995,17 @@ namespace Legion {
       }
       if (!missing_fields.empty())
       {
-        for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
-             it != missing_fields.end(); it++)
+        for (const FieldID& fid : missing_fields)
         {
           const void* name;
           size_t name_size;
           if (!runtime->retrieve_semantic_information(
-                  req.region.get_field_space(), *it, LEGION_NAME_SEMANTIC_TAG,
+                  req.region.get_field_space(), fid, LEGION_NAME_SEMANTIC_TAG,
                   name, name_size, true, false))
             name = "(no name)";
           log_legion.error(
               "Missing instance for field %s (FieldID: %d)",
-              static_cast<const char*>(name), *it);
+              static_cast<const char*>(name), fid);
         }
         Error error(LEGION_MAPPER_EXCEPTION);
         error
@@ -2032,11 +2019,9 @@ namespace Legion {
       }
       if (!unacquired.empty())
       {
-        for (std::vector<PhysicalManager*>::const_iterator it =
-                 unacquired.begin();
-             it != unacquired.end(); it++)
+        for (PhysicalManager* manager : unacquired)
         {
-          if (acquired_instances.find(*it) == acquired_instances.end())
+          if (acquired_instances.find(manager) == acquired_instances.end())
           {
             Error error(LEGION_MAPPER_EXCEPTION);
             error
@@ -2179,12 +2164,10 @@ namespace Legion {
           runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
           sizeof(response), profiling_priority);
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it =
-               profiling_requests.begin();
-           it != profiling_requests.end(); it++)
+      for (const ProfilingMeasurementID& it : profiling_requests)
       {
         const Realm::ProfilingMeasurementID measurement =
-            (Realm::ProfilingMeasurementID)*it;
+            (Realm::ProfilingMeasurementID)it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;
@@ -2930,9 +2913,7 @@ namespace Legion {
     {
       PointwiseAnalyzable<CopyOp>::deactivate(false /*free*/);
       // We can deactivate all of our point operations
-      for (std::vector<PointCopyOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
-        (*it)->deactivate();
+      for (PointCopyOp* point : points) point->deactivate();
       points.clear();
       collective_exchanges.clear();
       commit_preconditions.clear();
@@ -3320,28 +3301,24 @@ namespace Legion {
               parent_ctx->get_total_shards(), is_replaying());
         }
       }
-      for (std::vector<PointCopyOp*>::const_iterator it = temp_points.begin();
-           it != temp_points.end(); it++)
-        (*it)->log_copy_requirements();
+      for (PointCopyOp* point : temp_points) point->log_copy_requirements();
       // Need the lock to avoid racing with the pointwise dependence analysis
       AutoLock o_lock(op_lock);
       legion_assert(points.empty());
       points.swap(temp_points);
-      for (std::map<DomainPoint, RtUserEvent>::const_iterator pit =
-               pending_pointwise_dependences.begin();
-           pit != pending_pointwise_dependences.end(); pit++)
+      for (const std::pair<const DomainPoint, RtUserEvent>& pit :
+           pending_pointwise_dependences)
       {
         PointCopyOp* point = nullptr;
-        for (std::vector<PointCopyOp*>::const_iterator it = points.begin();
-             it != points.end(); it++)
+        for (PointCopyOp* it : points)
         {
-          if (pit->first != (*it)->index_point)
+          if (pit.first != it->index_point)
             continue;
-          point = *it;
+          point = it;
           break;
         }
         legion_assert(point != nullptr);
-        Runtime::trigger_event(pit->second, point->get_mapped_event());
+        Runtime::trigger_event(pit.second, point->get_mapped_event());
       }
     }
 
@@ -3354,10 +3331,9 @@ namespace Legion {
       // by the predication_state having been set before this
       if (!pending_pointwise_dependences.empty())
       {
-        for (std::map<DomainPoint, RtUserEvent>::const_iterator it =
-                 pending_pointwise_dependences.begin();
-             it != pending_pointwise_dependences.end(); it++)
-          Runtime::trigger_event(it->second);
+        for (const std::pair<const DomainPoint, RtUserEvent>& it :
+             pending_pointwise_dependences)
+          Runtime::trigger_event(it.second);
         pending_pointwise_dependences.clear();
       }
       CopyOp::predicate_false();
@@ -3410,18 +3386,17 @@ namespace Legion {
             std::make_pair(point, to_trigger));
         return to_trigger;
       }
-      for (std::vector<PointCopyOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      for (PointCopyOp* it : points)
       {
-        if (point != (*it)->index_point)
+        if (point != it->index_point)
           continue;
         if (to_trigger.exists())
         {
-          Runtime::trigger_event(to_trigger, (*it)->get_mapped_event());
+          Runtime::trigger_event(to_trigger, it->get_mapped_event());
           return to_trigger;
         }
         else
-          return (*it)->get_mapped_event();
+          return it->get_mapped_event();
       }
       // Should never get here, if we do that means we couldn't find the point
       std::abort();
@@ -3602,33 +3577,29 @@ namespace Legion {
       legion_assert(!interfering_requirements.empty());
       // Iterate our local points and check their first region requirements
       // against all the points in the second region requirements
-      for (std::set<std::pair<unsigned, unsigned> >::const_iterator rit =
-               interfering_requirements.begin();
-           rit != interfering_requirements.end(); rit++)
+      for (const std::pair<unsigned, unsigned>& rit : interfering_requirements)
       {
         std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >::
-            const_iterator finder = point_domains.find(rit->first);
+            const_iterator finder = point_domains.find(rit.first);
         legion_assert(finder != point_domains.end());
-        for (std::vector<PointCopyOp*>::const_iterator pit = points.begin();
-             pit != points.end(); pit++)
+        for (PointCopyOp* pit : points)
         {
-          const RegionRequirement& req = (*pit)->get_requirement(rit->second);
+          const RegionRequirement& req = pit->get_requirement(rit.second);
           IndexSpaceNode* node =
               runtime->get_node(req.region.get_index_space());
           DomainPoint interfering;
           if (node->has_interfering_point(
                   finder->second, interfering,
-                  (rit->first == rit->second) ? (*pit)->index_point :
-                                                DomainPoint()))
+                  (rit.first == rit.second) ? pit->index_point : DomainPoint()))
           {
             Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
             error << "Index " << *this
                   << " has interfering region requirments between "
-                  << get_requirement_name(rit->first) << " requirement "
-                  << get_requirement_offset(rit->first) << " of point "
-                  << interfering << " and " << get_requirement_name(rit->second)
-                  << " requirement " << get_requirement_offset(rit->second)
-                  << " of point " << (*pit)->index_point
+                  << get_requirement_name(rit.first) << " requirement "
+                  << get_requirement_offset(rit.first) << " of point "
+                  << interfering << " and " << get_requirement_name(rit.second)
+                  << " requirement " << get_requirement_offset(rit.second)
+                  << " of point " << pit->index_point
                   << ". Interfering region requirements are not permitted for "
                      "index "
                   << "copy operations.";
@@ -3684,26 +3655,23 @@ namespace Legion {
       // Get all of our local point domains
       std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >
           point_domains;
-      for (std::set<std::pair<unsigned, unsigned> >::const_iterator rit =
-               interfering_requirements.begin();
-           rit != interfering_requirements.end(); rit++)
+      for (const std::pair<unsigned, unsigned>& rit : interfering_requirements)
       {
         std::vector<std::pair<DomainPoint, Domain> >& domains =
-            point_domains[rit->first];
+            point_domains[rit.first];
         // Already found it for this region requirements
         if (!domains.empty())
           continue;
         domains.reserve(points.size());
-        for (std::vector<PointCopyOp*>::const_iterator pit = points.begin();
-             pit != points.end(); pit++)
+        for (PointCopyOp* pit : points)
         {
-          const RegionRequirement& req = (*pit)->get_requirement(rit->first);
+          const RegionRequirement& req = pit->get_requirement(rit.first);
           if (!req.region.exists())
             continue;
           IndexSpaceNode* node =
               runtime->get_node(req.region.get_index_space());
           Domain domain = node->get_tight_domain();
-          domains.emplace_back(std::make_pair((*pit)->index_point, domain));
+          domains.emplace_back(std::make_pair(pit->index_point, domain));
         }
       }
       finish_check_point_requirements(point_domains);
@@ -4349,18 +4317,12 @@ namespace Legion {
       post_indirection_barriers.clear();
       if (!src_collectives.empty())
       {
-        for (std::vector<IndirectRecordExchange*>::const_iterator it =
-                 src_collectives.begin();
-             it != src_collectives.end(); it++)
-          delete (*it);
+        for (IndirectRecordExchange* src : src_collectives) delete src;
         src_collectives.clear();
       }
       if (!dst_collectives.empty())
       {
-        for (std::vector<IndirectRecordExchange*>::const_iterator it =
-                 dst_collectives.begin();
-             it != dst_collectives.end(); it++)
-          delete (*it);
+        for (IndirectRecordExchange* dst : dst_collectives) delete dst;
         dst_collectives.clear();
       }
       unique_intra_space_deps.clear();
@@ -4582,14 +4544,10 @@ namespace Legion {
         }
       }
       // Elide unused collectives
-      for (std::vector<IndirectRecordExchange*>::const_iterator it =
-               src_collectives.begin();
-           it != src_collectives.end(); it++)
-        (*it)->elide_collective();
-      for (std::vector<IndirectRecordExchange*>::const_iterator it =
-               dst_collectives.begin();
-           it != dst_collectives.end(); it++)
-        (*it)->elide_collective();
+      for (IndirectRecordExchange* src : src_collectives)
+        src->elide_collective();
+      for (IndirectRecordExchange* dst : dst_collectives)
+        dst->elide_collective();
       const IndexSpace local_space = tpl->find_local_space(trace_local_id);
       // If it's empty we're done, otherwise we do the replay
       if (!local_space.exists())

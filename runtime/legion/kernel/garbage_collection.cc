@@ -29,11 +29,9 @@ namespace Legion {
     ImplicitReferenceTracker::~ImplicitReferenceTracker(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<IndexSpaceExpression*>::const_iterator it =
-               live_expressions.begin();
-           it != live_expressions.end(); it++)
-        if ((*it)->remove_base_expression_reference(LIVE_EXPR_REF))
-          delete (*it);
+      for (IndexSpaceExpression* const & expr_ptr : live_expressions)
+        if (expr_ptr->remove_base_expression_reference(LIVE_EXPR_REF))
+          delete expr_ptr;
     }
 
     /////////////////////////////////////////////////////////////
@@ -778,10 +776,8 @@ namespace Legion {
             DistributedDowngradeSuccess rez;
             rez.serialize(did);
             rez.serialize(downgrade);
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
-              rez.dispatch(*it);
+            for (const AddressSpaceID& child_id : children)
+              rez.dispatch(child_id);
           }
         }
         if (!remote_instances.empty())
@@ -893,10 +889,8 @@ namespace Legion {
                   rez.serialize(current_state);
                 rez.serialize(owner);
               }
-              for (std::vector<AddressSpaceID>::const_iterator it =
-                       children.begin();
-                   it != children.end(); it++)
-                rez.dispatch(*it);
+              for (const AddressSpaceID& child_id : children)
+                rez.dispatch(child_id);
               remaining_responses += children.size();
             }
           }

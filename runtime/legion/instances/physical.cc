@@ -118,10 +118,9 @@ namespace Legion {
         // If this is the owner view, delete any atomic reservations
         if (is_owner())
         {
-          for (std::map<unsigned, Reservation>::iterator it =
-                   padded_reservations->begin();
-               it != padded_reservations->end(); it++)
-            it->second.destroy_reservation();
+          for (std::pair<const unsigned, Reservation>& it :
+               *padded_reservations)
+            it.second.destroy_reservation();
         }
         delete padded_reservations;
       }
@@ -174,37 +173,27 @@ namespace Legion {
           inst_event, constraints->field_constraint.contiguous,
           constraints->field_constraint.inorder,
           constraints->field_constraint.field_set.size());
-      for (std::vector<FieldID>::const_iterator it =
-               constraints->field_constraint.field_set.begin();
-           it != constraints->field_constraint.field_set.end(); it++)
-        LegionSpy::log_instance_field_constraint_field(inst_event, *it);
+      for (FieldID fid : constraints->field_constraint.field_set)
+        LegionSpy::log_instance_field_constraint_field(inst_event, fid);
       LegionSpy::log_instance_ordering_constraint(
           inst_event, constraints->ordering_constraint.contiguous,
           constraints->ordering_constraint.ordering.size());
-      for (std::vector<DimensionKind>::const_iterator it =
-               constraints->ordering_constraint.ordering.begin();
-           it != constraints->ordering_constraint.ordering.end(); it++)
-        LegionSpy::log_instance_ordering_constraint_dimension(inst_event, *it);
-      for (std::vector<TilingConstraint>::const_iterator it =
-               constraints->tiling_constraints.begin();
-           it != constraints->tiling_constraints.end(); it++)
+      for (DimensionKind kind : constraints->ordering_constraint.ordering)
+        LegionSpy::log_instance_ordering_constraint_dimension(inst_event, kind);
+      for (const TilingConstraint& constraint : constraints->tiling_constraints)
         LegionSpy::log_instance_tiling_constraint(
-            inst_event, it->dim, it->value, it->tiles);
-      for (std::vector<DimensionConstraint>::const_iterator it =
-               constraints->dimension_constraints.begin();
-           it != constraints->dimension_constraints.end(); it++)
+            inst_event, constraint.dim, constraint.value, constraint.tiles);
+      for (const DimensionConstraint& constraint :
+           constraints->dimension_constraints)
         LegionSpy::log_instance_dimension_constraint(
-            inst_event, it->kind, it->eqk, it->value);
-      for (std::vector<AlignmentConstraint>::const_iterator it =
-               constraints->alignment_constraints.begin();
-           it != constraints->alignment_constraints.end(); it++)
+            inst_event, constraint.kind, constraint.eqk, constraint.value);
+      for (const AlignmentConstraint& constraint :
+           constraints->alignment_constraints)
         LegionSpy::log_instance_alignment_constraint(
-            inst_event, it->fid, it->eqk, it->alignment);
-      for (std::vector<OffsetConstraint>::const_iterator it =
-               constraints->offset_constraints.begin();
-           it != constraints->offset_constraints.end(); it++)
+            inst_event, constraint.fid, constraint.eqk, constraint.alignment);
+      for (const OffsetConstraint& constraint : constraints->offset_constraints)
         LegionSpy::log_instance_offset_constraint(
-            inst_event, it->fid, it->offset);
+            inst_event, constraint.fid, constraint.offset);
     }
 
     //--------------------------------------------------------------------------
@@ -583,10 +572,9 @@ namespace Legion {
       // without it running, see perform_deletion
       if (gc_state != COLLECTED_GC_STATE)
       {
-        for (std::set<ApEvent>::const_iterator it = gc_events.begin();
-             it != gc_events.end(); it++)
-          if (!it->has_triggered_faultignorant())
-            preconditions.insert(*it);
+        for (const ApEvent& event : gc_events)
+          if (!event.has_triggered_faultignorant())
+            preconditions.insert(event);
       }
     }
 
@@ -599,13 +587,12 @@ namespace Legion {
       legion_assert(tree_id > 0);  // only happens with VirtualManager
       legion_assert(!regions.empty());
       std::set<IndexSpaceExpression*> region_exprs;
-      for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
-           it != regions.end(); it++)
+      for (const LogicalRegion& region : regions)
       {
         // If the region tree IDs don't match that is bad
-        if (it->get_tree_id() != tree_id)
+        if (region.get_tree_id() != tree_id)
           return false;
-        RegionNode* node = runtime->get_node(*it);
+        RegionNode* node = runtime->get_node(region);
         region_exprs.insert(node->row_source);
       }
       IndexSpaceExpression* space_expr =
@@ -996,13 +983,11 @@ namespace Legion {
           gc_state = COLLECTED_GC_STATE;
           to_notify.swap(subscribers);
         }
-        for (std::set<InstanceDeletionSubscriber*>::const_iterator it =
-                 to_notify.begin();
-             it != to_notify.end(); it++)
+        for (InstanceDeletionSubscriber* subscriber : to_notify)
         {
-          (*it)->notify_instance_deletion(this);
-          if ((*it)->remove_subscriber_reference(this))
-            delete (*it);
+          subscriber->notify_instance_deletion(this);
+          if (subscriber->remove_subscriber_reference(this))
+            delete subscriber;
         }
         return false;
       }
@@ -1249,9 +1234,7 @@ namespace Legion {
           manager->collective_mapping->get_children(owner, local, children);
           if (!children.empty())
           {
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
+            for (const AddressSpaceID& child : children)
             {
               const RtUserEvent child_done = Runtime::create_rt_user_event();
               GarbageCollectionAcquire rez;
@@ -1261,7 +1244,7 @@ namespace Legion {
                 rez.serialize(target);
                 rez.serialize(child_done);
               }
-              rez.dispatch(*it);
+              rez.dispatch(child);
               ready_events.insert(child_done);
             }
           }
@@ -1354,12 +1337,10 @@ namespace Legion {
             RezCheck z(rez);
             rez.serialize(did);
           }
-          for (std::vector<AddressSpaceID>::const_iterator it =
-                   children.begin();
-               it != children.end(); it++)
+          for (const AddressSpaceID& child : children)
           {
             pack_global_ref();
-            rez.dispatch(*it);
+            rez.dispatch(child);
           }
         }
       }
@@ -1374,13 +1355,11 @@ namespace Legion {
       }
       if (!to_notify.empty())
       {
-        for (std::set<InstanceDeletionSubscriber*>::const_iterator it =
-                 to_notify.begin();
-             it != to_notify.end(); it++)
+        for (InstanceDeletionSubscriber* subscriber : to_notify)
         {
-          (*it)->notify_instance_deletion(this);
-          if ((*it)->remove_subscriber_reference(this))
-            delete (*it);
+          subscriber->notify_instance_deletion(this);
+          if (subscriber->remove_subscriber_reference(this))
+            delete subscriber;
         }
       }
     }
@@ -1469,9 +1448,7 @@ namespace Legion {
             std::vector<AddressSpaceID> children;
             collective_mapping->get_children(
                 owner_space, local_space, children);
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
+            for (const AddressSpaceID& child : children)
             {
               const RtUserEvent ready_event = Runtime::create_rt_user_event();
               GarbageCollectionAcquire rez;
@@ -1481,7 +1458,7 @@ namespace Legion {
                 rez.serialize(&failed_collection_count);
                 rez.serialize(ready_event);
               }
-              rez.dispatch(*it);
+              rez.dispatch(child);
               ready_events.emplace_back(ready_event);
             }
           }
@@ -1599,16 +1576,14 @@ namespace Legion {
                   if (!children.empty())
                   {
                     pack_global_ref(children.size());
-                    for (std::vector<AddressSpaceID>::const_iterator it =
-                             children.begin();
-                         it != children.end(); it++)
+                    for (const AddressSpaceID& child : children)
                     {
                       GarbageCollectionNotification rez;
                       {
                         RezCheck z(rez);
                         rez.serialize(did);
                       }
-                      rez.dispatch(*it);
+                      rez.dispatch(child);
                     }
                   }
                 }
@@ -1640,13 +1615,11 @@ namespace Legion {
                 // Now that the lock is released we can notify the subscribers
                 if (!to_notify.empty())
                 {
-                  for (std::set<InstanceDeletionSubscriber*>::const_iterator
-                           it = to_notify.begin();
-                       it != to_notify.end(); it++)
+                  for (InstanceDeletionSubscriber* subscriber : to_notify)
                   {
-                    (*it)->notify_instance_deletion(this);
-                    if ((*it)->remove_subscriber_reference(this))
-                      delete (*it);
+                    subscriber->notify_instance_deletion(this);
+                    if (subscriber->remove_subscriber_reference(this))
+                      delete subscriber;
                   }
                 }
                 return true;
@@ -1745,15 +1718,15 @@ namespace Legion {
               {
                 // Raising one of the old minimum priorities
                 // See what the new min priority is
-                for (std::map<std::pair<MapperID, Processor>, GCPriority>::
-                         const_iterator it = mapper_gc_priorities.begin();
-                     it != mapper_gc_priorities.end(); it++)
+                for (const std::pair<
+                         const std::pair<MapperID, Processor>, GCPriority>& it :
+                     mapper_gc_priorities)
                 {
                   // If the new minimum priority is still the same we're done
-                  if (it->second == min_gc_priority)
+                  if (it.second == min_gc_priority)
                     return RtEvent::NO_RT_EVENT;
-                  if (it->second < priority)
-                    priority = it->second;
+                  if (it.second < priority)
+                    priority = it.second;
                 }
                 // If we get here then we're increasing the minimum priority
                 legion_assert(min_gc_priority < priority);
@@ -2058,21 +2031,17 @@ namespace Legion {
       for (unsigned idx = 0; idx < src_indexes.size(); idx++)
         translate_map[src_indexes[idx]] = idx;
       unsigned index = 0;
-      for (std::map<unsigned, unsigned>::const_iterator it =
-               translate_map.begin();
-           it != translate_map.end(); it++, index++)
-        src_order[it->second] = index;
+      for (const std::pair<const unsigned, unsigned>& it : translate_map)
+        src_order[it.second] = index++;
       // Now we can translate the destination indexes
       translate_map.clear();
       for (unsigned idx = 0; idx < dst_indexes.size(); idx++)
         translate_map[dst_indexes[idx]] = idx;
       index = 0;
-      for (std::map<unsigned, unsigned>::const_iterator it =
-               translate_map.begin();
-           it != translate_map.end(); it++, index++)
+      for (const std::pair<const unsigned, unsigned>& it : translate_map)
       {
-        unsigned src_index = src_order[it->second];
-        helper->offsets[src_index] = dst_fields[index];
+        unsigned src_index = src_order[it.second];
+        helper->offsets[src_index] = dst_fields[index++];
       }
     }
 
@@ -2316,9 +2285,8 @@ namespace Legion {
       {
         if (!deferred_deletion.exists())
           Runtime::rename_event(deferred_deletion);
-        for (std::set<ApEvent>::const_iterator it = gc_events.begin();
-             it != gc_events.end(); it++)
-          LegionSpy::log_event_dependence(*it, deferred_deletion);
+        for (const ApEvent& event : gc_events)
+          LegionSpy::log_event_dependence(event, deferred_deletion);
         LegionSpy::log_instance_deletion(unique_event, deferred_deletion);
       }
       // Once the deletion is actually done then we can tell the memory
@@ -2375,8 +2343,7 @@ namespace Legion {
       {
         std::vector<AddressSpaceID> children;
         collective_mapping->get_children(owner_space, local_space, children);
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
+        for (const AddressSpaceID& child : children)
         {
           const RtUserEvent done = Runtime::create_rt_user_event();
           GarbageCollectionPriorityUpdate rez;
@@ -2388,7 +2355,7 @@ namespace Legion {
             rez.serialize<bool>(true);  // broadcast
           }
           pack_global_ref();
-          rez.dispatch(*it);
+          rez.dispatch(child);
           done_events.emplace_back(done);
         }
       }
@@ -2435,11 +2402,11 @@ namespace Legion {
         // priority is
         if (!mapper_gc_priorities.empty())
         {
-          for (std::map<std::pair<MapperID, Processor>, GCPriority>::
-                   const_iterator it = mapper_gc_priorities.begin();
-               it != mapper_gc_priorities.end(); it++)
-            if (it->second < min_gc_priority)
-              min_gc_priority = it->second;
+          for (const std::pair<
+                   const std::pair<MapperID, Processor>, GCPriority>& it :
+               mapper_gc_priorities)
+            if (it.second < min_gc_priority)
+              min_gc_priority = it.second;
         }
         else
           min_gc_priority = priority;

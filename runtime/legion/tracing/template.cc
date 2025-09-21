@@ -345,53 +345,40 @@ namespace Legion {
       legion_assert(failure.expr == nullptr);
       {
         AutoLock tpl_lock(template_lock);
-        for (std::vector<TraceConditionSet*>::const_iterator it =
-                 preconditions.begin();
-             it != preconditions.end(); it++)
+        for (TraceConditionSet* pre : preconditions)
         {
-          (*it)->invalidate_equivalence_sets();
-          if ((*it)->remove_reference())
-            delete (*it);
+          pre->invalidate_equivalence_sets();
+          if (pre->remove_reference())
+            delete pre;
         }
-        for (std::vector<TraceConditionSet*>::const_iterator it =
-                 anticonditions.begin();
-             it != anticonditions.end(); it++)
+        for (TraceConditionSet* const & condition_set : anticonditions)
         {
-          (*it)->invalidate_equivalence_sets();
-          if ((*it)->remove_reference())
-            delete (*it);
+          condition_set->invalidate_equivalence_sets();
+          if (condition_set->remove_reference())
+            delete condition_set;
         }
-        for (std::vector<TraceConditionSet*>::const_iterator it =
-                 postconditions.begin();
-             it != postconditions.end(); it++)
+        for (TraceConditionSet* const & condition_set : postconditions)
         {
-          (*it)->invalidate_equivalence_sets();
-          if ((*it)->remove_reference())
-            delete (*it);
+          condition_set->invalidate_equivalence_sets();
+          if (condition_set->remove_reference())
+            delete condition_set;
         }
-        for (std::vector<Instruction*>::iterator it = instructions.begin();
-             it != instructions.end(); ++it)
-          delete *it;
+        for (Instruction*& instruction : instructions) delete instruction;
         cached_mappings.clear();
       }
       TransitiveReductionState* state = finished_transitive_reduction.load();
       if (state != nullptr)
         delete state;
-      for (std::map<DistributedID, IndividualView*>::const_iterator it =
-               recorded_views.begin();
-           it != recorded_views.end(); it++)
-        if (it->second->remove_base_gc_ref(TRACE_REF))
-          delete it->second;
-      for (std::set<IndexSpaceExpression*>::const_iterator it =
-               recorded_expressions.begin();
-           it != recorded_expressions.end(); it++)
-        if ((*it)->remove_base_expression_reference(TRACE_REF))
-          delete (*it);
-      for (std::vector<PhysicalManager*>::const_iterator it =
-               all_instances.begin();
-           it != all_instances.end(); it++)
-        if ((*it)->remove_base_gc_ref(TRACE_REF))
-          delete (*it);
+      for (const std::map<DistributedID, IndividualView*>::value_type&
+               view_pair : recorded_views)
+        if (view_pair.second->remove_base_gc_ref(TRACE_REF))
+          delete view_pair.second;
+      for (IndexSpaceExpression* const & expression : recorded_expressions)
+        if (expression->remove_base_expression_reference(TRACE_REF))
+          delete expression;
+      for (PhysicalManager* const & manager : all_instances)
+        if (manager->remove_base_gc_ref(TRACE_REF))
+          delete manager;
     }
 
     //--------------------------------------------------------------------------
@@ -400,15 +387,14 @@ namespace Legion {
     {
       std::set<ApEvent> all_events;
       std::set<ApEvent> local_barriers;
-      for (std::map<ApEvent, BarrierAdvance*>::const_iterator it =
-               managed_barriers.begin();
-           it != managed_barriers.end(); it++)
-        local_barriers.insert(it->second->get_current_barrier());
-      for (std::map<ApEvent, unsigned>::const_iterator it = event_map.begin();
-           it != event_map.end(); ++it)
+      for (const std::map<ApEvent, BarrierAdvance*>::value_type& barrier_pair :
+           managed_barriers)
+        local_barriers.insert(barrier_pair.second->get_current_barrier());
+      for (const std::map<ApEvent, unsigned>::value_type& event_pair :
+           event_map)
         // If this is one of our local barriers then don't use it
-        if (local_barriers.find(it->first) == local_barriers.end())
-          all_events.insert(it->first);
+        if (local_barriers.find(event_pair.first) == local_barriers.end())
+          all_events.insert(event_pair.first);
       return Runtime::merge_events(nullptr, all_events);
     }
 
@@ -478,15 +464,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool result = true;
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               preconditions.begin();
-           it != preconditions.end(); it++)
-        if (!(*it)->check_preconditions())
+      for (TraceConditionSet* const & condition_set : preconditions)
+        if (!condition_set->check_preconditions())
           result = false;
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               anticonditions.begin();
-           it != anticonditions.end(); it++)
-        if (!(*it)->check_anticonditions())
+      for (TraceConditionSet* const & condition_set : anticonditions)
+        if (!condition_set->check_anticonditions())
           result = false;
       return result;
     }
@@ -504,18 +486,12 @@ namespace Legion {
     void PhysicalTemplate::invalidate_equivalence_sets(void) const
     //--------------------------------------------------------------------------
     {
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               preconditions.begin();
-           it != preconditions.end(); it++)
-        (*it)->invalidate_equivalence_sets();
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               anticonditions.begin();
-           it != anticonditions.end(); it++)
-        (*it)->invalidate_equivalence_sets();
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               postconditions.begin();
-           it != postconditions.end(); it++)
-        (*it)->invalidate_equivalence_sets();
+      for (TraceConditionSet* const & condition_set : preconditions)
+        condition_set->invalidate_equivalence_sets();
+      for (TraceConditionSet* const & condition_set : anticonditions)
+        condition_set->invalidate_equivalence_sets();
+      for (TraceConditionSet* const & condition_set : postconditions)
+        condition_set->invalidate_equivalence_sets();
     }
 
     //--------------------------------------------------------------------------
@@ -552,9 +528,8 @@ namespace Legion {
     {
       legion_assert(slice_idx < slices.size());
       std::vector<Instruction*>& instructions = slices[slice_idx];
-      for (std::vector<Instruction*>::const_iterator it = instructions.begin();
-           it != instructions.end(); ++it)
-        (*it)->execute(events, user_events, operations, recurrent_replay);
+      for (Instruction* instruction : instructions)
+        instruction->execute(events, user_events, operations, recurrent_replay);
       unsigned remaining = remaining_replays.fetch_sub(1);
       legion_assert(remaining > 0);
       if (remaining == 1)
@@ -647,12 +622,11 @@ namespace Legion {
 
       std::vector<RtEvent> ready_events;
       std::atomic<unsigned> result(IDEMPOTENT);
-      for (std::map<EquivalenceSet*, unsigned>::const_iterator it =
-               current_sets.begin();
-           it != current_sets.end(); it++)
+      for (const std::map<EquivalenceSet*, unsigned>::value_type& set_pair :
+           current_sets)
       {
-        RtEvent ready = it->first->capture_trace_conditions(
-            this, it->first->local_space, it->second, &result);
+        RtEvent ready = set_pair.first->capture_trace_conditions(
+            this, set_pair.first->local_space, set_pair.second, &result);
         if (ready.exists())
           ready_events.emplace_back(ready);
       }
@@ -807,19 +781,13 @@ namespace Legion {
         FenceOp* op, std::set<RtEvent>& ready_events) const
     //--------------------------------------------------------------------------
     {
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               preconditions.begin();
-           it != preconditions.end(); it++)
-        (*it)->refresh_equivalence_sets(op, ready_events);
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               anticonditions.begin();
-           it != anticonditions.end(); it++)
-        (*it)->refresh_equivalence_sets(op, ready_events);
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               postconditions.begin();
-           it != postconditions.end(); it++)
-        if (!(*it)->is_shared())
-          (*it)->refresh_equivalence_sets(op, ready_events);
+      for (TraceConditionSet* pre : preconditions)
+        pre->refresh_equivalence_sets(op, ready_events);
+      for (TraceConditionSet* anti : anticonditions)
+        anti->refresh_equivalence_sets(op, ready_events);
+      for (TraceConditionSet* post : postconditions)
+        if (!post->is_shared())
+          post->refresh_equivalence_sets(op, ready_events);
     }
 
     //--------------------------------------------------------------------------
@@ -849,24 +817,21 @@ namespace Legion {
         std::set<RtEvent>& map_applied_conditions) const
     //--------------------------------------------------------------------------
     {
-      for (std::vector<PhysicalManager*>::const_iterator it =
-               all_instances.begin();
-           it != all_instances.end(); it++)
+      for (PhysicalManager* manager : all_instances)
       {
         // Record the last replay completion event as a user
         // Note the map_applied_conditions are a formality here since we
         // know that we're still holding a valid reference when we do this
         // call so all the work of this operation should be local and no
         // messages should end up being sent
-        (*it)->record_instance_user(replay_complete, map_applied_conditions);
+        manager->record_instance_user(replay_complete, map_applied_conditions);
         // No need to check for deletions, we stil hold gc references
-        (*it)->remove_base_valid_ref(TRACE_REF);
+        manager->remove_base_valid_ref(TRACE_REF);
       }
       // Also need to release any shadow instances we might have made as
       // part of executing this template
-      for (std::vector<IssueAcross*>::const_iterator it = across_copies.begin();
-           it != across_copies.end(); it++)
-        (*it)->executor->release_shadow_instances();
+      for (IssueAcross* across : across_copies)
+        across->executor->release_shadow_instances();
     }
 
     //--------------------------------------------------------------------------
@@ -885,19 +850,17 @@ namespace Legion {
       // to know that all these analyses are done as well
       if (!across_copies.empty())
       {
-        for (std::vector<IssueAcross*>::const_iterator it =
-                 across_copies.begin();
-             it != across_copies.end(); it++)
+        for (IssueAcross* across : across_copies)
         {
           std::map<unsigned, InstUsers>::iterator finder =
-              src_indirect_insts.find((*it)->lhs);
+              src_indirect_insts.find(across->lhs);
           if ((finder != src_indirect_insts.end()) &&
               are_read_only_users(finder->second))
-            (*it)->executor->record_trace_immutable_indirection(true /*src*/);
-          finder = dst_indirect_insts.find((*it)->lhs);
+            across->executor->record_trace_immutable_indirection(true /*src*/);
+          finder = dst_indirect_insts.find(across->lhs);
           if ((finder != dst_indirect_insts.end()) &&
               are_read_only_users(finder->second))
-            (*it)->executor->record_trace_immutable_indirection(false /*dst*/);
+            across->executor->record_trace_immutable_indirection(false /*dst*/);
         }
       }
       std::vector<unsigned> gen;
@@ -938,22 +901,19 @@ namespace Legion {
       // We do need to translate the recorded views into a vector of instances
       // that need to be acquired in order for the template to be replayed
       all_instances.reserve(recorded_views.size());
-      for (std::map<DistributedID, IndividualView*>::const_iterator it =
-               recorded_views.begin();
-           it != recorded_views.end(); it++)
+      for (const std::pair<const DistributedID, IndividualView*>& it :
+           recorded_views)
       {
-        PhysicalManager* manager = it->second->get_manager();
+        PhysicalManager* manager = it.second->get_manager();
         manager->add_base_gc_ref(TRACE_REF);
         all_instances.emplace_back(manager);
-        if (it->second->remove_base_gc_ref(TRACE_REF))
-          delete it->second;
+        if (it.second->remove_base_gc_ref(TRACE_REF))
+          delete it.second;
       }
       recorded_views.clear();
-      for (std::set<IndexSpaceExpression*>::const_iterator it =
-               recorded_expressions.begin();
-           it != recorded_expressions.end(); it++)
-        if ((*it)->remove_base_expression_reference(TRACE_REF))
-          delete (*it);
+      for (IndexSpaceExpression* expr : recorded_expressions)
+        if (expr->remove_base_expression_reference(TRACE_REF))
+          delete expr;
       recorded_expressions.clear();
     }
 
@@ -962,22 +922,14 @@ namespace Legion {
         std::vector<RtEvent>& frontier_events)
     //--------------------------------------------------------------------------
     {
-      for (std::map<TraceLocalID, InstUsers>::const_iterator it =
-               op_insts.begin();
-           it != op_insts.end(); it++)
-        find_last_instance_events(it->second, frontier_events);
-      for (std::map<unsigned, InstUsers>::const_iterator it =
-               copy_insts.begin();
-           it != copy_insts.end(); it++)
-        find_last_instance_events(it->second, frontier_events);
-      for (std::map<unsigned, InstUsers>::const_iterator it =
-               src_indirect_insts.begin();
-           it != src_indirect_insts.end(); it++)
-        find_last_instance_events(it->second, frontier_events);
-      for (std::map<unsigned, InstUsers>::const_iterator it =
-               dst_indirect_insts.begin();
-           it != dst_indirect_insts.end(); it++)
-        find_last_instance_events(it->second, frontier_events);
+      for (const std::pair<const TraceLocalID, InstUsers>& it : op_insts)
+        find_last_instance_events(it.second, frontier_events);
+      for (const std::pair<const unsigned, InstUsers>& it : copy_insts)
+        find_last_instance_events(it.second, frontier_events);
+      for (const std::pair<const unsigned, InstUsers>& it : src_indirect_insts)
+        find_last_instance_events(it.second, frontier_events);
+      for (const std::pair<const unsigned, InstUsers>& it : dst_indirect_insts)
+        find_last_instance_events(it.second, frontier_events);
     }
 
     //--------------------------------------------------------------------------
@@ -993,10 +945,9 @@ namespace Legion {
         // Scan through all the queries we've done so far for this instance
         // and see if we've already done one for these parameters
         bool found = false;
-        for (std::deque<LastUserResult>::const_iterator it = results.begin();
-             it != results.end(); it++)
+        for (const LastUserResult& result : results)
         {
-          if (!it->user.matches(*uit))
+          if (!result.user.matches(*uit))
             continue;
           found = true;
           break;
@@ -1033,27 +984,24 @@ namespace Legion {
       }
       // Now we can convert all the results to frontiers
       std::map<ApEvent, unsigned> frontier_map;
-      for (std::map<UniqueInst, std::deque<LastUserResult> >::iterator lit =
-               instance_last_users.begin();
-           lit != instance_last_users.end(); lit++)
+      for (std::pair<const UniqueInst, std::deque<LastUserResult> >& lit :
+           instance_last_users)
       {
-        for (std::deque<LastUserResult>::iterator uit = lit->second.begin();
-             uit != lit->second.end(); uit++)
+        for (LastUserResult& uit : lit.second)
         {
           // For each event convert it into a frontier
-          for (std::set<ApEvent>::const_iterator it = uit->events.begin();
-               it != uit->events.end(); it++)
+          for (const ApEvent& it : uit.events)
           {
             std::map<ApEvent, unsigned>::const_iterator finder =
-                frontier_map.find(*it);
+                frontier_map.find(it);
             if (finder == frontier_map.end())
             {
-              unsigned index = find_frontier_event(*it, frontier_events);
-              uit->frontiers.emplace_back(index);
-              frontier_map[*it] = index;
+              unsigned index = find_frontier_event(it, frontier_events);
+              uit.frontiers.emplace_back(index);
+              frontier_map[it] = index;
             }
             else
-              uit->frontiers.emplace_back(finder->second);
+              uit.frontiers.emplace_back(finder->second);
           }
         }
       }
@@ -1085,14 +1033,12 @@ namespace Legion {
     {
       // Reserve some events for merges to be added during fence elision
       unsigned num_merges = 0;
-      for (std::vector<Instruction*>::iterator it = instructions.begin();
-           it != instructions.end(); ++it)
-        switch ((*it)->get_kind())
+      for (Instruction* inst : instructions) switch (inst->get_kind())
         {
           case ISSUE_COPY:
             {
               unsigned precondition_idx =
-                  (*it)->as_issue_copy()->precondition_idx;
+                  inst->as_issue_copy()->precondition_idx;
               InstructionKind generator_kind =
                   instructions[precondition_idx]->get_kind();
               num_merges += generator_kind != MERGE_EVENT;
@@ -1101,7 +1047,7 @@ namespace Legion {
           case ISSUE_FILL:
             {
               unsigned precondition_idx =
-                  (*it)->as_issue_fill()->precondition_idx;
+                  inst->as_issue_fill()->precondition_idx;
               InstructionKind generator_kind =
                   instructions[precondition_idx]->get_kind();
               num_merges += generator_kind != MERGE_EVENT;
@@ -1109,7 +1055,7 @@ namespace Legion {
             }
           case ISSUE_ACROSS:
             {
-              IssueAcross* across = (*it)->as_issue_across();
+              IssueAcross* across = inst->as_issue_across();
               if (across->collective_precondition == 0)
               {
                 InstructionKind generator_kind =
@@ -1138,7 +1084,7 @@ namespace Legion {
             }
           case COMPLETE_REPLAY:
             {
-              CompleteReplay* complete = (*it)->as_complete_replay();
+              CompleteReplay* complete = inst->as_complete_replay();
               InstructionKind generator_kind =
                   instructions[complete->complete]->get_kind();
               num_merges += (generator_kind != MERGE_EVENT) ? 1 : 0;
@@ -1313,10 +1259,9 @@ namespace Legion {
               MergeEvent* merge = inst->as_merge_event();
               std::set<unsigned> new_rhs;
               bool changed = false;
-              for (std::set<unsigned>::iterator it = merge->rhs.begin();
-                   it != merge->rhs.end(); ++it)
+              for (const unsigned& it : merge->rhs)
               {
-                Instruction* generator = instructions[gen[*it]];
+                Instruction* generator = instructions[gen[it]];
                 if (generator->get_kind() == MERGE_EVENT)
                 {
                   MergeEvent* to_splice = generator->as_merge_event();
@@ -1324,7 +1269,7 @@ namespace Legion {
                   changed = true;
                 }
                 else
-                  new_rhs.insert(*it);
+                  new_rhs.insert(it);
               }
               if (changed)
                 merge->rhs.swap(new_rhs);
@@ -1435,9 +1380,8 @@ namespace Legion {
         std::vector<bool>& used, const std::vector<unsigned>& gen) const
     //--------------------------------------------------------------------------
     {
-      for (std::map<unsigned, unsigned>::const_iterator it = frontiers.begin();
-           it != frontiers.end(); it++)
-        used[gen[it->first]] = true;
+      for (const std::pair<const unsigned, unsigned>& it : frontiers)
+        used[gen[it.first]] = true;
     }
 
     //--------------------------------------------------------------------------
@@ -1452,9 +1396,8 @@ namespace Legion {
     void PhysicalTemplate::initialize_generators(std::vector<unsigned>& new_gen)
     //--------------------------------------------------------------------------
     {
-      for (std::map<unsigned, unsigned>::iterator it = frontiers.begin();
-           it != frontiers.end(); ++it)
-        new_gen[it->second] = 0;
+      for (const std::pair<const unsigned, unsigned>& it : frontiers)
+        new_gen[it.second] = 0;
     }
 
     //--------------------------------------------------------------------------
@@ -1462,10 +1405,9 @@ namespace Legion {
         const std::vector<unsigned>& gen, std::vector<bool>& used)
     //--------------------------------------------------------------------------
     {
-      for (std::map<unsigned, unsigned>::iterator it = frontiers.begin();
-           it != frontiers.end(); ++it)
+      for (const std::pair<const unsigned, unsigned>& it : frontiers)
       {
-        unsigned g = gen[it->first];
+        unsigned g = gen[it.first];
         if (g != -1U && g < instructions.size())
           used[g] = true;
       }
@@ -1496,15 +1438,14 @@ namespace Legion {
       round_robin_for_tasks = distinct_targets.size() < replay_parallelism;
 
       unsigned next_slice_id = 0;
-      for (std::map<TraceLocalID, std::pair<unsigned, unsigned> >::
-               const_iterator it = memo_entries.begin();
-           it != memo_entries.end(); ++it)
+      for (const std::pair<const TraceLocalID, std::pair<unsigned, unsigned> >&
+               it : memo_entries)
       {
         unsigned slice_index = -1U;
-        if (!round_robin_for_tasks && (it->second.second == TASK_OP_KIND) &&
-            (it->first.index_point.get_dim() > 0))
+        if (!round_robin_for_tasks && (it.second.second == TASK_OP_KIND) &&
+            (it.first.index_point.get_dim() > 0))
         {
-          CachedMappings::iterator finder = cached_mappings.find(it->first);
+          CachedMappings::iterator finder = cached_mappings.find(it.first);
           legion_assert(finder != cached_mappings.end());
           legion_assert(finder->second.target_procs.size() > 0);
           slice_index = finder->second.target_procs[0].id % replay_parallelism;
@@ -1512,14 +1453,14 @@ namespace Legion {
         else
         {
           legion_assert(
-              slice_indices_by_owner.find(it->first) ==
+              slice_indices_by_owner.find(it.first) ==
               slice_indices_by_owner.end());
           slice_index = next_slice_id;
           next_slice_id = (next_slice_id + 1) % replay_parallelism;
         }
 
         legion_assert(slice_index != -1U);
-        slice_indices_by_owner[it->first] = slice_index;
+        slice_indices_by_owner[it.first] = slice_index;
       }
       // Make sure that event creations and triggers are in the same slice
       std::map<unsigned /*user event*/, unsigned /*slice*/> user_event_slices;
@@ -1569,10 +1510,8 @@ namespace Legion {
           MergeEvent* merge = inst->as_merge_event();
           unsigned crossing_found = false;
           std::set<unsigned> new_rhs;
-          for (std::set<unsigned>::iterator it = merge->rhs.begin();
-               it != merge->rhs.end(); ++it)
+          for (const unsigned& rh : merge->rhs)
           {
-            unsigned rh = *it;
             // Don't need to worry about crossing events for the fence
             // initialization as we know it's always set before any
             // slices executes (rh == 0)
@@ -1694,10 +1633,9 @@ namespace Legion {
       // Update the crossing events and their counts
       if (!crossing_counts.empty())
       {
-        for (std::map<unsigned, std::pair<unsigned, unsigned> >::const_iterator
-                 it = crossing_counts.begin();
-             it != crossing_counts.end(); it++)
-          crossing_events.insert(it->second);
+        for (const std::pair<const unsigned, std::pair<unsigned, unsigned> >&
+                 it : crossing_counts)
+          crossing_events.insert(it.second);
       }
       // Append any new crossing instructions to the list of instructions
       // so that they will still be deleted when the template is
@@ -1755,11 +1693,10 @@ namespace Legion {
         std::vector<unsigned>& inv_topo_order)
     //--------------------------------------------------------------------------
     {
-      for (std::map<unsigned, unsigned>::iterator it = frontiers.begin();
-           it != frontiers.end(); ++it)
+      for (const std::pair<const unsigned, unsigned>& it : frontiers)
       {
-        inv_topo_order[it->second] = topo_order.size();
-        topo_order.emplace_back(it->second);
+        inv_topo_order[it.second] = topo_order.size();
+        topo_order.emplace_back(it.second);
       }
     }
 
@@ -1850,11 +1787,10 @@ namespace Legion {
             case MERGE_EVENT:
               {
                 MergeEvent* merge = inst->as_merge_event();
-                for (std::set<unsigned>::iterator it = merge->rhs.begin();
-                     it != merge->rhs.end(); ++it)
+                for (const unsigned& it : merge->rhs)
                 {
-                  incoming[merge->lhs].emplace_back(*it);
-                  outgoing[*it].emplace_back(merge->lhs);
+                  incoming[merge->lhs].emplace_back(it);
+                  outgoing[it].emplace_back(merge->lhs);
                 }
                 break;
               }
@@ -2171,13 +2107,12 @@ namespace Legion {
           // Remove any references to crossing events which are no longer needed
           if (!crossing_events.empty())
           {
-            for (std::set<unsigned>::const_iterator it = merge->rhs.begin();
-                 it != merge->rhs.end(); it++)
+            for (const unsigned& it : merge->rhs)
             {
               std::map<unsigned, unsigned>::iterator finder =
-                  crossing_events.find(*it);
+                  crossing_events.find(it);
               if ((finder != crossing_events.end()) &&
-                  (new_rhs.find(*it) == new_rhs.end()))
+                  (new_rhs.find(it) == new_rhs.end()))
               {
                 legion_assert(finder->second > 0);
                 finder->second--;
@@ -2197,19 +2132,17 @@ namespace Legion {
         {
           // No more references to this crossing instruction so remove it
           bool found = false;
-          for (std::vector<std::vector<Instruction*> >::iterator sit =
-                   slices.begin();
-               sit != slices.end(); sit++)
+          for (std::vector<Instruction*>& sit : slices)
           {
-            for (std::vector<Instruction*>::iterator iit = sit->begin();
-                 iit != sit->end(); iit++)
+            for (std::vector<Instruction*>::iterator iit = sit.begin();
+                 iit != sit.end(); iit++)
             {
               TriggerEvent* trigger = (*iit)->as_trigger_event();
               if (trigger == nullptr)
                 continue;
               if (trigger->lhs == it->first)
               {
-                sit->erase(iit);
+                sit.erase(iit);
                 found = true;
                 break;
               }
@@ -2329,15 +2262,14 @@ namespace Legion {
             {
               MergeEvent* merge = inst->as_merge_event();
               std::set<unsigned> new_rhs;
-              for (std::set<unsigned>::iterator it = merge->rhs.begin();
-                   it != merge->rhs.end(); ++it)
+              for (const unsigned& it : merge->rhs)
               {
                 std::map<unsigned, unsigned>::const_iterator finder =
-                    substitutions.find(*it);
+                    substitutions.find(it);
                 if (finder != substitutions.end())
                   new_rhs.insert(finder->second);
                 else
-                  new_rhs.insert(*it);
+                  new_rhs.insert(it);
               }
               merge->rhs.swap(new_rhs);
               lhs = merge->lhs;
@@ -2478,22 +2410,20 @@ namespace Legion {
         else
           it++;
       }
-      for (std::vector<std::pair<unsigned, unsigned> >::const_iterator it =
-               to_add.begin();
-           it != to_add.end(); it++)
+      for (const std::pair<unsigned, unsigned>& it : to_add)
       {
         std::map<unsigned, unsigned>::const_iterator finder =
-            frontiers.find(it->first);
+            frontiers.find(it.first);
         if (finder != frontiers.end())
         {
           // Handle the case where we recorded two different frontiers
           // but they are now being merged together from the same source
           // and we can therefore substitute the first one for the second
-          legion_assert(substitutions.find(it->second) == substitutions.end());
-          substitutions[it->second] = finder->second;
+          legion_assert(substitutions.find(it.second) == substitutions.end());
+          substitutions[it.second] = finder->second;
         }
         else
-          frontiers.insert(*it);
+          frontiers.insert(it);
       }
     }
 
@@ -2514,11 +2444,10 @@ namespace Legion {
           case MERGE_EVENT:
             {
               MergeEvent* merge = inst->as_merge_event();
-              for (std::set<unsigned>::iterator it = merge->rhs.begin();
-                   it != merge->rhs.end(); ++it)
+              for (const unsigned& it : merge->rhs)
               {
-                legion_assert(gen[*it] != -1U);
-                used[gen[*it]] = true;
+                legion_assert(gen[it] != -1U);
+                used[gen[it]] = true;
               }
               break;
             }
@@ -2693,29 +2622,19 @@ namespace Legion {
         log_tracing.info() << "[Slice " << sidx << "]";
         dump_instructions(slices[sidx]);
       }
-      for (std::map<unsigned, unsigned>::const_iterator it = frontiers.begin();
-           it != frontiers.end(); ++it)
-        log_tracing.info() << "  events[" << it->second << "] = events["
-                           << it->first << "]";
+      for (const std::pair<const unsigned, unsigned>& it : frontiers)
+        log_tracing.info() << "  events[" << it.second << "] = events["
+                           << it.first << "]";
       dump_sharded_template();
 
       log_tracing.info() << "[Precondition]";
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               preconditions.begin();
-           it != preconditions.end(); it++)
-        (*it)->dump_conditions();
+      for (TraceConditionSet* pre : preconditions) pre->dump_conditions();
 
       log_tracing.info() << "[Anticondition]";
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               anticonditions.begin();
-           it != anticonditions.end(); it++)
-        (*it)->dump_conditions();
+      for (TraceConditionSet* anti : anticonditions) anti->dump_conditions();
 
       log_tracing.info() << "[Postcondition]";
-      for (std::vector<TraceConditionSet*>::const_iterator it =
-               postconditions.begin();
-           it != postconditions.end(); it++)
-        (*it)->dump_conditions();
+      for (TraceConditionSet* post : postconditions) post->dump_conditions();
     }
 
     //--------------------------------------------------------------------------
@@ -2723,9 +2642,8 @@ namespace Legion {
         const std::vector<Instruction*>& instructions) const
     //--------------------------------------------------------------------------
     {
-      for (std::vector<Instruction*>::const_iterator it = instructions.begin();
-           it != instructions.end(); ++it)
-        log_tracing.info() << "  " << (*it)->to_string(memo_entries);
+      for (Instruction* instruction : instructions)
+        log_tracing.info() << "  " << instruction->to_string(memo_entries);
     }
 
     //--------------------------------------------------------------------------
@@ -2786,25 +2704,22 @@ namespace Legion {
       mapping.postmap_task = output.postmap_task;
       mapping.future_locations = output.future_locations;
       mapping.physical_instances = physical_instances;
-      for (std::map<Memory, PoolBounds>::const_iterator it =
-               output.leaf_pool_bounds.begin();
-           it != output.leaf_pool_bounds.end(); it++)
+      for (const std::pair<const Memory, PoolBounds>& it :
+           output.leaf_pool_bounds)
       {
         // Check to see if it is is bounded, if it is we can safe it, if not
         // then we already issued a warning in the task that this is going
         // to invalidate the trace replay so do that now
-        if (it->second.is_bounded())
-          mapping.pool_bounds.insert(*it);
+        if (it.second.is_bounded())
+          mapping.pool_bounds.insert(it);
         else
           record_no_consensus();
       }
-      for (std::deque<InstanceSet>::iterator it =
-               mapping.physical_instances.begin();
-           it != mapping.physical_instances.end(); ++it)
+      for (InstanceSet& it : mapping.physical_instances)
       {
-        for (unsigned idx = 0; idx < it->size(); idx++)
+        for (unsigned idx = 0; idx < it.size(); idx++)
         {
-          const InstanceRef& ref = (*it)[idx];
+          const InstanceRef& ref = it[idx];
           if (ref.is_virtual_ref())
             has_virtual_mapping = true;
         }
@@ -2910,13 +2825,11 @@ namespace Legion {
       // Make sure we're always recording user events on the same shard
       // where the create user event is recorded
       unsigned lhs_ = std::numeric_limits<unsigned>::max();
-      for (std::map<unsigned, ApUserEvent>::const_iterator it =
-               user_events.begin();
-           it != user_events.end(); it++)
+      for (const std::pair<const unsigned, ApUserEvent>& it : user_events)
       {
-        if (it->second != lhs)
+        if (it.second != lhs)
           continue;
-        lhs_ = it->first;
+        lhs_ = it.first;
         break;
       }
       legion_assert(lhs_ != std::numeric_limits<unsigned>::max());
@@ -2969,11 +2882,10 @@ namespace Legion {
       legion_assert(is_recording());
 
       std::set<unsigned> rhs_;
-      for (std::set<ApEvent>::const_iterator it = rhs.begin(); it != rhs.end();
-           it++)
+      for (const ApEvent& event : rhs)
       {
         std::map<ApEvent, unsigned>::const_iterator finder =
-            event_map.find(*it);
+            event_map.find(event);
         if (finder != event_map.end())
           rhs_.insert(finder->second);
       }
@@ -2995,11 +2907,10 @@ namespace Legion {
       legion_assert(is_recording());
 
       std::set<unsigned> rhs_;
-      for (std::vector<ApEvent>::const_iterator it = rhs.begin();
-           it != rhs.end(); it++)
+      for (const ApEvent& event : rhs)
       {
         std::map<ApEvent, unsigned>::const_iterator finder =
-            event_map.find(*it);
+            event_map.find(event);
         if (finder != event_map.end())
           rhs_.insert(finder->second);
       }
@@ -3389,12 +3300,12 @@ namespace Legion {
       std::map<TraceLocalID, std::vector<ConcurrentGroup> >::iterator finder =
           concurrent_groups.find(tlid);
       legion_assert(finder != concurrent_groups.end());
-      for (std::vector<ConcurrentGroup>::iterator it = finder->second.begin();
-           it != finder->second.end(); it++)
+      for (ConcurrentGroup& group : finder->second)
       {
         task->initialize_concurrent_group(
-            it->color, it->local, it->global, it->barrier, it->shards);
-        Runtime::advance_barrier(it->barrier);
+            group.color, group.local, group.global, group.barrier,
+            group.shards);
+        Runtime::advance_barrier(group.barrier);
       }
     }
 
@@ -3485,24 +3396,21 @@ namespace Legion {
       {
         if (last_fence != nullptr)
           events[fence_completion_id] = events[last_fence->complete];
-        for (std::map<unsigned, unsigned>::iterator it = frontiers.begin();
-             it != frontiers.end(); ++it)
-          events[it->second] = events[it->first];
+        for (const std::pair<const unsigned, unsigned>& it : frontiers)
+          events[it.second] = events[it.first];
       }
       else
       {
         events[fence_completion_id] = completion;
-        for (std::map<unsigned, unsigned>::iterator it = frontiers.begin();
-             it != frontiers.end(); ++it)
-          events[it->second] = completion;
+        for (const std::pair<const unsigned, unsigned>& it : frontiers)
+          events[it.second] = completion;
       }
 
-      for (std::map<unsigned, unsigned>::iterator it = crossing_events.begin();
-           it != crossing_events.end(); ++it)
+      for (const std::pair<const unsigned, unsigned>& it : crossing_events)
       {
         ApUserEvent ev = Runtime::create_ap_user_event(nullptr);
-        events[it->first] = ev;
-        user_events[it->first] = ev;
+        events[it.first] = ev;
+        user_events[it.first] = ev;
       }
     }
 
@@ -3532,10 +3440,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::map<ShardID, std::map<ApEvent, ApBarrier> > notifications;
-      for (std::map<ApEvent, BarrierAdvance*>::const_iterator it =
-               managed_barriers.begin();
-           it != managed_barriers.end(); it++)
-        it->second->refresh_barrier(it->first, notifications);
+      for (std::pair<const ApEvent, BarrierAdvance*>& it : managed_barriers)
+        it.second->refresh_barrier(it.first, notifications);
       if (!notifications.empty())
       {
         legion_assert(notifications.size() == 1);
@@ -3543,28 +3449,24 @@ namespace Legion {
             notifications.begin();
         legion_assert(local->first == 0);
         legion_assert(local->second.size() == managed_arrivals.size());
-        for (std::map<ApEvent, ApBarrier>::const_iterator it =
-                 local->second.begin();
-             it != local->second.end(); it++)
+        for (const std::pair<const ApEvent, ApBarrier>& it : local->second)
         {
           std::map<ApEvent, std::vector<BarrierArrival*> >::iterator finder =
-              managed_arrivals.find(it->first);
+              managed_arrivals.find(it.first);
           legion_assert(finder != managed_arrivals.end());
           for (unsigned idx = 0; idx < finder->second.size(); idx++)
-            finder->second[idx]->set_managed_barrier(it->second);
+            finder->second[idx]->set_managed_barrier(it.second);
         }
       }
-      for (std::map<TraceLocalID, std::vector<ConcurrentGroup> >::iterator cit =
-               concurrent_groups.begin();
-           cit != concurrent_groups.end(); cit++)
+      for (std::pair<const TraceLocalID, std::vector<ConcurrentGroup> >& cit :
+           concurrent_groups)
       {
-        for (std::vector<ConcurrentGroup>::iterator it = cit->second.begin();
-             it != cit->second.end(); it++)
+        for (ConcurrentGroup& group : cit.second)
         {
-          legion_assert(it->shards.size() == 1);
-          legion_assert(it->shards.back() == 0);
-          it->barrier.destroy_barrier();
-          it->barrier = runtime->create_rt_barrier(it->global);
+          legion_assert(group.shards.size() == 1);
+          legion_assert(group.shards.back() == 0);
+          group.barrier.destroy_barrier();
+          group.barrier = runtime->create_rt_barrier(group.global);
         }
       }
       return RtEvent::NO_RT_EVENT;
@@ -3593,9 +3495,8 @@ namespace Legion {
           replay_postcondition = RtUserEvent::NO_RT_USER_EVENT;
         }
       }
-      for (std::map<unsigned, unsigned>::const_iterator it = frontiers.begin();
-           it != frontiers.end(); it++)
-        postconditions.insert(events[it->first]);
+      for (const std::pair<const unsigned, unsigned>& it : frontiers)
+        postconditions.insert(events[it.first]);
       if (last_fence != nullptr)
         postconditions.insert(events[last_fence->complete]);
       operations.clear();
@@ -3715,14 +3616,12 @@ namespace Legion {
         std::map<UniqueInst, std::deque<LastUserResult> >::const_iterator
             finder = instance_last_users.find(uit->instance);
         legion_assert(finder != instance_last_users.end());
-        for (std::deque<LastUserResult>::const_iterator it =
-                 finder->second.begin();
-             it != finder->second.end(); it++)
+        for (const LastUserResult& it : finder->second)
         {
-          if (!it->user.matches(*uit))
+          if (!it.user.matches(*uit))
             continue;
-          legion_assert(it->events.size() == it->frontiers.size());
-          users.insert(it->frontiers.begin(), it->frontiers.end());
+          legion_assert(it.events.size() == it.frontiers.size());
+          users.insert(it.frontiers.begin(), it.frontiers.end());
           break;
         }
       }

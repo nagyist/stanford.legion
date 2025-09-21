@@ -163,10 +163,8 @@ namespace Legion {
       future_result_size = 0;
       serdez_redop_fns->init_fn(redop, serdez_redop_buffer, future_result_size);
       fold_serdez(initial_value.impl);
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               sources.begin();
-           it != sources.end(); it++)
-        fold_serdez(it->second);
+      for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
+        fold_serdez(src.second);
     }
 
     //--------------------------------------------------------------------------
@@ -180,11 +178,10 @@ namespace Legion {
           serdez_redop_buffer, future_result_size, true /*external*/,
           false /*own allocation*/);
       std::vector<ApEvent> done_events;
-      for (std::vector<FutureInstance*>::const_iterator it = targets.begin();
-           it != targets.end(); it++)
+      for (FutureInstance* target : targets)
       {
-        ApEvent done =
-            (*it)->copy_from(serdez_redop_instance, this, ApEvent::NO_AP_EVENT);
+        ApEvent done = target->copy_from(
+            serdez_redop_instance, this, ApEvent::NO_AP_EVENT);
         if (done.exists())
           done_events.emplace_back(done);
       }
@@ -242,10 +239,8 @@ namespace Legion {
       populate_sources();
       // Always make sure we'll have buffers ready on the host for us to
       // access in order to use for doing the all-reduce
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               sources.begin();
-           it != sources.end(); it++)
-        prepare_future(map_applied_conditions, it->second);
+      for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
+        prepare_future(map_applied_conditions, src.second);
       if (initial_value.impl != nullptr)
         prepare_future(map_applied_conditions, initial_value.impl);
       if (future_result_size < SIZE_MAX)
@@ -262,10 +257,8 @@ namespace Legion {
       }
       // Subscribe to all the futures and then perform the computation
       std::vector<RtEvent> ready_events;
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               sources.begin();
-           it != sources.end(); it++)
-        subscribe_to_future(ready_events, it->second);
+      for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
+        subscribe_to_future(ready_events, src.second);
       if (initial_value.impl != nullptr)
         subscribe_to_future(ready_events, initial_value.impl);
       // Also make sure we wait for any execution fences that we have
@@ -425,12 +418,11 @@ namespace Legion {
       TaskTreeCoordinates coordinates;
       compute_task_tree_coordinates(coordinates);
       int runtime_visible = -1;
-      for (std::vector<Memory>::const_iterator it = target_memories.begin();
-           it != target_memories.end(); it++)
+      for (const Memory& target : target_memories)
       {
-        if ((runtime_visible < 0) && FutureInstance::check_meta_visible(*it))
+        if ((runtime_visible < 0) && FutureInstance::check_meta_visible(target))
           runtime_visible = targets.size();
-        MemoryManager* manager = runtime->find_memory_manager(*it);
+        MemoryManager* manager = runtime->find_memory_manager(target);
         // Safe to block here indefinitely waiting for unbounded pools
         FutureInstance* instance = manager->create_future_instance(
             unique_op_id, coordinates, result_size,
@@ -475,36 +467,31 @@ namespace Legion {
       std::vector<ApEvent> postconditions;
       if (deterministic)
       {
-        for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-                 sources.begin();
-             it != sources.end(); it++)
+        for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
         {
           for (unsigned idx = 0; idx < targets.size(); idx++)
-            preconditions[idx] = it->second->reduce_to(
+            preconditions[idx] = src.second->reduce_to(
                 targets[idx], this, redop_id, redop, true /*exclusive*/,
                 preconditions[idx]);
-          LegionSpy::log_future_use(unique_op_id, it->second->did);
+          LegionSpy::log_future_use(unique_op_id, src.second->did);
         }
-        for (std::vector<ApEvent>::const_iterator it = preconditions.begin();
-             it != preconditions.end(); it++)
-          if (it->exists())
-            postconditions.emplace_back(*it);
+        for (const ApEvent& pre : preconditions)
+          if (pre.exists())
+            postconditions.emplace_back(pre);
       }
       else
       {
-        for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-                 sources.begin();
-             it != sources.end(); it++)
+        for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
         {
           for (unsigned idx = 0; idx < targets.size(); idx++)
           {
-            const ApEvent done = it->second->reduce_to(
+            const ApEvent done = src.second->reduce_to(
                 targets[idx], this, redop_id, redop, false /*exclusive*/,
                 preconditions[idx]);
             if (done.exists())
               postconditions.emplace_back(done);
           }
-          LegionSpy::log_future_use(unique_op_id, it->second->did);
+          LegionSpy::log_future_use(unique_op_id, src.second->did);
         }
       }
       if (!postconditions.empty())
@@ -635,10 +622,8 @@ namespace Legion {
       // to avoid double inclusion
       if (parent_ctx->get_task()->get_shard_id() == 0)
         fold_serdez(initial_value.impl);
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               sources.begin();
-           it != sources.end(); it++)
-        fold_serdez(it->second);
+      for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
+        fold_serdez(src.second);
       // Now we need an all-to-all to get the values from other shards
       const std::map<ShardID, std::pair<void*, size_t> >& remote_buffers =
           serdez_redop_collective->exchange_buffers(
@@ -649,31 +634,29 @@ namespace Legion {
         // Note the serdez_redop_collective took ownership of deleting
         // the buffer in this case so we know that it is not leaking
         serdez_redop_buffer = nullptr;
-        for (std::map<ShardID, std::pair<void*, size_t> >::const_iterator it =
-                 remote_buffers.begin();
-             it != remote_buffers.end(); it++)
+        for (const std::pair<const ShardID, std::pair<void*, size_t> >& it :
+             remote_buffers)
         {
           if (serdez_redop_buffer == nullptr)
           {
-            future_result_size = it->second.second;
+            future_result_size = it.second.second;
             serdez_redop_buffer = malloc(future_result_size);
-            memcpy(serdez_redop_buffer, it->second.first, future_result_size);
+            memcpy(serdez_redop_buffer, it.second.first, future_result_size);
           }
           else
             serdez_redop_fns->fold_fn(
                 redop, serdez_redop_buffer, future_result_size,
-                it->second.first);
+                it.second.first);
         }
       }
       else
       {
-        for (std::map<ShardID, std::pair<void*, size_t> >::const_iterator it =
-                 remote_buffers.begin();
-             it != remote_buffers.end(); it++)
+        for (const std::pair<const ShardID, std::pair<void*, size_t> >& it :
+             remote_buffers)
         {
-          legion_assert(it->first != serdez_redop_collective->local_shard);
+          legion_assert(it.first != serdez_redop_collective->local_shard);
           serdez_redop_fns->fold_fn(
-              redop, serdez_redop_buffer, future_result_size, it->second.first);
+              redop, serdez_redop_buffer, future_result_size, it.second.first);
         }
       }
     }
@@ -682,11 +665,9 @@ namespace Legion {
     ApEvent ReplAllReduceOp::all_reduce_redop(RtEvent& executed)
     //--------------------------------------------------------------------------
     {
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               sources.begin();
-           it != sources.end(); it++)
+      for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
       {
-        FutureImpl* impl = it->second;
+        FutureImpl* impl = src.second;
         const size_t source_size = impl->get_untyped_size();
         if (source_size != redop->sizeof_rhs)
         {
@@ -711,29 +692,25 @@ namespace Legion {
       ApEvent local_precondition = init_redop_target(local_target);
       if (deterministic)
       {
-        for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-                 sources.begin();
-             it != sources.end(); it++)
+        for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
         {
-          local_precondition = it->second->reduce_to(
+          local_precondition = src.second->reduce_to(
               local_target, this, redop_id, redop, true /*exclusive*/,
               local_precondition);
-          LegionSpy::log_future_use(unique_op_id, it->second->did);
+          LegionSpy::log_future_use(unique_op_id, src.second->did);
         }
       }
       else
       {
         std::vector<ApEvent> postconditions;
-        for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-                 sources.begin();
-             it != sources.end(); it++)
+        for (const std::pair<const DomainPoint, FutureImpl*>& src : sources)
         {
-          const ApEvent postcondition = it->second->reduce_to(
+          const ApEvent postcondition = src.second->reduce_to(
               local_target, this, redop_id, redop, false /*exclusive*/,
               local_precondition);
           if (postcondition.exists())
             postconditions.emplace_back(postcondition);
-          LegionSpy::log_future_use(unique_op_id, it->second->did);
+          LegionSpy::log_future_use(unique_op_id, src.second->did);
         }
         if (!postconditions.empty())
           local_precondition = Runtime::merge_events(nullptr, postconditions);

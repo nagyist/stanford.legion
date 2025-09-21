@@ -465,13 +465,11 @@ namespace Legion {
       // See if we have any arrivals to trigger
       if (!arrive_barriers.empty())
       {
-        for (std::vector<PhaseBarrier>::const_iterator it =
-                 arrive_barriers.begin();
-             it != arrive_barriers.end(); it++)
+        for (const PhaseBarrier& bar : arrive_barriers)
         {
-          LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
+          LegionSpy::log_phase_barrier_arrival(unique_op_id, bar.phase_barrier);
           runtime->phase_barrier_arrive(
-              it->phase_barrier, 1 /*count*/, complete);
+              bar.phase_barrier, 1 /*count*/, complete);
         }
       }
       complete_operation(complete);
@@ -668,9 +666,7 @@ namespace Legion {
     {
       PointwiseAnalyzable<FillOp>::deactivate(false /*free*/);
       // We can deactivate our point operations
-      for (std::vector<PointFillOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
-        (*it)->deactivate();
+      for (PointFillOp* point : points) point->deactivate();
       points.clear();
       pending_pointwise_dependences.clear();
       if (remove_launch_space_reference(launch_space))
@@ -853,30 +849,26 @@ namespace Legion {
           parent_ctx->get_total_shards(), is_replaying());
       if (spy_logging_level > NO_SPY_LOGGING)
       {
-        for (std::vector<PointFillOp*>::const_iterator it = temp_points.begin();
-             it != temp_points.end(); it++)
-          (*it)->log_fill_requirement();
+        for (PointFillOp* point : temp_points) point->log_fill_requirement();
       }
       // Need the lock to avoid races with the pointwise dependence analysis
       AutoLock o_lock(op_lock);
       legion_assert(points.empty());
       points.swap(temp_points);
       // See if we have any pending pointwise dependences to trigger
-      for (std::map<DomainPoint, RtUserEvent>::const_iterator pit =
-               pending_pointwise_dependences.begin();
-           pit != pending_pointwise_dependences.end(); pit++)
+      for (const std::pair<const DomainPoint, RtUserEvent>& pit :
+           pending_pointwise_dependences)
       {
         PointFillOp* point = nullptr;
-        for (std::vector<PointFillOp*>::const_iterator it = points.begin();
-             it != points.end(); it++)
+        for (PointFillOp* it : points)
         {
-          if (pit->first != (*it)->index_point)
+          if (pit.first != it->index_point)
             continue;
-          point = *it;
+          point = it;
           break;
         }
         legion_assert(point != nullptr);
-        Runtime::trigger_event(pit->second, point->get_mapped_event());
+        Runtime::trigger_event(pit.second, point->get_mapped_event());
       }
     }
 
@@ -915,18 +907,17 @@ namespace Legion {
             std::make_pair(point, to_trigger));
         return to_trigger;
       }
-      for (std::vector<PointFillOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
+      for (PointFillOp* it : points)
       {
-        if (point != (*it)->index_point)
+        if (point != it->index_point)
           continue;
         if (to_trigger.exists())
         {
-          Runtime::trigger_event(to_trigger, (*it)->get_mapped_event());
+          Runtime::trigger_event(to_trigger, it->get_mapped_event());
           return to_trigger;
         }
         else
-          return (*it)->get_mapped_event();
+          return it->get_mapped_event();
       }
       // Should never get here, if we do that means we couldn't find the point
       std::abort();
@@ -941,10 +932,9 @@ namespace Legion {
       // by the predication_state having been set before this
       if (!pending_pointwise_dependences.empty())
       {
-        for (std::map<DomainPoint, RtUserEvent>::const_iterator it =
-                 pending_pointwise_dependences.begin();
-             it != pending_pointwise_dependences.end(); it++)
-          Runtime::trigger_event(it->second);
+        for (const std::pair<const DomainPoint, RtUserEvent>& it :
+             pending_pointwise_dependences)
+          Runtime::trigger_event(it.second);
         pending_pointwise_dependences.clear();
       }
       FillOp::predicate_false();
@@ -1195,9 +1185,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(selected_views.size());
-      for (std::set<DistributedID>::const_iterator it = selected_views.begin();
-           it != selected_views.end(); it++)
-        rez.serialize(*it);
+      for (const DistributedID& it : selected_views) rez.serialize(it);
     }
 
     //--------------------------------------------------------------------------

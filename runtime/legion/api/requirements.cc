@@ -645,9 +645,7 @@ namespace Legion {
           error.raise();
         }
     }
-    for (std::set<FieldID>::const_iterator it = fields.begin();
-         it != fields.end(); ++it)
-      RegionRequirement::add_field(*it);
+    for (const FieldID& field : fields) RegionRequirement::add_field(field);
   }
 
   //--------------------------------------------------------------------------

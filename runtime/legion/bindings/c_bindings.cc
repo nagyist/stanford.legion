@@ -469,12 +469,10 @@ legion_domain_t legion_domain_coloring_get_color_space(
 {
   DomainColoring* handle = CObjectWrapper::unwrap(handle_);
   Color color_min = (Color)-1, color_max = 0;
-  for (std::map<Color, Domain>::iterator it = handle->begin(),
-                                         ie = handle->end();
-       it != ie; it++)
+  for (const std::pair<const Color, Domain>& entry : *handle)
   {
-    color_min = std::min(color_min, it->first);
-    color_max = std::max(color_max, it->first);
+    color_min = std::min(color_min, entry.first);
+    color_max = std::max(color_max, entry.first);
   }
   Domain domain = Rect1D(Point1D(color_min), Point1D(color_max));
   return CObjectWrapper::wrap(domain);
@@ -777,43 +775,36 @@ legion_index_partition_t legion_index_partition_create_coloring(
 
   std::map<DomainPoint, Domain> domains;
   Color lower_bound = std::numeric_limits<Color>::max(), upper_bound = 0;
-  for (Coloring::const_iterator cit = coloring->begin(); cit != coloring->end();
-       cit++)
+  for (const std::pair<const Color, ColoredPoints>& cit : *coloring)
   {
-    if (cit->first < lower_bound)
-      lower_bound = cit->first;
-    if (cit->first > upper_bound)
-      upper_bound = cit->first;
-    const DomainPoint color = Point<1, coord_t>(cit->first);
-    if (cit->second.ranges.empty())
+    if (cit.first < lower_bound)
+      lower_bound = cit.first;
+    if (cit.first > upper_bound)
+      upper_bound = cit.first;
+    const DomainPoint color = Point<1, coord_t>(cit.first);
+    if (cit.second.ranges.empty())
     {
-      std::vector<Point<1, coord_t> > points(cit->second.points.size());
+      std::vector<Point<1, coord_t>> points(cit.second.points.size());
       unsigned index = 0;
-      for (std::set<legion_ptr_t>::const_iterator it =
-               cit->second.points.begin();
-           it != cit->second.points.end(); it++)
-        points[index++] = Point<1, coord_t>(it->value);
+      for (const legion_ptr_t& it : cit.second.points)
+        points[index++] = Point<1, coord_t>(it.value);
       const DomainT<1, coord_t> space(points);
       domains[color] = DomainT<1, coord_t>(space);
     }
     else
     {
-      std::vector<Rect<1, coord_t> > ranges(
-          cit->second.points.size() + cit->second.ranges.size());
+      std::vector<Rect<1, coord_t>> ranges(
+          cit.second.points.size() + cit.second.ranges.size());
       unsigned index = 0;
-      for (std::set<legion_ptr_t>::const_iterator it =
-               cit->second.points.begin();
-           it != cit->second.points.end(); it++)
+      for (const legion_ptr_t& it : cit.second.points)
       {
-        Point<1, coord_t> point(it->value);
+        Point<1, coord_t> point(it.value);
         ranges[index++] = Rect<1, coord_t>(point, point);
       }
-      for (std::set<std::pair<legion_ptr_t, legion_ptr_t> >::iterator it =
-               cit->second.ranges.begin();
-           it != cit->second.ranges.end(); it++)
+      for (const std::pair<legion_ptr_t, legion_ptr_t>& it : cit.second.ranges)
       {
-        Point<1, coord_t> lo(it->first.value);
-        Point<1, coord_t> hi(it->second.value);
+        Point<1, coord_t> lo(it.first.value);
+        Point<1, coord_t> hi(it.second.value);
         ranges[index++] = Rect<1, coord_t>(lo, hi);
       }
       const DomainT<1, coord_t> space(ranges);
@@ -854,13 +845,12 @@ legion_index_partition_t legion_index_partition_create_domain_coloring(
   }
 
   std::map<DomainPoint, Domain> domains;
-  for (DomainColoring::const_iterator it = coloring->begin();
-       it != coloring->end(); it++)
+  for (const std::pair<const Color, Domain>& it : *coloring)
   {
-    Point<1, coord_t> color(it->first);
+    Point<1, coord_t> color(it.first);
     // Must be dense or tracking ownership of sparsity maps is broken
-    legion_assert(it->second.dense());
-    domains[color] = it->second;
+    legion_assert(it.second.dense());
+    domains[color] = it.second;
   }
   // Make an index space for the color space
   IndexSpace index_color_space = runtime->create_index_space(ctx, color_space);
@@ -890,42 +880,35 @@ legion_index_partition_t legion_index_partition_create_point_coloring(
   }
 
   std::map<DomainPoint, Domain> domains;
-  for (PointColoring::const_iterator cit = coloring->begin();
-       cit != coloring->end(); cit++)
+  for (const std::pair<const DomainPoint, ColoredPoints>& cit : *coloring)
   {
-    if (cit->second.ranges.empty())
+    if (cit.second.ranges.empty())
     {
-      std::vector<Point<1, coord_t> > points(cit->second.points.size());
+      std::vector<Point<1, coord_t>> points(cit.second.points.size());
       unsigned index = 0;
-      for (std::set<legion_ptr_t>::const_iterator it =
-               cit->second.points.begin();
-           it != cit->second.points.end(); it++)
-        points[index++] = Point<1, coord_t>(it->value);
+      for (const legion_ptr_t& it : cit.second.points)
+        points[index++] = Point<1, coord_t>(it.value);
       const DomainT<1, coord_t> space(points);
-      domains[cit->first] = DomainT<1, coord_t>(space);
+      domains[cit.first] = DomainT<1, coord_t>(space);
     }
     else
     {
-      std::vector<Rect<1, coord_t> > ranges(
-          cit->second.points.size() + cit->second.ranges.size());
+      std::vector<Rect<1, coord_t>> ranges(
+          cit.second.points.size() + cit.second.ranges.size());
       unsigned index = 0;
-      for (std::set<legion_ptr_t>::const_iterator it =
-               cit->second.points.begin();
-           it != cit->second.points.end(); it++)
+      for (const legion_ptr_t& it : cit.second.points)
       {
-        Point<1, coord_t> point(it->value);
+        Point<1, coord_t> point(it.value);
         ranges[index++] = Rect<1, coord_t>(point, point);
       }
-      for (std::set<std::pair<legion_ptr_t, legion_ptr_t> >::iterator it =
-               cit->second.ranges.begin();
-           it != cit->second.ranges.end(); it++)
+      for (const std::pair<legion_ptr_t, legion_ptr_t>& it : cit.second.ranges)
       {
-        Point<1, coord_t> lo(it->first.value);
-        Point<1, coord_t> hi(it->second.value);
+        Point<1, coord_t> lo(it.first.value);
+        Point<1, coord_t> hi(it.second.value);
         ranges[index++] = Rect<1, coord_t>(lo, hi);
       }
       const DomainT<1, coord_t> space(ranges);
-      domains[cit->first] = DomainT<1, coord_t>(space);
+      domains[cit.first] = DomainT<1, coord_t>(space);
     }
   }
   // Make an index space for the color space
@@ -1157,31 +1140,30 @@ legion_index_partition_t
   Realm::ProfilingRequestSet no_reqs;
   switch (dim)
   {
-#define DIMFUNC(DIM)                                                         \
-  case DIM:                                                                  \
-    {                                                                        \
-      for (MultiDomainPointColoring::const_iterator cit = coloring->begin(); \
-           cit != coloring->end(); cit++)                                    \
-      {                                                                      \
-        std::vector<DomainT<DIM, coord_t> > subspaces(cit->second.size());   \
-        unsigned index = 0;                                                  \
-        for (std::set<Domain>::const_iterator it = cit->second.begin();      \
-             it != cit->second.end(); it++)                                  \
-        {                                                                    \
-          const DomainT<DIM, coord_t> domaint = *it;                         \
-          subspaces[index++] = domaint;                                      \
-        }                                                                    \
-        DomainT<DIM, coord_t> summary;                                       \
-        Internal::LgEvent wait_on(DomainT<DIM, coord_t>::compute_union(      \
-            subspaces, summary, no_reqs));                                   \
-        if (wait_on.exists())                                                \
-          wait_on.wait();                                                    \
-        DomainT<DIM, coord_t> tight = summary.tighten();                     \
-        if (!summary.dense() && tight.dense())                               \
-          summary.destroy();                                                 \
-        domains[cit->first] = DomainT<DIM, coord_t>(tight);                  \
-      }                                                                      \
-      break;                                                                 \
+#define DIMFUNC(DIM)                                                     \
+  case DIM:                                                              \
+    {                                                                    \
+      for (const std::pair<const DomainPoint, std::set<Domain>>& cit :   \
+           *coloring)                                                    \
+      {                                                                  \
+        std::vector<DomainT<DIM, coord_t>> subspaces(cit.second.size()); \
+        unsigned index = 0;                                              \
+        for (const Domain& it : cit.second)                              \
+        {                                                                \
+          const DomainT<DIM, coord_t> domaint = it;                      \
+          subspaces[index++] = domaint;                                  \
+        }                                                                \
+        DomainT<DIM, coord_t> summary;                                   \
+        Internal::LgEvent wait_on(DomainT<DIM, coord_t>::compute_union(  \
+            subspaces, summary, no_reqs));                               \
+        if (wait_on.exists())                                            \
+          wait_on.wait();                                                \
+        DomainT<DIM, coord_t> tight = summary.tighten();                 \
+        if (!summary.dense() && tight.dense())                           \
+          summary.destroy();                                             \
+        domains[cit.first] = DomainT<DIM, coord_t>(tight);               \
+      }                                                                  \
+      break;                                                             \
     }
     LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -5255,11 +5237,10 @@ void legion_attach_launcher_attach_hdf5(
       CObjectWrapper::unwrap(field_map_);
 
   std::vector<FieldID> fields;
-  for (std::map<FieldID, const char*>::const_iterator it = field_map->begin();
-       it != field_map->end(); it++)
+  for (const std::pair<const FieldID, const char*>& it : *field_map)
   {
-    fields.emplace_back(it->first);
-    handle->privilege_fields.insert(it->first);
+    fields.emplace_back(it.first);
+    handle->privilege_fields.insert(it.first);
   }
   handle->initialize_constraints(true /*column major*/, true /*soa*/, fields);
   handle->field_files = *field_map;
@@ -5460,20 +5441,18 @@ void legion_index_attach_launcher_attach_hdf5(
   if (handle->handles.empty())
   {
     std::vector<FieldID> fields;
-    for (std::map<FieldID, const char*>::const_iterator it = field_map->begin();
-         it != field_map->end(); it++)
+    for (const std::pair<const FieldID, const char*>& it : *field_map)
     {
-      fields.emplace_back(it->first);
-      handle->privilege_fields.insert(it->first);
-      handle->field_files[it->first].emplace_back(it->second);
+      fields.emplace_back(it.first);
+      handle->privilege_fields.insert(it.first);
+      handle->field_files[it.first].emplace_back(it.second);
     }
     handle->initialize_constraints(true /*column major*/, true /*soa*/, fields);
   }
   else
   {
-    for (std::map<FieldID, const char*>::const_iterator it = field_map->begin();
-         it != field_map->end(); it++)
-      handle->field_files[it->first].emplace_back(it->second);
+    for (const std::pair<const FieldID, const char*>& it : *field_map)
+      handle->field_files[it.first].emplace_back(it.second);
   }
 #ifdef LEGION_USE_HDF5
   LogicalRegion region = CObjectWrapper::unwrap(region_);
@@ -5538,10 +5517,9 @@ void legion_index_attach_launcher_destroy(
   IndexAttachLauncher* handle = CObjectWrapper::unwrap(handle_);
 
   // Remove any external resource allocations that we made
-  for (std::vector<const Realm::ExternalInstanceResource*>::const_iterator it =
-           handle->external_resources.begin();
-       it != handle->external_resources.end(); it++)
-    delete const_cast<Realm::ExternalInstanceResource*>(*it);
+  for (const Realm::ExternalInstanceResource* const & it :
+       handle->external_resources)
+    delete const_cast<Realm::ExternalInstanceResource*>(it);
 
   delete handle;
 }
@@ -5963,32 +5941,32 @@ legion_memory_t legion_physical_region_get_memory(
   return CObjectWrapper::wrap(*it);
 }
 
-#define GET_ACCESSOR(DIM)                                                    \
-  legion_accessor_array_##DIM##d_t                                           \
-      legion_physical_region_get_field_accessor_array_##DIM##d(              \
-          legion_physical_region_t handle_, legion_field_id_t fid)           \
-  {                                                                          \
-    PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);                \
-    UnsafeFieldAccessor<                                                     \
-        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t> >*     \
-        accessor = new UnsafeFieldAccessor<                                  \
-            char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t> >( \
-            *handle, fid);                                                   \
-                                                                             \
-    return CObjectWrapper::wrap(accessor);                                   \
+#define GET_ACCESSOR(DIM)                                                   \
+  legion_accessor_array_##DIM##d_t                                          \
+      legion_physical_region_get_field_accessor_array_##DIM##d(             \
+          legion_physical_region_t handle_, legion_field_id_t fid)          \
+  {                                                                         \
+    PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);               \
+    UnsafeFieldAccessor<                                                    \
+        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t>>*     \
+        accessor = new UnsafeFieldAccessor<                                 \
+            char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t>>( \
+            *handle, fid);                                                  \
+                                                                            \
+    return CObjectWrapper::wrap(accessor);                                  \
   }
 LEGION_FOREACH_N(GET_ACCESSOR)
 #undef GET_ACCESSOR
 
-#define DESTROY_ACCESSOR(DIM)                                            \
-  void legion_accessor_array_##DIM##d_destroy(                           \
-      legion_accessor_array_##DIM##d_t handle_)                          \
-  {                                                                      \
-    UnsafeFieldAccessor<                                                 \
-        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t> >* \
-        handle = CObjectWrapper::unwrap(handle_);                        \
-                                                                         \
-    delete handle;                                                       \
+#define DESTROY_ACCESSOR(DIM)                                           \
+  void legion_accessor_array_##DIM##d_destroy(                          \
+      legion_accessor_array_##DIM##d_t handle_)                         \
+  {                                                                     \
+    UnsafeFieldAccessor<                                                \
+        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t>>* \
+        handle = CObjectWrapper::unwrap(handle_);                       \
+                                                                        \
+    delete handle;                                                      \
   }
 LEGION_FOREACH_N(DESTROY_ACCESSOR)
 #undef DESTROY_ACCESSOR
@@ -5999,7 +5977,7 @@ LEGION_FOREACH_N(DESTROY_ACCESSOR)
       legion_rect_##DIM##d_t* subrect_, legion_byte_offset_t* offsets_)       \
   {                                                                           \
     UnsafeFieldAccessor<                                                      \
-        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t> >*      \
+        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t>>*       \
         handle = CObjectWrapper::unwrap(handle_);                             \
     Rect##DIM##D rect = CObjectWrapper::unwrap(rect_);                        \
                                                                               \
@@ -6021,19 +5999,19 @@ legion_accessor_array_1d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t> >* accessor =
+      char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 1);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 1, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 1, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6054,19 +6032,19 @@ legion_accessor_array_2d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 2, coord_t, Realm::AffineAccessor<char, 2, coord_t> >* accessor =
+      char, 2, coord_t, Realm::AffineAccessor<char, 2, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 2);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 2, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 2, coord_t, Realm::AffineAccessor<char, 2, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 2, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 2, coord_t, Realm::AffineAccessor<char, 2, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6087,19 +6065,19 @@ legion_accessor_array_3d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 3, coord_t, Realm::AffineAccessor<char, 3, coord_t> >* accessor =
+      char, 3, coord_t, Realm::AffineAccessor<char, 3, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 3);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 3, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 3, coord_t, Realm::AffineAccessor<char, 3, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 3, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 3, coord_t, Realm::AffineAccessor<char, 3, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6120,19 +6098,19 @@ legion_accessor_array_4d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 4, coord_t, Realm::AffineAccessor<char, 4, coord_t> >* accessor =
+      char, 4, coord_t, Realm::AffineAccessor<char, 4, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 4);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 4, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 4, coord_t, Realm::AffineAccessor<char, 4, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 4, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 4, coord_t, Realm::AffineAccessor<char, 4, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6153,19 +6131,19 @@ legion_accessor_array_5d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 5, coord_t, Realm::AffineAccessor<char, 5, coord_t> >* accessor =
+      char, 5, coord_t, Realm::AffineAccessor<char, 5, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 5);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 5, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 5, coord_t, Realm::AffineAccessor<char, 5, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 5, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 5, coord_t, Realm::AffineAccessor<char, 5, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6186,19 +6164,19 @@ legion_accessor_array_6d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 6, coord_t, Realm::AffineAccessor<char, 6, coord_t> >* accessor =
+      char, 6, coord_t, Realm::AffineAccessor<char, 6, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 6);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 6, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 6, coord_t, Realm::AffineAccessor<char, 6, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 6, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 6, coord_t, Realm::AffineAccessor<char, 6, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6219,19 +6197,19 @@ legion_accessor_array_7d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 7, coord_t, Realm::AffineAccessor<char, 7, coord_t> >* accessor =
+      char, 7, coord_t, Realm::AffineAccessor<char, 7, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 7);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 7, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 7, coord_t, Realm::AffineAccessor<char, 7, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 7, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 7, coord_t, Realm::AffineAccessor<char, 7, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6252,19 +6230,19 @@ legion_accessor_array_8d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 8, coord_t, Realm::AffineAccessor<char, 8, coord_t> >* accessor =
+      char, 8, coord_t, Realm::AffineAccessor<char, 8, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 8);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 8, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 8, coord_t, Realm::AffineAccessor<char, 8, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 8, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 8, coord_t, Realm::AffineAccessor<char, 8, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6285,19 +6263,19 @@ legion_accessor_array_9d_t
   PhysicalRegion* handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<
-      char, 9, coord_t, Realm::AffineAccessor<char, 9, coord_t> >* accessor =
+      char, 9, coord_t, Realm::AffineAccessor<char, 9, coord_t>>* accessor =
       nullptr;
   legion_assert(domtrans.transform.n == 9);
   switch (domtrans.transform.m)
   {
-#define AFFINE(DIM)                                                    \
-  case DIM:                                                            \
-    {                                                                  \
-      const AffineTransform<DIM, 9, coord_t> transform = domtrans;     \
-      accessor = new UnsafeFieldAccessor<                              \
-          char, 9, coord_t, Realm::AffineAccessor<char, 9, coord_t> >( \
-          *handle, fid, transform);                                    \
-      break;                                                           \
+#define AFFINE(DIM)                                                   \
+  case DIM:                                                           \
+    {                                                                 \
+      const AffineTransform<DIM, 9, coord_t> transform = domtrans;    \
+      accessor = new UnsafeFieldAccessor<                             \
+          char, 9, coord_t, Realm::AffineAccessor<char, 9, coord_t>>( \
+          *handle, fid, transform);                                   \
+      break;                                                          \
     }
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
@@ -6314,23 +6292,23 @@ void legion_accessor_array_1d_read(
     size_t bytes)
 {
   UnsafeFieldAccessor<
-      char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t> >* handle =
+      char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t>>* handle =
       CObjectWrapper::unwrap(handle_);
 
   memcpy(dst, handle->ptr(ptr.value), bytes);
 }
 
-#define READ_POINT(DIM)                                                  \
-  void legion_accessor_array_##DIM##d_read_point(                        \
-      legion_accessor_array_##DIM##d_t handle_,                          \
-      legion_point_##DIM##d_t point_, void* dst, size_t bytes)           \
-  {                                                                      \
-    UnsafeFieldAccessor<                                                 \
-        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t> >* \
-        handle = CObjectWrapper::unwrap(handle_);                        \
-    Point##DIM##D point = CObjectWrapper::unwrap(point_);                \
-                                                                         \
-    memcpy(dst, handle->ptr(point), bytes);                              \
+#define READ_POINT(DIM)                                                 \
+  void legion_accessor_array_##DIM##d_read_point(                       \
+      legion_accessor_array_##DIM##d_t handle_,                         \
+      legion_point_##DIM##d_t point_, void* dst, size_t bytes)          \
+  {                                                                     \
+    UnsafeFieldAccessor<                                                \
+        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t>>* \
+        handle = CObjectWrapper::unwrap(handle_);                       \
+    Point##DIM##D point = CObjectWrapper::unwrap(point_);               \
+                                                                        \
+    memcpy(dst, handle->ptr(point), bytes);                             \
   }
 LEGION_FOREACH_N(READ_POINT)
 #undef READ_POINT
@@ -6340,23 +6318,23 @@ void legion_accessor_array_1d_write(
     size_t bytes)
 {
   UnsafeFieldAccessor<
-      char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t> >* handle =
+      char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t>>* handle =
       CObjectWrapper::unwrap(handle_);
 
   memcpy(handle->ptr(ptr.value), src, bytes);
 }
 
-#define WRITE_POINT(DIM)                                                 \
-  void legion_accessor_array_##DIM##d_write_point(                       \
-      legion_accessor_array_##DIM##d_t handle_,                          \
-      legion_point_##DIM##d_t point_, const void* src, size_t bytes)     \
-  {                                                                      \
-    UnsafeFieldAccessor<                                                 \
-        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t> >* \
-        handle = CObjectWrapper::unwrap(handle_);                        \
-    Point##DIM##D point = CObjectWrapper::unwrap(point_);                \
-                                                                         \
-    memcpy(handle->ptr(point), src, bytes);                              \
+#define WRITE_POINT(DIM)                                                \
+  void legion_accessor_array_##DIM##d_write_point(                      \
+      legion_accessor_array_##DIM##d_t handle_,                         \
+      legion_point_##DIM##d_t point_, const void* src, size_t bytes)    \
+  {                                                                     \
+    UnsafeFieldAccessor<                                                \
+        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t>>* \
+        handle = CObjectWrapper::unwrap(handle_);                       \
+    Point##DIM##D point = CObjectWrapper::unwrap(point_);               \
+                                                                        \
+    memcpy(handle->ptr(point), src, bytes);                             \
   }
 LEGION_FOREACH_N(WRITE_POINT)
 #undef WRITE_POINT
@@ -6365,23 +6343,23 @@ void* legion_accessor_array_1d_ref(
     legion_accessor_array_1d_t handle_, legion_ptr_t ptr)
 {
   UnsafeFieldAccessor<
-      char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t> >* handle =
+      char, 1, coord_t, Realm::AffineAccessor<char, 1, coord_t>>* handle =
       CObjectWrapper::unwrap(handle_);
 
   return handle->ptr(ptr.value);
 }
 
-#define REF_POINT(DIM)                                                   \
-  void* legion_accessor_array_##DIM##d_ref_point(                        \
-      legion_accessor_array_##DIM##d_t handle_,                          \
-      legion_point_##DIM##d_t point_)                                    \
-  {                                                                      \
-    UnsafeFieldAccessor<                                                 \
-        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t> >* \
-        handle = CObjectWrapper::unwrap(handle_);                        \
-    Point##DIM##D point = CObjectWrapper::unwrap(point_);                \
-                                                                         \
-    return handle->ptr(point);                                           \
+#define REF_POINT(DIM)                                                  \
+  void* legion_accessor_array_##DIM##d_ref_point(                       \
+      legion_accessor_array_##DIM##d_t handle_,                         \
+      legion_point_##DIM##d_t point_)                                   \
+  {                                                                     \
+    UnsafeFieldAccessor<                                                \
+        char, DIM, coord_t, Realm::AffineAccessor<char, DIM, coord_t>>* \
+        handle = CObjectWrapper::unwrap(handle_);                       \
+    Point##DIM##D point = CObjectWrapper::unwrap(point_);               \
+                                                                        \
+    return handle->ptr(point);                                          \
   }
 LEGION_FOREACH_N(REF_POINT)
 #undef REF_POINT
@@ -6980,18 +6958,14 @@ void registration_callback_wrapper(
   legion_processor_t local_procs_[local_procs.size()];
 
   unsigned idx = 0;
-  for (std::set<Processor>::iterator itr = local_procs.begin();
-       itr != local_procs.end(); ++itr)
+  for (const Processor& proc : local_procs)
   {
-    const Processor& proc = *itr;
     local_procs_[idx++] = CObjectWrapper::wrap(proc);
   }
 
-  for (std::vector<legion_registration_callback_pointer_t>::iterator itr =
-           callbacks.begin();
-       itr != callbacks.end(); ++itr)
+  for (legion_registration_callback_pointer_t& callback : callbacks)
   {
-    (*itr)(machine_, rt_, local_procs_, idx);
+    callback(machine_, rt_, local_procs_, idx);
   }
 }
 

@@ -199,11 +199,10 @@ namespace Legion {
       {
         // If we have any local fields then tell field space that
         // we can remove them and then clear them
-        for (std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
-                 it = local_field_infos.begin();
-             it != local_field_infos.end(); it++)
+        for (const std::pair<const FieldSpace, std::vector<LocalFieldInfo> >&
+                 it : local_field_infos)
         {
-          const std::vector<LocalFieldInfo>& infos = it->second;
+          const std::vector<LocalFieldInfo>& infos = it.second;
           std::vector<FieldID> to_remove;
           for (unsigned idx = 0; idx < infos.size(); idx++)
           {
@@ -212,7 +211,7 @@ namespace Legion {
             to_remove.emplace_back(infos[idx].fid);
           }
           if (!to_remove.empty())
-            runtime->remove_local_fields(it->first, to_remove);
+            runtime->remove_local_fields(it.first, to_remove);
         }
         local_field_infos.clear();
       }
@@ -639,10 +638,9 @@ namespace Legion {
             done_event, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(done_event);
-      for (std::vector<EqKDTree*>::const_iterator it = created_trees.begin();
-           it != created_trees.end(); it++)
-        if (((*it) != nullptr) && (*it)->remove_reference())
-          delete (*it);
+      for (EqKDTree* const & it : created_trees)
+        if ((it != nullptr) && it->remove_reference())
+          delete it;
       context->unpack_global_ref();
     }
 
@@ -976,12 +974,11 @@ namespace Legion {
           rez.serialize<LocalLock*>(nullptr);
           rez.serialize(req_index);
           rez.serialize<size_t>(current_sets.size());
-          for (std::map<EquivalenceSet*, unsigned>::const_iterator it =
-                   current_sets.begin();
-               it != current_sets.end(); it++)
+          for (const std::pair<EquivalenceSet* const, unsigned>& it :
+               current_sets)
           {
-            legion_assert(req_index == it->second);
-            rez.serialize(it->first->did);
+            legion_assert(req_index == it.second);
+            rez.serialize(it.first->did);
           }
           rez.serialize(done);
         }

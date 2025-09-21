@@ -59,12 +59,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(equivalence_sets.size());
-      for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
-               equivalence_sets.begin();
-           it != equivalence_sets.end(); it++)
+      for (const std::pair<EquivalenceSet*, FieldMask>& it : equivalence_sets)
       {
-        rez.serialize(it->first->did);
-        rez.serialize(it->second);
+        rez.serialize(it.first->did);
+        rez.serialize(it.second);
       }
     }
 
@@ -173,11 +171,10 @@ namespace Legion {
         // be a fairly rare thing to do
         if (equivalence_sets_ready != nullptr)
         {
-          for (shrt::map<RtUserEvent, FieldMask>::const_iterator it =
-                   equivalence_sets_ready->begin();
-               it != equivalence_sets_ready->end(); it++)
+          for (const std::pair<const RtUserEvent, FieldMask>& it :
+               *equivalence_sets_ready)
           {
-            if (remaining_mask * it->second)
+            if (remaining_mask * it.second)
               continue;
             // Skip out earlier if we have at least one thing to wait
             // for since we're going to have to go down the slow path
@@ -206,14 +203,13 @@ namespace Legion {
         AutoLock m_lock(manager_lock);
         if (equivalence_sets_ready != nullptr)
         {
-          for (shrt::map<RtUserEvent, FieldMask>::const_iterator it =
-                   equivalence_sets_ready->begin();
-               it != equivalence_sets_ready->end(); it++)
+          for (const std::pair<const RtUserEvent, FieldMask>& it :
+               *equivalence_sets_ready)
           {
-            const FieldMask overlap = remaining_mask & it->second;
+            const FieldMask overlap = remaining_mask & it.second;
             if (!overlap)
               continue;
-            ready_events.insert(it->first);
+            ready_events.insert(it.first);
             waiting_mask |= overlap;
           }
           if (!!waiting_mask)
@@ -350,7 +346,7 @@ namespace Legion {
     {
       // We need to remove any tracked equivalence sets that we have
       lng::FieldMaskMap<EquivalenceSet> to_remove;
-      lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> > to_cancel;
+      lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree>> to_cancel;
       {
         AutoLock m_lock(manager_lock);
         // All these other resource should already be empty by the time
@@ -368,22 +364,19 @@ namespace Legion {
       legion_assert(node->is_region());
       if (!to_cancel.empty())
       {
-        for (lng::map<AddressSpaceID, lng::FieldMaskMap<EqKDTree> >::
-                 const_iterator it = to_cancel.begin();
-             it != to_cancel.end(); it++)
-          cancel_subscriptions(it->first, FieldMapView(it->second));
+        for (const std::pair<const AddressSpaceID, lng::FieldMaskMap<EqKDTree>>&
+                 it : to_cancel)
+          cancel_subscriptions(it.first, FieldMapView(it.second));
       }
-      for (lng::FieldMaskMap<EquivalenceSet>::const_iterator it =
-               to_remove.begin();
-           it != to_remove.end(); it++)
+      for (const std::pair<EquivalenceSet*, FieldMask>& it : to_remove)
       {
         // This would be a valid assertion except for cases with control
         // replication where there is another node that owns the equivalence
         // set and we just happen to have a copy of it here
-        // legion_assert((it->first->region_node != node) ||
-        //        it->first->region_node->row_source->is_empty());
-        if (it->first->remove_base_gc_ref(VERSION_MANAGER_REF))
-          delete it->first;
+        // legion_assert((it.first->region_node != node) ||
+        //        it.first->region_node->row_source->is_empty());
+        if (it.first->remove_base_gc_ref(VERSION_MANAGER_REF))
+          delete it.first;
       }
     }
 

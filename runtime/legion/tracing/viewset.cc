@@ -50,13 +50,11 @@ namespace Legion {
 #undef MEM_NAMES
         };
         bool first = true;
-        for (std::vector<DistributedID>::const_iterator it =
-                 collective->instances.begin();
-             it != collective->instances.end(); it++)
+        for (const DistributedID& distributed_id : collective->instances)
         {
           RtEvent ready;
           PhysicalManager* manager =
-              runtime->find_or_request_instance_manager(*it, ready);
+              runtime->find_or_request_instance_manager(distributed_id, ready);
           if (ready.exists())
             ready.wait();
           if (first)
@@ -65,26 +63,28 @@ namespace Legion {
             FieldSpaceNode* field_space = manager->field_space_node;
             std::vector<FieldID> fields;
             field_space->get_field_set(mask, ctx, fields);
-            for (std::vector<FieldID>::const_iterator fit = fields.begin();
-                 fit != fields.end(); fit++)
+            bool first_field = true;
+            for (const FieldID& field_id : fields)
             {
-              if (fit != fields.begin())
+              if (!first_field)
                 ss << ", ";
+              else
+                first_field = false;
               const void* name = nullptr;
               size_t name_size = 0;
               if (field_space->retrieve_semantic_information(
                       LEGION_NAME_SEMANTIC_TAG, name, name_size,
                       true /*can fail*/, false /*wait until*/))
-                ss << ((const char*)name) << " (" << *fit << ")";
+                ss << ((const char*)name) << " (" << field_id << ")";
               else
-                ss << *fit;
+                ss << field_id;
             }
             ss << ", Instances: ";
             first = false;
           }
           Memory memory = manager->memory_manager->memory;
-          ss << "Instance " << std::hex << *it << std::dec << " (" << std::hex
-             << manager->get_instance().id << std::dec << ")  in "
+          ss << "Instance " << std::hex << distributed_id << std::dec << " ("
+             << std::hex << manager->get_instance().id << std::dec << ")  in "
              << mem_names[memory.kind()] << " Memory " << std::hex << memory.id
              << std::dec;
         }
@@ -109,19 +109,21 @@ namespace Legion {
            << " in " << mem_names[memory.kind()] << " Memory " << std::hex
            << memory.id << std::dec << ", Index expr: " << expr->expr_id
            << ", Field Mask: " << m << ", Fields: ";
-        for (std::vector<FieldID>::const_iterator it = fields.begin();
-             it != fields.end(); it++)
+        bool first_field = true;
+        for (const FieldID& field_id : fields)
         {
-          if (it != fields.begin())
+          if (!first_field)
             ss << ", ";
+          else
+            first_field = false;
           const void* name = nullptr;
           size_t name_size = 0;
           if (field_space->retrieve_semantic_information(
                   LEGION_NAME_SEMANTIC_TAG, name, name_size, true /*can fail*/,
                   false /*wait until*/))
-            ss << ((const char*)name) << " (" << *it << ")";
+            ss << ((const char*)name) << " (" << field_id << ")";
           else
-            ss << *it;
+            ss << field_id;
         }
       }
       return ss.str();
@@ -207,36 +209,36 @@ namespace Legion {
           }
           local::FieldMaskMap<IndexSpaceExpression> to_add;
           std::vector<IndexSpaceExpression*> to_delete;
-          for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator it =
+          for (shrt::FieldMaskMap<IndexSpaceExpression>::iterator expr_it =
                    finder->second.begin();
-               it != finder->second.end(); it++)
+               expr_it != finder->second.end(); expr_it++)
           {
-            const FieldMask overlap = set_overlap & it->second;
+            const FieldMask overlap = set_overlap & expr_it->second;
             if (!overlap)
               continue;
-            if (it->first != total_expr)
+            if (expr_it->first != total_expr)
             {
-              if (it->first != expr)
+              if (expr_it->first != expr)
               {
                 // Not the same expression, so compute the union
                 IndexSpaceExpression* union_expr =
-                    runtime->union_index_spaces(it->first, expr);
+                    runtime->union_index_spaces(expr_it->first, expr);
                 const size_t union_volume = union_expr->get_volume();
-                if (it->first->get_volume() < union_volume)
+                if (expr_it->first->get_volume() < union_volume)
                 {
                   if (expr_volume < union_volume)
                     to_add.insert(union_expr, overlap);
                   else
                     to_add.insert(expr, overlap);
-                  it.filter(overlap);
-                  if (!it->second)
-                    to_delete.emplace_back(it->first);
+                  expr_it.filter(overlap);
+                  if (!expr_it->second)
+                    to_delete.emplace_back(expr_it->first);
                 }
                 else
-                  it.merge(overlap);
+                  expr_it.merge(overlap);
               }
               else
-                it.merge(overlap);
+                expr_it.merge(overlap);
             }
             set_overlap -= overlap;
             if (!set_overlap)
@@ -247,15 +249,13 @@ namespace Legion {
                it != to_add.end(); it++)
             if (finder->second.insert(it->first, it->second))
               it->first->add_nested_expression_reference(owner_did);
-          for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                   to_delete.begin();
-               it != to_delete.end(); it++)
+          for (IndexSpaceExpression* const & expr_to_delete : to_delete)
           {
-            if (to_add.find(*it) != to_add.end())
+            if (to_add.find(expr_to_delete) != to_add.end())
               continue;
-            finder->second.erase(*it);
-            if ((*it)->remove_nested_expression_reference(owner_did))
-              delete (*it);
+            finder->second.erase(expr_to_delete);
+            if (expr_to_delete->remove_nested_expression_reference(owner_did))
+              delete expr_to_delete;
           }
         }
         else if (finder->second.insert(expr, mask))
@@ -394,22 +394,21 @@ namespace Legion {
             if (!it->second)
               to_delete.emplace_back(it->first);
           }
-          for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                   to_delete.begin();
-               it != to_delete.end(); it++)
+          for (IndexSpaceExpression* const & expr_to_delete : to_delete)
           {
-            finder->second.erase(*it);
+            finder->second.erase(expr_to_delete);
             if (expr_refs_to_remove != nullptr)
             {
               std::map<IndexSpaceExpression*, unsigned>::iterator finder =
-                  expr_refs_to_remove->find(*it);
+                  expr_refs_to_remove->find(expr_to_delete);
               if (finder == expr_refs_to_remove->end())
-                (*expr_refs_to_remove)[*it] = 1;
+                (*expr_refs_to_remove)[expr_to_delete] = 1;
               else
                 finder->second += 1;
             }
-            else if ((*it)->remove_nested_expression_reference(owner_did))
-              delete (*it);
+            else if (expr_to_delete->remove_nested_expression_reference(
+                         owner_did))
+              delete expr_to_delete;
           }
           if (finder->second.empty())
           {
@@ -471,24 +470,23 @@ namespace Legion {
              it != to_add.end(); it++)
           if (finder->second.insert(it->first, it->second))
             it->first->add_nested_expression_reference(owner_did);
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                 to_delete.begin();
-             it != to_delete.end(); it++)
+        for (IndexSpaceExpression* const & expr_to_delete : to_delete)
         {
-          if (to_add.find(*it) != to_add.end())
+          if (to_add.find(expr_to_delete) != to_add.end())
             continue;
-          finder->second.erase(*it);
+          finder->second.erase(expr_to_delete);
           if (expr_refs_to_remove != nullptr)
           {
             std::map<IndexSpaceExpression*, unsigned>::iterator finder =
-                expr_refs_to_remove->find(*it);
+                expr_refs_to_remove->find(expr_to_delete);
             if (finder == expr_refs_to_remove->end())
-              (*expr_refs_to_remove)[*it] = 1;
+              (*expr_refs_to_remove)[expr_to_delete] = 1;
             else
               finder->second += 1;
           }
-          else if ((*it)->remove_nested_expression_reference(owner_did))
-            delete (*it);
+          else if (expr_to_delete->remove_nested_expression_reference(
+                       owner_did))
+            delete expr_to_delete;
         }
         if (finder->second.empty())
         {
@@ -537,20 +535,18 @@ namespace Legion {
           antialias_individual_view(except->as_individual_view(), mask);
       }
       std::vector<LogicalView*> to_invalidate;
-      for (ViewExprs::const_iterator it = conditions.begin();
-           it != conditions.end(); it++)
+      for (const ViewExprs::value_type& view_expr : conditions)
       {
-        if (it->first == except)
+        if (view_expr.first == except)
           continue;
-        if (it->second.get_valid_mask() * mask)
+        if (view_expr.second.get_valid_mask() * mask)
           continue;
-        to_invalidate.emplace_back(it->first);
+        to_invalidate.emplace_back(view_expr.first);
       }
-      for (std::vector<LogicalView*>::const_iterator it = to_invalidate.begin();
-           it != to_invalidate.end(); it++)
+      for (LogicalView* const & view_to_invalidate : to_invalidate)
         invalidate(
-            *it, expr, mask, expr_refs_to_remove, view_refs_to_remove,
-            true /*antialiased*/);
+            view_to_invalidate, expr, mask, expr_refs_to_remove,
+            view_refs_to_remove, true /*antialiased*/);
     }
 
     //--------------------------------------------------------------------------
@@ -647,18 +643,17 @@ namespace Legion {
       else if (has_collective_views && view->is_instance_view())
       {
         IndividualView* individual_view = view->as_individual_view();
-        for (ViewExprs::const_iterator vit = conditions.begin();
-             vit != conditions.end(); vit++)
+        for (const ViewExprs::value_type& view_expr : conditions)
         {
-          if (!vit->first->is_collective_view())
+          if (!view_expr.first->is_collective_view())
             continue;
-          if (vit->second.get_valid_mask() * non_dominated)
+          if (view_expr.second.get_valid_mask() * non_dominated)
             continue;
-          if (!individual_view->aliases(vit->first->as_collective_view()))
+          if (!individual_view->aliases(view_expr.first->as_collective_view()))
             continue;
           for (shrt::FieldMaskMap<IndexSpaceExpression>::const_iterator it =
-                   vit->second.begin();
-               it != vit->second.end(); it++)
+                   view_expr.second.begin();
+               it != view_expr.second.end(); it++)
           {
             const FieldMask overlap = non_dominated & it->second;
             if (!overlap)
@@ -833,10 +828,7 @@ namespace Legion {
               to_remove.emplace_back(it->first);
           }
         }
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                 to_remove.begin();
-             it != to_remove.end(); it++)
-          non_view.erase(*it);
+        for (IndexSpaceExpression* expr : to_remove) non_view.erase(expr);
         if (non_view.empty())
           non_dominated.erase(view);
       }
@@ -993,13 +985,11 @@ namespace Legion {
               }
             }
             // Update the non-dominated expressions
-            for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                     to_delete.begin();
-                 it != to_delete.end(); it++)
+            for (IndexSpaceExpression* expr : to_delete)
             {
-              if (to_add.find(*it) != to_add.end())
+              if (to_add.find(expr) != to_add.end())
                 continue;
-              dit->second.erase(*it);
+              dit->second.erase(expr);
             }
             if (!to_add.empty())
             {
@@ -1226,11 +1216,9 @@ namespace Legion {
         // Do pair-wise intersection tests for overlapping of the expressions
         std::vector<IndexSpaceExpression*> disjoint_expressions;
         std::vector<std::vector<IndexSpaceExpression*> > disjoint_components;
-        for (std::set<IndexSpaceExpression*>::const_iterator isit =
-                 eit->elements.begin();
-             isit != eit->elements.end(); isit++)
+        for (IndexSpaceExpression* isit : eit->elements)
         {
-          IndexSpaceExpression* current = *isit;
+          IndexSpaceExpression* current = isit;
           const size_t num_expressions = disjoint_expressions.size();
           for (unsigned idx = 0; idx < num_expressions; idx++)
           {
@@ -1253,19 +1241,19 @@ namespace Legion {
                 components.insert(
                     components.end(), disjoint_components[idx].begin(),
                     disjoint_components[idx].end());
-                components.emplace_back(*isit);
+                components.emplace_back(isit);
                 disjoint_expressions[idx] =
                     runtime->subtract_index_spaces(expr, intersection);
               }
               else  // Congruent so we are done
-                disjoint_components[idx].emplace_back(*isit);
+                disjoint_components[idx].emplace_back(isit);
               current = nullptr;
               break;
             }
             else if (volume == expr->get_volume())
             {
               // We dominate the expression so add ourselves and compute diff
-              disjoint_components[idx].emplace_back(*isit);
+              disjoint_components[idx].emplace_back(isit);
               current = runtime->subtract_index_spaces(current, intersection);
               legion_assert(!current->is_empty());
             }
@@ -1279,7 +1267,7 @@ namespace Legion {
               components.insert(
                   components.end(), disjoint_components[idx].begin(),
                   disjoint_components[idx].end());
-              components.emplace_back(*isit);
+              components.emplace_back(isit);
               disjoint_expressions[idx] =
                   runtime->subtract_index_spaces(expr, intersection);
               current = runtime->subtract_index_spaces(current, intersection);
@@ -1290,7 +1278,7 @@ namespace Legion {
           {
             disjoint_expressions.emplace_back(current);
             disjoint_components.resize(disjoint_components.size() + 1);
-            disjoint_components.back().emplace_back(*isit);
+            disjoint_components.back().emplace_back(isit);
           }
         }
         // Now we have overlapping expressions and constituents for
@@ -1300,13 +1288,11 @@ namespace Legion {
         {
           local::FieldMaskMap<LogicalView>& dst_views =
               target[disjoint_expressions[idx]];
-          for (std::vector<IndexSpaceExpression*>::const_iterator sit =
-                   disjoint_components[idx].begin();
-               sit != disjoint_components[idx].end(); sit++)
+          for (IndexSpaceExpression* sit : disjoint_components[idx])
           {
-            legion_assert(intermediate.find(*sit) != intermediate.end());
+            legion_assert(intermediate.find(sit) != intermediate.end());
             const local::FieldMaskMap<LogicalView>& src_views =
-                intermediate[*sit];
+                intermediate[sit];
             for (local::FieldMaskMap<LogicalView>::const_iterator it =
                      src_views.begin();
                  it != src_views.end(); it++)
@@ -1542,13 +1528,11 @@ namespace Legion {
           {
             CollectiveView* collective = view->as_collective_view();
             std::stringstream ss;
-            for (std::vector<DistributedID>::const_iterator cit =
-                     collective->instances.begin();
-                 cit != collective->instances.end(); cit++)
+            for (const DistributedID& cit : collective->instances)
             {
               RtEvent ready;
               PhysicalManager* manager =
-                  runtime->find_or_request_instance_manager(*cit, ready);
+                  runtime->find_or_request_instance_manager(cit, ready);
               if (ready.exists())
                 ready.wait();
               ss << " Instance " << std::hex << manager->did << std::dec << "("
@@ -1704,10 +1688,8 @@ namespace Legion {
             else
               it->first->add_nested_expression_reference(owner_did);
           }
-          for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                   to_delete.begin();
-               it != to_delete.end(); it++)
-            finder->second.erase(*it);
+          for (IndexSpaceExpression* expr : to_delete)
+            finder->second.erase(expr);
           finder->second.tighten_valid_mask();
         }
         if (ready.exists() && !ready.has_triggered())
@@ -1761,23 +1743,18 @@ namespace Legion {
           std::vector<DistributedID> intersection;
           if (current->instances.size() < collective->instances.size())
           {
-            for (std::vector<DistributedID>::const_iterator it =
-                     current->instances.begin();
-                 it != current->instances.end(); it++)
+            for (const DistributedID& it : current->instances)
               if (std::binary_search(
                       collective->instances.begin(),
-                      collective->instances.end(), *it))
-                intersection.emplace_back(*it);
+                      collective->instances.end(), it))
+                intersection.emplace_back(it);
           }
           else
           {
-            for (std::vector<DistributedID>::const_iterator it =
-                     collective->instances.begin();
-                 it != collective->instances.end(); it++)
+            for (const DistributedID& it : collective->instances)
               if (std::binary_search(
-                      current->instances.begin(), current->instances.end(),
-                      *it))
-                intersection.emplace_back(*it);
+                      current->instances.begin(), current->instances.end(), it))
+                intersection.emplace_back(it);
           }
           // If they don't overlap at all then there's nothing to do
           if (intersection.empty())
@@ -1802,13 +1779,11 @@ namespace Legion {
             // 1. Create a new instance for the difference and record
             //    any overlapping expressions for that in to_add
             std::vector<DistributedID> difference;
-            for (std::vector<DistributedID>::const_iterator it =
-                     current->instances.begin();
-                 it != current->instances.end(); it++)
+            for (const DistributedID& it : current->instances)
               if (!std::binary_search(
                       collective->instances.begin(),
-                      collective->instances.end(), *it))
-                difference.emplace_back(*it);
+                      collective->instances.end(), it))
+                difference.emplace_back(it);
             InstanceView* diff_view = find_instance_view(difference);
             if (to_add.find(diff_view) == to_add.end())
               diff_view->add_nested_gc_ref(owner_did);
@@ -1839,10 +1814,8 @@ namespace Legion {
             }
             if (to_delete.size() < vit->second.size())
             {
-              for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                       to_delete.begin();
-                   it != to_delete.end(); it++)
-                vit->second.erase(*it);
+              for (IndexSpaceExpression* expr : to_delete)
+                vit->second.erase(expr);
               vit->second.tighten_valid_mask();
               vit++;
             }

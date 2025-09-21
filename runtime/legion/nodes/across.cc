@@ -91,11 +91,10 @@ namespace Legion {
       rez.serialize(domain);
       rez.serialize(domain_ready);
       rez.serialize<size_t>(instances.size());
-      for (unsigned idx = 0; idx < instances.size(); idx++)
-        rez.serialize(instances[idx]);
+      for (const PhysicalInstance& instance : instances)
+        rez.serialize(instance);
       rez.serialize<size_t>(instance_events.size());
-      for (unsigned idx = 0; idx < instance_events.size(); idx++)
-        rez.serialize(instance_events[idx]);
+      for (const LgEvent& event : instance_events) rez.serialize(event);
       rez.serialize(index_space);
     }
 
@@ -129,13 +128,12 @@ namespace Legion {
     {
       FieldMask compressed;
       bool found_in_cache = false;
-      for (op::deque<std::pair<FieldMask, FieldMask> >::const_iterator it =
-               compressed_cache.begin();
-           it != compressed_cache.end(); it++)
+      for (const std::pair<FieldMask, FieldMask>& cache_entry :
+           compressed_cache)
       {
-        if (it->first == src_mask)
+        if (cache_entry.first == src_mask)
         {
-          compressed = it->second;
+          compressed = cache_entry.second;
           found_in_cache = true;
           break;
         }
@@ -295,10 +293,10 @@ namespace Legion {
     {
       // Need to release the sparsity map references being held by the
       // indirect records
-      for (unsigned idx = 0; idx < src_indirections.size(); idx++)
-        src_indirections[idx].domain.destroy(last_copy);
-      for (unsigned idx = 0; idx < dst_indirections.size(); idx++)
-        dst_indirections[idx].domain.destroy(last_copy);
+      for (IndirectRecord& record : src_indirections)
+        record.domain.destroy(last_copy);
+      for (IndirectRecord& record : dst_indirections)
+        record.domain.destroy(last_copy);
     }
 
     //--------------------------------------------------------------------------
@@ -313,18 +311,17 @@ namespace Legion {
       fs->get_field_indexes(req.instance_fields, indexes);
       src_fields.reserve(indexes.size());
       src_unique_events.reserve(indexes.size());
-      for (std::vector<unsigned>::const_iterator it = indexes.begin();
-           it != indexes.end(); it++)
+      for (const unsigned& field_index : indexes)
       {
         [[maybe_unused]] bool found = false;
         for (unsigned idx = 0; idx < insts.size(); idx++)
         {
           const InstanceRef& ref = insts[idx];
           const FieldMask& mask = ref.get_valid_fields();
-          if (!mask.is_set(*it))
+          if (!mask.is_set(field_index))
             continue;
           FieldMask copy_mask;
-          copy_mask.set_bit(*it);
+          copy_mask.set_bit(field_index);
           PhysicalManager* manager = ref.get_physical_manager();
           manager->compute_copy_offsets(copy_mask, src_fields);
           src_unique_events.emplace_back(manager->get_unique_event());
@@ -347,18 +344,17 @@ namespace Legion {
       fs->get_field_indexes(req.instance_fields, indexes);
       dst_fields.reserve(indexes.size());
       dst_unique_events.reserve(indexes.size());
-      for (std::vector<unsigned>::const_iterator it = indexes.begin();
-           it != indexes.end(); it++)
+      for (const unsigned& field_index : indexes)
       {
         [[maybe_unused]] bool found = false;
         for (unsigned idx = 0; idx < insts.size(); idx++)
         {
           const InstanceRef& ref = insts[idx];
           const FieldMask& mask = ref.get_valid_fields();
-          if (!mask.is_set(*it))
+          if (!mask.is_set(field_index))
             continue;
           FieldMask copy_mask;
-          copy_mask.set_bit(*it);
+          copy_mask.set_bit(field_index);
           PhysicalManager* manager = ref.get_physical_manager();
           manager->compute_copy_offsets(copy_mask, dst_fields);
           dst_unique_events.emplace_back(manager->get_unique_event());
@@ -369,8 +365,8 @@ namespace Legion {
       }
       if (req.redop != 0)
       {
-        for (unsigned idx = 0; idx < dst_fields.size(); idx++)
-          dst_fields[idx].set_redop(req.redop, false /*fold*/, exclusive_redop);
+        for (CopySrcDstField& dst_field : dst_fields)
+          dst_field.set_redop(req.redop, false /*fold*/, exclusive_redop);
       }
     }
 
@@ -448,18 +444,14 @@ namespace Legion {
       for (unsigned idx = 0; idx < dst_fields.size(); idx++)
         if (dst_fields[idx].inst == instance)
           return dst_unique_events[idx];
-      for (std::vector<IndirectRecord>::const_iterator it =
-               src_indirections.begin();
-           it != src_indirections.end(); it++)
-        for (unsigned idx = 0; idx < it->instances.size(); idx++)
-          if (it->instances[idx] == instance)
-            return it->instance_events[idx];
-      for (std::vector<IndirectRecord>::const_iterator it =
-               dst_indirections.begin();
-           it != dst_indirections.end(); it++)
-        for (unsigned idx = 0; idx < it->instances.size(); idx++)
-          if (it->instances[idx] == instance)
-            return it->instance_events[idx];
+      for (const IndirectRecord& record : src_indirections)
+        for (unsigned idx = 0; idx < record.instances.size(); idx++)
+          if (record.instances[idx] == instance)
+            return record.instance_events[idx];
+      for (const IndirectRecord& record : dst_indirections)
+        for (unsigned idx = 0; idx < record.instances.size(); idx++)
+          if (record.instances[idx] == instance)
+            return record.instance_events[idx];
       AutoLock p_lock(preimage_lock, false /*exclusive*/);
       std::map<PhysicalInstance, LgEvent>::const_iterator finder =
           profiling_shadow_instances.find(instance);

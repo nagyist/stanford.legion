@@ -259,12 +259,10 @@ namespace Legion {
       if (!acquired)
       {
         grant_event = ApEvent::NO_AP_EVENT;
-        for (std::vector<ReservationRequest>::const_iterator it =
-                 requests.begin();
-             it != requests.end(); it++)
+        for (const ReservationRequest& request : requests)
         {
-          grant_event = ApEvent(
-              it->reservation.acquire(it->mode, it->exclusive, grant_event));
+          grant_event = ApEvent(request.reservation.acquire(
+              request.mode, request.exclusive, grant_event));
         }
         acquired = true;
       }
@@ -278,11 +276,9 @@ namespace Legion {
       AutoLock g_lock(grant_lock);
       ApEvent deferred_release =
           Runtime::merge_events(nullptr, completion_events);
-      for (std::vector<ReservationRequest>::const_iterator it =
-               requests.begin();
-           it != requests.end(); it++)
+      for (const ReservationRequest& request : requests)
       {
-        it->reservation.release(deferred_release);
+        request.reservation.release(deferred_release);
       }
     }
 

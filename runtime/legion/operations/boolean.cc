@@ -286,9 +286,8 @@ namespace Legion {
       to_set = Predicate(ctx->create_predicate_impl(this));
       previous.swap(predicates);
       LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
-      for (std::vector<Predicate>::const_iterator it = previous.begin();
-           it != previous.end(); it++)
-        LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid);
+      for (const Predicate& prev : previous)
+        LegionSpy::log_predicate_use(unique_op_id, prev.impl->creator_uid);
       return to_set;
     }
 
@@ -328,9 +327,8 @@ namespace Legion {
     void AndPredOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<Predicate>::const_iterator it = previous.begin();
-           it != previous.end(); it++)
-        register_dependence(it->impl->creator, it->impl->creator_gen);
+      for (const Predicate& prev : previous)
+        register_dependence(prev.impl->creator, prev.impl->creator_gen);
     }
 
     //--------------------------------------------------------------------------
@@ -339,11 +337,10 @@ namespace Legion {
     {
       complete_mapping();
       std::vector<RtEvent> ready_events;
-      for (std::vector<Predicate>::const_iterator it = previous.begin();
-           it != previous.end(); it++)
+      for (const Predicate& prev : previous)
       {
         RtEvent ready;
-        it->impl->get_predicate(ready);
+        prev.impl->get_predicate(ready);
         if (ready.exists())
           ready_events.emplace_back(ready);
       }
@@ -364,11 +361,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool result = true;
-      for (std::vector<Predicate>::const_iterator it = previous.begin();
-           it != previous.end(); it++)
+      for (const Predicate& prev : previous)
       {
         RtEvent ready;
-        bool value = it->impl->get_predicate(ready);
+        bool value = prev.impl->get_predicate(ready);
         legion_assert(!ready.exists());
         if (value)
           continue;
@@ -404,9 +400,8 @@ namespace Legion {
       previous.swap(predicates);
       to_set = Predicate(ctx->create_predicate_impl(this));
       LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
-      for (std::vector<Predicate>::const_iterator it = previous.begin();
-           it != previous.end(); it++)
-        LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid);
+      for (const Predicate& prev : previous)
+        LegionSpy::log_predicate_use(unique_op_id, prev.impl->creator_uid);
       return to_set;
     }
 
@@ -446,9 +441,8 @@ namespace Legion {
     void OrPredOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<Predicate>::const_iterator it = previous.begin();
-           it != previous.end(); it++)
-        register_dependence(it->impl->creator, it->impl->creator_gen);
+      for (const Predicate& prev : previous)
+        register_dependence(prev.impl->creator, prev.impl->creator_gen);
     }
 
     //--------------------------------------------------------------------------
@@ -457,11 +451,10 @@ namespace Legion {
     {
       complete_mapping();
       std::vector<RtEvent> ready_events;
-      for (std::vector<Predicate>::const_iterator it = previous.begin();
-           it != previous.end(); it++)
+      for (const Predicate& prev : previous)
       {
         RtEvent ready;
-        it->impl->get_predicate(ready);
+        prev.impl->get_predicate(ready);
         if (ready.exists())
           ready_events.emplace_back(ready);
       }
@@ -482,11 +475,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool result = false;
-      for (std::vector<Predicate>::const_iterator it = previous.begin();
-           it != previous.end(); it++)
+      for (const Predicate& prev : previous)
       {
         RtEvent ready;
-        bool value = it->impl->get_predicate(ready);
+        bool value = prev.impl->get_predicate(ready);
         legion_assert(!ready.exists());
         if (!value)
           continue;

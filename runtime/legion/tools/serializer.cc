@@ -1135,10 +1135,9 @@ namespace Legion {
       lp_fwrite(f, (char*)&(copy_info.fevent), sizeof(copy_info.fevent.id));
       lp_fwrite(
           f, (char*)&(copy_info.collective), sizeof(copy_info.collective));
-      for (std::vector<LegionProfInstance::CopyInstInfo>::const_iterator it =
-               copy_info.inst_infos.begin();
-           it != copy_info.inst_infos.end(); it++)
-        serialize(*it, copy_info);
+      for (const LegionProfInstance::CopyInstInfo& inst_info :
+           copy_info.inst_infos)
+        serialize(inst_info, copy_info);
     }
 
     //--------------------------------------------------------------------------
@@ -1180,10 +1179,9 @@ namespace Legion {
       lp_fwrite(f, (char*)&(fill_info.creator), sizeof(fill_info.creator));
       lp_fwrite(f, (char*)&(fill_info.critical), sizeof(fill_info.critical));
       lp_fwrite(f, (char*)&(fill_info.fevent), sizeof(fill_info.fevent.id));
-      for (std::vector<LegionProfInstance::FillInstInfo>::const_iterator it =
-               fill_info.inst_infos.begin();
-           it != fill_info.inst_infos.end(); it++)
-        serialize(*it, fill_info);
+      for (const LegionProfInstance::FillInstInfo& inst_info :
+           fill_info.inst_infos)
+        serialize(inst_info, fill_info);
     }
 
     //--------------------------------------------------------------------------
@@ -2260,10 +2258,9 @@ namespace Legion {
           copy_info.op_id, copy_info.size, copy_info.create, copy_info.ready,
           copy_info.start, copy_info.stop, copy_info.creator.id,
           copy_info.critical.id, copy_info.fevent.id, copy_info.collective);
-      for (std::vector<LegionProfInstance::CopyInstInfo>::const_iterator it =
-               copy_info.inst_infos.begin();
-           it != copy_info.inst_infos.end(); it++)
-        serialize(*it, copy_info);
+      for (const LegionProfInstance::CopyInstInfo& inst_info :
+           copy_info.inst_infos)
+        serialize(inst_info, copy_info);
     }
 
     //--------------------------------------------------------------------------
@@ -2291,10 +2288,9 @@ namespace Legion {
           fill_info.op_id, fill_info.size, fill_info.create, fill_info.ready,
           fill_info.start, fill_info.stop, fill_info.creator.id,
           fill_info.critical.id, fill_info.fevent.id);
-      for (std::vector<LegionProfInstance::FillInstInfo>::const_iterator it =
-               fill_info.inst_infos.begin();
-           it != fill_info.inst_infos.end(); it++)
-        serialize(*it, fill_info);
+      for (const LegionProfInstance::FillInstInfo& inst_info :
+           fill_info.inst_infos)
+        serialize(inst_info, fill_info);
     }
 
     //--------------------------------------------------------------------------

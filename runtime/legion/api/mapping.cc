@@ -428,9 +428,8 @@ namespace Legion {
     {
       if (impl == nullptr)
       {
-        for (std::map<FieldID, bool>::iterator it = fields.begin();
-             it != fields.end(); it++)
-          it->second = false;
+        for (std::pair<const FieldID, bool>& field_pair : fields)
+          field_pair.second = false;
         return;
       }
       return impl->has_fields(fields);
@@ -625,12 +624,10 @@ namespace Legion {
         Realm::ProfilingRequest& req)
     //--------------------------------------------------------------------------
     {
-      for (std::set<ProfilingMeasurementID>::const_iterator it =
-               requested_measurements.begin();
-           it != requested_measurements.end(); ++it)
+      for (const ProfilingMeasurementID& measurement : requested_measurements)
       {
-        if ((int)(*it) <= (int)(Realm::PMID_REALM_LAST))
-          req.add_measurement((Realm::ProfilingMeasurementID)(*it));
+        if ((int)(measurement) <= (int)(Realm::PMID_REALM_LAST))
+          req.add_measurement((Realm::ProfilingMeasurementID)(measurement));
       }
     }
 
@@ -1122,22 +1119,21 @@ namespace Legion {
         const TaskLayoutConstraintSet& layout_constraints =
             impl->get_layout_constraints();
         bool conflicts = false;
-        for (std::multimap<unsigned, LayoutConstraintID>::const_iterator
-                 lay_it = layout_constraints.layouts.begin();
-             lay_it != layout_constraints.layouts.end(); lay_it++)
+        for (const std::pair<const unsigned, LayoutConstraintID>& lay_it :
+             layout_constraints.layouts)
         {
           Internal::LayoutConstraints* constraints;
           std::map<LayoutConstraintID, Internal::LayoutConstraints*>::
-              const_iterator finder = layout_cache.find(lay_it->second);
+              const_iterator finder = layout_cache.find(lay_it.second);
           if (finder == layout_cache.end())
           {
-            constraints = runtime->find_layout_constraints(lay_it->second);
-            layout_cache[lay_it->second] = constraints;
+            constraints = runtime->find_layout_constraints(lay_it.second);
+            layout_cache[lay_it.second] = constraints;
           }
           else
             constraints = finder->second;
           const std::vector<PhysicalInstance>& instances =
-              chosen_instances[lay_it->first];
+              chosen_instances[lay_it.first];
           for (unsigned idx = 0; idx < instances.size(); idx++)
           {
             Internal::InstanceManager* manager = instances[idx].impl;
@@ -1151,7 +1147,7 @@ namespace Legion {
                  constraints->padding_constraint.delta.get_dim() > 0))
             {
               std::vector<LogicalRegion> regions_to_check(
-                  1, task.regions[lay_it->first].region);
+                  1, task.regions[lay_it.first].region);
               Internal::PhysicalManager* phy = manager->as_physical_manager();
               if (!phy->meets_regions(
                       regions_to_check,
@@ -1232,11 +1228,9 @@ namespace Legion {
         // Now figure out which fields are missing
         std::set<FieldID>& missing = missing_fields[idx];
         missing = task.regions[idx].privilege_fields;
-        for (std::vector<PhysicalInstance>::const_iterator it =
-                 instances.begin();
-             it != instances.end(); it++)
+        for (const PhysicalInstance& instance : instances)
         {
-          Internal::InstanceManager* manager = it->impl;
+          Internal::InstanceManager* manager = instance.impl;
           manager->remove_space_fields(missing);
           if (missing.empty())
             break;
@@ -1296,10 +1290,9 @@ namespace Legion {
       }
       // Now see which fields we are missing
       missing_fields = task.regions[index].privilege_fields;
-      for (std::vector<PhysicalInstance>::const_iterator it = instances.begin();
-           it != instances.end(); it++)
+      for (const PhysicalInstance& instance : instances)
       {
-        Internal::InstanceManager* manager = it->impl;
+        Internal::InstanceManager* manager = instance.impl;
         manager->remove_space_fields(missing_fields);
         if (missing_fields.empty())
           break;
@@ -1822,11 +1815,9 @@ namespace Legion {
       AutoMapperCall call(ctx, Internal::MAPPER_ACQUIRE_INSTANCES_CALL);
       // Figure out which instances we need to acquire and sort by memories
       bool all_acquired = true;
-      for (std::vector<std::vector<PhysicalInstance> >::const_iterator it =
-               instances.begin();
-           it != instances.end(); it++)
+      for (const std::vector<PhysicalInstance>& insts : instances)
       {
-        if (!ctx->perform_acquires(*it))
+        if (!ctx->perform_acquires(insts))
           all_acquired = false;
       }
       return all_acquired;
@@ -1853,18 +1844,16 @@ namespace Legion {
       // Figure out which instances we need to acquire and sort by memories
       bool all_acquired = true;
       std::vector<unsigned> to_erase;
-      for (std::vector<std::vector<PhysicalInstance> >::iterator it =
-               instances.begin();
-           it != instances.end(); it++)
+      for (std::vector<PhysicalInstance>& it : instances)
       {
-        if (!ctx->perform_acquires(*it, &to_erase, filter_acquired_instances))
+        if (!ctx->perform_acquires(it, &to_erase, filter_acquired_instances))
         {
           all_acquired = false;
           // Erase from the back
           for (std::vector<unsigned>::const_reverse_iterator rit =
                    to_erase.rbegin();
                rit != to_erase.rend(); rit++)
-            it->erase(it->begin() + (*rit));
+            it.erase(it.begin() + (*rit));
           to_erase.clear();
         }
       }
@@ -1924,12 +1913,10 @@ namespace Legion {
         return;
       }
       AutoMapperCall call(ctx, Internal::MAPPER_RELEASE_INSTANCES_CALL);
-      for (std::vector<std::vector<PhysicalInstance> >::const_iterator it =
-               instances.begin();
-           it != instances.end(); it++)
+      for (const std::vector<PhysicalInstance>& insts : instances)
       {
-        for (unsigned idx = 0; idx < it->size(); idx++)
-          ctx->release_acquired_instance((*it)[idx].impl);
+        for (unsigned idx = 0; idx < insts.size(); idx++)
+          ctx->release_acquired_instance(insts[idx].impl);
       }
     }
 
@@ -2014,12 +2001,10 @@ namespace Legion {
         }
       }
       // Notify all the memory managers of the collection
-      for (std::map<
-               Internal::MemoryManager*,
-               std::vector<Internal::PhysicalManager*> >::const_iterator it =
-               to_notify.begin();
-           it != to_notify.end(); it++)
-        it->first->notify_collected_instances(it->second);
+      for (const std::pair<
+               Internal::MemoryManager* const,
+               std::vector<Internal::PhysicalManager*> >& it : to_notify)
+        it.first->notify_collected_instances(it.second);
       if (!wait_for.empty())
       {
         const Internal::RtEvent wait_on =
@@ -2301,12 +2286,11 @@ namespace Legion {
         return IndexSpace::NO_SPACE;
       AutoMapperCall call(ctx, Internal::MAPPER_UNION_INDEX_SPACES_CALL);
       bool none_exists = true;
-      for (std::vector<IndexSpace>::const_iterator it = sources.begin();
-           it != sources.end(); it++)
+      for (const IndexSpace& source : sources)
       {
-        if (none_exists && it->exists())
+        if (none_exists && source.exists())
           none_exists = false;
-        if (sources[0].get_type_tag() != it->get_type_tag())
+        if (sources[0].get_type_tag() != source.get_type_tag())
         {
           Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
           error << "Dynamic type mismatch in 'union_index_spaces' "
@@ -2338,12 +2322,11 @@ namespace Legion {
         return IndexSpace::NO_SPACE;
       AutoMapperCall call(ctx, Internal::MAPPER_INTERSECT_INDEX_SPACES_CALL);
       bool none_exists = true;
-      for (std::vector<IndexSpace>::const_iterator it = sources.begin();
-           it != sources.end(); it++)
+      for (const IndexSpace& source : sources)
       {
-        if (none_exists && it->exists())
+        if (none_exists && source.exists())
           none_exists = false;
-        if (sources[0].get_type_tag() != it->get_type_tag())
+        if (sources[0].get_type_tag() != source.get_type_tag())
         {
           Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
           error << "Dynamic type mismatch in 'intersect_index_spaces' "

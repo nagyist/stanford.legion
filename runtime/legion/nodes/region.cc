@@ -641,13 +641,11 @@ namespace Legion {
           }
           if (!to_delete.empty())
           {
-            for (std::vector<RegionTreeNode*>::const_iterator it =
-                     to_delete.begin();
-                 it != to_delete.end(); it++)
+            for (RegionTreeNode* child : to_delete)
             {
-              children.erase(*it);
-              if ((*it)->remove_base_gc_ref(FIELD_STATE_REF))
-                delete (*it);
+              children.erase(child);
+              if (child->remove_base_gc_ref(FIELD_STATE_REF))
+                delete child;
             }
             children.tighten_valid_mask();
           }
@@ -719,13 +717,11 @@ namespace Legion {
         }
         if (!to_delete.empty())
         {
-          for (std::vector<RegionTreeNode*>::const_iterator it =
-                   to_delete.begin();
-               it != to_delete.end(); it++)
+          for (RegionTreeNode* child : to_delete)
           {
-            children.erase(*it);
-            if ((*it)->remove_base_gc_ref(FIELD_STATE_REF))
-              delete (*it);
+            children.erase(child);
+            if (child->remove_base_gc_ref(FIELD_STATE_REF))
+              delete child;
           }
           children.tighten_valid_mask();
         }
@@ -783,12 +779,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(!!new_state.valid_fields());
-      for (std::list<FieldState>::iterator it = state.field_states.begin();
-           it != state.field_states.end(); it++)
+      for (FieldState& field_state : state.field_states)
       {
-        if (it->overlaps(new_state))
+        if (field_state.overlaps(new_state))
         {
-          it->merge(new_state, this);
+          field_state.merge(new_state, this);
           return;
         }
       }
@@ -1003,12 +998,11 @@ namespace Legion {
         }
         if (!to_delete.empty())
         {
-          for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
-               it != to_delete.end(); it++)
+          for (LogicalUser* user : to_delete)
           {
-            prev_users.erase(*it);
-            if ((*it)->remove_reference())
-              delete (*it);
+            prev_users.erase(user);
+            if (user->remove_reference())
+              delete user;
           }
         }
         if (tighten)
@@ -1087,12 +1081,11 @@ namespace Legion {
         if (!it->second)
           to_delete.emplace_back(it->first);
       }
-      for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
-           it != to_delete.end(); it++)
+      for (LogicalUser* user : to_delete)
       {
-        users.erase(*it);
-        if ((*it)->remove_reference())
-          delete (*it);
+        users.erase(user);
+        if (user->remove_reference())
+          delete user;
       }
       users.tighten_valid_mask();
       if (!users.empty())
@@ -1128,11 +1121,9 @@ namespace Legion {
       // The reason we would be here is if we were leaked
       if (!partition_trackers.empty())
       {
-        for (std::list<PartitionTracker*>::const_iterator it =
-                 partition_trackers.begin();
-             it != partition_trackers.end(); it++)
-          if ((*it)->remove_partition_reference())
-            delete (*it);
+        for (PartitionTracker* tracker : partition_trackers)
+          if (tracker->remove_partition_reference())
+            delete tracker;
         partition_trackers.clear();
       }
       if (registered)
@@ -1164,11 +1155,9 @@ namespace Legion {
       if (!partition_trackers.empty())
       {
         legion_assert(parent == nullptr);  // should only happen on the root
-        for (std::list<PartitionTracker*>::const_iterator it =
-                 partition_trackers.begin();
-             it != partition_trackers.end(); it++)
-          if ((*it)->remove_partition_reference())
-            delete (*it);
+        for (PartitionTracker* tracker : partition_trackers)
+          if (tracker->remove_partition_reference())
+            delete tracker;
         partition_trackers.clear();
       }
       for (unsigned idx = 0; idx < current_versions.max_entries(); idx++)
@@ -1272,10 +1261,9 @@ namespace Legion {
         }
         partition_trackers.emplace_back(tracker);
       }
-      for (std::vector<PartitionTracker*>::const_iterator it = to_prune.begin();
-           it != to_prune.end(); it++)
-        if ((*it)->remove_reference())
-          delete (*it);
+      for (PartitionTracker* tracker : to_prune)
+        if (tracker->remove_reference())
+          delete tracker;
     }
 
     //--------------------------------------------------------------------------
@@ -1391,11 +1379,9 @@ namespace Legion {
           // colors from the row source and use them to instantiate children
           std::vector<LegionColor> children_colors;
           row_source->get_colors(children_colors);
-          for (std::vector<LegionColor>::const_iterator it =
-                   children_colors.begin();
-               it != children_colors.end(); it++)
+          for (const LegionColor& child_color : children_colors)
           {
-            bool result = get_child(*it)->visit_node(traverser);
+            bool result = get_child(child_color)->visit_node(traverser);
             continue_traversal = continue_traversal && result;
             if (!result && break_early)
               break;
@@ -1408,12 +1394,11 @@ namespace Legion {
           // the color map or the valid map
           {
             AutoLock n_lock(node_lock, false /*exclusive*/);
-            for (std::map<LegionColor, PartitionNode*>::const_iterator it =
-                     color_map.begin();
-                 it != color_map.end(); it++)
+            for (const std::pair<const LegionColor, PartitionNode*>& it :
+                 color_map)
             {
-              children.insert(*it);
-              it->second->add_base_resource_ref(REGION_TREE_REF);
+              children.insert(it);
+              it.second->add_base_resource_ref(REGION_TREE_REF);
             }
           }
           for (std::map<LegionColor, PartitionNode*>::const_iterator it =
@@ -1929,11 +1914,9 @@ namespace Legion {
     PartitionNode::~PartitionNode(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<LegionColor, RegionNode*>::const_iterator it =
-               color_map.begin();
-           it != color_map.end(); it++)
-        if (it->second->remove_nested_resource_ref(did))
-          delete it->second;
+      for (const std::pair<const LegionColor, RegionNode*>& it : color_map)
+        if (it.second->remove_nested_resource_ref(did))
+          delete it.second;
       if (registered)
       {
         if (parent->remove_nested_resource_ref(did))
@@ -1956,10 +1939,8 @@ namespace Legion {
       // We should not need a lock at this point since nobody else should
       // be modifying these data structures at this point
       // No need to check for deletion since we hold resource references
-      for (std::map<LegionColor, RegionNode*>::const_iterator it =
-               color_map.begin();
-           it != color_map.end(); it++)
-        it->second->remove_nested_gc_ref(did);
+      for (const std::pair<const LegionColor, RegionNode*>& it : color_map)
+        it.second->remove_nested_gc_ref(did);
     }
 
     //--------------------------------------------------------------------------
@@ -2139,11 +2120,9 @@ namespace Legion {
             AutoLock n_lock(node_lock, false /*exclusive*/);
             children = color_map;
           }
-          for (std::map<LegionColor, RegionNode*>::const_iterator it =
-                   children.begin();
-               it != children.end(); it++)
+          for (const std::pair<const LegionColor, RegionNode*>& it : children)
           {
-            bool result = it->second->visit_node(traverser);
+            bool result = it.second->visit_node(traverser);
             continue_traversal = continue_traversal && result;
             if (!result && break_early)
               break;

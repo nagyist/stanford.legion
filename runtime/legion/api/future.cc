@@ -380,32 +380,30 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(!subscription_event.exists());
-      for (std::map<Memory, FutureInstanceTracker>::iterator it =
-               instances.begin();
-           it != instances.end(); it++)
+      for (std::pair<const Memory, FutureInstanceTracker>& it : instances)
       {
-        if (it->second.remote_postcondition.exists())
+        if (it.second.remote_postcondition.exists())
         {
           // This is a remote instance that we unpacked and nobody
           // used it so we can just clean it up since we don't own it
-          legion_assert(it->second.read_events.empty());
+          legion_assert(it.second.read_events.empty());
           Runtime::trigger_event_untraced(
-              it->second.remote_postcondition, it->second.ready_event);
-          delete it->second.instance;
+              it.second.remote_postcondition, it.second.ready_event);
+          delete it.second.instance;
         }
         else
         {
           // Merge together all the events for destroying this future instance
-          ApEvent precondition = it->second.ready_event;
-          if (!it->second.read_events.empty())
+          ApEvent precondition = it.second.ready_event;
+          if (!it.second.read_events.empty())
           {
             if (precondition.exists())
-              it->second.read_events.emplace_back(precondition);
+              it.second.read_events.emplace_back(precondition);
             precondition =
-                Runtime::merge_events(nullptr, it->second.read_events);
+                Runtime::merge_events(nullptr, it.second.read_events);
           }
-          if (!it->second.instance->defer_deletion(precondition))
-            delete it->second.instance;
+          if (!it.second.instance->defer_deletion(precondition))
+            delete it.second.instance;
         }
       }
       if (producer_op != nullptr)
@@ -429,20 +427,18 @@ namespace Legion {
     {
       // This future is leaking, so just force delete all our instances
       AutoLock f_lock(future_lock);
-      for (std::map<Memory, FutureInstanceTracker>::iterator it =
-               instances.begin();
-           it != instances.end(); it++)
+      for (std::pair<const Memory, FutureInstanceTracker>& it : instances)
       {
         // Merge together all the events for destroying this future instance
-        ApEvent precondition = it->second.ready_event;
-        if (!it->second.read_events.empty())
+        ApEvent precondition = it.second.ready_event;
+        if (!it.second.read_events.empty())
         {
           if (precondition.exists())
-            it->second.read_events.emplace_back(precondition);
-          precondition = Runtime::merge_events(nullptr, it->second.read_events);
+            it.second.read_events.emplace_back(precondition);
+          precondition = Runtime::merge_events(nullptr, it.second.read_events);
         }
-        if (!it->second.instance->defer_deletion(precondition))
-          delete it->second.instance;
+        if (!it.second.instance->defer_deletion(precondition))
+          delete it.second.instance;
       }
       instances.clear();
     }
@@ -608,10 +604,9 @@ namespace Legion {
       memories.clear();
       wait(silence_warnings, warning_string);
       AutoLock f_lock(future_lock, false /*exclusive*/);
-      for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
-               instances.begin();
-           it != instances.end(); it++)
-        memories.insert(it->first);
+      for (const std::pair<const Memory, FutureInstanceTracker>& instance :
+           instances)
+        memories.insert(instance.first);
     }
 
     //--------------------------------------------------------------------------
@@ -869,10 +864,9 @@ namespace Legion {
         AutoLock f_lock(future_lock);
         if (empty.load())
         {
-          for (std::map<Memory, PendingInstance>::const_iterator it =
-                   pending_instances.begin();
-               it != pending_instances.end(); it++)
-            if (FutureInstance::check_meta_visible(it->first))
+          for (const std::pair<const Memory, PendingInstance>& pending :
+               pending_instances)
+            if (FutureInstance::check_meta_visible(pending.first))
               return;
         }
         else if (local_visible_memory.exists())
@@ -903,10 +897,9 @@ namespace Legion {
           // Check to see if we lost the race
           if (empty.load())
           {
-            for (std::map<Memory, PendingInstance>::const_iterator it =
-                     pending_instances.begin();
-                 it != pending_instances.end(); it++)
-              if (FutureInstance::check_meta_visible(it->first))
+            for (const std::pair<const Memory, PendingInstance>& pending :
+                 pending_instances)
+              if (FutureInstance::check_meta_visible(pending.first))
                 return;
           }
           else if (local_visible_memory.exists())
@@ -938,11 +931,10 @@ namespace Legion {
       AutoLock f_lock(future_lock);
       if (empty.load())
       {
-        for (std::map<Memory, PendingInstance>::const_iterator it =
-                 pending_instances.begin();
-             it != pending_instances.end(); it++)
+        for (const std::pair<const Memory, PendingInstance>& pending :
+             pending_instances)
         {
-          if (!FutureInstance::check_meta_visible(it->first))
+          if (!FutureInstance::check_meta_visible(pending.first))
             continue;
           // Somebody else already made the instance
           if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
@@ -957,18 +949,16 @@ namespace Legion {
           delete instance;
         return;
       }
-      for (std::map<Memory, PendingInstance>::iterator it =
-               pending_instances.begin();
-           it != pending_instances.end(); it++)
+      for (std::pair<const Memory, PendingInstance>& it : pending_instances)
       {
-        if (!FutureInstance::check_meta_visible(it->first))
+        if (!FutureInstance::check_meta_visible(it.first))
           continue;
         // See if we tightened the size of the instance or not
-        if (instance->size < it->second.instance->size)
+        if (instance->size < it.second.instance->size)
         {
-          if (!it->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
-            delete it->second.instance;
-          it->second.instance = instance;
+          if (!it.second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
+            delete it.second.instance;
+          it.second.instance = instance;
         }
         else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
           delete instance;
@@ -1031,18 +1021,16 @@ namespace Legion {
       }
       else
       {
-        for (std::map<Memory, PendingInstance>::iterator it =
-                 pending_instances.begin();
-             it != pending_instances.end(); it++)
+        for (std::pair<const Memory, PendingInstance>& it : pending_instances)
         {
-          if (!FutureInstance::check_meta_visible(it->first))
+          if (!FutureInstance::check_meta_visible(it.first))
             continue;
-          if (!it->second.inst_ready.exists())
-            it->second.inst_ready = Runtime::create_ap_user_event(nullptr);
-          if (!it->second.safe_inst_ready.exists())
-            it->second.safe_inst_ready =
-                Runtime::protect_event(it->second.inst_ready);
-          return it->second.safe_inst_ready;
+          if (!it.second.inst_ready.exists())
+            it.second.inst_ready = Runtime::create_ap_user_event(nullptr);
+          if (!it.second.safe_inst_ready.exists())
+            it.second.safe_inst_ready =
+                Runtime::protect_event(it.second.inst_ready);
+          return it.second.safe_inst_ready;
         }
       }
       // Should never get here because we should have called
@@ -1080,21 +1068,19 @@ namespace Legion {
         }
         else
         {
-          for (std::map<Memory, PendingInstance>::iterator it =
-                   pending_instances.begin();
-               it != pending_instances.end(); it++)
+          for (std::pair<const Memory, PendingInstance>& it : pending_instances)
           {
-            if (it->second.instance == nullptr)
+            if (it.second.instance == nullptr)
               continue;
-            if (!it->second.instance->is_meta_visible)
+            if (!it.second.instance->is_meta_visible)
               continue;
-            instance = it->second.instance;
-            if (!it->second.inst_ready.exists())
-              it->second.inst_ready = Runtime::create_ap_user_event(nullptr);
-            if (!it->second.safe_inst_ready.exists())
-              it->second.safe_inst_ready =
-                  Runtime::protect_event(it->second.inst_ready);
-            ready_event = it->second.safe_inst_ready;
+            instance = it.second.instance;
+            if (!it.second.inst_ready.exists())
+              it.second.inst_ready = Runtime::create_ap_user_event(nullptr);
+            if (!it.second.safe_inst_ready.exists())
+              it.second.safe_inst_ready =
+                  Runtime::protect_event(it.second.inst_ready);
+            ready_event = it.second.safe_inst_ready;
             break;
           }
         }
@@ -1280,14 +1266,13 @@ namespace Legion {
       legion_assert(instances.empty());
       legion_assert(!insts.empty());
       legion_assert(metadata == nullptr);
-      for (std::vector<FutureInstance*>::const_iterator it = insts.begin();
-           it != insts.end(); it++)
+      for (FutureInstance* const & inst : insts)
       {
-        legion_assert(instances.find((*it)->memory) == instances.end());
+        legion_assert(instances.find(inst->memory) == instances.end());
         instances.emplace(std::make_pair(
-            (*it)->memory, FutureInstanceTracker(*it, complete)));
-        if (!local_visible_memory.exists() && (*it)->is_meta_visible)
-          local_visible_memory = (*it)->memory;
+            inst->memory, FutureInstanceTracker(inst, complete)));
+        if (!local_visible_memory.exists() && inst->is_meta_visible)
+          local_visible_memory = inst->memory;
       }
       if (size > 0)
         save_metadata(meta, size);
@@ -1446,27 +1431,24 @@ namespace Legion {
           rez.serialize(did);
           rez.serialize(size);
         }
-        for (std::set<AddressSpaceID>::const_iterator it = subscribers.begin();
-             it != subscribers.end(); it++)
+        for (const AddressSpaceID& subscriber : subscribers)
         {
-          if (((*it) == source) || ((*it) == local_space))
+          if ((subscriber == source) || (subscriber == local_space))
             continue;
           pack_global_ref();
-          rez.dispatch(*it);
+          rez.dispatch(subscriber);
         }
       }
       // If the future size is zero then clean out any pending instances
       // that were made with the upper bound size
       if (future_size == 0)
       {
-        for (std::map<Memory, PendingInstance>::iterator it =
-                 pending_instances.begin();
-             it != pending_instances.end(); it++)
+        for (std::pair<const Memory, PendingInstance>& it : pending_instances)
         {
-          if (!it->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
-            delete it->second.instance;
-          if (it->second.inst_ready.exists())
-            Runtime::trigger_event_untraced(it->second.inst_ready);
+          if (!it.second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
+            delete it.second.instance;
+          if (it.second.inst_ready.exists())
+            Runtime::trigger_event_untraced(it.second.inst_ready);
         }
         pending_instances.clear();
       }
@@ -1527,30 +1509,28 @@ namespace Legion {
     {
       legion_assert(future_size_set);
       legion_assert(!pending_instances.empty());
-      for (std::map<Memory, PendingInstance>::iterator it =
-               pending_instances.begin();
-           it != pending_instances.end(); it++)
+      for (std::pair<const Memory, PendingInstance>& it : pending_instances)
       {
         // Check to see if we already have an instance for this memory
         // or if the future doesn't have any size to begin with
         std::map<Memory, FutureInstanceTracker>::iterator finder =
-            instances.find(it->first);
+            instances.find(it.first);
         if ((finder != instances.end()) || (future_size == 0))
         {
           // If we do then we just trigger any events that we need to
-          if (it->second.inst_ready.exists())
+          if (it.second.inst_ready.exists())
             Runtime::trigger_event_untraced(
-                it->second.inst_ready, finder->second.ready_event);
+                it.second.inst_ready, finder->second.ready_event);
           // Delete the instance we had made since it can't have escaped
           // yet and therefore we can replace it with the new instance
-          if (!it->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
-            delete it->second.instance;
+          if (!it.second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
+            delete it.second.instance;
           continue;
         }
         ApEvent inst_ready =
-            record_instance(it->second.instance, it->second.creator_uid);
-        if (it->second.inst_ready.exists())
-          Runtime::trigger_event_untraced(it->second.inst_ready, inst_ready);
+            record_instance(it.second.instance, it.second.creator_uid);
+        if (it.second.inst_ready.exists())
+          Runtime::trigger_event_untraced(it.second.inst_ready, inst_ready);
       }
       pending_instances.clear();
     }
@@ -1703,17 +1683,17 @@ namespace Legion {
         size_t best_bandwidth = 0;
         Memory best = Memory::NO_MEMORY;
         std::vector<Machine::MemoryMemoryAffinity> affinity;
-        for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
-                 instances.begin();
-             it != instances.end(); it++)
+        for (const std::pair<const Memory, FutureInstanceTracker>& instance :
+             instances)
         {
           affinity.clear();
-          runtime->machine.get_mem_mem_affinity(affinity, target, it->first);
+          runtime->machine.get_mem_mem_affinity(
+              affinity, target, instance.first);
           if (affinity.empty())
             continue;
           if (!best.exists() || (best_bandwidth < affinity.front().bandwidth))
           {
-            best = it->first;
+            best = instance.first;
             best_bandwidth = affinity.front().bandwidth;
           }
         }
@@ -2269,11 +2249,10 @@ namespace Legion {
           // Check to see if we have targets for all the subscribers
           // if so then we don't need to make a local copy
           std::set<AddressSpaceID> subscribers_without_instances = subscribers;
-          for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
-                   instances.begin();
-               it != instances.end(); it++)
+          for (const std::pair<const Memory, FutureInstanceTracker>& instance :
+               instances)
           {
-            subscribers_without_instances.erase(it->first.address_space());
+            subscribers_without_instances.erase(instance.first.address_space());
             if (subscribers_without_instances.empty())
               break;
           }
@@ -2302,17 +2281,16 @@ namespace Legion {
           return;
         }
       }
-      for (std::set<AddressSpaceID>::const_iterator it = subscribers.begin();
-           it != subscribers.end(); it++)
+      for (const AddressSpaceID& subscriber : subscribers)
       {
-        if (((*it) == local_space) || ((*it) == result_set_space))
+        if ((subscriber == local_space) || (subscriber == result_set_space))
           continue;
         // Need to pack each of these separately in case we need to make
         // events for each future instance being packed
         FutureResultMessage rez;
-        pack_future_result(rez, *it);
+        pack_future_result(rez, subscriber);
         pack_global_ref();
-        rez.dispatch(*it);
+        rez.dispatch(subscriber);
       }
       subscribers.clear();
     }
@@ -2372,11 +2350,10 @@ namespace Legion {
         {
           // Check to see if we have any instances to send directly
           bool has_local_target = false;
-          for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
-                   instances.begin();
-               it != instances.end(); it++)
+          for (const std::pair<const Memory, FutureInstanceTracker>& instance :
+               instances)
           {
-            if (it->first.address_space() != subscriber)
+            if (instance.first.address_space() != subscriber)
               continue;
             has_local_target = true;
             break;
@@ -2451,15 +2428,14 @@ namespace Legion {
         // Find any target instances to pack up to send to the subscriber
         bool has_exact_target = false;
         std::vector<Memory> target_memories;
-        for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
-                 instances.begin();
-             it != instances.end(); it++)
+        for (const std::pair<const Memory, FutureInstanceTracker>& instance :
+             instances)
         {
-          AddressSpaceID inst_space = it->first.address_space();
+          AddressSpaceID inst_space = instance.first.address_space();
           if (inst_space == target)
           {
             has_exact_target = true;
-            target_memories.emplace_back(it->first);
+            target_memories.emplace_back(instance.first);
           }
           else if (
               (collective_mapping != nullptr) &&
@@ -2476,9 +2452,9 @@ namespace Legion {
               inst_space =
                   collective_mapping->get_parent(owner_space, inst_space);
             if (inst_space == target)
-              target_memories.emplace_back(it->first);
+              target_memories.emplace_back(instance.first);
             else if ((inst_space == owner_space) && (target == owner_space))
-              target_memories.emplace_back(it->first);
+              target_memories.emplace_back(instance.first);
           }
         }
         if (!target_memories.empty())
@@ -2492,19 +2468,17 @@ namespace Legion {
                   find_best_source(runtime->runtime_system_memory);
           // Send the instances to the future impl that should own them
           rez.serialize<size_t>(target_memories.size());
-          for (std::vector<Memory>::const_iterator mit =
-                   target_memories.begin();
-               mit != target_memories.end(); mit++)
+          for (const Memory& target_memory : target_memories)
           {
             std::map<Memory, FutureInstanceTracker>::iterator finder =
-                instances.find(*mit);
+                instances.find(target_memory);
             legion_assert(finder != instances.end());
             // Don't allow this to be packed by value
             finder->second.instance->pack_instance(
                 rez, ApEvent::NO_AP_EVENT, true /*move ownership*/,
                 false /*allow by value*/);
             rez.serialize(finder->second.ready_event);
-            if ((*mit) == keep)
+            if (target_memory == keep)
             {
               finder->second.remote_postcondition =
                   Runtime::create_ap_user_event(nullptr);
@@ -2512,11 +2486,9 @@ namespace Legion {
                   finder->second.remote_postcondition);
             }
             rez.serialize<size_t>(finder->second.read_events.size());
-            for (std::vector<ApEvent>::const_iterator it =
-                     finder->second.read_events.begin();
-                 it != finder->second.read_events.end(); it++)
-              rez.serialize(*it);
-            if ((*mit) != keep)
+            for (const ApEvent& read_event : finder->second.read_events)
+              rez.serialize(read_event);
+            if (target_memory != keep)
             {
               // Now we can delete the instance remove it from the entry
               delete finder->second.instance;

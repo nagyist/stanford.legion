@@ -470,11 +470,9 @@ namespace Legion {
     {                                                                    \
       std::vector<Realm::Point<DIM, coord_t> > points(arguments.size()); \
       unsigned index = 0;                                                \
-      for (std::map<DomainPoint, Future>::const_iterator it =            \
-               arguments.begin();                                        \
-           it != arguments.end(); it++)                                  \
+      for (const std::pair<const DomainPoint, Future>& args : arguments) \
       {                                                                  \
-        const Point<DIM, coord_t> point = it->first;                     \
+        const Point<DIM, coord_t> point = args.first;                    \
         points[index++] = point;                                         \
       }                                                                  \
       DomainT<DIM, coord_t> space(points);                               \
@@ -535,10 +533,8 @@ namespace Legion {
       std::map<DomainPoint, FutureImpl*> futures;
       future_map.impl->get_all_futures(futures);
       arguments.clear();
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               futures.begin();
-           it != futures.end(); it++)
-        arguments[it->first] = Future(it->second);
+      for (const std::pair<const DomainPoint, FutureImpl*>& future : futures)
+        arguments[future.first] = Future(future.second);
       if ((point_set != nullptr) &&
           point_set->remove_base_expression_reference(RUNTIME_REF))
         delete point_set;
@@ -547,9 +543,8 @@ namespace Legion {
       update_point_set = false;
       // Count how many dependent futures we have
       legion_assert(dependent_futures == 0);
-      for (std::map<DomainPoint, Future>::const_iterator it = arguments.begin();
-           it != arguments.end(); it++)
-        if (it->second.impl->producer_op != nullptr)
+      for (const std::pair<const DomainPoint, Future>& arg : arguments)
+        if (arg.second.impl->producer_op != nullptr)
           dependent_futures++;
       equivalent = true;
     }
