@@ -113,9 +113,8 @@ namespace Legion {
     void TunableOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<Future>::const_iterator it = futures.begin();
-           it != futures.end(); it++)
-        it->impl->register_dependence(this);
+      for (const Future& future : futures)
+        future.impl->register_dependence(this);
     }
 
     //--------------------------------------------------------------------------
@@ -123,11 +122,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<RtEvent> mapped_events, ready_events;
-      for (std::vector<Future>::const_iterator it = futures.begin();
-           it != futures.end(); it++)
+      for (const Future& future : futures)
       {
-        it->impl->request_runtime_instance(this);
-        const RtEvent ready = it->impl->find_runtime_instance_ready();
+        future.impl->request_runtime_instance(this);
+        const RtEvent ready = future.impl->find_runtime_instance_ready();
         if (ready.exists())
           ready_events.emplace_back(ready);
       }

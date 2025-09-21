@@ -83,15 +83,13 @@ namespace Legion {
       inline void set_redop(std::vector<CopySrcDstField>& fields) const
       {
         legion_assert(redop > 0);
-        for (std::vector<CopySrcDstField>::iterator it = fields.begin();
-             it != fields.end(); it++)
-          it->set_redop(redop, true /*fold*/, true /*exclusive*/);
+        for (CopySrcDstField& field : fields)
+          field.set_redop(redop, true /*fold*/, true /*exclusive*/);
       }
       inline void clear_redop(std::vector<CopySrcDstField>& fields) const
       {
-        for (std::vector<CopySrcDstField>::iterator it = fields.begin();
-             it != fields.end(); it++)
-          it->set_redop(0 /*redop*/, false /*fold*/);
+        for (CopySrcDstField& field : fields)
+          field.set_redop(0 /*redop*/, false /*fold*/);
       }
       bool is_multi_instance(void);
       void perform_single_allreduce(

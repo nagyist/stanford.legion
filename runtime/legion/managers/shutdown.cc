@@ -63,9 +63,7 @@ namespace Legion {
         ShutdownNotification rez;
         rez.serialize(this);
         rez.serialize(phase);
-        for (std::vector<AddressSpaceID>::const_iterator it = targets.begin();
-             it != targets.end(); it++)
-          rez.dispatch(*it);
+        for (const AddressSpaceID& target : targets) rez.dispatch(target);
         return false;
       }
       else  // no messages means we can finalize right now
@@ -160,9 +158,7 @@ namespace Legion {
         rez.serialize(return_code);
         rez.serialize<bool>(result);
         rez.serialize<size_t>(wait_for.size());
-        for (std::set<RtEvent>::const_iterator it = wait_for.begin();
-             it != wait_for.end(); it++)
-          rez.serialize(*it);
+        for (const RtEvent& event : wait_for) rez.serialize(event);
         rez.dispatch(source);
       }
       else

@@ -229,21 +229,19 @@ namespace Legion {
         else
         {
           observed_recent = false;
-          for (std::deque<RtEvent>::const_iterator it =
-                   unordered_events.begin();
-               it != unordered_events.end(); it++)
+          for (const RtEvent& event : unordered_events)
           {
-            if (!it->has_triggered())
+            if (!event.has_triggered())
             {
               // Subscribe to make sure we see this trigger
-              it->subscribe();
+              event.subscribe();
               // A little hack here for slow gasnet conduits
               // If the event didn't trigger yet, make sure its just
               // because we haven't gotten the return message yet
               usleep(1000);
-              if (!it->has_triggered())
+              if (!event.has_triggered())
               {
-                shutdown_manager->record_pending_message(*it);
+                shutdown_manager->record_pending_message(event);
                 observed_recent = true;
                 break;
               }
@@ -275,19 +273,17 @@ namespace Legion {
           }
           else
           {
-            for (std::deque<RtEvent>::const_iterator it =
-                     unordered_events.begin();
-                 it != unordered_events.end(); it++)
+            for (const RtEvent& event : unordered_events)
             {
-              if (!it->has_triggered())
+              if (!event.has_triggered())
               {
                 // Subscribe to make sure we see this trigger
-                it->subscribe();
+                event.subscribe();
                 // A little hack here for slow gasnet conduits
                 // If the event didn't trigger yet, make sure its just
                 // because we haven't gotten the return message yet
                 usleep(1000);
-                if (!it->has_triggered())
+                if (!event.has_triggered())
                 {
                   shutdown_manager->record_recent_message();
                   break;

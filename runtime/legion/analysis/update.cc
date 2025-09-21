@@ -51,7 +51,7 @@ namespace Legion {
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
         const RegionUsage& use, RegionNode* rn,
         std::vector<PhysicalManager*>&& target_insts,
-        op::vector<op::FieldMaskMap<InstanceView> >&& target_vws,
+        op::vector<op::FieldMaskMap<InstanceView>>&& target_vws,
         std::vector<IndividualView*>&& source_vws,
         const PhysicalTraceInfo& info, CollectiveMapping* mapping,
         const RtEvent user_reg, const ApEvent pre, const ApEvent term,
@@ -125,25 +125,23 @@ namespace Legion {
         remote_user_registered = user_registered;
       }
       std::set<RtEvent> remote_events;
-      for (op::map<AddressSpaceID, op::FieldMaskMap<EquivalenceSet> >::
-               const_iterator rit = remote_sets.begin();
-           rit != remote_sets.end(); rit++)
+      for (const std::pair<
+               const AddressSpaceID, op::FieldMaskMap<EquivalenceSet>>& rit :
+           remote_sets)
       {
-        legion_assert(!rit->second.empty());
-        const AddressSpaceID target = rit->first;
+        legion_assert(!rit.second.empty());
+        const AddressSpaceID target = rit.first;
         const RtUserEvent updated = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
         RemoteUpdateAnalysis rez;
         {
           RezCheck z(rez);
           rez.serialize(original_source);
-          rez.serialize<size_t>(rit->second.size());
-          for (op::FieldMaskMap<EquivalenceSet>::const_iterator it =
-                   rit->second.begin();
-               it != rit->second.end(); it++)
+          rez.serialize<size_t>(rit.second.size());
+          for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
           {
-            rez.serialize(it->first->did);
-            rez.serialize(it->second);
+            rez.serialize(it.first->did);
+            rez.serialize(it.second);
           }
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
@@ -154,12 +152,11 @@ namespace Legion {
           {
             rez.serialize(target_instances[idx]->did);
             rez.serialize<size_t>(target_views[idx].size());
-            for (op::FieldMaskMap<InstanceView>::const_iterator it =
-                     target_views[idx].begin();
-                 it != target_views[idx].end(); it++)
+            for (const std::pair<InstanceView*, FieldMask>& it :
+                 target_views[idx])
             {
-              rez.serialize(it->first->did);
-              rez.serialize(it->second);
+              rez.serialize(it.first->did);
+              rez.serialize(it.second);
             }
           }
           rez.serialize<size_t>(source_views.size());
@@ -214,29 +211,28 @@ namespace Legion {
 #ifndef NON_AGGRESSIVE_AGGREGATORS
         const bool is_local = (original_source == runtime->address_space);
 #endif
-        for (std::map<RtEvent, CopyFillAggregator*>::const_iterator it =
-                 input_aggregators.begin();
-             it != input_aggregators.end(); it++)
+        for (const std::pair<const RtEvent, CopyFillAggregator*>& it :
+             input_aggregators)
         {
-          it->second->issue_updates(trace_info, precondition);
+          it.second->issue_updates(trace_info, precondition);
 #ifdef NON_AGGRESSIVE_AGGREGATORS
-          if (!it->second->effects_applied.has_triggered())
-            guard_events.insert(it->second->effects_applied);
+          if (!it.second->effects_applied.has_triggered())
+            guard_events.insert(it.second->effects_applied);
 #else
-          if (!it->second->effects_applied.has_triggered())
+          if (!it.second->effects_applied.has_triggered())
           {
             if (is_local)
             {
-              if (!it->second->guard_postcondition.has_triggered())
-                guard_events.insert(it->second->guard_postcondition);
-              applied_events.insert(it->second->effects_applied);
+              if (!it.second->guard_postcondition.has_triggered())
+                guard_events.insert(it.second->guard_postcondition);
+              applied_events.insert(it.second->effects_applied);
             }
             else
-              guard_events.insert(it->second->effects_applied);
+              guard_events.insert(it.second->effects_applied);
           }
 #endif
-          if (it->second->release_guards(applied_events))
-            delete it->second;
+          if (it.second->release_guards(applied_events))
+            delete it.second;
         }
       }
       if (!guard_events.empty())
@@ -274,13 +270,12 @@ namespace Legion {
       if (!collective_arrivals.empty() && IS_WRITE(usage) && HAS_READ(usage))
       {
         legion_assert(IS_COLLECTIVE(usage));
-        for (std::map<InstanceView*, size_t>::const_iterator it =
-                 collective_arrivals.begin();
-             it != collective_arrivals.end(); it++)
-          if ((it->second > 1) &&
-              (it->first->is_individual_view() ||
-               (it->first->as_collective_view()->local_views.size() <
-                it->second)))
+        for (const std::pair<InstanceView* const, size_t>& it :
+             collective_arrivals)
+          if ((it.second > 1) &&
+              (it.first->is_individual_view() ||
+               (it.first->as_collective_view()->local_views.size() <
+                it.second)))
           {
             Error err(LEGION_MAPPER_EXCEPTION);
             err << "Illegal mapper output: detected multiple write-collective "
@@ -357,7 +352,7 @@ namespace Legion {
       size_t num_targets;
       derez.deserialize(num_targets);
       std::vector<PhysicalManager*> targets(num_targets);
-      op::vector<op::FieldMaskMap<InstanceView> > target_views(num_targets);
+      op::vector<op::FieldMaskMap<InstanceView>> target_views(num_targets);
       for (unsigned idx1 = 0; idx1 < num_targets; idx1++)
       {
         DistributedID did;

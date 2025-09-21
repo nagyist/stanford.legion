@@ -48,9 +48,8 @@ namespace Legion {
     ShardedPhysicalTemplate::~ShardedPhysicalTemplate(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<unsigned, ApBarrier>::iterator it = local_frontiers.begin();
-           it != local_frontiers.end(); it++)
-        it->second.destroy_barrier();
+      for (std::pair<const unsigned, ApBarrier>& it : local_frontiers)
+        it.second.destroy_barrier();
       // Unregister ourselves from the context and then remove our reference
       repl_ctx->unregister_trace_template(template_index);
       if (repl_ctx->remove_base_resource_ref(TRACE_REF))
@@ -104,26 +103,25 @@ namespace Legion {
       std::set<RtEvent> wait_for;
       std::vector<ApEvent> pending_events;
       std::map<ApEvent, RtUserEvent> request_events;
-      for (std::set<ApEvent>::const_iterator it = rhs.begin(); it != rhs.end();
-           it++)
+      for (const ApEvent& event : rhs)
       {
-        if (!it->exists())
+        if (!event.exists())
           continue;
         std::map<ApEvent, unsigned>::const_iterator finder =
-            event_map.find(*it);
+            event_map.find(event);
         if (finder == event_map.end())
         {
           // We're going to need to check this event later
-          pending_events.emplace_back(*it);
+          pending_events.emplace_back(event);
           // See if anyone else has requested this event yet
           std::map<ApEvent, RtEvent>::const_iterator request_finder =
-              pending_event_requests.find(*it);
+              pending_event_requests.find(event);
           if (request_finder == pending_event_requests.end())
           {
             const RtUserEvent request_event = Runtime::create_rt_user_event();
-            pending_event_requests[*it] = request_event;
+            pending_event_requests[event] = request_event;
             wait_for.insert(request_event);
-            request_events[*it] = request_event;
+            request_events[event] = request_event;
           }
           else
             wait_for.insert(request_finder->second);
@@ -138,10 +136,8 @@ namespace Legion {
         // Send any request messages first
         if (!request_events.empty())
         {
-          for (std::map<ApEvent, RtUserEvent>::const_iterator it =
-                   request_events.begin();
-               it != request_events.end(); it++)
-            request_remote_shard_event(it->first, it->second);
+          for (const std::pair<const ApEvent, RtUserEvent>& it : request_events)
+            request_remote_shard_event(it.first, it.second);
         }
         // Do the wait
         const RtEvent wait_on = Runtime::merge_events(wait_for);
@@ -149,11 +145,10 @@ namespace Legion {
           wait_on.wait();
         tpl_lock.reacquire();
         // All our pending events should be here now
-        for (std::vector<ApEvent>::const_iterator it = pending_events.begin();
-             it != pending_events.end(); it++)
+        for (const ApEvent& pending : pending_events)
         {
           std::map<ApEvent, unsigned>::const_iterator finder =
-              event_map.find(*it);
+              event_map.find(pending);
           legion_assert(finder != event_map.end());
           if (finder->second != NO_INDEX)
             rhs_.insert(finder->second);
@@ -187,26 +182,25 @@ namespace Legion {
       std::set<RtEvent> wait_for;
       std::vector<ApEvent> pending_events;
       std::map<ApEvent, RtUserEvent> request_events;
-      for (std::vector<ApEvent>::const_iterator it = rhs.begin();
-           it != rhs.end(); it++)
+      for (const ApEvent& event : rhs)
       {
-        if (!it->exists())
+        if (!event.exists())
           continue;
         std::map<ApEvent, unsigned>::const_iterator finder =
-            event_map.find(*it);
+            event_map.find(event);
         if (finder == event_map.end())
         {
           // We're going to need to check this event later
-          pending_events.emplace_back(*it);
+          pending_events.emplace_back(event);
           // See if anyone else has requested this event yet
           std::map<ApEvent, RtEvent>::const_iterator request_finder =
-              pending_event_requests.find(*it);
+              pending_event_requests.find(event);
           if (request_finder == pending_event_requests.end())
           {
             const RtUserEvent request_event = Runtime::create_rt_user_event();
-            pending_event_requests[*it] = request_event;
+            pending_event_requests[event] = request_event;
             wait_for.insert(request_event);
-            request_events[*it] = request_event;
+            request_events[event] = request_event;
           }
           else
             wait_for.insert(request_finder->second);
@@ -221,10 +215,8 @@ namespace Legion {
         // Send any request messages first
         if (!request_events.empty())
         {
-          for (std::map<ApEvent, RtUserEvent>::const_iterator it =
-                   request_events.begin();
-               it != request_events.end(); it++)
-            request_remote_shard_event(it->first, it->second);
+          for (const std::pair<const ApEvent, RtUserEvent>& it : request_events)
+            request_remote_shard_event(it.first, it.second);
         }
         // Do the wait
         const RtEvent wait_on = Runtime::merge_events(wait_for);
@@ -232,11 +224,10 @@ namespace Legion {
           wait_on.wait();
         tpl_lock.reacquire();
         // All our pending events should be here now
-        for (std::vector<ApEvent>::const_iterator it = pending_events.begin();
-             it != pending_events.end(); it++)
+        for (const ApEvent& pending : pending_events)
         {
           std::map<ApEvent, unsigned>::const_iterator finder =
-              event_map.find(*it);
+              event_map.find(pending);
           legion_assert(finder != event_map.end());
           if (finder->second != NO_INDEX)
             rhs_.insert(finder->second);
@@ -687,10 +678,8 @@ namespace Legion {
                   std::map<ApEvent, std::vector<BarrierArrival*> >::
                       const_iterator finder2 = managed_arrivals.find(key);
                   legion_assert(finder2 != managed_arrivals.end());
-                  for (std::vector<BarrierArrival*>::const_iterator it =
-                           finder2->second.begin();
-                       it != finder2->second.end(); it++)
-                    (*it)->set_managed_barrier(bar);
+                  for (BarrierArrival* arrival : finder2->second)
+                    arrival->set_managed_barrier(bar);
                 }
                 else
                   finder->second->remote_refresh_barrier(bar);
@@ -710,13 +699,11 @@ namespace Legion {
                 {
                   Color color;
                   derez.deserialize(color);
-                  for (std::vector<ConcurrentGroup>::iterator it =
-                           finder->second.begin();
-                       it != finder->second.end(); it++)
+                  for (ConcurrentGroup& group : finder->second)
                   {
-                    if (it->color != color)
+                    if (group.color != color)
                       continue;
-                    derez.deserialize(it->barrier);
+                    derez.deserialize(group.barrier);
                     break;
                   }
                 }
@@ -724,10 +711,10 @@ namespace Legion {
               }
               refreshed_barriers += num_barriers;
               size_t expected = local_advances.size() + managed_arrivals.size();
-              for (std::map<TraceLocalID, std::vector<ConcurrentGroup> >::
-                       const_iterator it = concurrent_groups.begin();
-                   it != concurrent_groups.end(); it++)
-                expected += it->second.size();
+              for (const std::pair<
+                       const TraceLocalID, std::vector<ConcurrentGroup> >& it :
+                   concurrent_groups)
+                expected += it.second.size();
               legion_assert(refreshed_barriers <= expected);
               // See if the wait has already been done by the local shard
               // If so, trigger it, otherwise do nothing so it can come
@@ -788,13 +775,11 @@ namespace Legion {
                 derez.deserialize(oldbar);
                 derez.deserialize(newbar);
                 [[maybe_unused]] bool found = false;
-                for (std::vector<std::pair<ApBarrier, unsigned> >::iterator it =
-                         remote_frontiers.begin();
-                     it != remote_frontiers.end(); it++)
+                for (std::pair<ApBarrier, unsigned>& it : remote_frontiers)
                 {
-                  if (it->first != oldbar)
+                  if (it.first != oldbar)
                     continue;
-                  it->first = newbar;
+                  it.first = newbar;
                   found = true;
                   break;
                 }
@@ -1011,43 +996,37 @@ namespace Legion {
           std::map<ShardID, std::map<ApBarrier /*old**/, ApBarrier /*new*/> >
               notifications;
           // Update our barriers and record which updates to send out
-          for (std::map<unsigned, ApBarrier>::iterator it =
-                   local_frontiers.begin();
-               it != local_frontiers.end(); it++)
+          for (std::pair<const unsigned, ApBarrier>& it : local_frontiers)
           {
             const ApBarrier new_barrier =
                 runtime->create_ap_barrier(1 /*arrival count*/);
             legion_assert(
-                local_subscriptions.find(it->first) !=
+                local_subscriptions.find(it.first) !=
                 local_subscriptions.end());
-            const std::set<ShardID>& shards = local_subscriptions[it->first];
-            for (std::set<ShardID>::const_iterator sit = shards.begin();
-                 sit != shards.end(); sit++)
-              notifications[*sit][it->second] = new_barrier;
+            const std::set<ShardID>& shards = local_subscriptions[it.first];
+            for (const ShardID& shard : shards)
+              notifications[shard][it.second] = new_barrier;
             // destroy the old barrier and replace it with the new one
-            it->second.destroy_barrier();
-            it->second = new_barrier;
+            it.second.destroy_barrier();
+            it.second = new_barrier;
           }
           // Send out the notifications to all the remote shards
           ShardManager* manager = repl_ctx->shard_manager;
-          for (std::map<ShardID, std::map<ApBarrier, ApBarrier> >::
-                   const_iterator nit = notifications.begin();
-               nit != notifications.end(); nit++)
+          for (const std::pair<const ShardID, std::map<ApBarrier, ApBarrier> >&
+                   nit : notifications)
           {
             ReplTraceUpdateMessage rez;
             rez.serialize(manager->did);
-            rez.serialize(nit->first);
+            rez.serialize(nit.first);
             rez.serialize(template_index);
             rez.serialize(FRONTIER_BARRIER_REFRESH);
-            rez.serialize<size_t>(nit->second.size());
-            for (std::map<ApBarrier, ApBarrier>::const_iterator it =
-                     nit->second.begin();
-                 it != nit->second.end(); it++)
+            rez.serialize<size_t>(nit.second.size());
+            for (const std::pair<const ApBarrier, ApBarrier>& it : nit.second)
             {
-              rez.serialize(it->first);
-              rez.serialize(it->second);
+              rez.serialize(it.first);
+              rez.serialize(it.second);
             }
-            manager->send_trace_update(nit->first, rez);
+            manager->send_trace_update(nit.first, rez);
           }
           // Now we wait to see that we get all of our remote barriers updated
           RtEvent remote_frontiers_ready;
@@ -1057,18 +1036,15 @@ namespace Legion {
             // Apply any pending refresh frontiers
             if (!pending_refresh_frontiers.empty())
             {
-              for (std::map<ApBarrier, ApBarrier>::const_iterator pit =
-                       pending_refresh_frontiers.begin();
-                   pit != pending_refresh_frontiers.end(); pit++)
+              for (const std::pair<const ApBarrier, ApBarrier>& pit :
+                   pending_refresh_frontiers)
               {
                 [[maybe_unused]] bool found = false;
-                for (std::vector<std::pair<ApBarrier, unsigned> >::iterator it =
-                         remote_frontiers.begin();
-                     it != remote_frontiers.end(); it++)
+                for (std::pair<ApBarrier, unsigned>& it : remote_frontiers)
                 {
-                  if (it->first != pit->first)
+                  if (it.first != pit.first)
                     continue;
-                  it->first = pit->second;
+                  it.first = pit.second;
                   found = true;
                   break;
                 }
@@ -1097,30 +1073,24 @@ namespace Legion {
         // Don't advance on last generation to avoid setting barriers back to 0
         const bool advance_barriers =
             ((++recurrent_replays) < Realm::Barrier::MAX_PHASES);
-        for (std::map<unsigned, ApBarrier>::iterator it =
-                 local_frontiers.begin();
-             it != local_frontiers.end(); it++)
+        for (std::pair<const unsigned, ApBarrier>& it : local_frontiers)
         {
           runtime->phase_barrier_arrive(
-              it->second, 1 /*count*/, events[it->first]);
+              it.second, 1 /*count*/, events[it.first]);
           if (advance_barriers)
-            Runtime::advance_barrier(it->second);
+            Runtime::advance_barrier(it.second);
         }
-        for (std::vector<std::pair<ApBarrier, unsigned> >::iterator it =
-                 remote_frontiers.begin();
-             it != remote_frontiers.end(); it++)
+        for (std::pair<ApBarrier, unsigned>& it : remote_frontiers)
         {
-          events[it->second] = it->first;
+          events[it.second] = it.first;
           if (advance_barriers)
-            Runtime::advance_barrier(it->first);
+            Runtime::advance_barrier(it.first);
         }
       }
       else
       {
-        for (std::vector<std::pair<ApBarrier, unsigned> >::const_iterator it =
-                 remote_frontiers.begin();
-             it != remote_frontiers.end(); it++)
-          events[it->second] = completion;
+        for (const std::pair<ApBarrier, unsigned>& it : remote_frontiers)
+          events[it.second] = completion;
       }
     }
 
@@ -1130,16 +1100,15 @@ namespace Legion {
     {
       if (!pending_collectives.empty())
       {
-        for (std::map<std::pair<size_t, size_t>, ApBarrier>::const_iterator it =
-                 pending_collectives.begin();
-             it != pending_collectives.end(); it++)
+        for (const std::pair<const std::pair<size_t, size_t>, ApBarrier>& it :
+             pending_collectives)
         {
           // This data structure should be read-only at this point
           // so we shouldn't need the lock to access it
           std::map<std::pair<size_t, size_t>, BarrierArrival*>::const_iterator
-              finder = collective_barriers.find(it->first);
+              finder = collective_barriers.find(it.first);
           legion_assert(finder != collective_barriers.end());
-          finder->second->set_collective_barrier(it->second);
+          finder->second->set_collective_barrier(it.second);
         }
         pending_collectives.clear();
       }
@@ -1153,36 +1122,33 @@ namespace Legion {
     {
       std::map<ShardID, std::map<ApEvent, ApBarrier> > notifications;
       // Need to update all our barriers since we're out of generations
-      for (std::map<ApEvent, BarrierAdvance*>::const_iterator it =
-               managed_barriers.begin();
-           it != managed_barriers.end(); it++)
-        it->second->refresh_barrier(it->first, notifications);
+      for (const std::pair<const ApEvent, BarrierAdvance*>& it :
+           managed_barriers)
+        it.second->refresh_barrier(it.first, notifications);
       // Also see if we have any concurrent barriers to update
       size_t local_refreshed = 0;
       std::map<
           ShardID,
           std::map<TraceLocalID, std::vector<std::pair<Color, RtBarrier> > > >
           concurrent_updates;
-      for (std::map<TraceLocalID, std::vector<ConcurrentGroup> >::iterator cit =
-               concurrent_groups.begin();
-           cit != concurrent_groups.end(); cit++)
+      for (std::pair<const TraceLocalID, std::vector<ConcurrentGroup> >& cit :
+           concurrent_groups)
       {
-        for (std::vector<ConcurrentGroup>::iterator it = cit->second.begin();
-             it != cit->second.end(); it++)
+        for (ConcurrentGroup& it : cit.second)
         {
-          legion_assert(!it->shards.empty());
+          legion_assert(!it.shards.empty());
           legion_assert(std::binary_search(
-              it->shards.begin(), it->shards.end(), local_shard));
-          if (local_shard == it->shards.front())
+              it.shards.begin(), it.shards.end(), local_shard));
+          if (local_shard == it.shards.front())
           {
-            it->barrier.destroy_barrier();
-            it->barrier = runtime->create_rt_barrier(it->global);
-            for (unsigned idx = 1; idx < it->shards.size(); idx++)
+            it.barrier.destroy_barrier();
+            it.barrier = runtime->create_rt_barrier(it.global);
+            for (unsigned idx = 1; idx < it.shards.size(); idx++)
             {
-              ShardID shard = it->shards[idx];
+              ShardID shard = it.shards[idx];
               notifications[shard];  // instantiate so it is there
-              concurrent_updates[shard][cit->first].emplace_back(
-                  std::make_pair(it->color, it->barrier));
+              concurrent_updates[shard][cit.first].emplace_back(
+                  std::make_pair(it.color, it.barrier));
             }
             local_refreshed++;
           }
@@ -1190,66 +1156,58 @@ namespace Legion {
       }
       // Send out the notifications to all the shards
       ShardManager* manager = repl_ctx->shard_manager;
-      for (std::map<ShardID, std::map<ApEvent, ApBarrier> >::const_iterator
-               nit = notifications.begin();
-           nit != notifications.end(); nit++)
+      for (const std::pair<const ShardID, std::map<ApEvent, ApBarrier> >& nit :
+           notifications)
       {
-        if (nit->first != local_shard)
+        if (nit.first != local_shard)
         {
           ReplTraceUpdateMessage rez;
           rez.serialize(manager->did);
-          rez.serialize(nit->first);
+          rez.serialize(nit.first);
           rez.serialize(template_index);
           rez.serialize(TEMPLATE_BARRIER_REFRESH);
-          rez.serialize<size_t>(nit->second.size());
-          for (std::map<ApEvent, ApBarrier>::const_iterator it =
-                   nit->second.begin();
-               it != nit->second.end(); it++)
+          rez.serialize<size_t>(nit.second.size());
+          for (const std::pair<const ApEvent, ApBarrier>& it : nit.second)
           {
-            rez.serialize(it->first);
-            rez.serialize(it->second);
+            rez.serialize(it.first);
+            rez.serialize(it.second);
           }
           std::map<
               ShardID,
               std::map<
                   TraceLocalID, std::vector<std::pair<Color, RtBarrier> > > >::
-              const_iterator finder = concurrent_updates.find(nit->first);
+              const_iterator finder = concurrent_updates.find(nit.first);
           if (finder != concurrent_updates.end())
           {
             rez.serialize<size_t>(finder->second.size());
-            for (std::map<
-                     TraceLocalID,
-                     std::vector<std::pair<Color, RtBarrier> > >::const_iterator
-                     tit = finder->second.begin();
-                 tit != finder->second.end(); tit++)
+            for (const std::pair<
+                     const TraceLocalID,
+                     std::vector<std::pair<Color, RtBarrier> > >& tit :
+                 finder->second)
             {
-              tit->first.serialize(rez);
-              rez.serialize<size_t>(tit->second.size());
-              for (std::vector<std::pair<Color, RtBarrier> >::const_iterator
-                       it = tit->second.begin();
-                   it != tit->second.end(); it++)
+              tit.first.serialize(rez);
+              rez.serialize<size_t>(tit.second.size());
+              for (const std::pair<Color, RtBarrier>& it : tit.second)
               {
-                rez.serialize(it->first);
-                rez.serialize(it->second);
+                rez.serialize(it.first);
+                rez.serialize(it.second);
               }
             }
           }
           else
             rez.serialize<size_t>(0);
-          manager->send_trace_update(nit->first, rez);
+          manager->send_trace_update(nit.first, rez);
         }
         else
         {
-          local_refreshed = nit->second.size();
-          for (std::map<ApEvent, ApBarrier>::const_iterator it =
-                   nit->second.begin();
-               it != nit->second.end(); it++)
+          local_refreshed = nit.second.size();
+          for (const std::pair<const ApEvent, ApBarrier>& it : nit.second)
           {
             std::map<ApEvent, std::vector<BarrierArrival*> >::iterator finder =
-                managed_arrivals.find(it->first);
+                managed_arrivals.find(it.first);
             legion_assert(finder != managed_arrivals.end());
             for (unsigned idx = 0; idx < finder->second.size(); idx++)
-              finder->second[idx]->set_managed_barrier(it->second);
+              finder->second[idx]->set_managed_barrier(it.second);
           }
         }
       }
@@ -1262,60 +1220,53 @@ namespace Legion {
           refreshed_barriers += local_refreshed;
         if (!pending_refresh_barriers.empty())
         {
-          for (std::map<ApEvent, ApBarrier>::const_iterator it =
-                   pending_refresh_barriers.begin();
-               it != pending_refresh_barriers.end(); it++)
+          for (const std::pair<const ApEvent, ApBarrier>& it :
+               pending_refresh_barriers)
           {
             std::map<ApEvent, BarrierAdvance*>::const_iterator finder =
-                local_advances.find(it->first);
+                local_advances.find(it.first);
             if (finder == local_advances.end())
             {
               std::map<ApEvent, std::vector<BarrierArrival*> >::const_iterator
-                  finder2 = managed_arrivals.find(it->first);
+                  finder2 = managed_arrivals.find(it.first);
               legion_assert(finder2 != managed_arrivals.end());
               for (unsigned idx = 0; idx < finder2->second.size(); idx++)
-                finder2->second[idx]->set_managed_barrier(it->second);
+                finder2->second[idx]->set_managed_barrier(it.second);
             }
             else
-              finder->second->remote_refresh_barrier(it->second);
+              finder->second->remote_refresh_barrier(it.second);
           }
           refreshed_barriers += pending_refresh_barriers.size();
           pending_refresh_barriers.clear();
         }
         if (!pending_concurrent_barriers.empty())
         {
-          for (std::map<
-                   TraceLocalID,
-                   std::vector<std::pair<Color, RtBarrier> > >::const_iterator
-                   bit = pending_concurrent_barriers.begin();
-               bit != pending_concurrent_barriers.end(); bit++)
+          for (const std::pair<
+                   const TraceLocalID,
+                   std::vector<std::pair<Color, RtBarrier> > >& bit :
+               pending_concurrent_barriers)
           {
             std::map<TraceLocalID, std::vector<ConcurrentGroup> >::iterator
-                finder = concurrent_groups.find(bit->first);
+                finder = concurrent_groups.find(bit.first);
             legion_assert(finder != concurrent_groups.end());
-            for (std::vector<std::pair<Color, RtBarrier> >::const_iterator cit =
-                     bit->second.begin();
-                 cit != bit->second.end(); cit++)
+            for (const std::pair<Color, RtBarrier>& cit : bit.second)
             {
-              for (std::vector<ConcurrentGroup>::iterator it =
-                       finder->second.begin();
-                   it != finder->second.end(); it++)
+              for (ConcurrentGroup& it : finder->second)
               {
-                if (cit->first != it->color)
+                if (cit.first != it.color)
                   continue;
-                it->barrier = cit->second;
+                it.barrier = cit.second;
                 break;
               }
             }
-            refreshed_barriers += bit->second.size();
+            refreshed_barriers += bit.second.size();
           }
           pending_concurrent_barriers.clear();
         }
         size_t expected = local_advances.size() + managed_arrivals.size();
-        for (std::map<TraceLocalID, std::vector<ConcurrentGroup> >::
-                 const_iterator it = concurrent_groups.begin();
-             it != concurrent_groups.end(); it++)
-          expected += it->second.size();
+        for (const std::pair<const TraceLocalID, std::vector<ConcurrentGroup> >&
+                 it : concurrent_groups)
+          expected += it.second.size();
         legion_assert(refreshed_barriers <= expected);
         if (refreshed_barriers < expected)
         {
@@ -1335,10 +1286,8 @@ namespace Legion {
     {
       PhysicalTemplate::finish_replay(fence, postconditions);
       // Also need to do any local frontiers that we have here as well
-      for (std::map<unsigned, ApBarrier>::const_iterator it =
-               local_frontiers.begin();
-           it != local_frontiers.end(); it++)
-        postconditions.insert(events[it->first]);
+      for (const std::pair<const unsigned, ApBarrier>& it : local_frontiers)
+        postconditions.insert(events[it.first]);
     }
 
     //--------------------------------------------------------------------------
@@ -1348,18 +1297,16 @@ namespace Legion {
       // Skip the any events that are from remote shards since we
       std::set<ApEvent> all_events;
       std::set<ApEvent> local_barriers;
-      for (std::map<ApEvent, BarrierAdvance*>::const_iterator it =
-               managed_barriers.begin();
-           it != managed_barriers.end(); it++)
-        local_barriers.insert(it->second->get_current_barrier());
-      for (std::map<ApEvent, unsigned>::const_iterator it = event_map.begin();
-           it != event_map.end(); ++it)
+      for (const std::pair<const ApEvent, BarrierAdvance*>& it :
+           managed_barriers)
+        local_barriers.insert(it.second->get_current_barrier());
+      for (const std::pair<const ApEvent, unsigned>& it : event_map)
       {
         // If this is a remote event or one of our barriers then don't use it
-        if ((local_barriers.find(it->first) == local_barriers.end()) &&
-            (pending_event_requests.find(it->first) ==
+        if ((local_barriers.find(it.first) == local_barriers.end()) &&
+            (pending_event_requests.find(it.first) ==
              pending_event_requests.end()))
-          all_events.insert(it->first);
+          all_events.insert(it.first);
       }
       return Runtime::merge_events(nullptr, all_events);
     }
@@ -1492,18 +1439,14 @@ namespace Legion {
     void ShardedPhysicalTemplate::dump_sharded_template(void) const
     //--------------------------------------------------------------------------
     {
-      for (std::vector<std::pair<ApBarrier, unsigned> >::const_iterator it =
-               remote_frontiers.begin();
-           it != remote_frontiers.end(); it++)
-        log_tracing.info() << "events[" << it->second
+      for (const std::pair<ApBarrier, unsigned>& it : remote_frontiers)
+        log_tracing.info() << "events[" << it.second
                            << "] = Runtime::barrier_advance(" << std::hex
-                           << it->first.id << std::dec << ")";
-      for (std::map<unsigned, ApBarrier>::const_iterator it =
-               local_frontiers.begin();
-           it != local_frontiers.end(); it++)
+                           << it.first.id << std::dec << ")";
+      for (const std::pair<const unsigned, ApBarrier>& it : local_frontiers)
         log_tracing.info() << "Runtime::phase_barrier_arrive(" << std::hex
-                           << it->second.id << std::dec << ", events["
-                           << it->first << "])";
+                           << it.second.id << std::dec << ", events["
+                           << it.first << "])";
     }
 
     //--------------------------------------------------------------------------
@@ -1592,23 +1535,21 @@ namespace Legion {
       std::vector<RtEvent> done_events;
       ShardManager* manager = repl_ctx->shard_manager;
       const ShardID local_shard = repl_ctx->owner_shard->shard_id;
-      for (std::map<ShardID, InstUsers>::iterator sit =
-               shard_inst_users.begin();
-           sit != shard_inst_users.end(); sit++)
+      for (std::pair<const ShardID, InstUsers>& sit : shard_inst_users)
       {
-        if (sit->first != local_shard)
+        if (sit.first != local_shard)
         {
           const RtUserEvent done = Runtime::create_rt_user_event();
-          const AddressSpaceID target = manager->get_shard_space(sit->first);
+          const AddressSpaceID target = manager->get_shard_space(sit.first);
           ReplTraceUpdateMessage rez;
           rez.serialize(manager->did);
-          rez.serialize(sit->first);
+          rez.serialize(sit.first);
           rez.serialize(template_index);
           rez.serialize(READ_ONLY_USERS_REQUEST);
           rez.serialize(local_shard);
-          rez.serialize<size_t>(sit->second.size());
-          for (InstUsers::const_iterator vit = sit->second.begin();
-               vit != sit->second.end(); vit++)
+          rez.serialize<size_t>(sit.second.size());
+          for (InstUsers::const_iterator vit = sit.second.begin();
+               vit != sit.second.end(); vit++)
           {
             vit->instance.serialize(rez);
             vit->expr->pack_expression(rez, target);
@@ -1616,10 +1557,10 @@ namespace Legion {
           }
           rez.serialize(&result);
           rez.serialize(done);
-          manager->send_trace_update(sit->first, rez);
+          manager->send_trace_update(sit.first, rez);
           done_events.emplace_back(done);
         }
-        else if (!PhysicalTemplate::are_read_only_users(sit->second))
+        else if (!PhysicalTemplate::are_read_only_users(sit.second))
         {
           // Still need to wait for anyone else to write to result if
           // they end up finding out that they are not read-only
@@ -1664,13 +1605,11 @@ namespace Legion {
       }
       if (!to_filter.empty())
       {
-        for (std::vector<Instruction*>::const_iterator it =
-                 instructions.begin();
-             it != instructions.end(); it++)
+        for (Instruction* instruction : instructions)
         {
-          if ((*it)->get_kind() != MERGE_EVENT)
+          if (instruction->get_kind() != MERGE_EVENT)
             continue;
-          MergeEvent* merge = (*it)->as_merge_event();
+          MergeEvent* merge = instruction->as_merge_event();
           for (unsigned idx = 0; idx < to_filter.size(); idx++)
           {
             std::set<unsigned>::iterator finder =
@@ -1694,10 +1633,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PhysicalTemplate::initialize_generators(new_gen);
-      for (std::vector<std::pair<ApBarrier, unsigned> >::const_iterator it =
-               remote_frontiers.begin();
-           it != remote_frontiers.end(); it++)
-        new_gen[it->second] = 0;
+      for (const std::pair<ApBarrier, unsigned>& it : remote_frontiers)
+        new_gen[it.second] = 0;
     }
 
     //--------------------------------------------------------------------------
@@ -1706,11 +1643,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PhysicalTemplate::initialize_eliminate_dead_code_frontiers(gen, used);
-      for (std::map<unsigned, ApBarrier>::const_iterator it =
-               local_frontiers.begin();
-           it != local_frontiers.end(); it++)
+      for (const std::pair<const unsigned, ApBarrier>& it : local_frontiers)
       {
-        unsigned g = gen[it->first];
+        unsigned g = gen[it.first];
         if (g != -1U && g < instructions.size())
           used[g] = true;
       }
@@ -1724,12 +1659,10 @@ namespace Legion {
     {
       PhysicalTemplate::initialize_transitive_reduction_frontiers(
           topo_order, inv_topo_order);
-      for (std::vector<std::pair<ApBarrier, unsigned> >::const_iterator it =
-               remote_frontiers.begin();
-           it != remote_frontiers.end(); it++)
+      for (const std::pair<ApBarrier, unsigned>& it : remote_frontiers)
       {
-        inv_topo_order[it->second] = topo_order.size();
-        topo_order.emplace_back(it->second);
+        inv_topo_order[it.second] = topo_order.size();
+        topo_order.emplace_back(it.second);
       }
     }
 
@@ -1739,10 +1672,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PhysicalTemplate::record_used_frontiers(used, gen);
-      for (std::map<unsigned, ApBarrier>::const_iterator it =
-               local_frontiers.begin();
-           it != local_frontiers.end(); it++)
-        used[gen[it->first]] = true;
+      for (const std::pair<const unsigned, ApBarrier>& it : local_frontiers)
+        used[gen[it.first]] = true;
     }
 
     //--------------------------------------------------------------------------
@@ -1781,10 +1712,8 @@ namespace Legion {
         else
           it++;
       }
-      for (std::vector<std::pair<unsigned, ApBarrier> >::const_iterator it =
-               to_add.begin();
-           it != to_add.end(); it++)
-        local_frontiers.insert(*it);
+      for (const std::pair<unsigned, ApBarrier>& it : to_add)
+        local_frontiers.insert(it);
     }
 
   }  // namespace Internal

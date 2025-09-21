@@ -471,9 +471,8 @@ namespace Legion {
 #ifdef LEGION_DEBUG
       // If we're doing any reductions with this copy then make sure they
       // are marked exclusive or we have some reservations
-      for (std::vector<CopySrcDstField>::const_iterator it = dst_fields.begin();
-           it != dst_fields.end(); it++)
-        legion_assert((it->redop_id == 0) || !reservations.empty());
+      for (const CopySrcDstField& it : dst_fields)
+        legion_assert((it.redop_id == 0) || !reservations.empty());
 #endif
       // Now that we know we're going to do this copy add any profling requests
       Realm::ProfilingRequestSet requests;
@@ -486,10 +485,9 @@ namespace Legion {
             Runtime::merge_events(nullptr, precondition, ApEvent(pred_guard));
       else
         copy_pre = precondition;
-      for (std::vector<Reservation>::const_iterator it = reservations.begin();
-           it != reservations.end(); it++)
-        copy_pre =
-            Runtime::acquire_ap_reservation(*it, true /*exclusive*/, copy_pre);
+      for (const Reservation& reservation : reservations)
+        copy_pre = Runtime::acquire_ap_reservation(
+            reservation, true /*exclusive*/, copy_pre);
       if (runtime->profiler != nullptr)
       {
         SmallNameClosure<2>* closure = new SmallNameClosure<2>();
@@ -501,9 +499,8 @@ namespace Legion {
       ApEvent result = ApEvent(
           space.copy(src_fields, dst_fields, requests, copy_pre, priority));
       // Release any reservations after the copy is done
-      for (std::vector<Reservation>::const_iterator it = reservations.begin();
-           it != reservations.end(); it++)
-        Runtime::release_reservation(*it, result);
+      for (const Reservation& reservation : reservations)
+        Runtime::release_reservation(reservation, result);
       if (pred_guard.exists())
       {
         result = Runtime::ignorefaults(result);
@@ -593,16 +590,16 @@ namespace Legion {
             Point<DIM, T> tile_size;
             for (int i = 0; i < DIM; i++)
               tile_size[i] = (space.bounds.hi[i] - space.bounds.lo[i]) + 1;
-            for (std::vector<TilingConstraint>::const_iterator it =
-                     constraints.tiling_constraints.begin();
-                 it != constraints.tiling_constraints.end(); it++)
+            for (const TilingConstraint& constraint :
+                 constraints.tiling_constraints)
             {
-              legion_assert(it->dim < DIM);
-              if (it->tiles)
-                tile_size[it->dim] =
-                    (tile_size[it->dim] + it->value - 1) / it->value;
+              legion_assert(constraint.dim < DIM);
+              if (constraint.tiles)
+                tile_size[constraint.dim] =
+                    (tile_size[constraint.dim] + constraint.value - 1) /
+                    constraint.value;
               else
-                tile_size[it->dim] = it->value;
+                tile_size[constraint.dim] = constraint.value;
             }
             // Now we've got the tile size, walk over the dimensions
             // in order to produce the tiles as pieces
@@ -620,19 +617,18 @@ namespace Legion {
               piece_bounds.emplace_back(piece);
               // Step the offset to the next location
               done = true;
-              for (std::vector<TilingConstraint>::const_iterator it =
-                       constraints.tiling_constraints.begin();
-                   it != constraints.tiling_constraints.end(); it++)
+              for (const TilingConstraint& constraint :
+                   constraints.tiling_constraints)
               {
-                offset[it->dim] += tile_size[it->dim];
-                if (offset[it->dim] <= space.bounds.hi[it->dim])
+                offset[constraint.dim] += tile_size[constraint.dim];
+                if (offset[constraint.dim] <= space.bounds.hi[constraint.dim])
                 {
                   // Still in bounds so we can keep traversing
                   done = false;
                   break;
                 }
                 else  // No longer in bounds, so ripple carry add
-                  offset[it->dim] = space.bounds.lo[it->dim];
+                  offset[constraint.dim] = space.bounds.lo[constraint.dim];
               }
             }
           }
@@ -754,18 +750,15 @@ namespace Legion {
            (order.ordering.front() == LEGION_DIM_F));
       // Get any alignment and offset constraints for individual fields
       std::map<FieldID, size_t> alignments;
-      for (std::vector<AlignmentConstraint>::const_iterator it =
-               constraints.alignment_constraints.begin();
-           it != constraints.alignment_constraints.end(); it++)
+      for (const AlignmentConstraint& constraint :
+           constraints.alignment_constraints)
       {
-        legion_assert(it->eqk == LEGION_EQ_EK);
-        alignments[it->fid] = it->alignment;
+        legion_assert(constraint.eqk == LEGION_EQ_EK);
+        alignments[constraint.fid] = constraint.alignment;
       }
       std::map<FieldID, off_t> offsets;
-      for (std::vector<OffsetConstraint>::const_iterator it =
-               constraints.offset_constraints.begin();
-           it != constraints.offset_constraints.end(); it++)
-        offsets[it->fid] = it->offset;
+      for (const OffsetConstraint& constraint : constraints.offset_constraints)
+        offsets[constraint.fid] = constraint.offset;
       // Zip the fields with their sizes and sort them if we're allowed to
       std::set<size_t> unique_sizes;
       std::vector<std::pair<size_t, FieldID> > zip_fields;
@@ -827,19 +820,17 @@ namespace Legion {
       // We can't make the piece lists yet because we don't know the
       // extent of the field dimension needed to ensure alignment
       std::map<FieldID, size_t> field_offsets;
-      for (std::vector<std::pair<size_t, FieldID> >::const_iterator it =
-               zip_fields.begin();
-           it != zip_fields.end(); it++)
+      for (const std::pair<size_t, FieldID>& it : zip_fields)
       {
         // if not specified, field goes at the end of all known fields
         // (or a bit past if alignment is a concern)
         size_t offset = fsize;
         std::map<FieldID, off_t>::const_iterator offset_finder =
-            offsets.find(it->second);
+            offsets.find(it.second);
         if (offset_finder != offsets.end())
           offset += offset_finder->second;
         std::map<FieldID, size_t>::const_iterator alignment_finder =
-            alignments.find(it->second);
+            alignments.find(it.second);
         // Hack to help out lazy users unwilling to specify alignment
         // constraints that are necessary for correctness
         // If they haven't specified an alignment we align on the largest
@@ -850,7 +841,7 @@ namespace Legion {
             (alignment_finder != alignments.end()) ?
                 alignment_finder->second :
                 std::min<size_t>(
-                    it->first & ~(it->first - 1), 128 /*max alignment*/);
+                    it.first & ~(it.first - 1), 128 /*max alignment*/);
         if (field_alignment > 1)
         {
           offset = round_up(offset, field_alignment);
@@ -858,8 +849,8 @@ namespace Legion {
             falign = std::lcm(falign, field_alignment);
         }
         // increase size and alignment if needed
-        fsize = std::max(fsize, offset + it->first * elements_between_fields);
-        field_offsets[it->second] = offset;
+        fsize = std::max(fsize, offset + it.first * elements_between_fields);
+        field_offsets[it.second] = offset;
       }
       if (falign > 1)
       {
@@ -895,26 +886,24 @@ namespace Legion {
       std::map<size_t, unsigned> pl_indexes;
       layout->piece_lists.reserve(
           safe_reuse ? unique_sizes.size() : zip_fields.size());
-      for (std::vector<std::pair<size_t, FieldID> >::const_iterator it =
-               zip_fields.begin();
-           it != zip_fields.end(); it++)
+      for (const std::pair<size_t, FieldID>& it : zip_fields)
       {
         unsigned li;
         std::map<size_t, unsigned>::const_iterator finder =
-            safe_reuse ? pl_indexes.find(it->first) : pl_indexes.end();
+            safe_reuse ? pl_indexes.find(it.first) : pl_indexes.end();
         if (finder == pl_indexes.end())
         {
           li = layout->piece_lists.size();
           legion_assert(
               li < (safe_reuse ? unique_sizes.size() : zip_fields.size()));
           layout->piece_lists.resize(li + 1);
-          pl_indexes[it->first] = li;
+          pl_indexes[it.first] = li;
 
           // create the piece list
           Realm::InstancePieceList<DIM, T>& pl = layout->piece_lists[li];
           pl.pieces.reserve(piece_bounds.size());
 
-          size_t next_piece = safe_reuse ? 0 : field_offsets[it->second];
+          size_t next_piece = safe_reuse ? 0 : field_offsets[it.second];
           for (unsigned pidx = 0; pidx < piece_bounds.size(); pidx++)
           {
             const Rect<DIM, T>& bounds = piece_bounds[pidx];
@@ -928,17 +917,15 @@ namespace Legion {
             else
               piece_start = next_piece;
             piece->offset = piece_start;
-            size_t stride = it->first;
-            for (std::vector<DimensionKind>::const_iterator dit =
-                     order.ordering.begin();
-                 dit != order.ordering.end(); dit++)
+            size_t stride = it.first;
+            for (const DimensionKind& dit : order.ordering)
             {
-              if ((*dit) != LEGION_DIM_F)
+              if ((dit) != LEGION_DIM_F)
               {
-                legion_assert(int(*dit) < DIM);
-                piece->strides[*dit] = stride;
-                piece->offset -= bounds.lo[*dit] * stride;
-                stride *= (bounds.hi[*dit] - bounds.lo[*dit] + 1);
+                legion_assert(int(dit) < DIM);
+                piece->strides[dit] = stride;
+                piece->offset -= bounds.lo[dit] * stride;
+                stride *= (bounds.hi[dit] - bounds.lo[dit] + 1);
               }
               else
               {
@@ -958,12 +945,12 @@ namespace Legion {
         }
         else
           li = finder->second;
-        legion_assert(layout->fields.count(it->second) == 0);
+        legion_assert(layout->fields.count(it.second) == 0);
         Realm::InstanceLayoutGeneric::FieldLayout& fl =
-            layout->fields[it->second];
+            layout->fields[it.second];
         fl.list_idx = li;
-        fl.rel_offset = safe_reuse ? field_offsets[it->second] : 0;
-        fl.size_in_bytes = it->first;
+        fl.rel_offset = safe_reuse ? field_offsets[it.second] : 0;
+        fl.size_in_bytes = it.first;
       }
       return layout;
     }

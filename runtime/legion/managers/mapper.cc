@@ -863,15 +863,14 @@ namespace Legion {
         return;
       // Retake the lock and process the results
       AutoLock m_lock(mapper_lock);
-      for (std::set<Processor>::const_iterator it =
-               steal_output.targets.begin();
-           it != steal_output.targets.end(); it++)
+      for (const Processor& target_processor : steal_output.targets)
       {
-        if (it->exists() && ((*it) != processor) &&
-            (steal_blacklist.find(*it) == steal_blacklist.end()))
+        if (target_processor.exists() && (target_processor != processor) &&
+            (steal_blacklist.find(target_processor) == steal_blacklist.end()))
         {
-          targets.insert(std::pair<Processor, MapperID>(*it, mapper_id));
-          steal_blacklist.insert(*it);
+          targets.insert(
+              std::pair<Processor, MapperID>(target_processor, mapper_id));
+          steal_blacklist.insert(target_processor);
         }
       }
     }
@@ -1408,9 +1407,8 @@ namespace Legion {
       }
       if (!to_trigger.empty())
       {
-        for (std::vector<RtUserEvent>::const_iterator it = to_trigger.begin();
-             it != to_trigger.end(); it++)
-          Runtime::trigger_event(*it);
+        for (const RtUserEvent& event : to_trigger)
+          Runtime::trigger_event(event);
       }
     }
 
@@ -1496,9 +1494,8 @@ namespace Legion {
       }
       if (!to_trigger.empty())
       {
-        for (std::vector<RtUserEvent>::const_iterator it = to_trigger.begin();
-             it != to_trigger.end(); it++)
-          Runtime::trigger_event(*it);
+        for (const RtUserEvent& event : to_trigger)
+          Runtime::trigger_event(event);
       }
     }
 

@@ -44,21 +44,18 @@ namespace Legion {
         multiple_local_memories(has_multiple_local_memories(local_views))
     //--------------------------------------------------------------------------
     {
-      for (std::vector<IndividualView*>::const_iterator it =
-               local_views.begin();
-           it != local_views.end(); it++)
+      for (IndividualView* view : local_views)
       {
         // For collective instances we always want the logical analysis
         // node for the view to be on the same node as the owner for actual
         // physical instance to aid in our ability to do the analysis
         // See the get_analysis_space function for why we check this
-        legion_assert(
-            (*it)->logical_owner == (*it)->get_manager()->owner_space);
+        legion_assert(view->logical_owner == view->get_manager()->owner_space);
         //(*it)->add_nested_resource_ref(did);
-        (*it)->add_nested_gc_ref(did);
+        view->add_nested_gc_ref(did);
         // Record ourselves with each of our local views so they can
         // notify us when they are deleted
-        PhysicalManager* manager = (*it)->get_manager();
+        PhysicalManager* manager = view->get_manager();
         legion_no_skip_assert(manager->register_deletion_subscriber(this));
       }
     }
@@ -89,24 +86,19 @@ namespace Legion {
       if (!deletion_notified.exchange(true))
       {
         // Unregister ourselves with all our local instances
-        for (std::vector<IndividualView*>::const_iterator it =
-                 local_views.begin();
-             it != local_views.end(); it++)
+        for (IndividualView* view : local_views)
         {
-          PhysicalManager* manager = (*it)->get_manager();
+          PhysicalManager* manager = view->get_manager();
           manager->unregister_deletion_subscriber(this);
         }
       }
-      for (std::vector<IndividualView*>::const_iterator it =
-               local_views.begin();
-           it != local_views.end(); it++)
-        if ((*it)->remove_nested_gc_ref(did))
-          delete (*it);
-      for (std::map<PhysicalManager*, IndividualView*>::const_iterator it =
-               remote_instances.begin();
-           it != remote_instances.end(); it++)
-        if (it->second->remove_nested_gc_ref(did))
-          delete it->second;
+      for (IndividualView* view : local_views)
+        if (view->remove_nested_gc_ref(did))
+          delete view;
+      for (const std::pair<PhysicalManager* const, IndividualView*>& it :
+           remote_instances)
+        if (it.second->remove_nested_gc_ref(did))
+          delete it.second;
       remote_instances.clear();
     }
 
@@ -189,10 +181,7 @@ namespace Legion {
           {
             CollectiveViewMakeValid rez;
             rez.serialize(did);
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
-              rez.dispatch(*it);
+            for (const AddressSpaceID& child : children) rez.dispatch(child);
           }
         }
         // Only need to add the references if we're in the not-valid state
@@ -200,10 +189,8 @@ namespace Legion {
         // remove the reference yet
         if (valid_state == NOT_VALID_STATE)
         {
-          for (std::vector<IndividualView*>::const_iterator it =
-                   local_views.begin();
-               it != local_views.end(); it++)
-            (*it)->add_nested_valid_ref(did);
+          for (IndividualView* view : local_views)
+            view->add_nested_valid_ref(did);
           add_base_gc_ref(INTERNAL_VALID_REF);
         }
         valid_state = FULL_VALID_STATE;
@@ -255,17 +242,12 @@ namespace Legion {
           {
             CollectiveViewMakeInvalid rez;
             rez.serialize(did);
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
-              rez.dispatch(*it);
+            for (const AddressSpaceID& child : children) rez.dispatch(child);
           }
         }
         valid_state = NOT_VALID_STATE;
-        for (std::vector<IndividualView*>::const_iterator it =
-                 local_views.begin();
-             it != local_views.end(); it++)
-          (*it)->remove_nested_valid_ref(did);
+        for (IndividualView* view : local_views)
+          view->remove_nested_valid_ref(did);
         return remove_base_gc_ref(INTERNAL_VALID_REF);
       }
     }
@@ -332,10 +314,7 @@ namespace Legion {
             CollectiveViewInvalidateRequest rez;
             rez.serialize(did);
             rez.serialize(invalidation_generation);
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
-              rez.dispatch(*it);
+            for (const AddressSpaceID& child : children) rez.dispatch(child);
             remaining_invalidation_responses += children.size();
           }
         }
@@ -559,21 +538,17 @@ namespace Legion {
         CollectiveView* collective = other->as_collective_view();
         if (instances.size() < collective->instances.size())
         {
-          for (std::vector<DistributedID>::const_iterator it =
-                   instances.begin();
-               it != instances.end(); it++)
+          for (const DistributedID& it : instances)
             if (std::binary_search(
                     collective->instances.begin(), collective->instances.end(),
-                    *it))
+                    it))
               return true;
           return false;
         }
         else
         {
-          for (std::vector<DistributedID>::const_iterator it =
-                   collective->instances.begin();
-               it != collective->instances.end(); it++)
-            if (std::binary_search(instances.begin(), instances.end(), *it))
+          for (const DistributedID& it : collective->instances)
+            if (std::binary_search(instances.begin(), instances.end(), it))
               return true;
           return false;
         }
@@ -650,11 +625,9 @@ namespace Legion {
       // Unregister ourselves with all our local instances
       if (!deletion_notified.exchange(true))
       {
-        for (std::vector<IndividualView*>::const_iterator it =
-                 local_views.begin();
-             it != local_views.end(); it++)
+        for (IndividualView* view : local_views)
         {
-          PhysicalManager* manager = (*it)->get_manager();
+          PhysicalManager* manager = view->get_manager();
           manager->unregister_deletion_subscriber(this);
         }
       }
@@ -1118,12 +1091,11 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(this->did);
           rez.serialize<size_t>(sources.size());
-          for (std::map<IndividualView*, IndexSpaceExpression*>::const_iterator
-                   it = sources.begin();
-               it != sources.end(); it++)
+          for (const std::pair<IndividualView* const, IndexSpaceExpression*>&
+                   it : sources)
           {
-            rez.serialize(it->first->did);
-            it->second->pack_expression(rez, origin);
+            rez.serialize(it.first->did);
+            it.second->pack_expression(rez, origin);
           }
           rez.serialize(precondition);
           rez.serialize(predicate_guard);
@@ -1186,21 +1158,20 @@ namespace Legion {
         // Iterate over all the sources and issue copies for each of them
         // to our target local view for their particular expression
         std::set<IndexSpaceExpression*> to_fuse;
-        for (std::map<IndividualView*, IndexSpaceExpression*>::const_iterator
-                 it = sources.begin();
-             it != sources.end(); it++)
+        for (const std::pair<IndividualView* const, IndexSpaceExpression*>& it :
+             sources)
         {
           // Get the destination precondition
           const ApEvent dst_pre = local_view->find_copy_preconditions(
-              false /*reading*/, 0 /*redop*/, copy_mask, it->second, op_id,
+              false /*reading*/, 0 /*redop*/, copy_mask, it.second, op_id,
               index, applied_events, local_info);
-          const ApEvent src_pre = it->first->find_copy_preconditions(
-              true /*reading*/, 0 /*redop*/, copy_mask, it->second, op_id,
-              index, applied_events, local_info);
+          const ApEvent src_pre = it.first->find_copy_preconditions(
+              true /*reading*/, 0 /*redop*/, copy_mask, it.second, op_id, index,
+              applied_events, local_info);
           std::vector<CopySrcDstField> src_fields;
-          PhysicalManager* source_manager = it->first->get_manager();
+          PhysicalManager* source_manager = it.first->get_manager();
           source_manager->compute_copy_offsets(copy_mask, src_fields);
-          const ApEvent copy_post = it->second->issue_copy(
+          const ApEvent copy_post = it.second->issue_copy(
               op, local_info, local_fields, src_fields, no_reservations,
               source_manager->tree_id, local_manager->tree_id,
               Runtime::merge_events(
@@ -1209,24 +1180,24 @@ namespace Legion {
               COLLECTIVE_BROADCAST, copy_restricted);
           if (local_info.recording)
           {
-            const UniqueInst src_inst(it->first);
+            const UniqueInst src_inst(it.first);
             local_info.record_copy_insts(
-                copy_post, it->second, src_inst, local_inst, copy_mask,
+                copy_post, it.second, src_inst, local_inst, copy_mask,
                 copy_mask, 0 /*redop*/, applied_events);
           }
           if (copy_post.exists())
           {
             local_view->add_copy_user(
-                false /*reading*/, 0 /*redop*/, copy_post, copy_mask,
-                it->second, collective_match_space, op_id, index,
-                recorded_events, local_info.recording, runtime->address_space);
-            it->first->add_copy_user(
-                true /*reading*/, 0 /*redop*/, copy_post, copy_mask, it->second,
+                false /*reading*/, 0 /*redop*/, copy_post, copy_mask, it.second,
+                collective_match_space, op_id, index, recorded_events,
+                local_info.recording, runtime->address_space);
+            it.first->add_copy_user(
+                true /*reading*/, 0 /*redop*/, copy_post, copy_mask, it.second,
                 collective_match_space, op_id, index, recorded_events,
                 local_info.recording, runtime->address_space);
           }
           // Save this expression for fusing
-          to_fuse.insert(it->second);
+          to_fuse.insert(it.second);
         }
         // Fuse together the expressions for the group copy
         IndexSpaceExpression* fused_expression =
@@ -1498,11 +1469,10 @@ namespace Legion {
           // See if we need the check
           if (remote_instance_responses.contains(memory_space))
           {
-            for (std::map<PhysicalManager*, IndividualView*>::const_iterator
-                     it = remote_instances.begin();
-                 it != remote_instances.end(); it++)
-              if (it->first->memory_manager->memory == memory)
-                instances.emplace_back(it->first);
+            for (const std::pair<PhysicalManager* const, IndividualView*>& it :
+                 remote_instances)
+              if (it.first->memory_manager->memory == memory)
+                instances.emplace_back(it.first);
             return;
           }
         }
@@ -1517,11 +1487,10 @@ namespace Legion {
         if (!ready_event.has_triggered())
           ready_event.wait();
         AutoLock v_lock(view_lock, false /*exclusive*/);
-        for (std::map<PhysicalManager*, IndividualView*>::const_iterator it =
-                 remote_instances.begin();
-             it != remote_instances.end(); it++)
-          if (it->first->memory_manager->memory == memory)
-            instances.emplace_back(it->first);
+        for (const std::pair<PhysicalManager* const, IndividualView*>& it :
+             remote_instances)
+          if (it.first->memory_manager->memory == memory)
+            instances.emplace_back(it.first);
       }
       else
       {
@@ -1572,12 +1541,11 @@ namespace Legion {
       // Deduplicate cases where we already received this response
       if (remote_instance_responses.contains(src))
         return;
-      for (std::vector<IndividualView*>::const_iterator it = views.begin();
-           it != views.end(); it++)
+      for (IndividualView* const view : views)
       {
-        PhysicalManager* manager = (*it)->get_manager();
-        if (remote_instances.insert(std::make_pair(manager, *it)).second)
-          (*it)->add_nested_gc_ref(did);
+        PhysicalManager* manager = view->get_manager();
+        if (remote_instances.insert(std::make_pair(manager, view)).second)
+          view->add_nested_gc_ref(did);
       }
       remote_instance_responses.add(src);
     }
@@ -1588,12 +1556,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
-      for (std::vector<IndividualView*>::const_iterator it = views.begin();
-           it != views.end(); it++)
+      for (IndividualView* const view : views)
       {
-        PhysicalManager* manager = (*it)->get_manager();
-        if (remote_instances.insert(std::make_pair(manager, *it)).second)
-          (*it)->add_nested_gc_ref(did);
+        PhysicalManager* manager = view->get_manager();
+        if (remote_instances.insert(std::make_pair(manager, view)).second)
+          view->add_nested_gc_ref(did);
       }
     }
 
@@ -1653,12 +1620,10 @@ namespace Legion {
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
         std::vector<RtEvent> ready_events;
-        for (std::vector<DistributedID>::const_iterator it =
-                 best_instances.begin();
-             it != best_instances.end(); it++)
+        for (const DistributedID& it : best_instances)
         {
           instances.emplace_back(
-              runtime->find_or_request_instance_manager(*it, ready));
+              runtime->find_or_request_instance_manager(it, ready));
           if (ready.exists())
             ready_events.emplace_back(ready);
         }
@@ -1685,11 +1650,10 @@ namespace Legion {
             ready_event.wait();
           std::map<Memory, size_t> searches;
           AutoLock v_lock(view_lock, false /*exclusive*/);
-          for (std::map<PhysicalManager*, IndividualView*>::const_iterator it =
-                   remote_instances.begin();
-               it != remote_instances.end(); it++)
+          for (const std::pair<PhysicalManager* const, IndividualView*>& it :
+               remote_instances)
           {
-            const Memory local = it->first->memory_manager->memory;
+            const Memory local = it.first->memory_manager->memory;
             std::map<Memory, size_t>::const_iterator finder =
                 searches.find(local);
             if (finder == searches.end())
@@ -1711,7 +1675,7 @@ namespace Legion {
                       instances.clear();
                       best = affinity.bandwidth;
                     }
-                    instances.emplace_back(it->first);
+                    instances.emplace_back(it.first);
                   }
                 }
                 else
@@ -1728,7 +1692,7 @@ namespace Legion {
                       instances.clear();
                       best = affinity.latency;
                     }
-                    instances.emplace_back(it->first);
+                    instances.emplace_back(it.first);
                   }
                 }
               }
@@ -1736,7 +1700,7 @@ namespace Legion {
                 searches[local] = bandwidth ? 0 : size_max;
             }
             else if (finder->second == best)
-              instances.emplace_back(it->first);
+              instances.emplace_back(it.first);
           }
         }
         else
@@ -1790,9 +1754,7 @@ namespace Legion {
             std::vector<RtEvent> done_events;
             std::vector<AddressSpaceID> children;
             collective_mapping->get_children(origin, local_space, children);
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
+            for (const AddressSpaceID& child : children)
             {
               const RtUserEvent done = Runtime::create_rt_user_event();
               CollectiveNearestInstancesRequest rez;
@@ -1809,7 +1771,7 @@ namespace Legion {
                 rez.serialize(done);
               }
               pack_global_ref();
-              rez.dispatch(*it);
+              rez.dispatch(child);
               done_events.emplace_back(done);
             }
             if (!local_results.empty())
@@ -1824,10 +1786,8 @@ namespace Legion {
                   rez.serialize(target);
                   rez.serialize(best);
                   rez.serialize<size_t>(local_results.size());
-                  for (std::vector<PhysicalManager*>::const_iterator it =
-                           local_results.begin();
-                       it != local_results.end(); it++)
-                    rez.serialize((*it)->did);
+                  for (PhysicalManager* manager : local_results)
+                    rez.serialize(manager->did);
                   rez.serialize<bool>(bandwidth);
                   rez.serialize(done);
                 }
@@ -1889,10 +1849,8 @@ namespace Legion {
               rez.serialize(target);
               rez.serialize(best);
               rez.serialize<size_t>(results.size());
-              for (std::vector<PhysicalManager*>::const_iterator it =
-                       results.begin();
-                   it != results.end(); it++)
-                rez.serialize((*it)->did);
+              for (PhysicalManager* manager : results)
+                rez.serialize(manager->did);
               rez.serialize<bool>(bandwidth);
               rez.serialize(done);
             }
@@ -1903,10 +1861,8 @@ namespace Legion {
         else
         {
           // This is the local case, so there's no atomicity required
-          for (std::vector<PhysicalManager*>::const_iterator it =
-                   results.begin();
-               it != results.end(); it++)
-            instances->emplace_back((*it)->did);
+          for (PhysicalManager* manager : results)
+            instances->emplace_back(manager->did);
           target->store(best);
         }
       }
@@ -2123,14 +2079,13 @@ namespace Legion {
         // Pack the instance points for these instances so we can check to
         // see if we already fetched them on the remote node
         std::set<DistributedID> to_send;
-        for (std::vector<CopySrcDstField>::const_iterator it = fields.begin();
-             it != fields.end(); it++)
+        for (const CopySrcDstField& field : fields)
         {
           bool found = false;
           for (unsigned idx = 0; idx < local_views.size(); idx++)
           {
             PhysicalManager* manager = local_views[idx]->get_manager();
-            if (manager->instance != it->inst)
+            if (manager->instance != field.inst)
               continue;
             if (to_send.insert(local_views[idx]->did).second)
               local_views[idx]->pack_global_ref();
@@ -2140,14 +2095,13 @@ namespace Legion {
           if (!found)
           {
             AutoLock v_lock(view_lock, false /*exclusive*/);
-            for (std::map<PhysicalManager*, IndividualView*>::const_iterator
-                     rit = remote_instances.begin();
-                 rit != remote_instances.end(); rit++)
+            for (const std::map<PhysicalManager*, IndividualView*>::value_type&
+                     remote_entry : remote_instances)
             {
-              if (rit->first->instance != it->inst)
+              if (remote_entry.first->instance != field.inst)
                 continue;
-              if (to_send.insert(rit->second->did).second)
-                rit->second->pack_global_ref();
+              if (to_send.insert(remote_entry.second->did).second)
+                remote_entry.second->pack_global_ref();
               found = true;
               break;
             }
@@ -2156,9 +2110,8 @@ namespace Legion {
         }
         legion_assert(!to_send.empty());
         rez.serialize<size_t>(to_send.size());
-        for (std::set<DistributedID>::const_iterator it = to_send.begin();
-             it != to_send.end(); it++)
-          rez.serialize(*it);
+        for (const DistributedID& distributed_id : to_send)
+          rez.serialize(distributed_id);
       }
     }
 
@@ -2213,9 +2166,7 @@ namespace Legion {
           else if (view_ready.exists() && !view_ready.has_triggered())
             view_ready.wait();
           view->record_remote_instances(views);
-          for (std::vector<IndividualView*>::const_iterator it = views.begin();
-               it != views.end(); it++)
-            (*it)->unpack_global_ref();
+          for (IndividualView* const view : views) view->unpack_global_ref();
         }
         else
         {
@@ -2753,9 +2704,8 @@ namespace Legion {
           rez.serialize(global_registered);
           rez.serialize(global_applied);
         }
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
-          rez.dispatch(*it);
+        for (const AddressSpaceID& address_space : children)
+          rez.dispatch(address_space);
       }
       legion_assert(local_views.size() == term_events.size());
       legion_assert(local_views.size() == ready_events.size());
@@ -2844,8 +2794,7 @@ namespace Legion {
       std::vector<ApEvent> ready_events;
       ApBarrier trace_barrier;
       ShardID trace_shard = 0;
-      for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-           it != children.end(); it++)
+      for (const AddressSpaceID& child : children)
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -2856,10 +2805,10 @@ namespace Legion {
           rez.serialize(fill_view->did);
           rez.serialize(precondition);
           rez.serialize(predicate_guard);
-          fill_expression->pack_expression(rez, *it);
+          fill_expression->pack_expression(rez, child);
           rez.serialize<bool>(fill_restricted);
           if (fill_restricted)
-            op->pack_remote_operation(rez, *it, applied_events);
+            op->pack_remote_operation(rez, child, applied_events);
           rez.serialize(index);
           rez.serialize(match_space);
           rez.serialize(op_context_index);
@@ -2891,7 +2840,7 @@ namespace Legion {
           }
           rez.serialize(origin);
         }
-        rez.dispatch(*it);
+        rez.dispatch(child);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -3340,8 +3289,7 @@ namespace Legion {
       ShardID broadcast_shard = 0;
       std::vector<ApEvent> read_events, done_events;
       const UniqueInst local_inst(local_view);
-      for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-           it != children.end(); it++)
+      for (const AddressSpaceID& child : children)
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -3354,10 +3302,10 @@ namespace Legion {
           rez.serialize(local_manager->get_unique_event());
           rez.serialize(local_pre);
           rez.serialize(predicate_guard);
-          copy_expression->pack_expression(rez, *it);
+          copy_expression->pack_expression(rez, child);
           rez.serialize<bool>(copy_restricted);
           if (copy_restricted)
-            op->pack_remote_operation(rez, *it, applied_events);
+            op->pack_remote_operation(rez, child, applied_events);
           rez.serialize(index);
           rez.serialize(match_space);
           rez.serialize(op_ctx_index);
@@ -3396,7 +3344,7 @@ namespace Legion {
           rez.serialize(origin);
           rez.serialize(collective_kind);
         }
-        rez.dispatch(*it);
+        rez.dispatch(child);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -3482,44 +3430,41 @@ namespace Legion {
             local_views.size());
         local_fields[src_index] = src_fields;
         // Forward order copies <source,destination>
-        for (std::vector<std::pair<unsigned, unsigned> >::const_iterator it =
-                 spanning_copies.begin();
-             it != spanning_copies.end(); it++)
+        for (const std::pair<unsigned, unsigned>& it : spanning_copies)
         {
-          legion_assert(it->first != it->second);
-          legion_assert(it->second != src_index);
+          legion_assert(it.first != it.second);
+          legion_assert(it.second != src_index);
           legion_assert(
-              has_instance_events || !local_events[it->second].exists());
-          legion_assert(!local_fields[it->first].empty());
-          IndividualView* local_view = local_views[it->first];
+              has_instance_events || !local_events[it.second].exists());
+          legion_assert(!local_fields[it.first].empty());
+          IndividualView* local_view = local_views[it.first];
           PhysicalManager* local_manager = local_view->get_manager();
-          IndividualView* dst_view = local_views[it->second];
+          IndividualView* dst_view = local_views[it.second];
           PhysicalManager* dst_manager = dst_view->get_manager();
-          dst_manager->compute_copy_offsets(
-              copy_mask, local_fields[it->second]);
+          dst_manager->compute_copy_offsets(copy_mask, local_fields[it.second]);
           const PhysicalTraceInfo& inst_info =
               !first_local_analysis ? trace_info :
-                                      local_views[it->second]
+                                      local_views[it.second]
                                           ->find_collective_analysis(
                                               op_ctx_index, index, match_space)
                                           ->get_trace_info();
           ApEvent dst_pre =
               has_instance_events ?
-                  local_events[it->second] :
+                  local_events[it.second] :
                   dst_view->find_copy_preconditions(
                       false /*reading*/, 0 /*redop*/, copy_mask,
                       copy_expression, op_id, index, applied_events, inst_info);
           // Merge in the source precondition
-          if (local_events[it->first].exists())
+          if (local_events[it.first].exists())
           {
             if (dst_pre.exists())
               dst_pre = Runtime::merge_events(
-                  &inst_info, dst_pre, local_events[it->first]);
+                  &inst_info, dst_pre, local_events[it.first]);
             else
-              dst_pre = local_events[it->first];
+              dst_pre = local_events[it.first];
           }
           const ApEvent dst_post = copy_expression->issue_copy(
-              op, inst_info, local_fields[it->second], local_fields[it->first],
+              op, inst_info, local_fields[it.second], local_fields[it.first],
               no_reservations, local_manager->tree_id, dst_manager->tree_id,
               dst_pre, predicate_guard, local_manager->get_unique_event(),
               dst_manager->get_unique_event(), collective_kind,
@@ -3529,8 +3474,8 @@ namespace Legion {
             // Keep the reads in order to to prevent contention on
             // egress bandwidth since these will mostly be on switched
             // networks like the front-side bus or NVLink
-            local_events[it->first] = dst_post;
-            local_events[it->second] = dst_post;
+            local_events[it.first] = dst_post;
+            local_events[it.second] = dst_post;
           }
           if (inst_info.recording)
           {
@@ -3748,17 +3693,18 @@ namespace Legion {
         // and then traverse them in order
         std::vector<std::pair<unsigned, unsigned> > child_depths;
         unsigned child = 0;
-        for (std::map<Memory, unsigned>::const_iterator it =
-                 first_in_memory.begin();
-             it != first_in_memory.end(); it++, child++)
+        for (const std::pair<const Memory, unsigned>& it : first_in_memory)
         {
           if (previous[child] != next.first)
+          {
+            child++;
             continue;
-          legion_assert(it->second != std::numeric_limits<unsigned>::max());
+          }
+          legion_assert(it.second != std::numeric_limits<unsigned>::max());
           child_depths.emplace_back(
-              std::make_pair(max_subtree_depth[child], it->second));
+              std::make_pair(max_subtree_depth[child], it.second));
           // Add the child to the queue to traverse next
-          bfs_queue.emplace_back(std::make_pair(child, it->second));
+          bfs_queue.emplace_back(std::make_pair(child++, it.second));
         }
         if (!child_depths.empty())
         {
@@ -4180,8 +4126,7 @@ namespace Legion {
             local_precondition, precondition, trace_info, applied_events);
         precondition = local_precondition;
       }
-      for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-           it != children.end(); it++)
+      for (const AddressSpaceID& child : children)
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -4195,10 +4140,10 @@ namespace Legion {
           rez.serialize(src_unique_event);
           rez.serialize(precondition);
           rez.serialize(predicate_guard);
-          copy_expression->pack_expression(rez, *it);
+          copy_expression->pack_expression(rez, child);
           rez.serialize<bool>(copy_restricted);
           if (copy_restricted)
-            op->pack_remote_operation(rez, *it, applied_events);
+            op->pack_remote_operation(rez, child, applied_events);
           rez.serialize(index);
           rez.serialize(match_space);
           rez.serialize(op_ctx_index);
@@ -4220,7 +4165,7 @@ namespace Legion {
           }
           rez.serialize(origin);
         }
-        rez.dispatch(*it);
+        rez.dispatch(child);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -4274,9 +4219,8 @@ namespace Legion {
         }
         PhysicalManager* dst_manager = dst_view->get_manager();
         dst_manager->compute_copy_offsets(copy_mask, local_fields);
-        for (std::vector<CopySrcDstField>::iterator it = local_fields.begin();
-             it != local_fields.end(); it++)
-          it->set_redop(src_redop, (get_redop() > 0), true /*exclusive*/);
+        for (CopySrcDstField& field : local_fields)
+          field.set_redop(src_redop, (get_redop() > 0), true /*exclusive*/);
         dst_view->find_field_reservations(copy_mask, local_reservations);
         const ApEvent reduce_done = copy_expression->issue_copy(
             op, inst_info, local_fields, src_fields, local_reservations,
@@ -4591,8 +4535,7 @@ namespace Legion {
           const size_t arrivals = collective_mapping->size();
           owner_shard = trace_info.record_barrier_creation(all_bar, arrivals);
         }
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
+        for (const AddressSpaceID& child : children)
         {
           const RtUserEvent recorded = Runtime::create_rt_user_event();
           const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -4605,7 +4548,7 @@ namespace Legion {
             rez.serialize(local_manager->get_unique_event());
             rez.serialize(broadcast_pre);
             rez.serialize(predicate_guard);
-            copy_expression->pack_expression(rez, *it);
+            copy_expression->pack_expression(rez, child);
             rez.serialize<bool>(copy_restricted);
             if (copy_restricted)
               op->pack_remote_operation(rez, origin, applied_events);
@@ -4647,7 +4590,7 @@ namespace Legion {
             rez.serialize(origin);
             rez.serialize(COLLECTIVE_HOURGLASS_ALLREDUCE);
           }
-          rez.dispatch(*it);
+          rez.dispatch(child);
           recorded_events.insert(recorded);
           applied_events.insert(applied);
         }
@@ -4804,8 +4747,7 @@ namespace Legion {
       std::vector<ApEvent> done_events;
       std::vector<AddressSpaceID> children;
       collective_mapping->get_children(origin, local_space, children);
-      for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-           it != children.end(); it++)
+      for (const AddressSpaceID& child : children)
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -4816,10 +4758,10 @@ namespace Legion {
           rez.serialize(source->did);
           rez.serialize(precondition);
           rez.serialize(predicate_guard);
-          copy_expression->pack_expression(rez, *it);
+          copy_expression->pack_expression(rez, child);
           rez.serialize<bool>(copy_restricted);
           if (copy_restricted)
-            op->pack_remote_operation(rez, *it, applied_events);
+            op->pack_remote_operation(rez, child, applied_events);
           rez.serialize(index);
           rez.serialize(match_space);
           rez.serialize(op_ctx_index);
@@ -4848,7 +4790,7 @@ namespace Legion {
           rez.serialize(origin);
           rez.serialize(allreduce_tag);
         }
-        rez.dispatch(*it);
+        rez.dispatch(child);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }

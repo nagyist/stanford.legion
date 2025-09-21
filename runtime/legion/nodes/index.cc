@@ -848,15 +848,13 @@ namespace Legion {
       else
       {
         AutoLock n_lock(node_lock, false /*exclusive*/);
-        for (std::map<LegionColor, IndexPartNode*>::const_iterator it =
-                 color_map.begin();
-             it != color_map.end(); it++)
+        for (const std::pair<const LegionColor, IndexPartNode*>& it : color_map)
         {
           // Can be nullptr in some cases of parallel partitioning
-          if ((it->second != nullptr) &&
-              (!it->second->initialized.exists() ||
-               it->second->initialized.has_triggered()))
-            colors.emplace_back(it->first);
+          if ((it.second != nullptr) &&
+              (!it.second->initialized.exists() ||
+               it.second->initialized.has_triggered()))
+            colors.emplace_back(it.first);
         }
         return next_uncollected_color;
       }
@@ -1009,9 +1007,8 @@ namespace Legion {
         // Keep broadcasting this out to all the children
         std::vector<AddressSpaceID> children;
         collective_mapping->get_children(owner_space, local_space, children);
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
-          runtime->send_index_space_destruction(handle, *it, applied);
+        for (const AddressSpaceID& child : children)
+          runtime->send_index_space_destruction(handle, child, applied);
       }
       return remove_base_valid_ref(APPLICATION_REF);
     }
@@ -1339,9 +1336,7 @@ namespace Legion {
         RezCheck z(rez);
         rez.serialize(target);
         rez.serialize<size_t>(results.size());
-        for (std::vector<LegionColor>::const_iterator it = results.begin();
-             it != results.end(); it++)
-          rez.serialize(*it);
+        for (const LegionColor& result : results) rez.serialize(result);
         rez.serialize(bound_target);
         rez.serialize(bound);
         rez.serialize(ready);
@@ -1783,11 +1778,9 @@ namespace Legion {
       // The reason we would be here is if we were leaked
       if (!partition_trackers.empty())
       {
-        for (std::list<PartitionTracker*>::const_iterator it =
-                 partition_trackers.begin();
-             it != partition_trackers.end(); it++)
-          if ((*it)->remove_partition_reference())
-            delete (*it);
+        for (PartitionTracker* tracker : partition_trackers)
+          if (tracker->remove_partition_reference())
+            delete tracker;
         partition_trackers.clear();
       }
       // Lastly we can unregister ourselves with the context
@@ -1820,19 +1813,15 @@ namespace Legion {
       // Remove valid references on all owner children and any trackers
       // We should not need a lock at this point since nobody else should
       // be modifying the color map
-      for (std::map<LegionColor, IndexSpaceNode*>::const_iterator it =
-               color_map.begin();
-           it != color_map.end(); it++)
+      for (const std::pair<const LegionColor, IndexSpaceNode*>& it : color_map)
         // Remove the nested valid reference on this index space node
-        if (it->second->remove_nested_valid_ref(did))
+        if (it.second->remove_nested_valid_ref(did))
           std::abort();  // still holding resource ref so should never be hit
       if (!partition_trackers.empty())
       {
-        for (std::list<PartitionTracker*>::const_iterator it =
-                 partition_trackers.begin();
-             it != partition_trackers.end(); it++)
-          if ((*it)->remove_partition_reference())
-            delete (*it);
+        for (PartitionTracker* tracker : partition_trackers)
+          if (tracker->remove_partition_reference())
+            delete tracker;
         partition_trackers.clear();
       }
     }
@@ -1842,11 +1831,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       parent->remove_child(color);
-      for (std::map<LegionColor, IndexSpaceNode*>::const_iterator it =
-               color_map.begin();
-           it != color_map.end(); it++)
-        if (it->second->remove_nested_gc_ref(did))
-          delete it->second;
+      for (const std::pair<const LegionColor, IndexSpaceNode*>& it : color_map)
+        if (it.second->remove_nested_gc_ref(did))
+          delete it.second;
       color_map.clear();
     }
 
@@ -2218,10 +2205,7 @@ namespace Legion {
               rez.serialize(expr_id);
               child_mapping->pack(rez);
             }
-            for (std::vector<AddressSpaceID>::const_iterator it =
-                     children.begin();
-                 it != children.end(); it++)
-              rez.dispatch(*it);
+            for (const AddressSpaceID& child : children) rez.dispatch(child);
           }
           LegionSpy::log_index_subspace(
               handle.get_id(), is.get_id(), runtime->address_space,
@@ -2282,9 +2266,7 @@ namespace Legion {
           rez.serialize(expr_id);
           mapping->pack(rez);
         }
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
-          rez.dispatch(*it);
+        for (const AddressSpaceID& child : children) rez.dispatch(child);
       }
     }
 
@@ -2357,10 +2339,9 @@ namespace Legion {
         }
         partition_trackers.emplace_back(tracker);
       }
-      for (std::vector<PartitionTracker*>::const_iterator it = to_prune.begin();
-           it != to_prune.end(); it++)
-        if ((*it)->remove_reference())
-          delete (*it);
+      for (PartitionTracker* tracker : to_prune)
+        if (tracker->remove_reference())
+          delete tracker;
     }
 
     //--------------------------------------------------------------------------
@@ -2510,13 +2491,11 @@ namespace Legion {
               {
                 IndexSpaceExpression* difference = nullptr;
                 std::set<IndexSpaceExpression*> previous;
-                for (std::vector<LegionColor>::const_iterator it =
-                         interfering.begin();
-                     it != interfering.end(); it++)
+                for (const LegionColor& it : interfering)
                 {
-                  if ((*itr) == (*it))
+                  if ((*itr) == it)
                   {
-                    IndexSpaceNode* child = get_child(*it);
+                    IndexSpaceNode* child = get_child(it);
                     if (previous.empty())
                       difference = child;
                     else
@@ -2525,8 +2504,8 @@ namespace Legion {
                   }
                   else
                   {
-                    IndexSpaceNode* other = get_child(*it);
-                    if ((*itr) < (*it))
+                    IndexSpaceNode* other = get_child(it);
+                    if ((*itr) < it)
                     {
                       IndexSpaceExpression* intersection =
                           runtime->intersect_index_spaces(difference, other);
@@ -2605,13 +2584,11 @@ namespace Legion {
               {
                 IndexSpaceExpression* difference = nullptr;
                 std::set<IndexSpaceExpression*> previous;
-                for (std::vector<LegionColor>::const_iterator it =
-                         interfering.begin();
-                     it != interfering.end(); it++)
+                for (const LegionColor& it : interfering)
                 {
-                  if ((*itr) == (*it))
+                  if ((*itr) == it)
                   {
-                    IndexSpaceNode* child = get_child(*it);
+                    IndexSpaceNode* child = get_child(it);
                     if (previous.empty())
                       difference = child;
                     else
@@ -2620,13 +2597,13 @@ namespace Legion {
                   }
                   else
                   {
-                    IndexSpaceNode* other = get_child(*it);
-                    if ((*itr) < (*it))
+                    IndexSpaceNode* other = get_child(it);
+                    if ((*itr) < it)
                     {
                       IndexSpaceExpression* intersection =
                           runtime->intersect_index_spaces(difference, other);
                       if (!intersection->is_empty())
-                        intersection_volumes[std::make_pair(*itr, *it)] =
+                        intersection_volumes[std::make_pair(*itr, it)] =
                             intersection->get_volume();
                     }
                     else
@@ -2685,10 +2662,9 @@ namespace Legion {
       AutoLock n_lock(node_lock);
       if (!total_children_volumes.empty())
       {
-        for (std::map<LegionColor, uint64_t>::const_iterator it =
-                 children_volumes.begin();
-             it != children_volumes.end(); it++)
-          total_children_volumes.insert(*it);
+        for (const std::pair<const LegionColor, uint64_t>& it :
+             children_volumes)
+          total_children_volumes.insert(it);
       }
       else
         total_children_volumes.swap(children_volumes);
@@ -2696,10 +2672,8 @@ namespace Legion {
       {
         if (!total_intersection_volumes.empty())
         {
-          for (std::map<std::pair<LegionColor, LegionColor>, uint64_t>::
-                   const_iterator it = intersection_volumes->begin();
-               it != intersection_volumes->end(); it++)
-            total_intersection_volumes.insert(*it);
+          total_intersection_volumes.merge(*intersection_volumes);
+          legion_assert(intersection_volumes->empty());
         }
         else
           total_intersection_volumes.swap(*intersection_volumes);
@@ -2713,15 +2687,14 @@ namespace Legion {
           // We can now compute the final sums
           legion_assert(total_children_volume == 0);
           legion_assert(total_intersection_volume == 0);
-          for (std::map<LegionColor, uint64_t>::const_iterator it =
-                   total_children_volumes.begin();
-               it != total_children_volumes.end(); it++)
-            total_children_volume += it->second;
+          for (const std::pair<const LegionColor, uint64_t>& it :
+               total_children_volumes)
+            total_children_volume += it.second;
           total_children_volumes.clear();
-          for (std::map<std::pair<LegionColor, LegionColor>, uint64_t>::
-                   const_iterator it = total_intersection_volumes.begin();
-               it != total_intersection_volumes.end(); it++)
-            total_intersection_volume += it->second;
+          for (const std::pair<
+                   const std::pair<LegionColor, LegionColor>, uint64_t>& it :
+               total_intersection_volumes)
+            total_intersection_volume += it.second;
           total_intersection_volumes.clear();
           return finalize_disjoint_complete();
         }
@@ -2736,21 +2709,20 @@ namespace Legion {
             rez.serialize(handle);
             rez.serialize<int>(-1);  // up and not compressed
             rez.serialize<size_t>(total_children_volumes.size());
-            for (std::map<LegionColor, uint64_t>::const_iterator it =
-                     total_children_volumes.begin();
-                 it != total_children_volumes.end(); it++)
+            for (const std::pair<const LegionColor, uint64_t>& it :
+                 total_children_volumes)
             {
-              rez.serialize(it->first);
-              rez.serialize(it->second);
+              rez.serialize(it.first);
+              rez.serialize(it.second);
             }
             rez.serialize<size_t>(total_intersection_volumes.size());
-            for (std::map<std::pair<LegionColor, LegionColor>, uint64_t>::
-                     const_iterator it = total_intersection_volumes.begin();
-                 it != total_intersection_volumes.end(); it++)
+            for (const std::pair<
+                     const std::pair<LegionColor, LegionColor>, uint64_t>& it :
+                 total_intersection_volumes)
             {
-              rez.serialize(it->first.first);
-              rez.serialize(it->first.second);
-              rez.serialize(it->second);
+              rez.serialize(it.first.first);
+              rez.serialize(it.first.second);
+              rez.serialize(it.second);
             }
           }
           rez.dispatch(target, initialized);
@@ -2821,9 +2793,7 @@ namespace Legion {
           rez.serialize<bool>(disjoint.load());
           rez.serialize<bool>(complete.load());
         }
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
-          rez.dispatch(*it);
+        for (const AddressSpaceID& child : children) rez.dispatch(child);
       }
       if (has_remote_instances())
       {
@@ -3570,9 +3540,7 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(handle);
         }
-        for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-             it != children.end(); it++)
-          rez.dispatch(*it);
+        for (const AddressSpaceID& child : children) rez.dispatch(child);
       }
       // Compute our local shard rectangles
       if (find_local_shard_rects())
@@ -3604,11 +3572,9 @@ namespace Legion {
           legion_assert(!children.empty());
 #ifdef LEGION_DEBUG
           bool found = false;
-          for (std::vector<AddressSpaceID>::const_iterator it =
-                   children.begin();
-               it != children.end(); it++)
+          for (const AddressSpaceID& child : children)
           {
-            if (*it != source)
+            if (child != source)
               continue;
             found = true;
             break;
@@ -3622,11 +3588,9 @@ namespace Legion {
             RezCheck z(rez);
             rez.serialize(handle);
           }
-          for (std::vector<AddressSpaceID>::const_iterator it =
-                   children.begin();
-               it != children.end(); it++)
-            if ((*it) != source)
-              rez.dispatch(*it);
+          for (const AddressSpaceID& child : children)
+            if (child != source)
+              rez.dispatch(child);
           initialize_shard_rects();
         }
 #ifdef LEGION_DEBUG
@@ -3635,11 +3599,9 @@ namespace Legion {
           collective_mapping->get_children(owner_space, local_space, children);
           legion_assert(!children.empty());
           bool found = false;
-          for (std::vector<AddressSpaceID>::const_iterator it =
-                   children.begin();
-               it != children.end(); it++)
+          for (const AddressSpaceID& child : children)
           {
-            if (*it != source)
+            if (child != source)
               continue;
             found = true;
             break;
@@ -3673,10 +3635,7 @@ namespace Legion {
             rez.serialize<bool>(false);  // going down
             pack_shard_rects(rez, false /*clear*/);
           }
-          for (std::vector<AddressSpaceID>::const_iterator it =
-                   children.begin();
-               it != children.end(); it++)
-            rez.dispatch(*it);
+          for (const AddressSpaceID& child : children) rez.dispatch(child);
         }
         // Only trigger this after we've packed the shard rects since the
         // local node is going to mutate it with its own values after this
@@ -3711,10 +3670,7 @@ namespace Legion {
           // Only trigger this after we've packed the shard rects since the
           // local node is going to mutate it with its own values after this
           Runtime::trigger_event(shard_rects_ready);
-          for (std::vector<AddressSpaceID>::const_iterator it =
-                   children.begin();
-               it != children.end(); it++)
-            rez.dispatch(*it);
+          for (const AddressSpaceID& child : children) rez.dispatch(child);
           return remove_base_gc_ref(RUNTIME_REF);
         }
         else
@@ -3749,10 +3705,9 @@ namespace Legion {
       legion_assert(remaining.load() == 0);
       legion_assert(!targets.empty());
       remaining.store(targets.size());
-      for (std::set<AddressSpaceID>::const_iterator it = targets.begin();
-           it != targets.end(); it++)
+      for (const AddressSpaceID& target : targets)
       {
-        if ((*it) == runtime->address_space)
+        if (target == runtime->address_space)
         {
           legion_assert(remaining.load() > 0);
           if (remaining.fetch_sub(1) == 1)
@@ -3763,10 +3718,10 @@ namespace Legion {
         {
           RezCheck z(rez);
           rez.serialize(handle);
-          expr->pack_expression(rez, *it);
+          expr->pack_expression(rez, target);
           rez.serialize(this);
         }
-        rez.dispatch(*it);
+        rez.dispatch(target);
       }
       RtEvent wait_on;
       {
@@ -3863,9 +3818,7 @@ namespace Legion {
         RezCheck z2(rez);
         rez.serialize(tracker);
         rez.serialize<size_t>(local_colors.size());
-        for (std::vector<LegionColor>::const_iterator it = local_colors.begin();
-             it != local_colors.end(); it++)
-          rez.serialize(*it);
+        for (const LegionColor& color : local_colors) rez.serialize(color);
       }
       rez.dispatch(source);
     }

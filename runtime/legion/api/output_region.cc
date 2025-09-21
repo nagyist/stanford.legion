@@ -172,11 +172,10 @@ namespace Legion {
         region->column_source->get_field_set(
             ref.get_valid_fields(), context, fields);
         PhysicalManager* manager = ref.get_physical_manager();
-        for (std::vector<FieldID>::const_iterator it = fields.begin();
-             it != fields.end(); it++)
+        for (const FieldID& field : fields)
         {
           std::vector<FieldID>::const_iterator finder = std::find(
-              req.instance_fields.begin(), req.instance_fields.end(), *it);
+              req.instance_fields.begin(), req.instance_fields.end(), field);
           legion_assert(finder != req.instance_fields.end());
           const unsigned offset =
               std::distance(req.instance_fields.begin(), finder);
@@ -196,10 +195,9 @@ namespace Legion {
         delete region;
       if (context->remove_base_gc_ref(OUTPUT_REGION_REF))
         delete context;
-      for (std::vector<PhysicalManager*>::const_iterator it = managers.begin();
-           it != managers.end(); it++)
-        if ((*it)->remove_base_gc_ref(OUTPUT_REGION_REF))
-          delete (*it);
+      for (PhysicalManager* const & manager : managers)
+        if (manager->remove_base_gc_ref(OUTPUT_REGION_REF))
+          delete manager;
     }
 
     //--------------------------------------------------------------------------
@@ -282,21 +280,17 @@ namespace Legion {
           static_cast<DimensionKind>(static_cast<int32_t>(LEGION_DIM_X) + ndim);
       ordering.resize(ndim);
       uint32_t idx = 0;
-      for (std::vector<DimensionKind>::const_iterator it =
-               cons->ordering_constraint.ordering.begin();
-           it != cons->ordering_constraint.ordering.end(); ++it)
+      for (const DimensionKind& kind : cons->ordering_constraint.ordering)
       {
-        if (*it < max_dim)
-          ordering[idx++] = *it;
+        if (kind < max_dim)
+          ordering[idx++] = kind;
       }
 
-      for (std::vector<AlignmentConstraint>::const_iterator it =
-               cons->alignment_constraints.begin();
-           it != cons->alignment_constraints.end(); ++it)
+      for (const AlignmentConstraint& constraint : cons->alignment_constraints)
       {
-        if (it->fid == field_id && it->eqk == LEGION_EQ_EK)
+        if ((constraint.fid == field_id) && (constraint.eqk == LEGION_EQ_EK))
         {
-          alignment = it->alignment;
+          alignment = constraint.alignment;
           return;
         }
       }
@@ -362,11 +356,10 @@ namespace Legion {
           copied.alignment_constraints = manager_cons->alignment_constraints;
           std::vector<DimensionKind> ordering;
           int32_t ndim = NT_TemplateHelper::get_dim(req.type_tag);
-          for (std::vector<DimensionKind>::const_iterator it =
-                   manager_cons->ordering_constraint.ordering.begin();
-               it != manager_cons->ordering_constraint.ordering.end(); ++it)
+          for (const DimensionKind& kind :
+               manager_cons->ordering_constraint.ordering)
           {
-            int32_t dim = *it;
+            int32_t dim = kind;
             if (((dim - LEGION_DIM_X) < ndim) || (dim == LEGION_DIM_F))
               ordering.emplace_back(static_cast<DimensionKind>(dim));
           }
@@ -494,30 +487,28 @@ namespace Legion {
     {
       // Transpose the returned instances
       std::map<PhysicalInstance, std::vector<FieldID> > instance_fields;
-      for (std::map<FieldID, PhysicalInstance>::const_iterator it =
-               returned_instances.begin();
-           it != returned_instances.end(); it++)
-        instance_fields[it->second].emplace_back(it->first);
+      for (const std::pair<const FieldID, PhysicalInstance>& inst :
+           returned_instances)
+        instance_fields[inst.second].emplace_back(inst.first);
 
-      for (std::map<PhysicalInstance, std::vector<FieldID> >::const_iterator
-               pit = instance_fields.begin();
-           pit != instance_fields.end(); pit++)
+      for (const std::pair<const PhysicalInstance, std::vector<FieldID> >& pit :
+           instance_fields)
       {
         const Realm::InstanceLayoutGeneric* current =
-            pit->first.exists() ? pit->first.get_layout() : nullptr;
+            pit.first.exists() ? pit.first.get_layout() : nullptr;
         if (grouped_fields)
         {
           // Redistricting to just one layout for all the fields
-          std::vector<size_t> sizes(pit->second.size());
-          for (unsigned idx = 0; idx < pit->second.size(); idx++)
-            sizes[idx] = get_field_size(pit->second[idx]);
+          std::vector<size_t> sizes(pit.second.size());
+          for (unsigned idx = 0; idx < pit.second.size(); idx++)
+            sizes[idx] = get_field_size(pit.second[idx]);
 
-          PhysicalManager* manager = get_manager(pit->second.back());
+          PhysicalManager* manager = get_manager(pit.second.back());
           const LayoutConstraints* constraints = manager->layout->constraints;
 
           Realm::InstanceLayoutGeneric* layout =
               region->row_source->create_layout(
-                  *constraints, pit->second, sizes, false /*compact*/, nullptr,
+                  *constraints, pit.second, sizes, false /*compact*/, nullptr,
                   nullptr, nullptr,
                   (current != nullptr) ? current->alignment_reqd : 1);
           legion_assert(
@@ -535,7 +526,7 @@ namespace Legion {
             runtime->profiler->add_inst_request(
                 requests, context->get_unique_id(), unique_event);
           }
-          PhysicalInstance instance = pit->first;
+          PhysicalInstance instance = pit.first;
           const size_t footprint = layout->bytes_used;
           if (instance.exists())
           {
@@ -559,16 +550,15 @@ namespace Legion {
           }
           delete layout;
         }
-        else if (pit->first.exists())
+        else if (pit.first.exists())
         {
           // Use redistricting to make N instances for each manager
-          std::vector<Realm::InstanceLayoutGeneric*> layouts(
-              pit->second.size());
-          std::vector<LgEvent> unique_events(pit->second.size());
-          std::vector<PhysicalManager*> managers(pit->second.size());
+          std::vector<Realm::InstanceLayoutGeneric*> layouts(pit.second.size());
+          std::vector<LgEvent> unique_events(pit.second.size());
+          std::vector<PhysicalManager*> managers(pit.second.size());
           for (unsigned idx = 0; idx < layouts.size(); idx++)
           {
-            const FieldID field_id = pit->second[idx];
+            const FieldID field_id = pit.second[idx];
             PhysicalManager* manager = get_manager(field_id);
             managers[idx] = manager;
             // Create a layout to use for redistricting
@@ -596,7 +586,7 @@ namespace Legion {
           }
           std::vector<PhysicalInstance> instances(layouts.size());
           const RtEvent ready = context->escape_task_local_instance(
-              pit->first, safe_effects, instances.size(), &instances.front(),
+              pit.first, safe_effects, instances.size(), &instances.front(),
               &unique_events.front(),
               (const Realm::InstanceLayoutGeneric**)&layouts.front());
           for (unsigned idx = 0; idx < instances.size(); idx++)
@@ -610,9 +600,9 @@ namespace Legion {
         else
         {
           // Make an empty instance for each manager
-          for (unsigned idx = 0; idx < pit->second.size(); idx++)
+          for (unsigned idx = 0; idx < pit.second.size(); idx++)
           {
-            const FieldID field_id = pit->second[idx];
+            const FieldID field_id = pit.second[idx];
             PhysicalManager* manager = get_manager(field_id);
             // Create a layout to use for redistricting
             const LayoutConstraints* constraints = manager->layout->constraints;
@@ -649,13 +639,11 @@ namespace Legion {
     bool OutputRegionImpl::is_complete(FieldID& unbound_field) const
     //--------------------------------------------------------------------------
     {
-      for (std::vector<FieldID>::const_iterator it =
-               req.instance_fields.begin();
-           it != req.instance_fields.end(); ++it)
+      for (const FieldID& fid : req.instance_fields)
       {
-        if (returned_instances.find(*it) == returned_instances.end())
+        if (returned_instances.find(fid) == returned_instances.end())
         {
-          unbound_field = *it;
+          unbound_field = fid;
           return false;
         }
       }

@@ -66,26 +66,19 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       reduction_instance = nullptr;  // we don't own this so clear it
-      for (std::map<Color, ConcurrentGroup>::iterator it =
-               concurrent_groups.begin();
-           it != concurrent_groups.end(); it++)
-        if (it->second.task_barrier.exists())
-          it->second.task_barrier.destroy_barrier();
+      for (std::pair<const Color, ConcurrentGroup>& group : concurrent_groups)
+        if (group.second.task_barrier.exists())
+          group.second.task_barrier.destroy_barrier();
       MultiTask::deactivate(false /*free*/);
       if (!origin_mapped_slices.empty())
       {
-        for (std::vector<SliceTask*>::const_iterator it =
-                 origin_mapped_slices.begin();
-             it != origin_mapped_slices.end(); it++)
-          (*it)->deactivate();
+        for (SliceTask* const slice : origin_mapped_slices) slice->deactivate();
         origin_mapped_slices.clear();
       }
       if (!reduction_instances.empty())
       {
-        for (std::vector<FutureInstance*>::const_iterator it =
-                 reduction_instances.begin();
-             it != reduction_instances.end(); it++)
-          delete (*it);
+        for (FutureInstance* const instance : reduction_instances)
+          delete instance;
         reduction_instances.clear();
       }
       serdez_redop_targets.clear();
@@ -144,12 +137,12 @@ namespace Legion {
           {
             // Merge the new extents in
             OutputExtentMap& extents = output_extents[idx];
-            for (OutputExtentMap::const_iterator it = extents.begin();
-                 it != extents.end(); it++)
+            for (const std::pair<const DomainPoint, DomainPoint>& extent_pair :
+                 extents)
             {
-              if (target.find(it->first) != target.end())
+              if (target.find(extent_pair.first) != target.end())
               {
-                const DomainPoint& color = it->first;
+                const DomainPoint& color = extent_pair.first;
                 const OutputRequirement& req = output_regions[idx];
                 std::stringstream ss;
                 ss << "(" << color[0];
@@ -167,7 +160,7 @@ namespace Legion {
                       << ss.str() << ".";
                 error.raise();
               }
-              target.insert(*it);
+              target.insert(extent_pair);
             }
           }
           else
@@ -226,11 +219,11 @@ namespace Legion {
       if (runtime->safe_model)
       {
         // Check alignments between tiles
-        for (OutputExtentMap::const_iterator it = output_extents.begin();
-             it != output_extents.end(); ++it)
+        for (const std::pair<const DomainPoint, DomainPoint>& extent_pair :
+             output_extents)
         {
-          const DomainPoint& color = it->first;
-          const DomainPoint& extent = it->second;
+          const DomainPoint& color = extent_pair.first;
+          const DomainPoint& extent = extent_pair.second;
 
           for (int32_t dim = 0; dim < ndim; ++dim)
           {
@@ -241,18 +234,25 @@ namespace Legion {
             legion_assert(
                 output_extents.find(neighbor) != output_extents.end());
 
-            const DomainPoint& neighbor_extent = it->second;
-            if (extent[dim] != neighbor_extent[dim])
+            const DomainPoint& neighbor_extent =
+                output_extents.find(neighbor)->second;
+            // For all dimensions that are not the one we just traversed
+            // then the colors should be the same
+            for (int32_t dim2 = 0; dim2 < ndim; dim2++)
             {
-              Error error(LEGION_INTERFACE_EXCEPTION);
-              error << "Point task " << color
-                    << " returned an output of extent " << extent[dim]
-                    << " for dimension " << dim
-                    << ", but an adjacent point task returned an output of "
-                       "extent "
-                    << neighbor_extent[dim] << ". Please make sure the outputs "
-                    << "from point tasks are aligned.";
-              error.raise();
+              if (dim == dim2)
+                continue;
+              if (extent[dim2] != neighbor_extent[dim2])
+              {
+                Error error(LEGION_INTERFACE_EXCEPTION);
+                error << "Point task " << color
+                      << " returned an output of extent " << extent[dim2]
+                      << " for dimension " << dim2 << ", but point task "
+                      << neighbor << " returned an output of extent "
+                      << neighbor_extent[dim2] << ". Please make sure "
+                      << "the outputs from point tasks are aligned.";
+                error.raise();
+              }
             }
           }
         }
@@ -264,11 +264,11 @@ namespace Legion {
         all_extents[dim].resize(color_extents[dim] + 1, 0);
 
       // Populate the extent vectors
-      for (OutputExtentMap::const_iterator it = output_extents.begin();
-           it != output_extents.end(); ++it)
+      for (const std::pair<const DomainPoint, DomainPoint>& extent_pair :
+           output_extents)
       {
-        const DomainPoint& color = it->first;
-        const DomainPoint& extent = it->second;
+        const DomainPoint& color = extent_pair.first;
+        const DomainPoint& extent = extent_pair.second;
         for (int32_t dim = 0; dim < ndim; ++dim)
         {
           coord_t c = color[dim];
@@ -295,10 +295,10 @@ namespace Legion {
       }
 
       // Initialize the subspaces using the compute sub-ranges
-      for (OutputExtentMap::const_iterator it = output_extents.begin();
-           it != output_extents.end(); ++it)
+      for (const std::pair<const DomainPoint, DomainPoint>& extent_pair :
+           output_extents)
       {
-        const DomainPoint& color = it->first;
+        const DomainPoint& color = extent_pair.first;
 
         // If this subspace isn't local to us, we are not allowed to
         // set its range.
@@ -495,11 +495,9 @@ namespace Legion {
           LegionSpy::log_index_task(
               parent_ctx->get_unique_id(), unique_op_id, task_id,
               get_task_name());
-        for (std::vector<PhaseBarrier>::const_iterator it =
-                 launcher.wait_barriers.begin();
-             it != launcher.wait_barriers.end(); it++)
+        for (const PhaseBarrier& barrier : launcher.wait_barriers)
         {
-          ApEvent e = Runtime::get_previous_phase(it->phase_barrier);
+          ApEvent e = Runtime::get_previous_phase(barrier.phase_barrier);
           LegionSpy::log_phase_barrier_wait(unique_op_id, e);
         }
       }
@@ -651,11 +649,9 @@ namespace Legion {
         LegionSpy::log_index_task(
             parent_ctx->get_unique_id(), unique_op_id, task_id,
             get_task_name());
-        for (std::vector<PhaseBarrier>::const_iterator it =
-                 launcher.wait_barriers.begin();
-             it != launcher.wait_barriers.end(); it++)
+        for (const PhaseBarrier& barrier : launcher.wait_barriers)
         {
-          ApEvent e = Runtime::get_previous_phase(it->phase_barrier);
+          ApEvent e = Runtime::get_previous_phase(barrier.phase_barrier);
           LegionSpy::log_phase_barrier_wait(unique_op_id, e);
         }
         LegionSpy::log_future_creation(
@@ -919,10 +915,9 @@ namespace Legion {
     {
       // To be correct with the new scheduler we also have to
       // register mapping dependences on futures
-      for (std::vector<Future>::const_iterator it = futures.begin();
-           it != futures.end(); it++)
-        if (it->impl != nullptr)
-          it->impl->register_dependence(this);
+      for (const Future& future : futures)
+        if (future.impl != nullptr)
+          future.impl->register_dependence(this);
       if (predicate_false_future.impl != nullptr)
         predicate_false_future.impl->register_dependence(this);
       // Always have to register a full dependence on this since we need
@@ -934,21 +929,19 @@ namespace Legion {
       // do pointwise analysis on these when we enumerate the points
       if (!is_pointwise_analyzable())
       {
-        for (std::vector<FutureMap>::const_iterator it = point_futures.begin();
-             it != point_futures.end(); it++)
-          it->impl->register_dependence(this);
+        for (const FutureMap& future_map : point_futures)
+          future_map.impl->register_dependence(this);
       }
       else if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
         // Record pointwise dependences on the point futures
-        for (std::vector<FutureMap>::const_iterator it = point_futures.begin();
-             it != point_futures.end(); it++)
+        for (const FutureMap& future_map : point_futures)
         {
-          if (it->impl->op == nullptr)
+          if (future_map.impl->op == nullptr)
             continue;
           LegionSpy::log_future_dependence(
-              parent_ctx->get_unique_id(), it->impl->op_uid, unique_op_id,
-              true /*pointwise*/);
+              parent_ctx->get_unique_id(), future_map.impl->op_uid,
+              unique_op_id, true /*pointwise*/);
         }
       }
       if (!wait_barriers.empty() || !arrive_barriers.empty())
@@ -986,9 +979,8 @@ namespace Legion {
       Murmur3Hasher hasher;
       hasher.hash(get_operation_kind());
       hasher.hash(task_id);
-      for (std::vector<RegionRequirement>::const_iterator it = regions.begin();
-           it != regions.end(); it++)
-        hash_requirement(hasher, *it);
+      for (const RegionRequirement& req : regions)
+        hash_requirement(hasher, req);
       hasher.hash(concurrent_functor);
       hasher.hash<bool>(concurrent_task);
       hasher.hash<bool>(must_epoch_task);
@@ -1162,29 +1154,27 @@ namespace Legion {
     void IndexTask::finalize_concurrent_mapped(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<Color, ConcurrentGroup>::iterator it =
-               concurrent_groups.begin();
-           it != concurrent_groups.end(); it++)
+      for (std::pair<const Color, ConcurrentGroup>& group : concurrent_groups)
       {
-        legion_assert(it->second.precondition.interpreted.exists());
-        it->second.color_points = it->second.group_points;
+        legion_assert(group.second.precondition.interpreted.exists());
+        group.second.color_points = group.second.group_points;
         if (is_recording())
         {
           // Create and record the barrier with the right number of arrivals
           // for this concurrent group for later iterations
           const RtBarrier barrier =
-              runtime->create_rt_barrier(it->second.color_points);
-          it->second.shards.resize(1, 0);
+              runtime->create_rt_barrier(group.second.color_points);
+          group.second.shards.resize(1, 0);
           tpl->record_concurrent_group(
-              this, it->first, it->second.group_points, it->second.color_points,
-              barrier, it->second.shards);
+              this, group.first, group.second.group_points,
+              group.second.color_points, barrier, group.second.shards);
         }
-        if (!it->second.preconditions.empty())
+        if (!group.second.preconditions.empty())
           Runtime::trigger_event(
-              it->second.precondition.interpreted,
-              Runtime::merge_events(it->second.preconditions));
+              group.second.precondition.interpreted,
+              Runtime::merge_events(group.second.preconditions));
         else
-          Runtime::trigger_event(it->second.precondition.interpreted);
+          Runtime::trigger_event(group.second.precondition.interpreted);
       }
     }
 
@@ -1260,26 +1250,25 @@ namespace Legion {
         // out from under us while we are finalizing things
         std::vector<std::pair<SliceTask*, AddressSpaceID>> local_copy;
         local_copy.swap(finder->second.slice_tasks);
-        for (std::vector<std::pair<SliceTask*, AddressSpaceID>>::const_iterator
-                 it = local_copy.begin();
-             it != local_copy.end(); it++)
+        for (const std::pair<SliceTask*, AddressSpaceID>& slice_pair :
+             local_copy)
         {
-          if (it->second != runtime->address_space)
+          if (slice_pair.second != runtime->address_space)
           {
             SliceConcurrentResponse rez;
             {
               RezCheck z(rez);
-              rez.serialize(it->first);
+              rez.serialize(slice_pair.first);
               rez.serialize(color);
               rez.serialize(finder->second.task_barrier);
               rez.serialize(finder->second.lamport_clock);
               rez.serialize(finder->second.variant);
               rez.serialize(finder->second.poisoned);
             }
-            rez.dispatch(it->second);
+            rez.dispatch(slice_pair.second);
           }
           else
-            it->first->finish_concurrent_allreduce(
+            slice_pair.first->finish_concurrent_allreduce(
                 color, finder->second.lamport_clock, finder->second.poisoned,
                 finder->second.variant, finder->second.task_barrier);
         }
@@ -1377,10 +1366,9 @@ namespace Legion {
       if (!pending_pointwise_dependences.empty())
       {
         // Just trigger these since the points won't be mapped anyway
-        for (std::map<DomainPoint, RtUserEvent>::const_iterator it =
-                 pending_pointwise_dependences.begin();
-             it != pending_pointwise_dependences.end(); it++)
-          Runtime::trigger_event(it->second);
+        for (const std::pair<const DomainPoint, RtUserEvent>& dep :
+             pending_pointwise_dependences)
+          Runtime::trigger_event(dep.second);
         pending_pointwise_dependences.clear();
       }
       // Then clean up this task execution
@@ -1474,13 +1462,12 @@ namespace Legion {
         TaskTreeCoordinates coordinates;
         compute_task_tree_coordinates(coordinates);
         int runtime_visible_index = -1;
-        for (std::vector<Memory>::const_iterator it = target_mems.begin();
-             it != target_mems.end(); it++)
+        for (const Memory& memory : target_mems)
         {
           if ((runtime_visible_index < 0) &&
-              FutureInstance::check_meta_visible(*it))
+              FutureInstance::check_meta_visible(memory))
             runtime_visible_index = reduction_instances.size();
-          MemoryManager* manager = runtime->find_memory_manager(*it);
+          MemoryManager* manager = runtime->find_memory_manager(memory);
           // Safe to block here indefinitely waiting for unbounded pools
           reduction_instances.emplace_back(manager->create_future_instance(
               unique_op_id, coordinates, reduction_op->sizeof_rhs,
@@ -1792,8 +1779,8 @@ namespace Legion {
       rez.serialize<size_t>(copy_profiling_requests.size());
       if (!copy_profiling_requests.empty())
       {
-        for (unsigned idx = 0; idx < copy_profiling_requests.size(); idx++)
-          rez.serialize(copy_profiling_requests[idx]);
+        for (const ProfilingMeasurementID& request : copy_profiling_requests)
+          rez.serialize(request);
         rez.serialize(profiling_priority);
         rez.serialize(runtime->find_utility_group());
         // Send a message to the owner with an update for the extra counts
@@ -1817,12 +1804,11 @@ namespace Legion {
           runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
           sizeof(response));
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it =
-               copy_profiling_requests.begin();
-           it != copy_profiling_requests.end(); it++)
+      for (const ProfilingMeasurementID& measurement_id :
+           copy_profiling_requests)
       {
         const Realm::ProfilingMeasurementID measurement =
-            (Realm::ProfilingMeasurementID)*it;
+            (Realm::ProfilingMeasurementID)measurement_id;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;
@@ -2092,10 +2078,8 @@ namespace Legion {
           finish_index_task_reduction();
         }
         // Forward completion effects for any local-mapped slices
-        for (std::vector<SliceTask*>::const_iterator it =
-                 origin_mapped_slices.begin();
-             it != origin_mapped_slices.end(); it++)
-          (*it)->forward_completion_effects();
+        for (SliceTask* const slice : origin_mapped_slices)
+          slice->forward_completion_effects();
         complete_execution();
       }
       // If we didn't grab ownership then free this now
@@ -2116,12 +2100,10 @@ namespace Legion {
         reduction_instances.reserve(serdez_redop_targets.size());
         int runtime_visible_index = -1;
         TaskTreeCoordinates coordinates;
-        for (std::vector<Memory>::const_iterator it =
-                 serdez_redop_targets.begin();
-             it != serdez_redop_targets.end(); it++)
+        for (const Memory& memory : serdez_redop_targets)
         {
           if ((runtime_visible_index == -1) &&
-              ((*it) == runtime->runtime_system_memory))
+              (memory == runtime->runtime_system_memory))
           {
             runtime_visible_index = reduction_instances.size();
             reduction_instances.emplace_back(FutureInstance::create_local(
@@ -2131,7 +2113,7 @@ namespace Legion {
           {
             if (coordinates.empty())
               compute_task_tree_coordinates(coordinates);
-            MemoryManager* manager = runtime->find_memory_manager(*it);
+            MemoryManager* manager = runtime->find_memory_manager(memory);
             // Safe to block here indefinitely waiting for unbounded pools
             reduction_instances.emplace_back(manager->create_future_instance(
                 unique_op_id, coordinates, serdez_redop_state_size,
@@ -2441,9 +2423,7 @@ namespace Legion {
       // the replay so we have to be pessimistic here
       new_slice->expand_replay_slices(slices);
       // Then do the replay on all the slices
-      for (std::list<SliceTask*>::const_iterator it = slices.begin();
-           it != slices.end(); it++)
-        (*it)->trigger_replay();
+      for (SliceTask* const slice : slices) slice->trigger_replay();
     }
 
     //--------------------------------------------------------------------------
@@ -2537,17 +2517,16 @@ namespace Legion {
       // Exchange all the domains for the interfering requirements
       std::map<unsigned, std::vector<std::pair<DomainPoint, Domain>>>
           point_domains;
-      for (std::set<std::pair<unsigned, unsigned>>::const_iterator rit =
-               interfering_requirements.begin();
-           rit != interfering_requirements.end(); rit++)
+      for (const std::pair<unsigned, unsigned>& req_pair :
+           interfering_requirements)
       {
         std::vector<std::pair<DomainPoint, Domain>>& domains =
-            point_domains[rit->first];
+            point_domains[req_pair.first];
         // Already found it for this region requirements
         if (!domains.empty())
           continue;
         domains.reserve(internal_domain.get_volume());
-        const RegionRequirement& req = regions[rit->first];
+        const RegionRequirement& req = regions[req_pair.first];
         ProjectionFunction* function = nullptr;
         if (req.handle_type != LEGION_SINGULAR_PROJECTION)
           function = runtime->find_projection_function(req.projection);
@@ -2557,7 +2536,7 @@ namespace Legion {
               (function == nullptr) ?
                   req.region :
                   function->project_point(
-                      this, rit->first, launch_domain, *itr);
+                      this, req_pair.first, launch_domain, *itr);
           if (!point_region.exists())
             continue;
           Domain point_domain;
@@ -2580,14 +2559,13 @@ namespace Legion {
       Domain launch_domain = launch_space->get_tight_domain();
       // Iterate our local points and check their first region requirements
       // against all the points in the second region requirements
-      for (std::set<std::pair<unsigned, unsigned>>::const_iterator rit =
-               interfering_requirements.begin();
-           rit != interfering_requirements.end(); rit++)
+      for (const std::pair<unsigned, unsigned>& req_pair :
+           interfering_requirements)
       {
         std::map<unsigned, std::vector<std::pair<DomainPoint, Domain>>>::
-            const_iterator finder = point_domains.find(rit->first);
+            const_iterator finder = point_domains.find(req_pair.first);
         legion_assert(finder != point_domains.end());
-        const RegionRequirement& req = get_requirement(rit->second);
+        const RegionRequirement& req = get_requirement(req_pair.second);
         ProjectionFunction* function = nullptr;
         if (req.handle_type != LEGION_SINGULAR_PROJECTION)
           function = runtime->find_projection_function(req.projection);
@@ -2597,20 +2575,20 @@ namespace Legion {
               (function == nullptr) ?
                   req.region :
                   function->project_point(
-                      this, rit->second, launch_domain, *itr);
+                      this, req_pair.second, launch_domain, *itr);
           IndexSpaceNode* node =
               runtime->get_node(point_region.get_index_space());
           DomainPoint interfering;
           if (node->has_interfering_point(
                   finder->second, interfering,
-                  (rit->first == rit->second) ? *itr : DomainPoint()))
+                  (req_pair.first == req_pair.second) ? *itr : DomainPoint()))
           {
             Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
             error << "Index " << *this
                   << " has interfering region requirements between "
-                  << "region requirements " << rit->first << " of point task "
-                  << interfering << " and " << rit->second << " of point task "
-                  << *itr
+                  << "region requirements " << req_pair.first
+                  << " of point task " << interfering << " and "
+                  << req_pair.second << " of point task " << *itr
                   << ". Interfering region requirements are not permitted for "
                      "index tasks.";
             error.raise();
@@ -2645,16 +2623,14 @@ namespace Legion {
 #ifdef LEGION_DEBUG
       rez.serialize(all_output_extents.size());
 #endif
-      for (std::vector<OutputExtentMap>::const_iterator it =
-               all_output_extents.begin();
-           it != all_output_extents.end(); ++it)
+      for (const OutputExtentMap& extents : all_output_extents)
       {
-        rez.serialize(it->size());
-        for (OutputExtentMap::const_iterator sit = it->begin();
-             sit != it->end(); ++sit)
+        rez.serialize(extents.size());
+        for (const std::pair<const DomainPoint, DomainPoint>& extent_pair :
+             extents)
         {
-          rez.serialize(sit->first);
-          rez.serialize(sit->second);
+          rez.serialize(extent_pair.first);
+          rez.serialize(extent_pair.second);
         }
       }
     }
@@ -2718,45 +2694,38 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(groups.size());
-      for (std::map<Color, MultiTask::ConcurrentGroup>::iterator git =
-               groups.begin();
-           git != groups.end(); git++)
+      for (std::pair<const Color, MultiTask::ConcurrentGroup>& group : groups)
       {
-        rez.serialize(git->first);
-        if (git->second.preconditions.empty())
+        rez.serialize(group.first);
+        if (group.second.preconditions.empty())
           rez.serialize(RtEvent::NO_RT_EVENT);
-        else if (git->second.preconditions.size() == 1)
-          rez.serialize(git->second.preconditions.front());
+        else if (group.second.preconditions.size() == 1)
+          rez.serialize(group.second.preconditions.front());
         else
         {
-          RtEvent pre = Runtime::merge_events(git->second.preconditions);
+          RtEvent pre = Runtime::merge_events(group.second.preconditions);
           rez.serialize(pre);
-          git->second.preconditions.resize(1);
-          git->second.preconditions[0] = pre;
+          group.second.preconditions.resize(1);
+          group.second.preconditions[0] = pre;
         }
-        rez.serialize<size_t>(git->second.shards.size());
-        for (std::vector<ShardID>::const_iterator it =
-                 git->second.shards.begin();
-             it != git->second.shards.end(); it++)
-          rez.serialize(*it);
-        rez.serialize<size_t>(git->second.processors.size());
-        for (std::map<Processor, DomainPoint>::const_iterator it =
-                 git->second.processors.begin();
-             it != git->second.processors.end(); it++)
+        rez.serialize<size_t>(group.second.shards.size());
+        for (const ShardID& shard : group.second.shards) rez.serialize(shard);
+        rez.serialize<size_t>(group.second.processors.size());
+        for (const std::pair<const Processor, DomainPoint>& proc_pair :
+             group.second.processors)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(proc_pair.first);
+          rez.serialize(proc_pair.second);
         }
-        rez.serialize(git->second.color_points);
+        rez.serialize(group.second.color_points);
       }
       rez.serialize<size_t>(trace_barriers.size());
-      for (std::map<Color, std::pair<RtBarrier, size_t>>::const_iterator it =
-               trace_barriers.begin();
-           it != trace_barriers.end(); it++)
+      for (const std::pair<const Color, std::pair<RtBarrier, size_t>>&
+               barrier_pair : trace_barriers)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second.first);
-        rez.serialize(it->second.second);
+        rez.serialize(barrier_pair.first);
+        rez.serialize(barrier_pair.second.first);
+        rez.serialize(barrier_pair.second.second);
       }
     }
 
@@ -2854,19 +2823,17 @@ namespace Legion {
       // Record our local shard as one of the shards for each group
       // In some cases we might already have computed it so we don't need
       // to add ourselves in that case as we'll already be represented
-      for (std::map<Color, MultiTask::ConcurrentGroup>::iterator it =
-               groups.begin();
-           it != groups.end(); it++)
+      for (std::pair<const Color, MultiTask::ConcurrentGroup>& group : groups)
       {
-        legion_assert(it->second.group_points > 0);
+        legion_assert(group.second.group_points > 0);
         legion_assert(
-            it->second.shards.empty() ||
+            group.second.shards.empty() ||
             std::binary_search(
-                it->second.shards.begin(), it->second.shards.end(),
+                group.second.shards.begin(), group.second.shards.end(),
                 local_shard));
-        it->second.color_points = it->second.group_points;
-        if (it->second.shards.empty())
-          it->second.shards.emplace_back(local_shard);
+        group.second.color_points = group.second.group_points;
+        if (group.second.shards.empty())
+          group.second.shards.emplace_back(local_shard);
       }
       perform_collective_async();
     }
@@ -2975,45 +2942,42 @@ namespace Legion {
       local_tasks.swap(single_tasks);
       std::vector<std::pair<SliceTask*, AddressSpace>> local_slices;
       local_slices.swap(slice_tasks);
-      for (std::vector<
-               std::pair<IndividualTask*, AddressSpaceID>>::const_iterator it =
-               local_tasks.begin();
-           it != local_tasks.end(); it++)
+      for (const std::pair<IndividualTask*, AddressSpaceID>& task_pair :
+           local_tasks)
       {
-        if (it->second != runtime->address_space)
+        if (task_pair.second != runtime->address_space)
         {
           IndividualTaskConcurrentResponse rez;
           {
             RezCheck z(rez);
-            rez.serialize(it->first);
+            rez.serialize(task_pair.first);
             rez.serialize(lamport_clock);
             rez.serialize(poisoned);
           }
-          rez.dispatch(it->second);
+          rez.dispatch(task_pair.second);
         }
         else
-          it->first->finish_concurrent_allreduce(lamport_clock, poisoned);
+          task_pair.first->finish_concurrent_allreduce(lamport_clock, poisoned);
       }
-      for (std::vector<std::pair<SliceTask*, AddressSpaceID>>::const_iterator
-               it = local_slices.begin();
-           it != local_slices.end(); it++)
+      for (const std::pair<SliceTask*, AddressSpaceID>& slice_pair :
+           local_slices)
       {
-        if (it->second != runtime->address_space)
+        if (slice_pair.second != runtime->address_space)
         {
           SliceConcurrentResponse rez;
           {
             RezCheck z(rez);
-            rez.serialize(it->first);
+            rez.serialize(slice_pair.first);
             rez.serialize(color);
             rez.serialize(task_barrier);
             rez.serialize(lamport_clock);
             rez.serialize(variant);
             rez.serialize(poisoned);
           }
-          rez.dispatch(it->second);
+          rez.dispatch(slice_pair.second);
         }
         else
-          it->first->finish_concurrent_allreduce(
+          slice_pair.first->finish_concurrent_allreduce(
               color, lamport_clock, poisoned, variant, task_barrier);
       }
       return RtEvent::NO_RT_EVENT;
@@ -3061,11 +3025,9 @@ namespace Legion {
     void ReplIndexTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      for (std::map<Color, ConcurrentGroup>::iterator it =
-               concurrent_groups.begin();
-           it != concurrent_groups.end(); it++)
-        if (it->second.exchange == nullptr)
-          delete it->second.exchange;
+      for (std::pair<const Color, ConcurrentGroup>& group : concurrent_groups)
+        if (group.second.exchange == nullptr)
+          delete group.second.exchange;
       ReplCollectiveViewCreator<IndexTask>::deactivate(false /*free*/);
       if (serdez_redop_collective != nullptr)
         delete serdez_redop_collective;
@@ -3159,10 +3121,8 @@ namespace Legion {
         {
           Serializer rez;
           rez.serialize<size_t>(check_collective_regions.size());
-          for (std::vector<unsigned>::const_iterator it =
-                   check_collective_regions.begin();
-               it != check_collective_regions.end(); it++)
-            rez.serialize(*it);
+          for (const unsigned& region_idx : check_collective_regions)
+            rez.serialize(region_idx);
           BufferBroadcast collective(collective_check_id, repl_ctx);
           collective.broadcast(
               const_cast<void*>(rez.get_buffer()), rez.get_used_bytes(),
@@ -3474,11 +3434,9 @@ namespace Legion {
         collective_exchange_id = repl_ctx->get_next_collective_index(
             COLLECTIVE_LOC_68, true /*logical*/);
         // Generate any collective view rendezvous that we will need
-        for (std::vector<unsigned>::const_iterator it =
-                 check_collective_regions.begin();
-             it != check_collective_regions.end(); it++)
+        for (const unsigned& region_idx : check_collective_regions)
           create_collective_rendezvous(
-              logical_regions[*it].parent.get_tree_id(), *it);
+              logical_regions[region_idx].parent.get_tree_id(), region_idx);
       }
       if (concurrent_task && !must_epoch_task)
       {
@@ -3525,12 +3483,11 @@ namespace Legion {
               if (trace != nullptr)
                 trace->record_concurrent_colors(this, concurrent_exchange_ids);
             }
-            for (std::map<Color, CollectiveID>::iterator it =
-                     concurrent_exchange_ids.begin();
-                 it != concurrent_exchange_ids.end(); it++)
+            for (std::pair<const Color, CollectiveID>& id_pair :
+                 concurrent_exchange_ids)
             {
-              legion_assert(it->second == 0);
-              it->second = repl_ctx->get_next_collective_index(
+              legion_assert(id_pair.second == 0);
+              id_pair.second = repl_ctx->get_next_collective_index(
                   COLLECTIVE_LOC_79, true /*logical*/);
             }
           }
@@ -3594,34 +3551,33 @@ namespace Legion {
           // Note the serdez_redop_collective took ownership of deleting
           // the buffer in this case so we know that it is not leaking
           serdez_redop_state = nullptr;
-          for (std::map<ShardID, std::pair<void*, size_t>>::const_iterator it =
-                   remote_buffers.begin();
-               it != remote_buffers.end(); it++)
+          for (const std::pair<const ShardID, std::pair<void*, size_t>>&
+                   buffer_pair : remote_buffers)
           {
             if (serdez_redop_state == nullptr)
             {
-              serdez_redop_state_size = it->second.second;
+              serdez_redop_state_size = buffer_pair.second.second;
               serdez_redop_state = malloc(serdez_redop_state_size);
               memcpy(
-                  serdez_redop_state, it->second.first,
+                  serdez_redop_state, buffer_pair.second.first,
                   serdez_redop_state_size);
             }
             else
               serdez_redop_fns->fold_fn(
                   reduction_op, serdez_redop_state, serdez_redop_state_size,
-                  it->second.first);
+                  buffer_pair.second.first);
           }
         }
         else
         {
-          for (std::map<ShardID, std::pair<void*, size_t>>::const_iterator it =
-                   remote_buffers.begin();
-               it != remote_buffers.end(); it++)
+          for (const std::pair<const ShardID, std::pair<void*, size_t>>&
+                   buffer_pair : remote_buffers)
           {
-            legion_assert(it->first != serdez_redop_collective->local_shard);
+            legion_assert(
+                buffer_pair.first != serdez_redop_collective->local_shard);
             serdez_redop_fns->fold_fn(
                 reduction_op, serdez_redop_state, serdez_redop_state_size,
-                it->second.first);
+                buffer_pair.second.first);
           }
         }
       }
@@ -3873,17 +3829,16 @@ namespace Legion {
           }
           // See if our local shards is the smallest shard and make and
           // record the barrier if we are
-          for (std::map<Color, ConcurrentGroup>::const_iterator it =
-                   concurrent_groups.begin();
-               it != concurrent_groups.end(); it++)
+          for (const std::pair<const Color, ConcurrentGroup>& group :
+               concurrent_groups)
           {
-            legion_assert(!it->second.shards.empty());
-            if (it->second.shards.front() == repl_ctx->owner_shard->shard_id)
+            legion_assert(!group.second.shards.empty());
+            if (group.second.shards.front() == repl_ctx->owner_shard->shard_id)
             {
               const RtBarrier barrier =
-                  runtime->create_rt_barrier(it->second.color_points);
+                  runtime->create_rt_barrier(group.second.color_points);
               concurrent_mapping_rendezvous->set_trace_barrier(
-                  it->first, barrier, it->second.color_points);
+                  group.first, barrier, group.second.color_points);
             }
           }
         }
@@ -3898,37 +3853,36 @@ namespace Legion {
     {
       ReplicateContext* repl_ctx =
           legion_safe_cast<ReplicateContext*>(parent_ctx);
-      for (std::map<Color, ConcurrentGroup>::iterator it =
-               concurrent_groups.begin();
-           it != concurrent_groups.end(); it++)
+      for (std::pair<const Color, ConcurrentGroup>& group : concurrent_groups)
       {
         // Skip groups that we don't have any local shards for
-        if (it->second.group_points == 0)
+        if (group.second.group_points == 0)
           continue;
-        legion_assert(it->second.precondition.interpreted.exists());
-        legion_assert(it->second.exchange == nullptr);
+        legion_assert(group.second.precondition.interpreted.exists());
+        legion_assert(group.second.exchange == nullptr);
         if (is_recording())
         {
           std::map<Color, std::pair<RtBarrier, size_t>>::const_iterator finder =
-              trace_barriers.find(it->first);
+              trace_barriers.find(group.first);
           legion_assert(finder != trace_barriers.end());
-          legion_assert(finder->second.second == it->second.color_points);
+          legion_assert(finder->second.second == group.second.color_points);
           tpl->record_concurrent_group(
-              this, it->first, it->second.group_points, it->second.color_points,
-              finder->second.first, it->second.shards);
+              this, group.first, group.second.group_points,
+              group.second.color_points, finder->second.first,
+              group.second.shards);
         }
         std::map<Color, CollectiveID>::const_iterator finder =
-            concurrent_exchange_ids.find(it->first);
+            concurrent_exchange_ids.find(group.first);
         legion_assert(finder != concurrent_exchange_ids.end());
         // Create the max allreduce collective
-        it->second.exchange = new ConcurrentAllreduce(
-            repl_ctx, finder->second, it->first, it->second.shards);
-        if (!it->second.preconditions.empty())
+        group.second.exchange = new ConcurrentAllreduce(
+            repl_ctx, finder->second, group.first, group.second.shards);
+        if (!group.second.preconditions.empty())
           Runtime::trigger_event(
-              it->second.precondition.interpreted,
-              Runtime::merge_events(it->second.preconditions));
+              group.second.precondition.interpreted,
+              Runtime::merge_events(group.second.preconditions));
         else
-          Runtime::trigger_event(it->second.precondition.interpreted);
+          Runtime::trigger_event(group.second.precondition.interpreted);
       }
     }
 

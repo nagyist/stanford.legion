@@ -53,18 +53,15 @@ namespace Legion {
       if (!this->wait_barriers.empty() || !this->grants.empty())
       {
         std::vector<ApEvent> sync_preconditions;
-        for (std::vector<PhaseBarrier>::const_iterator it =
-                 this->wait_barriers.begin();
-             it != this->wait_barriers.end(); it++)
+        for (const PhaseBarrier& bar : this->wait_barriers)
         {
-          ApEvent e = Runtime::get_previous_phase(it->phase_barrier);
+          ApEvent e = Runtime::get_previous_phase(bar.phase_barrier);
           sync_preconditions.emplace_back(e);
           LegionSpy::log_phase_barrier_wait(this->get_unique_op_id(), e);
         }
-        for (std::vector<Grant>::const_iterator it = this->grants.begin();
-             it != this->grants.end(); it++)
+        for (const Grant& grant : this->grants)
         {
-          ApEvent e = it->impl->acquire_grant();
+          ApEvent e = grant.impl->acquire_grant();
           sync_preconditions.emplace_back(e);
         }
         if (this->has_execution_fence_event())

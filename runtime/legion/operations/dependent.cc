@@ -603,12 +603,11 @@ namespace Legion {
             nullptr /*no pointwise*/, parent_ctx->get_total_shards(),
             false /*is replaying*/);
         // Launch the points
-        for (std::vector<PointDepPartOp*>::const_iterator it = points.begin();
-             it != points.end(); it++)
+        for (PointDepPartOp* point : points)
         {
-          (*it)->log_requirement();
-          map_applied_conditions.insert((*it)->get_mapped_event());
-          (*it)->launch();
+          point->log_requirement();
+          map_applied_conditions.insert(point->get_mapped_event());
+          point->launch();
         }
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
@@ -832,18 +831,17 @@ namespace Legion {
       }
       if (!missing_fields.empty())
       {
-        for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
-             it != missing_fields.end(); it++)
+        for (const FieldID& fid : missing_fields)
         {
           const void* name;
           size_t name_size;
           if (!runtime->retrieve_semantic_information(
-                  requirement.region.get_field_space(), *it,
+                  requirement.region.get_field_space(), fid,
                   LEGION_NAME_SEMANTIC_TAG, name, name_size, true, false))
             name = "(no name)";
           log_legion.error(
               "Missing instance for field %s (FieldID: %d)",
-              static_cast<const char*>(name), *it);
+              static_cast<const char*>(name), fid);
         }
         Error error(LEGION_MAPPER_EXCEPTION);
         error << "Invalid mapper output from invocation of 'map_partition' on "
@@ -856,11 +854,9 @@ namespace Legion {
       }
       if (!unacquired.empty())
       {
-        for (std::vector<PhysicalManager*>::const_iterator it =
-                 unacquired.begin();
-             it != unacquired.end(); it++)
+        for (PhysicalManager* manager : unacquired)
         {
-          if (acquired_instances.find(*it) == acquired_instances.end())
+          if (acquired_instances.find(manager) == acquired_instances.end())
           {
             Error error(LEGION_MAPPER_EXCEPTION);
             error
@@ -1201,9 +1197,7 @@ namespace Legion {
       if (!acquired_instances.empty())
         release_acquired_instances(acquired_instances);
       // We deactivate all of our point operations
-      for (std::vector<PointDepPartOp*>::const_iterator it = points.begin();
-           it != points.end(); it++)
-        (*it)->deactivate();
+      for (PointDepPartOp* point : points) point->deactivate();
       points.clear();
       instances.clear();
       index_preconditions.clear();
@@ -1287,12 +1281,10 @@ namespace Legion {
           runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
           sizeof(response), profiling_priority);
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it =
-               profiling_requests.begin();
-           it != profiling_requests.end(); it++)
+      for (const ProfilingMeasurementID& it : profiling_requests)
       {
         const Realm::ProfilingMeasurementID measurement =
-            (Realm::ProfilingMeasurementID)*it;
+            (Realm::ProfilingMeasurementID)it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;
@@ -1676,11 +1668,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(results.size());
-      for (std::vector<DeppartResult>::const_iterator it = results.begin();
-           it != results.end(); it++)
+      for (const DeppartResult& result : results)
       {
-        rez.serialize(it->domain);
-        rez.serialize(it->color);
+        rez.serialize(result.domain);
+        rez.serialize(result.color);
       }
       rez.serialize<ApEvent>(done_event);
     }
@@ -1692,11 +1683,10 @@ namespace Legion {
       size_t num_results;
       derez.deserialize(num_results);
       results.resize(num_results);
-      for (std::vector<DeppartResult>::iterator it = results.begin();
-           it != results.end(); it++)
+      for (DeppartResult& result : results)
       {
-        derez.deserialize(it->domain);
-        derez.deserialize(it->color);
+        derez.deserialize(result.domain);
+        derez.deserialize(result.color);
       }
       ApEvent done;
       derez.deserialize(done);
@@ -1734,13 +1724,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(descriptors.size());
-      for (std::vector<FieldDataDescriptor>::const_iterator it =
-               descriptors.begin();
-           it != descriptors.end(); it++)
+      for (const FieldDataDescriptor& descriptor : descriptors)
       {
-        rez.serialize(it->domain);
-        rez.serialize(it->color);
-        rez.serialize(it->inst);
+        rez.serialize(descriptor.domain);
+        rez.serialize(descriptor.color);
+        rez.serialize(descriptor.inst);
       }
     }
 
@@ -1789,21 +1777,17 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(descriptors.size());
-      for (std::vector<FieldDataDescriptor>::const_iterator it =
-               descriptors.begin();
-           it != descriptors.end(); it++)
+      for (const FieldDataDescriptor& descriptor : descriptors)
       {
-        rez.serialize(it->domain);
-        rez.serialize(it->color);
-        rez.serialize(it->inst);
+        rez.serialize(descriptor.domain);
+        rez.serialize(descriptor.color);
+        rez.serialize(descriptor.inst);
       }
       rez.serialize<size_t>(remote_targets.size());
-      for (std::map<DomainPoint, Domain>::const_iterator it =
-               remote_targets.begin();
-           it != remote_targets.end(); it++)
+      for (const std::pair<const DomainPoint, Domain>& it : remote_targets)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
       if (!ready_events.empty())
         rez.serialize(Runtime::merge_events(nullptr, ready_events));

@@ -350,17 +350,15 @@ namespace Legion {
         // to try to balance the splitting plane across the two sets
         T split = 0;
         unsigned split_max = subrects.size();
-        for (std::map<coord_t, unsigned>::const_iterator it =
-                 lower_inclusive.begin();
-             it != lower_inclusive.end(); it++)
+        for (const std::pair<const coord_t, unsigned>& it : lower_inclusive)
         {
-          const unsigned lower = it->second;
-          const unsigned upper = upper_exclusive[it->first];
+          const unsigned lower = it.second;
+          const unsigned upper = upper_exclusive[it.first];
           const unsigned max = (lower > upper) ? lower : upper;
           if (max < split_max)
           {
             split_max = max;
-            split = it->first;
+            split = it.first;
           }
         }
         // Check for the case where we can't find a splitting plane
@@ -1711,13 +1709,11 @@ namespace Legion {
           if (!it->second)
             to_delete.emplace_back(it->first);
         }
-        for (std::vector<EquivalenceSet*>::const_iterator it =
-                 to_delete.begin();
-             it != to_delete.end(); it++)
+        for (EquivalenceSet* set : to_delete)
         {
-          previous_sets->erase(*it);
-          if ((*it)->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
-            delete (*it);
+          previous_sets->erase(set);
+          if (set->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
+            delete set;
         }
         if (previous_sets->empty())
         {
@@ -1845,12 +1841,11 @@ namespace Legion {
         if (!mask)
           break;
       }
-      for (std::vector<EquivalenceSet*>::const_iterator it = to_delete.begin();
-           it != to_delete.end(); it++)
+      for (EquivalenceSet* const set : to_delete)
       {
-        sets->erase(*it);
-        if ((*it)->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
-          delete (*it);
+        sets->erase(set);
+        if (set->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
+          delete set;
       }
       if (sets->empty())
       {
@@ -2172,13 +2167,11 @@ namespace Legion {
             if (!it->second)
               to_delete.emplace_back(it->first);
           }
-          for (std::vector<EquivalenceSet*>::const_iterator it =
-                   to_delete.begin();
-               it != to_delete.end(); it++)
+          for (EquivalenceSet* const set : to_delete)
           {
-            previous_sets->erase(*it);
-            if ((*it)->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
-              delete (*it);
+            previous_sets->erase(set);
+            if (set->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
+              delete set;
           }
           if (previous_sets->empty())
           {
@@ -2228,10 +2221,8 @@ namespace Legion {
                   if (!it->second)
                     to_delete.emplace_back(it->first);
                 }
-                for (std::vector<EqSetTracker*>::const_iterator it =
-                         to_delete.begin();
-                     it != to_delete.end(); it++)
-                  sit->second.erase(*it);
+                for (EqSetTracker* tracker : to_delete)
+                  sit->second.erase(tracker);
               }
               else  // Invalidating the subscriptions for all fields
               {
@@ -2286,13 +2277,11 @@ namespace Legion {
                   if (!it->second)
                     to_delete.emplace_back(it->first);
                 }
-                for (std::vector<EquivalenceSet*>::const_iterator it =
-                         to_delete.begin();
-                     it != to_delete.end(); it++)
+                for (EquivalenceSet* set : to_delete)
                 {
-                  previous_sets->erase(*it);
-                  if ((*it)->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
-                    delete (*it);
+                  previous_sets->erase(set);
+                  if (set->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
+                    delete set;
                 }
                 // No need to delete previous sets or tighten its valid
                 // mask since we know that there will be current sets
@@ -2320,13 +2309,11 @@ namespace Legion {
             }
             // Should have moved something over for all fields
             legion_assert(!current_mask);
-            for (std::vector<EquivalenceSet*>::const_iterator it =
-                     to_delete.begin();
-                 it != to_delete.end(); it++)
+            for (EquivalenceSet* set : to_delete)
             {
-              current_sets->erase(*it);
-              if ((*it)->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
-                delete (*it);
+              current_sets->erase(set);
+              if (set->remove_base_gc_ref(DISJOINT_COMPLETE_REF))
+                delete set;
             }
             if (current_sets->empty())
             {
@@ -2751,11 +2738,9 @@ namespace Legion {
     EqKDSparse<DIM, T>::~EqKDSparse(void)
     //--------------------------------------------------------------------------
     {
-      for (typename std::vector<EqKDTreeT<DIM, T>*>::const_iterator it =
-               children.begin();
-           it != children.end(); it++)
-        if ((*it)->remove_reference())
-          delete (*it);
+      for (EqKDTreeT<DIM, T>* const child : children)
+        if (child->remove_reference())
+          delete child;
     }
 
     //--------------------------------------------------------------------------

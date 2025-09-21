@@ -372,10 +372,10 @@ namespace Legion {
     AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_WEIGHTS_CALL> call(
         prov, ctx, __func__);
     std::map<DomainPoint, UntypedBuffer> data;
-    for (std::map<DomainPoint, int>::const_iterator it = weights.begin();
-         it != weights.end(); it++)
+    for (const std::pair<const DomainPoint, int>& weight_pair : weights)
       data.emplace(std::make_pair(
-          it->first, UntypedBuffer(&it->second, sizeof(it->second))));
+          weight_pair.first,
+          UntypedBuffer(&weight_pair.second, sizeof(weight_pair.second))));
     FutureMap future_map = construct_future_map(
         ctx, color_space, data, false /*collective*/, 0 /*sid*/,
         false /*implicit*/, prov);
@@ -393,10 +393,10 @@ namespace Legion {
     AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_WEIGHTS_CALL> call(
         prov, ctx, __func__);
     std::map<DomainPoint, UntypedBuffer> data;
-    for (std::map<DomainPoint, size_t>::const_iterator it = weights.begin();
-         it != weights.end(); it++)
+    for (const std::pair<const DomainPoint, size_t>& weight_pair : weights)
       data.emplace(std::make_pair(
-          it->first, UntypedBuffer(&it->second, sizeof(it->second))));
+          weight_pair.first,
+          UntypedBuffer(&weight_pair.second, sizeof(weight_pair.second))));
     FutureMap future_map = construct_future_map(
         ctx, color_space, data, false /*collective*/, 0 /*sid*/,
         false /*implicit*/, prov);
@@ -637,9 +637,9 @@ namespace Legion {
   {
     // Convert this into a future map and call that version of this method
     std::map<DomainPoint, Future> futures;
-    for (std::map<DomainPoint, Domain>::const_iterator it = domains.begin();
-         it != domains.end(); it++)
-      futures[it->first] = Future::from_domain(it->second, take_ownership);
+    for (const std::pair<const DomainPoint, Domain>& domain_pair : domains)
+      futures[domain_pair.first] =
+          Future::from_domain(domain_pair.second, take_ownership);
     FutureMap fm = construct_future_map(ctx, color_space, futures);
     return create_partition_by_domain(
         ctx, parent, fm, color_space, perform_intersections, part_kind, color,
@@ -1355,9 +1355,7 @@ namespace Legion {
         ctx, __func__);
     std::set<Color> temp_colors;
     runtime->get_index_space_partition_colors(sp, temp_colors);
-    for (std::set<Color>::const_iterator it = temp_colors.begin();
-         it != temp_colors.end(); it++)
-      colors.insert(DomainPoint(*it));
+    for (const Color& color : temp_colors) colors.insert(DomainPoint(color));
   }
 
   //--------------------------------------------------------------------------
@@ -1377,9 +1375,7 @@ namespace Legion {
     AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_PARTITION_COLORS_CALL> call;
     std::set<Color> temp_colors;
     runtime->get_index_space_partition_colors(sp, temp_colors);
-    for (std::set<Color>::const_iterator it = temp_colors.begin();
-         it != temp_colors.end(); it++)
-      colors.insert(DomainPoint(*it));
+    for (const Color& color : temp_colors) colors.insert(DomainPoint(color));
   }
 
   //--------------------------------------------------------------------------

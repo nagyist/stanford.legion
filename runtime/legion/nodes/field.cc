@@ -106,17 +106,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Next we can delete our layouts
-      for (std::map<
-               LEGION_FIELD_MASK_FIELD_TYPE,
-               lng::list<LayoutDescription*>>::iterator it = layouts.begin();
-           it != layouts.end(); it++)
+      for (const std::pair<
+               const LEGION_FIELD_MASK_FIELD_TYPE,
+               lng::list<LayoutDescription*>>& it : layouts)
       {
-        lng::list<LayoutDescription*>& descs = it->second;
-        for (lng::list<LayoutDescription*>::iterator it = descs.begin();
-             it != descs.end(); it++)
+        for (LayoutDescription* layout : it.second)
         {
-          if ((*it)->remove_reference())
-            delete (*it);
+          if (layout->remove_reference())
+            delete layout;
         }
       }
       layouts.clear();
@@ -970,9 +967,7 @@ namespace Legion {
                 legion_assert(!remote_field_infos.empty());
                 legion_assert(outstanding_invalidations == 0);
                 std::set<RtEvent> preconditions;
-                for (std::set<AddressSpaceID>::const_iterator it =
-                         remote_field_infos.begin();
-                     it != remote_field_infos.end(); it++)
+                for (const AddressSpaceID& it : remote_field_infos)
                 {
                   const RtUserEvent done = Runtime::create_rt_user_event();
                   outstanding_invalidations++;
@@ -984,7 +979,7 @@ namespace Legion {
                     rez.serialize<bool>(true);  // flush allocation
                     rez.serialize<bool>(true);  // need merge
                   }
-                  rez.dispatch(*it);
+                  rez.dispatch(it);
                   preconditions.insert(done);
                 }
                 remote_field_infos.clear();
@@ -1004,11 +999,9 @@ namespace Legion {
               {
                 legion_assert(outstanding_invalidations == 0);
                 std::set<RtEvent> preconditions;
-                for (std::set<AddressSpaceID>::const_iterator it =
-                         remote_field_infos.begin();
-                     it != remote_field_infos.end(); it++)
+                for (const AddressSpaceID& it : remote_field_infos)
                 {
-                  if ((*it) == source)
+                  if (it == source)
                   {
                     full_update = false;
                     continue;
@@ -1025,7 +1018,7 @@ namespace Legion {
                     rez.serialize<bool>(false);  // flush allocation
                     rez.serialize<bool>(false);  // need merge
                   }
-                  rez.dispatch(*it);
+                  rez.dispatch(it);
                   preconditions.insert(done);
                 }
                 remote_field_infos.clear();
@@ -1066,12 +1059,11 @@ namespace Legion {
                   {
                     rez.serialize(unallocated_indexes);
                     rez.serialize<size_t>(available_indexes.size());
-                    for (std::list<std::pair<unsigned, RtEvent>>::const_iterator
-                             it = available_indexes.begin();
-                         it != available_indexes.end(); it++)
+                    for (const std::pair<unsigned, RtEvent>& it :
+                         available_indexes)
                     {
-                      rez.serialize(it->first);
-                      rez.serialize(it->second);
+                      rez.serialize(it.first);
+                      rez.serialize(it.second);
                     }
                   }
                   unallocated_indexes.clear();
@@ -1204,12 +1196,10 @@ namespace Legion {
               rez.serialize(handle);
               rez.serialize<bool>(true);  // return allocation
               rez.serialize(field_infos.size());
-              for (std::map<FieldID, FieldInfo>::const_iterator it =
-                       field_infos.begin();
-                   it != field_infos.end(); it++)
+              for (const std::pair<const FieldID, FieldInfo>& it : field_infos)
               {
-                rez.serialize(it->first);
-                it->second.serialize(rez);
+                rez.serialize(it.first);
+                it.second.serialize(rez);
               }
               rez.serialize(unallocated_indexes);
               unallocated_indexes.clear();
@@ -1667,11 +1657,9 @@ namespace Legion {
             (allocation_state != FIELD_ALLOC_COLLECTIVE))
         {
           // Send messages to all the read-only field infos
-          for (std::set<AddressSpaceID>::const_iterator it =
-                   remote_field_infos.begin();
-               it != remote_field_infos.end(); it++)
+          for (const AddressSpaceID& it : remote_field_infos)
           {
-            if ((*it) == source)
+            if (it == source)
               continue;
             const RtUserEvent done_event = Runtime::create_rt_user_event();
             FieldSizeUpdate rez;
@@ -1683,7 +1671,7 @@ namespace Legion {
               rez.serialize(field_size);
             }
             pack_global_ref();
-            rez.dispatch(*it);
+            rez.dispatch(it);
             update_events.insert(done_event);
           }
         }
@@ -1785,18 +1773,16 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(handle);
           rez.serialize<size_t>(to_free.size());
-          for (unsigned idx = 0; idx < to_free.size(); idx++)
-            rez.serialize(to_free[idx]);
+          for (const FieldID& field_id : to_free) rez.serialize(field_id);
           rez.serialize(done_event);
         }
         rez.dispatch(owner_space);
         applied.insert(done_event);
         return;
       }
-      for (std::vector<FieldID>::const_iterator it = to_free.begin();
-           it != to_free.end(); it++)
+      for (const FieldID& fid : to_free)
       {
-        std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(*it);
+        std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
         legion_assert(finder != field_infos.end());
         // Remove it from the fields map
         field_infos.erase(finder);
@@ -1832,17 +1818,15 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(handle);
           rez.serialize<size_t>(to_free.size());
-          for (unsigned idx = 0; idx < to_free.size(); idx++)
-            rez.serialize(to_free[idx]);
+          for (const FieldID& field_id : to_free) rez.serialize(field_id);
           rez.serialize(freed_event);
         }
         rez.dispatch(owner_space);
         return;
       }
-      for (std::vector<FieldID>::const_iterator it = to_free.begin();
-           it != to_free.end(); it++)
+      for (const FieldID& fid : to_free)
       {
-        std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(*it);
+        std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
         legion_assert(finder != field_infos.end());
         // Skip freeing any local field indexes here
         if (!finder->second.local)
@@ -1881,9 +1865,7 @@ namespace Legion {
             rez.serialize(sizes[idx]);
           }
           rez.serialize<size_t>(indexes.size());
-          for (std::set<unsigned>::const_iterator it = indexes.begin();
-               it != indexes.end(); it++)
-            rez.serialize(*it);
+          for (const unsigned& index : indexes) rez.serialize(index);
           rez.serialize(&new_indexes);
         }
         rez.dispatch(owner_space);
@@ -1984,10 +1966,10 @@ namespace Legion {
       legion_assert(is_owner());
       // Do the local free
       AutoLock n_lock(node_lock);
-      for (unsigned idx = 0; idx < to_free.size(); idx++)
+      for (const FieldID& field_id : to_free)
       {
         std::map<FieldID, FieldInfo>::iterator finder =
-            field_infos.find(to_free[idx]);
+            field_infos.find(field_id);
         legion_assert(finder != field_infos.end());
         field_infos.erase(finder);
       }
@@ -2016,10 +1998,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
-      for (unsigned idx = 0; idx < to_remove.size(); idx++)
+      for (const FieldID& field_id : to_remove)
       {
         std::map<FieldID, FieldInfo>::iterator finder =
-            field_infos.find(to_remove[idx]);
+            field_infos.find(field_id);
         if (finder != field_infos.end())
           field_infos.erase(finder);
       }
@@ -2176,10 +2158,8 @@ namespace Legion {
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
           to_set.reserve(field_infos.size());
-          for (std::map<FieldID, FieldInfo>::const_iterator it =
-                   field_infos.begin();
-               it != field_infos.end(); it++)
-            to_set.emplace_back(it->first);
+          for (const std::pair<const FieldID, FieldInfo>& info : field_infos)
+            to_set.emplace_back(info.first);
           return;
         }
       }
@@ -2188,10 +2168,8 @@ namespace Legion {
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       to_set.reserve(local_infos.size());
-      for (std::map<FieldID, FieldInfo>::const_iterator it =
-               local_infos.begin();
-           it != local_infos.end(); it++)
-        to_set.emplace_back(it->first);
+      for (const std::pair<const FieldID, FieldInfo>& info : local_infos)
+        to_set.emplace_back(info.first);
     }
 
     //--------------------------------------------------------------------------
@@ -2214,16 +2192,14 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          for (std::map<FieldID, FieldInfo>::const_iterator it =
-                   field_infos.begin();
-               it != field_infos.end(); it++)
+          for (const std::pair<const FieldID, FieldInfo>& it : field_infos)
           {
-            if (mask.is_set(it->second.idx))
+            if (mask.is_set(it.second.idx))
             {
-              if (it->second.local)
-                local_indexes.insert(it->second.idx);
+              if (it.second.local)
+                local_indexes.insert(it.second.idx);
               else
-                to_set.insert(it->first);
+                to_set.insert(it.first);
             }
           }
           if (local_indexes.empty())
@@ -2237,16 +2213,14 @@ namespace Legion {
             request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-        for (std::map<FieldID, FieldInfo>::const_iterator it =
-                 local_infos.begin();
-             it != local_infos.end(); it++)
+        for (const std::pair<const FieldID, FieldInfo>& it : local_infos)
         {
-          if (mask.is_set(it->second.idx))
+          if (mask.is_set(it.second.idx))
           {
-            if (it->second.local)
-              local_indexes.insert(it->second.idx);
+            if (it.second.local)
+              local_indexes.insert(it.second.idx);
             else
-              to_set.insert(it->first);
+              to_set.insert(it.first);
           }
         }
       }
@@ -2274,16 +2248,14 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          for (std::map<FieldID, FieldInfo>::const_iterator it =
-                   field_infos.begin();
-               it != field_infos.end(); it++)
+          for (const std::pair<const FieldID, FieldInfo>& it : field_infos)
           {
-            if (mask.is_set(it->second.idx))
+            if (mask.is_set(it.second.idx))
             {
-              if (it->second.local)
-                local_indexes.insert(it->second.idx);
+              if (it.second.local)
+                local_indexes.insert(it.second.idx);
               else
-                to_set.emplace_back(it->first);
+                to_set.emplace_back(it.first);
             }
           }
           if (local_indexes.empty())
@@ -2297,16 +2269,14 @@ namespace Legion {
             request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-        for (std::map<FieldID, FieldInfo>::const_iterator it =
-                 local_infos.begin();
-             it != local_infos.end(); it++)
+        for (const std::pair<const FieldID, FieldInfo>& it : local_infos)
         {
-          if (mask.is_set(it->second.idx))
+          if (mask.is_set(it.second.idx))
           {
-            if (it->second.local)
-              local_indexes.insert(it->second.idx);
+            if (it.second.local)
+              local_indexes.insert(it.second.idx);
             else
-              to_set.emplace_back(it->first);
+              to_set.emplace_back(it.first);
           }
         }
       }
@@ -2334,11 +2304,10 @@ namespace Legion {
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
           // Only iterate over the basis fields here
-          for (std::set<FieldID>::const_iterator it = basis.begin();
-               it != basis.end(); it++)
+          for (const FieldID& fid : basis)
           {
             std::map<FieldID, FieldInfo>::const_iterator finder =
-                field_infos.find(*it);
+                field_infos.find(fid);
             legion_assert(finder != field_infos.end());
             if (mask.is_set(finder->second.idx))
               to_set.insert(finder->first);
@@ -2351,11 +2320,10 @@ namespace Legion {
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       // Only iterate over the basis fields here
-      for (std::set<FieldID>::const_iterator it = basis.begin();
-           it != basis.end(); it++)
+      for (const FieldID& fid : basis)
       {
         std::map<FieldID, FieldInfo>::const_iterator finder =
-            local_infos.find(*it);
+            local_infos.find(fid);
         legion_assert(finder != local_infos.end());
         if (mask.is_set(finder->second.idx))
           to_set.insert(finder->first);
@@ -2381,11 +2349,10 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          for (std::set<FieldID>::const_iterator it = privilege_fields.begin();
-               it != privilege_fields.end(); it++)
+          for (const FieldID& fid : privilege_fields)
           {
             std::map<FieldID, FieldInfo>::const_iterator finder =
-                field_infos.find(*it);
+                field_infos.find(fid);
             legion_assert(finder != field_infos.end());
             result.set_bit(finder->second.idx);
           }
@@ -2396,11 +2363,10 @@ namespace Legion {
       const RtEvent ready = request_field_infos_copy(&local_infos, local_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
-      for (std::set<FieldID>::const_iterator it = privilege_fields.begin();
-           it != privilege_fields.end(); it++)
+      for (const FieldID& fid : privilege_fields)
       {
         std::map<FieldID, FieldInfo>::const_iterator finder =
-            local_infos.find(*it);
+            local_infos.find(fid);
         legion_assert(finder != local_infos.end());
         result.set_bit(finder->second.idx);
       }
@@ -2579,9 +2545,8 @@ namespace Legion {
       }
       // Now we can linearize the index map without holding the lock
       unsigned idx = 0;
-      for (std::map<unsigned, unsigned>::const_iterator it = index_map.begin();
-           it != index_map.end(); it++, idx++)
-        mask_index_map[idx] = it->second;
+      for (const std::pair<const unsigned, unsigned>& it : index_map)
+        mask_index_map[idx++] = it.second;
     }
 
     //--------------------------------------------------------------------------
@@ -2987,28 +2952,24 @@ namespace Legion {
         if (finder == layouts.end())
           return nullptr;
         // Get the ones with a matching mask
-        for (std::list<LayoutDescription*>::const_iterator it =
-                 finder->second.begin();
-             it != finder->second.end(); it++)
+        for (LayoutDescription* layout : finder->second)
         {
-          if ((*it)->total_dims != num_dims)
+          if (layout->total_dims != num_dims)
             continue;
-          if ((*it)->allocated_fields == mask)
-            candidates.emplace_back(*it);
+          if (layout->allocated_fields == mask)
+            candidates.emplace_back(layout);
         }
       }
       if (candidates.empty())
         return nullptr;
       // First go through the existing descriptions and see if we find
       // one that matches the existing layout
-      for (std::deque<LayoutDescription*>::const_iterator it =
-               candidates.begin();
-           it != candidates.end(); it++)
+      for (LayoutDescription* layout : candidates)
       {
-        if ((*it)->match_layout(constraints, num_dims))
+        if (layout->match_layout(constraints, num_dims))
         {
-          (*it)->add_reference();
-          return (*it);
+          layout->add_reference();
+          return layout;
         }
       }
       return nullptr;
@@ -3025,16 +2986,14 @@ namespace Legion {
       std::map<LEGION_FIELD_MASK_FIELD_TYPE, lng::list<LayoutDescription*>>::
           const_iterator finder = layouts.find(hash_key);
       legion_assert(finder != layouts.end());
-      for (std::list<LayoutDescription*>::const_iterator it =
-               finder->second.begin();
-           it != finder->second.end(); it++)
+      for (LayoutDescription* layout : finder->second)
       {
-        if ((*it)->constraints != constraints)
+        if (layout->constraints != constraints)
           continue;
-        if ((*it)->allocated_fields != mask)
+        if (layout->allocated_fields != mask)
           continue;
-        (*it)->add_reference();
-        return (*it);
+        layout->add_reference();
+        return layout;
       }
       std::abort();
     }
@@ -3124,12 +3083,10 @@ namespace Legion {
           {
             size_t num_fields = field_infos.size();
             rez.serialize<size_t>(num_fields);
-            for (std::map<FieldID, FieldInfo>::const_iterator it =
-                     field_infos.begin();
-                 it != field_infos.end(); it++)
+            for (const std::pair<const FieldID, FieldInfo>& it : field_infos)
             {
-              rez.serialize(it->first);
-              it->second.serialize(rez);
+              rez.serialize(it.first);
+              it.second.serialize(rez);
             }
             remote_field_infos.insert(target);
           }
@@ -3450,22 +3407,20 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          for (std::map<FieldID, FieldInfo>::const_iterator it =
-                   field_infos.begin();
-               it != field_infos.end(); it++)
+          for (const std::pair<const FieldID, FieldInfo>& it : field_infos)
           {
-            if (mask.is_set(it->second.idx))
+            if (mask.is_set(it.second.idx))
             {
-              if (!it->second.local)
+              if (!it.second.local)
               {
                 if (count++)
                   result += ',';
                 char temp[32];
-                snprintf(temp, 32, "%d", it->first);
+                snprintf(temp, 32, "%d", it.first);
                 result += temp;
               }
               else
-                local_indexes.insert(it->second.idx);
+                local_indexes.insert(it.second.idx);
             }
           }
         }
@@ -3479,22 +3434,20 @@ namespace Legion {
             request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-        for (std::map<FieldID, FieldInfo>::const_iterator it =
-                 local_infos.begin();
-             it != local_infos.end(); it++)
+        for (const std::pair<const FieldID, FieldInfo>& it : local_infos)
         {
-          if (mask.is_set(it->second.idx))
+          if (mask.is_set(it.second.idx))
           {
-            if (!it->second.local)
+            if (!it.second.local)
             {
               if (count++)
                 result += ',';
               char temp[32];
-              snprintf(temp, 32, "%d", it->first);
+              snprintf(temp, 32, "%d", it.first);
               result += temp;
             }
             else
-              local_indexes.insert(it->second.idx);
+              local_indexes.insert(it.second.idx);
           }
         }
       }
@@ -3502,13 +3455,12 @@ namespace Legion {
       {
         std::vector<FieldID> local_fields;
         ctx->get_local_field_set(handle, local_indexes, local_fields);
-        for (std::vector<FieldID>::const_iterator it = local_fields.begin();
-             it != local_fields.end(); it++)
+        for (const FieldID& it : local_fields)
         {
           if (count++)
             result += ',';
           char temp[32];
-          snprintf(temp, 32, "%d", *it);
+          snprintf(temp, 32, "%d", it);
           result += temp;
         }
       }
@@ -3608,10 +3560,9 @@ namespace Legion {
         FindTargetsFunctor functor(targets);
         map_over_remote_instances(functor);
         std::set<RtEvent> remote_ready;
-        for (std::deque<AddressSpaceID>::const_iterator it = targets.begin();
-             it != targets.end(); it++)
+        for (const AddressSpaceID& target : targets)
         {
-          if ((*it) == source)
+          if (target == source)
             continue;
           RtUserEvent remote_done = Runtime::create_rt_user_event();
           FieldSpaceLayoutInvalidation rez;
@@ -3622,20 +3573,19 @@ namespace Legion {
             rez.serialize(remote_done);
           }
           pack_global_ref();
-          rez.dispatch(*it);
+          rez.dispatch(target);
           applied.insert(remote_done);
         }
       }
       std::vector<LEGION_FIELD_MASK_FIELD_TYPE> to_delete;
-      for (std::map<
-               LEGION_FIELD_MASK_FIELD_TYPE,
-               lng::list<LayoutDescription*>>::iterator lit = layouts.begin();
-           lit != layouts.end(); lit++)
+      for (std::pair<
+               const LEGION_FIELD_MASK_FIELD_TYPE,
+               lng::list<LayoutDescription*>>& lit : layouts)
       {
         // If the bit is set, remove the layout descriptions
-        if (lit->first & (1ULL << index))
+        if (lit.first & (1ULL << index))
         {
-          lng::list<LayoutDescription*>& descs = lit->second;
+          lng::list<LayoutDescription*>& descs = lit.second;
           bool perform_delete = true;
           for (lng::list<LayoutDescription*>::iterator it = descs.begin();
                it != descs.end();
@@ -3654,13 +3604,11 @@ namespace Legion {
             }
           }
           if (perform_delete)
-            to_delete.emplace_back(lit->first);
+            to_delete.emplace_back(lit.first);
         }
       }
-      for (std::vector<LEGION_FIELD_MASK_FIELD_TYPE>::const_iterator it =
-               to_delete.begin();
-           it != to_delete.end(); it++)
-        layouts.erase(*it);
+      for (const LEGION_FIELD_MASK_FIELD_TYPE& it : to_delete)
+        layouts.erase(it);
     }
 
     //--------------------------------------------------------------------------
@@ -3722,12 +3670,11 @@ namespace Legion {
                 RezCheck z(rez);
                 rez.serialize(copy);
                 rez.serialize<size_t>(field_infos.size());
-                for (std::map<FieldID, FieldInfo>::const_iterator it =
-                         field_infos.begin();
-                     it != field_infos.end(); it++)
+                for (const std::pair<const FieldID, FieldInfo>& it :
+                     field_infos)
                 {
-                  rez.serialize(it->first);
-                  it->second.serialize(rez);
+                  rez.serialize(it.first);
+                  it.second.serialize(rez);
                 }
                 std::set<AddressSpaceID>::const_iterator finder =
                     remote_field_infos.find(source);
@@ -3766,12 +3713,11 @@ namespace Legion {
                 RezCheck z(rez);
                 rez.serialize(copy);
                 rez.serialize<size_t>(field_infos.size());
-                for (std::map<FieldID, FieldInfo>::const_iterator it =
-                         field_infos.begin();
-                     it != field_infos.end(); it++)
+                for (const std::pair<const FieldID, FieldInfo>& it :
+                     field_infos)
                 {
-                  rez.serialize(it->first);
-                  it->second.serialize(rez);
+                  rez.serialize(it.first);
+                  it.second.serialize(rez);
                 }
                 rez.serialize(FieldSpace::NO_SPACE);
                 rez.serialize(to_trigger);
@@ -3805,12 +3751,10 @@ namespace Legion {
               RezCheck z(rez);
               rez.serialize(copy);
               rez.serialize<size_t>(field_infos.size());
-              for (std::map<FieldID, FieldInfo>::const_iterator it =
-                       field_infos.begin();
-                   it != field_infos.end(); it++)
+              for (const std::pair<const FieldID, FieldInfo>& it : field_infos)
               {
-                rez.serialize(it->first);
-                it->second.serialize(rez);
+                rez.serialize(it.first);
+                it.second.serialize(rez);
               }
               // We can't give them read-only privileges
               rez.serialize(FieldSpace::NO_SPACE);
@@ -4010,11 +3954,9 @@ namespace Legion {
             derez.deserialize(next.first);
             derez.deserialize(next.second);
             bool found = false;
-            for (std::list<std::pair<unsigned, RtEvent>>::const_iterator it =
-                     available_indexes.begin();
-                 it != available_indexes.end(); it++)
+            for (const std::pair<unsigned, RtEvent>& it : available_indexes)
             {
-              if (it->first != next.first)
+              if (it.first != next.first)
                 continue;
               found = true;
               break;

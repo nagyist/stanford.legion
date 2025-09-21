@@ -486,7 +486,7 @@ namespace Legion {
         if (non_dominated != current_to_filter.get_valid_mask())
         {
           // Selectively filter
-          std::vector<PhysicalUser*> to_delete;
+          local::vector<PhysicalUser*> to_delete;
           for (local::FieldMaskMap<PhysicalUser>::iterator it =
                    current_to_filter.begin();
                it != current_to_filter.end(); it++)
@@ -495,13 +495,11 @@ namespace Legion {
             if (!it->second)
               to_delete.emplace_back(it->first);
           }
-          for (std::vector<PhysicalUser*>::const_iterator it =
-                   to_delete.begin();
-               it != to_delete.end(); it++)
+          for (PhysicalUser* user : to_delete)
           {
-            current_to_filter.erase(*it);
-            if ((*it)->remove_reference())
-              delete (*it);
+            current_to_filter.erase(user);
+            if (user->remove_reference())
+              delete user;
           }
           current_to_filter.tighten_valid_mask();
           return;
@@ -523,28 +521,27 @@ namespace Legion {
     {
       // Don't do this if we are in Legion Spy since we want to see
       // all of the dependences on an instance
-      for (std::set<PhysicalUser*>::const_iterator it = dead_users.begin();
-           it != dead_users.end(); it++)
+      for (PhysicalUser* const physical_user : dead_users)
       {
         unsigned refs_to_remove = 1;
         if (spy_logging_level <= LIGHT_SPY_LOGGING)
         {
           shrt::FieldMaskMap<PhysicalUser>::iterator finder =
-              current_epoch_users.find(*it);
+              current_epoch_users.find(physical_user);
           if (finder != current_epoch_users.end())
           {
             current_epoch_users.erase(finder);
             refs_to_remove++;
           }
-          finder = previous_epoch_users.find(*it);
+          finder = previous_epoch_users.find(physical_user);
           if (finder != previous_epoch_users.end())
           {
             previous_epoch_users.erase(finder);
             refs_to_remove++;
           }
         }
-        if ((*it)->remove_reference(refs_to_remove))
-          delete (*it);
+        if (physical_user->remove_reference(refs_to_remove))
+          delete physical_user;
       }
     }
 
@@ -1118,10 +1115,9 @@ namespace Legion {
         const ApEvent all_done = Runtime::merge_events(nullptr, done_events);
         // No need for the lock here since we should be in a destructor
         // and there should be no more races
-        for (std::map<unsigned, Reservation>::iterator it =
-                 view_reservations.begin();
-             it != view_reservations.end(); it++)
-          it->second.destroy_reservation(all_done);
+        for (std::pair<const unsigned, Reservation>& reservation :
+             view_reservations)
+          reservation.second.destroy_reservation(all_done);
       }
       for (lng::FieldMaskMap<NodeView>::const_iterator it = roots.begin();
            it != roots.end(); it++)
@@ -2324,14 +2320,13 @@ namespace Legion {
           expr->add_nested_expression_reference(did);
           if (!finder->second.remote_ready_events.empty())
           {
-            for (std::map<ApUserEvent, PhysicalTraceInfo*>::const_iterator it =
-                     finder->second.remote_ready_events.begin();
-                 it != finder->second.remote_ready_events.end(); it++)
+            for (const std::pair<const ApUserEvent, PhysicalTraceInfo*>& it :
+                 finder->second.remote_ready_events)
             {
               Runtime::trigger_event(
-                  it->first, finder->second.ready_event, *it->second,
+                  it.first, finder->second.ready_event, *it.second,
                   applied_events);
-              delete it->second;
+              delete it.second;
             }
             finder->second.remote_ready_events.clear();
           }
@@ -2714,9 +2709,8 @@ namespace Legion {
           rez.serialize(mask);
           rez.serialize(reservations);
           rez.serialize<size_t>(results.size());
-          for (std::vector<Reservation>::const_iterator it = results.begin();
-               it != results.end(); it++)
-            rez.serialize(*it);
+          for (const Reservation& reservation : results)
+            rez.serialize(reservation);
           rez.serialize(to_trigger);
         }
         rez.dispatch(source);
@@ -2934,9 +2928,7 @@ namespace Legion {
           RezCheck z2(rez);
           rez.serialize(target);
           rez.serialize<size_t>(result.size());
-          for (std::set<ApEvent>::const_iterator it = result.begin();
-               it != result.end(); it++)
-            rez.serialize(*it);
+          for (const ApEvent& ap_event : result) rez.serialize(ap_event);
           rez.serialize(done);
           if (!applied.empty())
             rez.serialize(Runtime::merge_events(applied));
