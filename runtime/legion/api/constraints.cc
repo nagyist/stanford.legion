@@ -258,9 +258,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     rez.serialize<size_t>(valid_kinds.size());
-    for (std::vector<Processor::Kind>::const_iterator it = valid_kinds.begin();
-         it != valid_kinds.end(); it++)
-      rez.serialize(*it);
+    for (const Processor::Kind& kind : valid_kinds) rez.serialize(kind);
   }
 
   //--------------------------------------------------------------------------
@@ -453,13 +451,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     rez.serialize<size_t>(indexes.size());
-    for (std::set<unsigned>::const_iterator it = indexes.begin();
-         it != indexes.end(); it++)
-      rez.serialize(*it);
+    for (const unsigned& index : indexes) rez.serialize(index);
     rez.serialize<size_t>(fields.size());
-    for (std::set<FieldID>::const_iterator it = fields.begin();
-         it != fields.end(); it++)
-      rez.serialize(*it);
+    for (const FieldID& field : fields) rez.serialize(field);
   }
 
   //--------------------------------------------------------------------------
@@ -562,12 +556,11 @@ namespace Legion {
   {
     isa_constraint.serialize(rez);
     processor_constraint.serialize(rez);
-#define PACK_CONSTRAINTS(Type, constraints)                        \
-  rez.serialize<size_t>(constraints.size());                       \
-  for (std::vector<Type>::const_iterator it = constraints.begin(); \
-       it != constraints.end(); it++)                              \
-  {                                                                \
-    it->serialize(rez);                                            \
+#define PACK_CONSTRAINTS(Type, constraints)  \
+  rez.serialize<size_t>(constraints.size()); \
+  for (const Type& constraint : constraints) \
+  {                                          \
+    constraint.serialize(rez);               \
   }
     PACK_CONSTRAINTS(ResourceConstraint, resource_constraints)
     PACK_CONSTRAINTS(LaunchConstraint, launch_constraints)
@@ -581,16 +574,15 @@ namespace Legion {
   {
     isa_constraint.deserialize(derez);
     processor_constraint.deserialize(derez);
-#define UNPACK_CONSTRAINTS(Type, constraints)                  \
-  {                                                            \
-    size_t constraint_size;                                    \
-    derez.deserialize(constraint_size);                        \
-    constraints.resize(constraint_size);                       \
-    for (std::vector<Type>::iterator it = constraints.begin(); \
-         it != constraints.end(); it++)                        \
-    {                                                          \
-      it->deserialize(derez);                                  \
-    }                                                          \
+#define UNPACK_CONSTRAINTS(Type, constraints) \
+  {                                           \
+    size_t constraint_size;                   \
+    derez.deserialize(constraint_size);       \
+    constraints.resize(constraint_size);      \
+    for (Type & constraint : constraints)     \
+    {                                         \
+      constraint.deserialize(derez);          \
+    }                                         \
   }
     UNPACK_CONSTRAINTS(ResourceConstraint, resource_constraints)
     UNPACK_CONSTRAINTS(LaunchConstraint, launch_constraints)
@@ -898,14 +890,14 @@ namespace Legion {
     }
     // Find the indexes of the other fields in our set
     std::vector<unsigned> field_indexes(other.field_set.size());
-    unsigned local_idx = 0;
-    for (std::vector<FieldID>::const_iterator it = other.field_set.begin();
-         it != other.field_set.end(); it++, local_idx++)
+    for (unsigned local_idx = 0; local_idx < other.field_set.size();
+         local_idx++)
     {
+      const FieldID& field = other.field_set[local_idx];
       bool found = false;
       for (unsigned idx = 0; idx < field_set.size(); idx++)
       {
-        if (field_set[idx] == (*it))
+        if (field_set[idx] == field)
         {
           field_indexes[local_idx] = idx;
           found = true;
@@ -941,15 +933,14 @@ namespace Legion {
         std::set<unsigned> sorted_indexes(
             field_indexes.begin(), field_indexes.end());
         int previous = -1;
-        for (std::set<unsigned>::const_iterator it = sorted_indexes.begin();
-             it != sorted_indexes.end(); it++)
+        for (const unsigned& index : sorted_indexes)
         {
           if (previous != -1)
           {
-            if ((previous + 1) != int(*it))
+            if ((previous + 1) != int(index))
               return false;
           }
-          previous = (*it);
+          previous = (index);
         }
         return true;
       }
@@ -1080,9 +1071,7 @@ namespace Legion {
     rez.serialize<bool>(contiguous);
     rez.serialize<bool>(inorder);
     rez.serialize<size_t>(field_set.size());
-    for (std::vector<FieldID>::const_iterator it = field_set.begin();
-         it != field_set.end(); it++)
-      rez.serialize(*it);
+    for (const FieldID& field : field_set) rez.serialize(field);
   }
 
   //--------------------------------------------------------------------------
@@ -1094,9 +1083,7 @@ namespace Legion {
     size_t num_orders;
     derez.deserialize(num_orders);
     field_set.resize(num_orders);
-    for (std::vector<FieldID>::iterator it = field_set.begin();
-         it != field_set.end(); it++)
-      derez.deserialize(*it);
+    for (FieldID& field : field_set) derez.deserialize(field);
   }
 
   /////////////////////////////////////////////////////////////
@@ -1125,16 +1112,15 @@ namespace Legion {
     // See if we have all the dimensions
     std::vector<unsigned> dim_indexes(ordering.size());
     unsigned local_idx = 0;
-    for (std::vector<DimensionKind>::const_iterator it = other.ordering.begin();
-         it != other.ordering.end(); it++)
+    for (const DimensionKind& dim : other.ordering)
     {
       // See if this is a dimension we are still considering
-      if (is_skip_dimension(*it, total_dims))
+      if (is_skip_dimension(dim, total_dims))
         continue;
       bool found = false;
       for (unsigned idx = 0; idx < ordering.size(); idx++)
       {
-        if (ordering[idx] == (*it))
+        if (ordering[idx] == (dim))
         {
           dim_indexes[local_idx] = idx;
           // If they aren't in the same order, it is no good
@@ -1159,16 +1145,15 @@ namespace Legion {
       // See if the indexes are contiguous
       std::set<unsigned> sorted_indexes(dim_indexes.begin(), dim_indexes.end());
       int previous = -1;
-      for (std::set<unsigned>::const_iterator it = sorted_indexes.begin();
-           it != sorted_indexes.end(); it++)
+      for (const unsigned& index : sorted_indexes)
       {
         if (previous != -1)
         {
           // Not contiguous
-          if ((previous + 1) != int(*it))
+          if ((previous + 1) != int(index))
             return false;
         }
-        previous = (*it);
+        previous = (index);
       }
       return true;
     }
@@ -1188,11 +1173,10 @@ namespace Legion {
     if (contiguous && other.contiguous)
     {
       int previous_idx = -1;
-      for (std::vector<DimensionKind>::const_iterator it = ordering.begin();
-           it != ordering.end(); it++)
+      for (const DimensionKind& dim : ordering)
       {
         // See if we can skip this dimesion
-        if (is_skip_dimension(*it, total_dims))
+        if (is_skip_dimension(dim, total_dims))
           continue;
         int next_idx = -1;
         unsigned skipped_dims = 0;
@@ -1204,7 +1188,7 @@ namespace Legion {
             skipped_dims++;
             continue;
           }
-          if ((*it) == other.ordering[idx])
+          if ((dim) == other.ordering[idx])
           {
             // don't include skipped dimensions
             next_idx = idx - skipped_dims;
@@ -1229,11 +1213,10 @@ namespace Legion {
     else
     {
       int previous_idx = -1;
-      for (std::vector<DimensionKind>::const_iterator it = ordering.begin();
-           it != ordering.end(); it++)
+      for (const DimensionKind& dim : ordering)
       {
         // See if we can skip this dimension
-        if (is_skip_dimension(*it, total_dims))
+        if (is_skip_dimension(dim, total_dims))
           continue;
         int next_idx = -1;
         unsigned skipped_dims = 0;
@@ -1244,7 +1227,7 @@ namespace Legion {
             skipped_dims++;
             continue;
           }
-          if ((*it) == other.ordering[idx])
+          if ((dim) == other.ordering[idx])
           {
             // Don't include skipped dimensions
             next_idx = idx - skipped_dims;
@@ -1278,9 +1261,7 @@ namespace Legion {
   {
     rez.serialize(contiguous);
     rez.serialize<size_t>(ordering.size());
-    for (std::vector<DimensionKind>::const_iterator it = ordering.begin();
-         it != ordering.end(); it++)
-      rez.serialize(*it);
+    for (const DimensionKind& dim : ordering) rez.serialize(dim);
   }
 
   //--------------------------------------------------------------------------
@@ -1291,9 +1272,7 @@ namespace Legion {
     size_t num_orders;
     derez.deserialize(num_orders);
     ordering.resize(num_orders);
-    for (std::vector<DimensionKind>::iterator it = ordering.begin();
-         it != ordering.end(); it++)
-      derez.deserialize(*it);
+    for (DimensionKind& dim : ordering) derez.deserialize(dim);
   }
 
   //--------------------------------------------------------------------------
@@ -1942,11 +1921,9 @@ namespace Legion {
     for (unsigned idx = 0; idx < tiling_constraints.size(); idx++)
     {
       bool found = false;
-      for (std::vector<TilingConstraint>::const_iterator it =
-               other.tiling_constraints.begin();
-           it != other.tiling_constraints.end(); it++)
+      for (const TilingConstraint& constraint : other.tiling_constraints)
       {
-        if (tiling_constraints[idx] != *it)
+        if (tiling_constraints[idx] != constraint)
           continue;
         found = true;
         break;
@@ -1971,11 +1948,9 @@ namespace Legion {
     for (unsigned idx = 0; idx < dimension_constraints.size(); idx++)
     {
       bool found = false;
-      for (std::vector<DimensionConstraint>::const_iterator it =
-               other.dimension_constraints.begin();
-           it != other.dimension_constraints.end(); it++)
+      for (const DimensionConstraint& constraint : other.dimension_constraints)
       {
-        if (dimension_constraints[idx] != *it)
+        if (dimension_constraints[idx] != constraint)
           continue;
         found = true;
         break;
@@ -2000,11 +1975,9 @@ namespace Legion {
     for (unsigned idx = 0; idx < alignment_constraints.size(); idx++)
     {
       bool found = false;
-      for (std::vector<AlignmentConstraint>::const_iterator it =
-               other.alignment_constraints.begin();
-           it != other.alignment_constraints.end(); it++)
+      for (const AlignmentConstraint& constraint : other.alignment_constraints)
       {
-        if (alignment_constraints[idx] != *it)
+        if (alignment_constraints[idx] != constraint)
           continue;
         found = true;
         break;
@@ -2029,11 +2002,9 @@ namespace Legion {
     for (unsigned idx = 0; idx < offset_constraints.size(); idx++)
     {
       bool found = false;
-      for (std::vector<OffsetConstraint>::const_iterator it =
-               other.offset_constraints.begin();
-           it != other.offset_constraints.end(); it++)
+      for (const OffsetConstraint& constraint : other.offset_constraints)
       {
-        if (offset_constraints[idx] != *it)
+        if (offset_constraints[idx] != constraint)
           continue;
         found = true;
         break;
@@ -2092,14 +2063,12 @@ namespace Legion {
         *failed = &other.ordering_constraint;
       return false;
     }
-    for (std::vector<TilingConstraint>::const_iterator it =
-             other.tiling_constraints.begin();
-         it != other.tiling_constraints.end(); it++)
+    for (const TilingConstraint& constraint : other.tiling_constraints)
     {
       bool entailed = false;
       for (unsigned idx = 0; idx < tiling_constraints.size(); idx++)
       {
-        if (tiling_constraints[idx].entails(*it))
+        if (tiling_constraints[idx].entails(constraint))
         {
           entailed = true;
           break;
@@ -2108,18 +2077,16 @@ namespace Legion {
       if (!entailed)
       {
         if (failed != nullptr)
-          *failed = &(*it);
+          *failed = &constraint;
         return false;
       }
     }
-    for (std::vector<DimensionConstraint>::const_iterator it =
-             other.dimension_constraints.begin();
-         it != other.dimension_constraints.end(); it++)
+    for (const DimensionConstraint& constraint : other.dimension_constraints)
     {
       bool entailed = false;
       for (unsigned idx = 0; idx < dimension_constraints.size(); idx++)
       {
-        if (dimension_constraints[idx].entails(*it))
+        if (dimension_constraints[idx].entails(constraint))
         {
           entailed = true;
           break;
@@ -2128,18 +2095,16 @@ namespace Legion {
       if (!entailed)
       {
         if (failed != nullptr)
-          *failed = &(*it);
+          *failed = &constraint;
         return false;
       }
     }
-    for (std::vector<AlignmentConstraint>::const_iterator it =
-             other.alignment_constraints.begin();
-         it != other.alignment_constraints.end(); it++)
+    for (const AlignmentConstraint& constraint : other.alignment_constraints)
     {
       bool entailed = false;
       for (unsigned idx = 0; idx < alignment_constraints.size(); idx++)
       {
-        if (alignment_constraints[idx].entails(*it))
+        if (alignment_constraints[idx].entails(constraint))
         {
           entailed = true;
           break;
@@ -2148,18 +2113,16 @@ namespace Legion {
       if (!entailed)
       {
         if (failed != nullptr)
-          *failed = &(*it);
+          *failed = &constraint;
         return false;
       }
     }
-    for (std::vector<OffsetConstraint>::const_iterator it =
-             other.offset_constraints.begin();
-         it != other.offset_constraints.end(); it++)
+    for (const OffsetConstraint& constraint : other.offset_constraints)
     {
       bool entailed = false;
       for (unsigned idx = 0; idx < offset_constraints.size(); idx++)
       {
-        if (offset_constraints[idx].entails(*it))
+        if (offset_constraints[idx].entails(constraint))
         {
           entailed = true;
           break;
@@ -2168,7 +2131,7 @@ namespace Legion {
       if (!entailed)
       {
         if (failed != nullptr)
-          *failed = &(*it);
+          *failed = &constraint;
         return false;
       }
     }
@@ -2218,51 +2181,43 @@ namespace Legion {
         *conflict = &ordering_constraint;
       return true;
     }
-    for (std::vector<TilingConstraint>::const_iterator it =
-             tiling_constraints.begin();
-         it != tiling_constraints.end(); it++)
+    for (const TilingConstraint& constraint : tiling_constraints)
     {
       for (unsigned idx = 0; idx < other.tiling_constraints.size(); idx++)
-        if (it->conflicts(other.tiling_constraints[idx]))
+        if (constraint.conflicts(other.tiling_constraints[idx]))
         {
           if (conflict != nullptr)
-            *conflict = &(*it);
+            *conflict = &constraint;
           return true;
         }
     }
-    for (std::vector<DimensionConstraint>::const_iterator it =
-             dimension_constraints.begin();
-         it != dimension_constraints.end(); it++)
+    for (const DimensionConstraint& constraint : dimension_constraints)
     {
       for (unsigned idx = 0; idx < other.dimension_constraints.size(); idx++)
-        if (it->conflicts(other.dimension_constraints[idx]))
+        if (constraint.conflicts(other.dimension_constraints[idx]))
         {
           if (conflict != nullptr)
-            *conflict = &(*it);
+            *conflict = &constraint;
           return true;
         }
     }
-    for (std::vector<AlignmentConstraint>::const_iterator it =
-             alignment_constraints.begin();
-         it != alignment_constraints.end(); it++)
+    for (const AlignmentConstraint& constraint : alignment_constraints)
     {
       for (unsigned idx = 0; idx < other.alignment_constraints.size(); idx++)
-        if (it->conflicts(other.alignment_constraints[idx]))
+        if (constraint.conflicts(other.alignment_constraints[idx]))
         {
           if (conflict != nullptr)
-            *conflict = &(*it);
+            *conflict = &constraint;
           return true;
         }
     }
-    for (std::vector<OffsetConstraint>::const_iterator it =
-             offset_constraints.begin();
-         it != offset_constraints.end(); it++)
+    for (const OffsetConstraint& constraint : offset_constraints)
     {
       for (unsigned idx = 0; idx < other.offset_constraints.size(); idx++)
-        if (it->conflicts(other.offset_constraints[idx]))
+        if (constraint.conflicts(other.offset_constraints[idx]))
         {
           if (conflict != nullptr)
-            *conflict = &(*it);
+            *conflict = &constraint;
           return true;
         }
     }
@@ -2328,12 +2283,11 @@ namespace Legion {
     pointer_constraint.serialize(rez);
     padding_constraint.serialize(rez);
     ordering_constraint.serialize(rez);
-#define PACK_CONSTRAINTS(Type, constraints)                        \
-  rez.serialize<size_t>(constraints.size());                       \
-  for (std::vector<Type>::const_iterator it = constraints.begin(); \
-       it != constraints.end(); it++)                              \
-  {                                                                \
-    it->serialize(rez);                                            \
+#define PACK_CONSTRAINTS(Type, constraints)  \
+  rez.serialize<size_t>(constraints.size()); \
+  for (const Type& constraint : constraints) \
+  {                                          \
+    constraint.serialize(rez);               \
   }
     PACK_CONSTRAINTS(TilingConstraint, tiling_constraints)
     PACK_CONSTRAINTS(DimensionConstraint, dimension_constraints)
@@ -2352,16 +2306,15 @@ namespace Legion {
     pointer_constraint.deserialize(derez);
     padding_constraint.deserialize(derez);
     ordering_constraint.deserialize(derez);
-#define UNPACK_CONSTRAINTS(Type, constraints)                  \
-  {                                                            \
-    size_t constraint_size;                                    \
-    derez.deserialize(constraint_size);                        \
-    constraints.resize(constraint_size);                       \
-    for (std::vector<Type>::iterator it = constraints.begin(); \
-         it != constraints.end(); it++)                        \
-    {                                                          \
-      it->deserialize(derez);                                  \
-    }                                                          \
+#define UNPACK_CONSTRAINTS(Type, constraints) \
+  {                                           \
+    size_t constraint_size;                   \
+    derez.deserialize(constraint_size);       \
+    constraints.resize(constraint_size);      \
+    for (Type & constraint : constraints)     \
+    {                                         \
+      constraint.deserialize(derez);          \
+    }                                         \
   }
     UNPACK_CONSTRAINTS(TilingConstraint, tiling_constraints)
     UNPACK_CONSTRAINTS(DimensionConstraint, dimension_constraints)
@@ -2395,12 +2348,10 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     rez.serialize<size_t>(layouts.size());
-    for (std::multimap<unsigned, LayoutConstraintID>::const_iterator it =
-             layouts.begin();
-         it != layouts.end(); it++)
+    for (const std::pair<const unsigned, LayoutConstraintID>& layout : layouts)
     {
-      rez.serialize(it->first);
-      rez.serialize(it->second);
+      rez.serialize(layout.first);
+      rez.serialize(layout.second);
     }
   }
 

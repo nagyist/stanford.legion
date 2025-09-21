@@ -1156,9 +1156,7 @@ namespace Legion {
       PointInRectIterator(const Rect<DIM, COORD_T>& r, bool column_major_order)
     : itr(Realm::PointInRectIterator<DIM, COORD_T>(r, column_major_order))
   //----------------------------------------------------------------------------
-  {
-    assert(valid());
-  }
+  { }
 
   //----------------------------------------------------------------------------
   template<int DIM, typename COORD_T>

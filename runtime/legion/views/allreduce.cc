@@ -186,8 +186,7 @@ namespace Legion {
       ApBarrier trace_barrier;
       ShardID trace_shard = 0;
       const UniqueInst local_inst(local_view);
-      for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-           it != children.end(); it++)
+      for (const AddressSpaceID& child : children)
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -201,8 +200,8 @@ namespace Legion {
             rez.serialize(local_reservations[idx]);
           rez.serialize(reduce_pre);
           rez.serialize(predicate_guard);
-          copy_expression->pack_expression(rez, *it);
-          op->pack_remote_operation(rez, *it, applied_events);
+          copy_expression->pack_expression(rez, child);
+          op->pack_remote_operation(rez, child, applied_events);
           rez.serialize(index);
           rez.serialize(copy_mask);
           rez.serialize(dst_mask);
@@ -233,7 +232,7 @@ namespace Legion {
           rez.serialize(origin);
           rez.serialize(collective_kind);
         }
-        rez.dispatch(*it);
+        rez.dispatch(child);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -632,8 +631,7 @@ namespace Legion {
       collective_mapping->get_children(origin, local_space, children);
       ApBarrier trace_barrier;
       ShardID trace_shard = 0;
-      for (std::vector<AddressSpaceID>::const_iterator it = children.begin();
-           it != children.end(); it++)
+      for (const AddressSpaceID& child : children)
       {
         const RtUserEvent recorded = Runtime::create_rt_user_event();
         const RtUserEvent applied = Runtime::create_rt_user_event();
@@ -647,8 +645,8 @@ namespace Legion {
             rez.serialize(reservations[idx]);
           rez.serialize(precondition);
           rez.serialize(predicate_guard);
-          copy_expression->pack_expression(rez, *it);
-          op->pack_remote_operation(rez, *it, applied_events);
+          copy_expression->pack_expression(rez, child);
+          op->pack_remote_operation(rez, child, applied_events);
           rez.serialize(index);
           rez.serialize(copy_mask);
           rez.serialize(dst_mask);
@@ -676,7 +674,7 @@ namespace Legion {
           }
           rez.serialize(origin);
         }
-        rez.dispatch(*it);
+        rez.dispatch(child);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
@@ -908,10 +906,9 @@ namespace Legion {
       {
         // Check that there is at least two instances on every node
         std::vector<unsigned> counts(collective_mapping->size(), 0);
-        for (std::vector<DistributedID>::const_iterator it = instances.begin();
-             it != instances.end(); it++)
+        for (const DistributedID& it : instances)
         {
-          const AddressSpaceID owner = runtime->determine_owner(*it);
+          const AddressSpaceID owner = runtime->determine_owner(it);
           legion_assert(collective_mapping->contains(owner));
           const unsigned index = collective_mapping->find_index(owner);
           counts[index]++;
@@ -1756,34 +1753,33 @@ namespace Legion {
         const LgEvent dst_unique_event =
             local_views[dst_index]->manager->get_unique_event();
         // Now we can perform any copies that we received
-        for (std::vector<AllReduceCopy>::const_iterator it = to_perform.begin();
-             it != to_perform.end(); it++)
+        for (const AllReduceCopy& it : to_perform)
         {
           const ApEvent pre = Runtime::merge_events(
-              &trace_info, it->src_precondition, dst_precondition);
+              &trace_info, it.src_precondition, dst_precondition);
           const ApEvent post = copy_expression->issue_copy(
-              op, trace_info, dst_fields, it->src_fields, reservations,
-              it->src_inst.tid, dst_inst.tid, pre, predicate_guard,
-              it->src_unique_event, dst_unique_event,
+              op, trace_info, dst_fields, it.src_fields, reservations,
+              it.src_inst.tid, dst_inst.tid, pre, predicate_guard,
+              it.src_unique_event, dst_unique_event,
               COLLECTIVE_BUTTERFLY_ALLREDUCE, false /*copy restricted*/);
           if (trace_info.recording)
             trace_info.record_copy_insts(
-                post, copy_expression, it->src_inst, dst_inst, copy_mask,
+                post, copy_expression, it.src_inst, dst_inst, copy_mask,
                 copy_mask, redop, applied_events);
-          if (it->barrier_postcondition.exists())
+          if (it.barrier_postcondition.exists())
           {
             runtime->phase_barrier_arrive(
-                it->barrier_postcondition, 1 /*count*/, post);
+                it.barrier_postcondition, 1 /*count*/, post);
             if (trace_info.recording)
               trace_info.record_barrier_arrival(
-                  it->barrier_postcondition, post, 1 /*count*/, applied_events,
-                  it->barrier_shard);
+                  it.barrier_postcondition, post, 1 /*count*/, applied_events,
+                  it.barrier_shard);
           }
           else
           {
-            legion_assert(it->src_postcondition.exists());
+            legion_assert(it.src_postcondition.exists());
             Runtime::trigger_event(
-                it->src_postcondition, post, trace_info, applied_events);
+                it.src_postcondition, post, trace_info, applied_events);
           }
           if (post.exists())
             dst_events.emplace_back(post);

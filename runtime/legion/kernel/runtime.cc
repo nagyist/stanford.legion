@@ -475,14 +475,13 @@ namespace Legion {
       }
       legion_assert(utility_group.exists());
       // For each of the processors in our local set construct a manager
-      for (std::set<Processor>::const_iterator it = local_procs.begin();
-           it != local_procs.end(); it++)
+      for (const Processor& proc : local_procs)
       {
-        legion_assert((*it).kind() != Processor::UTIL_PROC);
+        legion_assert(proc.kind() != Processor::UTIL_PROC);
         ProcessorManager* manager = new ProcessorManager(
-            *it, (*it).kind(), LEGION_DEFAULT_MAPPER_SLOTS, stealing_disabled,
+            proc, proc.kind(), LEGION_DEFAULT_MAPPER_SLOTS, stealing_disabled,
             !replay_file.empty());
-        proc_managers[*it] = manager;
+        proc_managers[proc] = manager;
       }
       // Register our meta tasks
 #define META_TASK_REGISTRATION(kind, type, name)   \
@@ -570,47 +569,40 @@ namespace Legion {
       delete mapper_runtime;
       // Avoid duplicate deletions on these for separate runtime
       // instances by just leaking them for now
-      for (std::map<ProjectionID, ProjectionFunction*>::iterator it =
-               projection_functions.begin();
-           it != projection_functions.end(); it++)
+      for (std::pair<const ProjectionID, ProjectionFunction*>& proj_pair :
+           projection_functions)
       {
-        delete it->second;
+        delete proj_pair.second;
       }
       projection_functions.clear();
-      for (std::map<ShardingID, ShardingFunctor*>::iterator it =
-               sharding_functors.begin();
-           it != sharding_functors.end(); it++)
+      for (std::pair<const ShardingID, ShardingFunctor*>& shard_pair :
+           sharding_functors)
       {
-        delete it->second;
+        delete shard_pair.second;
       }
       sharding_functors.clear();
-      for (std::map<ConcurrentID, ConcurrentColoringFunctor*>::iterator it =
-               concurrent_functors.begin();
-           it != concurrent_functors.end(); it++)
-        delete it->second;
+      for (std::pair<const ConcurrentID, ConcurrentColoringFunctor*>&
+               conc_pair : concurrent_functors)
+        delete conc_pair.second;
       concurrent_functors.clear();
-      for (std::map<ExceptionHandlerID, ExceptionHandler*>::iterator it =
-               exception_handlers.begin();
-           it != exception_handlers.end(); it++)
-        delete it->second;
+      for (std::pair<const ExceptionHandlerID, ExceptionHandler*>& exc_pair :
+           exception_handlers)
+        delete exc_pair.second;
       exception_handlers.clear();
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
+      for (const std::pair<const Processor, ProcessorManager*>& proc_pair :
+           proc_managers)
       {
-        delete it->second;
+        delete proc_pair.second;
       }
       proc_managers.clear();
-      for (std::map<TaskID, TaskImpl*>::const_iterator it = task_table.begin();
-           it != task_table.end(); it++)
+      for (const std::pair<const TaskID, TaskImpl*>& task_pair : task_table)
       {
-        delete (it->second);
+        delete task_pair.second;
       }
       task_table.clear();
-      for (std::deque<VariantImpl*>::const_iterator it = variant_table.begin();
-           it != variant_table.end(); it++)
+      for (VariantImpl* const & variant : variant_table)
       {
-        delete (*it);
+        delete variant;
       }
       variant_table.clear();
       // Skip this if we are in separate runtime mode
@@ -652,18 +644,16 @@ namespace Legion {
                  git->second.begin();
              it != git->second.end(); it++)
           it->processor_group.destroy();
-      for (std::map<Memory, MemoryManager*>::const_iterator it =
-               memory_managers.begin();
-           it != memory_managers.end(); it++)
+      for (const std::pair<const Memory, MemoryManager*>& mem_pair :
+           memory_managers)
       {
-        delete it->second;
+        delete mem_pair.second;
       }
       memory_managers.clear();
-      for (std::unordered_map<uint64_t, Provenance*>::const_iterator it =
-               provenances.begin();
-           it != provenances.end(); it++)
-        if (it->second->remove_reference())
-          delete it->second;
+      for (const std::pair<const uint64_t, Provenance*>& prov_pair :
+           provenances)
+        if (prov_pair.second->remove_reference())
+          delete prov_pair.second;
       provenances.clear();
     }
 
@@ -675,12 +665,10 @@ namespace Legion {
           get_pending_variant_table();
       if (!pending_variants.empty())
       {
-        for (std::deque<PendingVariantRegistration*>::const_iterator it =
-                 pending_variants.begin();
-             it != pending_variants.end(); it++)
+        for (PendingVariantRegistration* pending : pending_variants)
         {
-          (*it)->perform_registration();
-          delete *it;
+          pending->perform_registration();
+          delete pending;
         }
         pending_variants.clear();
       }
@@ -706,14 +694,13 @@ namespace Legion {
       unsigned already_used = 0;
       // Now do the registrations
       std::map<AddressSpaceID, unsigned> address_counts;
-      for (std::map<LayoutConstraintID, LayoutConstraintRegistrar>::
-               const_iterator it = pending_constraints.begin();
-           it != pending_constraints.end(); it++)
+      for (const std::pair<const LayoutConstraintID, LayoutConstraintRegistrar>&
+               it : pending_constraints)
       {
-        if (LEGION_MAX_APPLICATION_LAYOUT_ID < it->first)
+        if (LEGION_MAX_APPLICATION_LAYOUT_ID < it.first)
           already_used++;
         register_layout(
-            it->second, it->first,
+            it.second, it.first,
             get_next_static_distributed_id(next_static_did), mapping);
       }
       // Now register the virtual layout constraints
@@ -738,13 +725,12 @@ namespace Legion {
     {
       std::map<ProjectionID, ProjectionFunctor*>& pending_projection_functors =
           get_pending_projection_table();
-      for (std::map<ProjectionID, ProjectionFunctor*>::const_iterator it =
-               pending_projection_functors.begin();
-           it != pending_projection_functors.end(); it++)
+      for (const std::pair<const ProjectionID, ProjectionFunctor*>& it :
+           pending_projection_functors)
       {
-        it->second->set_runtime(external);
+        it.second->set_runtime(external);
         register_projection_functor(
-            it->first, it->second, true /*need check*/,
+            it.first, it.second, true /*need check*/,
             true /*was preregistered*/, nullptr, true /*pregistered*/);
       }
       register_projection_functor(
@@ -759,11 +745,10 @@ namespace Legion {
     {
       std::map<ShardingID, ShardingFunctor*>& pending_sharding_functors =
           get_pending_sharding_table();
-      for (std::map<ShardingID, ShardingFunctor*>::const_iterator it =
-               pending_sharding_functors.begin();
-           it != pending_sharding_functors.end(); it++)
+      for (const std::pair<const ShardingID, ShardingFunctor*>& it :
+           pending_sharding_functors)
         register_sharding_functor(
-            it->first, it->second, true /*zero check*/,
+            it.first, it.second, true /*zero check*/,
             true /*was preregistered*/, nullptr, true /*preregistered*/);
       register_sharding_functor(
           0, new CyclicShardingFunctor(), false /*need check*/,
@@ -780,11 +765,10 @@ namespace Legion {
     {
       std::map<ConcurrentID, ConcurrentColoringFunctor*>&
           pending_concurrent_functors = get_pending_concurrent_table();
-      for (std::map<ConcurrentID, ConcurrentColoringFunctor*>::const_iterator
-               it = pending_concurrent_functors.begin();
-           it != pending_concurrent_functors.end(); it++)
+      for (const std::pair<const ConcurrentID, ConcurrentColoringFunctor*>& it :
+           pending_concurrent_functors)
         register_concurrent_functor(
-            it->first, it->second, true /*zero check*/,
+            it.first, it.second, true /*zero check*/,
             true /*was preregistered*/, nullptr, true /*preregistered*/);
       register_concurrent_functor(
           0, new ZeroColoringFunctor(), false /*need check*/,
@@ -797,11 +781,10 @@ namespace Legion {
     {
       std::map<ExceptionHandlerID, ExceptionHandler*>&
           pending_exception_handlers = get_pending_exception_handler_table();
-      for (std::map<ExceptionHandlerID, ExceptionHandler*>::const_iterator it =
-               pending_exception_handlers.begin();
-           it != pending_exception_handlers.end(); it++)
+      for (const std::pair<const ExceptionHandlerID, ExceptionHandler*>& it :
+           pending_exception_handlers)
         register_exception_handler(
-            it->first, it->second, true /*zero check*/,
+            it.first, it.second, true /*zero check*/,
             true /*was preregistered*/);
       register_exception_handler(
           0, new ExceptionHandler(), false /*need check*/,
@@ -826,11 +809,10 @@ namespace Legion {
       // LegionProfiler::find_or_create_profiling_instance the next time we
       // go to profile anything on that processor.
       std::vector<Processor> prof_procs(local_utils.begin(), local_utils.end());
-      for (std::set<Processor>::const_iterator it = local_procs.begin();
-           it != local_procs.end(); it++)
+      for (const Processor& proc : local_procs)
       {
-        if (it->kind() == Processor::LOC_PROC)
-          prof_procs.emplace_back(*it);
+        if (proc.kind() == Processor::LOC_PROC)
+          prof_procs.emplace_back(proc);
       }
       legion_assert(!prof_procs.empty());
       const Processor target_proc_for_profiler =
@@ -1040,12 +1022,10 @@ namespace Legion {
       {
         std::vector<ProcessorMemoryAffinity> affinities;
         machine.get_proc_mem_affinity(affinities, *pit);
-        for (std::vector<ProcessorMemoryAffinity>::const_iterator it =
-                 affinities.begin();
-             it != affinities.end(); it++)
+        for (const ProcessorMemoryAffinity& it : affinities)
         {
           LegionSpy::log_proc_mem_affinity(
-              pit->id, it->m.id, it->bandwidth, it->latency);
+              pit->id, it.m.id, it.bandwidth, it.latency);
         }
       }
       // Log Mem-Mem Affinity
@@ -1056,12 +1036,10 @@ namespace Legion {
       {
         std::vector<MemoryMemoryAffinity> affinities;
         machine.get_mem_mem_affinity(affinities, *mit);
-        for (std::vector<MemoryMemoryAffinity>::const_iterator it =
-                 affinities.begin();
-             it != affinities.end(); it++)
+        for (const MemoryMemoryAffinity& it : affinities)
         {
           LegionSpy::log_mem_mem_affinity(
-              it->m1.id, it->m2.id, it->bandwidth, it->latency);
+              it.m1.id, it.m2.id, it.bandwidth, it.latency);
         }
       }
     }
@@ -1075,28 +1053,26 @@ namespace Legion {
         if (enable_test_mapper)
         {
           // Make test mappers for everyone
-          for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                   proc_managers.begin();
-               it != proc_managers.end(); it++)
+          for (const std::pair<const Processor, ProcessorManager*>& it :
+               proc_managers)
           {
             Mapper* mapper =
-                new Mapping::TestMapper(mapper_runtime, machine, it->first);
-            MapperManager* wrapper = wrap_mapper(mapper, 0, it->first);
-            it->second->add_mapper(0, wrapper, false /*check*/, true /*owns*/);
+                new Mapping::TestMapper(mapper_runtime, machine, it.first);
+            MapperManager* wrapper = wrap_mapper(mapper, 0, it.first);
+            it.second->add_mapper(0, wrapper, false /*check*/, true /*owns*/);
           }
         }
         else if (supply_default_mapper)
         {
           // Make default mappers for everyone
-          for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                   proc_managers.begin();
-               it != proc_managers.end(); it++)
+          for (const std::pair<const Processor, ProcessorManager*>& it :
+               proc_managers)
           {
             Mapper* mapper =
-                new Mapping::DefaultMapper(mapper_runtime, machine, it->first);
+                new Mapping::DefaultMapper(mapper_runtime, machine, it.first);
             MapperManager* wrapper =
-                wrap_mapper(mapper, 0, it->first, true /*is default mapper*/);
-            it->second->add_mapper(0, wrapper, false /*check*/, true /*owns*/);
+                wrap_mapper(mapper, 0, it.first, true /*is default mapper*/);
+            it.second->add_mapper(0, wrapper, false /*check*/, true /*owns*/);
           }
         }
       }
@@ -1106,28 +1082,26 @@ namespace Legion {
         {
           // This path is not quite ready yet
           std::abort();
-          for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                   proc_managers.begin();
-               it != proc_managers.end(); it++)
+          for (const std::pair<const Processor, ProcessorManager*>& it :
+               proc_managers)
           {
             Mapper* mapper = new Mapping::DebugMapper(
-                mapper_runtime, machine, it->first, replay_file.c_str());
-            MapperManager* wrapper = wrap_mapper(mapper, 0, it->first);
-            it->second->add_mapper(
+                mapper_runtime, machine, it.first, replay_file.c_str());
+            MapperManager* wrapper = wrap_mapper(mapper, 0, it.first);
+            it.second->add_mapper(
                 0, wrapper, false /*check*/, true /*owns*/,
                 true /*skip replay*/);
           }
         }
         else
         {
-          for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                   proc_managers.begin();
-               it != proc_managers.end(); it++)
+          for (const std::pair<const Processor, ProcessorManager*>& it :
+               proc_managers)
           {
             Mapper* mapper = new Mapping::ReplayMapper(
-                mapper_runtime, machine, it->first, replay_file.c_str());
-            MapperManager* wrapper = wrap_mapper(mapper, 0, it->first);
-            it->second->add_mapper(
+                mapper_runtime, machine, it.first, replay_file.c_str());
+            MapperManager* wrapper = wrap_mapper(mapper, 0, it.first);
+            it.second->add_mapper(
                 0, wrapper, false /*check*/, true /*owns*/,
                 true /*skip replay*/);
           }
@@ -1183,14 +1157,12 @@ namespace Legion {
           get_pending_registration_callbacks();
       if (!registration_callbacks.empty())
       {
-        for (std::vector<PendingRegistrationCallback>::const_iterator it =
-                 registration_callbacks.begin();
-             it != registration_callbacks.end(); it++)
+        for (const PendingRegistrationCallback& it : registration_callbacks)
         {
           perform_registration_callback(
-              *it, false /*global*/, true /*preregistered*/);
-          if (it->buffer.get_size() > 0)
-            free(it->buffer.get_ptr());
+              it, false /*global*/, true /*preregistered*/);
+          if (it.buffer.get_size() > 0)
+            free(it.buffer.get_ptr());
         }
         registration_callbacks.clear();
       }
@@ -1350,10 +1322,8 @@ namespace Legion {
                 pending_finder = pending_remote_callbacks.find(global_key);
             if (pending_finder != pending_remote_callbacks.end())
             {
-              for (std::set<RtUserEvent>::const_iterator it =
-                       pending_finder->second.begin();
-                   it != pending_finder->second.end(); it++)
-                Runtime::trigger_event(*it, local_perform);
+              for (const RtUserEvent& it : pending_finder->second)
+                Runtime::trigger_event(it, local_perform);
               pending_remote_callbacks.erase(pending_finder);
             }
           }
@@ -1492,10 +1462,8 @@ namespace Legion {
             LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests));
       }
       // Have the memory managers for deletion of all their instances
-      for (std::map<Memory, MemoryManager*>::const_iterator it =
-               memory_managers.begin();
-           it != memory_managers.end(); it++)
-        it->second->finalize();
+      for (const std::pair<const Memory, MemoryManager*>& it : memory_managers)
+        it.second->finalize();
       if (profiler != nullptr)
         profiler->finalize();
     }
@@ -1953,10 +1921,9 @@ namespace Legion {
       {
         std::vector<Processor> all_local_processors;
         all_local_processors.reserve(proc_managers.size());
-        for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                 proc_managers.begin();
-             it != proc_managers.end(); it++)
-          all_local_processors.emplace_back(it->first);
+        for (const std::pair<const Processor, ProcessorManager*>& it :
+             proc_managers)
+          all_local_processors.emplace_back(it.first);
         proc = find_processor_group(all_local_processors);
       }
       // First, wrap this mapper in a mapper manager
@@ -1965,11 +1932,10 @@ namespace Legion {
       {
         bool own = true;
         // Save it to all the managers
-        for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                 proc_managers.begin();
-             it != proc_managers.end(); it++)
+        for (const std::pair<const Processor, ProcessorManager*>& it :
+             proc_managers)
         {
-          it->second->add_mapper(map_id, manager, true /*check*/, own);
+          it.second->add_mapper(map_id, manager, true /*check*/, own);
           own = false;
         }
       }
@@ -2160,10 +2126,9 @@ namespace Legion {
       {
         std::vector<Processor> all_local_processors;
         all_local_processors.reserve(proc_managers.size());
-        for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                 proc_managers.begin();
-             it != proc_managers.end(); it++)
-          all_local_processors.emplace_back(it->first);
+        for (const std::pair<const Processor, ProcessorManager*>& it :
+             proc_managers)
+          all_local_processors.emplace_back(it.first);
         proc = find_processor_group(all_local_processors);
       }
       // First, wrap this mapper in a mapper manager
@@ -2172,11 +2137,10 @@ namespace Legion {
       {
         bool own = true;
         // Save it to all the managers
-        for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                 proc_managers.begin();
-             it != proc_managers.end(); it++)
+        for (const std::pair<const Processor, ProcessorManager*>& it :
+             proc_managers)
         {
-          it->second->replace_default_mapper(manager, own);
+          it.second->replace_default_mapper(manager, own);
           own = false;
         }
       }
@@ -2231,11 +2195,10 @@ namespace Legion {
     MapperManager* Runtime::find_mapper(MapperID map_id)
     //--------------------------------------------------------------------------
     {
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
+      for (const std::pair<const Processor, ProcessorManager*>& it :
+           proc_managers)
       {
-        MapperManager* result = it->second->find_mapper(map_id);
+        MapperManager* result = it.second->find_mapper(map_id);
         if (result != nullptr)
           return result;
       }
@@ -2257,10 +2220,9 @@ namespace Legion {
     bool Runtime::has_non_default_mapper(void) const
     //--------------------------------------------------------------------------
     {
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
-        if (it->second->has_non_default_mapper())
+      for (const std::pair<const Processor, ProcessorManager*>& it :
+           proc_managers)
+        if (it.second->has_non_default_mapper())
           return true;
       return false;
     }
@@ -4322,21 +4284,17 @@ namespace Legion {
       }
       // Then send it to all our local mappers, set will deduplicate
       std::set<MapperManager*> managers;
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
-      {
-        managers.insert(it->second->find_mapper(map_id));
-      }
+      for (const std::pair<const Processor, ProcessorManager*>& it :
+           proc_managers)
+        managers.insert(it.second->find_mapper(map_id));
       Mapper::MapperMessage message_args;
       message_args.sender = source;
       message_args.kind = message_kind;
       message_args.message = message;
       message_args.size = message_size;
       message_args.broadcast = true;
-      for (std::set<MapperManager*>::const_iterator it = managers.begin();
-           it != managers.end(); it++)
-        (*it)->invoke_handle_message(&message_args);
+      for (MapperManager* manager : managers)
+        manager->invoke_handle_message(&message_args);
     }
 
     //--------------------------------------------------------------------------
@@ -4408,12 +4366,11 @@ namespace Legion {
       if (finder != proc_managers.end())
       {
         // Still local
-        for (std::vector<SingleTask*>::const_iterator it = tasks.begin();
-             it != tasks.end(); it++)
+        for (SingleTask* const & task : tasks)
         {
           // Update the current processor
-          (*it)->set_current_proc(target);
-          finder->second->add_to_ready_queue(*it);
+          task->set_current_proc(target);
+          finder->second->add_to_ready_queue(task);
         }
       }
       else
@@ -4477,11 +4434,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<AddressSpaceID> already_sent;
-      for (std::set<Processor>::const_iterator it = targets.begin();
-           it != targets.end(); it++)
+      for (const Processor& it : targets)
       {
         std::map<Processor, ProcessorManager*>::const_iterator finder =
-            proc_managers.find(*it);
+            proc_managers.find(it);
         if (finder != proc_managers.end())
         {
           // still local
@@ -4490,7 +4446,7 @@ namespace Legion {
         else
         {
           // otherwise remote, check to see if we already sent it
-          const AddressSpaceID target = it->address_space();
+          const AddressSpaceID target = it.address_space();
           if (already_sent.find(target) != already_sent.end())
             continue;
           AdvertiseTaskMessage rez;
@@ -4585,12 +4541,9 @@ namespace Legion {
       MapperID map_id;
       derez.deserialize(map_id);
       // Just advertise it to all the managers
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
-      {
-        it->second->process_advertisement(source, map_id);
-      }
+      for (const std::pair<const Processor, ProcessorManager*>& it :
+           proc_managers)
+        it.second->process_advertisement(source, map_id);
     }
 
     //--------------------------------------------------------------------------
@@ -5757,34 +5710,26 @@ namespace Legion {
         AutoLock m_lock(memory_manager_lock, false /*exclusive*/);
         copy_managers = memory_managers;
       }
-      for (std::map<Memory, MemoryManager*>::const_iterator it =
-               copy_managers.begin();
-           it != copy_managers.end(); it++)
-        it->second->release_tree_instances(tid);
+      for (const std::pair<const Memory, MemoryManager*>& it : copy_managers)
+        it.second->release_tree_instances(tid);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::activate_context(InnerContext* context)
     //--------------------------------------------------------------------------
     {
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
-      {
-        it->second->activate_context(context);
-      }
+      for (const std::pair<const Processor, ProcessorManager*>& it :
+           proc_managers)
+        it.second->activate_context(context);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::deactivate_context(InnerContext* context)
     //--------------------------------------------------------------------------
     {
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
-      {
-        it->second->deactivate_context(context);
-      }
+      for (const std::pair<const Processor, ProcessorManager*>& it :
+           proc_managers)
+        it.second->deactivate_context(context);
     }
 
     //--------------------------------------------------------------------------
@@ -5837,14 +5782,13 @@ namespace Legion {
       std::vector<Processor> need_allocation;
       {
         AutoLock p_lock(processor_mapping_lock, false /*exclusive*/);
-        for (std::vector<Processor>::const_iterator it = procs.begin();
-             it != procs.end(); it++)
+        for (const Processor& proc : procs)
         {
           std::map<Processor, unsigned>::const_iterator finder =
-              processor_mapping.find(*it);
+              processor_mapping.find(proc);
           if (finder == processor_mapping.end())
           {
-            need_allocation.emplace_back(*it);
+            need_allocation.emplace_back(proc);
             continue;
           }
           result.set_bit(finder->second);
@@ -5853,12 +5797,11 @@ namespace Legion {
       if (need_allocation.empty())
         return result;
       AutoLock p_lock(processor_mapping_lock);
-      for (std::vector<Processor>::const_iterator it = need_allocation.begin();
-           it != need_allocation.end(); it++)
+      for (const Processor& proc : need_allocation)
       {
         // Check to make sure we didn't lose the race
         std::map<Processor, unsigned>::const_iterator finder =
-            processor_mapping.find(*it);
+            processor_mapping.find(proc);
         if (finder != processor_mapping.end())
         {
           result.set_bit(finder->second);
@@ -5866,7 +5809,7 @@ namespace Legion {
         }
         unsigned next_index = processor_mapping.size();
         legion_assert(next_index < LEGION_MAX_NUM_PROCS);
-        processor_mapping[*it] = next_index;
+        processor_mapping[proc] = next_index;
         result.set_bit(next_index);
       }
       return result;
@@ -6524,10 +6467,8 @@ namespace Legion {
           copy_managers = memory_managers;
         }
         std::set<ApEvent> wait_events;
-        for (std::map<Memory, MemoryManager*>::const_iterator it =
-                 copy_managers.begin();
-             it != copy_managers.end(); it++)
-          it->second->find_shutdown_preconditions(wait_events);
+        for (const std::pair<const Memory, MemoryManager*>& it : copy_managers)
+          it.second->find_shutdown_preconditions(wait_events);
         if (!wait_events.empty())
         {
           RtEvent wait_on = Runtime::protect_merge_events(wait_events);
@@ -6561,20 +6502,19 @@ namespace Legion {
 #undef META_TASK_NAMES
         };
         AutoLock out_lock(outstanding_task_lock, false /*exclusive*/);
-        for (std::map<std::pair<unsigned, bool>, unsigned>::const_iterator it =
-                 outstanding_task_counts.begin();
-             it != outstanding_task_counts.end(); it++)
+        for (const std::pair<const std::pair<unsigned, bool>, unsigned>& it :
+             outstanding_task_counts)
         {
-          if (it->second == 0)
+          if (it.second == 0)
             continue;
-          if (it->first.second)
+          if (it.first.second)
             log_shutdown.info(
                 "RT %d: %d outstanding meta task(s) %s", address_space,
-                it->second, lg_task_descriptions[it->first.first]);
+                it.second, lg_task_descriptions[it.first.first]);
           else
             log_shutdown.info(
                 "RT %d: %d outstanding application task(s) %d", address_space,
-                it->second, it->first.first);
+                it.second, it.first.first);
         }
 #endif
       }
@@ -6611,68 +6551,56 @@ namespace Legion {
           leaked_futures.emplace_back(impl);
         }
       }
-      for (std::vector<FutureImpl*>::const_iterator it = leaked_futures.begin();
-           it != leaked_futures.end(); it++)
+      for (FutureImpl* const & future_ptr : leaked_futures)
       {
-        (*it)->prepare_for_shutdown();
-        if ((*it)->remove_base_resource_ref(RUNTIME_REF))
-          delete (*it);
+        future_ptr->prepare_for_shutdown();
+        if (future_ptr->remove_base_resource_ref(RUNTIME_REF))
+          delete future_ptr;
       }
-      for (std::map<Memory, MemoryManager*>::const_iterator it =
-               memory_managers.begin();
-           it != memory_managers.end(); it++)
-        it->second->prepare_for_shutdown();
+      for (const std::pair<const Memory, MemoryManager*>& mem_pair :
+           memory_managers)
+        mem_pair.second->prepare_for_shutdown();
       // Do processor managers after memory managers in case we need to
       // report any deleted instances back to the mappers
-      for (std::map<Processor, ProcessorManager*>::const_iterator it =
-               proc_managers.begin();
-           it != proc_managers.end(); it++)
-        it->second->prepare_for_shutdown();
+      for (const std::pair<const Processor, ProcessorManager*>& proc_pair :
+           proc_managers)
+        proc_pair.second->prepare_for_shutdown();
       // Destroy any index slice spaces that we made during execution
       std::set<RtEvent> applied;
-      for (std::map<
-               std::pair<Domain, TypeTag>,
-               std::pair<IndexSpace, RtUserEvent> >::const_iterator it =
-               index_slice_spaces.begin();
-           it != index_slice_spaces.end(); it++)
-        destroy_index_space(it->second.first, address_space, applied);
-      for (std::map<ProjectionID, ProjectionFunction*>::const_iterator it =
-               projection_functions.begin();
-           it != projection_functions.end(); it++)
-        it->second->prepare_for_shutdown();
+      for (const std::pair<
+               const std::pair<Domain, TypeTag>,
+               std::pair<IndexSpace, RtUserEvent> >& it : index_slice_spaces)
+        destroy_index_space(it.second.first, address_space, applied);
+      for (const std::pair<const ProjectionID, ProjectionFunction*>& proj_pair :
+           projection_functions)
+        proj_pair.second->prepare_for_shutdown();
       std::vector<LayoutConstraints*> to_remove;
       {
         AutoLock l_lock(layout_constraints_lock, false /*exclusive*/);
-        for (std::map<LayoutConstraintID, LayoutConstraints*>::const_iterator
-                 it = layout_constraints_table.begin();
-             it != layout_constraints_table.end(); it++)
-          if (it->second->is_owner() && !it->second->internal)
-            to_remove.emplace_back(it->second);
+        for (const std::pair<const LayoutConstraintID, LayoutConstraints*>& it :
+             layout_constraints_table)
+          if (it.second->is_owner() && !it.second->internal)
+            to_remove.emplace_back(it.second);
       }
       if (!to_remove.empty())
       {
-        for (std::vector<LayoutConstraints*>::const_iterator it =
-                 to_remove.begin();
-             it != to_remove.end(); it++)
-          if ((*it)->remove_base_gc_ref(APPLICATION_REF))
-            delete (*it);
+        for (LayoutConstraints* constraints : to_remove)
+          if (constraints->remove_base_gc_ref(APPLICATION_REF))
+            delete constraints;
       }
       if (!redop_fill_views.empty())
       {
-        for (std::map<ReductionOpID, FillView*>::const_iterator it =
-                 redop_fill_views.begin();
-             it != redop_fill_views.end(); it++)
-          if (it->second->remove_base_valid_ref(RUNTIME_REF))
-            delete it->second;
+        for (const std::pair<const ReductionOpID, FillView*>& it :
+             redop_fill_views)
+          if (it.second->remove_base_valid_ref(RUNTIME_REF))
+            delete it.second;
         redop_fill_views.clear();
       }
       if (!empty_expressions.empty())
       {
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                 empty_expressions.begin();
-             it != empty_expressions.end(); it++)
-          if ((*it)->remove_base_expression_reference(RUNTIME_REF))
-            delete (*it);
+        for (IndexSpaceExpression* empty_expr : empty_expressions)
+          if (empty_expr->remove_base_expression_reference(RUNTIME_REF))
+            delete empty_expr;
         empty_expressions.clear();
       }
       if (virtual_manager->remove_base_gc_ref(NEVER_GC_REF))
@@ -6759,12 +6687,11 @@ namespace Legion {
     {
       // Construct the set of index space expressions
       std::set<IndexSpaceExpression*> exprs;
-      for (std::vector<IndexSpace>::const_iterator it = sources.begin();
-           it != sources.end(); it++)
+      for (const IndexSpace& index_space : sources)
       {
-        if (!it->exists())
+        if (!index_space.exists())
           continue;
-        exprs.insert(get_node(*it));
+        exprs.insert(get_node(index_space));
       }
       legion_assert(!exprs.empty());
       IndexSpaceExpression* expr = union_index_spaces(exprs);
@@ -6781,12 +6708,11 @@ namespace Legion {
     {
       // Construct the set of index space expressions
       std::set<IndexSpaceExpression*> exprs;
-      for (std::vector<IndexSpace>::const_iterator it = sources.begin();
-           it != sources.end(); it++)
+      for (const IndexSpace& index_space : sources)
       {
-        if (!it->exists())
+        if (!index_space.exists())
           continue;
-        exprs.insert(get_node(*it));
+        exprs.insert(get_node(index_space));
       }
       legion_assert(!exprs.empty());
       IndexSpaceExpression* expr = intersect_index_spaces(exprs);
@@ -6991,9 +6917,7 @@ namespace Legion {
       IndexSpaceNode* node = get_node(sp);
       std::vector<LegionColor> temp_colors;
       node->get_colors(temp_colors);
-      for (std::vector<LegionColor>::const_iterator it = temp_colors.begin();
-           it != temp_colors.end(); it++)
-        colors.insert(*it);
+      for (const LegionColor& color : temp_colors) colors.insert(color);
     }
 
     //--------------------------------------------------------------------------
@@ -7622,10 +7546,8 @@ namespace Legion {
       CurrentInitializer init(ctx);
       AutoLock l_lock(lookup_lock, false /*exclusive*/);
       // Need to hold references to prevent deletion race
-      for (std::map<RegionTreeID, RegionNode*>::const_iterator it =
-               tree_nodes.begin();
-           it != tree_nodes.end(); it++)
-        it->second->visit_node(&init);
+      for (const std::pair<const RegionTreeID, RegionNode*>& it : tree_nodes)
+        it.second->visit_node(&init);
     }
 
     //--------------------------------------------------------------------------
@@ -9460,11 +9382,9 @@ namespace Legion {
         if (!first_pass)
         {
           // Remove the expression references on the previous set
-          for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                   expressions.begin();
-               it != expressions.end(); it++)
-            if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
-              delete (*it);
+          for (IndexSpaceExpression* expr : expressions)
+            if (expr->remove_base_expression_reference(REGION_TREE_REF))
+              delete expr;
         }
         else
           first_pass = false;
@@ -9479,11 +9399,9 @@ namespace Legion {
             unique->add_base_expression_reference(REGION_TREE_REF);
         }
         // Remove the expression references
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                 expressions.begin();
-             it != expressions.end(); it++)
-          if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
-            delete (*it);
+        for (IndexSpaceExpression* expr : expressions)
+          if (expr->remove_base_expression_reference(REGION_TREE_REF))
+            delete expr;
         if (unique_expressions.size() == 1)
         {
           IndexSpaceExpression* result = *(unique_expressions.begin());
@@ -9499,10 +9417,8 @@ namespace Legion {
         }
         expressions.resize(unique_expressions.size());
         unsigned index = 0;
-        for (std::set<IndexSpaceExpression*, CompareExpressions>::const_iterator
-                 it = unique_expressions.begin();
-             it != unique_expressions.end(); it++)
-          expressions[index++] = *it;
+        for (IndexSpaceExpression* unique_expr : unique_expressions)
+          expressions[index++] = unique_expr;
       }
       result = union_index_spaces(expressions);
       result->add_base_expression_reference(LIVE_EXPR_REF);
@@ -9510,11 +9426,9 @@ namespace Legion {
       if (!first_pass)
       {
         // Remove the extra references on the expression vector we added
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                 expressions.begin();
-             it != expressions.end(); it++)
-          if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
-            delete (*it);
+        for (IndexSpaceExpression* expr : expressions)
+          if (expr->remove_base_expression_reference(REGION_TREE_REF))
+            delete expr;
       }
       return result;
     }
@@ -9737,11 +9651,9 @@ namespace Legion {
         if (!first_pass)
         {
           // Remove the expression references on the previous set
-          for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                   expressions.begin();
-               it != expressions.end(); it++)
-            if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
-              delete (*it);
+          for (IndexSpaceExpression* expr : expressions)
+            if (expr->remove_base_expression_reference(REGION_TREE_REF))
+              delete expr;
         }
         else
           first_pass = false;
@@ -9758,27 +9670,22 @@ namespace Legion {
             unique->add_base_expression_reference(LIVE_EXPR_REF);
             ImplicitReferenceTracker::record_live_expression(unique);
             // Remove references on all the things we no longer need
-            for (std::set<IndexSpaceExpression*, CompareExpressions>::
-                     const_iterator it = unique_expressions.begin();
-                 it != unique_expressions.end(); it++)
-              if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
-                delete (*it);
-            for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                     expressions.begin();
-                 it != expressions.end(); it++)
-              if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
-                delete (*it);
+            for (IndexSpaceExpression* unique_expr : unique_expressions)
+              if (unique_expr->remove_base_expression_reference(
+                      REGION_TREE_REF))
+                delete unique_expr;
+            for (IndexSpaceExpression* expr : expressions)
+              if (expr->remove_base_expression_reference(REGION_TREE_REF))
+                delete expr;
             return unique;
           }
           if (unique_expressions.insert(unique).second)
             unique->add_base_expression_reference(REGION_TREE_REF);
         }
         // Remove the expression references
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                 expressions.begin();
-             it != expressions.end(); it++)
-          if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
-            delete (*it);
+        for (IndexSpaceExpression* expr : expressions)
+          if (expr->remove_base_expression_reference(REGION_TREE_REF))
+            delete expr;
         if (unique_expressions.size() == 1)
         {
           IndexSpaceExpression* result = *(unique_expressions.begin());
@@ -9791,10 +9698,8 @@ namespace Legion {
         }
         expressions.resize(unique_expressions.size());
         unsigned index = 0;
-        for (std::set<IndexSpaceExpression*, CompareExpressions>::const_iterator
-                 it = unique_expressions.begin();
-             it != unique_expressions.end(); it++)
-          expressions[index++] = *it;
+        for (IndexSpaceExpression* unique_expr : unique_expressions)
+          expressions[index++] = unique_expr;
       }
       result = intersect_index_spaces(expressions);
       result->add_base_expression_reference(LIVE_EXPR_REF);
@@ -9802,11 +9707,9 @@ namespace Legion {
       if (!first_pass)
       {
         // Remove the extra references on the expression vector we added
-        for (std::vector<IndexSpaceExpression*>::const_iterator it =
-                 expressions.begin();
-             it != expressions.end(); it++)
-          if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
-            delete (*it);
+        for (IndexSpaceExpression* expr : expressions)
+          if (expr->remove_base_expression_reference(REGION_TREE_REF))
+            delete expr;
       }
       return result;
     }
@@ -10155,10 +10058,9 @@ namespace Legion {
         for (unsigned idx = 0; idx < available_contexts.size(); idx++)
           available_contexts[idx] = total_contexts - (idx + 1);
         // Tell all the processor managers about the additional contexts
-        for (std::map<Processor, ProcessorManager*>::const_iterator it =
-                 proc_managers.begin();
-             it != proc_managers.end(); it++)
-          it->second->update_max_context_count(total_contexts);
+        for (const std::pair<const Processor, ProcessorManager*>& it :
+             proc_managers)
+          it.second->update_max_context_count(total_contexts);
       }
       ContextID result = available_contexts.back();
       available_contexts.pop_back();
@@ -10211,9 +10113,8 @@ namespace Legion {
       {
         std::vector<Processor> group_members;
         proc.get_group_members(group_members);
-        for (std::vector<Processor>::const_iterator it = group_members.begin();
-             it != group_members.end(); it++)
-          visible_memories.has_affinity_to(*it);
+        for (const Processor& member : group_members)
+          visible_memories.has_affinity_to(member);
       }
       else
         visible_memories.has_affinity_to(proc);
@@ -10245,9 +10146,8 @@ namespace Legion {
       {
         std::vector<Processor> group_members;
         proc.get_group_members(group_members);
-        for (std::vector<Processor>::const_iterator it = group_members.begin();
-             it != group_members.end(); it++)
-          visible_memories.has_affinity_to(*it);
+        for (const Processor& member : group_members)
+          visible_memories.has_affinity_to(member);
       }
       else
         visible_memories.has_affinity_to(proc);
@@ -10280,9 +10180,8 @@ namespace Legion {
       {
         std::vector<Processor> group_members;
         proc.get_group_members(group_members);
-        for (std::vector<Processor>::const_iterator it = group_members.begin();
-             it != group_members.end(); it++)
-          visible_memories.best_affinity_to(*it);
+        for (const Processor& member : group_members)
+          visible_memories.best_affinity_to(member);
       }
       else
         visible_memories.best_affinity_to(proc);
@@ -10544,24 +10443,24 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock a_lock(allocation_lock);
-      for (std::unordered_map<std::size_t, AllocationTracker>::iterator it =
-               allocation_manager.begin();
-           it != allocation_manager.end(); it++)
+      for (const std::pair<const std::size_t, AllocationTracker>& alloc_pair :
+           allocation_manager)
       {
         // Skip anything that is empty
-        if (it->second.total_allocations == 0)
+        if (alloc_pair.second.total_allocations == 0)
           continue;
         // Skip anything that hasn't changed
-        if (it->second.diff_allocations == 0)
+        if (alloc_pair.second.diff_allocations == 0)
           continue;
         log_allocation.info(
             "%s on %d: "
             "total=%d total_bytes=%ld diff=%d diff_bytes=%lld",
-            it->second.name, address_space, it->second.total_allocations,
-            it->second.total_bytes, it->second.diff_allocations,
-            (long long int)it->second.diff_bytes);
-        it->second.diff_allocations = 0;
-        it->second.diff_bytes = 0;
+            alloc_pair.second.name, address_space,
+            alloc_pair.second.total_allocations, alloc_pair.second.total_bytes,
+            alloc_pair.second.diff_allocations,
+            (long long int)alloc_pair.second.diff_bytes);
+        alloc_pair.second.diff_allocations = 0;
+        alloc_pair.second.diff_bytes = 0;
       }
       struct rusage usage;
       getrusage(RUSAGE_SELF, &usage);
@@ -10948,10 +10847,9 @@ namespace Legion {
       // are completely done doing that before we try to do anything
       std::vector<RtEvent> nop_events;
       nop_events.reserve(local_procs.size());
-      for (std::set<Processor>::const_iterator it = local_procs.begin();
-           it != local_procs.end(); it++)
-        nop_events.emplace_back(
-            RtEvent(it->spawn(Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0)));
+      for (const Processor& local_proc : local_procs)
+        nop_events.emplace_back(RtEvent(
+            local_proc.spawn(Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0)));
       // Now we can initialize the Legion runtime(s) on this node
       TopLevelContext* top_context = runtime->initialize_runtime(first_proc);
       if (startup_barrier.exists())
@@ -11429,16 +11327,15 @@ namespace Legion {
       // Find a target processor, we'll prefer a CPU processor for
       // backwards compatibility, but will take anything we get
       Processor target = Processor::NO_PROC;
-      for (std::set<Processor>::const_iterator it = local_procs.begin();
-           it != local_procs.end(); it++)
+      for (const Processor& local_proc : local_procs)
       {
-        if (it->kind() == Processor::LOC_PROC)
+        if (local_proc.kind() == Processor::LOC_PROC)
         {
-          target = *it;
+          target = local_proc;
           break;
         }
         else if (!target.exists())
-          target = *it;
+          target = local_proc;
       }
       legion_assert(target.exists());
       if (top_context == nullptr)
@@ -11589,12 +11486,11 @@ namespace Legion {
       if (!proxy.exists())
       {
         legion_assert(!local_procs.empty());
-        for (std::set<Processor>::const_iterator it = local_procs.begin();
-             it != local_procs.end(); it++)
+        for (const Processor& local_proc : local_procs)
         {
-          if (it->kind() == proc_kind)
+          if (local_proc.kind() == proc_kind)
           {
-            proxy = *it;
+            proxy = local_proc;
             break;
           }
         }
@@ -11905,10 +11801,8 @@ namespace Legion {
           get_pending_handshake_table();
       if (!pending_handshakes.empty())
       {
-        for (std::vector<LegionHandshake>::const_iterator it =
-                 pending_handshakes.begin();
-             it != pending_handshakes.end(); it++)
-          it->impl->initialize();
+        for (const LegionHandshake& handshake : pending_handshakes)
+          handshake.impl->initialize();
       }
     }
 
@@ -12032,18 +11926,17 @@ namespace Legion {
       CodeDescriptor rt_profiling_task(Runtime::profiling_runtime_task);
       CodeDescriptor endpoint_task(Runtime::endpoint_runtime_task);
       CodeDescriptor app_proc_task(Runtime::application_processor_runtime_task);
-      for (std::set<Processor>::const_iterator it = local_procs.begin();
-           it != local_procs.end(); it++)
+      for (const Processor& local_proc : local_procs)
       {
         // These tasks get registered on startup_kind processors
-        if (it->kind() == startup_kind)
-          registered_events.emplace_back(RtEvent(it->register_task(
+        if (local_proc.kind() == startup_kind)
+          registered_events.emplace_back(RtEvent(local_proc.register_task(
               LG_STARTUP_TASK_ID, startup_task, no_requests)));
         // Only register runtime task on application processors if we don't
         // have any utility processors
         if (local_util_procs.empty())
         {
-          registered_events.emplace_back(RtEvent(it->register_task(
+          registered_events.emplace_back(RtEvent(local_proc.register_task(
               LG_SHUTDOWN_TASK_ID, shutdown_task, no_requests)));
 #ifdef LEGION_SEPARATE_META_TASKS
           for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
@@ -12051,42 +11944,41 @@ namespace Legion {
             if (idx == LG_MESSAGE_ID)
             {
               for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
-                registered_events.emplace_back(RtEvent(it->register_task(
+                registered_events.emplace_back(RtEvent(local_proc.register_task(
                     LG_TASK_ID + idx + msg, lg_task, no_requests)));
             }
             else
-              registered_events.emplace_back(RtEvent(
-                  it->register_task(LG_TASK_ID + idx, lg_task, no_requests)));
+              registered_events.emplace_back(RtEvent(local_proc.register_task(
+                  LG_TASK_ID + idx, lg_task, no_requests)));
           }
 #else
-          registered_events.emplace_back(
-              RtEvent(it->register_task(LG_TASK_ID, lg_task, no_requests)));
+          registered_events.emplace_back(RtEvent(
+              local_proc.register_task(LG_TASK_ID, lg_task, no_requests)));
 #endif
-          registered_events.emplace_back(RtEvent(it->register_task(
+          registered_events.emplace_back(RtEvent(local_proc.register_task(
               LG_ENDPOINT_TASK_ID, endpoint_task, no_requests)));
         }
         // Application processor tasks get registered on all
         // processors which are not utility processors
 #ifdef LEGION_SEPARATE_META_TASKS
         for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
-          registered_events.emplace_back(RtEvent(it->register_task(
+          registered_events.emplace_back(RtEvent(local_proc.register_task(
               LG_APP_PROC_TASK_ID + idx, app_proc_task, no_requests)));
 #else
-        registered_events.emplace_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(local_proc.register_task(
             LG_APP_PROC_TASK_ID, app_proc_task, no_requests)));
 #endif
         // Register profiling return meta-task on all processor kinds
-        registered_events.emplace_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(local_proc.register_task(
             LG_LEGION_PROFILING_ID, rt_profiling_task, no_requests)));
       }
-      for (std::set<Processor>::const_iterator it = local_util_procs.begin();
-           it != local_util_procs.end(); it++)
+      for (const Processor& local_util : local_util_procs)
       {
         // These tasks get registered on startup_kind processors
-        if (it->kind() == startup_kind)
-          registered_events.emplace_back(RtEvent(it->register_task(
+        if (local_util.kind() == startup_kind)
+          registered_events.emplace_back(RtEvent(local_util.register_task(
               LG_STARTUP_TASK_ID, startup_task, no_requests)));
-        registered_events.emplace_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(local_util.register_task(
             LG_SHUTDOWN_TASK_ID, shutdown_task, no_requests)));
 #ifdef LEGION_SEPARATE_META_TASKS
         for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
@@ -12094,21 +11986,21 @@ namespace Legion {
           if (idx == LG_MESSAGE_ID)
           {
             for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
-              registered_events.emplace_back(RtEvent(it->register_task(
+              registered_events.emplace_back(RtEvent(local_util.register_task(
                   LG_TASK_ID + idx + msg, lg_task, no_requests)));
           }
           else
-            registered_events.emplace_back(RtEvent(
-                it->register_task(LG_TASK_ID + idx, lg_task, no_requests)));
+            registered_events.emplace_back(RtEvent(local_util.register_task(
+                LG_TASK_ID + idx, lg_task, no_requests)));
         }
 #else
-        registered_events.emplace_back(
-            RtEvent(it->register_task(LG_TASK_ID, lg_task, no_requests)));
+        registered_events.emplace_back(RtEvent(
+            local_util.register_task(LG_TASK_ID, lg_task, no_requests)));
 #endif
-        registered_events.emplace_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(local_util.register_task(
             LG_ENDPOINT_TASK_ID, endpoint_task, no_requests)));
         // Register profiling return meta-task on all processor kinds
-        registered_events.emplace_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(local_util.register_task(
             LG_LEGION_PROFILING_ID, rt_profiling_task, no_requests)));
       }
       // Lastly do any other registrations we might have
@@ -12123,14 +12015,15 @@ namespace Legion {
       red_table[CloseCheckReduction::REDOP] =
           Realm::ReductionOpUntyped::create_reduction_op<CloseCheckReduction>();
 #endif
-      for (ReductionOpTable::const_iterator it = red_table.begin();
-           it != red_table.end(); it++)
-        realm.register_reduction(it->first, it->second);
+      for (const std::pair<
+               const Realm::ReductionOpID, Realm::ReductionOpUntyped*>&
+               red_pair : red_table)
+        realm.register_reduction(red_pair.first, red_pair.second);
 
       const SerdezOpTable& serdez_table = get_serdez_table(true /*safe*/);
-      for (SerdezOpTable::const_iterator it = serdez_table.begin();
-           it != serdez_table.end(); it++)
-        realm.register_custom_serdez(it->first, it->second);
+      for (const std::pair<const CustomSerdezID, const SerdezOp*>& serdez_pair :
+           serdez_table)
+        realm.register_custom_serdez(serdez_pair.first, serdez_pair.second);
 
       if (config.record_registration)
       {

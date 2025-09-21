@@ -488,10 +488,9 @@ namespace Legion {
       }
       legion_assert(forward_mapping.size() == runtime->total_address_spaces);
       // Reverse the mapping
-      for (std::map<int, AddressSpace>::const_iterator it =
-               forward_mapping.begin();
-           it != forward_mapping.end(); it++)
-        reverse_mapping[it->second] = it->first;
+      for (const std::pair<const int, AddressSpace>& mapping_pair :
+           forward_mapping)
+        reverse_mapping[mapping_pair.second] = mapping_pair.first;
     }
 
     //--------------------------------------------------------------------------
@@ -524,12 +523,11 @@ namespace Legion {
         rez.serialize(-1);
         AutoLock r_lock(reservation, false /*exclusive*/);
         rez.serialize<size_t>(forward_mapping.size());
-        for (std::map<int, AddressSpace>::const_iterator it =
-                 forward_mapping.begin();
-             it != forward_mapping.end(); it++)
+        for (const std::pair<const int, AddressSpace>& mapping_pair :
+             forward_mapping)
         {
-          rez.serialize(it->first);
-          rez.serialize(it->second);
+          rez.serialize(mapping_pair.first);
+          rez.serialize(mapping_pair.second);
         }
       }
       if (participating)
@@ -583,12 +581,11 @@ namespace Legion {
           }
 #endif
           rez.serialize<size_t>(forward_mapping.size());
-          for (std::map<int, AddressSpace>::const_iterator it =
-                   forward_mapping.begin();
-               it != forward_mapping.end(); it++)
+          for (const std::pair<const int, AddressSpace>& mapping_pair :
+               forward_mapping)
           {
-            rez.serialize(it->first);
-            rez.serialize(it->second);
+            rez.serialize(mapping_pair.first);
+            rez.serialize(mapping_pair.second);
           }
         }
         // Now we can do the send

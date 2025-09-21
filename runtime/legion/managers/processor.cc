@@ -62,13 +62,10 @@ namespace Legion {
     void ProcessorManager::prepare_for_shutdown(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<MapperID, std::pair<MapperManager*, bool> >::iterator it =
-               mappers.begin();
-           it != mappers.end(); it++)
-      {
-        if (it->second.second)
-          delete it->second.first;
-      }
+      for (std::pair<const MapperID, std::pair<MapperManager*, bool> >& entry :
+           mappers)
+        if (entry.second.second)
+          delete entry.second.first;
       mappers.clear();
     }
 
@@ -178,10 +175,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock m_lock(mapper_lock, false /*exclusive*/);
-      for (std::map<MapperID, std::pair<MapperManager*, bool> >::const_iterator
-               it = mappers.begin();
-           it != mappers.end(); it++)
-        if (!it->second.first->is_default_mapper)
+      for (const std::pair<const MapperID, std::pair<MapperManager*, bool> >&
+               entry : mappers)
+        if (!entry.second.first->is_default_mapper)
           return true;
       return false;
     }
@@ -381,11 +377,9 @@ namespace Legion {
       // Iterate over the task descriptions, asking the appropriate mapper
       // whether we can steal the task
       std::vector<SingleTask*> stolen;
-      std::vector<MapperID> successful_thiefs;
-      for (std::vector<MapperID>::const_iterator steal_it = thieves.begin();
-           steal_it != thieves.end(); steal_it++)
+      std::vector<MapperID> successful_thieves;
+      for (const MapperID& stealer : thieves)
       {
-        const MapperID stealer = *steal_it;
         // Handle a race condition here where some processors can
         // issue steal requests to another processor before the mappers
         // have been initialized on that processor.  There's no
@@ -406,7 +400,7 @@ namespace Legion {
               queue_copy_ready = RtEvent::NO_RT_EVENT;
             }
             AutoLock q_lock(queue_lock);
-            MapperState& map_state = mapper_states[*steal_it];
+            MapperState& map_state = mapper_states[stealer];
             if (!map_state.queue_guard)
             {
               // If we don't have a deferral event then grab our
@@ -414,11 +408,9 @@ namespace Legion {
               // this will also prevent them from being stolen
               if (!map_state.ready_queue.empty())
               {
-                for (std::list<SingleTask*>::const_iterator it =
-                         map_state.ready_queue.begin();
-                     it != map_state.ready_queue.end(); it++)
-                  if ((*it)->is_stealable() && !(*it)->is_origin_mapped())
-                    input.stealable_tasks.emplace_back(*it);
+                for (SingleTask* task : map_state.ready_queue)
+                  if (task->is_stealable() && !task->is_origin_mapped())
+                    input.stealable_tasks.emplace_back(task);
                 // Set the queue guard so no one else tries to
                 // read the ready queue while we've checked it out
                 if (!input.stealable_tasks.empty())
@@ -448,7 +440,7 @@ namespace Legion {
           // Retake the lock, put any tasks still in the ready queue
           // back into the queue and remove the queue guard
           AutoLock q_lock(queue_lock);
-          MapperState& map_state = mapper_states[*steal_it];
+          MapperState& map_state = mapper_states[stealer];
           legion_assert(map_state.queue_guard);
           std::list<SingleTask*>& rqueue = map_state.ready_queue;
           for (std::list<SingleTask*>::iterator it = rqueue.begin();
@@ -490,11 +482,9 @@ namespace Legion {
         }
         if (!local_stolen.empty())
         {
-          successful_thiefs.emplace_back(stealer);
-          for (std::vector<SingleTask*>::const_iterator it =
-                   local_stolen.begin();
-               it != local_stolen.end(); it++)
-            (*it)->deactivate_outstanding_task();
+          successful_thieves.emplace_back(stealer);
+          for (SingleTask* task : local_stolen)
+            task->deactivate_outstanding_task();
           if (stolen.empty())
             stolen.swap(local_stolen);
           else
@@ -511,10 +501,8 @@ namespace Legion {
         // successfully stole so they know that they can try again
         std::set<Processor> thief_set;
         thief_set.insert(thief);
-        for (std::vector<MapperID>::const_iterator it =
-                 successful_thiefs.begin();
-             it != successful_thiefs.end(); it++)
-          runtime->send_advertisements(thief_set, *it, local_proc);
+        for (const MapperID& thief : successful_thieves)
+          runtime->send_advertisements(thief_set, thief, local_proc);
       }
     }
 
@@ -573,10 +561,8 @@ namespace Legion {
         std::set<Memory>& visible) const
     //--------------------------------------------------------------------------
     {
-      for (std::map<Memory, size_t>::const_iterator it =
-               visible_memories.begin();
-           it != visible_memories.end(); it++)
-        visible.insert(it->first);
+      for (const std::pair<const Memory, size_t>& memory : visible_memories)
+        visible.insert(memory.first);
     }
 
     //--------------------------------------------------------------------------
@@ -585,16 +571,14 @@ namespace Legion {
     {
       size_t affinity = 0;
       Memory result = Memory::NO_MEMORY;
-      for (std::map<Memory, size_t>::const_iterator it =
-               visible_memories.begin();
-           it != visible_memories.end(); it++)
+      for (const std::pair<const Memory, size_t>& it : visible_memories)
       {
-        if (it->first.kind() != kind)
+        if (it.first.kind() != kind)
           continue;
-        if (it->second < affinity)
+        if (it.second < affinity)
           continue;
-        result = it->first;
-        affinity = it->second;
+        result = it.first;
+        affinity = it.second;
       }
       return result;
     }
@@ -671,29 +655,28 @@ namespace Legion {
       uint64_t min_pending = std::numeric_limits<uint64_t>::max();
       SingleTask* next = nullptr;
       TaskTreeCoordinates next_coords;
-      for (std::map<SingleTask*, ConcurrentState>::const_iterator it =
-               concurrent_tasks.begin();
-           it != concurrent_tasks.end(); it++)
+      for (const std::pair<SingleTask* const, ConcurrentState>& it :
+           concurrent_tasks)
       {
-        if (it->second.max)
+        if (it.second.max)
         {
           if (next != nullptr)
           {
             // Compare the lamport clocks
-            if (it->second.lamport_clock < min_next)
+            if (it.second.lamport_clock < min_next)
             {
-              next = it->first;
+              next = it.first;
               next_coords.clear();
-              min_next = it->second.lamport_clock;
+              min_next = it.second.lamport_clock;
             }
-            else if (min_next == it->second.lamport_clock)
+            else if (min_next == it.second.lamport_clock)
             {
               // Very bad case, same min of max all-reduce of clocks
               // Resolve this conflict based on task tree coordinates
               TaskTreeCoordinates it_coords;
               if (next_coords.empty())
                 next->compute_task_tree_coordinates(next_coords);
-              it->first->compute_task_tree_coordinates(it_coords);
+              it.first->compute_task_tree_coordinates(it_coords);
               const size_t lower_bound =
                   std::min(next_coords.size(), it_coords.size());
               bool equal = true;
@@ -705,7 +688,7 @@ namespace Legion {
                 {
                   if (c2.index_point < c1.index_point)
                   {
-                    next = it->first;
+                    next = it.first;
                     next_coords.swap(it_coords);
                   }
                   else if (c1.index_point == c2.index_point)
@@ -713,7 +696,7 @@ namespace Legion {
                 }
                 else if (c2.context_index < c1.context_index)
                 {
-                  next = it->first;
+                  next = it.first;
                   next_coords.swap(it_coords);
                 }
                 equal = false;
@@ -724,7 +707,7 @@ namespace Legion {
                 legion_assert(next_coords.size() != it_coords.size());
                 if (it_coords.size() < next_coords.size())
                 {
-                  next = it->first;
+                  next = it.first;
                   next_coords.swap(it_coords);
                 }
               }
@@ -732,12 +715,12 @@ namespace Legion {
           }
           else
           {
-            next = it->first;
-            min_next = it->second.lamport_clock;
+            next = it.first;
+            min_next = it.second.lamport_clock;
           }
         }
-        else if (it->second.lamport_clock < min_pending)
-          min_pending = it->second.lamport_clock;
+        else if (it.second.lamport_clock < min_pending)
+          min_pending = it.second.lamport_clock;
       }
       // If all the pending tasks with lamport clocks are
       // larger than our max lamport clock of the next task
@@ -773,18 +756,14 @@ namespace Legion {
         // Fast path for no deferred mappers
         current_mappers.resize(mappers.size());
         unsigned idx = 0;
-        for (std::map<MapperID, std::pair<MapperManager*, bool> >::
-                 const_iterator it = mappers.begin();
-             it != mappers.end(); it++, idx++)
-          current_mappers[idx] =
-              std::pair<MapperID, MapperManager*>(it->first, it->second.first);
+        for (const std::pair<const MapperID, std::pair<MapperManager*, bool> >&
+                 it : mappers)
+          current_mappers[idx++] = std::make_pair(it.first, it.second.first);
       }
-      for (std::vector<std::pair<MapperID, MapperManager*> >::const_iterator
-               it = current_mappers.begin();
-           it != current_mappers.end(); it++)
+      for (const std::pair<MapperID, MapperManager*>& it : current_mappers)
       {
-        const MapperID map_id = it->first;
-        MapperManager* const mapper = it->second;
+        const MapperID map_id = it.first;
+        MapperManager* const mapper = it.second;
         Mapper::SelectMappingInput input;
         {
           RtEvent input_ready;
@@ -808,15 +787,13 @@ namespace Legion {
               {
                 // Only ask the mapper about ready tasks that have
                 // active contexts that we should keep mapping
-                for (std::list<SingleTask*>::const_iterator it =
-                         map_state.ready_queue.begin();
-                     it != map_state.ready_queue.end(); it++)
+                for (SingleTask* task : map_state.ready_queue)
                 {
                   const ContextID ctx =
-                      (*it)->get_context()->get_logical_tree_context();
+                      task->get_context()->get_logical_tree_context();
                   const ContextState& ctx_state = context_states[ctx];
-                  if (ctx_state.active || (*it)->is_forward_progress_task())
-                    input.ready_tasks.emplace_back(*it);
+                  if (ctx_state.active || task->is_forward_progress_task())
+                    input.ready_tasks.emplace_back(task);
                 }
                 // Set the queue guard so no one else tries to
                 // read the ready queue while we've checked it out
@@ -903,17 +880,16 @@ namespace Legion {
         }
         else if (!output.relocate_tasks.empty())
         {
-          for (std::map<const Task*, Processor>::const_iterator it =
-                   output.relocate_tasks.begin();
-               it != output.relocate_tasks.end(); it++)
-            if (it->second.kind() == Processor::UTIL_PROC)
+          for (const std::pair<const Task* const, Processor>& task :
+               output.relocate_tasks)
+            if (task.second.kind() == Processor::UTIL_PROC)
             {
               Error error(LEGION_MAPPER_EXCEPTION);
               error
                   << "Invalid mapper output. Mapper "
                   << mapper->get_mapper_name() << " requested that task "
-                  << it->first->get_task_name() << " (UID "
-                  << it->first->get_unique_id()
+                  << task.first->get_task_name() << " (UID "
+                  << task.first->get_unique_id()
                   << ") be relocated to a utility processor in "
                   << "'select_tasks_to_map.' Only application processor kinds "
                   << "are permitted to be the target processor for tasks.";
@@ -964,10 +940,9 @@ namespace Legion {
           }
           else if (!stealing_disabled)
           {
-            for (std::list<SingleTask*>::const_iterator it = rqueue.begin();
-                 it != rqueue.end(); it++)
+            for (SingleTask* task : rqueue)
             {
-              if ((*it)->is_stealable())
+              if (task->is_stealable())
               {
                 mappers_with_stealable_work.emplace_back(map_id);
                 break;
@@ -984,17 +959,16 @@ namespace Legion {
         }
         // Now we can trigger our tasks that the mapper selected
         std::map<Processor, std::vector<SingleTask*> > to_send;
-        for (std::vector<SingleTask*>::const_iterator it = to_trigger.begin();
-             it != to_trigger.end(); it++)
+        for (SingleTask* task : to_trigger)
         {
           // Mark that this task is no longer outstanding
-          (*it)->deactivate_outstanding_task();
+          task->deactivate_outstanding_task();
           // Update the target processor for this task if necessary
           std::map<const Task*, Processor>::const_iterator finder =
-              output.relocate_tasks.find(*it);
+              output.relocate_tasks.find(task);
           if (finder != output.relocate_tasks.end())
           {
-            (*it)->set_target_proc(finder->second);
+            task->set_target_proc(finder->second);
             // See if the target processor is local
             if (!runtime->is_local(finder->second))
             {
@@ -1002,35 +976,32 @@ namespace Legion {
               // remotely, which is hard if it is a point task that is
               // owned by a slice task, if it is just a normal indvidual
               // task then we can just ship it remotely immediately
-              to_send[finder->second].emplace_back(*it);
+              to_send[finder->second].emplace_back(task);
             }
             else
-              (*it)->enqueue_ready_task(true /*use target processor*/);
+              task->enqueue_ready_task(true /*use target processor*/);
           }
           else
           {
             TaskOp::TriggerTaskArgs trigger_args(
-                *it, (*it)->get_context()->did);
+                task, task->get_context()->did);
             runtime->issue_runtime_meta_task(
                 trigger_args, LG_THROUGHPUT_WORK_PRIORITY);
           }
         }
         if (!to_send.empty())
         {
-          for (std::map<Processor, std::vector<SingleTask*> >::iterator it =
-                   to_send.begin();
-               it != to_send.end(); it++)
-            runtime->send_tasks(it->first, it->second);
+          for (std::pair<const Processor, std::vector<SingleTask*> >& it :
+               to_send)
+            runtime->send_tasks(it.first, it.second);
         }
       }
 
       // Advertise any work that we have
       if (!stealing_disabled && !mappers_with_stealable_work.empty())
       {
-        for (std::vector<MapperID>::const_iterator it =
-                 mappers_with_stealable_work.begin();
-             it != mappers_with_stealable_work.end(); it++)
-          issue_advertisements(*it);
+        for (const MapperID& mapper : mappers_with_stealable_work)
+          issue_advertisements(mapper);
       }
 
       // Finally issue any steal requeusts

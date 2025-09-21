@@ -261,10 +261,9 @@ namespace Legion {
       if (!acquired_instances.empty())
         release_acquired_instances(acquired_instances);
       dependence_map.clear();
-      for (std::vector<DependenceRecord*>::iterator it = dependences.begin();
-           it != dependences.end(); it++)
+      for (DependenceRecord*& record : dependences)
       {
-        delete (*it);
+        delete record;
       }
       dependences.clear();
       single_task_map.clear();
@@ -300,16 +299,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       size_t result = 0;
-      for (std::vector<IndividualTask*>::const_iterator it =
-               indiv_tasks.begin();
-           it != indiv_tasks.end(); it++)
+      for (IndividualTask* const & task : indiv_tasks)
       {
-        result += (*it)->get_region_count();
+        result += task->get_region_count();
       }
-      for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
-           it != index_tasks.end(); it++)
+      for (IndexTask* const & task : index_tasks)
       {
-        result += (*it)->get_region_count();
+        result += task->get_region_count();
       }
       return result;
     }
@@ -320,17 +316,14 @@ namespace Legion {
     {
       if (spy_logging_level > NO_SPY_LOGGING)
       {
-        for (std::vector<IndividualTask*>::const_iterator it =
-                 indiv_tasks.begin();
-             it != indiv_tasks.end(); it++)
+        for (IndividualTask* const & task : indiv_tasks)
           LegionSpy::log_child_operation_index(
               parent_ctx->get_unique_id(), context_index,
-              (*it)->get_unique_op_id());
-        for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
-             it != index_tasks.end(); it++)
+              task->get_unique_op_id());
+        for (IndexTask* const & task : index_tasks)
           LegionSpy::log_child_operation_index(
               parent_ctx->get_unique_id(), context_index,
-              (*it)->get_unique_op_id());
+              task->get_unique_op_id());
       }
     }
 
@@ -372,22 +365,19 @@ namespace Legion {
       // Add a guard on the single tasks being ready
       remaining_single_tasks.store(1);
       const Processor current = parent_ctx->get_executing_processor();
-      for (std::vector<IndividualTask*>::const_iterator it =
-               indiv_tasks.begin();
-           it != indiv_tasks.end(); it++)
+      for (IndividualTask* const & task : indiv_tasks)
       {
-        (*it)->prepare_map_must_epoch();
-        (*it)->set_target_proc(current);
+        task->prepare_map_must_epoch();
+        task->set_target_proc(current);
         remaining_single_tasks.fetch_add(1);
-        (*it)->enqueue_ready_operation();
+        task->enqueue_ready_operation();
       }
-      for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
-           it != index_tasks.end(); it++)
+      for (IndexTask* const & task : index_tasks)
       {
-        (*it)->prepare_map_must_epoch();
-        (*it)->set_target_proc(current);
-        remaining_single_tasks.fetch_add((*it)->index_domain.get_volume());
-        (*it)->enqueue_ready_operation();
+        task->prepare_map_must_epoch();
+        task->set_target_proc(current);
+        remaining_single_tasks.fetch_add(task->index_domain.get_volume());
+        task->enqueue_ready_operation();
       }
       // Remove the guard that we added
       const unsigned remaining = remaining_single_tasks.fetch_sub(1);
@@ -423,49 +413,44 @@ namespace Legion {
       // with a different set of points
       dependence_map.clear();
       unsigned constraint_idx = 0;
-      for (std::vector<DependenceRecord*>::const_iterator it =
-               dependences.begin();
-           it != dependences.end(); it++, constraint_idx++)
+      for (DependenceRecord* it : dependences)
       {
         Mapper::MappingConstraint& constraint = constraints[constraint_idx];
-        legion_assert((*it)->op_indexes.size() == (*it)->req_indexes.size());
+        legion_assert(it->op_indexes.size() == it->req_indexes.size());
         // Add constraints for all the different elements
         std::set<unsigned> single_indexes;
-        for (unsigned idx = 0; idx < (*it)->op_indexes.size(); idx++)
+        for (unsigned idx = 0; idx < it->op_indexes.size(); idx++)
         {
-          unsigned req_index = (*it)->req_indexes[idx];
+          unsigned req_index = it->req_indexes[idx];
           const std::set<SingleTask*>& task_set =
-              task_sets[(*it)->op_indexes[idx]];
-          for (std::set<SingleTask*>::const_iterator sit = task_set.begin();
-               sit != task_set.end(); sit++)
+              task_sets[it->op_indexes[idx]];
+          for (SingleTask* const & single_task : task_set)
           {
-            constraint.constrained_tasks.emplace_back(*sit);
+            constraint.constrained_tasks.emplace_back(single_task);
             constraint.requirement_indexes.emplace_back(req_index);
-            legion_assert(single_task_map.find(*sit) != single_task_map.end());
+            legion_assert(
+                single_task_map.find(single_task) != single_task_map.end());
             // Update the dependence map
-            std::pair<unsigned, unsigned> key(single_task_map[*sit], req_index);
+            std::pair<unsigned, unsigned> key(
+                single_task_map[single_task], req_index);
             dependence_map[key] = constraint_idx;
             single_indexes.insert(key.first);
           }
         }
         // Record the mapping dependences
-        for (std::set<unsigned>::const_iterator it1 = single_indexes.begin();
-             it1 != single_indexes.end(); it1++)
+        for (const unsigned& index1 : single_indexes)
         {
-          for (std::set<unsigned>::const_iterator it2 = single_indexes.begin();
-               it2 != it1; it2++)
+          for (const unsigned& index2 : single_indexes)
           {
-            mapping_dependences[*it1].insert(*it2);
+            if (index2 == index1)
+              break;
+            mapping_dependences[index1].insert(index2);
           }
         }
+        constraint_idx++;
       }
       // Clear this eagerly to save space
-      for (std::vector<DependenceRecord*>::const_iterator it =
-               dependences.begin();
-           it != dependences.end(); it++)
-      {
-        delete (*it);
-      }
+      for (DependenceRecord* record : dependences) delete record;
       dependences.clear();
       // Fill in the rest of the inputs to the mapper call
       input.mapping_tag = tag;
@@ -525,25 +510,21 @@ namespace Legion {
       tasks_all_mapped.reserve(indiv_tasks.size() + index_tasks.size());
       // Once all the tasks have been initialized we can defer
       // our all mapped event on all their all mapped events
-      for (std::vector<IndividualTask*>::const_iterator it =
-               indiv_tasks.begin();
-           it != indiv_tasks.end(); it++)
+      for (IndividualTask* const & task : indiv_tasks)
       {
-        tasks_all_mapped.emplace_back((*it)->get_mapped_event());
-        record_completion_effect((*it)->get_completion_event());
+        tasks_all_mapped.emplace_back(task->get_mapped_event());
+        record_completion_effect(task->get_completion_event());
       }
-      for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
-           it != index_tasks.end(); it++)
+      for (IndexTask* const & task : index_tasks)
       {
-        tasks_all_mapped.emplace_back((*it)->get_mapped_event());
-        record_completion_effect((*it)->get_completion_event());
+        tasks_all_mapped.emplace_back(task->get_mapped_event());
+        record_completion_effect(task->get_completion_event());
       }
       // For correctness we still have to abide by the mapping dependences
       // computed on the individual tasks while we are mapping them
-      for (std::vector<SingleTask*>::const_iterator it = single_tasks.begin();
-           it != single_tasks.end(); it++)
-        mapped_events.emplace(std::make_pair(
-            (*it)->index_point, Runtime::create_rt_user_event()));
+      for (SingleTask* const & task : single_tasks)
+        mapped_events.emplace(
+            std::make_pair(task->index_point, Runtime::create_rt_user_event()));
       remaining_mapped_events.store(single_tasks.size());
       remaining_collective_unbound_points = single_tasks.size();
       remaining_concurrent_mapped = single_tasks.size();
@@ -553,13 +534,11 @@ namespace Legion {
       {
         // Figure out our preconditions
         std::vector<RtEvent> preconditions;
-        for (std::set<unsigned>::const_iterator it =
-                 mapping_dependences[idx].begin();
-             it != mapping_dependences[idx].end(); it++)
+        for (const unsigned& it : mapping_dependences[idx])
         {
-          legion_assert((*it) < idx);
+          legion_assert(it < idx);
           preconditions.emplace_back(
-              mapped_events[single_tasks[*it]->index_point]);
+              mapped_events[single_tasks[it]->index_point]);
         }
         RtEvent precondition;
         if (!preconditions.empty())
@@ -588,10 +567,9 @@ namespace Legion {
       {
         std::vector<RtEvent> preconditions;
         preconditions.reserve(mapped_events.size());
-        for (std::map<DomainPoint, RtUserEvent>::const_iterator it =
-                 mapped_events.begin();
-             it != mapped_events.end(); it++)
-          preconditions.emplace_back(it->second);
+        for (const std::pair<const DomainPoint, RtUserEvent>& it :
+             mapped_events)
+          preconditions.emplace_back(it.second);
         release_nonempty_acquired_instances(
             Runtime::merge_events(preconditions), acquired_instances);
       }
@@ -743,48 +721,43 @@ namespace Legion {
       local_tasks.swap(concurrent_tasks);
       std::vector<std::pair<SliceTask*, AddressSpaceID> > local_slices;
       local_slices.swap(concurrent_slices);
-      for (std::vector<
-               std::pair<IndividualTask*, AddressSpaceID> >::const_iterator it =
-               local_tasks.begin();
-           it != local_tasks.end(); it++)
+      for (const std::pair<IndividualTask*, AddressSpaceID>& it : local_tasks)
       {
-        if (it->second != runtime->address_space)
+        if (it.second != runtime->address_space)
         {
           IndividualTaskConcurrentResponse rez;
           {
             RezCheck z(rez);
-            rez.serialize(it->first);
+            rez.serialize(it.first);
             rez.serialize(concurrent_lamport_clock);
             rez.serialize(concurrent_poisoned);
           }
-          rez.dispatch(it->second);
+          rez.dispatch(it.second);
         }
         else
-          it->first->finish_concurrent_allreduce(
+          it.first->finish_concurrent_allreduce(
               concurrent_lamport_clock, concurrent_poisoned);
       }
       const Color color = 0;    // everything is color zero here
       const VariantID vid = 0;  // dummy variant since it's only for checking
-      for (std::vector<std::pair<SliceTask*, AddressSpaceID> >::const_iterator
-               it = local_slices.begin();
-           it != local_slices.end(); it++)
+      for (const std::pair<SliceTask*, AddressSpaceID>& it : local_slices)
       {
-        if (it->second != runtime->address_space)
+        if (it.second != runtime->address_space)
         {
           SliceConcurrentResponse rez;
           {
             RezCheck z(rez);
-            rez.serialize(it->first);
+            rez.serialize(it.first);
             rez.serialize(color);
             rez.serialize(RtBarrier::NO_RT_BARRIER);
             rez.serialize(concurrent_lamport_clock);
             rez.serialize(vid);
             rez.serialize(concurrent_poisoned);
           }
-          rez.dispatch(it->second);
+          rez.dispatch(it.second);
         }
         else
-          it->first->finish_concurrent_allreduce(
+          it.first->finish_concurrent_allreduce(
               color, concurrent_lamport_clock, concurrent_poisoned, vid,
               RtBarrier::NO_RT_BARRIER);
       }
@@ -985,12 +958,10 @@ namespace Legion {
             // had on other tasks inside the must epoch launch and see
             // which ones we actually interfere with so we can record
             // the appropriate constraints
-            for (std::vector<std::pair<unsigned, unsigned> >::const_iterator
-                     it = finder->second.begin();
-                 it != finder->second.end(); it++)
+            for (const std::pair<unsigned, unsigned>& it : finder->second)
             {
-              TaskOp* dst_task = find_task_by_index(it->first);
-              const RegionRequirement& dst_req = dst_task->regions[it->second];
+              TaskOp* dst_task = find_task_by_index(it.first);
+              const RegionRequirement& dst_req = dst_task->regions[it.second];
               IndexSpaceNode* dst_node =
                   runtime->get_node(dst_req.region.get_index_space());
               IndexTreeNode* dummy = nullptr;
@@ -1001,7 +972,7 @@ namespace Legion {
                   check_dependence_type<true, true /*reductions interfere*/>(
                       RegionUsage(src_req), RegionUsage(dst_req));
               record_intra_must_epoch_dependence(
-                  src_index, src_idx, it->first, it->second, internal_dtype);
+                  src_index, src_idx, it.first, it.second, internal_dtype);
             }
           }
         }
@@ -1328,11 +1299,9 @@ namespace Legion {
         // Wait for all the other shards to be done
         local_done_event.wait();
         // Now we can remove our held references
-        for (std::set<PhysicalManager*>::const_iterator it =
-                 held_references.begin();
-             it != held_references.end(); it++)
-          if ((*it)->remove_base_valid_ref(REPLICATION_REF))
-            delete (*it);
+        for (PhysicalManager* manager : held_references)
+          if (manager->remove_base_valid_ref(REPLICATION_REF))
+            delete manager;
       }
     }
 
@@ -1351,9 +1320,7 @@ namespace Legion {
       {
         const std::vector<DistributedID>& dids = instances[idx];
         rez.serialize<size_t>(dids.size());
-        for (std::vector<DistributedID>::const_iterator it = dids.begin();
-             it != dids.end(); it++)
-          rez.serialize(*it);
+        for (const DistributedID& it : dids) rez.serialize(it);
       }
     }
 
@@ -1425,14 +1392,12 @@ namespace Legion {
       // We are a little smarter with the mappings since we know exactly
       // which ones we are actually going to need for our local points
       std::set<RtEvent> ready_events;
-      for (std::vector<unsigned>::const_iterator it =
-               constraint_indexes.begin();
-           it != constraint_indexes.end(); it++)
+      for (const unsigned& index : constraint_indexes)
       {
-        legion_assert((*it) < instances.size());
-        legion_assert((*it) < mappings.size());
-        const std::vector<DistributedID>& dids = instances[*it];
-        std::vector<Mapping::PhysicalInstance>& mapping = mappings[*it];
+        legion_assert(index < instances.size());
+        legion_assert(index < mappings.size());
+        const std::vector<DistributedID>& dids = instances[index];
+        std::vector<Mapping::PhysicalInstance>& mapping = mappings[index];
         mapping.resize(dids.size());
         for (unsigned idx = 0; idx < dids.size(); idx++)
         {
@@ -1458,11 +1423,9 @@ namespace Legion {
         const std::vector<Mapping::PhysicalInstance>& mapping =
             mappings[constraint_index];
         // Also grab an acquired reference to these instances
-        for (std::vector<Mapping::PhysicalInstance>::const_iterator it =
-                 mapping.begin();
-             it != mapping.end(); it++)
+        for (const Mapping::PhysicalInstance& it : mapping)
         {
-          PhysicalManager* manager = it->impl->as_physical_manager();
+          PhysicalManager* manager = it.impl->as_physical_manager();
           // If we already had a reference to this instance
           // then we don't need to add any additional ones
           if (acquired.find(manager) != acquired.end())
@@ -1500,11 +1463,9 @@ namespace Legion {
           done.wait();
       }
       // Now we can remove our held references
-      for (std::set<PhysicalManager*>::const_iterator it =
-               held_references.begin();
-           it != held_references.end(); it++)
-        if ((*it)->remove_base_valid_ref(REPLICATION_REF))
-          delete (*it);
+      for (PhysicalManager* manager : held_references)
+        if (manager->remove_base_valid_ref(REPLICATION_REF))
+          delete manager;
     }
 
     //--------------------------------------------------------------------------
@@ -1513,29 +1474,23 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(processors.size());
-      for (std::map<DomainPoint, Processor>::const_iterator it =
-               processors.begin();
-           it != processors.end(); it++)
+      for (const std::pair<const DomainPoint, Processor>& it : processors)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
       rez.serialize<size_t>(constraints.size());
-      for (std::map<unsigned, ConstraintInfo>::const_iterator it =
-               constraints.begin();
-           it != constraints.end(); it++)
+      for (const std::pair<const unsigned, ConstraintInfo>& it : constraints)
       {
-        rez.serialize(it->first);
-        rez.serialize<size_t>(it->second.instances.size());
-        for (unsigned idx = 0; idx < it->second.instances.size(); idx++)
-          rez.serialize(it->second.instances[idx]);
-        rez.serialize(it->second.origin_shard);
-        rez.serialize(it->second.weight);
+        rez.serialize(it.first);
+        rez.serialize<size_t>(it.second.instances.size());
+        for (unsigned idx = 0; idx < it.second.instances.size(); idx++)
+          rez.serialize(it.second.instances[idx]);
+        rez.serialize(it.second.origin_shard);
+        rez.serialize(it.second.weight);
       }
       rez.serialize<size_t>(done_events.size());
-      for (std::set<RtEvent>::const_iterator it = done_events.begin();
-           it != done_events.end(); it++)
-        rez.serialize(*it);
+      for (const RtEvent& done_event : done_events) rez.serialize(done_event);
     }
 
     //--------------------------------------------------------------------------
@@ -1618,11 +1573,9 @@ namespace Legion {
       // hold until all the must epoch operations are done with the exchange
       for (unsigned idx = 0; idx < mappings.size(); idx++)
       {
-        for (std::vector<Mapping::PhysicalInstance>::const_iterator it =
-                 mappings[idx].begin();
-             it != mappings[idx].end(); it++)
+        for (const Mapping::PhysicalInstance& it : mappings[idx])
         {
-          PhysicalManager* manager = it->impl->as_physical_manager();
+          PhysicalManager* manager = it.impl->as_physical_manager();
           if (held_references.find(manager) != held_references.end())
             continue;
           manager->add_base_valid_ref(REPLICATION_REF);
@@ -1712,11 +1665,9 @@ namespace Legion {
         const std::vector<Mapping::PhysicalInstance>& mapping =
             mappings[constraint_index];
         // Also grab an acquired reference to these instances
-        for (std::vector<Mapping::PhysicalInstance>::const_iterator it =
-                 mapping.begin();
-             it != mapping.end(); it++)
+        for (const Mapping::PhysicalInstance& it : mapping)
         {
-          PhysicalManager* manager = it->impl->as_physical_manager();
+          PhysicalManager* manager = it.impl->as_physical_manager();
           // If we already had a reference to this instance
           // then we don't need to add any additional ones
           if (acquired.find(manager) != acquired.end())
@@ -1751,12 +1702,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(mapped_events.size());
-      for (std::map<DomainPoint, RtUserEvent>::const_iterator it =
-               mapped_events.begin();
-           it != mapped_events.end(); it++)
+      for (const std::pair<const DomainPoint, RtUserEvent>& it : mapped_events)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
     }
 
@@ -1999,16 +1948,15 @@ namespace Legion {
       Domain shard_domain = launch_domain;
       if (sharding_space.exists())
         runtime->find_domain(sharding_space, shard_domain);
-      for (std::vector<SingleTask*>::const_iterator it = single_tasks.begin();
-           it != single_tasks.end(); it++)
+      for (SingleTask* task : single_tasks)
       {
         const ShardID shard =
-            sharding_function->find_owner((*it)->index_point, shard_domain);
-        LegionSpy::log_owner_shard((*it)->get_unique_id(), shard);
+            sharding_function->find_owner(task->index_point, shard_domain);
+        LegionSpy::log_owner_shard(task->get_unique_id(), shard);
         // If it is not our shard then we don't own it
         if (shard != repl_ctx->owner_shard->shard_id)
           continue;
-        shard_single_tasks.insert(*it);
+        shard_single_tasks.insert(task);
       }
       // Find the set of constraints that apply to our local set of tasks
       std::vector<Mapper::MappingConstraint> local_constraints;
@@ -2016,11 +1964,10 @@ namespace Legion {
       for (unsigned idx = 0; idx < input.constraints.size(); idx++)
       {
         bool is_local = false;
-        for (std::vector<const Task*>::const_iterator it =
-                 input.constraints[idx].constrained_tasks.begin();
-             it != input.constraints[idx].constrained_tasks.end(); it++)
+        for (const Task* task : input.constraints[idx].constrained_tasks)
         {
-          SingleTask* single = static_cast<SingleTask*>(const_cast<Task*>(*it));
+          SingleTask* single =
+              static_cast<SingleTask*>(const_cast<Task*>(task));
           if (shard_single_tasks.find(single) == shard_single_tasks.end())
             continue;
           is_local = true;
@@ -2093,11 +2040,9 @@ namespace Legion {
       legion_assert(single_tasks.size() == mapping_dependences.size());
       ReplicateContext* repl_ctx =
           legion_safe_cast<ReplicateContext*>(parent_ctx);
-      for (std::set<SingleTask*>::const_iterator it =
-               shard_single_tasks.begin();
-           it != shard_single_tasks.end(); it++)
-        mapped_events.emplace(std::make_pair(
-            (*it)->index_point, Runtime::create_rt_user_event()));
+      for (SingleTask* task : shard_single_tasks)
+        mapped_events.emplace(
+            std::make_pair(task->index_point, Runtime::create_rt_user_event()));
       // Exchange these to get them in flight
       MustEpochDependenceExchange dependence_exchange(
           dependence_exchange_id, repl_ctx, mapped_events);
@@ -2109,20 +2054,17 @@ namespace Legion {
       tasks_all_complete.reserve(indiv_tasks.size() + index_tasks.size());
       // Once all the tasks have been initialized we can defer
       // our all mapped event on all their all mapped events
-      for (std::vector<IndividualTask*>::const_iterator it =
-               indiv_tasks.begin();
-           it != indiv_tasks.end(); it++)
+      for (IndividualTask* task : indiv_tasks)
       {
-        tasks_all_mapped.emplace_back((*it)->get_mapped_event());
-        tasks_all_complete.emplace_back((*it)->get_completion_event());
-        if (shard_single_tasks.find(*it) != shard_single_tasks.end())
+        tasks_all_mapped.emplace_back(task->get_mapped_event());
+        tasks_all_complete.emplace_back(task->get_completion_event());
+        if (shard_single_tasks.find(task) != shard_single_tasks.end())
           remaining_resource_returns++;
       }
-      for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
-           it != index_tasks.end(); it++)
+      for (IndexTask* task : index_tasks)
       {
-        tasks_all_mapped.emplace_back((*it)->get_mapped_event());
-        tasks_all_complete.emplace_back((*it)->get_completion_event());
+        tasks_all_mapped.emplace_back(task->get_mapped_event());
+        tasks_all_complete.emplace_back(task->get_completion_event());
       }
       // Start the exchange for the mapped and completion events
       MustEpochCompletionExchange completion_exchange(
@@ -2130,19 +2072,16 @@ namespace Legion {
           tasks_all_complete);
       completion_exchange.perform_collective_async();
       // Need to count remaining resource returns for slices too
-      for (std::set<SliceTask*>::const_iterator it = slice_tasks.begin();
-           it != slice_tasks.end(); it++)
+      for (SliceTask* slice : slice_tasks)
       {
         // Check to see if we either do or not own this slice
         // We currently do not support mixed slices for which
         // we only own some of the points
         bool contains_any = false;
         bool contains_all = true;
-        for (std::vector<PointTask*>::const_iterator pit =
-                 (*it)->points.begin();
-             pit != (*it)->points.end(); pit++)
+        for (PointTask* task : slice->points)
         {
-          if (shard_single_tasks.find(*pit) != shard_single_tasks.end())
+          if (shard_single_tasks.find(task) != shard_single_tasks.end())
             contains_any = true;
           else if (contains_all)
           {
@@ -2220,12 +2159,10 @@ namespace Legion {
         }
         // Figure out our preconditions
         std::set<RtEvent> preconditions;
-        for (std::set<unsigned>::const_iterator it =
-                 mapping_dependences[idx].begin();
-             it != mapping_dependences[idx].end(); it++)
+        for (const unsigned& it : mapping_dependences[idx])
         {
-          legion_assert((*it) < idx);
-          preconditions.insert(mapped_events[single_tasks[*it]->index_point]);
+          legion_assert(it < idx);
+          preconditions.insert(mapped_events[single_tasks[it]->index_point]);
         }
         RtEvent precondition;
         if (!preconditions.empty())

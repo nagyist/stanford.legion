@@ -458,16 +458,13 @@ namespace Legion {
       std::map<FieldID, AlignmentConstraint> align_map;
       const std::vector<AlignmentConstraint>& alignment_constraints =
           lc.alignment_constraints;
-      for (std::vector<AlignmentConstraint>::const_iterator it =
-               alignment_constraints.begin();
-           it != alignment_constraints.end(); it++)
-        align_map[it->fid] = *it;
+      for (const AlignmentConstraint& constraint : alignment_constraints)
+        align_map[constraint.fid] = constraint;
       const std::vector<FieldID>& fields = lc.field_constraint.field_set;
-      for (std::vector<FieldID>::const_iterator it = fields.begin();
-           it != fields.end(); it++)
+      for (const FieldID& field : fields)
       {
         std::map<FieldID, AlignmentConstraint>::const_iterator align =
-            align_map.find(*it);
+            align_map.find(field);
         bool has_align = false;
         unsigned alignment = 0;
         EqualityKind eqk = LEGION_LT_EK;
@@ -478,16 +475,14 @@ namespace Legion {
           eqk = align->second.eqk;
         }
         register_physical_instance_field(
-            unique_event, *it, fs.get_id(), alignment, has_align, eqk);
+            unique_event, field, fs.get_id(), alignment, has_align, eqk);
       }
       const std::vector<DimensionKind>& dim_ordering_constr =
           lc.ordering_constraint.ordering;
       unsigned dim = 0;
-      for (std::vector<DimensionKind>::const_iterator it =
-               dim_ordering_constr.begin();
-           it != dim_ordering_constr.end(); it++)
+      for (const DimensionKind& dimension : dim_ordering_constr)
       {
-        register_physical_instance_dim_order(unique_event, dim, *it);
+        register_physical_instance_dim_order(unique_event, dim, dimension);
         dim++;
       }
     }
@@ -514,13 +509,15 @@ namespace Legion {
     {
       const unsigned offset = phy_inst_usage.size();
       phy_inst_usage.resize(offset + fields.size());
-      for (unsigned idx = 0; idx < fields.size(); idx++)
+      unsigned idx = 0;
+      for (const FieldID& field : fields)
       {
         PhysicalInstanceUsage& usage = phy_inst_usage[offset + idx];
         usage.inst_uid = inst_uid;
         usage.op_id = op_id;
         usage.index = index;
-        usage.field = fields[idx];
+        usage.field = field;
+        idx++;
       }
       owner->update_footprint(
           fields.size() * sizeof(PhysicalInstanceUsage), this);
@@ -1043,12 +1040,13 @@ namespace Legion {
       InstanceNameClosure* closure = prof_info->extra.closure;
       typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo
           InstInfo;
-      for (std::vector<InstInfo>::const_iterator it = cpinfo.inst_info.begin();
-           it != cpinfo.inst_info.end(); it++)
+      for (const InstInfo& inst_info_item : cpinfo.inst_info)
       {
-        legion_assert(it->src_fields.size() == it->dst_fields.size());
-        if (it->src_indirection_inst.exists() ||
-            it->dst_indirection_inst.exists())
+        legion_assert(
+            inst_info_item.src_fields.size() ==
+            inst_info_item.dst_fields.size());
+        if (inst_info_item.src_indirection_inst.exists() ||
+            inst_info_item.dst_indirection_inst.exists())
         {
           // Apparently we have to do the full cross-product of
           // everything here. I don't really understand so just
@@ -1057,19 +1055,22 @@ namespace Legion {
           unsigned offset = info.inst_infos.size();
           info.inst_infos.resize(
               offset +
-              (it->src_insts.size() * it->src_fields.size() *
-               it->dst_insts.size() * it->dst_fields.size()) +
+              (inst_info_item.src_insts.size() *
+               inst_info_item.src_fields.size() *
+               inst_info_item.dst_insts.size() *
+               inst_info_item.dst_fields.size()) +
               1 /*extra for indirection*/);
           // Finally log the indirection instance(s)
           CopyInstInfo& indirect = info.inst_infos[offset++];
           indirect.indirect = true;
-          indirect.num_hops = it->num_hops;
-          if (it->src_indirection_inst.exists())
+          indirect.num_hops = inst_info_item.num_hops;
+          if (inst_info_item.src_indirection_inst.exists())
           {
-            indirect.src = it->src_indirection_inst.get_location().id;
-            indirect.src_fid = it->src_indirection_field;
-            indirect.src_inst_uid =
-                closure->find_instance_name(it->src_indirection_inst);
+            indirect.src =
+                inst_info_item.src_indirection_inst.get_location().id;
+            indirect.src_fid = inst_info_item.src_indirection_field;
+            indirect.src_inst_uid = closure->find_instance_name(
+                inst_info_item.src_indirection_inst);
           }
           else
           {
@@ -1077,12 +1078,13 @@ namespace Legion {
             indirect.src_fid = 0;
             indirect.src_inst_uid = LgEvent::NO_LG_EVENT;
           }
-          if (it->dst_indirection_inst.exists())
+          if (inst_info_item.dst_indirection_inst.exists())
           {
-            indirect.dst = it->dst_indirection_inst.get_location().id;
-            indirect.dst_fid = it->dst_indirection_field;
-            indirect.dst_inst_uid =
-                closure->find_instance_name(it->dst_indirection_inst);
+            indirect.dst =
+                inst_info_item.dst_indirection_inst.get_location().id;
+            indirect.dst_fid = inst_info_item.dst_indirection_field;
+            indirect.dst_inst_uid = closure->find_instance_name(
+                inst_info_item.dst_indirection_inst);
           }
           else
           {
@@ -1090,22 +1092,18 @@ namespace Legion {
             indirect.dst_fid = 0;
             indirect.dst_inst_uid = LgEvent::NO_LG_EVENT;
           }
-          for (unsigned idx1 = 0; idx1 < it->src_insts.size(); idx1++)
+          for (const PhysicalInstance& src_inst : inst_info_item.src_insts)
           {
-            PhysicalInstance src_inst = it->src_insts[idx1];
             Memory src_location = src_inst.get_location();
             LgEvent src_name = closure->find_instance_name(src_inst);
-            for (unsigned idx2 = 0; idx2 < it->dst_insts.size(); idx2++)
+            for (const PhysicalInstance& dst_inst : inst_info_item.dst_insts)
             {
-              PhysicalInstance dst_inst = it->dst_insts[idx2];
               Memory dst_location = dst_inst.get_location();
               LgEvent dst_name = closure->find_instance_name(dst_inst);
-              for (unsigned idx3 = 0; idx3 < it->src_fields.size(); idx3++)
+              for (const Realm::FieldID& src_fid : inst_info_item.src_fields)
               {
-                const FieldID src_fid = it->src_fields[idx3];
-                for (unsigned idx4 = 0; idx4 < it->dst_fields.size(); idx4++)
+                for (const Realm::FieldID& dst_fid : inst_info_item.dst_fields)
                 {
-                  const FieldID dst_fid = it->dst_fields[idx4];
                   CopyInstInfo& inst_info = info.inst_infos[offset++];
                   inst_info.src = src_location.id;
                   inst_info.dst = dst_location.id;
@@ -1113,7 +1111,7 @@ namespace Legion {
                   inst_info.dst_fid = dst_fid;
                   inst_info.src_inst_uid = src_name;
                   inst_info.dst_inst_uid = dst_name;
-                  inst_info.num_hops = it->num_hops;
+                  inst_info.num_hops = inst_info_item.num_hops;
                   inst_info.indirect = false;
                 }
               }
@@ -1124,27 +1122,29 @@ namespace Legion {
         {
           // Ask the Realm developers about why these assertions are true
           // because I still don't completely understand the logic
-          legion_assert(it->src_insts.size() == 1);
-          legion_assert(it->dst_insts.size() == 1);
-          PhysicalInstance src_inst = it->src_insts.front();
-          PhysicalInstance dst_inst = it->dst_insts.front();
+          legion_assert(inst_info_item.src_insts.size() == 1);
+          legion_assert(inst_info_item.dst_insts.size() == 1);
+          PhysicalInstance src_inst = inst_info_item.src_insts.front();
+          PhysicalInstance dst_inst = inst_info_item.dst_insts.front();
           Memory src_location = src_inst.get_location();
           Memory dst_location = dst_inst.get_location();
           LgEvent src_name = closure->find_instance_name(src_inst);
           LgEvent dst_name = closure->find_instance_name(dst_inst);
           const unsigned offset = info.inst_infos.size();
-          info.inst_infos.resize(offset + it->src_fields.size());
-          for (unsigned idx = 0; idx < it->src_fields.size(); idx++)
+          info.inst_infos.resize(offset + inst_info_item.src_fields.size());
+          unsigned idx = 0;
+          for (const Realm::FieldID& src_field : inst_info_item.src_fields)
           {
             CopyInstInfo& inst_info = info.inst_infos[offset + idx];
             inst_info.src = src_location.id;
             inst_info.dst = dst_location.id;
-            inst_info.src_fid = it->src_fields[idx];
-            inst_info.dst_fid = it->dst_fields[idx];
+            inst_info.src_fid = src_field;
+            inst_info.dst_fid = inst_info_item.dst_fields[idx];
             inst_info.src_inst_uid = src_name;
             inst_info.dst_inst_uid = dst_name;
-            inst_info.num_hops = it->num_hops;
+            inst_info.num_hops = inst_info_item.num_hops;
             inst_info.indirect = false;
+            idx++;
           }
         }
       }
@@ -1194,22 +1194,23 @@ namespace Legion {
       InstanceNameClosure* closure = prof_info->extra.closure;
       typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo
           InstInfo;
-      for (std::vector<InstInfo>::const_iterator it = cpinfo.inst_info.begin();
-           it != cpinfo.inst_info.end(); it++)
+      for (const InstInfo& inst_info_item : cpinfo.inst_info)
       {
-        legion_assert(!it->dst_fields.empty());
-        legion_assert(it->dst_insts.size() == 1);
-        PhysicalInstance instance = it->dst_insts.front();
+        legion_assert(!inst_info_item.dst_fields.empty());
+        legion_assert(inst_info_item.dst_insts.size() == 1);
+        PhysicalInstance instance = inst_info_item.dst_insts.front();
         Memory location = instance.get_location();
         LgEvent name = closure->find_instance_name(instance);
         unsigned offset = info.inst_infos.size();
-        info.inst_infos.resize(offset + it->dst_fields.size());
-        for (unsigned idx = 0; idx < it->dst_fields.size(); idx++)
+        info.inst_infos.resize(offset + inst_info_item.dst_fields.size());
+        unsigned idx = 0;
+        for (const Realm::FieldID& dst_field : inst_info_item.dst_fields)
         {
           FillInstInfo& inst_info = info.inst_infos[offset + idx];
           inst_info.dst = location.id;
-          inst_info.fid = it->dst_fields[idx];
+          inst_info.fid = dst_field;
           inst_info.dst_inst_uid = name;
+          idx++;
         }
       }
       info.creator = prof_info->creator;
@@ -1550,257 +1551,188 @@ namespace Legion {
     void LegionProfInstance::dump_state(LegionProfSerializer* serializer)
     //--------------------------------------------------------------------------
     {
-      for (std::deque<OperationInstance>::const_iterator it =
-               operation_instances.begin();
-           it != operation_instances.end(); it++)
+      for (const OperationInstance& op_instance : operation_instances)
       {
-        serializer->serialize(*it);
+        serializer->serialize(op_instance);
       }
-      for (std::deque<MultiTask>::const_iterator it = multi_tasks.begin();
-           it != multi_tasks.end(); it++)
+      for (const MultiTask& multi_task : multi_tasks)
       {
-        serializer->serialize(*it);
+        serializer->serialize(multi_task);
       }
-      for (std::deque<SliceOwner>::const_iterator it = slice_owners.begin();
-           it != slice_owners.end(); it++)
+      for (const SliceOwner& slice_owner : slice_owners)
       {
-        serializer->serialize(*it);
+        serializer->serialize(slice_owner);
       }
-      for (std::deque<TaskInfo>::const_iterator it = task_infos.begin();
-           it != task_infos.end(); it++)
+      for (const TaskInfo& task_info : task_infos)
       {
-        serializer->serialize(*it, false /*not implicit*/);
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 it->wait_intervals.begin();
-             wit != it->wait_intervals.end(); wit++)
+        serializer->serialize(task_info, false /*not implicit*/);
+        for (const WaitInfo& wait_info : task_info.wait_intervals)
         {
-          serializer->serialize(*wit, *it);
+          serializer->serialize(wait_info, task_info);
         }
       }
-      for (std::deque<TaskInfo>::const_iterator it = implicit_infos.begin();
-           it != implicit_infos.end(); it++)
+      for (const TaskInfo& task_info : implicit_infos)
       {
-        serializer->serialize(*it, true /*implicit*/);
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 it->wait_intervals.begin();
-             wit != it->wait_intervals.end(); wit++)
+        serializer->serialize(task_info, true /*implicit*/);
+        for (const WaitInfo& wait_info : task_info.wait_intervals)
         {
-          serializer->serialize(*wit, *it);
+          serializer->serialize(wait_info, task_info);
         }
       }
-      for (std::deque<GPUTaskInfo>::const_iterator it = gpu_task_infos.begin();
-           it != gpu_task_infos.end(); it++)
+      for (const GPUTaskInfo& gpu_task_info : gpu_task_infos)
       {
-        serializer->serialize(*it);
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 it->wait_intervals.begin();
-             wit != it->wait_intervals.end(); wit++)
+        serializer->serialize(gpu_task_info);
+        for (const WaitInfo& wait_info : gpu_task_info.wait_intervals)
         {
-          serializer->serialize(*wit, *it);
+          serializer->serialize(wait_info, gpu_task_info);
         }
       }
-      for (std::deque<IndexSpaceRectDesc>::const_iterator it =
-               ispace_rect_desc.begin();
-           it != ispace_rect_desc.end(); it++)
+      for (const IndexSpaceRectDesc& rect_desc : ispace_rect_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(rect_desc);
       }
 
-      for (std::deque<IndexSpacePointDesc>::const_iterator it =
-               ispace_point_desc.begin();
-           it != ispace_point_desc.end(); it++)
+      for (const IndexSpacePointDesc& point_desc : ispace_point_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(point_desc);
       }
-      for (std::deque<IndexSpaceEmptyDesc>::const_iterator it =
-               ispace_empty_desc.begin();
-           it != ispace_empty_desc.end(); it++)
+      for (const IndexSpaceEmptyDesc& empty_desc : ispace_empty_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(empty_desc);
       }
-      for (std::deque<FieldDesc>::const_iterator it = field_desc.begin();
-           it != field_desc.end(); it++)
+      for (const FieldDesc& field_desc_item : field_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(field_desc_item);
       }
-      for (std::deque<FieldSpaceDesc>::const_iterator it =
-               field_space_desc.begin();
-           it != field_space_desc.end(); it++)
+      for (const FieldSpaceDesc& field_space_desc_item : field_space_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(field_space_desc_item);
       }
-      for (std::deque<IndexPartDesc>::const_iterator it =
-               index_part_desc.begin();
-           it != index_part_desc.end(); it++)
+      for (const IndexPartDesc& index_part_desc_item : index_part_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(index_part_desc_item);
       }
 
-      for (std::deque<IndexSubSpaceDesc>::const_iterator it =
-               index_subspace_desc.begin();
-           it != index_subspace_desc.end(); it++)
+      for (const IndexSubSpaceDesc& index_subspace_desc_item :
+           index_subspace_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(index_subspace_desc_item);
       }
 
-      for (std::deque<IndexPartitionDesc>::const_iterator it =
-               index_partition_desc.begin();
-           it != index_partition_desc.end(); it++)
+      for (const IndexPartitionDesc& index_partition_desc_item :
+           index_partition_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(index_partition_desc_item);
       }
 
-      for (std::deque<LogicalRegionDesc>::const_iterator it = lr_desc.begin();
-           it != lr_desc.end(); it++)
+      for (const LogicalRegionDesc& lr_desc_item : lr_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(lr_desc_item);
       }
 
-      for (std::deque<PhysicalInstRegionDesc>::const_iterator it =
-               phy_inst_rdesc.begin();
-           it != phy_inst_rdesc.end(); it++)
+      for (const PhysicalInstRegionDesc& phy_inst_region_desc : phy_inst_rdesc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(phy_inst_region_desc);
       }
-      for (std::deque<PhysicalInstLayoutDesc>::const_iterator it =
-               phy_inst_layout_rdesc.begin();
-           it != phy_inst_layout_rdesc.end(); it++)
+      for (const PhysicalInstLayoutDesc& phy_inst_layout_desc :
+           phy_inst_layout_rdesc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(phy_inst_layout_desc);
       }
 
-      for (std::deque<PhysicalInstDimOrderDesc>::const_iterator it =
-               phy_inst_dim_order_rdesc.begin();
-           it != phy_inst_dim_order_rdesc.end(); it++)
+      for (const PhysicalInstDimOrderDesc& phy_inst_dim_order_desc :
+           phy_inst_dim_order_rdesc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(phy_inst_dim_order_desc);
       }
 
-      for (std::deque<PhysicalInstanceUsage>::const_iterator it =
-               phy_inst_usage.begin();
-           it != phy_inst_usage.end(); it++)
+      for (const PhysicalInstanceUsage& phy_inst_usage_item : phy_inst_usage)
       {
-        serializer->serialize(*it);
+        serializer->serialize(phy_inst_usage_item);
       }
 
-      for (std::deque<IndexSpaceSizeDesc>::const_iterator it =
-               index_space_size_desc.begin();
-           it != index_space_size_desc.end(); it++)
+      for (const IndexSpaceSizeDesc& index_space_size_desc_item :
+           index_space_size_desc)
       {
-        serializer->serialize(*it);
+        serializer->serialize(index_space_size_desc_item);
       }
 
-      for (std::deque<MetaInfo>::const_iterator it = meta_infos.begin();
-           it != meta_infos.end(); it++)
+      for (const MetaInfo& meta_info : meta_infos)
       {
-        serializer->serialize(*it);
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 it->wait_intervals.begin();
-             wit != it->wait_intervals.end(); wit++)
+        serializer->serialize(meta_info);
+        for (const WaitInfo& wait_info : meta_info.wait_intervals)
         {
-          serializer->serialize(*wit, *it);
+          serializer->serialize(wait_info, meta_info);
         }
       }
-      for (std::deque<MessageInfo>::const_iterator it = message_infos.begin();
-           it != message_infos.end(); it++)
+      for (const MessageInfo& message_info : message_infos)
       {
-        serializer->serialize(*it);
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 it->wait_intervals.begin();
-             wit != it->wait_intervals.end(); wit++)
+        serializer->serialize(message_info);
+        for (const WaitInfo& wait_info : message_info.wait_intervals)
         {
-          serializer->serialize(*wit, *it);
+          serializer->serialize(wait_info, message_info);
         }
       }
-      for (std::deque<FillInfo>::const_iterator it = fill_infos.begin();
-           it != fill_infos.end(); it++)
+      for (const FillInfo& fill_info : fill_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(fill_info);
       }
-      for (std::deque<CopyInfo>::const_iterator it = copy_infos.begin();
-           it != copy_infos.end(); it++)
+      for (const CopyInfo& copy_info : copy_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(copy_info);
       }
-      for (std::deque<InstTimelineInfo>::const_iterator it =
-               inst_timeline_infos.begin();
-           it != inst_timeline_infos.end(); it++)
+      for (const InstTimelineInfo& inst_timeline_info : inst_timeline_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(inst_timeline_info);
       }
-      for (std::deque<PartitionInfo>::const_iterator it =
-               partition_infos.begin();
-           it != partition_infos.end(); it++)
+      for (const PartitionInfo& partition_info : partition_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(partition_info);
       }
-      for (std::deque<MapperCallInfo>::const_iterator it =
-               mapper_call_infos.begin();
-           it != mapper_call_infos.end(); it++)
+      for (const MapperCallInfo& mapper_call_info : mapper_call_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(mapper_call_info);
       }
-      for (std::deque<RuntimeCallInfo>::const_iterator it =
-               runtime_call_infos.begin();
-           it != runtime_call_infos.end(); it++)
+      for (const RuntimeCallInfo& runtime_call_info : runtime_call_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(runtime_call_info);
       }
-      for (std::deque<ApplicationCallInfo>::const_iterator it =
-               application_call_infos.begin();
-           it != application_call_infos.end(); it++)
+      for (const ApplicationCallInfo& application_call_info :
+           application_call_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(application_call_info);
       }
-      for (std::deque<AsyncEffectInfo>::const_iterator it =
-               async_effect_infos.begin();
-           it != async_effect_infos.end(); it++)
+      for (const AsyncEffectInfo& async_effect_info : async_effect_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(async_effect_info);
       }
-      for (std::deque<EventWaitInfo>::const_iterator it =
-               event_wait_infos.begin();
-           it != event_wait_infos.end(); it++)
+      for (const EventWaitInfo& event_wait_info : event_wait_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(event_wait_info);
       }
-      for (std::deque<EventMergerInfo>::const_iterator it =
-               event_merger_infos.begin();
-           it != event_merger_infos.end(); it++)
-        serializer->serialize(*it);
-      for (std::deque<EventTriggerInfo>::const_iterator it =
-               event_trigger_infos.begin();
-           it != event_trigger_infos.end(); it++)
-        serializer->serialize(*it);
-      for (std::deque<EventPoisonInfo>::const_iterator it =
-               event_poison_infos.begin();
-           it != event_poison_infos.end(); it++)
-        serializer->serialize(*it);
-      for (std::deque<BarrierArrivalInfo>::const_iterator it =
-               barrier_arrival_infos.begin();
-           it != barrier_arrival_infos.end(); it++)
-        serializer->serialize(*it);
-      for (std::deque<ReservationAcquireInfo>::const_iterator it =
-               reservation_acquire_infos.begin();
-           it != reservation_acquire_infos.end(); it++)
-        serializer->serialize(*it);
-      for (std::deque<InstanceReadyInfo>::const_iterator it =
-               instance_ready_infos.begin();
-           it != instance_ready_infos.end(); it++)
-        serializer->serialize(*it);
-      for (std::deque<InstanceRedistrictInfo>::const_iterator it =
-               instance_redistrict_infos.begin();
-           it != instance_redistrict_infos.end(); it++)
-        serializer->serialize(*it);
-      for (std::deque<CompletionQueueInfo>::const_iterator it =
-               completion_queue_infos.begin();
-           it != completion_queue_infos.end(); it++)
-        serializer->serialize(*it);
-      for (std::deque<ProfTaskInfo>::const_iterator it =
-               prof_task_infos.begin();
-           it != prof_task_infos.end(); it++)
+      for (const EventMergerInfo& event_merger_info : event_merger_infos)
+        serializer->serialize(event_merger_info);
+      for (const EventTriggerInfo& event_trigger_info : event_trigger_infos)
+        serializer->serialize(event_trigger_info);
+      for (const EventPoisonInfo& event_poison_info : event_poison_infos)
+        serializer->serialize(event_poison_info);
+      for (const BarrierArrivalInfo& barrier_arrival_info :
+           barrier_arrival_infos)
+        serializer->serialize(barrier_arrival_info);
+      for (const ReservationAcquireInfo& reservation_acquire_info :
+           reservation_acquire_infos)
+        serializer->serialize(reservation_acquire_info);
+      for (const InstanceReadyInfo& instance_ready_info : instance_ready_infos)
+        serializer->serialize(instance_ready_info);
+      for (const InstanceRedistrictInfo& instance_redistrict_info :
+           instance_redistrict_infos)
+        serializer->serialize(instance_redistrict_info);
+      for (const CompletionQueueInfo& completion_queue_info :
+           completion_queue_infos)
+        serializer->serialize(completion_queue_info);
+      for (const ProfTaskInfo& prof_task_info : prof_task_infos)
       {
-        serializer->serialize(*it);
+        serializer->serialize(prof_task_info);
       }
       operation_instances.clear();
       multi_tasks.clear();
@@ -1849,10 +1781,8 @@ namespace Legion {
         external_info.stop = Realm::Clock::current_time_in_nanoseconds();
         external_info.finish_event = external_fevent;
         serializer->serialize(external_info, true /*implicit*/);
-        for (std::vector<WaitInfo>::const_iterator it =
-                 external_wait_infos.begin();
-             it != external_wait_infos.end(); it++)
-          serializer->serialize(*it, external_info);
+        for (const WaitInfo& wait_info : external_wait_infos)
+          serializer->serialize(wait_info, external_info);
       }
     }
 
@@ -1901,10 +1831,8 @@ namespace Legion {
         TaskInfo& front = task_infos.front();
         serializer->serialize(front, false /*not implicit*/);
         // Have to do all of these now
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 front.wait_intervals.begin();
-             wit != front.wait_intervals.end(); wit++)
-          serializer->serialize(*wit, front);
+        for (const WaitInfo& wait_info : front.wait_intervals)
+          serializer->serialize(wait_info, front);
         diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         task_infos.pop_front();
         const long long t_curr = Realm::Clock::current_time_in_microseconds();
@@ -1916,10 +1844,8 @@ namespace Legion {
         TaskInfo& front = implicit_infos.front();
         serializer->serialize(front, true /*implicit*/);
         // Have to do all of these now
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 front.wait_intervals.begin();
-             wit != front.wait_intervals.end(); wit++)
-          serializer->serialize(*wit, front);
+        for (const WaitInfo& wait_info : front.wait_intervals)
+          serializer->serialize(wait_info, front);
         diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         implicit_infos.pop_front();
         const long long t_curr = Realm::Clock::current_time_in_microseconds();
@@ -2079,10 +2005,8 @@ namespace Legion {
         MetaInfo& front = meta_infos.front();
         serializer->serialize(front);
         // Have to do all of these now
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 front.wait_intervals.begin();
-             wit != front.wait_intervals.end(); wit++)
-          serializer->serialize(*wit, front);
+        for (const WaitInfo& wait_info : front.wait_intervals)
+          serializer->serialize(wait_info, front);
         diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         meta_infos.pop_front();
         const long long t_curr = Realm::Clock::current_time_in_microseconds();
@@ -2094,10 +2018,8 @@ namespace Legion {
         MessageInfo& front = message_infos.front();
         serializer->serialize(front);
         // Have to do all of these now
-        for (std::deque<WaitInfo>::const_iterator wit =
-                 front.wait_intervals.begin();
-             wit != front.wait_intervals.end(); wit++)
-          serializer->serialize(*wit, front);
+        for (const WaitInfo& wait_info : front.wait_intervals)
+          serializer->serialize(wait_info, front);
         diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         message_infos.pop_front();
         const long long t_curr = Realm::Clock::current_time_in_microseconds();
@@ -2455,10 +2377,7 @@ namespace Legion {
     LegionProfiler::~LegionProfiler(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<LegionProfInstance*>::const_iterator it =
-               instances.begin();
-           it != instances.end(); it++)
-        delete (*it);
+      for (LegionProfInstance* const & instance : instances) delete instance;
 
       // remove our serializer
       delete serializer;
@@ -2531,9 +2450,8 @@ namespace Legion {
       // result to be the same across processes and that is not true
       // of the std::hash algorithm
       Murmur3Hasher hasher;
-      for (std::vector<std::string>::const_iterator it = symbols.begin();
-           it != symbols.end(); it++)
-        hasher.hash(it->c_str(), it->size());
+      for (const std::string& symbol : symbols)
+        hasher.hash(symbol.c_str(), symbol.size());
       uint64_t hashes[2];
       hasher.finalize(hashes);
       const unsigned long long result = hashes[0] ^ hashes[1];
@@ -2599,12 +2517,10 @@ namespace Legion {
       std::vector<Memory> memories_to_log;
       std::vector<ProcessorMemoryAffinity> affinities;
       runtime->machine.get_proc_mem_affinity(affinities, p);
-      for (std::vector<ProcessorMemoryAffinity>::const_iterator pit =
-               affinities.begin();
-           pit != affinities.end(); pit++)
+      for (const ProcessorMemoryAffinity& affinity : affinities)
         if (!std::binary_search(
-                recorded_memories.begin(), recorded_memories.end(), pit->m))
-          memories_to_log.emplace_back(pit->m);
+                recorded_memories.begin(), recorded_memories.end(), affinity.m))
+          memories_to_log.emplace_back(affinity.m);
       record_affinities(memories_to_log);
     }
 
@@ -2625,38 +2541,36 @@ namespace Legion {
         std::vector<ProcessorMemoryAffinity> memory_affinities;
         runtime->machine.get_proc_mem_affinity(
             memory_affinities, Processor::NO_PROC, m);
-        for (std::vector<ProcessorMemoryAffinity>::const_iterator mit =
-                 memory_affinities.begin();
-             mit != memory_affinities.end(); mit++)
+        for (const ProcessorMemoryAffinity& mem_affinity : memory_affinities)
         {
           if (!std::binary_search(
                   recorded_processors.begin(), recorded_processors.end(),
-                  mit->p))
+                  mem_affinity.p))
           {
             LegionProfDesc::ProcDesc proc;
-            proc.proc_id = mit->p.id;
-            proc.kind = mit->p.kind();
+            proc.proc_id = mem_affinity.p.id;
+            proc.kind = mem_affinity.p.kind();
 #ifdef LEGION_USE_CUDA
             if (!Realm::Cuda::get_cuda_device_uuid(
-                    mit->p, &proc.cuda_device_uuid))
+                    mem_affinity.p, &proc.cuda_device_uuid))
               proc.cuda_device_uuid[0] = 0;
 #endif
             serializer->serialize(proc);
-            recorded_processors.emplace_back(mit->p);
+            recorded_processors.emplace_back(mem_affinity.p);
             std::sort(recorded_processors.begin(), recorded_processors.end());
             std::vector<ProcessorMemoryAffinity> processor_affinities;
             runtime->machine.get_proc_mem_affinity(
-                processor_affinities, mit->p);
-            for (std::vector<ProcessorMemoryAffinity>::const_iterator pit =
-                     processor_affinities.begin();
-                 pit != processor_affinities.end(); pit++)
+                processor_affinities, mem_affinity.p);
+            for (const ProcessorMemoryAffinity& proc_affinity :
+                 processor_affinities)
               if (!std::binary_search(
                       recorded_memories.begin(), recorded_memories.end(),
-                      pit->m))
-                memories_to_log.emplace_back(pit->m);
+                      proc_affinity.m))
+                memories_to_log.emplace_back(proc_affinity.m);
           }
           const LegionProfDesc::ProcMemDesc info = {
-              mit->p.id, m.id, mit->bandwidth, mit->latency};
+              mem_affinity.p.id, m.id, mem_affinity.bandwidth,
+              mem_affinity.latency};
           serializer->serialize(info);
         }
       }
@@ -3262,11 +3176,9 @@ namespace Legion {
       serializer->serialize(calibration_err);
       if (!done_event.has_triggered())
         done_event.wait();
-      for (std::vector<LegionProfInstance*>::const_iterator it =
-               instances.begin();
-           it != instances.end(); it++)
+      for (LegionProfInstance* const & instance : instances)
       {
-        (*it)->dump_state(serializer);
+        instance->dump_state(serializer);
       }
     }
 

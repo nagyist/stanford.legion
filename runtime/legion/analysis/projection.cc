@@ -104,12 +104,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(color_shards.size());
-      for (std::unordered_map<LegionColor, ShardID>::const_iterator it =
-               color_shards.begin();
-           it != color_shards.end(); it++)
+      for (const std::pair<const LegionColor, ShardID>& it : color_shards)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
     }
 
@@ -239,12 +237,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(ranges.size());
-      for (std::map<LegionColor, LegionColor>::const_iterator it =
-               ranges.begin();
-           it != ranges.end(); it++)
+      for (const std::pair<const LegionColor, LegionColor>& it : ranges)
       {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
+        rez.serialize(it.first);
+        rez.serialize(it.second);
       }
     }
 
@@ -646,11 +642,10 @@ namespace Legion {
     ProjectionRegion::~ProjectionRegion(void)
     //--------------------------------------------------------------------------
     {
-      for (std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
-        if (it->second->remove_reference())
-          delete it->second;
+      for (const std::pair<const LegionColor, ProjectionPartition*>& it :
+           local_children)
+        if (it.second->remove_reference())
+          delete it.second;
       if (region->remove_base_gc_ref(PROJECTION_REF))
         delete region;
     }
@@ -673,11 +668,9 @@ namespace Legion {
     {
       if (shard_users.empty())
       {
-        for (std::unordered_map<
-                 LegionColor, ProjectionPartition*>::const_iterator it =
-                 local_children.begin();
-             it != local_children.end(); it++)
-          if (!it->second->is_leaves_only())
+        for (const std::pair<const LegionColor, ProjectionPartition*>& it :
+             local_children)
+          if (!it.second->is_leaves_only())
             return false;
         return true;
       }
@@ -691,10 +684,9 @@ namespace Legion {
     {
       if (shard_users.size() > 1)
         return false;
-      for (std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
-        if (!it->second->is_unique_shards())
+      for (const std::pair<const LegionColor, ProjectionPartition*>& it :
+           local_children)
+        if (!it.second->is_unique_shards())
           return false;
       return true;
     }
@@ -731,12 +723,11 @@ namespace Legion {
           region_summaries.find(region->handle) == region_summaries.end());
       RegionSummary& summary = region_summaries[region->handle];
       summary.users = shard_users;
-      for (std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
+      for (const std::pair<const LegionColor, ProjectionPartition*>& it :
+           local_children)
       {
-        summary.children.add_child(it->first);
-        it->second->extract_shard_summaries(
+        summary.children.add_child(it.first);
+        it.second->extract_shard_summaries(
             supports_name_based, local_shard, total_shards, region_summaries,
             partition_summaries);
       }
@@ -773,12 +764,11 @@ namespace Legion {
         legion_assert(local_children.size() == 1);
       }
       // Remove all our local children from the shard children
-      for (std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
+      for (const std::pair<const LegionColor, ProjectionPartition*>& it :
+           local_children)
       {
-        shard_children.remove_child(it->first);
-        it->second->update_shard_summaries(
+        shard_children.remove_child(it.first);
+        it.second->update_shard_summaries(
             supports_name_based, local_shard, total_shards, region_summaries,
             partition_summaries);
       }
@@ -804,16 +794,14 @@ namespace Legion {
       // going to be interfering on something
       if (local_children.size() != other->local_children.size())
         return true;
-      for (std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
+      for (const std::pair<const LegionColor, ProjectionPartition*>& it :
+           local_children)
       {
         std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
-            finder = other->local_children.find(it->first);
+            finder = other->local_children.find(it.first);
         if (finder == other->local_children.end())
           return true;
-        if (it->second->has_interference(
-                finder->second, local_shard, dominates))
+        if (it.second->has_interference(finder->second, local_shard, dominates))
           return true;
       }
       return false;
@@ -829,16 +817,14 @@ namespace Legion {
         legion_assert(!other->local_children.empty());
         if (!shard_users.empty())
           return false;
-        for (std::unordered_map<
-                 LegionColor, ProjectionPartition*>::const_iterator it =
-                 other->local_children.begin();
-             it != other->local_children.end(); it++)
+        for (const std::pair<const LegionColor, ProjectionPartition*>& it :
+             other->local_children)
         {
           std::unordered_map<LegionColor, ProjectionPartition*>::const_iterator
-              finder = local_children.find(it->first);
+              finder = local_children.find(it.first);
           if (finder == local_children.end())
             return false;
-          if (!finder->second->has_pointwise_dominance(it->second))
+          if (!finder->second->has_pointwise_dominance(it.second))
             return false;
         }
         return true;
@@ -901,11 +887,10 @@ namespace Legion {
     ProjectionPartition::~ProjectionPartition(void)
     //--------------------------------------------------------------------------
     {
-      for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
-        if (it->second->remove_reference())
-          delete it->second;
+      for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+           local_children)
+        if (it.second->remove_reference())
+          delete it.second;
       if (partition->remove_base_gc_ref(PROJECTION_REF))
         delete partition;
 #ifdef LEGION_NAME_BASED_CHILDREN_SHARDS
@@ -921,10 +906,9 @@ namespace Legion {
     {
       if (!partition->row_source->is_disjoint(false /*from app*/))
         return false;
-      for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
-        if (!it->second->is_disjoint())
+      for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+           local_children)
+        if (!it.second->is_disjoint())
           return false;
       return true;
     }
@@ -933,10 +917,9 @@ namespace Legion {
     bool ProjectionPartition::is_leaves_only(void) const
     //--------------------------------------------------------------------------
     {
-      for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
-        if (!it->second->is_leaves_only())
+      for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+           local_children)
+        if (!it.second->is_leaves_only())
           return false;
       return true;
     }
@@ -945,10 +928,9 @@ namespace Legion {
     bool ProjectionPartition::is_unique_shards(void) const
     //--------------------------------------------------------------------------
     {
-      for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
-        if (!it->second->is_unique_shards())
+      for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+           local_children)
+        if (!it.second->is_unique_shards())
           return false;
       return true;
     }
@@ -985,12 +967,11 @@ namespace Legion {
           partition_summaries.find(partition->handle) ==
           partition_summaries.end());
       PartitionSummary& summary = partition_summaries[partition->handle];
-      for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
+      for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+           local_children)
       {
-        summary.children.add_child(it->first);
-        it->second->extract_shard_summaries(
+        summary.children.add_child(it.first);
+        it.second->extract_shard_summaries(
             supports_name_based, local_shard, total_shards, region_summaries,
             partition_summaries);
       }
@@ -998,10 +979,9 @@ namespace Legion {
       if (supports_name_based)
       {
         // Record that we know about all of our local children
-        for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-                 it = local_children.begin();
-             it != local_children.end(); it++)
-          summary.disjoint_complete_child_shards[it->first].insert(
+        for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+             local_children)
+          summary.disjoint_complete_child_shards[it.first].insert(
               local_shard, total_shards);
       }
 #endif
@@ -1020,12 +1000,11 @@ namespace Legion {
       PartitionSummary& summary = partition_summaries[partition->handle];
       shard_children.swap(summary.children);
       // Remove all our local children from the shard children
-      for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-               it = local_children.begin();
-           it != local_children.end(); it++)
+      for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+           local_children)
       {
-        shard_children.remove_child(it->first);
-        it->second->update_shard_summaries(
+        shard_children.remove_child(it.first);
+        it.second->update_shard_summaries(
             supports_name_based, local_shard, total_shards, region_summaries,
             partition_summaries);
       }
@@ -1037,13 +1016,12 @@ namespace Legion {
         // which we don't know about locally so we know the nearest
         // shard which does have some information about it
         std::unordered_map<LegionColor, ShardID> nearest_shards;
-        for (std::unordered_map<LegionColor, ShardSet>::const_iterator it =
-                 summary.disjoint_complete_child_shards.begin();
-             it != summary.disjoint_complete_child_shards.end(); it++)
+        for (const std::pair<const LegionColor, ShardSet>& it :
+             summary.disjoint_complete_child_shards)
         {
-          if (local_children.find(it->first) != local_children.end())
+          if (local_children.find(it.first) != local_children.end())
             continue;
-          nearest_shards[it->first] =
+          nearest_shards[it.first] =
               it->second.find_nearest_shard(local_shard, total_shards);
         }
         // Now we can make our ShardedColorMap and save it
@@ -1063,34 +1041,32 @@ namespace Legion {
       if (partition->row_source->is_disjoint(false /*from app*/))
       {
         // Disjoint partition, check all the children against each other
-        for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-                 it = local_children.begin();
-             it != local_children.end(); it++)
+        for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+             local_children)
         {
           std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-              finder = other->local_children.find(it->first);
+              finder = other->local_children.find(it.first);
           if (finder == other->local_children.end())
           {
             // Check to see if there is a remote shard with that child
-            if (other->shard_children.has_child(it->first))
+            if (other->shard_children.has_child(it.first))
               return true;
             // Otherwise this does not dominate us
             dominates = false;
           }
-          else if (it->second->has_interference(
+          else if (it.second->has_interference(
                        finder->second, local_shard, dominates))
             return true;
         }
         // Check in the opposite direction too
-        for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-                 it = other->local_children.begin();
-             it != other->local_children.end(); it++)
+        for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+             other->local_children)
         {
           std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-              finder = local_children.find(it->first);
+              finder = local_children.find(it.first);
           if (finder == local_children.end())
           {
-            if (shard_children.has_child(it->first))
+            if (shard_children.has_child(it.first))
               return true;
           }
           // Else we've already done interferences with ourself locally
@@ -1107,15 +1083,14 @@ namespace Legion {
         // going to be interfering on something
         if (local_children.size() != other->local_children.size())
           return true;
-        for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-                 it = local_children.begin();
-             it != local_children.end(); it++)
+        for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+             local_children)
         {
           std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-              finder = other->local_children.find(it->first);
+              finder = other->local_children.find(it.first);
           if (finder == other->local_children.end())
             return true;
-          if (it->second->has_interference(
+          if (it.second->has_interference(
                   finder->second, local_shard, dominates))
             return true;
         }
@@ -1130,15 +1105,14 @@ namespace Legion {
     {
       // Should be disjoint or would violate name-based-self-analysis
       legion_assert(partition->row_source->is_disjoint(false /*from app*/));
-      for (std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-               it = other->local_children.begin();
-           it != other->local_children.end(); it++)
+      for (const std::pair<const LegionColor, ProjectionRegion*>& it :
+           other->local_children)
       {
         std::unordered_map<LegionColor, ProjectionRegion*>::const_iterator
-            finder = local_children.find(it->first);
+            finder = local_children.find(it.first);
         if (finder == local_children.end())
           return false;
-        if (!finder->second->has_pointwise_dominance(it->second))
+        if (!finder->second->has_pointwise_dominance(it.second))
           return false;
       }
       return true;
@@ -1392,34 +1366,31 @@ namespace Legion {
       rez.serialize<bool>(leaves_only);
       rez.serialize<bool>(unique_shards);
       rez.serialize<size_t>(region_summaries.size());
-      for (std::map<LogicalRegion, RegionSummary>::const_iterator it =
-               region_summaries.begin();
-           it != region_summaries.end(); it++)
+      for (const std::pair<const LogicalRegion, RegionSummary>& it :
+           region_summaries)
       {
-        rez.serialize(it->first);
-        it->second.children.serialize(rez);
-        rez.serialize(it->second.users.size());
-        for (unsigned idx = 0; idx < it->second.users.size(); idx++)
-          rez.serialize(it->second.users[idx]);
+        rez.serialize(it.first);
+        it.second.children.serialize(rez);
+        rez.serialize(it.second.users.size());
+        for (unsigned idx = 0; idx < it.second.users.size(); idx++)
+          rez.serialize(it.second.users[idx]);
       }
       rez.serialize<size_t>(partition_summaries.size());
-      for (std::map<LogicalPartition, PartitionSummary>::const_iterator it =
-               partition_summaries.begin();
-           it != partition_summaries.end(); it++)
+      for (const std::pair<const LogicalPartition, PartitionSummary>& it :
+           partition_summaries)
       {
-        rez.serialize(it->first);
-        it->second.children.serialize(rez);
+        rez.serialize(it.first);
+        it.second.children.serialize(rez);
 #ifdef LEGION_NAME_BASED_CHILDREN_SHARDS
         if (disjoint && leaves_only)
         {
           rez.serialize<size_t>(
-              it->second.disjoint_complete_child_shards.size());
-          for (std::unordered_map<LegionColor, ShardSet>::const_iterator cit =
-                   it->second.disjoint_complete_child_shards.begin();
-               cit != it->second.disjoint_complete_child_shards.end(); cit++)
+              it.second.disjoint_complete_child_shards.size());
+          for (const std::pair<const LegionColor, ShardSet>& cit :
+               it.second.disjoint_complete_child_shards)
           {
-            rez.serialize(cit->first);
-            cit->second.serialize(rez, context->total_shards);
+            rez.serialize(cit.first);
+            cit.second.serialize(rez, context->total_shards);
           }
         }
 #endif

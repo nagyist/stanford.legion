@@ -124,13 +124,11 @@ namespace Legion {
       for (unsigned idx = 0; idx < target_views.size(); idx++)
       {
         PhysicalManager* manager = target_instances[idx];
-        for (op::FieldMaskMap<InstanceView>::const_iterator it =
-                 target_views[idx].begin();
-             it != target_views[idx].end(); it++)
+        for (const std::pair<InstanceView*, FieldMask>& it : target_views[idx])
         {
-          if (!it->first->is_collective_view())
+          if (!it.first->is_collective_view())
             continue;
-          CollectiveView* collective = it->first->as_collective_view();
+          CollectiveView* collective = it.first->as_collective_view();
           collective->register_collective_analysis(
               manager, this, applied_events);
         }

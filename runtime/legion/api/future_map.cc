@@ -218,11 +218,9 @@ namespace Legion {
     FutureMapImpl::~FutureMapImpl(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               futures.begin();
-           it != futures.end(); it++)
-        if (it->second->remove_nested_resource_ref(did))
-          delete it->second;
+      for (const std::pair<const DomainPoint, FutureImpl*>& future : futures)
+        if (future.second->remove_nested_resource_ref(did))
+          delete future.second;
       futures.clear();
       if (future_map_domain->remove_nested_valid_ref(did))
         delete future_map_domain;
@@ -234,10 +232,8 @@ namespace Legion {
     void FutureMapImpl::notify_local(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               futures.begin();
-           it != futures.end(); it++)
-        it->second->remove_nested_gc_ref(did);
+      for (const std::pair<const DomainPoint, FutureImpl*>& future : futures)
+        future.second->remove_nested_gc_ref(did);
     }
 
     //--------------------------------------------------------------------------
@@ -394,10 +390,8 @@ namespace Legion {
       std::abort();
       bool result = false;
       AutoLock fm_lock(future_map_lock);
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               futures.begin();
-           it != futures.end(); it++)
-        if (it->second->reset_future())
+      for (const std::pair<const DomainPoint, FutureImpl*>& future : futures)
+        if (future.second->reset_future())
           result = true;
       return result;
     }
@@ -496,22 +490,19 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No need for the lock here since we're initializing
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               futures.begin();
-           it != futures.end(); it++)
+      for (const std::pair<const DomainPoint, FutureImpl*>& future : futures)
       {
-        it->second->remove_nested_gc_ref(did);
-        if (it->second->remove_nested_resource_ref(did))
-          delete it->second;
+        future.second->remove_nested_gc_ref(did);
+        if (future.second->remove_nested_resource_ref(did))
+          delete future.second;
       }
       futures.clear();
-      for (std::map<DomainPoint, Future>::const_iterator it = others.begin();
-           it != others.end(); it++)
+      for (const std::pair<const DomainPoint, Future>& future_pair : others)
       {
-        FutureImpl* impl = it->second.impl;
+        FutureImpl* impl = future_pair.second.impl;
         impl->add_nested_resource_ref(did);
         impl->add_nested_gc_ref(did);
-        futures[it->first] = impl;
+        futures[future_pair.first] = impl;
       }
     }
 
@@ -798,14 +789,13 @@ namespace Legion {
       Domain range = previous->future_map_domain->get_tight_domain();
       if (functor->is_invertible())
       {
-        for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-                 previous_futures.begin();
-             it != previous_futures.end(); it++)
+        for (const std::pair<const DomainPoint, FutureImpl*>& future :
+             previous_futures)
         {
           const DomainPoint inverted =
-              functor->invert_point(it->first, domain, range);
+              functor->invert_point(future.first, domain, range);
           legion_assert(future_map_domain->contains_point(inverted));
-          futures[inverted] = it->second;
+          futures[inverted] = future.second;
         }
       }
       else
@@ -1009,14 +999,13 @@ namespace Legion {
         FutureNameExchange collective(repl_ctx, COLLECTIVE_LOC_32);
         collective.exchange_future_names(local_futures);
         AutoLock f_lock(future_map_lock);
-        for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-                 local_futures.begin();
-             it != local_futures.end(); it++)
+        for (const std::pair<const DomainPoint, FutureImpl*>& future :
+             local_futures)
         {
-          if (futures.insert(*it).second)
+          if (futures.insert(future).second)
           {
-            it->second->add_nested_resource_ref(did);
-            it->second->add_nested_gc_ref(did);
+            future.second->add_nested_resource_ref(did);
+            future.second->add_nested_gc_ref(did);
           }
         }
         collective_performed = true;
@@ -1152,12 +1141,11 @@ namespace Legion {
     {
       rez.serialize<size_t>(results.size());
       const AddressSpaceID target_space = manager->get_mapping()[target];
-      for (std::map<DomainPoint, Future>::const_iterator it = results.begin();
-           it != results.end(); it++)
+      for (const std::pair<const DomainPoint, Future>& result_pair : results)
       {
-        rez.serialize(it->first);
-        if (it->second.impl != nullptr)
-          it->second.impl->pack_future(rez, target_space);
+        rez.serialize(result_pair.first);
+        if (result_pair.second.impl != nullptr)
+          result_pair.second.impl->pack_future(rez, target_space);
         else
           rez.serialize<DistributedID>(0);
       }
@@ -1183,14 +1171,12 @@ namespace Legion {
         std::map<DomainPoint, FutureImpl*>& futures)
     //--------------------------------------------------------------------------
     {
-      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
-               futures.begin();
-           it != futures.end(); it++)
-        results[it->first] = Future(it->second);
+      for (const std::pair<const DomainPoint, FutureImpl*>& future : futures)
+        results[future.first] = Future(future.second);
       perform_collective_sync();
-      for (std::map<DomainPoint, Future>::const_iterator it = results.begin();
-           it != results.end(); it++)
-        futures.insert(std::make_pair(it->first, it->second.impl));
+      for (const std::pair<const DomainPoint, Future>& result_pair : results)
+        futures.insert(
+            std::make_pair(result_pair.first, result_pair.second.impl));
     }
 
   }  // namespace Internal

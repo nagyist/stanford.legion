@@ -1501,13 +1501,12 @@ namespace Legion {
       }
       detached = true;
       // Unmap any mapped regions
-      for (std::vector<PhysicalRegion>::iterator it = regions.begin();
-           it != regions.end(); it++)
+      for (PhysicalRegion& region : regions)
       {
-        if (!it->impl->is_mapped())
+        if (!region.impl->is_mapped())
           continue;
-        it->impl->unmap_region();
-        ctx->unregister_inline_mapped_region(*it);
+        region.impl->unmap_region();
+        ctx->unregister_inline_mapped_region(region);
       }
       // Now initialize the detach operation
       return op->initialize_detach(

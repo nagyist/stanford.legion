@@ -178,11 +178,9 @@ namespace Legion {
           LegionSpy::log_individual_task(
               parent_ctx->get_unique_id(), unique_op_id, task_id,
               get_task_name());
-        for (std::vector<PhaseBarrier>::const_iterator it =
-                 launcher.wait_barriers.begin();
-             it != launcher.wait_barriers.end(); it++)
+        for (const PhaseBarrier& barrier : launcher.wait_barriers)
         {
-          ApEvent e = Runtime::get_previous_phase(it->phase_barrier);
+          ApEvent e = Runtime::get_previous_phase(barrier.phase_barrier);
           LegionSpy::log_phase_barrier_wait(unique_op_id, e);
         }
       }
@@ -290,10 +288,9 @@ namespace Legion {
     {
       // To be correct with the new scheduler we also have to
       // register mapping dependences on futures
-      for (std::vector<Future>::const_iterator it = futures.begin();
-           it != futures.end(); it++)
-        if (it->impl != nullptr)
-          it->impl->register_dependence(this);
+      for (const Future& future : futures)
+        if (future.impl != nullptr)
+          future.impl->register_dependence(this);
       if (predicate_false_future.impl != nullptr)
         predicate_false_future.impl->register_dependence(this);
       if (!wait_barriers.empty() || !arrive_barriers.empty())
@@ -374,9 +371,8 @@ namespace Legion {
       Murmur3Hasher hasher;
       hasher.hash(get_operation_kind());
       hasher.hash(task_id);
-      for (std::vector<RegionRequirement>::const_iterator it = regions.begin();
-           it != regions.end(); it++)
-        hash_requirement(hasher, *it);
+      for (const RegionRequirement& req : regions)
+        hash_requirement(hasher, req);
       hasher.hash<bool>(is_index_space);
       if (is_index_space)
       {
@@ -914,8 +910,8 @@ namespace Legion {
       parent_ctx->pack_inner_context(rez);
       pack_single_task(rez, target);
       rez.serialize<size_t>(output_region_options.size());
-      for (unsigned idx = 0; idx < output_region_options.size(); idx++)
-        rez.serialize(output_region_options[idx]);
+      for (const OutputOptions& option : output_region_options)
+        rez.serialize(option);
       rez.serialize(orig_task);
       rez.serialize(remote_unique_id);
       rez.serialize(top_level_task);

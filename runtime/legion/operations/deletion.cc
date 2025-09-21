@@ -255,10 +255,8 @@ namespace Legion {
     {
       if (has_preconditions)
       {
-        for (std::map<Operation*, GenerationID>::const_iterator dit =
-                 dependences.begin();
-             dit != dependences.end(); dit++)
-          register_dependence(dit->first, dit->second);
+        for (const std::pair<Operation* const, GenerationID>& dit : dependences)
+          register_dependence(dit.first, dit.second);
         // We still need to perform the invalidations in this path as well
         const ContextID ctx = parent_ctx->get_logical_tree_context();
         for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
@@ -399,10 +397,8 @@ namespace Legion {
                 index_space, runtime->address_space, preconditions);
             if (!sub_partitions.empty())
             {
-              for (std::vector<IndexPartition>::const_iterator it =
-                       sub_partitions.begin();
-                   it != sub_partitions.end(); it++)
-                runtime->destroy_index_partition(*it, preconditions);
+              for (const IndexPartition& part : sub_partitions)
+                runtime->destroy_index_partition(part, preconditions);
             }
             break;
           }
@@ -412,10 +408,8 @@ namespace Legion {
             runtime->destroy_index_partition(index_part, preconditions);
             if (!sub_partitions.empty())
             {
-              for (std::vector<IndexPartition>::const_iterator it =
-                       sub_partitions.begin();
-                   it != sub_partitions.end(); it++)
-                runtime->destroy_index_partition(*it, preconditions);
+              for (const IndexPartition& part : sub_partitions)
+                runtime->destroy_index_partition(part, preconditions);
             }
             break;
           }
@@ -700,10 +694,8 @@ namespace Legion {
                   index_space, runtime->address_space, applied, &mapping);
               if (!sub_partitions.empty())
               {
-                for (std::vector<IndexPartition>::const_iterator it =
-                         sub_partitions.begin();
-                     it != sub_partitions.end(); it++)
-                  runtime->destroy_index_partition(*it, applied, &mapping);
+                for (const IndexPartition& part : sub_partitions)
+                  runtime->destroy_index_partition(part, applied, &mapping);
               }
               break;
             }
@@ -713,10 +705,8 @@ namespace Legion {
               runtime->destroy_index_partition(index_part, applied, &mapping);
               if (!sub_partitions.empty())
               {
-                for (std::vector<IndexPartition>::const_iterator it =
-                         sub_partitions.begin();
-                     it != sub_partitions.end(); it++)
-                  runtime->destroy_index_partition(*it, applied, &mapping);
+                for (const IndexPartition& part : sub_partitions)
+                  runtime->destroy_index_partition(part, applied, &mapping);
               }
               break;
             }
