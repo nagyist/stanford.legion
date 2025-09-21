@@ -60,21 +60,21 @@ namespace Legion {
           EquivalenceSet* set, IndexSpaceExpression* expr,
           const bool expr_covers, const FieldMask& mask,
           std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_remote(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_updates(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_registration(
           RtEvent precondition, const RegionUsage& usage,
           std::set<RtEvent>& registered_events, ApEvent init_precondition,
           ApEvent termination_event, ApEvent& instances_ready,
-          bool symbolic = false);
+          bool symbolic = false) override;
       virtual ApEvent perform_output(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
     public:
       const RegionUsage usage;
       const ApEvent precondition;
