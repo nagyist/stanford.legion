@@ -539,10 +539,10 @@ namespace Legion {
             iterator finder = pointwise_dependences.find(summary);
         if (finder != pointwise_dependences.end())
         {
-          for (std::unordered_map<ProjectionSummary*, std::pair<bool, bool> >::
-                   const_iterator it = finder->second.begin();
-               it != finder->second.end(); it++)
-            pointwise_dependences[it->first].erase(summary);
+          for (const std::pair<
+                   ProjectionSummary* const, std::pair<bool, bool> >& it :
+               finder->second)
+            pointwise_dependences[it.first].erase(summary);
           pointwise_dependences.erase(finder);
         }
       }
@@ -552,10 +552,9 @@ namespace Legion {
           iterator finder = interfering_shards.find(summary);
       if (finder != interfering_shards.end())
       {
-        for (std::unordered_map<ProjectionSummary*, std::pair<bool, bool> >::
-                 const_iterator it = finder->second.begin();
-             it != finder->second.end(); it++)
-          interfering_shards[it->first].erase(summary);
+        for (const std::pair<ProjectionSummary* const, std::pair<bool, bool> >&
+                 it : finder->second)
+          interfering_shards[it.first].erase(summary);
         interfering_shards.erase(finder);
       }
     }

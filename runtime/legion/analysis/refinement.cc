@@ -48,17 +48,15 @@ namespace Legion {
       if ((refined_projection != nullptr) &&
           refined_projection->remove_reference())
         delete refined_projection;
-      for (std::unordered_map<
-               PartitionNode*, std::pair<double, uint64_t>>::const_iterator it =
-               candidate_partitions.begin();
-           it != candidate_partitions.end(); it++)
-        if (it->first->remove_base_resource_ref(REFINEMENT_REF))
-          delete it->first;
-      for (std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t>>::
-               const_iterator it = candidate_projections.begin();
-           it != candidate_projections.end(); it++)
-        if (it->first->remove_reference())
-          delete it->first;
+      for (const std::pair<PartitionNode* const, std::pair<double, uint64_t>>&
+               it : candidate_partitions)
+        if (it.first->remove_base_resource_ref(REFINEMENT_REF))
+          delete it.first;
+      for (const std::pair<
+               ProjectionRegion* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
+        if (it.first->remove_reference())
+          delete it.first;
       if (region->remove_base_resource_ref(REFINEMENT_REF))
         delete region;
     }
@@ -79,20 +77,18 @@ namespace Legion {
         tracker->refined_projection = refined_projection;
         refined_projection->add_reference();
       }
-      for (std::unordered_map<
-               PartitionNode*, std::pair<double, uint64_t>>::const_iterator it =
-               candidate_partitions.begin();
-           it != candidate_partitions.end(); it++)
+      for (const std::pair<PartitionNode* const, std::pair<double, uint64_t>>&
+               it : candidate_partitions)
       {
-        it->first->add_base_resource_ref(REFINEMENT_REF);
-        tracker->candidate_partitions.insert(*it);
+        it.first->add_base_resource_ref(REFINEMENT_REF);
+        tracker->candidate_partitions.insert(it);
       }
-      for (std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t>>::
-               const_iterator it = candidate_projections.begin();
-           it != candidate_projections.end(); it++)
+      for (const std::pair<
+               ProjectionRegion* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
       {
-        it->first->add_reference();
-        tracker->candidate_projections.insert(*it);
+        it.first->add_reference();
+        tracker->candidate_projections.insert(it);
       }
       tracker->total_traversals = total_traversals;
       tracker->return_timeout = return_timeout;
@@ -446,13 +442,11 @@ namespace Legion {
               {
                 // We already had it, so decrement all TTLs of everything that
                 // came before it and then add it back with a new TTL
-                for (std::unordered_map<
-                         ProjectionRegion*,
-                         std::pair<double, uint64_t>>::iterator it =
-                         candidate_projections.begin();
-                     it != candidate_projections.end(); it++)
-                  if (finder->second.second < it->second.second)
-                    it->second.second--;
+                for (std::pair<
+                         ProjectionRegion* const, std::pair<double, uint64_t>>&
+                         it : candidate_projections)
+                  if (finder->second.second < it.second.second)
+                    it.second.second--;
                 finder->second.second = MAX_INCOMPLETE_WRITES;
               }
             }
@@ -493,38 +487,34 @@ namespace Legion {
           (refined_child != nullptr) || (refined_projection != nullptr));
       bool is_dominant = true;
       // Has to have the most returns
-      for (std::unordered_map<
-               PartitionNode*, std::pair<double, uint64_t>>::iterator it =
-               candidate_partitions.begin();
-           it != candidate_partitions.end(); it++)
+      for (std::pair<PartitionNode* const, std::pair<double, uint64_t>>& it :
+           candidate_partitions)
       {
         // Skip ourselves
-        if (it->second.second == total_traversals)
+        if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(
-                               CHANGE_REFINEMENT_RETURN_WEIGHT,
-                               (total_traversals - it->second.second)) *
-                           it->second.first;
-        it->second.second = total_traversals;
-        if (score < it->second.first)
+        it.second.first = std::pow(
+                              CHANGE_REFINEMENT_RETURN_WEIGHT,
+                              (total_traversals - it.second.second)) *
+                          it.second.first;
+        it.second.second = total_traversals;
+        if (score < it.second.first)
           is_dominant = false;
       }
-      for (std::unordered_map<
-               ProjectionRegion*, std::pair<double, uint64_t>>::iterator it =
-               candidate_projections.begin();
-           it != candidate_projections.end(); it++)
+      for (std::pair<ProjectionRegion* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
       {
         // Skip ourselves
-        if (it->second.second == total_traversals)
+        if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(
-                               CHANGE_REFINEMENT_RETURN_WEIGHT,
-                               (total_traversals - it->second.second)) *
-                           it->second.first;
-        it->second.second = total_traversals;
-        if (score < it->second.first)
+        it.second.first = std::pow(
+                              CHANGE_REFINEMENT_RETURN_WEIGHT,
+                              (total_traversals - it.second.second)) *
+                          it.second.first;
+        it.second.second = total_traversals;
+        if (score < it.second.first)
           is_dominant = false;
       }
       if (!is_dominant)
@@ -1008,13 +998,12 @@ namespace Legion {
               {
                 // We already had it, so decrement all TTLs of everything that
                 // came before it and then add it back with a new TTL
-                for (std::unordered_map<
-                         ProjectionPartition*,
-                         std::pair<double, uint64_t>>::iterator it =
-                         candidate_projections.begin();
-                     it != candidate_projections.end(); it++)
-                  if (finder->second.second < it->second.second)
-                    it->second.second--;
+                for (std::pair<
+                         ProjectionPartition* const,
+                         std::pair<double, uint64_t>>& it :
+                     candidate_projections)
+                  if (finder->second.second < it.second.second)
+                    it.second.second--;
                 finder->second.second = MAX_INCOMPLETE_WRITES;
               }
             }
@@ -1060,21 +1049,19 @@ namespace Legion {
         if (score < children_score)
           is_dominant = false;
       }
-      for (std::unordered_map<
-               ProjectionPartition*, std::pair<double, uint64_t>>::iterator it =
-               candidate_projections.begin();
-           it != candidate_projections.end(); it++)
+      for (std::pair<ProjectionPartition* const, std::pair<double, uint64_t>>&
+               it : candidate_projections)
       {
         // Skip ourselves
-        if (it->second.second == total_traversals)
+        if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(
-                               CHANGE_REFINEMENT_RETURN_WEIGHT,
-                               (total_traversals - it->second.second)) *
-                           it->second.first;
-        it->second.second = total_traversals;
-        if (score < it->second.first)
+        it.second.first = std::pow(
+                              CHANGE_REFINEMENT_RETURN_WEIGHT,
+                              (total_traversals - it.second.second)) *
+                          it.second.first;
+        it.second.second = total_traversals;
+        if (score < it.second.first)
           is_dominant = false;
       }
       if (!is_dominant)
