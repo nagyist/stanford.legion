@@ -252,7 +252,7 @@ namespace Legion {
       public:
         virtual bool handle_profiling_response(
             const Realm::ProfilingResponse& response, const void* orig,
-            size_t orig_length, LgEvent& fevent, bool& failed_alloc);
+            size_t orig_length, LgEvent& fevent, bool& failed_alloc) override;
         inline bool succeeded(void) const
         {
           ready.wait();

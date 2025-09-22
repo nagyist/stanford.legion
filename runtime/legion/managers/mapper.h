@@ -236,9 +236,10 @@ namespace Legion {
       void invoke_handle_task_result(Mapper::MapperTaskResult& result);
     public:
       // Instance deletion subscriber methods
-      virtual void notify_instance_deletion(PhysicalManager* manager);
-      virtual void add_subscriber_reference(PhysicalManager* manager);
-      virtual bool remove_subscriber_reference(PhysicalManager* manager);
+      virtual void notify_instance_deletion(PhysicalManager* manager) override;
+      virtual void add_subscriber_reference(PhysicalManager* manager) override;
+      virtual bool remove_subscriber_reference(
+          PhysicalManager* manager) override;
     public:
       virtual bool is_locked(MappingCallInfo* info) = 0;
       virtual void lock_mapper(MappingCallInfo* info, bool read_only) = 0;
@@ -305,23 +306,24 @@ namespace Legion {
     public:
       SerializingManager& operator=(const SerializingManager& rhs) = delete;
     public:
-      virtual bool is_locked(MappingCallInfo* info);
-      virtual void lock_mapper(MappingCallInfo* info, bool read_only);
-      virtual void unlock_mapper(MappingCallInfo* info);
+      virtual bool is_locked(MappingCallInfo* info) override;
+      virtual void lock_mapper(MappingCallInfo* info, bool read_only) override;
+      virtual void unlock_mapper(MappingCallInfo* info) override;
     public:
-      virtual bool is_reentrant(MappingCallInfo* info);
-      virtual void enable_reentrant(MappingCallInfo* info);
-      virtual void disable_reentrant(MappingCallInfo* info);
+      virtual bool is_reentrant(MappingCallInfo* info) override;
+      virtual void enable_reentrant(MappingCallInfo* info) override;
+      virtual void disable_reentrant(MappingCallInfo* info) override;
     protected:
       virtual void begin_mapper_call(
-          MappingCallInfo* info, bool prioritize = false);
-      virtual void pause_mapper_call(MappingCallInfo* info);
-      virtual void resume_mapper_call(MappingCallInfo* info);
-      virtual void finish_mapper_call(MappingCallInfo* info);
+          MappingCallInfo* info, bool prioritize = false) override;
+      virtual void pause_mapper_call(MappingCallInfo* info) override;
+      virtual void resume_mapper_call(MappingCallInfo* info) override;
+      virtual void finish_mapper_call(MappingCallInfo* info) override;
     public:
-      virtual bool is_safe_for_unbounded_pools(void);
+      virtual bool is_safe_for_unbounded_pools(void) override;
       virtual void report_unsafe_allocation_in_unbounded_pool(
-          const MappingCallInfo* info, Memory memory, RuntimeCallKind kind);
+          const MappingCallInfo* info, Memory memory,
+          RuntimeCallKind kind) override;
     protected:
       // Must be called while holding the mapper reservation
       RtUserEvent complete_pending_pause_mapper_call(void);
@@ -368,23 +370,24 @@ namespace Legion {
     public:
       ConcurrentManager& operator=(const ConcurrentManager& rhs) = delete;
     public:
-      virtual bool is_locked(MappingCallInfo* info);
-      virtual void lock_mapper(MappingCallInfo* info, bool read_only);
-      virtual void unlock_mapper(MappingCallInfo* info);
+      virtual bool is_locked(MappingCallInfo* info) override;
+      virtual void lock_mapper(MappingCallInfo* info, bool read_only) override;
+      virtual void unlock_mapper(MappingCallInfo* info) override;
     public:
-      virtual bool is_reentrant(MappingCallInfo* info);
-      virtual void enable_reentrant(MappingCallInfo* info);
-      virtual void disable_reentrant(MappingCallInfo* info);
+      virtual bool is_reentrant(MappingCallInfo* info) override;
+      virtual void enable_reentrant(MappingCallInfo* info) override;
+      virtual void disable_reentrant(MappingCallInfo* info) override;
     protected:
       virtual void begin_mapper_call(
-          MappingCallInfo* info, bool prioritize = false);
-      virtual void pause_mapper_call(MappingCallInfo* info);
-      virtual void resume_mapper_call(MappingCallInfo* info);
-      virtual void finish_mapper_call(MappingCallInfo* info);
+          MappingCallInfo* info, bool prioritize = false) override;
+      virtual void pause_mapper_call(MappingCallInfo* info) override;
+      virtual void resume_mapper_call(MappingCallInfo* info) override;
+      virtual void finish_mapper_call(MappingCallInfo* info) override;
     public:
-      virtual bool is_safe_for_unbounded_pools(void);
+      virtual bool is_safe_for_unbounded_pools(void) override;
       virtual void report_unsafe_allocation_in_unbounded_pool(
-          const MappingCallInfo* info, Memory memory, RuntimeCallKind kind);
+          const MappingCallInfo* info, Memory memory,
+          RuntimeCallKind kind) override;
     protected:
       // Must be called while holding the lock
       void release_lock(std::vector<RtUserEvent>& to_trigger);

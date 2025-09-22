@@ -156,15 +156,16 @@ namespace Legion {
       virtual ~CopyAcrossUnstructured(void);
     public:
       // From InstanceNameClosure
-      virtual LgEvent find_instance_name(PhysicalInstance inst) const;
+      virtual LgEvent find_instance_name(PhysicalInstance inst) const override;
     public:
       virtual ApEvent execute(
           Operation* op, PredEvent pred_guard, ApEvent copy_precondition,
           ApEvent src_indirect_precondition, ApEvent dst_indirect_precondition,
           const PhysicalTraceInfo& trace_info, const bool replay = false,
-          const bool recurrent_replay = false, const unsigned stage = 0) = 0;
-      virtual void record_trace_immutable_indirection(bool source) = 0;
-      virtual void release_shadow_instances(void) = 0;
+          const bool recurrent_replay = false,
+          const unsigned stage = 0) override = 0;
+      virtual void record_trace_immutable_indirection(bool source) override = 0;
+      virtual void release_shadow_instances(void) override = 0;
     public:
       void initialize_source_fields(
           const RegionRequirement& req, const InstanceSet& instances,
@@ -290,9 +291,10 @@ namespace Legion {
           Operation* op, PredEvent pred_guard, ApEvent copy_precondition,
           ApEvent src_indirect_precondition, ApEvent dst_indirect_precondition,
           const PhysicalTraceInfo& trace_info, const bool replay = false,
-          const bool recurrent_replay = false, const unsigned stage = 0);
-      virtual void record_trace_immutable_indirection(bool source);
-      virtual void release_shadow_instances(void);
+          const bool recurrent_replay = false,
+          const unsigned stage = 0) override;
+      virtual void record_trace_immutable_indirection(bool source) override;
+      virtual void release_shadow_instances(void) override;
     public:
       ApEvent issue_individual_copies(
           Operation* op, const ApEvent precondition,
