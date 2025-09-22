@@ -383,7 +383,7 @@ namespace Legion {
           bool start_in_valid_state = true);
       ValidDistributedCollectable(const ValidDistributedCollectable& rhs) =
           delete;
-      virtual ~ValidDistributedCollectable(void);
+      virtual ~ValidDistributedCollectable(void) override;
     public:
       inline void add_base_valid_ref(ReferenceSource source, int cnt = 1);
       inline void add_nested_valid_ref(DistributedID source, int cnt = 1);
@@ -419,11 +419,12 @@ namespace Legion {
       void pack_valid_ref(unsigned cnt = 1);
       void unpack_valid_ref(unsigned cnt = 1);
     protected:
-      virtual bool can_downgrade(void) const;
-      virtual bool perform_downgrade(AutoLock& gc);
-      virtual void process_downgrade_update(AutoLock& gc, State to_check);
-      virtual void accumulate_local_references(void);
-      virtual void record_pending_downgrade(void);
+      virtual bool can_downgrade(void) const override;
+      virtual bool perform_downgrade(AutoLock& gc) override;
+      virtual void process_downgrade_update(
+          AutoLock& gc, State to_check) override;
+      virtual void accumulate_local_references(void) override;
+      virtual void record_pending_downgrade(void) override;
     public:
       // Notify that this is no longer globally valid
       virtual void notify_invalid(void) = 0;

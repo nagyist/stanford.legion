@@ -127,7 +127,7 @@ namespace Legion {
     public:
       PhysicalManager& operator=(const PhysicalManager& rhs) = delete;
     public:
-      virtual PointerConstraint get_pointer_constraint(void) const;
+      virtual PointerConstraint get_pointer_constraint(void) const override;
     public:
       void log_instance_creation(
           UniqueID creator_id, Processor proc,
@@ -173,7 +173,7 @@ namespace Legion {
     public:
       virtual void send_manager(AddressSpaceID target);
     public:
-      virtual void notify_local(void);
+      virtual void notify_local(void) override;
     public:
       bool is_collected(void) const;
       bool can_collect(bool& already_collected) const;

@@ -128,7 +128,7 @@ namespace Legion {
       bool operator==(const LayoutConstraints& rhs) const;
       bool operator==(const LayoutConstraintSet& rhs) const;
     public:
-      virtual void notify_local(void);
+      virtual void notify_local(void) override;
     public:
       inline FieldSpace get_field_space(void) const { return handle; }
       inline const char* get_name(void) const { return constraints_name; }
