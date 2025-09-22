@@ -72,11 +72,11 @@ namespace Legion {
     public:
       PredicateCollective& operator=(const PredicateCollective& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_PREDICATE_EXCHANGE;
       }
-      virtual RtEvent post_complete_exchange(void);
+      virtual RtEvent post_complete_exchange(void) override;
     public:
       ReplPredicateImpl* const predicate;
     };
@@ -101,8 +101,8 @@ namespace Legion {
     public:
       virtual bool get_predicate(
           uint64_t context_index, PredEvent& true_guard,
-          PredEvent& false_guard);
-      virtual void set_predicate(bool value);
+          PredEvent& false_guard) override;
+      virtual void set_predicate(bool value) override;
     public:
       const uint64_t predicate_coordinate;
     protected:

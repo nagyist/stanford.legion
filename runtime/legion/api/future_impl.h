@@ -236,7 +236,7 @@ namespace Legion {
           Deserializer& derez, Operation* op = nullptr, GenerationID op_gen = 0,
           UniqueID op_uid = 0, int op_depth = 0);
     public:
-      virtual void notify_local(void);
+      virtual void notify_local(void) override;
     public:
       void register_dependence(Operation* consumer_op);
       void register_remote(AddressSpaceID sid);
