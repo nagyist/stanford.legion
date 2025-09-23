@@ -241,12 +241,12 @@ namespace Legion {
       MustEpochMappingBroadcast& operator=(
           const MustEpochMappingBroadcast& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_BROADCAST;
       }
-      virtual void pack_collective(Serializer& rez) const;
-      virtual void unpack_collective(Deserializer& derez);
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
     public:
       void broadcast(
           const std::vector<Processor>& processor_mapping,
@@ -286,13 +286,14 @@ namespace Legion {
       MustEpochMappingExchange& operator=(const MustEpochMappingExchange& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void exchange_must_epoch_mappings(
           ShardID shard_id, size_t total_shards, size_t total_constraints,
@@ -330,13 +331,14 @@ namespace Legion {
       MustEpochDependenceExchange& operator=(
           const MustEpochDependenceExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_MUST_EPOCH_DEPENDENCE_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     protected:
       std::map<DomainPoint, RtUserEvent>& mapped_events;
     };
@@ -359,13 +361,14 @@ namespace Legion {
       MustEpochCompletionExchange& operator=(
           const MustEpochCompletionExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_MUST_EPOCH_COMPLETION_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       RtEvent finish_exchange(ReplMustEpochOp* op);
     protected:

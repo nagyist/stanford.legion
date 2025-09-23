@@ -261,14 +261,15 @@ namespace Legion {
     public:
       OutputExtentExchange& operator=(const OutputExtentExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_OUTPUT_SIZE_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
-      virtual RtEvent post_complete_exchange(void);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
+      virtual RtEvent post_complete_exchange(void) override;
     public:
       ReplIndexTask* const owner;
       std::vector<OutputExtentMap>& all_output_extents;
@@ -288,14 +289,15 @@ namespace Legion {
           std::map<Color, MultiTask::ConcurrentGroup>& groups);
       virtual ~ConcurrentMappingRendezvous(void) { }
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_CONCURRENT_MAPPING_RENDEZVOUS;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
-      virtual RtEvent post_complete_exchange(void);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
+      virtual RtEvent post_complete_exchange(void) override;
     public:
       void set_trace_barrier(Color color, RtBarrier barrier, size_t arrivals);
       void perform_rendezvous(void);
@@ -329,13 +331,14 @@ namespace Legion {
     public:
       ConcurrentAllreduce& operator=(const ConcurrentAllreduce& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_CONCURRENT_ALLREDUCE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
       // for ReplIndextask
       void perform_concurrent_allreduce(MultiTask::ConcurrentGroup& group);
       // for ReplMustEpochOp
@@ -345,7 +348,7 @@ namespace Legion {
           std::vector<std::pair<SliceTask*, AddressSpace> >& slice_tasks,
           uint64_t lamport_clock, bool poisoned);
     protected:
-      virtual RtEvent post_complete_exchange(void);
+      virtual RtEvent post_complete_exchange(void) override;
     protected:
       const Color color;
       std::vector<std::pair<IndividualTask*, AddressSpaceID> > single_tasks;

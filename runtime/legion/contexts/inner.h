@@ -1316,13 +1316,14 @@ namespace Legion {
     public:
       TimeoutMatchExchange& operator=(const TimeoutMatchExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_TIMEOUT_MATCH_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void perform_exchange(std::vector<LogicalUser*>& timeouts, bool ready);
       bool complete_exchange(std::vector<LogicalUser*>& to_delete);
@@ -1346,13 +1347,14 @@ namespace Legion {
     public:
       CrossProductExchange& operator=(const CrossProductExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_CROSS_PRODUCT_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void exchange_ids(LegionColor color, IndexPartition pid);
       void sync_child_ids(LegionColor color, IndexPartition& pid);

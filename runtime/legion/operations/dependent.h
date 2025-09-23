@@ -428,12 +428,12 @@ namespace Legion {
     public:
       DeppartResultScatter& operator=(const DeppartResultScatter& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_DEPPART_RESULT_SCATTER;
       }
-      virtual void pack_collective(Serializer& rez) const;
-      virtual void unpack_collective(Deserializer& derez);
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
     public:
       void broadcast_results(ApEvent done_event);
       inline ApEvent get_done_event(void) { return done_event; }
@@ -461,13 +461,14 @@ namespace Legion {
       FieldDescriptorExchange& operator=(const FieldDescriptorExchange& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_FIELD_DESCRIPTOR_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     protected:
       std::vector<FieldDataDescriptor>& descriptors;
     };
@@ -489,12 +490,12 @@ namespace Legion {
       FieldDescriptorGather& operator=(const FieldDescriptorGather& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_FIELD_DESCRIPTOR_GATHER;
       }
-      virtual void pack_collective(Serializer& rez) const;
-      virtual void unpack_collective(Deserializer& derez);
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
     public:
       void contribute_instances(ApEvent instances_ready);
       ApEvent get_ready_event(void);

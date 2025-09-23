@@ -239,13 +239,14 @@ namespace Legion {
       IndexAttachLaunchSpace& operator=(const IndexAttachLaunchSpace& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_INDEX_ATTACH_LAUNCH_SPACE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void exchange_counts(size_t count);
       IndexSpaceNode* get_launch_space(Provenance* provenance);
@@ -268,13 +269,14 @@ namespace Legion {
       IndexAttachUpperBound& operator=(const IndexAttachUpperBound& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_INDEX_ATTACH_UPPER_BOUND;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       RegionTreeNode* find_upper_bound(RegionTreeNode* node);
     protected:
@@ -294,13 +296,14 @@ namespace Legion {
     public:
       IndexAttachExchange& operator=(const IndexAttachExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_INDEX_ATTACH_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void exchange_spaces(std::vector<IndexSpace>& spaces);
       size_t get_spaces(std::vector<IndexSpace>& spaces, unsigned& local_start);

@@ -1320,16 +1320,17 @@ namespace Legion {
       ConsensusMatchExchange& operator=(const ConsensusMatchExchange& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_CONSENSUS_MATCH;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       bool match_elements_async(const void* input, size_t num_elements);
-      virtual void complete_exchange(void);
+      virtual void complete_exchange(void) override;
     protected:
       Future to_complete;
       T* const output;
@@ -1353,13 +1354,14 @@ namespace Legion {
       VerifyReplicableExchange& operator=(const VerifyReplicableExchange& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_VERIFY_CONTROL_REPLICATION_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       typedef std::map<std::pair<uint64_t, uint64_t>, ShardID> ShardHashes;
       const ShardHashes& exchange(const uint64_t hash[2]);
@@ -1384,13 +1386,14 @@ namespace Legion {
     public:
       void exchange_partitions(std::map<IndexSpace, IndexPartition>& handles);
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_CROSS_PRODUCT_PARTITION;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     protected:
       std::map<IndexSpace, IndexPartition> non_empty_handles;
     };
@@ -1409,13 +1412,14 @@ namespace Legion {
     public:
       UnorderedExchange& operator=(const UnorderedExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_UNORDERED_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void start_unordered_exchange(const std::vector<Operation*>& operations);
       void find_ready_operations(std::vector<Operation*>& ready_operations);
@@ -1488,19 +1492,20 @@ namespace Legion {
       ImplicitShardingFunctor& operator=(const ImplicitShardingFunctor& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_IMPLICIT_SHARDING_FUNCTOR;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       virtual ShardID shard(
           const DomainPoint& point, const Domain& full_space,
-          const size_t total_shards);
+          const size_t total_shards) override;
     protected:
-      virtual RtEvent post_complete_exchange(void);
+      virtual RtEvent post_complete_exchange(void) override;
     public:
       template<typename T>
       void compute_sharding(const std::map<DomainPoint, T>& points)
@@ -1531,13 +1536,14 @@ namespace Legion {
     public:
       PointwiseAllreduce& operator=(const PointwiseAllreduce& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_POINTWISE_ALLREDUCE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     private:
       std::pair<bool, bool>& local;
     };
@@ -1557,13 +1563,13 @@ namespace Legion {
     public:
       ShardSyncTree& operator=(const ShardSyncTree& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_SHARD_SYNC_TREE;
       }
-      virtual void pack_collective(Serializer& rez) const;
-      virtual void unpack_collective(Deserializer& derez);
-      virtual RtEvent post_gather(void);
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
+      virtual RtEvent post_gather(void) override;
     protected:
       std::vector<RtEvent> postconditions;
       const RtEvent done;
