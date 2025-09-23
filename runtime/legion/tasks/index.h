@@ -85,8 +85,8 @@ namespace Legion {
       void create_output_regions(
           std::vector<OutputRequirement>& outputs, IndexSpace launch_space);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       virtual void prepare_map_must_epoch(void);
     public:
@@ -103,53 +103,57 @@ namespace Legion {
     public:
       virtual void finalize_output_regions(bool first_invocation);
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
       virtual void report_interfering_requirements(
-          unsigned idx1, unsigned idx2);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+          unsigned idx1, unsigned idx2) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     public:
-      virtual void trigger_ready(void);
-      virtual void predicate_false(void);
-      virtual void premap_task(void);
-      virtual bool distribute_task(void);
+      virtual void trigger_ready(void) override;
+      virtual void predicate_false(void) override;
+      virtual void premap_task(void) override;
+      virtual bool distribute_task(void) override;
       virtual bool perform_mapping(
-          MustEpochOp* owner = nullptr, const DeferMappingArgs* args = nullptr);
-      virtual void launch_task(bool inline_task = false);
-      virtual bool is_stealable(void) const;
-      virtual void trigger_complete(ApEvent effects);
+          MustEpochOp* owner = nullptr,
+          const DeferMappingArgs* args = nullptr) override;
+      virtual void launch_task(bool inline_task = false) override;
+      virtual bool is_stealable(void) const override;
+      virtual void trigger_complete(ApEvent effects) override;
     public:
-      virtual TaskKind get_task_kind(void) const;
+      virtual TaskKind get_task_kind(void) const override;
     protected:
-      virtual void trigger_task_commit(void);
+      virtual void trigger_task_commit(void) override;
     public:
-      virtual bool pack_task(Serializer& rez, AddressSpaceID target);
+      virtual bool pack_task(Serializer& rez, AddressSpaceID target) override;
       virtual bool unpack_task(
           Deserializer& derez, Processor current,
-          std::set<RtEvent>& ready_events);
+          std::set<RtEvent>& ready_events) override;
       virtual void perform_inlining(
-          VariantImpl* variant, const std::deque<InstanceSet>& parent_regions);
+          VariantImpl* variant,
+          const std::deque<InstanceSet>& parent_regions) override;
     public:
       virtual SliceTask* clone_as_slice_task(
-          IndexSpace is, Processor p, bool recurse, bool stealable);
+          IndexSpace is, Processor p, bool recurse, bool stealable) override;
     public:
       virtual void reduce_future(
-          const DomainPoint& point, FutureInstance* instance, ApEvent effects);
+          const DomainPoint& point, FutureInstance* instance,
+          ApEvent effects) override;
     public:
       virtual void pack_profiling_requests(
-          Serializer& rez, std::set<RtEvent>& applied) const;
+          Serializer& rez, std::set<RtEvent>& applied) const override;
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
-          bool fill, unsigned count = 1);
+          bool fill, unsigned count = 1) override;
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse& response, const void* orig,
-          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
-      virtual void handle_profiling_update(int count);
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc) override;
+      virtual void handle_profiling_update(int count) override;
     public:
-      virtual void register_must_epoch(void);
+      virtual void register_must_epoch(void) override;
     public:
-      virtual size_t get_collective_points(void) const;
+      virtual size_t get_collective_points(void) const override;
     public:
       // Make this a virtual method so for control replication we can
       // create a different type of future map for the task
@@ -175,7 +179,7 @@ namespace Legion {
           RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
       virtual RtEvent find_pointwise_dependence(
           const DomainPoint& point, GenerationID gen,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
       void record_origin_mapped_slice(SliceTask* local_slice);
       void initialize_must_epoch_concurrent_group(
@@ -200,7 +204,7 @@ namespace Legion {
           Deserializer& derez, unsigned index, size_t total_points);
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
+      virtual void trigger_replay(void) override;
     public:
       void enumerate_futures(const Domain& domain);
       void start_check_point_requirements(void);
@@ -365,53 +369,57 @@ namespace Legion {
     public:
       ReplIndexTask& operator=(const ReplIndexTask& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_replay(void);
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_replay(void) override;
     protected:
-      virtual void create_future_instances(std::vector<Memory>& target_mems);
-      virtual void finish_index_task_reduction(void);
+      virtual void create_future_instances(
+          std::vector<Memory>& target_mems) override;
+      virtual void finish_index_task_reduction(void) override;
     public:
       // Have to override this too for doing output in the
       // case that we misspeculate
-      virtual void predicate_false(void);
-      virtual void prepare_map_must_epoch(void);
+      virtual void predicate_false(void) override;
+      virtual void prepare_map_must_epoch(void) override;
     public:
       void initialize_replication(ReplicateContext* ctx);
       void set_sharding_function(
           ShardingID functor, ShardingFunction* function);
       virtual FutureMap create_future_map(
-          TaskContext* ctx, IndexSpace launch_space, IndexSpace shard_space);
-      virtual void finalize_concurrent_mapped(void);
+          TaskContext* ctx, IndexSpace launch_space,
+          IndexSpace shard_space) override;
+      virtual void finalize_concurrent_mapped(void) override;
       void finish_concurrent_mapped(
           const std::map<Color, std::pair<RtBarrier, size_t> >& trace_barriers);
       virtual void initialize_concurrent_group(
           Color color, size_t local, size_t global, RtBarrier barrier,
-          const std::vector<ShardID>& shards);
+          const std::vector<ShardID>& shards) override;
       virtual void concurrent_allreduce(
           Color color, SliceTask* slice, AddressSpaceID slice_space,
-          size_t points, uint64_t lamport_clock, VariantID vid, bool poisoned);
+          size_t points, uint64_t lamport_clock, VariantID vid,
+          bool poisoned) override;
       virtual uint64_t collective_lamport_allreduce(
-          uint64_t lamport_clock, size_t points, bool need_result);
+          uint64_t lamport_clock, size_t points, bool need_result) override;
       void select_sharding_function(ReplicateContext* repl_ctx);
     public:
       virtual RtEvent find_intra_space_dependence(
           const DomainPoint& point,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
       virtual void finish_check_point_requirements(
           std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >&
-              domain_points);
+              domain_points) override;
     public:
       // Output regions
-      virtual void record_output_registered(RtEvent registered);
-      virtual void finalize_output_regions(bool first_invocation);
+      virtual void record_output_registered(RtEvent registered) override;
+      virtual void finalize_output_regions(bool first_invocation) override;
     public:
-      virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual size_t get_collective_points(void) const override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     protected:
       ShardingID sharding_functor;
       ShardingFunction* sharding_function;

@@ -39,50 +39,53 @@ namespace Legion {
     public:
       SliceTask& operator=(const SliceTask& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual Operation* get_origin_operation(void);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual Operation* get_origin_operation(void) override;
     public:
-      virtual void trigger_dependence_analysis(void);
+      virtual void trigger_dependence_analysis(void) override;
     public:
-      virtual void predicate_false(void);
-      virtual void premap_task(void);
-      virtual bool distribute_task(void);
-      virtual VersionInfo& get_version_info(unsigned idx);
-      virtual const VersionInfo& get_version_info(unsigned idx) const;
+      virtual void predicate_false(void) override;
+      virtual void premap_task(void) override;
+      virtual bool distribute_task(void) override;
+      virtual VersionInfo& get_version_info(unsigned idx) override;
+      virtual const VersionInfo& get_version_info(unsigned idx) const override;
       virtual bool perform_mapping(
-          MustEpochOp* owner = nullptr, const DeferMappingArgs* args = nullptr);
-      virtual void launch_task(bool inline_task = false);
-      virtual bool is_stealable(void) const;
-      virtual bool is_output_global(unsigned idx) const;
-      virtual bool is_output_valid(unsigned idx) const;
-      virtual bool is_output_grouped(unsigned idx) const;
-      virtual void trigger_complete(ApEvent effects);
+          MustEpochOp* owner = nullptr,
+          const DeferMappingArgs* args = nullptr) override;
+      virtual void launch_task(bool inline_task = false) override;
+      virtual bool is_stealable(void) const override;
+      virtual bool is_output_global(unsigned idx) const override;
+      virtual bool is_output_valid(unsigned idx) const override;
+      virtual bool is_output_grouped(unsigned idx) const override;
+      virtual void trigger_complete(ApEvent effects) override;
     public:
-      virtual TaskKind get_task_kind(void) const;
+      virtual TaskKind get_task_kind(void) const override;
     public:
       bool send_task(
           Processor target, PointTask* point, std::vector<SingleTask*>& others);
       void pack_slice_task(
           Serializer& rez, AddressSpaceID target,
           const std::vector<PointTask*>& to_send);
-      virtual bool pack_task(Serializer& rez, AddressSpaceID target);
+      virtual bool pack_task(Serializer& rez, AddressSpaceID target) override;
       virtual bool unpack_task(
           Deserializer& derez, Processor current,
-          std::set<RtEvent>& ready_events);
+          std::set<RtEvent>& ready_events) override;
       virtual void perform_inlining(
-          VariantImpl* variant, const std::deque<InstanceSet>& parent_regions);
+          VariantImpl* variant,
+          const std::deque<InstanceSet>& parent_regions) override;
     public:
       virtual SliceTask* clone_as_slice_task(
-          IndexSpace is, Processor p, bool recurse, bool stealable);
+          IndexSpace is, Processor p, bool recurse, bool stealable) override;
       virtual void reduce_future(
-          const DomainPoint& point, FutureInstance* instance, ApEvent effects);
+          const DomainPoint& point, FutureInstance* instance,
+          ApEvent effects) override;
       void handle_future(
           ApEvent complete, const DomainPoint& point, FutureInstance* instance,
           const void* metadata, size_t metasize, FutureFunctor* functor,
           Processor future_proc, bool own_functor);
     public:
-      virtual void register_must_epoch(void);
+      virtual void register_must_epoch(void) override;
       PointTask* clone_as_point_task(
           const DomainPoint& point, bool inline_task);
       size_t enumerate_points(bool inline_task);
@@ -93,7 +96,7 @@ namespace Legion {
       void update_target_processor(void);
       void expand_replay_slices(std::list<SliceTask*>& slices);
     protected:
-      virtual void trigger_task_commit(void);
+      virtual void trigger_task_commit(void) override;
     public:
       RtEvent find_intra_space_dependence(const DomainPoint& point);
       void return_privileges(
@@ -139,17 +142,18 @@ namespace Legion {
           std::vector<DeletedIndexSpace>& deleted_index_spaces,
           std::map<IndexPartition, unsigned>& created_partitions,
           std::vector<DeletedPartition>& deleted_partitions,
-          std::set<RtEvent>& preconditions);
+          std::set<RtEvent>& preconditions) override;
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
-      virtual void complete_replay(ApEvent instance_ready_event);
+      virtual void trigger_replay(void) override;
+      virtual void complete_replay(ApEvent instance_ready_event) override;
     public:
-      virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual size_t get_collective_points(void) const override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
+          const FieldMask& mask, unsigned parent_req_index) override;
       void perform_replicate_collective_versioning(
           unsigned index, unsigned parent_req_index,
           op::map<LogicalRegion, RegionVersioning>& to_perform);
@@ -158,18 +162,19 @@ namespace Legion {
           std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);
       virtual void finalize_collective_versioning_analysis(
           unsigned index, unsigned parent_req_index,
-          op::map<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform) override;
       virtual RtEvent convert_collective_views(
           unsigned requirement_index, unsigned analysis_index,
           LogicalRegion region, const InstanceSet& targets,
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
           op::vector<op::FieldMaskMap<InstanceView> >& target_views,
-          std::map<InstanceView*, size_t>& collective_arrivals);
+          std::map<InstanceView*, size_t>& collective_arrivals) override;
       virtual void rendezvous_collective_mapping(
           unsigned requirement_index, unsigned analysis_index,
           LogicalRegion region, RendezvousResult* result, AddressSpaceID source,
-          const op::vector<std::pair<DistributedID, FieldMask> >& insts);
+          const op::vector<std::pair<DistributedID, FieldMask> >& insts)
+          override;
     protected:
       friend class IndexTask;
       friend class PointTask;
