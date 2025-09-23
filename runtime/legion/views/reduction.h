@@ -56,9 +56,12 @@ namespace Legion {
     public:
       ReductionView& operator=(const ReductionView& rhs) = delete;
     public:  // From InstanceView
-      virtual void send_view(AddressSpaceID target);
-      virtual ReductionOpID get_redop(void) const;
-      virtual FillView* get_redop_fill_view(void) const { return fill_view; }
+      virtual void send_view(AddressSpaceID target) override;
+      virtual ReductionOpID get_redop(void) const override;
+      virtual FillView* get_redop_fill_view(void) const override
+      {
+        return fill_view;
+      }
     public:
       static void create_remote_view(
           DistributedID did, PhysicalManager* manager,

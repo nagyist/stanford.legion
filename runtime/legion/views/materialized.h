@@ -67,7 +67,7 @@ namespace Legion {
     public:
       virtual bool has_space(const FieldMask& space_mask) const;
     public:  // From InstanceView
-      virtual void send_view(AddressSpaceID target);
+      virtual void send_view(AddressSpaceID target) override;
     public:
       static void create_remote_view(
           DistributedID did, PhysicalManager* manager,
