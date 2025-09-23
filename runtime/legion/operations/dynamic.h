@@ -44,26 +44,28 @@ namespace Legion {
       {
         std::abort();
       }
-      virtual const RegionRequirement& get_requirement(unsigned idx) const
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx) const override
       {
         std::abort();
       }
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
+      virtual void trigger_replay(void) override;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_execution(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_execution(void) override;
     protected:
       Future future;
       DynamicCollective collective;

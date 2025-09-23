@@ -332,13 +332,13 @@ namespace Legion {
       CollectiveVersioningRendezvous& operator=(
           const CollectiveVersioningRendezvous& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_VERSIONING_RENDEZVOUS;
       }
-      virtual void pack_collective(Serializer& rez) const;
-      virtual void unpack_collective(Deserializer& derez);
-      virtual RtEvent post_gather(void);
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
+      virtual RtEvent post_gather(void) override;
     public:
       void perform_rendezvous(
           unsigned parent_req_index,
@@ -369,13 +369,13 @@ namespace Legion {
       ReplCollectiveVersioning<OP>& operator=(
           const ReplCollectiveVersioning<OP>& rhs) = delete;
     public:
-      virtual void deactivate(bool free = true);
+      virtual void deactivate(bool free = true) override;
       virtual void finalize_collective_versioning_analysis(
           unsigned index, unsigned parent_req_index,
-          op::map<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform) override;
       virtual void finalize_collective_versioning(
           unsigned index, unsigned parent_req_index,
-          op::map<LogicalRegion, RegionVersioning>& pending_versions);
+          op::map<LogicalRegion, RegionVersioning>& pending_versions) override;
     public:
       void create_collective_rendezvous(unsigned requirement_index);
       virtual void shard_off_collective_rendezvous(
@@ -413,13 +413,13 @@ namespace Legion {
       CollectiveViewRendezvous& operator=(const CollectiveViewRendezvous& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_VIEW_RENDEZVOUS;
       }
-      virtual void pack_collective(Serializer& rez) const;
-      virtual void unpack_collective(Deserializer& derez);
-      virtual RtEvent post_gather(void);
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
+      virtual RtEvent post_gather(void) override;
     public:
       void perform_rendezvous(
           std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);
@@ -452,19 +452,19 @@ namespace Legion {
       ReplCollectiveViewCreator<OP>& operator=(
           const ReplCollectiveViewCreator<OP>& rhs) = delete;
     public:
-      virtual void deactivate(bool free = true);
+      virtual void deactivate(bool free = true) override;
       virtual void construct_collective_mapping(
           const RendezvousKey& key,
-          std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);
+          std::map<LogicalRegion, CollectiveRendezvous>& rendezvous) override;
       virtual void finalize_collective_mapping(
           const RendezvousKey& key,
-          std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);
+          std::map<LogicalRegion, CollectiveRendezvous>& rendezvous) override;
       void create_collective_rendezvous(
           RegionTreeID tid, unsigned requirement_index,
           unsigned analysis_index = 0);
       virtual void shard_off_collective_rendezvous(
-          std::set<RtEvent>& done_events);
-      virtual void elide_collective_rendezvous(void);
+          std::set<RtEvent>& done_events) override;
+      virtual void elide_collective_rendezvous(void) override;
     protected:
       std::map<RendezvousKey, CollectiveViewRendezvous*>
           collective_view_rendezvous;

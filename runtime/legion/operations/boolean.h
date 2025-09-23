@@ -38,18 +38,19 @@ namespace Legion {
       Future initialize(
           InnerContext* ctx, const Predicate& p, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      const char* get_logging_name(void) const;
-      OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_execution(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_execution(void) override;
     protected:
       Future future;
       Predicate predicate;
@@ -71,18 +72,19 @@ namespace Legion {
       Predicate initialize(
           InnerContext* task, const Predicate& p, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_execution(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_execution(void) override;
     protected:
       Predicate previous, to_set;
     };
@@ -103,18 +105,19 @@ namespace Legion {
           InnerContext* task, std::vector<Predicate>& predicates,
           Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_execution(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_execution(void) override;
     protected:
       std::vector<Predicate> previous;
       Predicate to_set;
@@ -136,18 +139,19 @@ namespace Legion {
           InnerContext* task, std::vector<Predicate>& predicates,
           Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_execution(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_execution(void) override;
     protected:
       std::vector<Predicate> previous;
       Predicate to_set;
