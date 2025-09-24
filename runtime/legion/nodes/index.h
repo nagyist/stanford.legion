@@ -293,27 +293,30 @@ namespace Legion {
     public:
       IndexSpaceNode& operator=(const IndexSpaceNode& rhs) = delete;
     public:
-      virtual void notify_invalid(void);
-      virtual void notify_local(void);
+      virtual void notify_invalid(void) override;
+      virtual void notify_local(void) override;
     public:
-      virtual bool is_set(void) const { return index_space_set.load(); }
-      virtual bool is_index_space_node(void) const;
+      virtual bool is_set(void) const override
+      {
+        return index_space_set.load();
+      }
+      virtual bool is_index_space_node(void) const override;
 #ifdef LEGION_DEBUG
-      virtual IndexSpaceNode* as_index_space_node(void);
-      virtual IndexPartNode* as_index_part_node(void);
+      virtual IndexSpaceNode* as_index_space_node(void) override;
+      virtual IndexPartNode* as_index_part_node(void) override;
 #endif
-      virtual AddressSpaceID get_owner_space(void) const;
+      virtual AddressSpaceID get_owner_space(void) const override;
       static AddressSpaceID get_owner_space(IndexSpace handle);
     public:
-      virtual IndexTreeNode* get_parent(void) const;
-      virtual LegionColor get_colors(std::vector<LegionColor>& colors);
+      virtual IndexTreeNode* get_parent(void) const override;
+      virtual LegionColor get_colors(std::vector<LegionColor>& colors) override;
     public:
       virtual void send_semantic_request(
           AddressSpaceID target, SemanticTag tag, bool can_fail,
-          bool wait_until, RtUserEvent ready);
+          bool wait_until, RtUserEvent ready) override;
       virtual void send_semantic_info(
           AddressSpaceID target, SemanticTag tag, const void* buffer,
-          size_t size, bool is_mutable, RtUserEvent ready);
+          size_t size, bool is_mutable, RtUserEvent ready) override;
       void process_semantic_request(
           SemanticTag tag, AddressSpaceID source, bool can_fail,
           bool wait_until, RtUserEvent ready);
@@ -340,54 +343,60 @@ namespace Legion {
           AddressSpaceID source, std::set<RtEvent>& applied,
           const CollectiveMapping* mapping);
     public:
-      virtual Domain get_tight_domain(void) = 0;
+      virtual Domain get_tight_domain(void) override = 0;
       [[nodiscard]] virtual ApEvent get_loose_domain(
-          Domain& domain, ApUserEvent& done_event) = 0;
+          Domain& domain, ApUserEvent& done_event) override = 0;
       virtual RtEvent add_sparsity_map_references(
           const Domain& domain, unsigned references) = 0;
-      virtual void record_index_space_user(ApEvent user) = 0;
+      virtual void record_index_space_user(ApEvent user) override = 0;
       virtual bool set_domain(
           const Domain& domain, ApEvent is_ready, bool take_ownership,
           bool broadcast = false, bool initializing = false) = 0;
       virtual bool set_output_union(
           const std::map<DomainPoint, DomainPoint>& sizes) = 0;
-      virtual void tighten_index_space(void) = 0;
-      virtual bool check_empty(void) = 0;
-      virtual void pack_expression(Serializer& rez, AddressSpaceID target);
-      virtual void skip_unpack_expression(Deserializer& derez) const;
+      virtual void tighten_index_space(void) override = 0;
+      virtual bool check_empty(void) override = 0;
+      virtual void pack_expression(
+          Serializer& rez, AddressSpaceID target) override;
+      virtual void skip_unpack_expression(Deserializer& derez) const override;
     public:
 #ifdef LEGION_DEBUG
-      virtual bool is_valid(void)
+      virtual bool is_valid(void) override
       {
         return ValidDistributedCollectable::is_global();
       }
 #endif
-      virtual DistributedID get_distributed_id(void) const { return did; }
-      virtual void add_canonical_reference(DistributedID source);
-      virtual bool remove_canonical_reference(DistributedID source);
-      virtual bool try_add_live_reference(void);
+      virtual DistributedID get_distributed_id(void) const override
+      {
+        return did;
+      }
+      virtual void add_canonical_reference(DistributedID source) override;
+      virtual bool remove_canonical_reference(DistributedID source) override;
+      virtual bool try_add_live_reference(void) override;
       virtual void add_base_expression_reference(
-          ReferenceSource source, unsigned count = 1);
+          ReferenceSource source, unsigned count = 1) override;
       virtual void add_nested_expression_reference(
-          DistributedID source, unsigned count = 1);
+          DistributedID source, unsigned count = 1) override;
       virtual bool remove_base_expression_reference(
-          ReferenceSource source, unsigned count = 1);
+          ReferenceSource source, unsigned count = 1) override;
       virtual bool remove_nested_expression_reference(
-          DistributedID source, unsigned count = 1);
+          DistributedID source, unsigned count = 1) override;
       virtual void add_tree_expression_reference(
-          DistributedID source, unsigned count = 1);
+          DistributedID source, unsigned count = 1) override;
       virtual bool remove_tree_expression_reference(
-          DistributedID source, unsigned count = 1);
+          DistributedID source, unsigned count = 1) override;
     public:
       virtual IndexSpaceNode* create_node(
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
-          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0) = 0;
+          CollectiveMapping* mapping,
+          IndexSpaceExprID expr_id = 0) override = 0;
       virtual IndexSpaceExpression* create_from_rectangles(
-          const local::set<Domain>& rectangles) = 0;
+          const local::set<Domain>& rectangles) override = 0;
       virtual PieceIteratorImpl* create_piece_iterator(
           const void* piece_list, size_t piece_list_size,
-          IndexSpaceNode* privilege_node) = 0;
-      virtual bool is_below_in_tree(IndexPartNode* p, LegionColor& child) const;
+          IndexSpaceNode* privilege_node) override = 0;
+      virtual bool is_below_in_tree(
+          IndexPartNode* p, LegionColor& child) const override;
     public:
       virtual ApEvent compute_pending_space(
           Operation* op, const std::vector<IndexSpace>& handles,
@@ -398,7 +407,7 @@ namespace Legion {
           Operation* op, IndexSpace initial,
           const std::vector<IndexSpace>& handles) = 0;
       virtual void get_index_space_domain(void* realm_is, TypeTag type_tag) = 0;
-      virtual size_t get_volume(void) = 0;
+      virtual size_t get_volume(void) override = 0;
       virtual size_t get_num_dims(void) const = 0;
       virtual bool contains_point(
           const void* realm_point, TypeTag type_tag) = 0;
@@ -585,87 +594,93 @@ namespace Legion {
           AddressSpaceID source = std::numeric_limits<AddressSpaceID>::max());
       RtEvent get_realm_index_space_ready(bool need_tight_result);
     public:
-      virtual bool is_sparse(void);
-      virtual Domain get_tight_domain(void);
+      virtual bool is_sparse(void) override;
+      virtual Domain get_tight_domain(void) override;
       [[nodiscard]] virtual ApEvent get_loose_domain(
-          Domain& domain, ApUserEvent& done_event);
+          Domain& domain, ApUserEvent& done_event) override;
       virtual RtEvent add_sparsity_map_references(
-          const Domain& domain, unsigned references);
-      virtual void record_index_space_user(ApEvent user);
+          const Domain& domain, unsigned references) override;
+      virtual void record_index_space_user(ApEvent user) override;
       virtual bool set_domain(
           const Domain& domain, ApEvent is_ready, bool take_ownership,
-          bool broadcast = false, bool initializing = false);
+          bool broadcast = false, bool initializing = false) override;
       virtual bool set_output_union(
-          const std::map<DomainPoint, DomainPoint>& sizes);
-      virtual void tighten_index_space(void);
-      virtual bool check_empty(void);
+          const std::map<DomainPoint, DomainPoint>& sizes) override;
+      virtual void tighten_index_space(void) override;
+      virtual bool check_empty(void) override;
       virtual IndexSpaceNode* create_node(
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
-          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0);
+          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0) override;
       virtual IndexSpaceExpression* create_from_rectangles(
-          const local::set<Domain>& rectangles);
+          const local::set<Domain>& rectangles) override;
       virtual PieceIteratorImpl* create_piece_iterator(
           const void* piece_list, size_t piece_list_size,
-          IndexSpaceNode* privilege_node);
+          IndexSpaceNode* privilege_node) override;
     public:
       void log_index_space_points(const Realm::IndexSpace<DIM, T>& space) const;
       void log_profiler_index_space_points(
           const Realm::IndexSpace<DIM, T>& tight_space) const;
     public:
       virtual ApEvent compute_pending_space(
-          Operation* op, const std::vector<IndexSpace>& handles, bool is_union);
+          Operation* op, const std::vector<IndexSpace>& handles,
+          bool is_union) override;
       virtual ApEvent compute_pending_space(
-          Operation* op, IndexPartition handle, bool is_union);
+          Operation* op, IndexPartition handle, bool is_union) override;
       virtual ApEvent compute_pending_difference(
           Operation* op, IndexSpace initial,
-          const std::vector<IndexSpace>& handles);
-      virtual void get_index_space_domain(void* realm_is, TypeTag type_tag);
-      virtual size_t get_volume(void);
-      virtual size_t get_num_dims(void) const;
-      virtual bool contains_point(const void* realm_point, TypeTag type_tag);
-      virtual bool contains_point(const DomainPoint& point);
+          const std::vector<IndexSpace>& handles) override;
+      virtual void get_index_space_domain(
+          void* realm_is, TypeTag type_tag) override;
+      virtual size_t get_volume(void) override;
+      virtual size_t get_num_dims(void) const override;
+      virtual bool contains_point(
+          const void* realm_point, TypeTag type_tag) override;
+      virtual bool contains_point(const DomainPoint& point) override;
       virtual bool has_interfering_point(
           const std::vector<std::pair<DomainPoint, Domain> >& tests,
-          DomainPoint& interfering_point, DomainPoint to_skip);
+          DomainPoint& interfering_point, DomainPoint to_skip) override;
     public:
-      virtual LegionColor get_max_linearized_color(void);
-      virtual LegionColor linearize_color(const DomainPoint& point);
+      virtual LegionColor get_max_linearized_color(void) override;
+      virtual LegionColor linearize_color(const DomainPoint& point) override;
       virtual LegionColor linearize_color(
-          const void* realm_color, TypeTag type_tag);
+          const void* realm_color, TypeTag type_tag) override;
       LegionColor linearize_color(const Point<DIM, T>& color);
       virtual void delinearize_color(
-          LegionColor color, void* realm_color, TypeTag type_tag);
+          LegionColor color, void* realm_color, TypeTag type_tag) override;
       void delinearize_color(LegionColor color, Point<DIM, T>& point);
-      virtual bool contains_color(LegionColor color, bool report_error = false);
-      virtual void instantiate_colors(std::vector<LegionColor>& colors);
-      virtual Domain get_color_space_domain(void);
-      virtual DomainPoint get_domain_point_color(void) const;
-      virtual DomainPoint delinearize_color_to_point(LegionColor c);
-      virtual size_t compute_color_offset(LegionColor color);
+      virtual bool contains_color(
+          LegionColor color, bool report_error = false) override;
+      virtual void instantiate_colors(
+          std::vector<LegionColor>& colors) override;
+      virtual Domain get_color_space_domain(void) override;
+      virtual DomainPoint get_domain_point_color(void) const override;
+      virtual DomainPoint delinearize_color_to_point(LegionColor c) override;
+      virtual size_t compute_color_offset(LegionColor color) override;
     public:
-      virtual void pack_index_space(Serializer& rez, unsigned references) const;
+      virtual void pack_index_space(
+          Serializer& rez, unsigned references) const override;
       virtual bool unpack_index_space(
-          Deserializer& derez, AddressSpaceID source);
+          Deserializer& derez, AddressSpaceID source) override;
     public:
       virtual ApEvent create_equal_children(
-          Operation* op, IndexPartNode* partition, size_t granularity);
+          Operation* op, IndexPartNode* partition, size_t granularity) override;
       virtual ApEvent create_by_union(
           Operation* op, IndexPartNode* partition, IndexPartNode* left,
-          IndexPartNode* right);
+          IndexPartNode* right) override;
       virtual ApEvent create_by_intersection(
           Operation* op, IndexPartNode* partition, IndexPartNode* left,
-          IndexPartNode* right);
+          IndexPartNode* right) override;
       virtual ApEvent create_by_intersection(
           Operation* op, IndexPartNode* partition,
           // Left is implicit "this"
-          IndexPartNode* right, const bool dominates = false);
+          IndexPartNode* right, const bool dominates = false) override;
       virtual ApEvent create_by_difference(
           Operation* op, IndexPartNode* partition, IndexPartNode* left,
-          IndexPartNode* right);
+          IndexPartNode* right) override;
       // Called on color space and not parent
       virtual ApEvent create_by_restriction(
           IndexPartNode* partition, const void* transform, const void* extent,
-          int partition_dim);
+          int partition_dim) override;
       template<int N>
       ApEvent create_by_restriction_helper(
           IndexPartNode* partition, const Realm::Matrix<N, DIM, T>& transform,
@@ -673,7 +688,7 @@ namespace Legion {
       virtual ApEvent create_by_domain(
           Operation* op, IndexPartNode* partition,
           const std::map<DomainPoint, FutureImpl*>& futures,
-          const Domain& future_map_domain, bool perform_intersections);
+          const Domain& future_map_domain, bool perform_intersections) override;
       template<int COLOR_DIM, typename COLOR_T>
       ApEvent create_by_domain_helper(
           Operation* op, IndexPartNode* partition,
@@ -682,7 +697,7 @@ namespace Legion {
       virtual ApEvent create_by_weights(
           Operation* op, IndexPartNode* partition,
           const std::map<DomainPoint, FutureImpl*>& weights,
-          size_t granularity);
+          size_t granularity) override;
       template<int COLOR_DIM, typename COLOR_T>
       ApEvent create_by_weight_helper(
           Operation* op, IndexPartNode* partition,
@@ -691,7 +706,8 @@ namespace Legion {
       virtual ApEvent create_by_field(
           Operation* op, FieldID fid, IndexPartNode* partition,
           const std::vector<FieldDataDescriptor>& instances,
-          std::vector<DeppartResult>* results, ApEvent instances_ready);
+          std::vector<DeppartResult>* results,
+          ApEvent instances_ready) override;
       template<int COLOR_DIM, typename COLOR_T>
       ApEvent create_by_field_helper(
           Operation* op, FieldID fid, IndexPartNode* partition,
@@ -700,7 +716,8 @@ namespace Legion {
       virtual ApEvent create_by_image(
           Operation* op, FieldID fid, IndexPartNode* partition,
           IndexPartNode* projection,
-          std::vector<FieldDataDescriptor>& instances, ApEvent instances_ready);
+          std::vector<FieldDataDescriptor>& instances,
+          ApEvent instances_ready) override;
       template<int DIM2, typename T2>
       ApEvent create_by_image_helper(
           Operation* op, FieldID fid, IndexPartNode* partition,
@@ -709,7 +726,8 @@ namespace Legion {
       virtual ApEvent create_by_image_range(
           Operation* op, FieldID fid, IndexPartNode* partition,
           IndexPartNode* projection,
-          std::vector<FieldDataDescriptor>& instances, ApEvent instances_ready);
+          std::vector<FieldDataDescriptor>& instances,
+          ApEvent instances_ready) override;
       template<int DIM2, typename T2>
       ApEvent create_by_image_range_helper(
           Operation* op, FieldID fid, IndexPartNode* partition,
@@ -720,7 +738,8 @@ namespace Legion {
           IndexPartNode* projection,
           const std::vector<FieldDataDescriptor>& instances,
           const std::map<DomainPoint, Domain>* remote_targets,
-          std::vector<DeppartResult>* results, ApEvent instances_ready);
+          std::vector<DeppartResult>* results,
+          ApEvent instances_ready) override;
       template<int DIM2, typename T2>
       ApEvent create_by_preimage_helper(
           Operation* op, FieldID fid, IndexPartNode* partition,
@@ -733,7 +752,8 @@ namespace Legion {
           IndexPartNode* projection,
           const std::vector<FieldDataDescriptor>& instances,
           const std::map<DomainPoint, Domain>* remote_targets,
-          std::vector<DeppartResult>* results, ApEvent instances_ready);
+          std::vector<DeppartResult>* results,
+          ApEvent instances_ready) override;
       template<int DIM2, typename T2>
       ApEvent create_by_preimage_range_helper(
           Operation* op, FieldID fid, IndexPartNode* partition,
@@ -744,7 +764,7 @@ namespace Legion {
       virtual ApEvent create_association(
           Operation* op, FieldID fid, IndexSpaceNode* range,
           const std::vector<FieldDataDescriptor>& instances,
-          ApEvent instances_ready);
+          ApEvent instances_ready) override;
       template<int DIM2, typename T2>
       ApEvent create_association_helper(
           Operation* op, FieldID fid, IndexSpaceNode* range,
@@ -753,24 +773,25 @@ namespace Legion {
       void prepare_broadcast_results(
           IndexPartNode* partition, std::vector<DomainT<DIM, T> >& subspaces,
           std::vector<DeppartResult>& results, ApEvent& result);
-      virtual size_t get_coordinate_size(bool range) const;
+      virtual size_t get_coordinate_size(bool range) const override;
     public:
       virtual Realm::InstanceLayoutGeneric* create_hdf5_layout(
           const std::vector<FieldID>& field_ids,
           const std::vector<size_t>& field_sizes,
           const std::vector<std::string>& field_files,
-          const OrderingConstraint& dimension_order);
+          const OrderingConstraint& dimension_order) override;
     public:
-      virtual IndexSpaceExpression* inline_union(IndexSpaceExpression* rhs);
       virtual IndexSpaceExpression* inline_union(
-          const SetView<IndexSpaceExpression*>& exprs);
+          IndexSpaceExpression* rhs) override;
+      virtual IndexSpaceExpression* inline_union(
+          const SetView<IndexSpaceExpression*>& exprs) override;
       virtual IndexSpaceExpression* inline_intersection(
-          IndexSpaceExpression* rhs);
+          IndexSpaceExpression* rhs) override;
       virtual IndexSpaceExpression* inline_intersection(
-          const SetView<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs) override;
       virtual IndexSpaceExpression* inline_subtraction(
-          IndexSpaceExpression* rhs);
-      virtual uint64_t get_canonical_hash(void);
+          IndexSpaceExpression* rhs) override;
+      virtual uint64_t get_canonical_hash(void) override;
     public:
       virtual ApEvent issue_fill(
           Operation* op, const PhysicalTraceInfo& trace_info,
@@ -778,7 +799,7 @@ namespace Legion {
           const void* fill_value, size_t fill_size, UniqueID fill_uid,
           FieldSpace handle, RegionTreeID tree_id, ApEvent precondition,
           PredEvent pred_guard, LgEvent unique_event, CollectiveKind collective,
-          bool record_effect, int priority = 0, bool replay = false);
+          bool record_effect, int priority = 0, bool replay = false) override;
       virtual ApEvent issue_copy(
           Operation* op, const PhysicalTraceInfo& trace_info,
           const std::vector<CopySrcDstField>& dst_fields,
@@ -787,47 +808,50 @@ namespace Legion {
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, CollectiveKind collective, bool record_effect,
-          int priority = 0, bool replay = false);
+          int priority = 0, bool replay = false) override;
       virtual CopyAcrossUnstructured* create_across_unstructured(
           const std::map<Reservation, bool>& reservations,
-          const bool compute_preimages, const bool shadow_indirections);
+          const bool compute_preimages,
+          const bool shadow_indirections) override;
       virtual Realm::InstanceLayoutGeneric* create_layout(
           const LayoutConstraintSet& constraints,
           const std::vector<FieldID>& field_ids,
           const std::vector<size_t>& field_sizes, bool compact,
           void** piece_list = nullptr, size_t* piece_list_size = nullptr,
-          size_t* num_pieces = nullptr, size_t base_alignment = 32);
+          size_t* num_pieces = nullptr, size_t base_alignment = 32) override;
       virtual IndexSpaceExpression* create_layout_expression(
-          const void* piece_list, size_t piece_list_size);
+          const void* piece_list, size_t piece_list_size) override;
       virtual bool meets_layout_expression(
           IndexSpaceExpression* expr, bool tight_bounds, const void* piece_list,
-          size_t piece_list_size, const Domain* padding_delta);
+          size_t piece_list_size, const Domain* padding_delta) override;
     public:
       virtual IndexSpaceExpression* find_congruent_expression(
-          SmallPointerVector<IndexSpaceExpression, true>& expressions);
-      virtual KDTree* get_sparsity_map_kd_tree(void);
+          SmallPointerVector<IndexSpaceExpression, true>& expressions) override;
+      virtual KDTree* get_sparsity_map_kd_tree(void) override;
     public:
       virtual void validate_slicing(
           const std::vector<IndexSpace>& slice_spaces, MultiTask* task,
-          MapperManager* mapper);
-      virtual void log_launch_space(UniqueID op_id);
+          MapperManager* mapper) override;
+      virtual void log_launch_space(UniqueID op_id) override;
       virtual IndexSpace create_shard_space(
           ShardingFunction* func, ShardID shard, IndexSpace shard_space,
           const Domain& shard_domain,
-          const std::vector<DomainPoint>& shard_points, Provenance* provenance);
+          const std::vector<DomainPoint>& shard_points,
+          Provenance* provenance) override;
       virtual void compute_range_shards(
           ShardingFunction* func, IndexSpace shard_space,
           const std::vector<DomainPoint>& shard_points,
-          const Domain& shard_domain, std::set<ShardID>& range_shards);
+          const Domain& shard_domain, std::set<ShardID>& range_shards) override;
       virtual bool has_shard_participants(
           ShardingFunction* func, ShardID shard, IndexSpace shard_space,
           const std::vector<DomainPoint>& shard_points,
-          const Domain& shard_domain);
+          const Domain& shard_domain) override;
     public:
-      virtual EqKDTree* create_equivalence_set_kd_tree(size_t total_shards = 1);
+      virtual EqKDTree* create_equivalence_set_kd_tree(
+          size_t total_shards = 1) override;
       virtual void initialize_equivalence_set_kd_tree(
           EqKDTree* tree, EquivalenceSet* set, const FieldMask& mask,
-          ShardID local_shard, bool current);
+          ShardID local_shard, bool current) override;
       virtual void compute_equivalence_sets(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           const std::vector<EqSetTracker*>& trackers,
@@ -840,30 +864,31 @@ namespace Legion {
           op::map<EqKDTree*, Domain>& creation_rects,
           op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
-          ShardID local_shard = 0);
+          ShardID local_shard = 0) override;
       virtual unsigned record_output_equivalence_set(
           EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
           const FieldMask& mask, EqSetTracker* tracker,
           AddressSpaceID tracker_space,
           local::FieldMaskMap<EqKDTree>& subscriptions,
           op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
-          ShardID local_shard = 0);
+          ShardID local_shard = 0) override;
       virtual void invalidate_equivalence_set_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
-          std::vector<RtEvent>& invalidated, bool move_to_previous);
+          std::vector<RtEvent>& invalidated, bool move_to_previous) override;
       virtual void invalidate_shard_equivalence_set_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           std::vector<RtEvent>& invalidated,
           op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
-          ShardID local_shard);
+          ShardID local_shard) override;
       virtual void find_trace_local_sets_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           unsigned req_index, ShardID local_shard,
-          std::map<EquivalenceSet*, unsigned>& current_sets);
+          std::map<EquivalenceSet*, unsigned>& current_sets) override;
       virtual void find_shard_trace_local_sets_kd_tree(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           unsigned req_index, std::map<EquivalenceSet*, unsigned>& current_sets,
-          local::map<ShardID, FieldMask>& remote_shards, ShardID local_shard);
+          local::map<ShardID, FieldMask>& remote_shards,
+          ShardID local_shard) override;
     public:
       bool contains_point(const Point<DIM, T>& point);
     protected:
@@ -1385,26 +1410,26 @@ namespace Legion {
     public:
       IndexPartNode& operator=(const IndexPartNode& rhs) = delete;
     public:
-      virtual void notify_invalid(void);
-      virtual void notify_local(void);
+      virtual void notify_invalid(void) override;
+      virtual void notify_local(void) override;
     public:
-      virtual bool is_index_space_node(void) const;
+      virtual bool is_index_space_node(void) const override;
 #ifdef LEGION_DEBUG
-      virtual IndexSpaceNode* as_index_space_node(void);
-      virtual IndexPartNode* as_index_part_node(void);
+      virtual IndexSpaceNode* as_index_space_node(void) override;
+      virtual IndexPartNode* as_index_part_node(void) override;
 #endif
-      virtual AddressSpaceID get_owner_space(void) const;
+      virtual AddressSpaceID get_owner_space(void) const override;
       static AddressSpaceID get_owner_space(IndexPartition handle);
     public:
-      virtual IndexTreeNode* get_parent(void) const;
-      virtual LegionColor get_colors(std::vector<LegionColor>& colors);
+      virtual IndexTreeNode* get_parent(void) const override;
+      virtual LegionColor get_colors(std::vector<LegionColor>& colors) override;
     public:
       virtual void send_semantic_request(
           AddressSpaceID target, SemanticTag tag, bool can_fail,
-          bool wait_until, RtUserEvent ready);
+          bool wait_until, RtUserEvent ready) override;
       virtual void send_semantic_info(
           AddressSpaceID target, SemanticTag tag, const void* buffer,
-          size_t size, bool is_mutable, RtUserEvent ready);
+          size_t size, bool is_mutable, RtUserEvent ready) override;
       void process_semantic_request(
           SemanticTag tag, AddressSpaceID source, bool can_fail,
           bool wait_until, RtUserEvent ready);

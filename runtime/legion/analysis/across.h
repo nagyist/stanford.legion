@@ -70,17 +70,17 @@ namespace Legion {
           EquivalenceSet* set, IndexSpaceExpression* expr,
           const bool expr_covers, const FieldMask& mask,
           std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_remote(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_updates(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual ApEvent perform_output(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
-      virtual IndexSpace get_collective_match_space(void) const
+          const bool already_deferred = false) override;
+      virtual IndexSpace get_collective_match_space(void) const override
       {
         return dst_region.get_index_space();
       }

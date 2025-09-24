@@ -39,9 +39,12 @@ namespace Legion {
     public:
       AllreduceView& operator=(const AllreduceView& rhs) = delete;
     public:  // From InstanceView
-      virtual void send_view(AddressSpaceID target);
-      virtual ReductionOpID get_redop(void) const { return redop; }
-      virtual FillView* get_redop_fill_view(void) const { return fill_view; }
+      virtual void send_view(AddressSpaceID target) override;
+      virtual ReductionOpID get_redop(void) const override { return redop; }
+      virtual FillView* get_redop_fill_view(void) const override
+      {
+        return fill_view;
+      }
     public:
       void perform_collective_reduction(
           const std::vector<CopySrcDstField>& dst_fields,

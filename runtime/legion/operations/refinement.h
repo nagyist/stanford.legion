@@ -42,17 +42,18 @@ namespace Legion {
           unsigned refinement_number, const FieldMask& refinement_mask);
       RegionTreeNode* get_refinement_node(void) const;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual const FieldMask& get_internal_mask(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual const FieldMask& get_internal_mask(void) const override;
       // Ignore interfering requirements reports here
-      virtual void report_interfering_requirements(unsigned idx1, unsigned idx2)
+      virtual void report_interfering_requirements(
+          unsigned idx1, unsigned idx2) override
       { }
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_mapping(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_mapping(void) override;
     protected:
       FieldMask refinement_mask;
       RegionTreeNode* refinement_node;
@@ -76,13 +77,13 @@ namespace Legion {
     public:
       ReplRefinementOp& operator=(const ReplRefinementOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       void set_repl_refinement_info(
           RtBarrier mapped_barrier, RtBarrier refinement_barrier);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
     protected:
       RtBarrier mapped_barrier;
       RtBarrier refinement_barrier;

@@ -40,19 +40,20 @@ namespace Legion {
           InnerContext* ctx, LogicalRegion parent, LogicalRegion region,
           const std::set<FieldID>& fields);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual const RegionRequirement& get_requirement(unsigned idx) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx) const override
       {
         return requirement;
       }
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_mapping(void);
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual unsigned find_parent_index(unsigned idx) override;
     public:
       void check_privilege(void);
     protected:
@@ -73,12 +74,12 @@ namespace Legion {
     public:
       ReplResetOp& operator=(const ReplResetOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
     protected:
       RtBarrier reset_barrier;
     };

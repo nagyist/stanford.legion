@@ -370,15 +370,16 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual SpecializedConstraint* as_specialized_constraint(void)
+    virtual SpecializedConstraint* as_specialized_constraint(void) override
     {
       return this;
     }
-    virtual const SpecializedConstraint* as_specialized_constraint(void) const
+    virtual const SpecializedConstraint* as_specialized_constraint(
+        void) const override
     {
       return this;
     }
@@ -435,12 +436,15 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual MemoryConstraint* as_memory_constraint(void) { return this; }
-    virtual const MemoryConstraint* as_memory_constraint(void) const
+    virtual MemoryConstraint* as_memory_constraint(void) override
+    {
+      return this;
+    }
+    virtual const MemoryConstraint* as_memory_constraint(void) const override
     {
       return this;
     }
@@ -486,12 +490,12 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual FieldConstraint* as_field_constraint(void) { return this; }
-    virtual const FieldConstraint* as_field_constraint(void) const
+    virtual FieldConstraint* as_field_constraint(void) override { return this; }
+    virtual const FieldConstraint* as_field_constraint(void) const override
     {
       return this;
     }
@@ -549,12 +553,16 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual OrderingConstraint* as_ordering_constraint(void) { return this; }
-    virtual const OrderingConstraint* as_ordering_constraint(void) const
+    virtual OrderingConstraint* as_ordering_constraint(void) override
+    {
+      return this;
+    }
+    virtual const OrderingConstraint* as_ordering_constraint(
+        void) const override
     {
       return this;
     }
@@ -599,12 +607,15 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual TilingConstraint* as_tiling_constraint(void) { return this; }
-    virtual const TilingConstraint* as_tiling_constraint(void) const
+    virtual TilingConstraint* as_tiling_constraint(void) override
+    {
+      return this;
+    }
+    virtual const TilingConstraint* as_tiling_constraint(void) const override
     {
       return this;
     }
@@ -643,12 +654,16 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual DimensionConstraint* as_dimension_constraint(void) { return this; }
-    virtual const DimensionConstraint* as_dimension_constraint(void) const
+    virtual DimensionConstraint* as_dimension_constraint(void) override
+    {
+      return this;
+    }
+    virtual const DimensionConstraint* as_dimension_constraint(
+        void) const override
     {
       return this;
     }
@@ -688,12 +703,16 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual AlignmentConstraint* as_alignment_constraint(void) { return this; }
-    virtual const AlignmentConstraint* as_alignment_constraint(void) const
+    virtual AlignmentConstraint* as_alignment_constraint(void) override
+    {
+      return this;
+    }
+    virtual const AlignmentConstraint* as_alignment_constraint(
+        void) const override
     {
       return this;
     }
@@ -732,12 +751,15 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual OffsetConstraint* as_offset_constraint(void) { return this; }
-    virtual const OffsetConstraint* as_offset_constraint(void) const
+    virtual OffsetConstraint* as_offset_constraint(void) override
+    {
+      return this;
+    }
+    virtual const OffsetConstraint* as_offset_constraint(void) const override
     {
       return this;
     }
@@ -775,12 +797,15 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual PointerConstraint* as_pointer_constraint(void) { return this; }
-    virtual const PointerConstraint* as_pointer_constraint(void) const
+    virtual PointerConstraint* as_pointer_constraint(void) override
+    {
+      return this;
+    }
+    virtual const PointerConstraint* as_pointer_constraint(void) const override
     {
       return this;
     }
@@ -820,12 +845,15 @@ namespace Legion {
       return !(*this == other);
     }
   public:
-    virtual LayoutConstraintKind get_constraint_kind(void) const
+    virtual LayoutConstraintKind get_constraint_kind(void) const override
     {
       return constraint_kind;
     }
-    virtual PaddingConstraint* as_padding_constraint(void) { return this; }
-    virtual const PaddingConstraint* as_padding_constraint(void) const
+    virtual PaddingConstraint* as_padding_constraint(void) override
+    {
+      return this;
+    }
+    virtual const PaddingConstraint* as_padding_constraint(void) const override
     {
       return this;
     }

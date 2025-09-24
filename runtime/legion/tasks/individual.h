@@ -35,19 +35,28 @@ namespace Legion {
     public:
       IndividualTask& operator=(const IndividualTask& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     protected:
-      virtual SingleTask* get_origin_task(void) const { return orig_task; }
-      virtual Domain get_slice_domain(void) const { return Domain::NO_DOMAIN; }
-      virtual ShardID get_shard_id(void) const { return 0; }
-      virtual size_t get_total_shards(void) const { return 1; }
-      virtual DomainPoint get_shard_point(void) const { return DomainPoint(0); }
-      virtual Domain get_shard_domain(void) const
+      virtual SingleTask* get_origin_task(void) const override
+      {
+        return orig_task;
+      }
+      virtual Domain get_slice_domain(void) const override
+      {
+        return Domain::NO_DOMAIN;
+      }
+      virtual ShardID get_shard_id(void) const override { return 0; }
+      virtual size_t get_total_shards(void) const override { return 1; }
+      virtual DomainPoint get_shard_point(void) const override
+      {
+        return DomainPoint(0);
+      }
+      virtual Domain get_shard_domain(void) const override
       {
         return Domain(DomainPoint(0), DomainPoint(0));
       }
-      virtual Operation* get_origin_operation(void)
+      virtual Operation* get_origin_operation(void) override
       {
         return is_remote() ? orig_task : this;
       }
@@ -61,62 +70,68 @@ namespace Legion {
     protected:
       void create_output_regions(std::vector<OutputRequirement>& outputs);
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
       virtual void report_interfering_requirements(
-          unsigned idx1, unsigned idx2);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+          unsigned idx1, unsigned idx2) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
       // Virtual method for creating the future for this task so that
       // we can overload for control replication
       virtual Future create_future(void);
     public:
-      virtual void predicate_false(void);
-      virtual bool distribute_task(void);
+      virtual void predicate_false(void) override;
+      virtual bool distribute_task(void) override;
       virtual bool perform_mapping(
-          MustEpochOp* owner = nullptr, const DeferMappingArgs* args = nullptr);
+          MustEpochOp* owner = nullptr,
+          const DeferMappingArgs* args = nullptr) override;
       virtual bool finalize_map_task_output(
           Mapper::MapTaskInput& input, Mapper::MapTaskOutput& output,
-          MustEpochOp* must_epoch_owner);
+          MustEpochOp* must_epoch_owner) override;
       virtual void handle_future_size(
-          size_t return_type_size, std::set<RtEvent>& applied_events);
+          size_t return_type_size, std::set<RtEvent>& applied_events) override;
       virtual void record_output_registered(
-          RtEvent registered, std::set<RtEvent>& applied_events);
-      virtual bool is_stealable(void) const;
-      virtual bool replicate_task(void);
+          RtEvent registered, std::set<RtEvent>& applied_events) override;
+      virtual bool is_stealable(void) const override;
+      virtual bool replicate_task(void) override;
     public:
-      virtual bool is_output_valid(unsigned idx) const;
-      virtual bool is_output_grouped(unsigned idx) const;
+      virtual bool is_output_valid(unsigned idx) const override;
+      virtual bool is_output_grouped(unsigned idx) const override;
     public:
-      virtual TaskKind get_task_kind(void) const;
+      virtual TaskKind get_task_kind(void) const override;
     public:
-      virtual void trigger_complete(ApEvent effects);
-      virtual void trigger_task_commit(void);
+      virtual void trigger_complete(ApEvent effects) override;
+      virtual void trigger_task_commit(void) override;
     public:
       virtual void handle_future(
           ApEvent effects, FutureInstance* instance, const void* metadata,
           size_t metasize, FutureFunctor* functor, Processor future_proc,
-          bool own_functor);
-      virtual void handle_mispredication(void);
+          bool own_functor) override;
+      virtual void handle_mispredication(void) override;
       virtual void prepare_map_must_epoch(void);
     public:
       virtual bool send_task(
-          Processor target, std::vector<SingleTask*>& others);
-      virtual bool pack_task(Serializer& rez, AddressSpaceID target);
+          Processor target, std::vector<SingleTask*>& others) override;
+      virtual bool pack_task(Serializer& rez, AddressSpaceID target) override;
       virtual bool unpack_task(
           Deserializer& derez, Processor current,
-          std::set<RtEvent>& ready_events);
-      virtual bool is_top_level_task(void) const { return top_level_task; }
+          std::set<RtEvent>& ready_events) override;
+      virtual bool is_top_level_task(void) const override
+      {
+        return top_level_task;
+      }
     public:
       void set_concurrent_postcondition(RtEvent postcondition);
       virtual uint64_t order_collectively_mapped_unbounded_pools(
-          uint64_t lamport_clock, bool need_result);
-      virtual ApEvent order_concurrent_launch(ApEvent start, VariantImpl* impl);
+          uint64_t lamport_clock, bool need_result) override;
+      virtual ApEvent order_concurrent_launch(
+          ApEvent start, VariantImpl* impl) override;
       virtual void concurrent_allreduce(
           ProcessorManager* manager, uint64_t lamport_clock, VariantID vid,
-          bool poisoned);
-      virtual void perform_concurrent_task_barrier(void);
+          bool poisoned) override;
+      virtual void perform_concurrent_task_barrier(void) override;
       void finish_concurrent_allreduce(uint64_t lamport_clock, bool poisoned);
     public:
       void pack_remote_complete(Serializer& rez, ApEvent effect);
@@ -125,7 +140,7 @@ namespace Legion {
       void unpack_remote_commit(Deserializer& derez);
     public:
       // From MemoizableOp
-      virtual void complete_replay(ApEvent pre);
+      virtual void complete_replay(ApEvent pre) override;
     protected:
       Future result;
     protected:
@@ -166,23 +181,23 @@ namespace Legion {
     public:
       ReplIndividualTask& operator=(const ReplIndividualTask& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_replay(void);
-      virtual void predicate_false(void);
-      virtual void shard_off(RtEvent mapped_precondition);
-      virtual void prepare_map_must_epoch(void);
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_replay(void) override;
+      virtual void predicate_false(void) override;
+      virtual void shard_off(RtEvent mapped_precondition) override;
+      virtual void prepare_map_must_epoch(void) override;
     public:
       // Override this so it can broadcast the future result
-      virtual Future create_future(void);
+      virtual Future create_future(void) override;
     public:
       // Override for saying when it is safe to use output region trees
       virtual void record_output_registered(
-          RtEvent registered, std::set<RtEvent>& applied_events);
+          RtEvent registered, std::set<RtEvent>& applied_events) override;
     public:
       void initialize_replication(ReplicateContext* ctx);
       void set_sharding_function(

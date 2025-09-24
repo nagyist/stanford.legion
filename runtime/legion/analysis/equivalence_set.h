@@ -491,7 +491,7 @@ namespace Legion {
     public:
       // From distributed collectable
       virtual void notify_invalid(void) { std::abort(); }
-      virtual void notify_local(void);
+      virtual void notify_local(void) override;
     public:
       // Analysis methods
       void initialize_set(

@@ -34,21 +34,21 @@ namespace Legion {
     public:
       RemoteTask& operator=(const RemoteTask& rhs) = delete;
     public:
-      virtual int get_depth(void) const;
-      virtual UniqueID get_unique_id(void) const;
-      virtual Domain get_slice_domain(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual bool has_parent_task(void) const;
-      virtual const Task* get_parent_task(void) const;
-      virtual const char* get_task_name(void) const;
-      virtual ShardID get_shard_id(void) const;
-      virtual size_t get_total_shards(void) const;
-      virtual DomainPoint get_shard_point(void) const;
-      virtual Domain get_shard_domain(void) const;
+      virtual int get_depth(void) const override;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual Domain get_slice_domain(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual bool has_parent_task(void) const override;
+      virtual const Task* get_parent_task(void) const override;
+      virtual const char* get_task_name(void) const override;
+      virtual ShardID get_shard_id(void) const override;
+      virtual size_t get_total_shards(void) const override;
+      virtual DomainPoint get_shard_point(void) const override;
+      virtual Domain get_shard_domain(void) const override;
       virtual bool has_trace(void) const;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
+          bool human = true) const override;
     public:
       RemoteContext* const owner;
       uint64_t context_index;
@@ -70,52 +70,61 @@ namespace Legion {
     public:
       static Mapper::ContextConfigOutput configure_remote_context(void);
     public:
-      virtual const Task* get_task(void) const;
-      virtual UniqueID get_unique_id(void) const;
-      virtual ShardID get_shard_id(void) const { return shard_id; }
-      virtual DistributedID get_replication_id(void) const { return repl_id; }
-      virtual size_t get_total_shards(void) const { return total_shards; }
+      virtual const Task* get_task(void) const override;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual ShardID get_shard_id(void) const override { return shard_id; }
+      virtual DistributedID get_replication_id(void) const override
+      {
+        return repl_id;
+      }
+      virtual size_t get_total_shards(void) const override
+      {
+        return total_shards;
+      }
       void unpack_remote_context(Deserializer& derez);
-      virtual InnerContext* find_parent_context(void);
+      virtual InnerContext* find_parent_context(void) override;
     public:
-      virtual InnerContext* find_top_context(InnerContext* previous = nullptr);
+      virtual InnerContext* find_top_context(
+          InnerContext* previous = nullptr) override;
     public:
       virtual RtEvent compute_equivalence_sets(
           unsigned req_index, const std::vector<EqSetTracker*>& targets,
           const std::vector<AddressSpaceID>& target_spaces,
           AddressSpaceID creation_target_space, IndexSpaceExpression* expr,
-          const FieldMask& mask);
+          const FieldMask& mask) override;
       virtual RtEvent record_output_equivalence_set(
           EqSetTracker* source, AddressSpaceID source_space, unsigned req_index,
-          EquivalenceSet* set, const FieldMask& mask);
-      virtual InnerContext* find_parent_physical_context(unsigned index);
-      virtual void pack_inner_context(Serializer& rez) const;
+          EquivalenceSet* set, const FieldMask& mask) override;
+      virtual InnerContext* find_parent_physical_context(
+          unsigned index) override;
+      virtual void pack_inner_context(Serializer& rez) const override;
       virtual CollectiveResult* find_or_create_collective_view(
           RegionTreeID tid, const std::vector<DistributedID>& instances,
-          RtEvent& ready);
+          RtEvent& ready) override;
       virtual void refine_equivalence_sets(
           unsigned req_index, IndexSpaceNode* node,
           const FieldMask& refinement_mask,
           std::vector<RtEvent>& applied_events, bool sharded = false,
-          bool first = true, const CollectiveMapping* mapping = nullptr);
+          bool first = true,
+          const CollectiveMapping* mapping = nullptr) override;
       virtual RtEvent find_pointwise_dependence(
           uint64_t context_index, const DomainPoint& point, ShardID shard,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
       virtual void find_trace_local_sets(
           unsigned req_index, const FieldMask& mask,
           std::map<EquivalenceSet*, unsigned>& current_sets,
           IndexSpaceNode* node = nullptr,
-          const CollectiveMapping* mapping = nullptr);
-      virtual void invalidate_logical_context(void);
+          const CollectiveMapping* mapping = nullptr) override;
+      virtual void invalidate_logical_context(void) override;
       virtual void invalidate_region_tree_contexts(
           const bool is_top_level_task, std::set<RtEvent>& applied,
           const ShardMapping* shard_mapping = nullptr,
-          ShardID source_shard = 0);
+          ShardID source_shard = 0) override;
       virtual void receive_created_region_contexts(
           const std::vector<RegionNode*>& created_regions,
           const std::vector<EqKDTree*>& created_trees,
           std::set<RtEvent>& applied_events, const ShardMapping* mapping,
-          ShardID source_shard);
+          ShardID source_shard) override;
     public:
       const Task* get_parent_task(void);
       inline Provenance* get_provenance(void) { return provenance; }

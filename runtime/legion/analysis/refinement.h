@@ -95,18 +95,21 @@ namespace Legion {
       RegionRefinementTracker& operator=(const RegionRefinementTracker& rhs) =
           delete;
     public:
-      virtual RegionRefinementTracker* as_region_tracker(void) { return this; }
-      virtual RefinementTracker* clone(void) const;
-      virtual void initialize_no_refine(void);
+      virtual RegionRefinementTracker* as_region_tracker(void) override
+      {
+        return this;
+      }
+      virtual RefinementTracker* clone(void) const override;
+      virtual void initialize_no_refine(void) override;
       virtual bool update_child(
           RegionTreeNode* child, const RegionUsage& usage,
-          bool& allow_refinement);
+          bool& allow_refinement) override;
       virtual bool update_projection(
           ProjectionSummary* summary, const RegionUsage& usage,
-          bool& allow_refinement);
-      virtual bool update_arrival(const RegionUsage& usage);
+          bool& allow_refinement) override;
+      virtual bool update_arrival(const RegionUsage& usage) override;
       virtual void invalidate_refinement(
-          ContextID ctx, const FieldMask& invalidation_mask);
+          ContextID ctx, const FieldMask& invalidation_mask) override;
     protected:
       bool is_dominant_candidate(double score, bool is_current);
       void invalidate_unused_candidates(void);
@@ -149,21 +152,21 @@ namespace Legion {
       PartitionRefinementTracker& operator=(
           const PartitionRefinementTracker& rhs) = delete;
     public:
-      virtual PartitionRefinementTracker* as_partition_tracker(void)
+      virtual PartitionRefinementTracker* as_partition_tracker(void) override
       {
         return this;
       }
-      virtual RefinementTracker* clone(void) const;
-      virtual void initialize_no_refine(void);
+      virtual RefinementTracker* clone(void) const override;
+      virtual void initialize_no_refine(void) override;
       virtual bool update_child(
           RegionTreeNode* child, const RegionUsage& usage,
-          bool& allow_refinement);
+          bool& allow_refinement) override;
       virtual bool update_projection(
           ProjectionSummary* summary, const RegionUsage& usage,
-          bool& allow_refinement);
-      virtual bool update_arrival(const RegionUsage& usage);
+          bool& allow_refinement) override;
+      virtual bool update_arrival(const RegionUsage& usage) override;
       virtual void invalidate_refinement(
-          ContextID ctx, const FieldMask& invalidation_mask);
+          ContextID ctx, const FieldMask& invalidation_mask) override;
     protected:
       bool is_dominant_candidate(double score, bool is_current);
       void invalidate_unused_candidates(void);

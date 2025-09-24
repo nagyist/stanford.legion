@@ -42,27 +42,28 @@ namespace Legion {
       PhysicalRegion initialize(
           InnerContext* ctx, const AttachLauncher& launcher,
           Provenance* provenance);
-      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx = 0) const override
       {
         return requirement;
       }
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual unsigned find_parent_index(unsigned idx);
-      virtual void trigger_commit(void);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual unsigned find_parent_index(unsigned idx) override;
+      virtual void trigger_commit(void) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
+          std::set<RtEvent>& applied) const override;
       virtual bool is_point_attach(void) const { return false; }
     public:
       void create_external_instance(void);
@@ -119,29 +120,30 @@ namespace Legion {
           IndexSpaceNode* launch_bounds, const IndexAttachLauncher& launcher,
           const std::vector<unsigned>& indexes, Provenance* provenance,
           const bool replicated);
-      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx = 0) const override
       {
         return requirement;
       }
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_complete(ApEvent effects_done);
-      virtual void trigger_commit(void);
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_complete(ApEvent effects_done) override;
+      virtual void trigger_commit(void) override;
+      virtual unsigned find_parent_index(unsigned idx) override;
       virtual bool are_all_direct_children(bool local) { return local; }
-      virtual size_t get_collective_points(void) const;
+      virtual size_t get_collective_points(void) const override;
       virtual RtEvent find_pointwise_dependence(
           const DomainPoint& point, GenerationID gen,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
       void handle_point_complete(ApEvent effects);
       void handle_point_commit(void);
@@ -181,36 +183,37 @@ namespace Legion {
         return index_point;
       }
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       PhysicalRegionImpl* initialize(
           IndexAttachOp* owner, InnerContext* ctx,
           const IndexAttachLauncher& launcher, const DomainPoint& point,
           unsigned index);
     public:
-      virtual void trigger_complete(ApEvent effect);
-      virtual void trigger_commit(void);
-      virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual void trigger_complete(ApEvent effect) override;
+      virtual void trigger_commit(void) override;
+      virtual size_t get_collective_points(void) const override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
       virtual RtEvent convert_collective_views(
           unsigned requirement_index, unsigned analysis_index,
           LogicalRegion region, const InstanceSet& targets,
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
           op::vector<op::FieldMaskMap<InstanceView> >& target_views,
-          std::map<InstanceView*, size_t>& collective_arrivals);
+          std::map<InstanceView*, size_t>& collective_arrivals) override;
       virtual bool perform_collective_analysis(
-          CollectiveMapping*& mapping, bool& first_local);
+          CollectiveMapping*& mapping, bool& first_local) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
-      virtual unsigned find_parent_index(unsigned idx)
+          const FieldMask& mask, unsigned parent_req_index) override;
+      virtual unsigned find_parent_index(unsigned idx) override
       {
         return owner->find_parent_index(idx);
       }
-      virtual bool is_point_attach(void) const { return true; }
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+      virtual bool is_point_attach(void) const override { return true; }
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
@@ -236,13 +239,14 @@ namespace Legion {
       IndexAttachLaunchSpace& operator=(const IndexAttachLaunchSpace& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_INDEX_ATTACH_LAUNCH_SPACE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void exchange_counts(size_t count);
       IndexSpaceNode* get_launch_space(Provenance* provenance);
@@ -265,13 +269,14 @@ namespace Legion {
       IndexAttachUpperBound& operator=(const IndexAttachUpperBound& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_INDEX_ATTACH_UPPER_BOUND;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       RegionTreeNode* find_upper_bound(RegionTreeNode* node);
     protected:
@@ -291,13 +296,14 @@ namespace Legion {
     public:
       IndexAttachExchange& operator=(const IndexAttachExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_INDEX_ATTACH_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void exchange_spaces(std::vector<IndexSpace>& spaces);
       size_t get_spaces(std::vector<IndexSpace>& spaces, unsigned& local_start);
@@ -324,25 +330,26 @@ namespace Legion {
           ReplicateContext* ctx, bool collective_instances,
           bool deduplicate_across_shards, bool first_local_shard);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
     public:
       virtual PhysicalManager* create_manager(
           RegionNode* node, const std::vector<FieldID>& field_set,
           const std::vector<size_t>& field_sizes,
           const std::vector<unsigned>& mask_index_map,
           const std::vector<CustomSerdezID>& serez,
-          const FieldMask& external_mask);
-      virtual RtEvent finalize_complete_mapping(RtEvent event);
+          const FieldMask& external_mask) override;
+      virtual RtEvent finalize_complete_mapping(RtEvent event) override;
       virtual bool perform_collective_analysis(
-          CollectiveMapping*& mapping, bool& first_local);
+          CollectiveMapping*& mapping, bool& first_local) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+          const FieldMask& mask, unsigned parent_req_index) override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     protected:
       RtBarrier collective_map_barrier;
       size_t exchange_index;
@@ -377,16 +384,17 @@ namespace Legion {
     public:
       ReplIndexAttachOp& operator=(const ReplIndexAttachOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual bool are_all_direct_children(bool local);
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual bool are_all_direct_children(bool local) override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
       virtual void finish_check_point_requirements(
           std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >&
-              point_domains);
+              point_domains) override;
     public:
       void initialize_replication(ReplicateContext* ctx);
     protected:
@@ -415,17 +423,17 @@ namespace Legion {
       virtual uint64_t get_context_index(void) const;
       virtual void set_context_index(uint64_t index);
       virtual int get_depth(void) const;
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual void unpack(Deserializer& derez);
+          std::set<RtEvent>& applied) const override;
+      virtual void unpack(Deserializer& derez) override;
     protected:
       DomainPoint index_point;
     };

@@ -39,7 +39,7 @@ namespace Legion {
     public:
       ReplicatedView& operator=(const ReplicatedView& rhs) = delete;
     public:  // From InstanceView
-      virtual void send_view(AddressSpaceID target);
+      virtual void send_view(AddressSpaceID target) override;
     };
 
     //--------------------------------------------------------------------------

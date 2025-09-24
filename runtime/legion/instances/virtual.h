@@ -38,9 +38,9 @@ namespace Legion {
     public:
       VirtualManager& operator=(const VirtualManager& rhs) = delete;
     public:
-      virtual void notify_local(void) { }
+      virtual void notify_local(void) override { }
     public:
-      virtual PointerConstraint get_pointer_constraint(void) const;
+      virtual PointerConstraint get_pointer_constraint(void) const override;
       virtual void send_manager(AddressSpaceID target);
     };
 

@@ -55,7 +55,7 @@ namespace Legion {
     public:
       virtual bool is_replicate_future_map(void) const { return false; }
     public:
-      virtual void notify_local(void);
+      virtual void notify_local(void) override;
     public:
       Domain get_domain(void) const;
       std::optional<uint64_t> get_context_index(void) const;
@@ -140,20 +140,22 @@ namespace Legion {
       TransformFutureMapImpl& operator=(const TransformFutureMapImpl& rhs) =
           delete;
     public:
-      virtual bool is_replicate_future_map(void) const;
+      virtual bool is_replicate_future_map(void) const override;
       virtual Future get_future(
           const DomainPoint& point, bool internal_only,
-          RtEvent* wait_on = nullptr);
-      virtual void get_all_futures(std::map<DomainPoint, FutureImpl*>& futures);
+          RtEvent* wait_on = nullptr) override;
+      virtual void get_all_futures(
+          std::map<DomainPoint, FutureImpl*>& futures) override;
       virtual void wait_all_results(
-          bool silence_warnings = true, const char* warning_string = nullptr);
+          bool silence_warnings = true,
+          const char* warning_string = nullptr) override;
     public:
-      virtual FutureImpl* find_local_future(const DomainPoint& point);
+      virtual FutureImpl* find_local_future(const DomainPoint& point) override;
       virtual void get_shard_local_futures(
-          ShardID shard, std::map<DomainPoint, FutureImpl*>& futures);
+          ShardID shard, std::map<DomainPoint, FutureImpl*>& futures) override;
       virtual RtEvent find_pointwise_dependence(
           const DomainPoint& point, int depth,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
       FutureMapImpl* const previous;
       PointTransformFunctor* const functor;
@@ -182,18 +184,20 @@ namespace Legion {
     public:
       ReplFutureMapImpl& operator=(const ReplFutureMapImpl& rhs) = delete;
     public:
-      virtual bool is_replicate_future_map(void) const { return true; }
+      virtual bool is_replicate_future_map(void) const override { return true; }
     public:
       virtual Future get_future(
-          const DomainPoint& point, bool internal, RtEvent* wait_on = nullptr);
-      virtual void get_all_futures(std::map<DomainPoint, FutureImpl*>& futures);
+          const DomainPoint& point, bool internal,
+          RtEvent* wait_on = nullptr) override;
+      virtual void get_all_futures(
+          std::map<DomainPoint, FutureImpl*>& futures) override;
     public:
       // Will return nullptr if it does not exist
       virtual void get_shard_local_futures(
-          ShardID shard, std::map<DomainPoint, FutureImpl*>& futures);
+          ShardID shard, std::map<DomainPoint, FutureImpl*>& futures) override;
       virtual RtEvent find_pointwise_dependence(
           const DomainPoint& point, int depth,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
       bool set_sharding_function(ShardingFunction* function, bool own = false);
       RtEvent get_sharding_function_ready(void);
@@ -224,13 +228,14 @@ namespace Legion {
     public:
       FutureNameExchange& operator=(const FutureNameExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_FUTURE_NAME_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void exchange_future_names(std::map<DomainPoint, FutureImpl*>& futures);
     protected:

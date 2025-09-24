@@ -60,12 +60,12 @@ namespace Legion {
       inline FutureMap get_future_map(void) const { return result_map; }
     public:
       // From MustEpoch
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
+          bool human = true) const override;
     public:
       FutureMap initialize(
           InnerContext* ctx, const MustEpochLauncher& launcher,
@@ -79,19 +79,19 @@ namespace Legion {
           InnerContext* ctx, const MustEpochLauncher& launcher);
       void find_conflicted_regions(std::vector<PhysicalRegion>& unmapped);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_commit(void);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_commit(void) override;
     public:
       void verify_dependence(
           Operation* source_op, GenerationID source_gen, Operation* target_op,
@@ -109,7 +109,7 @@ namespace Legion {
           Mapper::MapTaskOutput& output);
       // Get a reference to our data structure for tracking acquired instances
       virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
-          void);
+          void) override;
     public:
       // Make this a virtual method to override it for control replication
       virtual MapperManager* invoke_mapper(void);
@@ -128,7 +128,7 @@ namespace Legion {
           std::vector<DeletedIndexSpace>& deleted_index_spaces,
           std::map<IndexPartition, unsigned>& created_partitions,
           std::vector<DeletedPartition>& deleted_partitions,
-          std::set<RtEvent>& preconditions);
+          std::set<RtEvent>& preconditions) override;
     public:
       virtual uint64_t collective_lamport_allreduce(
           uint64_t lamport_clock, bool need_result);
@@ -241,12 +241,12 @@ namespace Legion {
       MustEpochMappingBroadcast& operator=(
           const MustEpochMappingBroadcast& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_BROADCAST;
       }
-      virtual void pack_collective(Serializer& rez) const;
-      virtual void unpack_collective(Deserializer& derez);
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
     public:
       void broadcast(
           const std::vector<Processor>& processor_mapping,
@@ -286,13 +286,14 @@ namespace Legion {
       MustEpochMappingExchange& operator=(const MustEpochMappingExchange& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void exchange_must_epoch_mappings(
           ShardID shard_id, size_t total_shards, size_t total_constraints,
@@ -330,13 +331,14 @@ namespace Legion {
       MustEpochDependenceExchange& operator=(
           const MustEpochDependenceExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_MUST_EPOCH_DEPENDENCE_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     protected:
       std::map<DomainPoint, RtUserEvent>& mapped_events;
     };
@@ -359,13 +361,14 @@ namespace Legion {
       MustEpochCompletionExchange& operator=(
           const MustEpochCompletionExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_MUST_EPOCH_COMPLETION_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       RtEvent finish_exchange(ReplMustEpochOp* op);
     protected:
@@ -402,16 +405,16 @@ namespace Legion {
     public:
       ReplMustEpochOp& operator=(const ReplMustEpochOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
       virtual FutureMap create_future_map(
-          TaskContext* ctx, IndexSpace domain, IndexSpace shard_space);
+          TaskContext* ctx, IndexSpace domain, IndexSpace shard_space) override;
       virtual void instantiate_tasks(
-          InnerContext* ctx, const MustEpochLauncher& launcher);
-      virtual MapperManager* invoke_mapper(void);
-      virtual RtEvent map_and_distribute(void);
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
+          InnerContext* ctx, const MustEpochLauncher& launcher) override;
+      virtual MapperManager* invoke_mapper(void) override;
+      virtual RtEvent map_and_distribute(void) override;
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
       virtual void receive_resources(
           uint64_t return_index,
           std::map<LogicalRegion, unsigned>& created_regions,
@@ -425,12 +428,12 @@ namespace Legion {
           std::vector<DeletedIndexSpace>& deleted_index_spaces,
           std::map<IndexPartition, unsigned>& created_partitions,
           std::vector<DeletedPartition>& deleted_partitions,
-          std::set<RtEvent>& preconditions);
+          std::set<RtEvent>& preconditions) override;
     public:
       virtual uint64_t collective_lamport_allreduce(
-          uint64_t lamport_clock, bool need_result);
-      virtual void finalize_concurrent_mapped(void);
-      virtual void finish_concurrent_allreduce(void);
+          uint64_t lamport_clock, bool need_result) override;
+      virtual void finalize_concurrent_mapped(void) override;
+      virtual void finish_concurrent_allreduce(void) override;
     public:
       void initialize_replication(ReplicateContext* ctx);
       Domain get_shard_domain(void) const;
