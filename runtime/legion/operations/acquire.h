@@ -59,43 +59,45 @@ namespace Legion {
           InnerContext* ctx, const AcquireLauncher& launcher,
           Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual Mappable* get_mappable(void);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual Mappable* get_mappable(void) override;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_complete(ApEvent complete);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_complete(ApEvent complete) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     public:
-      virtual void predicate_false(void);
+      virtual void predicate_false(void) override;
     public:
-      virtual void trigger_commit(void);
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual void trigger_commit(void) override;
+      virtual unsigned find_parent_index(unsigned idx) override;
       virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
-          void);
+          void) override;
     public:
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
+          bool human = true) const override;
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
+      virtual void trigger_replay(void) override;
     public:
       // From Memoizable
-      virtual void complete_replay(ApEvent acquire_complete_event);
+      virtual void complete_replay(ApEvent acquire_complete_event) override;
       virtual const VersionInfo& get_version_info(unsigned idx) const;
-      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const;
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx = 0) const override;
     public:
       // These are helper methods for ReplAcquireOp
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
@@ -104,14 +106,14 @@ namespace Legion {
       void log_acquire_requirement(void);
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
-          bool fill, unsigned count = 1);
+          bool fill, unsigned count = 1) override;
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse& response, const void* orig,
-          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
-      virtual void handle_profiling_update(int count);
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc) override;
+      virtual void handle_profiling_update(int count) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
+          std::set<RtEvent>& applied) const override;
     protected:
       ApEvent acquire_restrictions(
           const RegionRequirement& req, const VersionInfo& version_info,

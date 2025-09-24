@@ -354,10 +354,16 @@ namespace Legion {
       {
         return shard_collective_last_radix;
       }
-      virtual ShardID get_shard_id(void) const { return owner_shard->shard_id; }
-      virtual DistributedID get_replication_id(void) const;
-      virtual size_t get_total_shards(void) const { return total_shards; }
-      virtual ContextID get_physical_tree_context(void) const;
+      virtual ShardID get_shard_id(void) const override
+      {
+        return owner_shard->shard_id;
+      }
+      virtual DistributedID get_replication_id(void) const override;
+      virtual size_t get_total_shards(void) const override
+      {
+        return total_shards;
+      }
+      virtual ContextID get_physical_tree_context(void) const override;
     public:  // Privilege tracker methods
       virtual void receive_resources(
           uint64_t return_index,
@@ -372,7 +378,7 @@ namespace Legion {
           std::vector<DeletedIndexSpace>& deleted_index_spaces,
           std::map<IndexPartition, unsigned>& created_partitions,
           std::vector<DeletedPartition>& deleted_partitions,
-          std::set<RtEvent>& preconditions);
+          std::set<RtEvent>& preconditions) override;
     public:  // HashVerifier method
       bool verify_hash(
           const uint64_t hash[2], const char* description,
@@ -437,63 +443,66 @@ namespace Legion {
           Realm::DSOReferenceImplementation* dso, const void* buffer,
           size_t buffer_size, bool withargs, size_t dedup_tag,
           RtEvent local_done, RtEvent global_done,
-          std::set<RtEvent>& preconditions);
+          std::set<RtEvent>& preconditions) override;
 #endif
-      virtual void print_once(FILE* f, const char* message) const;
-      virtual void log_once(Realm::LoggerMessage& message) const;
+      virtual void print_once(FILE* f, const char* message) const override;
+      virtual void log_once(Realm::LoggerMessage& message) const override;
       virtual Future from_value(
           const void* value, size_t value_size, bool owned,
-          Provenance* provenance, bool shard_local);
+          Provenance* provenance, bool shard_local) override;
       virtual Future from_value(
           const void* buffer, size_t size, bool owned,
           const Realm::ExternalInstanceResource& resource,
           void (*freefunc)(const Realm::ExternalInstanceResource&),
-          Provenance* provenance, bool shard_local);
+          Provenance* provenance, bool shard_local) override;
       virtual Future consensus_match(
           const void* input, void* output, size_t num_elements,
-          size_t element_size, Provenance* provenance);
+          size_t element_size, Provenance* provenance) override;
     public:
       virtual VariantID register_variant(
           const TaskVariantRegistrar& registrar, const void* user_data,
           size_t user_data_size, const CodeDescriptor& desc, size_t ret_size,
-          bool has_ret_size, VariantID vid, bool check_task_id);
+          bool has_ret_size, VariantID vid, bool check_task_id) override;
       virtual VariantImpl* select_inline_variant(
           TaskOp* child, const std::vector<PhysicalRegion>& parent_regions,
-          std::deque<InstanceSet>& physical_instances);
-      virtual TraceID generate_dynamic_trace_id(void);
-      virtual MapperID generate_dynamic_mapper_id(void);
-      virtual ProjectionID generate_dynamic_projection_id(void);
-      virtual ShardingID generate_dynamic_sharding_id(void);
-      virtual ConcurrentID generate_dynamic_concurrent_id(void);
-      virtual ExceptionHandlerID generate_dynamic_exception_handler_id(void);
-      virtual TaskID generate_dynamic_task_id(void);
-      virtual ReductionOpID generate_dynamic_reduction_id(void);
-      virtual CustomSerdezID generate_dynamic_serdez_id(void);
+          std::deque<InstanceSet>& physical_instances) override;
+      virtual TraceID generate_dynamic_trace_id(void) override;
+      virtual MapperID generate_dynamic_mapper_id(void) override;
+      virtual ProjectionID generate_dynamic_projection_id(void) override;
+      virtual ShardingID generate_dynamic_sharding_id(void) override;
+      virtual ConcurrentID generate_dynamic_concurrent_id(void) override;
+      virtual ExceptionHandlerID generate_dynamic_exception_handler_id(
+          void) override;
+      virtual TaskID generate_dynamic_task_id(void) override;
+      virtual ReductionOpID generate_dynamic_reduction_id(void) override;
+      virtual CustomSerdezID generate_dynamic_serdez_id(void) override;
       virtual bool perform_semantic_attach(
           const char* func, unsigned kind, const void* arg, size_t arglen,
           SemanticTag tag, const void* buffer, size_t size, bool is_mutable,
-          bool& global, const void* arg2 = nullptr, size_t arg2len = 0);
-      virtual void post_semantic_attach(void);
-      virtual void push_exception_handler(ExceptionHandlerID handler);
-      virtual Future pop_exception_handler(Provenance* provenance);
+          bool& global, const void* arg2 = nullptr,
+          size_t arg2len = 0) override;
+      virtual void post_semantic_attach(void) override;
+      virtual void push_exception_handler(ExceptionHandlerID handler) override;
+      virtual Future pop_exception_handler(Provenance* provenance) override;
     public:
       virtual EquivalenceSet* create_initial_equivalence_set(
-          unsigned idx1, const RegionRequirement& req);
+          unsigned idx1, const RegionRequirement& req) override;
       virtual void refine_equivalence_sets(
           unsigned req_index, IndexSpaceNode* node,
           const FieldMask& refinement_mask,
           std::vector<RtEvent>& applied_events, bool sharded = false,
-          bool first = true, const CollectiveMapping* mapping = nullptr);
+          bool first = true,
+          const CollectiveMapping* mapping = nullptr) override;
       virtual void find_trace_local_sets(
           unsigned req_index, const FieldMask& mask,
           std::map<EquivalenceSet*, unsigned>& current_sets,
           IndexSpaceNode* node = nullptr,
-          const CollectiveMapping* mapping = nullptr);
+          const CollectiveMapping* mapping = nullptr) override;
       virtual void receive_created_region_contexts(
           const std::vector<RegionNode*>& created_regions,
           const std::vector<EqKDTree*>& created_trees,
           std::set<RtEvent>& applied_events, const ShardMapping* mapping,
-          ShardID source_shard);
+          ShardID source_shard) override;
       bool compute_shard_to_shard_mapping(
           const ShardMapping& src_mapping,
           std::multimap<ShardID, ShardID>& src_to_dst_mapping) const;
@@ -503,301 +512,318 @@ namespace Legion {
       // Interface to operations performed by a context
       virtual IndexSpace create_index_space(
           const Domain& domain, bool take_ownership, TypeTag type_tag,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexSpace create_index_space(
-          const Future& future, TypeTag type_tag, Provenance* provenance);
+          const Future& future, TypeTag type_tag,
+          Provenance* provenance) override;
       virtual IndexSpace create_index_space(
-          const std::vector<DomainPoint>& points, Provenance* provenance);
+          const std::vector<DomainPoint>& points,
+          Provenance* provenance) override;
       virtual IndexSpace create_index_space(
-          const std::vector<Domain>& rects, Provenance* provenance);
+          const std::vector<Domain>& rects, Provenance* provenance) override;
       virtual IndexSpace create_unbound_index_space(
-          TypeTag type_tag, Provenance* provenance);
+          TypeTag type_tag, Provenance* provenance) override;
     protected:
       IndexSpace create_index_space_replicated(
           const Domain& bounds, TypeTag type_tag, Provenance* provenance,
           bool take_ownership);
     public:
       virtual IndexSpace union_index_spaces(
-          const std::vector<IndexSpace>& spaces, Provenance* provenance);
+          const std::vector<IndexSpace>& spaces,
+          Provenance* provenance) override;
       virtual IndexSpace intersect_index_spaces(
-          const std::vector<IndexSpace>& spaces, Provenance* provenance);
+          const std::vector<IndexSpace>& spaces,
+          Provenance* provenance) override;
       virtual IndexSpace subtract_index_spaces(
-          IndexSpace left, IndexSpace right, Provenance* provenance);
-      virtual void create_shared_ownership(IndexSpace handle);
+          IndexSpace left, IndexSpace right, Provenance* provenance) override;
+      virtual void create_shared_ownership(IndexSpace handle) override;
       virtual void destroy_index_space(
           IndexSpace handle, const bool unordered, const bool recurse,
-          Provenance* provenance);
-      virtual void create_shared_ownership(IndexPartition handle);
+          Provenance* provenance) override;
+      virtual void create_shared_ownership(IndexPartition handle) override;
       virtual void destroy_index_partition(
           IndexPartition handle, const bool unordered, const bool recurse,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexPartition create_equal_partition(
           IndexSpace parent, IndexSpace color_space, size_t granularity,
-          Color color, Provenance* provenance);
+          Color color, Provenance* provenance) override;
       virtual IndexPartition create_partition_by_weights(
           IndexSpace parent, const FutureMap& weights, IndexSpace color_space,
-          size_t granularity, Color color, Provenance* provenance);
+          size_t granularity, Color color, Provenance* provenance) override;
       virtual IndexPartition create_partition_by_union(
           IndexSpace parent, IndexPartition handle1, IndexPartition handle2,
           IndexSpace color_space, PartitionKind kind, Color color,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexPartition create_partition_by_intersection(
           IndexSpace parent, IndexPartition handle1, IndexPartition handle2,
           IndexSpace color_space, PartitionKind kind, Color color,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexPartition create_partition_by_intersection(
           IndexSpace parent, IndexPartition partition, PartitionKind kind,
-          Color color, bool dominates, Provenance* provenance);
+          Color color, bool dominates, Provenance* provenance) override;
       virtual IndexPartition create_partition_by_difference(
           IndexSpace parent, IndexPartition handle1, IndexPartition handle2,
           IndexSpace color_space, PartitionKind kind, Color color,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual Color create_cross_product_partitions(
           IndexPartition handle1, IndexPartition handle2,
           std::map<IndexSpace, IndexPartition>& handles, PartitionKind kind,
-          Color color, Provenance* provenance);
+          Color color, Provenance* provenance) override;
       virtual void create_association(
           LogicalRegion domain, LogicalRegion domain_parent, FieldID domain_fid,
           IndexSpace range, MapperID id, MappingTagID tag,
-          const UntypedBuffer& marg, Provenance* provenance);
+          const UntypedBuffer& marg, Provenance* provenance) override;
       virtual IndexPartition create_restricted_partition(
           IndexSpace parent, IndexSpace color_space, const void* transform,
           size_t transform_size, const void* extent, size_t extent_size,
-          PartitionKind part_kind, Color color, Provenance* provenance);
+          PartitionKind part_kind, Color color,
+          Provenance* provenance) override;
       virtual IndexPartition create_partition_by_domain(
           IndexSpace parent, const FutureMap& domains, IndexSpace color_space,
           bool perform_intersections, PartitionKind part_kind, Color color,
-          Provenance* provenance, bool skip_check = false);
+          Provenance* provenance, bool skip_check = false) override;
       virtual IndexPartition create_partition_by_field(
           LogicalRegion handle, LogicalRegion parent_priv, FieldID fid,
           IndexSpace color_space, Color color, MapperID id, MappingTagID tag,
           PartitionKind part_kind, const UntypedBuffer& marg,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexPartition create_partition_by_image(
           IndexSpace handle, LogicalPartition projection, LogicalRegion parent,
           FieldID fid, IndexSpace color_space, PartitionKind part_kind,
           Color color, MapperID id, MappingTagID tag, const UntypedBuffer& marg,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexPartition create_partition_by_image_range(
           IndexSpace handle, LogicalPartition projection, LogicalRegion parent,
           FieldID fid, IndexSpace color_space, PartitionKind part_kind,
           Color color, MapperID id, MappingTagID tag, const UntypedBuffer& marg,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexPartition create_partition_by_preimage(
           IndexPartition projection, LogicalRegion handle, LogicalRegion parent,
           FieldID fid, IndexSpace color_space, PartitionKind part_kind,
           Color color, MapperID id, MappingTagID tag, const UntypedBuffer& marg,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexPartition create_partition_by_preimage_range(
           IndexPartition projection, LogicalRegion handle, LogicalRegion parent,
           FieldID fid, IndexSpace color_space, PartitionKind part_kind,
           Color color, MapperID id, MappingTagID tag, const UntypedBuffer& marg,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexPartition create_pending_partition(
           IndexSpace parent, IndexSpace color_space, PartitionKind part_kind,
-          Color color, Provenance* provenance, bool trust = false);
+          Color color, Provenance* provenance, bool trust = false) override;
       virtual IndexSpace create_index_space_union(
           IndexPartition parent, const void* realm_color, size_t color_size,
           TypeTag type_tag, const std::vector<IndexSpace>& handles,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexSpace create_index_space_union(
           IndexPartition parent, const void* realm_color, size_t color_size,
-          TypeTag type_tag, IndexPartition handle, Provenance* provenance);
+          TypeTag type_tag, IndexPartition handle,
+          Provenance* provenance) override;
       virtual IndexSpace create_index_space_intersection(
           IndexPartition parent, const void* realm_color, size_t color_size,
           TypeTag type_tag, const std::vector<IndexSpace>& handles,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual IndexSpace create_index_space_intersection(
           IndexPartition parent, const void* realm_color, size_t color_size,
-          TypeTag type_tag, IndexPartition handle, Provenance* provenance);
+          TypeTag type_tag, IndexPartition handle,
+          Provenance* provenance) override;
       virtual IndexSpace create_index_space_difference(
           IndexPartition parent, const void* realm_color, size_t color_size,
           TypeTag type_tag, IndexSpace initial,
-          const std::vector<IndexSpace>& handles, Provenance* provenance);
+          const std::vector<IndexSpace>& handles,
+          Provenance* provenance) override;
       virtual void verify_partition(
-          IndexPartition pid, PartitionKind kind, const char* function_name);
-      virtual FieldSpace create_field_space(Provenance* provenance);
+          IndexPartition pid, PartitionKind kind,
+          const char* function_name) override;
+      virtual FieldSpace create_field_space(Provenance* provenance) override;
       virtual FieldSpace create_field_space(
           const std::vector<size_t>& sizes,
           std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual FieldSpace create_field_space(
           const std::vector<Future>& sizes,
           std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
-          Provenance* provenance);
+          Provenance* provenance) override;
       FieldSpace create_replicated_field_space(
           Provenance* provenance, ShardID* creator_shard = nullptr);
-      virtual void create_shared_ownership(FieldSpace handle);
+      virtual void create_shared_ownership(FieldSpace handle) override;
       virtual void destroy_field_space(
-          FieldSpace handle, const bool unordered, Provenance* provenance);
+          FieldSpace handle, const bool unordered,
+          Provenance* provenance) override;
       virtual FieldID allocate_field(
           FieldSpace space, size_t field_size, FieldID fid, bool local,
-          CustomSerdezID serdez_id, Provenance* provenance);
+          CustomSerdezID serdez_id, Provenance* provenance) override;
       virtual FieldID allocate_field(
           FieldSpace space, const Future& field_size, FieldID fid, bool local,
-          CustomSerdezID serdez_id, Provenance* provenance);
+          CustomSerdezID serdez_id, Provenance* provenance) override;
       virtual void free_field(
           FieldAllocatorImpl* allocator, FieldSpace space, FieldID fid,
-          const bool unordered, Provenance* provenance);
+          const bool unordered, Provenance* provenance) override;
       virtual void allocate_fields(
           FieldSpace space, const std::vector<size_t>& sizes,
           std::vector<FieldID>& resuling_fields, bool local,
-          CustomSerdezID serdez_id, Provenance* provenance);
+          CustomSerdezID serdez_id, Provenance* provenance) override;
       virtual void allocate_fields(
           FieldSpace space, const std::vector<Future>& sizes,
           std::vector<FieldID>& resuling_fields, bool local,
-          CustomSerdezID serdez_id, Provenance* provenance);
+          CustomSerdezID serdez_id, Provenance* provenance) override;
       virtual void free_fields(
           FieldAllocatorImpl* allocator, FieldSpace space,
           const std::set<FieldID>& to_free, const bool unordered,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual LogicalRegion create_logical_region(
           IndexSpace index_space, FieldSpace field_space, const bool task_local,
-          Provenance* provenance, const bool output_region = false);
-      virtual void create_shared_ownership(LogicalRegion handle);
+          Provenance* provenance, const bool output_region = false) override;
+      virtual void create_shared_ownership(LogicalRegion handle) override;
       virtual void destroy_logical_region(
-          LogicalRegion handle, const bool unordered, Provenance* provenance);
+          LogicalRegion handle, const bool unordered,
+          Provenance* provenance) override;
       virtual void reset_equivalence_sets(
           LogicalRegion parent, LogicalRegion region,
-          const std::set<FieldID>& fields);
+          const std::set<FieldID>& fields) override;
     public:
       virtual FieldAllocatorImpl* create_field_allocator(
-          FieldSpace handle, bool unordered);
-      virtual void destroy_field_allocator(FieldSpaceNode* node);
+          FieldSpace handle, bool unordered) override;
+      virtual void destroy_field_allocator(FieldSpaceNode* node) override;
     public:
       void initialize_unordered_collective(void);
       void finalize_unordered_collective(AutoLock& d_lock);
-      virtual void insert_unordered_ops(AutoLock& d_lock);
-      virtual void progress_unordered_operations(bool end_task = false);
+      virtual void insert_unordered_ops(AutoLock& d_lock) override;
+      virtual void progress_unordered_operations(
+          bool end_task = false) override;
       virtual unsigned minimize_repeat_results(
-          unsigned ready, bool& double_wait_interval);
+          unsigned ready, bool& double_wait_interval) override;
       virtual Future execute_task(
           const TaskLauncher& launcher, std::vector<OutputRequirement>* outputs,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual FutureMap execute_index_space(
           const IndexTaskLauncher& launcher,
-          std::vector<OutputRequirement>* outputs, Provenance* provenance);
+          std::vector<OutputRequirement>* outputs,
+          Provenance* provenance) override;
       virtual Future execute_index_space(
           const IndexTaskLauncher& launcher, ReductionOpID redop,
           bool deterministic, std::vector<OutputRequirement>* outputs,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual Future reduce_future_map(
           const FutureMap& future_map, ReductionOpID redop, bool deterministic,
           MapperID map_id, MappingTagID tag, Provenance* provenance,
-          Future initial_value);
+          Future initial_value) override;
       using InnerContext::construct_future_map;
       virtual FutureMap construct_future_map(
           IndexSpace space, const std::map<DomainPoint, UntypedBuffer>& data,
           Provenance* provenance, bool collective = false, ShardingID sid = 0,
-          bool implicit = false, bool check_space = true);
+          bool implicit = false, bool check_space = true) override;
       virtual FutureMap construct_future_map(
           IndexSpace space, const std::map<DomainPoint, Future>& futures,
           Provenance* provenance, bool collective = false, ShardingID sid = 0,
-          bool implicit = false, bool check_space = true);
+          bool implicit = false, bool check_space = true) override;
       virtual PhysicalRegion map_region(
-          const InlineLauncher& launcher, Provenance* provenance);
+          const InlineLauncher& launcher, Provenance* provenance) override;
       virtual ApEvent remap_region(
           const PhysicalRegion& region, Provenance* provenance,
-          bool internal = false);
+          bool internal = false) override;
       // Unmapping region is the same as for an inner context
       virtual void fill_fields(
-          const FillLauncher& launcher, Provenance* provenance);
+          const FillLauncher& launcher, Provenance* provenance) override;
       virtual void fill_fields(
-          const IndexFillLauncher& launcher, Provenance* provenance);
+          const IndexFillLauncher& launcher, Provenance* provenance) override;
       virtual void discard_fields(
-          const DiscardLauncher& launcher, Provenance* provenance);
+          const DiscardLauncher& launcher, Provenance* provenance) override;
       virtual void issue_copy(
-          const CopyLauncher& launcher, Provenance* provenance);
+          const CopyLauncher& launcher, Provenance* provenance) override;
       virtual void issue_copy(
-          const IndexCopyLauncher& launcher, Provenance* provenance);
+          const IndexCopyLauncher& launcher, Provenance* provenance) override;
       virtual void issue_acquire(
-          const AcquireLauncher& launcher, Provenance* provenance);
+          const AcquireLauncher& launcher, Provenance* provenance) override;
       virtual void issue_release(
-          const ReleaseLauncher& launcher, Provenance* provenance);
+          const ReleaseLauncher& launcher, Provenance* provenance) override;
       virtual PhysicalRegion attach_resource(
-          const AttachLauncher& launcher, Provenance* provenance);
+          const AttachLauncher& launcher, Provenance* provenance) override;
       virtual ExternalResources attach_resources(
-          const IndexAttachLauncher& launcher, Provenance* provenance);
+          const IndexAttachLauncher& launcher, Provenance* provenance) override;
       virtual RegionTreeNode* compute_index_attach_upper_bound(
           const IndexAttachLauncher& launcher,
-          const std::vector<unsigned>& indexes);
+          const std::vector<unsigned>& indexes) override;
       virtual Future detach_resource(
           PhysicalRegion region, const bool flush, const bool unordered,
-          Provenance* provenance = nullptr);
+          Provenance* provenance = nullptr) override;
       virtual Future detach_resources(
           ExternalResources resources, const bool flush, const bool unordered,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual FutureMap execute_must_epoch(
-          const MustEpochLauncher& launcher, Provenance* provenance);
+          const MustEpochLauncher& launcher, Provenance* provenance) override;
       virtual Future issue_timing_measurement(
-          const TimingLauncher& launcher, Provenance* provenance);
+          const TimingLauncher& launcher, Provenance* provenance) override;
       virtual Future select_tunable_value(
-          const TunableLauncher& launcher, Provenance* provenance);
-      virtual Future issue_mapping_fence(Provenance* provenance);
-      virtual Future issue_execution_fence(Provenance* provenance);
+          const TunableLauncher& launcher, Provenance* provenance) override;
+      virtual Future issue_mapping_fence(Provenance* provenance) override;
+      virtual Future issue_execution_fence(Provenance* provenance) override;
       virtual void begin_trace(
           TraceID tid, bool logical_only, bool static_trace,
           const std::set<RegionTreeID>* managed, bool dep,
-          Provenance* provenance);
+          Provenance* provenance) override;
       virtual void end_trace(
-          TraceID tid, bool deprecated, Provenance* provenance);
-      virtual void wait_on_future(FutureImpl* future, RtEvent ready);
-      virtual void wait_on_future_map(FutureMapImpl* map, RtEvent ready);
+          TraceID tid, bool deprecated, Provenance* provenance) override;
+      virtual void wait_on_future(FutureImpl* future, RtEvent ready) override;
+      virtual void wait_on_future_map(
+          FutureMapImpl* map, RtEvent ready) override;
       virtual void end_task(
           const void* res, size_t res_size, bool owned, PhysicalInstance inst,
           FutureFunctor* callback_future,
           const Realm::ExternalInstanceResource* resource,
           void (*freefunc)(const Realm::ExternalInstanceResource&),
-          const void* metadataptr, size_t metadatasize, ApEvent effects);
-      virtual void post_end_task(void);
+          const void* metadataptr, size_t metadatasize,
+          ApEvent effects) override;
+      virtual void post_end_task(void) override;
       virtual bool add_to_dependence_queue(
           Operation* op,
           const std::vector<StaticDependence>* dependences = nullptr,
-          bool unordered = false, bool outermost = true);
-      virtual FenceOp* initialize_trace_completion(Provenance* prov);
-      virtual PredicateImpl* create_predicate_impl(Operation* op);
+          bool unordered = false, bool outermost = true) override;
+      virtual FenceOp* initialize_trace_completion(Provenance* prov) override;
+      virtual PredicateImpl* create_predicate_impl(Operation* op) override;
       virtual CollectiveResult* find_or_create_collective_view(
           RegionTreeID tid, const std::vector<DistributedID>& instances,
-          RtEvent& ready);
+          RtEvent& ready) override;
     public:
       virtual ProjectionSummary* construct_projection_summary(
           Operation* op, unsigned index, const RegionRequirement& req,
-          LogicalState* owner, const ProjectionInfo& proj_info);
+          LogicalState* owner, const ProjectionInfo& proj_info) override;
       virtual bool has_interfering_shards(
-          ProjectionSummary* one, ProjectionSummary* two, bool& dominates);
+          ProjectionSummary* one, ProjectionSummary* two,
+          bool& dominates) override;
       virtual bool match_timeouts(
           std::vector<LogicalUser*>& timeouts,
           std::vector<LogicalUser*>& to_delete,
-          TimeoutMatchExchange*& exchange);
+          TimeoutMatchExchange*& exchange) override;
     public:
       virtual std::pair<bool, bool> has_pointwise_dominance(
-          ProjectionSummary* one, ProjectionSummary* two);
+          ProjectionSummary* one, ProjectionSummary* two) override;
       virtual RtEvent find_pointwise_dependence(
           uint64_t context_index, const DomainPoint& point, ShardID shard,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
-      virtual Lock create_lock(void);
-      virtual void destroy_lock(Lock l);
-      virtual Grant acquire_grant(const std::vector<LockRequest>& requests);
-      virtual void release_grant(Grant grant);
+      virtual Lock create_lock(void) override;
+      virtual void destroy_lock(Lock l) override;
+      virtual Grant acquire_grant(
+          const std::vector<LockRequest>& requests) override;
+      virtual void release_grant(Grant grant) override;
     public:
-      virtual PhaseBarrier create_phase_barrier(unsigned arrivals);
-      virtual void destroy_phase_barrier(PhaseBarrier pb);
-      virtual PhaseBarrier advance_phase_barrier(PhaseBarrier pb);
+      virtual PhaseBarrier create_phase_barrier(unsigned arrivals) override;
+      virtual void destroy_phase_barrier(PhaseBarrier pb) override;
+      virtual PhaseBarrier advance_phase_barrier(PhaseBarrier pb) override;
     public:
       virtual DynamicCollective create_dynamic_collective(
           unsigned arrivals, ReductionOpID redop, const void* init_value,
-          size_t init_size);
-      virtual void destroy_dynamic_collective(DynamicCollective dc);
+          size_t init_size) override;
+      virtual void destroy_dynamic_collective(DynamicCollective dc) override;
       virtual void arrive_dynamic_collective(
           DynamicCollective dc, const void* buffer, size_t size,
-          unsigned count);
+          unsigned count) override;
       virtual void defer_dynamic_collective_arrival(
-          DynamicCollective dc, const Future& future, unsigned count);
+          DynamicCollective dc, const Future& future, unsigned count) override;
       virtual Future get_dynamic_collective_result(
-          DynamicCollective dc, Provenance* provenance);
+          DynamicCollective dc, Provenance* provenance) override;
       virtual DynamicCollective advance_dynamic_collective(
-          DynamicCollective dc);
+          DynamicCollective dc) override;
     public:
 #ifdef LEGION_DEBUG_COLLECTIVES
       virtual MergeCloseOp* get_merge_close_op(
@@ -805,14 +831,15 @@ namespace Legion {
       virtual RefinementOp* get_refinement_op(
           Operation* op, RegionTreeNode* node);
 #else
-      virtual MergeCloseOp* get_merge_close_op(void);
-      virtual RefinementOp* get_refinement_op(void);
+      virtual MergeCloseOp* get_merge_close_op(void) override;
+      virtual RefinementOp* get_refinement_op(void) override;
 #endif
     public:
       virtual void pack_task_context(Serializer& rez) const;
     public:
       virtual void pack_remote_context(
-          Serializer& rez, AddressSpaceID target, bool replicate = false);
+          Serializer& rez, AddressSpaceID target,
+          bool replicate = false) override;
     public:
       void handle_collective_message(Deserializer& derez);
       void register_rendezvous(ShardRendezvous* rendezvous);
@@ -864,11 +891,12 @@ namespace Legion {
           unsigned req_index, const std::vector<EqSetTracker*>& targets,
           const std::vector<AddressSpaceID>& target_spaces,
           AddressSpaceID creation_target_space, IndexSpaceExpression* expr,
-          const FieldMask& mask);
+          const FieldMask& mask) override;
       virtual RtEvent record_output_equivalence_set(
           EqSetTracker* source, AddressSpaceID source_space, unsigned req_index,
-          EquivalenceSet* set, const FieldMask& mask);
-      virtual EqKDTree* create_equivalence_set_kd_tree(IndexSpaceNode* node);
+          EquivalenceSet* set, const FieldMask& mask) override;
+      virtual EqKDTree* create_equivalence_set_kd_tree(
+          IndexSpaceNode* node) override;
       void handle_compute_equivalence_sets(Deserializer& derez);
       void handle_output_equivalence_set(Deserializer& derez);
       void handle_refine_equivalence_sets(Deserializer& derez);
@@ -1292,16 +1320,17 @@ namespace Legion {
       ConsensusMatchExchange& operator=(const ConsensusMatchExchange& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_CONSENSUS_MATCH;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       bool match_elements_async(const void* input, size_t num_elements);
-      virtual void complete_exchange(void);
+      virtual void complete_exchange(void) override;
     protected:
       Future to_complete;
       T* const output;
@@ -1325,13 +1354,14 @@ namespace Legion {
       VerifyReplicableExchange& operator=(const VerifyReplicableExchange& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_VERIFY_CONTROL_REPLICATION_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       typedef std::map<std::pair<uint64_t, uint64_t>, ShardID> ShardHashes;
       const ShardHashes& exchange(const uint64_t hash[2]);
@@ -1356,13 +1386,14 @@ namespace Legion {
     public:
       void exchange_partitions(std::map<IndexSpace, IndexPartition>& handles);
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_CROSS_PRODUCT_PARTITION;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     protected:
       std::map<IndexSpace, IndexPartition> non_empty_handles;
     };
@@ -1381,13 +1412,14 @@ namespace Legion {
     public:
       UnorderedExchange& operator=(const UnorderedExchange& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_UNORDERED_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void start_unordered_exchange(const std::vector<Operation*>& operations);
       void find_ready_operations(std::vector<Operation*>& ready_operations);
@@ -1460,19 +1492,20 @@ namespace Legion {
       ImplicitShardingFunctor& operator=(const ImplicitShardingFunctor& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_IMPLICIT_SHARDING_FUNCTOR;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       virtual ShardID shard(
           const DomainPoint& point, const Domain& full_space,
-          const size_t total_shards);
+          const size_t total_shards) override;
     protected:
-      virtual RtEvent post_complete_exchange(void);
+      virtual RtEvent post_complete_exchange(void) override;
     public:
       template<typename T>
       void compute_sharding(const std::map<DomainPoint, T>& points)
@@ -1503,13 +1536,14 @@ namespace Legion {
     public:
       PointwiseAllreduce& operator=(const PointwiseAllreduce& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_POINTWISE_ALLREDUCE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     private:
       std::pair<bool, bool>& local;
     };
@@ -1529,13 +1563,13 @@ namespace Legion {
     public:
       ShardSyncTree& operator=(const ShardSyncTree& rhs) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_SHARD_SYNC_TREE;
       }
-      virtual void pack_collective(Serializer& rez) const;
-      virtual void unpack_collective(Deserializer& derez);
-      virtual RtEvent post_gather(void);
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
+      virtual RtEvent post_gather(void) override;
     protected:
       std::vector<RtEvent> postconditions;
       const RtEvent done;

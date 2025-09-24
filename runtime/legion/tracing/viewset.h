@@ -46,7 +46,7 @@ namespace Legion {
       TraceViewSet(
           InnerContext* context, DistributedID owner_did,
           IndexSpaceExpression* expr, RegionTreeID tree_id);
-      virtual ~TraceViewSet(void);
+      ~TraceViewSet(void);
     public:
       void insert(
           LogicalView* view, IndexSpaceExpression* expr, const FieldMask& mask,

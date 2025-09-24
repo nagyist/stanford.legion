@@ -42,68 +42,70 @@ namespace Legion {
     public:
       ShardTask& operator=(const ShardTask& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual Domain get_slice_domain(void) const;
-      virtual ShardID get_shard_id(void) const { return shard_id; }
-      virtual size_t get_total_shards(void) const;
-      virtual DomainPoint get_shard_point(void) const;
-      virtual Domain get_shard_domain(void) const;
-      virtual SingleTask* get_origin_task(void) const { std::abort(); }
-      virtual bool is_shard_task(void) const { return true; }
-      virtual bool is_top_level_task(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual Domain get_slice_domain(void) const override;
+      virtual ShardID get_shard_id(void) const override { return shard_id; }
+      virtual size_t get_total_shards(void) const override;
+      virtual DomainPoint get_shard_point(void) const override;
+      virtual Domain get_shard_domain(void) const override;
+      virtual SingleTask* get_origin_task(void) const override { std::abort(); }
+      virtual bool is_shard_task(void) const override { return true; }
+      virtual bool is_top_level_task(void) const override;
       // Set this to true so we always eagerly evaluate future functors
       // at the end of a task to get an actual future instance to pass back
-      virtual bool is_reducing_future(void) const { return true; }
+      virtual bool is_reducing_future(void) const override { return true; }
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
+      virtual void trigger_replay(void) override;
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void predicate_false(void);
-      virtual bool distribute_task(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void predicate_false(void) override;
+      virtual bool distribute_task(void) override;
       virtual RtEvent perform_must_epoch_version_analysis(MustEpochOp* own);
       virtual bool perform_mapping(
-          MustEpochOp* owner = nullptr, const DeferMappingArgs* args = nullptr);
+          MustEpochOp* owner = nullptr,
+          const DeferMappingArgs* args = nullptr) override;
       virtual void handle_future_size(
-          size_t return_type_size, std::set<RtEvent>& applied_events);
-      virtual bool is_stealable(void) const;
+          size_t return_type_size, std::set<RtEvent>& applied_events) override;
+      virtual bool is_stealable(void) const override;
       virtual void initialize_map_task_input(
           Mapper::MapTaskInput& input, Mapper::MapTaskOutput& output,
-          MustEpochOp* must_epoch_owner);
+          MustEpochOp* must_epoch_owner) override;
       virtual bool finalize_map_task_output(
           Mapper::MapTaskInput& input, Mapper::MapTaskOutput& output,
-          MustEpochOp* must_epoch_owner);
+          MustEpochOp* must_epoch_owner) override;
     public:
-      virtual TaskKind get_task_kind(void) const;
+      virtual TaskKind get_task_kind(void) const override;
     public:
       // Override these methods from operation class
-      virtual void trigger_mapping(void);
-      virtual void trigger_complete(ApEvent effects);
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_complete(ApEvent effects) override;
     protected:
-      virtual void trigger_task_commit(void);
+      virtual void trigger_task_commit(void) override;
     public:
       virtual bool send_task(
-          Processor target, std::vector<SingleTask*>& others);
-      virtual bool pack_task(Serializer& rez, AddressSpaceID target);
+          Processor target, std::vector<SingleTask*>& others) override;
+      virtual bool pack_task(Serializer& rez, AddressSpaceID target) override;
       virtual bool unpack_task(
           Deserializer& derez, Processor current,
-          std::set<RtEvent>& ready_events);
+          std::set<RtEvent>& ready_events) override;
       virtual void perform_inlining(
-          VariantImpl* variant, const std::deque<InstanceSet>& parent_regions);
+          VariantImpl* variant,
+          const std::deque<InstanceSet>& parent_regions) override;
     public:
       virtual void handle_future(
           ApEvent effects, FutureInstance* instance, const void* metadata,
           size_t metasize, FutureFunctor* functor, Processor future_proc,
-          bool own_functor);
-      virtual void handle_mispredication(void);
+          bool own_functor) override;
+      virtual void handle_mispredication(void) override;
     public:
       virtual uint64_t order_collectively_mapped_unbounded_pools(
-          uint64_t lamport_clock, bool need_result);
+          uint64_t lamport_clock, bool need_result) override;
       virtual void concurrent_allreduce(
           ProcessorManager* manager, uint64_t lamport_clock, VariantID vid,
-          bool poisoned);
-      virtual void perform_concurrent_task_barrier(void);
+          bool poisoned) override;
+      virtual void perform_concurrent_task_barrier(void) override;
     public:
       virtual RtEvent convert_collective_views(
           unsigned requirement_index, unsigned analysis_index,
@@ -111,16 +113,16 @@ namespace Legion {
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
           op::vector<op::FieldMaskMap<InstanceView> >& target_views,
-          std::map<InstanceView*, size_t>& collective_arrivals);
+          std::map<InstanceView*, size_t>& collective_arrivals) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
+          const FieldMask& mask, unsigned parent_req_index) override;
     protected:
       virtual TaskContext* create_execution_context(
           VariantImpl* v, std::set<ApEvent>& launch_events, bool inline_task,
-          bool leaf_task);
+          bool leaf_task) override;
     public:
-      virtual InnerContext* create_implicit_context(void);
+      virtual InnerContext* create_implicit_context(void) override;
     public:
       void dispatch(void);
       void return_resources(

@@ -61,8 +61,8 @@ namespace Legion {
           RtEvent precondition, const RegionUsage& usage,
           std::set<RtEvent>& applied_events, ApEvent init_precondition,
           ApEvent termination_event, ApEvent& instances_ready,
-          bool symbolic = false);
-      virtual IndexSpaceID get_collective_match_space(void) const;
+          bool symbolic = false) override;
+      virtual IndexSpaceID get_collective_match_space(void) const override;
     public:
       RegionNode* const region;
       const size_t context_index;

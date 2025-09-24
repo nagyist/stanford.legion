@@ -364,46 +364,52 @@ namespace Legion {
           IndexSpaceOperation* origin);
       virtual ~IndexSpaceOperation(void);
     public:
-      virtual void notify_local(void);
+      virtual void notify_local(void) override;
     public:
-      virtual Domain get_tight_domain(void) = 0;
+      virtual Domain get_tight_domain(void) override = 0;
       [[nodiscard]] virtual ApEvent get_loose_domain(
-          Domain& domain, ApUserEvent& done_event) = 0;
-      virtual void record_index_space_user(ApEvent user) = 0;
-      virtual void tighten_index_space(void) = 0;
-      virtual bool check_empty(void) = 0;
-      virtual size_t get_volume(void) = 0;
-      virtual void pack_expression(Serializer& rez, AddressSpaceID target) = 0;
-      virtual void skip_unpack_expression(Deserializer& derez) const = 0;
+          Domain& domain, ApUserEvent& done_event) override = 0;
+      virtual void record_index_space_user(ApEvent user) override = 0;
+      virtual void tighten_index_space(void) override = 0;
+      virtual bool check_empty(void) override = 0;
+      virtual size_t get_volume(void) override = 0;
+      virtual void pack_expression(
+          Serializer& rez, AddressSpaceID target) override = 0;
+      virtual void skip_unpack_expression(
+          Deserializer& derez) const override = 0;
     public:
 #ifdef LEGION_DEBUG
-      virtual bool is_valid(void)
+      virtual bool is_valid(void) override
       {
         return DistributedCollectable::is_global();
       }
 #endif
-      virtual DistributedID get_distributed_id(void) const { return did; }
-      virtual void add_canonical_reference(DistributedID source);
-      virtual bool remove_canonical_reference(DistributedID source);
-      virtual bool try_add_live_reference(void);
+      virtual DistributedID get_distributed_id(void) const override
+      {
+        return did;
+      }
+      virtual void add_canonical_reference(DistributedID source) override;
+      virtual bool remove_canonical_reference(DistributedID source) override;
+      virtual bool try_add_live_reference(void) override;
       virtual void add_base_expression_reference(
-          ReferenceSource source, unsigned count = 1);
+          ReferenceSource source, unsigned count = 1) override;
       virtual void add_nested_expression_reference(
-          DistributedID source, unsigned count = 1);
+          DistributedID source, unsigned count = 1) override;
       virtual bool remove_base_expression_reference(
-          ReferenceSource source, unsigned count = 1);
+          ReferenceSource source, unsigned count = 1) override;
       virtual bool remove_nested_expression_reference(
-          DistributedID source, unsigned count = 1);
+          DistributedID source, unsigned count = 1) override;
       virtual void add_tree_expression_reference(
-          DistributedID source, unsigned count = 1);
+          DistributedID source, unsigned count = 1) override;
       virtual bool remove_tree_expression_reference(
-          DistributedID source, unsigned count = 1);
+          DistributedID source, unsigned count = 1) override;
     public:
       virtual bool invalidate_operation(void) = 0;
       virtual void remove_operation(void) = 0;
       virtual IndexSpaceNode* create_node(
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
-          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0) = 0;
+          CollectiveMapping* mapping,
+          IndexSpaceExprID expr_id = 0) override = 0;
     public:
       IndexSpaceOperation* const origin_expr;
       const OperationKind op_kind;
@@ -422,37 +428,39 @@ namespace Legion {
           TypeTag tag, Deserializer& derez);
       virtual ~IndexSpaceOperationT(void);
     public:
-      virtual bool is_sparse(void);
-      virtual Domain get_tight_domain(void);
+      virtual bool is_sparse(void) override;
+      virtual Domain get_tight_domain(void) override;
       [[nodiscard]] virtual ApEvent get_loose_domain(
-          Domain& domain, ApUserEvent& done_event);
-      virtual void record_index_space_user(ApEvent user);
-      virtual void tighten_index_space(void);
-      virtual bool check_empty(void);
-      virtual size_t get_volume(void);
-      virtual void pack_expression(Serializer& rez, AddressSpaceID target);
-      virtual void skip_unpack_expression(Deserializer& derez) const;
-      virtual bool invalidate_operation(void) = 0;
-      virtual void remove_operation(void) = 0;
+          Domain& domain, ApUserEvent& done_event) override;
+      virtual void record_index_space_user(ApEvent user) override;
+      virtual void tighten_index_space(void) override;
+      virtual bool check_empty(void) override;
+      virtual size_t get_volume(void) override;
+      virtual void pack_expression(
+          Serializer& rez, AddressSpaceID target) override;
+      virtual void skip_unpack_expression(Deserializer& derez) const override;
+      virtual bool invalidate_operation(void) override = 0;
+      virtual void remove_operation(void) override = 0;
       virtual IndexSpaceNode* create_node(
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
-          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0);
+          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0) override;
       virtual IndexSpaceExpression* create_from_rectangles(
-          const local::set<Domain>& rectangles);
+          const local::set<Domain>& rectangles) override;
       virtual PieceIteratorImpl* create_piece_iterator(
           const void* piece_list, size_t piece_list_size,
-          IndexSpaceNode* privilege_node);
+          IndexSpaceNode* privilege_node) override;
     public:
-      virtual IndexSpaceExpression* inline_union(IndexSpaceExpression* rhs);
       virtual IndexSpaceExpression* inline_union(
-          const SetView<IndexSpaceExpression*>& exprs);
+          IndexSpaceExpression* rhs) override;
+      virtual IndexSpaceExpression* inline_union(
+          const SetView<IndexSpaceExpression*>& exprs) override;
       virtual IndexSpaceExpression* inline_intersection(
-          IndexSpaceExpression* rhs);
+          IndexSpaceExpression* rhs) override;
       virtual IndexSpaceExpression* inline_intersection(
-          const SetView<IndexSpaceExpression*>& exprs);
+          const SetView<IndexSpaceExpression*>& exprs) override;
       virtual IndexSpaceExpression* inline_subtraction(
-          IndexSpaceExpression* rhs);
-      virtual uint64_t get_canonical_hash(void);
+          IndexSpaceExpression* rhs) override;
+      virtual uint64_t get_canonical_hash(void) override;
     public:
       virtual ApEvent issue_fill(
           Operation* op, const PhysicalTraceInfo& trace_info,
@@ -460,7 +468,7 @@ namespace Legion {
           const void* fill_value, size_t fill_size, UniqueID fill_uid,
           FieldSpace handle, RegionTreeID tree_id, ApEvent precondition,
           PredEvent pred_guard, LgEvent unique_event, CollectiveKind collective,
-          bool record_effect, int priority = 0, bool replay = false);
+          bool record_effect, int priority = 0, bool replay = false) override;
       virtual ApEvent issue_copy(
           Operation* op, const PhysicalTraceInfo& trace_info,
           const std::vector<CopySrcDstField>& dst_fields,
@@ -469,29 +477,30 @@ namespace Legion {
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, CollectiveKind collective, bool record_effect,
-          int priority = 0, bool replay = false);
+          int priority = 0, bool replay = false) override;
       virtual CopyAcrossUnstructured* create_across_unstructured(
           const std::map<Reservation, bool>& reservations,
-          const bool compute_preimages, const bool shadow_indirections);
+          const bool compute_preimages,
+          const bool shadow_indirections) override;
       virtual Realm::InstanceLayoutGeneric* create_layout(
           const LayoutConstraintSet& constraints,
           const std::vector<FieldID>& field_ids,
           const std::vector<size_t>& field_sizes, bool compact,
           void** piece_list = nullptr, size_t* piece_list_size = nullptr,
-          size_t* num_pieces = nullptr, size_t base_alignment = 32);
+          size_t* num_pieces = nullptr, size_t base_alignment = 32) override;
       virtual IndexSpaceExpression* create_layout_expression(
-          const void* piece_list, size_t piece_list_size);
+          const void* piece_list, size_t piece_list_size) override;
       virtual bool meets_layout_expression(
           IndexSpaceExpression* expr, bool tight_bounds, const void* piece_list,
-          size_t piece_list_size, const Domain* padding_delta);
+          size_t piece_list_size, const Domain* padding_delta) override;
     public:
       virtual IndexSpaceExpression* find_congruent_expression(
-          SmallPointerVector<IndexSpaceExpression, true>& expressions);
-      virtual KDTree* get_sparsity_map_kd_tree(void);
+          SmallPointerVector<IndexSpaceExpression, true>& expressions) override;
+      virtual KDTree* get_sparsity_map_kd_tree(void) override;
     public:
       virtual void initialize_equivalence_set_kd_tree(
           EqKDTree* tree, EquivalenceSet* set, const FieldMask& mask,
-          ShardID local_shard, bool current);
+          ShardID local_shard, bool current) override;
       virtual void compute_equivalence_sets(
           EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
           const std::vector<EqSetTracker*>& trackers,
@@ -504,14 +513,14 @@ namespace Legion {
           op::map<EqKDTree*, Domain>& creation_rects,
           op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
           op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
-          ShardID local_shard = 0);
+          ShardID local_shard = 0) override;
       virtual unsigned record_output_equivalence_set(
           EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
           const FieldMask& mask, EqSetTracker* tracker,
           AddressSpaceID tracker_space,
           local::FieldMaskMap<EqKDTree>& subscriptions,
           op::map<ShardID, op::map<Domain, FieldMask> >& remote_shard_rects,
-          ShardID local_shard = 0);
+          ShardID local_shard = 0) override;
     public:
       DomainT<DIM, T> get_tight_index_space(void);
       // Return event is when the result index space is safe to use
@@ -538,8 +547,8 @@ namespace Legion {
     public:
       IndexSpaceUnion& operator=(const IndexSpaceUnion& rhs) = delete;
     public:
-      virtual bool invalidate_operation(void);
-      virtual void remove_operation(void);
+      virtual bool invalidate_operation(void) override;
+      virtual void remove_operation(void) override;
     protected:
       const std::vector<IndexSpaceExpression*> sub_expressions;
     };
@@ -556,7 +565,7 @@ namespace Legion {
         creator->produce(new IndexSpaceUnion<N::N, T>(creator->exprs));
       }
     public:
-      virtual void create_operation(void)
+      virtual void create_operation(void) override
       {
         NT_TemplateHelper::demux<UnionOpCreator>(type_tag, this);
       }
@@ -579,8 +588,8 @@ namespace Legion {
       IndexSpaceIntersection& operator=(const IndexSpaceIntersection& rhs) =
           delete;
     public:
-      virtual bool invalidate_operation(void);
-      virtual void remove_operation(void);
+      virtual bool invalidate_operation(void) override;
+      virtual void remove_operation(void) override;
     protected:
       const std::vector<IndexSpaceExpression*> sub_expressions;
     };
@@ -598,7 +607,7 @@ namespace Legion {
         creator->produce(new IndexSpaceIntersection<N::N, T>(creator->exprs));
       }
     public:
-      virtual void create_operation(void)
+      virtual void create_operation(void) override
       {
         NT_TemplateHelper::demux<IntersectionOpCreator>(type_tag, this);
       }
@@ -620,8 +629,8 @@ namespace Legion {
     public:
       IndexSpaceDifference& operator=(const IndexSpaceDifference& rhs) = delete;
     public:
-      virtual bool invalidate_operation(void);
-      virtual void remove_operation(void);
+      virtual bool invalidate_operation(void) override;
+      virtual void remove_operation(void) override;
     protected:
       IndexSpaceExpression* const lhs;
       IndexSpaceExpression* const rhs;
@@ -641,7 +650,7 @@ namespace Legion {
             new IndexSpaceDifference<N::N, T>(creator->lhs, creator->rhs));
       }
     public:
-      virtual void create_operation(void)
+      virtual void create_operation(void) override
       {
         NT_TemplateHelper::demux<DifferenceOpCreator>(type_tag, this);
       }
@@ -670,8 +679,8 @@ namespace Legion {
     public:
       InternalExpression& operator=(const InternalExpression& rhs) = delete;
     public:
-      virtual bool invalidate_operation(void);
-      virtual void remove_operation(void);
+      virtual bool invalidate_operation(void) override;
+      virtual void remove_operation(void) override;
     };
 
     class InternalExpressionCreator {
@@ -717,8 +726,8 @@ namespace Legion {
     public:
       RemoteExpression& operator=(const RemoteExpression& op) = delete;
     public:
-      virtual bool invalidate_operation(void);
-      virtual void remove_operation(void);
+      virtual bool invalidate_operation(void) override;
+      virtual void remove_operation(void) override;
     };
 
     class RemoteExpressionCreator {

@@ -35,31 +35,31 @@ namespace Legion {
       using ProjectionFunctor::project;
       virtual LogicalRegion project(
           const Mappable* mappable, unsigned index, LogicalRegion upper_bound,
-          const DomainPoint& point);
+          const DomainPoint& point) override;
       virtual LogicalRegion project(
           const Mappable* mappable, unsigned index,
-          LogicalPartition upper_bound, const DomainPoint& point);
+          LogicalPartition upper_bound, const DomainPoint& point) override;
       virtual LogicalRegion project(
           LogicalRegion upper_bound, const DomainPoint& point,
-          const Domain& launch_domain);
+          const Domain& launch_domain) override;
       virtual LogicalRegion project(
           LogicalPartition upper_bound, const DomainPoint& point,
-          const Domain& launch_domain);
+          const Domain& launch_domain) override;
       virtual void invert(
           LogicalRegion region, LogicalRegion upper_bound,
           const Domain& launch_domain,
-          std::vector<DomainPoint>& ordered_points);
+          std::vector<DomainPoint>& ordered_points) override;
       virtual void invert(
           LogicalRegion region, LogicalPartition upper_bound,
           const Domain& launch_domain,
-          std::vector<DomainPoint>& ordered_points);
+          std::vector<DomainPoint>& ordered_points) override;
       virtual bool is_complete(
-          LogicalRegion upper_bound, const Domain& launch_domain);
+          LogicalRegion upper_bound, const Domain& launch_domain) override;
       virtual bool is_complete(
-          LogicalPartition upper_bound, const Domain& launch_domain);
-      virtual bool is_functional(void) const;
-      virtual bool is_exclusive(void) const;
-      virtual unsigned get_depth(void) const;
+          LogicalPartition upper_bound, const Domain& launch_domain) override;
+      virtual bool is_functional(void) const override;
+      virtual bool is_exclusive(void) const override;
+      virtual unsigned get_depth(void) const override;
     };
 
     /**
@@ -191,7 +191,7 @@ namespace Legion {
     public:
       virtual ShardID shard(
           const DomainPoint& point, const Domain& full_space,
-          const size_t total_shards);
+          const size_t total_shards) override;
     };
 
     /**

@@ -145,7 +145,7 @@ namespace Legion {
       AddressSpaceID get_owner_space(void) const;
       static AddressSpaceID get_owner_space(FieldSpace handle);
     public:
-      virtual void notify_local(void) { }
+      virtual void notify_local(void) override { }
     public:
       void attach_semantic_information(
           SemanticTag tag, AddressSpaceID source, const void* buffer,

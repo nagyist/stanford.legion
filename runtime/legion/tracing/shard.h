@@ -80,34 +80,36 @@ namespace Legion {
         return continuation_pre;
       }
     public:
-      virtual void pack_recorder(Serializer& rez);
-      virtual size_t get_sharded_template_index(void) const
+      virtual void pack_recorder(Serializer& rez) override;
+      virtual size_t get_sharded_template_index(void) const override
       {
         return template_index;
       }
-      virtual void initialize_replay(ApEvent fence_completion, bool recurrent);
-      virtual void start_replay(void);
-      virtual RtEvent refresh_managed_barriers(void);
+      virtual void initialize_replay(
+          ApEvent fence_completion, bool recurrent) override;
+      virtual void start_replay(void) override;
+      virtual RtEvent refresh_managed_barriers(void) override;
       virtual void finish_replay(
-          FenceOp* op, std::set<ApEvent>& postconditions);
-      virtual ApEvent get_completion_for_deletion(void) const;
+          FenceOp* op, std::set<ApEvent>& postconditions) override;
+      virtual ApEvent get_completion_for_deletion(void) const override;
       virtual void record_trigger_event(
           ApUserEvent lhs, ApEvent rhs, const TraceLocalID& tlid,
-          std::set<RtEvent>& applied);
+          std::set<RtEvent>& applied) override;
       using PhysicalTemplate::record_merge_events;
       virtual void record_merge_events(
-          ApEvent& lhs, const std::set<ApEvent>& rhs, const TraceLocalID& tlid);
+          ApEvent& lhs, const std::set<ApEvent>& rhs,
+          const TraceLocalID& tlid) override;
       virtual void record_merge_events(
           ApEvent& lhs, const std::vector<ApEvent>& rhs,
-          const TraceLocalID& tlid);
+          const TraceLocalID& tlid) override;
       virtual void record_collective_barrier(
           ApBarrier bar, ApEvent pre, const std::pair<size_t, size_t>& key,
-          size_t arrival_count);
+          size_t arrival_count) override;
       virtual ShardID record_barrier_creation(
-          ApBarrier& bar, size_t total_arrivals);
+          ApBarrier& bar, size_t total_arrivals) override;
       virtual void record_barrier_arrival(
           ApBarrier bar, ApEvent pre, size_t arrival_count,
-          std::set<RtEvent>& applied, ShardID owner_shard);
+          std::set<RtEvent>& applied, ShardID owner_shard) override;
       virtual void record_issue_copy(
           const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
           const std::vector<CopySrcDstField>& src_fields,
@@ -116,29 +118,32 @@ namespace Legion {
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
           ApEvent precondition, PredEvent guard_event, LgEvent src_unique,
           LgEvent dst_unique, int priority, CollectiveKind collective,
-          bool record_effect);
+          bool record_effect) override;
       virtual void record_issue_fill(
           const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
           const std::vector<CopySrcDstField>& fields, const void* fill_value,
           size_t fill_size, UniqueID fill_uid, FieldSpace handle,
           RegionTreeID tree_id, ApEvent precondition, PredEvent guard_event,
           LgEvent unique_event, int priority, CollectiveKind collective,
-          bool record_effect);
+          bool record_effect) override;
       virtual void record_issue_across(
           const TraceLocalID& tlid, ApEvent& lhs,
           ApEvent collective_precondition, ApEvent copy_precondition,
           ApEvent src_indirect_precondition, ApEvent dst_indirect_precondition,
-          CopyAcrossExecutor* executor);
+          CopyAcrossExecutor* executor) override;
     public:
-      virtual void record_owner_shard(unsigned trace_local_id, ShardID owner);
-      virtual void record_local_space(unsigned trace_local_id, IndexSpace sp);
+      virtual void record_owner_shard(
+          unsigned trace_local_id, ShardID owner) override;
+      virtual void record_local_space(
+          unsigned trace_local_id, IndexSpace sp) override;
       virtual void record_sharding_function(
-          unsigned trace_local_id, ShardingFunction* function);
-      virtual void dump_sharded_template(void) const;
+          unsigned trace_local_id, ShardingFunction* function) override;
+      virtual void dump_sharded_template(void) const override;
     public:
-      virtual ShardID find_owner_shard(unsigned trace_local_id);
-      virtual IndexSpace find_local_space(unsigned trace_local_id);
-      virtual ShardingFunction* find_sharding_function(unsigned trace_local_id);
+      virtual ShardID find_owner_shard(unsigned trace_local_id) override;
+      virtual IndexSpace find_local_space(unsigned trace_local_id) override;
+      virtual ShardingFunction* find_sharding_function(
+          unsigned trace_local_id) override;
     public:
       void prepare_collective_barrier_replay(
           const std::pair<size_t, size_t>& key, ApBarrier bar);
@@ -157,9 +162,11 @@ namespace Legion {
           const DeferTraceUpdateArgs* dargs = nullptr);
     protected:
 #ifdef LEGION_DEBUG
-      virtual unsigned convert_event(const ApEvent& event, bool check = true);
+      virtual unsigned convert_event(
+          const ApEvent& event, bool check = true) override;
 #endif
-      virtual unsigned find_event(const ApEvent& event, AutoLock& tpl_lock);
+      virtual unsigned find_event(
+          const ApEvent& event, AutoLock& tpl_lock) override;
       void request_remote_shard_event(ApEvent event, RtUserEvent done_event);
       static AddressSpaceID find_event_space(ApEvent event);
     protected:
@@ -167,23 +174,25 @@ namespace Legion {
       void find_owner_shards(AddressSpace owner, std::vector<ShardID>& shards);
     protected:
       virtual unsigned find_frontier_event(
-          ApEvent event, std::vector<RtEvent>& ready_events);
+          ApEvent event, std::vector<RtEvent>& ready_events) override;
       virtual void record_mutated_instance(
           const UniqueInst& inst, IndexSpaceExpression* expr,
-          const FieldMask& mask, std::set<RtEvent>& applied_events);
-      virtual bool are_read_only_users(InstUsers& inst_users);
+          const FieldMask& mask, std::set<RtEvent>& applied_events) override;
+      virtual bool are_read_only_users(InstUsers& inst_users) override;
       virtual void sync_compute_frontiers(
-          CompleteOp* op, const std::vector<RtEvent>& frontier_events);
-      virtual void initialize_generators(std::vector<unsigned>& new_gen);
+          CompleteOp* op, const std::vector<RtEvent>& frontier_events) override;
+      virtual void initialize_generators(
+          std::vector<unsigned>& new_gen) override;
       virtual void initialize_eliminate_dead_code_frontiers(
-          const std::vector<unsigned>& gen, std::vector<bool>& used);
+          const std::vector<unsigned>& gen, std::vector<bool>& used) override;
       virtual void initialize_transitive_reduction_frontiers(
           std::vector<unsigned>& topo_order,
-          std::vector<unsigned>& inv_topo_order);
+          std::vector<unsigned>& inv_topo_order) override;
       virtual void record_used_frontiers(
-          std::vector<bool>& used, const std::vector<unsigned>& gen) const;
+          std::vector<bool>& used,
+          const std::vector<unsigned>& gen) const override;
       virtual void rewrite_frontiers(
-          std::map<unsigned, unsigned>& substitutions);
+          std::map<unsigned, unsigned>& substitutions) override;
     public:
       ReplicateContext* const repl_ctx;
       const ShardID local_shard;

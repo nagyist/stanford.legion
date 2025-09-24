@@ -62,42 +62,43 @@ namespace Legion {
           Provenance* provenance);
       void perform_base_dependence_analysis(void);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual Mappable* get_mappable(void);
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual Mappable* get_mappable(void) override;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
+          bool human = true) const override;
       virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
-          void);
+          void) override;
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
-          bool fill, unsigned count = 1);
+          bool fill, unsigned count = 1) override;
       virtual RtEvent initialize_fill_view(void);
       virtual FillView* get_fill_view(void) const;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_complete(ApEvent effects_done);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_complete(ApEvent effects_done) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     public:
       // This is a helper method for ReplFillOp
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
     public:
-      virtual void predicate_false(void);
+      virtual void predicate_false(void) override;
     public:
-      virtual unsigned find_parent_index(unsigned idx);
-      virtual void trigger_commit(void);
+      virtual unsigned find_parent_index(unsigned idx) override;
+      virtual void trigger_commit(void) override;
     public:
       void log_fill_requirement(void) const;
       // This call only happens from control replication when we had to
@@ -109,18 +110,19 @@ namespace Legion {
       {
         return version_info;
       }
-      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx = 0) const override
       {
         return requirement;
       }
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
-      virtual void complete_replay(ApEvent fill_complete_event);
+      virtual void trigger_replay(void) override;
+      virtual void complete_replay(ApEvent fill_complete_event) override;
     public:
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
+          std::set<RtEvent>& applied) const override;
     protected:
       void fill_fields(
           FillView* fill_view, ApEvent precondition,
@@ -154,29 +156,29 @@ namespace Legion {
           InnerContext* ctx, const IndexFillLauncher& launcher,
           IndexSpace launch_space, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     protected:
       void activate_index_fill(void);
       void deactivate_index_fill(void);
     public:
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_commit(void);
-      virtual void predicate_false(void);
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_commit(void) override;
+      virtual void predicate_false(void) override;
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
+      virtual void trigger_replay(void) override;
     public:
-      virtual size_t get_collective_points(void) const;
+      virtual size_t get_collective_points(void) const override;
       virtual IndexSpaceNode* get_shard_points(void) const
       {
         return launch_space;
       }
       virtual RtEvent find_pointwise_dependence(
           const DomainPoint& point, GenerationID gen,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
       void enumerate_points(void);
       void handle_point_complete(ApEvent effect);
       void handle_point_commit(void);
@@ -210,40 +212,45 @@ namespace Legion {
       void initialize(IndexFillOp* owner, const DomainPoint& point);
       void launch(RtEvent view_ready);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_replay(void);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_replay(void) override;
       // trigger_mapping same as base class
-      virtual void trigger_complete(ApEvent effect);
-      virtual void trigger_commit(void);
-      virtual FillView* get_fill_view(void) const;
-      virtual unsigned find_parent_index(unsigned idx)
+      virtual void trigger_complete(ApEvent effect) override;
+      virtual void trigger_commit(void) override;
+      virtual FillView* get_fill_view(void) const override;
+      virtual unsigned find_parent_index(unsigned idx) override
       {
         return owner->find_parent_index(idx);
       }
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
     public:
-      virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual size_t get_collective_points(void) const override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     public:
       // From ProjectionPoint
-      virtual const DomainPoint& get_domain_point(void) const;
-      virtual void set_projection_result(unsigned idx, LogicalRegion result);
+      virtual const DomainPoint& get_domain_point(void) const override;
+      virtual void set_projection_result(
+          unsigned idx, LogicalRegion result) override;
       virtual void record_intra_space_dependences(
-          unsigned idx, const std::vector<DomainPoint>& region_deps);
+          unsigned idx, const std::vector<DomainPoint>& region_deps) override;
       virtual void record_pointwise_dependence(
           uint64_t previous_context_index, const DomainPoint& previous_point,
-          ShardID shard);
-      virtual const Operation* as_operation(void) const { return this; }
+          ShardID shard) override;
+      virtual const Operation* as_operation(void) const override
+      {
+        return this;
+      }
     public:
       // From Memoizable
-      virtual TraceLocalID get_trace_local_id(void) const;
+      virtual TraceLocalID get_trace_local_id(void) const override;
     protected:
       IndexFillOp* owner;
       std::vector<RtEvent> pointwise_mapping_dependences;
@@ -266,14 +273,15 @@ namespace Legion {
       CreateCollectiveFillView& operator=(const CreateCollectiveFillView& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_CREATE_FILL_VIEW;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
-      virtual RtEvent post_complete_exchange(void);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
+      virtual RtEvent post_complete_exchange(void) override;
     protected:
       FillOp* const fill_op;
       const DistributedID fresh_did;
@@ -297,24 +305,24 @@ namespace Legion {
       void initialize_replication(
           ReplicateContext* ctx, DistributedID fresh_did, bool is_first_local);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_replay(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_replay(void) override;
       virtual bool is_collective_first_local_shard(void) const
       {
         return is_first_local_shard;
       }
-      virtual RtEvent finalize_complete_mapping(RtEvent event);
+      virtual RtEvent finalize_complete_mapping(RtEvent event) override;
       virtual bool perform_collective_analysis(
-          CollectiveMapping*& mapping, bool& first_local);
+          CollectiveMapping*& mapping, bool& first_local) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
-      virtual RtEvent initialize_fill_view(void);
-      virtual void predicate_false(void);
+          const FieldMask& mask, unsigned parent_req_index) override;
+      virtual RtEvent initialize_fill_view(void) override;
+      virtual void predicate_false(void) override;
     public:
       RtBarrier collective_map_barrier;
       CreateCollectiveFillView* collective;
@@ -336,19 +344,20 @@ namespace Legion {
     public:
       ReplIndexFillOp& operator=(const ReplIndexFillOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_replay(void);
-      virtual RtEvent initialize_fill_view(void);
-      virtual IndexSpaceNode* get_shard_points(void) const
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_replay(void) override;
+      virtual RtEvent initialize_fill_view(void) override;
+      virtual IndexSpaceNode* get_shard_points(void) const override
       {
         return shard_points;
       }
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     public:
       void initialize_replication(
           ReplicateContext* ctx, DistributedID fresh_did);
@@ -384,24 +393,24 @@ namespace Legion {
     public:
       RemoteFillOp& operator=(const RemoteFillOp& rhs) = delete;
     public:
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+          bool human = true) const override;
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual void unpack(Deserializer& derez);
+          std::set<RtEvent>& applied) const override;
+      virtual void unpack(Deserializer& derez) override;
     };
 
     //--------------------------------------------------------------------------

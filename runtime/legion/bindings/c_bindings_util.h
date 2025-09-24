@@ -704,22 +704,22 @@ namespace Legion {
   class TaskMut : public Task {
   public:
     virtual ~TaskMut() { }
-    virtual UniqueID get_unique_id(void) const { std::abort(); }
-    virtual uint64_t get_context_index(void) const { std::abort(); }
-    virtual int get_depth(void) const { std::abort(); }
-    virtual const Task* get_parent_task(void) const { std::abort(); }
+    virtual UniqueID get_unique_id(void) const override { std::abort(); }
+    virtual uint64_t get_context_index(void) const override { std::abort(); }
+    virtual int get_depth(void) const override { std::abort(); }
+    virtual const Task* get_parent_task(void) const override { std::abort(); }
     virtual const std::string_view& get_provenance_string(
-        bool human = true) const
+        bool human = true) const override
     {
       std::abort();
     }
-    virtual bool has_parent_task(void) const { std::abort(); }
-    virtual const char* get_task_name(void) const { std::abort(); }
-    virtual Domain get_slice_domain(void) const { std::abort(); }
-    virtual ShardID get_shard_id(void) const { std::abort(); }
-    virtual size_t get_total_shards(void) const { std::abort(); };
-    virtual DomainPoint get_shard_point(void) const { std::abort(); };
-    virtual Domain get_shard_domain(void) const { std::abort(); }
+    virtual bool has_parent_task(void) const override { std::abort(); }
+    virtual const char* get_task_name(void) const override { std::abort(); }
+    virtual Domain get_slice_domain(void) const override { std::abort(); }
+    virtual ShardID get_shard_id(void) const override { std::abort(); }
+    virtual size_t get_total_shards(void) const override { std::abort(); };
+    virtual DomainPoint get_shard_point(void) const override { std::abort(); };
+    virtual Domain get_shard_domain(void) const override { std::abort(); }
   };
 };  // namespace Legion
 

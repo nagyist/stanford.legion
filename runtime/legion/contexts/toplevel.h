@@ -44,25 +44,27 @@ namespace Legion {
       static Mapper::ContextConfigOutput configure_toplevel_context(void);
     public:
       virtual void pack_remote_context(
-          Serializer& rez, AddressSpaceID target, bool replicate = false);
-      virtual InnerContext* find_parent_context(void);
-      virtual UniqueID get_unique_id(void) const { return root_uid; }
+          Serializer& rez, AddressSpaceID target,
+          bool replicate = false) override;
+      virtual InnerContext* find_parent_context(void) override;
+      virtual UniqueID get_unique_id(void) const override { return root_uid; }
     public:
-      virtual InnerContext* find_top_context(InnerContext* previous = nullptr);
+      virtual InnerContext* find_top_context(
+          InnerContext* previous = nullptr) override;
     public:
       virtual void receive_created_region_contexts(
           const std::vector<RegionNode*>& created_regions,
           const std::vector<EqKDTree*>& created_trees,
           std::set<RtEvent>& applied_events, const ShardMapping* mapping,
-          ShardID source_shard);
+          ShardID source_shard) override;
       virtual RtEvent compute_equivalence_sets(
           unsigned req_index, const std::vector<EqSetTracker*>& targets,
           const std::vector<AddressSpaceID>& target_spaces,
           AddressSpaceID creation_target_space, IndexSpaceExpression* expr,
-          const FieldMask& mask);
+          const FieldMask& mask) override;
       virtual RtEvent record_output_equivalence_set(
           EqSetTracker* source, AddressSpaceID source_space, unsigned req_index,
-          EquivalenceSet* set, const FieldMask& mask);
+          EquivalenceSet* set, const FieldMask& mask) override;
     public:
       const UniqueID root_uid;
     protected:

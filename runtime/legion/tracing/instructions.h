@@ -91,11 +91,11 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return REPLAY_MAPPING; }
-      virtual ReplayMapping* as_replay_mapping(void) { return this; }
+      virtual InstructionKind get_kind(void) override { return REPLAY_MAPPING; }
+      virtual ReplayMapping* as_replay_mapping(void) override { return this; }
     private:
       friend class PhysicalTemplate;
       friend class ShardedPhysicalTemplate;
@@ -115,11 +115,17 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return CREATE_AP_USER_EVENT; }
-      virtual CreateApUserEvent* as_create_ap_user_event(void) { return this; }
+      virtual InstructionKind get_kind(void) override
+      {
+        return CREATE_AP_USER_EVENT;
+      }
+      virtual CreateApUserEvent* as_create_ap_user_event(void) override
+      {
+        return this;
+      }
     private:
       friend class PhysicalTemplate;
       unsigned lhs;
@@ -139,11 +145,11 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return TRIGGER_EVENT; }
-      virtual TriggerEvent* as_trigger_event(void) { return this; }
+      virtual InstructionKind get_kind(void) override { return TRIGGER_EVENT; }
+      virtual TriggerEvent* as_trigger_event(void) override { return this; }
     private:
       friend class PhysicalTemplate;
       unsigned lhs;
@@ -164,11 +170,11 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return MERGE_EVENT; }
-      virtual MergeEvent* as_merge_event(void) { return this; }
+      virtual InstructionKind get_kind(void) override { return MERGE_EVENT; }
+      virtual MergeEvent* as_merge_event(void) override { return this; }
     private:
       friend class PhysicalTemplate;
       friend class ShardedPhysicalTemplate;
@@ -182,17 +188,22 @@ namespace Legion {
      *   events[lhs] = fence_completion
      */
     class AssignFenceCompletion : public Instruction {
+    public:
       AssignFenceCompletion(
           PhysicalTemplate& tpl, unsigned lhs, const TraceLocalID& owner);
       virtual void execute(
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return ASSIGN_FENCE_COMPLETION; }
-      virtual AssignFenceCompletion* as_assignment_fence_completion(void)
+      virtual InstructionKind get_kind(void) override
+      {
+        return ASSIGN_FENCE_COMPLETION;
+      }
+      virtual AssignFenceCompletion* as_assignment_fence_completion(
+          void) override
       {
         return this;
       }
@@ -222,11 +233,11 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return ISSUE_FILL; }
-      virtual IssueFill* as_issue_fill(void) { return this; }
+      virtual InstructionKind get_kind(void) override { return ISSUE_FILL; }
+      virtual IssueFill* as_issue_fill(void) override { return this; }
     private:
       friend class PhysicalTemplate;
       unsigned lhs;
@@ -268,11 +279,11 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return ISSUE_COPY; }
-      virtual IssueCopy* as_issue_copy(void) { return this; }
+      virtual InstructionKind get_kind(void) override { return ISSUE_COPY; }
+      virtual IssueCopy* as_issue_copy(void) override { return this; }
     private:
       friend class PhysicalTemplate;
       unsigned lhs;
@@ -309,11 +320,11 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return ISSUE_ACROSS; }
-      virtual IssueAcross* as_issue_across(void) { return this; }
+      virtual InstructionKind get_kind(void) override { return ISSUE_ACROSS; }
+      virtual IssueAcross* as_issue_across(void) override { return this; }
     private:
       friend class PhysicalTemplate;
       unsigned lhs;
@@ -337,11 +348,17 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return SET_OP_SYNC_EVENT; }
-      virtual SetOpSyncEvent* as_set_op_sync_event(void) { return this; }
+      virtual InstructionKind get_kind(void) override
+      {
+        return SET_OP_SYNC_EVENT;
+      }
+      virtual SetOpSyncEvent* as_set_op_sync_event(void) override
+      {
+        return this;
+      }
     private:
       friend class PhysicalTemplate;
       unsigned lhs;
@@ -360,11 +377,14 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return COMPLETE_REPLAY; }
-      virtual CompleteReplay* as_complete_replay(void) { return this; }
+      virtual InstructionKind get_kind(void) override
+      {
+        return COMPLETE_REPLAY;
+      }
+      virtual CompleteReplay* as_complete_replay(void) override { return this; }
     private:
       friend class PhysicalTemplate;
       unsigned complete;
@@ -384,11 +404,14 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return BARRIER_ARRIVAL; }
-      virtual BarrierArrival* as_barrier_arrival(void) { return this; }
+      virtual InstructionKind get_kind(void) override
+      {
+        return BARRIER_ARRIVAL;
+      }
+      virtual BarrierArrival* as_barrier_arrival(void) override { return this; }
       void set_managed_barrier(ApBarrier newbar);
       void set_collective_barrier(ApBarrier newbar);
     private:
@@ -415,11 +438,14 @@ namespace Legion {
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,
           std::map<TraceLocalID, MemoizableOp*>& operations,
-          const bool recurrent_replay);
-      virtual std::string to_string(const MemoEntries& memo_entires);
+          const bool recurrent_replay) override;
+      virtual std::string to_string(const MemoEntries& memo_entires) override;
 
-      virtual InstructionKind get_kind(void) { return BARRIER_ADVANCE; }
-      virtual BarrierAdvance* as_barrier_advance(void) { return this; }
+      virtual InstructionKind get_kind(void) override
+      {
+        return BARRIER_ADVANCE;
+      }
+      virtual BarrierAdvance* as_barrier_advance(void) override { return this; }
       inline ApBarrier get_current_barrier(void) const { return barrier; }
       ApBarrier record_subscribed_shard(ShardID remote_shard);
       void refresh_barrier(

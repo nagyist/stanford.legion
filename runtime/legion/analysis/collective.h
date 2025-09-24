@@ -59,19 +59,25 @@ namespace Legion {
           size_t ctx_index, unsigned req_index, IndexSpaceID match_space,
           RemoteOp* op, Deserializer& derez);
       virtual ~RemoteCollectiveAnalysis(void);
-      virtual size_t get_context_index(void) const { return context_index; }
-      virtual unsigned get_requirement_index(void) const
+      virtual size_t get_context_index(void) const override
+      {
+        return context_index;
+      }
+      virtual unsigned get_requirement_index(void) const override
       {
         return requirement_index;
       }
-      virtual IndexSpaceID get_match_space(void) const { return match_space; }
-      virtual Operation* get_operation(void) const;
-      virtual const PhysicalTraceInfo& get_trace_info(void) const
+      virtual IndexSpaceID get_match_space(void) const override
+      {
+        return match_space;
+      }
+      virtual Operation* get_operation(void) const override;
+      virtual const PhysicalTraceInfo& get_trace_info(void) const override
       {
         return trace_info;
       }
-      virtual void add_analysis_reference(void) { add_reference(); }
-      virtual bool remove_analysis_reference(void)
+      virtual void add_analysis_reference(void) override { add_reference(); }
+      virtual bool remove_analysis_reference(void) override
       {
         return remove_reference();
       }
@@ -110,25 +116,31 @@ namespace Legion {
           bool exclusive);
       virtual ~CollectiveCopyFillAnalysis(void) { }
     public:
-      virtual size_t get_context_index(void) const { return context_index; }
-      virtual unsigned get_requirement_index(void) const { return index; }
-      virtual IndexSpaceID get_match_space(void) const
+      virtual size_t get_context_index(void) const override
+      {
+        return context_index;
+      }
+      virtual unsigned get_requirement_index(void) const override
+      {
+        return index;
+      }
+      virtual IndexSpaceID get_match_space(void) const override
       {
         return get_collective_match_space();
       }
-      virtual Operation* get_operation(void) const { return op; }
-      virtual const PhysicalTraceInfo& get_trace_info(void) const
+      virtual Operation* get_operation(void) const override { return op; }
+      virtual const PhysicalTraceInfo& get_trace_info(void) const override
       {
         return trace_info;
       }
-      virtual void add_analysis_reference(void) { add_reference(); }
-      virtual bool remove_analysis_reference(void)
+      virtual void add_analysis_reference(void) override { add_reference(); }
+      virtual bool remove_analysis_reference(void) override
       {
         return remove_reference();
       }
       virtual RtEvent perform_traversal(
           RtEvent precondition, const VersionInfo& version_info,
-          std::set<RtEvent>& applied_events);
+          std::set<RtEvent>& applied_events) override;
     };
 
   }  // namespace Internal
