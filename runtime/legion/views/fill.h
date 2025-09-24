@@ -75,17 +75,17 @@ namespace Legion {
     public:
       FillView& operator=(const FillView& rhs) = delete;
     public:
-      virtual void notify_local(void) { /*nothing to do*/ }
-      virtual void pack_valid_ref(void);
-      virtual void unpack_valid_ref(void);
+      virtual void notify_local(void) override { /*nothing to do*/ }
+      virtual void pack_valid_ref(void) override;
+      virtual void unpack_valid_ref(void) override;
     public:
-      virtual void send_view(AddressSpaceID target);
+      virtual void send_view(AddressSpaceID target) override;
     public:
       virtual void flatten(
           CopyFillAggregator& aggregator, InstanceView* dst_view,
           const FieldMask& src_mask, IndexSpaceExpression* expr,
           PredEvent pred_guard, const PhysicalTraceInfo& trace_info,
-          EquivalenceSet* tracing_eq, CopyAcrossHelper* helper);
+          EquivalenceSet* tracing_eq, CopyAcrossHelper* helper) override;
     public:
       bool matches(FillView* other);
       bool matches(const void* value, size_t size);

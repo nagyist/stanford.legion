@@ -70,16 +70,16 @@ namespace Legion {
           EquivalenceSet* set, IndexSpaceExpression* expr,
           const bool expr_covers, const FieldMask& mask,
           std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_remote(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_updates(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual ApEvent perform_output(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
     public:
       static inline FieldMask initialize_mask(const std::vector<unsigned>& idxs)
       {

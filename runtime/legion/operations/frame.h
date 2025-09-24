@@ -39,13 +39,13 @@ namespace Legion {
     public:
       void initialize(InnerContext* ctx, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
     public:
-      virtual void trigger_mapping(void);
-      virtual void trigger_commit(void);
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_commit(void) override;
     };
 
   }  // namespace Internal

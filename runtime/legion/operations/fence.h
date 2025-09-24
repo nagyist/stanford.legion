@@ -71,23 +71,25 @@ namespace Legion {
         execution_preconditions.insert(precondition);
       }
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         exec_fence = (fence_kind == EXECUTION_FENCE);
         return exec_fence;
       }
       FenceKind get_fence_kind(void) { return fence_kind; }
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_replay(void);
-      virtual void complete_replay(ApEvent complete_event);
-      virtual void trigger_complete(ApEvent complete);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_replay(void) override;
+      virtual void complete_replay(ApEvent complete_event) override;
+      virtual void trigger_complete(ApEvent complete) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
       virtual const VersionInfo& get_version_info(unsigned idx) const;
     public:
       virtual void perform_measurement(void);

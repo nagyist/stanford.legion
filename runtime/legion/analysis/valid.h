@@ -45,13 +45,13 @@ namespace Legion {
           EquivalenceSet* set, IndexSpaceExpression* expr,
           const bool expr_covers, const FieldMask& mask,
           std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_remote(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_updates(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
     public:
       const ReductionOpID redop;
       ValidInstAnalysis* const target_analysis;
@@ -89,13 +89,13 @@ namespace Legion {
           EquivalenceSet* set, IndexSpaceExpression* expr,
           const bool expr_covers, const FieldMask& mask,
           std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_remote(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_updates(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
     public:
       const op::FieldMaskMap<LogicalView> valid_instances;
       InvalidInstAnalysis* const target_analysis;
@@ -132,13 +132,13 @@ namespace Legion {
           EquivalenceSet* set, IndexSpaceExpression* expr,
           const bool expr_covers, const FieldMask& mask,
           std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_remote(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_updates(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
     public:
       const op::FieldMaskMap<LogicalView> antivalid_instances;
       AntivalidInstAnalysis* const target_analysis;

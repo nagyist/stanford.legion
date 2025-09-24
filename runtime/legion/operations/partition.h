@@ -372,17 +372,18 @@ namespace Legion {
           IndexSpace result, IndexSpace initial,
           const std::vector<IndexSpace>& handles);
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_execution(void);
-      virtual bool is_partition_op(void) const { return true; }
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_execution(void) override;
+      virtual bool is_partition_op(void) const override { return true; }
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
@@ -411,12 +412,13 @@ namespace Legion {
       ReplPendingPartitionOp& operator=(const ReplPendingPartitionOp& rhs) =
           delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       virtual void populate_sources(
-          const FutureMap& fm, IndexPartition pid, bool needs_all_futures);
-      virtual void trigger_execution(void);
+          const FutureMap& fm, IndexPartition pid,
+          bool needs_all_futures) override;
+      virtual void trigger_execution(void) override;
     };
 
   }  // namespace Internal

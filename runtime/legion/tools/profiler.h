@@ -124,7 +124,7 @@ namespace Legion {
       SmallNameClosure& operator=(const SmallNameClosure& rhs) = delete;
     public:
       void record_instance_name(PhysicalInstance inst, LgEvent name);
-      virtual LgEvent find_instance_name(PhysicalInstance inst) const;
+      virtual LgEvent find_instance_name(PhysicalInstance inst) const override;
     private:
       static_assert(ENTRIES > 0);
       // Optimize for the common case of there being one or two entries
@@ -888,7 +888,7 @@ namespace Legion {
       // Process low-level runtime profiling results
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse& response, const void* orig,
-          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc) override;
     public:
       // Dump all the results
       void finalize(void);

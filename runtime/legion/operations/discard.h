@@ -39,28 +39,30 @@ namespace Legion {
       void initialize(
           InnerContext* ctx, const DiscardLauncher& launcher,
           Provenance* provenance);
-      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx = 0) const override
       {
         return requirement;
       }
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual unsigned find_parent_index(unsigned idx) override;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+          std::set<RtEvent>& applied) const override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     protected:
       void discard_fields(const PhysicalTraceInfo& trace_info);
     public:
@@ -86,16 +88,16 @@ namespace Legion {
     public:
       void initialize_replication(ReplicateContext* ctx, bool is_first_local);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual RtEvent finalize_complete_mapping(RtEvent event);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual RtEvent finalize_complete_mapping(RtEvent event) override;
       virtual bool perform_collective_analysis(
-          CollectiveMapping*& mapping, bool& first_local);
+          CollectiveMapping*& mapping, bool& first_local) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
+          const FieldMask& mask, unsigned parent_req_index) override;
     protected:
       RtBarrier collective_map_barrier;
       bool is_first_local_shard;
@@ -121,12 +123,12 @@ namespace Legion {
       virtual void set_context_index(uint64_t index);
       virtual int get_depth(void) const;
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual void unpack(Deserializer& derez);
+          std::set<RtEvent>& applied) const override;
+      virtual void unpack(Deserializer& derez) override;
     };
 
   }  // namespace Internal

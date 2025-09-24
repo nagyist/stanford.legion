@@ -397,9 +397,9 @@ namespace Legion {
     public:
       CurrentInitializer& operator=(const CurrentInitializer& rhs) = delete;
     public:
-      virtual bool visit_only_valid(void) const;
-      virtual bool visit_region(RegionNode* node);
-      virtual bool visit_partition(PartitionNode* node);
+      virtual bool visit_only_valid(void) const override;
+      virtual bool visit_region(RegionNode* node) override;
+      virtual bool visit_partition(PartitionNode* node) override;
     protected:
       const ContextID ctx;
     };
@@ -416,9 +416,9 @@ namespace Legion {
     public:
       CurrentInvalidator& operator=(const CurrentInvalidator& rhs) = delete;
     public:
-      virtual bool visit_only_valid(void) const;
-      virtual bool visit_region(RegionNode* node);
-      virtual bool visit_partition(PartitionNode* node);
+      virtual bool visit_only_valid(void) const override;
+      virtual bool visit_region(RegionNode* node) override;
+      virtual bool visit_partition(PartitionNode* node) override;
     protected:
       const ContextID ctx;
     };
@@ -435,9 +435,9 @@ namespace Legion {
     public:
       DeletionInvalidator& operator=(const DeletionInvalidator& rhs) = delete;
     public:
-      virtual bool visit_only_valid(void) const;
-      virtual bool visit_region(RegionNode* node);
-      virtual bool visit_partition(PartitionNode* node);
+      virtual bool visit_only_valid(void) const override;
+      virtual bool visit_region(RegionNode* node) override;
+      virtual bool visit_partition(PartitionNode* node) override;
     protected:
       const ContextID ctx;
       const FieldMask& deletion_mask;

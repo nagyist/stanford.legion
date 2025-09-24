@@ -89,7 +89,7 @@ namespace Legion {
     public:
       ShardManager& operator=(const ShardManager& rhs) = delete;
     public:
-      void notify_local(void);
+      void notify_local(void) override;
     public:
       inline ShardMapping& get_mapping(void) const { return *address_spaces; }
       inline CollectiveMapping& get_collective_mapping(void) const
@@ -126,9 +126,9 @@ namespace Legion {
             ->get_logical_tree_context();
       }
     public:  // From CollectiveHelperOp
-      virtual InnerContext* get_context(void);
-      virtual InnerContext* find_physical_context(unsigned index);
-      virtual size_t get_collective_points(void) const;
+      virtual InnerContext* get_context(void) override;
+      virtual InnerContext* find_physical_context(unsigned index) override;
+      virtual size_t get_collective_points(void) const override;
     public:
       void distribute_explicit(
           SingleTask* task, VariantID chosen_variant,
@@ -148,10 +148,10 @@ namespace Legion {
     public:
       virtual void finalize_collective_versioning_analysis(
           unsigned index, unsigned parent_req_index,
-          op::map<LogicalRegion, RegionVersioning>& to_perform);
+          op::map<LogicalRegion, RegionVersioning>& to_perform) override;
       virtual void construct_collective_mapping(
           const RendezvousKey& key,
-          std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);
+          std::map<LogicalRegion, CollectiveRendezvous>& rendezvous) override;
       void finalize_replicate_collective_versioning(
           unsigned index, unsigned parent_req_index,
           op::map<LogicalRegion, CollectiveVersioningBase::RegionVersioning>&

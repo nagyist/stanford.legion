@@ -42,35 +42,36 @@ namespace Legion {
           InnerContext* ctx, PhysicalRegion region, const bool flush,
           const bool unordered, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual unsigned find_parent_index(unsigned idx) override;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_complete(ApEvent effects_done);
-      virtual void trigger_commit(void);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_complete(ApEvent effects_done) override;
+      virtual void trigger_commit(void) override;
       virtual void select_sources(
           const unsigned index, PhysicalManager* target,
           const std::vector<InstanceView*>& sources,
           std::vector<unsigned>& ranking,
-          std::map<unsigned, PhysicalManager*>& points);
+          std::map<unsigned, PhysicalManager*>& points) override;
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
-          bool fill, unsigned count = 1);
+          bool fill, unsigned count = 1) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
+          std::set<RtEvent>& applied) const override;
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
       virtual void detach_external_instance(PhysicalManager* manager);
       virtual bool is_point_detach(void) const { return false; }
-      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx = 0) const override
       {
         return requirement;
       }
@@ -111,28 +112,29 @@ namespace Legion {
           const std::vector<PhysicalRegion>& regions, bool flush,
           bool unordered, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_complete(ApEvent effects_done);
-      virtual void trigger_commit(void);
-      virtual unsigned find_parent_index(unsigned idx);
-      virtual size_t get_collective_points(void) const;
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_complete(ApEvent effects_done) override;
+      virtual void trigger_commit(void) override;
+      virtual unsigned find_parent_index(unsigned idx) override;
+      virtual size_t get_collective_points(void) const override;
       virtual RtEvent find_pointwise_dependence(
           const DomainPoint& point, GenerationID gen,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
       // Override for control replication
       void handle_point_complete(ApEvent effects);
       void handle_point_commit(void);
-      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx = 0) const override
       {
         return requirement;
       }
@@ -164,35 +166,36 @@ namespace Legion {
     public:
       PointDetachOp& operator=(const PointDetachOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       void initialize_detach(
           IndexDetachOp* owner, InnerContext* ctx, const PhysicalRegion& region,
           const DomainPoint& point, bool flush);
     public:
-      virtual void trigger_complete(ApEvent effects_done);
-      virtual void trigger_commit(void);
-      virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual void trigger_complete(ApEvent effects_done) override;
+      virtual void trigger_commit(void) override;
+      virtual size_t get_collective_points(void) const override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
       virtual RtEvent convert_collective_views(
           unsigned requirement_index, unsigned analysis_index,
           LogicalRegion region, const InstanceSet& targets,
           InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
           bool& first_local,
           op::vector<op::FieldMaskMap<InstanceView> >& target_views,
-          std::map<InstanceView*, size_t>& collective_arrivals);
+          std::map<InstanceView*, size_t>& collective_arrivals) override;
       virtual bool perform_collective_analysis(
-          CollectiveMapping*& mapping, bool& first_local);
+          CollectiveMapping*& mapping, bool& first_local) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
-      virtual unsigned find_parent_index(unsigned idx)
+          const FieldMask& mask, unsigned parent_req_index) override;
+      virtual unsigned find_parent_index(unsigned idx) override
       {
         return owner->find_parent_index(idx);
       }
-      virtual bool is_point_detach(void) const { return true; }
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+      virtual bool is_point_detach(void) const override { return true; }
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
@@ -220,18 +223,19 @@ namespace Legion {
           ReplicateContext* ctx, bool collective_instances,
           bool first_local_shard);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual RtEvent finalize_complete_mapping(RtEvent event);
-      virtual void detach_external_instance(PhysicalManager* manager);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual RtEvent finalize_complete_mapping(RtEvent event) override;
+      virtual void detach_external_instance(PhysicalManager* manager) override;
       virtual bool perform_collective_analysis(
-          CollectiveMapping*& mapping, bool& first_local);
+          CollectiveMapping*& mapping, bool& first_local) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+          const FieldMask& mask, unsigned parent_req_index) override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     public:
       // Help for unordered detachments
       void record_unordered_kind(
@@ -257,12 +261,13 @@ namespace Legion {
     public:
       ReplIndexDetachOp& operator=(const ReplIndexDetachOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     public:
       void initialize_replication(ReplicateContext* ctx);
       void record_unordered_kind(
@@ -294,22 +299,22 @@ namespace Legion {
       virtual uint64_t get_context_index(void) const;
       virtual void set_context_index(uint64_t index);
       virtual int get_depth(void) const;
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
       virtual void select_sources(
           const unsigned index, PhysicalManager* target,
           const std::vector<InstanceView*>& sources,
           std::vector<unsigned>& ranking,
-          std::map<unsigned, PhysicalManager*>& points);
+          std::map<unsigned, PhysicalManager*>& points) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual void unpack(Deserializer& derez);
+          std::set<RtEvent>& applied) const override;
+      virtual void unpack(Deserializer& derez) override;
     protected:
       DomainPoint index_point;
     };

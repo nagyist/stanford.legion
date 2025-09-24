@@ -68,7 +68,7 @@ namespace Legion {
       SingleTask(void);
       virtual ~SingleTask(void);
     public:
-      virtual void trigger_dependence_analysis(void) = 0;
+      virtual void trigger_dependence_analysis(void) override = 0;
     public:
       // These two functions are only safe to call after
       // the task has had its variant selected
@@ -107,7 +107,7 @@ namespace Legion {
       {
         return profiling_reported;
       }
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
@@ -153,28 +153,28 @@ namespace Legion {
           Deserializer& derez, std::set<RtEvent>& ready_events);
     public:
       virtual void pack_profiling_requests(
-          Serializer& rez, std::set<RtEvent>& applied) const;
+          Serializer& rez, std::set<RtEvent>& applied) const override;
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
-          bool fill, unsigned count = 1);
+          bool fill, unsigned count = 1) override;
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse& response, const void* orig,
-          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
-      virtual void handle_profiling_update(int count);
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc) override;
+      virtual void handle_profiling_update(int count) override;
       void finalize_single_task_profiling(void);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
       virtual bool is_top_level_task(void) const { return false; }
       virtual bool is_shard_task(void) const { return false; }
       virtual SingleTask* get_origin_task(void) const = 0;
     public:
-      virtual void predicate_false(void) = 0;
-      virtual void launch_task(bool inline_task = false);
-      virtual bool distribute_task(void) = 0;
+      virtual void predicate_false(void) override = 0;
+      virtual void launch_task(bool inline_task = false) override;
+      virtual bool distribute_task(void) override = 0;
       virtual bool perform_mapping(
           MustEpochOp* owner = nullptr,
-          const DeferMappingArgs* args = nullptr) = 0;
+          const DeferMappingArgs* args = nullptr) override = 0;
       virtual void handle_future_size(
           size_t return_type_size, std::set<RtEvent>& applied_events) = 0;
       virtual uint64_t order_collectively_mapped_unbounded_pools(
@@ -196,27 +196,29 @@ namespace Legion {
       {
         std::abort();
       }
-      virtual void trigger_replay(void);
+      virtual void trigger_replay(void) override;
       // For tasks that are sharded off by control replication
       virtual void shard_off(RtEvent mapped_precondition);
-      virtual bool is_stealable(void) const = 0;
+      virtual bool is_stealable(void) const override = 0;
     public:
-      virtual TaskKind get_task_kind(void) const = 0;
+      virtual TaskKind get_task_kind(void) const override = 0;
     public:
       // Override these methods from operation class
-      virtual void trigger_mapping(void);
+      virtual void trigger_mapping(void) override;
     protected:
       friend class ShardManager;
-      virtual void trigger_task_commit(void) = 0;
+      virtual void trigger_task_commit(void) override = 0;
     public:
       virtual bool send_task(
           Processor target, std::vector<SingleTask*>& others) = 0;
-      virtual bool pack_task(Serializer& rez, AddressSpaceID target) = 0;
+      virtual bool pack_task(
+          Serializer& rez, AddressSpaceID target) override = 0;
       virtual bool unpack_task(
           Deserializer& derez, Processor current,
-          std::set<RtEvent>& ready_events) = 0;
+          std::set<RtEvent>& ready_events) override = 0;
       virtual void perform_inlining(
-          VariantImpl* variant, const std::deque<InstanceSet>& parent_regions);
+          VariantImpl* variant,
+          const std::deque<InstanceSet>& parent_regions) override;
     public:
       virtual void handle_future(
           ApEvent effects, FutureInstance* instance, const void* metadata,
@@ -227,7 +229,7 @@ namespace Legion {
       virtual void perform_concurrent_task_barrier(void) = 0;
     public:
       // From Memoizable
-      virtual ApEvent replay_mapping(void);
+      virtual ApEvent replay_mapping(void) override;
     public:
       virtual void perform_replicate_collective_versioning(
           unsigned index, unsigned parent_req_index,

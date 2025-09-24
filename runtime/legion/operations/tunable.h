@@ -37,18 +37,19 @@ namespace Legion {
           InnerContext* ctx, const TunableLauncher& launcher,
           Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_execution(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_execution(void) override;
       // virtual method for control replication
       virtual void process_result(
           MapperManager* mapper, void* buffer, size_t size) const
@@ -82,10 +83,10 @@ namespace Legion {
     public:
       void initialize_replication(ReplicateContext* context);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
       virtual void process_result(
-          MapperManager* mapper, void* buffer, size_t size) const;
+          MapperManager* mapper, void* buffer, size_t size) const override;
     protected:
       BufferBroadcast* value_broadcast;
     };

@@ -42,16 +42,17 @@ namespace Legion {
       }
       inline PhysicalManager* get_manager(void) const { return manager; }
     public:
-      virtual AddressSpaceID get_analysis_space(PhysicalManager* inst) const;
-      virtual bool aliases(InstanceView* other) const;
+      virtual AddressSpaceID get_analysis_space(
+          PhysicalManager* inst) const override;
+      virtual bool aliases(InstanceView* other) const override;
     public:
       // Reference counting state change functions
-      virtual void notify_local(void);
-      virtual void notify_valid(void);
-      virtual bool notify_invalid(void);
+      virtual void notify_local(void) override;
+      virtual void notify_valid(void) override;
+      virtual bool notify_invalid(void) override;
     public:
-      virtual void pack_valid_ref(void);
-      virtual void unpack_valid_ref(void);
+      virtual void pack_valid_ref(void) override;
+      virtual void unpack_valid_ref(void) override;
     public:
       virtual ApEvent fill_from(
           FillView* fill_view, ApEvent precondition, PredEvent predicate_guard,
@@ -60,7 +61,7 @@ namespace Legion {
           const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           CopyAcrossHelper* across_helper, const bool manage_dst_events,
-          const bool fill_restricted, const bool need_valid_return);
+          const bool fill_restricted, const bool need_valid_return) override;
       virtual ApEvent copy_from(
           InstanceView* src_view, ApEvent precondition,
           PredEvent predicate_guard, ReductionOpID redop,
@@ -69,7 +70,7 @@ namespace Legion {
           PhysicalManager* src_point, const PhysicalTraceInfo& trace_info,
           std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
           CopyAcrossHelper* across_helper, const bool manage_dst_events,
-          const bool copy_restricted, const bool need_valid_return);
+          const bool copy_restricted, const bool need_valid_return) override;
       virtual ApEvent register_user(
           const RegionUsage& usage, const FieldMask& user_mask,
           IndexSpaceNode* expr, const UniqueID op_id, const size_t op_ctx_index,
@@ -80,7 +81,7 @@ namespace Legion {
           std::vector<RtEvent>& registered_events,
           std::set<RtEvent>& applied_events,
           const PhysicalTraceInfo& trace_info, const AddressSpaceID source,
-          const bool symbolic = false);
+          const bool symbolic = false) override;
     public:
       void add_initial_user(
           ApEvent term_event, const RegionUsage& usage,

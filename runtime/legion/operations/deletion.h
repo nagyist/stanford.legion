@@ -73,15 +73,16 @@ namespace Legion {
           InnerContext* ctx, LogicalRegion handle, const bool unordered,
           Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual size_t get_region_count(void) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual size_t get_region_count(void) const override
       {
         return deletion_requirements.size();
       }
-      virtual const RegionRequirement& get_requirement(unsigned idx) const
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx) const override
       {
         return deletion_requirements[idx];
       }
@@ -94,14 +95,14 @@ namespace Legion {
           CollectiveMapping* collective_mapping,
           const bool collective_first_local);
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_commit(void);
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_commit(void) override;
+      virtual unsigned find_parent_index(unsigned idx) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
+          std::set<RtEvent>& applied) const override;
     protected:
       DeletionKind kind;
       IndexSpace index_space;
@@ -152,13 +153,13 @@ namespace Legion {
     public:
       ReplDeletionOp& operator=(const ReplDeletionOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_commit(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_commit(void) override;
     public:
       void initialize_replication(
           ReplicateContext* ctx, bool is_first,
@@ -200,12 +201,12 @@ namespace Legion {
       virtual void set_context_index(uint64_t index);
       virtual int get_depth(void) const;
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual void unpack(Deserializer& derez);
+          std::set<RtEvent>& applied) const override;
+      virtual void unpack(Deserializer& derez) override;
     };
 
   }  // namespace Internal

@@ -39,12 +39,12 @@ namespace Legion {
     public:
       PredicatedOp(void);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       void initialize_predication(
           InnerContext* ctx, const Predicate& p, Provenance* provenance);
-      virtual bool is_predicated_op(void) const;
+      virtual bool is_predicated_op(void) const override;
       // Wait until the predicate is valid and then return
       // its value.  Give it the current processor in case it
       // needs to wait for the value
