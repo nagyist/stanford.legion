@@ -44,7 +44,7 @@ namespace Legion {
           CollectiveMapping* mapping = nullptr);
       virtual ~DeferredView(void);
     public:
-      virtual void send_view(AddressSpaceID target) = 0;
+      virtual void send_view(AddressSpaceID target) override = 0;
     public:
       virtual void flatten(
           CopyFillAggregator& aggregator, InstanceView* dst_view,
@@ -52,8 +52,8 @@ namespace Legion {
           PredEvent pred_guard, const PhysicalTraceInfo& trace_info,
           EquivalenceSet* tracing_eq, CopyAcrossHelper* helper) = 0;
     public:
-      virtual void notify_valid(void);
-      virtual bool notify_invalid(void);
+      virtual void notify_valid(void) override;
+      virtual bool notify_invalid(void) override;
     };
 
     //--------------------------------------------------------------------------

@@ -73,14 +73,15 @@ namespace Legion {
       PointwiseAnalyzable(Args&&... args) : OP(std::forward<Args>(args)...)
       { }
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual bool is_pointwise_analyzable(void) const;
+      virtual bool is_pointwise_analyzable(void) const override;
       virtual void register_pointwise_dependence(
-          unsigned idx, const LogicalUser& previous);
+          unsigned idx, const LogicalUser& previous) override;
       virtual void replay_pointwise_dependences(
-          std::map<unsigned, std::vector<PointwiseDependence> >& dependences);
+          std::map<unsigned, std::vector<PointwiseDependence> >& dependences)
+          override;
     protected:
       // Map from region requirement indexes to the point-wise dependences
       // we'll need to compute for that region requirement

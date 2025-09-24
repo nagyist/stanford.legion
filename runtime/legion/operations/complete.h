@@ -63,15 +63,16 @@ namespace Legion {
           InnerContext* ctx, LogicalTrace* trace, Provenance* provenance,
           bool remove_reference);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     protected:
-      virtual FenceOp* get_complete_operation(void) { return this; }
+      virtual FenceOp* get_complete_operation(void) override { return this; }
     protected:
       bool has_blocking_call;
       bool remove_trace_reference;
@@ -93,17 +94,19 @@ namespace Legion {
     protected:
       void initialize_complete(ReplicateContext* ctx);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual FenceOp* get_complete_operation(void) { return this; }
-      virtual void begin_replayable_exchange(ReplayableStatus status);
-      virtual void end_replayable_exchange(ReplayableStatus& status);
-      virtual void begin_idempotent_exchange(IdempotencyStatus idempotent);
-      virtual void end_idempotent_exchange(IdempotencyStatus& idempotent);
-      virtual void sync_compute_frontiers(RtEvent event);
+      virtual FenceOp* get_complete_operation(void) override { return this; }
+      virtual void begin_replayable_exchange(ReplayableStatus status) override;
+      virtual void end_replayable_exchange(ReplayableStatus& status) override;
+      virtual void begin_idempotent_exchange(
+          IdempotencyStatus idempotent) override;
+      virtual void end_idempotent_exchange(
+          IdempotencyStatus& idempotent) override;
+      virtual void sync_compute_frontiers(RtEvent event) override;
       virtual void deduplicate_condition_sets(
-          std::map<EquivalenceSet*, unsigned>& condition_sets);
+          std::map<EquivalenceSet*, unsigned>& condition_sets) override;
     private:
       CollectiveID replayable_collective_id;
       CollectiveID idempotent_collective_id;
@@ -129,14 +132,15 @@ namespace Legion {
           ReplicateContext* ctx, LogicalTrace* trace, Provenance* provenance,
           bool remove_reference);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     protected:
       bool has_blocking_call;
       bool remove_trace_reference;
@@ -158,13 +162,14 @@ namespace Legion {
       TracingSetDeduplication& operator=(const TracingSetDeduplication& rhs) =
           delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_TRACING_SET_DEDUPLICATION;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
     public:
       void record_set(DistributedID did, unsigned parent_req_index);
       const std::map<DistributedID, unsigned>& all_gather_collective_sets(void);

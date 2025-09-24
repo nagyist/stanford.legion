@@ -51,24 +51,25 @@ namespace Legion {
     public:
       virtual void unpack(Deserializer& derez) = 0;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const = 0;
-      virtual OpKind get_operation_kind(void) const = 0;
-      virtual Operation* get_origin_operation(void)
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override = 0;
+      virtual OpKind get_operation_kind(void) const override = 0;
+      virtual Operation* get_origin_operation(void) override
       {
         std::abort();
       }  // should never be called on remote ops
       virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
-          void);
+          void) override;
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
-          bool fill, unsigned count = 1);
+          bool fill, unsigned count = 1) override;
       virtual void report_uninitialized_usage(
-          const unsigned index, const char* field_string, RtUserEvent reported);
+          const unsigned index, const char* field_string,
+          RtUserEvent reported) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const = 0;
+          std::set<RtEvent>& applied) const override = 0;
     public:
       void defer_deletion(RtEvent precondition);
       void pack_remote_base(Serializer& rez) const;
@@ -79,12 +80,13 @@ namespace Legion {
       // Caller takes ownership of this object and must delete it when done
       static RemoteOp* unpack_remote_operation(Deserializer& derez);
     public:
-      virtual void record_completion_effect(ApEvent effect);
+      virtual void record_completion_effect(ApEvent effect) override;
       virtual void record_completion_effect(
-          ApEvent effect, std::set<RtEvent>& map_applied_events);
-      virtual void record_completion_effects(const std::set<ApEvent>& effects);
+          ApEvent effect, std::set<RtEvent>& map_applied_events) override;
       virtual void record_completion_effects(
-          const std::vector<ApEvent>& effects);
+          const std::set<ApEvent>& effects) override;
+      virtual void record_completion_effects(
+          const std::vector<ApEvent>& effects) override;
     public:
       // This is a pointer to an operation on a remote node
       // it should never be dereferenced

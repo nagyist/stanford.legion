@@ -58,14 +58,14 @@ namespace Legion {
     public:
       CloseOp& operator=(const CloseOp& rhs) = delete;
     public:
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
-      virtual Mappable* get_mappable(void);
+          bool human = true) const override;
+      virtual Mappable* get_mappable(void) override;
     public:
       // This is for post and virtual close ops
       void initialize_close(InnerContext* ctx, const RegionRequirement& req);
@@ -74,18 +74,19 @@ namespace Legion {
           Operation* creator, unsigned idx, const RegionRequirement& req);
       void perform_logging(Operation* creator, unsigned index, bool merge);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const = 0;
-      virtual OpKind get_operation_kind(void) const = 0;
-      virtual size_t get_region_count(void) const;
-      virtual const FieldMask& get_internal_mask(void) const;
-      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override = 0;
+      virtual OpKind get_operation_kind(void) const override = 0;
+      virtual size_t get_region_count(void) const override;
+      virtual const FieldMask& get_internal_mask(void) const override;
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx = 0) const override
       {
         return requirement;
       }
     public:
-      virtual void trigger_commit(void);
+      virtual void trigger_commit(void) override;
     };
 
     /**
@@ -111,15 +112,15 @@ namespace Legion {
       }
       inline const FieldMask& get_close_mask(void) const { return close_mask; }
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual const FieldMask& get_internal_mask(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual const FieldMask& get_internal_mask(void) const override;
     public:
-      virtual unsigned find_parent_index(unsigned idx);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
+      virtual unsigned find_parent_index(unsigned idx) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
     protected:
       FieldMask close_mask;
       unsigned parent_req_index;
@@ -144,34 +145,34 @@ namespace Legion {
           InnerContext* ctx, unsigned index,
           const InstanceSet& target_instances);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_commit(void);
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_commit(void) override;
+      virtual unsigned find_parent_index(unsigned idx) override;
       virtual void select_sources(
           const unsigned index, PhysicalManager* target,
           const std::vector<InstanceView*>& sources,
           std::vector<unsigned>& ranking,
-          std::map<unsigned, PhysicalManager*>& points);
+          std::map<unsigned, PhysicalManager*>& points) override;
       virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
-          void);
+          void) override;
     protected:
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
-          bool fill, unsigned count = 1);
+          bool fill, unsigned count = 1) override;
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse& response, const void* orig,
-          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
-      virtual void handle_profiling_update(int count);
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc) override;
+      virtual void handle_profiling_update(int count) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
+          std::set<RtEvent>& applied) const override;
     protected:
       unsigned parent_idx;
       VersionInfo version_info;
@@ -201,11 +202,11 @@ namespace Legion {
     public:
       ReplMergeCloseOp& operator=(const ReplMergeCloseOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       void set_repl_close_info(RtBarrier mapped_barrier);
-      virtual void trigger_ready(void);
+      virtual void trigger_ready(void) override;
     protected:
       RtBarrier mapped_barrier;
     };
@@ -225,25 +226,25 @@ namespace Legion {
     public:
       RemoteCloseOp& operator=(const RemoteCloseOp& rhs) = delete;
     public:
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
+          bool human = true) const override;
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
       virtual void select_sources(
           const unsigned index, PhysicalManager* target,
           const std::vector<InstanceView*>& sources,
           std::vector<unsigned>& ranking,
-          std::map<unsigned, PhysicalManager*>& points);
+          std::map<unsigned, PhysicalManager*>& points) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual void unpack(Deserializer& derez);
+          std::set<RtEvent>& applied) const override;
+      virtual void unpack(Deserializer& derez) override;
     };
 
   }  // namespace Internal

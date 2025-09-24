@@ -45,15 +45,15 @@ namespace Legion {
     public:
       virtual RtEvent perform_traversal(
           RtEvent precondition, const VersionInfo& version_info,
-          std::set<RtEvent>& applied_events);
+          std::set<RtEvent>& applied_events) override;
       virtual bool perform_analysis(
           EquivalenceSet* set, IndexSpaceExpression* expr,
           const bool expr_covers, const FieldMask& mask,
           std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
       virtual RtEvent perform_remote(
           RtEvent precondition, std::set<RtEvent>& applied_events,
-          const bool already_deferred = false);
+          const bool already_deferred = false) override;
     public:
       op::FieldMaskMap<InstanceView> filter_views;
       const bool remove_restriction;

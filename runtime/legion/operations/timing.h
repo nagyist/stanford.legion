@@ -37,18 +37,19 @@ namespace Legion {
           InnerContext* ctx, const TimingLauncher& launcher,
           Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
     public:
-      virtual void trigger_complete(ApEvent complete);
-      virtual void trigger_commit(void);
-      virtual void perform_measurement(void);
+      virtual void trigger_complete(ApEvent complete) override;
+      virtual void trigger_commit(void) override;
+      virtual void perform_measurement(void) override;
     protected:
       TimingMeasurement measurement;
       RtEvent measured;
@@ -71,18 +72,19 @@ namespace Legion {
           InnerContext* ctx, const TimingLauncher& launcher,
           Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
     public:
-      virtual void trigger_complete(ApEvent complete);
-      virtual void trigger_commit(void);
-      virtual void perform_measurement(void);
+      virtual void trigger_complete(ApEvent complete) override;
+      virtual void trigger_commit(void) override;
+      virtual void perform_measurement(void) override;
     public:
       inline void set_timing_collective(ValueBroadcast<long long>* collective)
       {

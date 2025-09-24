@@ -79,43 +79,50 @@ namespace Legion {
           IndexSpace input_space, const std::vector<IndexSpace>& slice_spaces);
       RtBarrier get_concurrent_task_barrier(Color color) const;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual bool is_reducing_future(void) const { return (redop > 0); }
-      virtual Domain get_slice_domain(void) const;
-      virtual ShardID get_shard_id(void) const { return 0; }
-      virtual size_t get_total_shards(void) const { return 1; }
-      virtual DomainPoint get_shard_point(void) const { return DomainPoint(0); }
-      virtual Domain get_shard_domain(void) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual bool is_reducing_future(void) const override
+      {
+        return (redop > 0);
+      }
+      virtual Domain get_slice_domain(void) const override;
+      virtual ShardID get_shard_id(void) const override { return 0; }
+      virtual size_t get_total_shards(void) const override { return 1; }
+      virtual DomainPoint get_shard_point(void) const override
+      {
+        return DomainPoint(0);
+      }
+      virtual Domain get_shard_domain(void) const override
       {
         return Domain(DomainPoint(0), DomainPoint(0));
       }
-      virtual bool is_pointwise_analyzable(void) const;
+      virtual bool is_pointwise_analyzable(void) const override;
     public:
-      virtual void trigger_dependence_analysis(void) = 0;
+      virtual void trigger_dependence_analysis(void) override = 0;
     public:
-      virtual void predicate_false(void) = 0;
+      virtual void predicate_false(void) override = 0;
       virtual void premap_task(void) = 0;
-      virtual bool distribute_task(void) = 0;
+      virtual bool distribute_task(void) override = 0;
       virtual bool perform_mapping(
           MustEpochOp* owner = nullptr,
-          const DeferMappingArgs* args = nullptr) = 0;
-      virtual void launch_task(bool inline_task = false) = 0;
-      virtual bool is_stealable(void) const = 0;
+          const DeferMappingArgs* args = nullptr) override = 0;
+      virtual void launch_task(bool inline_task = false) override = 0;
+      virtual bool is_stealable(void) const override = 0;
     public:
-      virtual TaskKind get_task_kind(void) const = 0;
+      virtual TaskKind get_task_kind(void) const override = 0;
     public:
-      virtual void trigger_mapping(void);
+      virtual void trigger_mapping(void) override;
     protected:
-      virtual void trigger_task_commit(void) = 0;
+      virtual void trigger_task_commit(void) override = 0;
     public:
-      virtual bool pack_task(Serializer& rez, AddressSpaceID target) = 0;
+      virtual bool pack_task(
+          Serializer& rez, AddressSpaceID target) override = 0;
       virtual bool unpack_task(
           Deserializer& derez, Processor current,
-          std::set<RtEvent>& ready_events) = 0;
+          std::set<RtEvent>& ready_events) override = 0;
       virtual void perform_inlining(
           VariantImpl* variant,
-          const std::deque<InstanceSet>& parent_regions) = 0;
+          const std::deque<InstanceSet>& parent_regions) override = 0;
     public:
       virtual SliceTask* clone_as_slice_task(
           IndexSpace is, Processor p, bool recurse, bool stealable) = 0;

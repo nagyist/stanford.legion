@@ -58,21 +58,23 @@ namespace Legion {
       void initialize_begin(
           InnerContext* ctx, LogicalTrace* trace, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     public:
-      virtual ApEvent get_begin_completion(void)
+      virtual ApEvent get_begin_completion(void) override
       {
         return get_completion_event();
       }
-      virtual FenceOp* get_begin_operation(void) { return this; }
-      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace* trace);
+      virtual FenceOp* get_begin_operation(void) override { return this; }
+      virtual PhysicalTemplate* create_fresh_template(
+          PhysicalTrace* trace) override;
     };
 
     class ReplBeginOp : public ReplTraceOp,
@@ -127,14 +129,15 @@ namespace Legion {
       void initialize_begin(
           ReplicateContext* ctx, LogicalTrace* trace, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     };
 
   }  // namespace Internal

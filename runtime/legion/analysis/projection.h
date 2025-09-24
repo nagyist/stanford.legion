@@ -225,21 +225,26 @@ namespace Legion {
     public:
       ProjectionRegion& operator=(const ProjectionRegion& rhs) = delete;
     public:
-      virtual ProjectionRegion* as_region_projection(void) { return this; }
-      virtual bool is_disjoint(void) const;
-      virtual bool is_leaves_only(void) const;
-      virtual bool is_unique_shards(void) const;
+      virtual ProjectionRegion* as_region_projection(void) override
+      {
+        return this;
+      }
+      virtual bool is_disjoint(void) const override;
+      virtual bool is_leaves_only(void) const override;
+      virtual bool is_unique_shards(void) const override;
       virtual bool interferes(
-          ProjectionNode* other, ShardID local, bool& dominates) const;
-      virtual bool pointwise_dominates(const ProjectionNode* other) const;
+          ProjectionNode* other, ShardID local, bool& dominates) const override;
+      virtual bool pointwise_dominates(
+          const ProjectionNode* other) const override;
       virtual void extract_shard_summaries(
           bool supports_name_based_analysis, ShardID local_shard,
           size_t total_shards, std::map<LogicalRegion, RegionSummary>& regions,
-          std::map<LogicalPartition, PartitionSummary>& partitions) const;
+          std::map<LogicalPartition, PartitionSummary>& partitions)
+          const override;
       virtual void update_shard_summaries(
           bool supports_name_based_analysis, ShardID local_shard,
           size_t total_shards, std::map<LogicalRegion, RegionSummary>& regions,
-          std::map<LogicalPartition, PartitionSummary>& partitions);
+          std::map<LogicalPartition, PartitionSummary>& partitions) override;
       bool has_interference(
           ProjectionRegion* other, ShardID local, bool& dominates) const;
       bool has_pointwise_dominance(const ProjectionRegion* other) const;
@@ -263,24 +268,26 @@ namespace Legion {
     public:
       ProjectionPartition& operator=(const ProjectionPartition& rhs) = delete;
     public:
-      virtual ProjectionPartition* as_partition_projection(void)
+      virtual ProjectionPartition* as_partition_projection(void) override
       {
         return this;
       }
-      virtual bool is_disjoint(void) const;
-      virtual bool is_leaves_only(void) const;
-      virtual bool is_unique_shards(void) const;
+      virtual bool is_disjoint(void) const override;
+      virtual bool is_leaves_only(void) const override;
+      virtual bool is_unique_shards(void) const override;
       virtual bool interferes(
-          ProjectionNode* other, ShardID local, bool& dominates) const;
-      virtual bool pointwise_dominates(const ProjectionNode* other) const;
+          ProjectionNode* other, ShardID local, bool& dominates) const override;
+      virtual bool pointwise_dominates(
+          const ProjectionNode* other) const override;
       virtual void extract_shard_summaries(
           bool supports_name_based_analysis, ShardID local_shard,
           size_t total_shards, std::map<LogicalRegion, RegionSummary>& regions,
-          std::map<LogicalPartition, PartitionSummary>& partitions) const;
+          std::map<LogicalPartition, PartitionSummary>& partitions)
+          const override;
       virtual void update_shard_summaries(
           bool supports_name_based_analysis, ShardID local_shard,
           size_t total_shards, std::map<LogicalRegion, RegionSummary>& regions,
-          std::map<LogicalPartition, PartitionSummary>& partitions);
+          std::map<LogicalPartition, PartitionSummary>& partitions) override;
       bool has_interference(
           ProjectionPartition* other, ShardID local, bool& dominates) const;
       bool has_pointwise_dominance(const ProjectionPartition* other) const;
@@ -385,14 +392,15 @@ namespace Legion {
     public:
       ProjectionTreeExchange& operator=(const ProjectionTreeExchange&) = delete;
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_PROJECTION_TREE_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
-      virtual RtEvent post_complete_exchange(void);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
+      virtual RtEvent post_complete_exchange(void) override;
     public:
       ProjectionNode* const node;
       bool& disjoint;

@@ -44,20 +44,23 @@ namespace Legion {
       inline bool is_shared(void) const { return shared; }
       inline void mark_shared(void) { shared = true; }
     public:
-      virtual void add_subscription_reference(unsigned count = 1)
+      virtual void add_subscription_reference(unsigned count = 1) override
       {
         add_reference(count);
       }
-      virtual bool remove_subscription_reference(unsigned count = 1)
+      virtual bool remove_subscription_reference(unsigned count = 1) override
       {
         return remove_reference(count);
       }
-      virtual RegionTreeID get_region_tree_id(void) const { return tree_id; }
-      virtual IndexSpaceExpression* get_tracker_expression(void) const
+      virtual RegionTreeID get_region_tree_id(void) const override
+      {
+        return tree_id;
+      }
+      virtual IndexSpaceExpression* get_tracker_expression(void) const override
       {
         return condition_expr;
       }
-      virtual ReferenceSource get_reference_source_kind(void) const
+      virtual ReferenceSource get_reference_source_kind(void) const override
       {
         return TRACE_REF;
       }
@@ -327,11 +330,14 @@ namespace Legion {
       }
       inline void record_no_consensus(void) { has_no_consensus.store(true); }
     public:
-      virtual bool is_recording(void) const { return trace->is_recording(); }
-      virtual void add_recorder_reference(void) { /*do nothing*/ }
-      virtual bool remove_recorder_reference(void)
+      virtual bool is_recording(void) const override
+      {
+        return trace->is_recording();
+      }
+      virtual void add_recorder_reference(void) override { /*do nothing*/ }
+      virtual bool remove_recorder_reference(void) override
       { /*do nothing, never delete*/ return false; }
-      virtual void pack_recorder(Serializer& rez);
+      virtual void pack_recorder(Serializer& rez) override;
     public:
       void record_premap_output(
           MemoizableOp* memo, const Mapper::PremapTaskOutput& output,
@@ -341,7 +347,7 @@ namespace Legion {
       virtual void record_mapper_output(
           const TraceLocalID& tlid, const Mapper::MapTaskOutput& output,
           const std::deque<InstanceSet>& physical_instances, bool is_leaf,
-          bool has_return_size, std::set<RtEvent>& applied_events);
+          bool has_return_size, std::set<RtEvent>& applied_events) override;
       void get_mapper_output(
           SingleTask* task, VariantID& chosen_variant,
           TaskPriority& task_priority, bool& postmap_task,
@@ -358,36 +364,39 @@ namespace Legion {
     public:
       virtual void record_replay_mapping(
           ApEvent lhs, unsigned op_kind, const TraceLocalID& tlid,
-          std::set<RtEvent>& applied_events);
-      virtual void request_term_event(ApUserEvent& term_event);
+          std::set<RtEvent>& applied_events) override;
+      virtual void request_term_event(ApUserEvent& term_event) override;
       virtual void record_create_ap_user_event(
-          ApUserEvent& lhs, const TraceLocalID& tlid);
+          ApUserEvent& lhs, const TraceLocalID& tlid) override;
       virtual void record_trigger_event(
           ApUserEvent lhs, ApEvent rhs, const TraceLocalID& tlid,
-          std::set<RtEvent>& applied);
+          std::set<RtEvent>& applied) override;
     public:
       virtual void record_merge_events(
-          ApEvent& lhs, ApEvent rhs, const TraceLocalID& tlid);
+          ApEvent& lhs, ApEvent rhs, const TraceLocalID& tlid) override;
       virtual void record_merge_events(
-          ApEvent& lhs, ApEvent e1, ApEvent e2, const TraceLocalID& tlid);
+          ApEvent& lhs, ApEvent e1, ApEvent e2,
+          const TraceLocalID& tlid) override;
       virtual void record_merge_events(
           ApEvent& lhs, ApEvent e1, ApEvent e2, ApEvent e3,
-          const TraceLocalID& tlid);
+          const TraceLocalID& tlid) override;
       virtual void record_merge_events(
-          ApEvent& lhs, const std::set<ApEvent>& rhs, const TraceLocalID& tlid);
+          ApEvent& lhs, const std::set<ApEvent>& rhs,
+          const TraceLocalID& tlid) override;
       virtual void record_merge_events(
           ApEvent& lhs, const std::vector<ApEvent>& rhs,
-          const TraceLocalID& tlid);
+          const TraceLocalID& tlid) override;
       virtual void record_merge_events(
-          PredEvent& lhs, PredEvent e1, PredEvent e2, const TraceLocalID& tlid);
+          PredEvent& lhs, PredEvent e1, PredEvent e2,
+          const TraceLocalID& tlid) override;
       virtual void record_collective_barrier(
           ApBarrier bar, ApEvent pre, const std::pair<size_t, size_t>& key,
-          size_t arrival_count);
+          size_t arrival_count) override;
       virtual ShardID record_barrier_creation(
-          ApBarrier& bar, size_t total_arrivals);
+          ApBarrier& bar, size_t total_arrivals) override;
       virtual void record_barrier_arrival(
           ApBarrier bar, ApEvent pre, size_t arrival_count,
-          std::set<RtEvent>& applied, ShardID owner_shard);
+          std::set<RtEvent>& applied, ShardID owner_shard) override;
     public:
       virtual void record_issue_copy(
           const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
@@ -397,46 +406,46 @@ namespace Legion {
           RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
           ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
           LgEvent dst_unique, int priority, CollectiveKind collective,
-          bool record_effect);
+          bool record_effect) override;
       virtual void record_issue_across(
           const TraceLocalID& tlid, ApEvent& lhs,
           ApEvent collective_precondition, ApEvent copy_precondition,
           ApEvent src_indirect_precondition, ApEvent dst_indirect_precondition,
-          CopyAcrossExecutor* executor);
+          CopyAcrossExecutor* executor) override;
       virtual void record_copy_insts(
           ApEvent lhs, const TraceLocalID& tlid, unsigned src_idx,
           unsigned dst_idx, IndexSpaceExpression* expr,
           const UniqueInst& src_inst, const UniqueInst& dst_inst,
           const FieldMask& src_mask, const FieldMask& dst_mask,
           PrivilegeMode src_mode, PrivilegeMode dst_mode, ReductionOpID redop,
-          std::set<RtEvent>& applied);
+          std::set<RtEvent>& applied) override;
       virtual void record_across_insts(
           ApEvent lhs, const TraceLocalID& tlid, unsigned src_idx,
           unsigned dst_idx, IndexSpaceExpression* expr,
           const AcrossInsts& src_insts, const AcrossInsts& dst_insts,
           PrivilegeMode src_mode, PrivilegeMode dst_mode, bool src_indirect,
-          bool dst_indirect, std::set<RtEvent>& applied);
+          bool dst_indirect, std::set<RtEvent>& applied) override;
       virtual void record_indirect_insts(
           ApEvent indirect_done, ApEvent all_done, IndexSpaceExpression* expr,
           const AcrossInsts& insts, std::set<RtEvent>& applied,
-          PrivilegeMode priv);
+          PrivilegeMode priv) override;
       virtual void record_issue_fill(
           const TraceLocalID& tlid, ApEvent& lhs, IndexSpaceExpression* expr,
           const std::vector<CopySrcDstField>& fields, const void* fill_value,
           size_t fill_size, UniqueID fill_uid, FieldSpace handle,
           RegionTreeID tree_id, ApEvent precondition, PredEvent pred_guard,
           LgEvent unique_event, int priority, CollectiveKind collective,
-          bool record_effect);
+          bool record_effect) override;
     public:
       virtual void record_op_inst(
           const TraceLocalID& tlid, unsigned idx, const UniqueInst& inst,
           RegionNode* node, const RegionUsage& usage,
           const FieldMask& user_mask, bool update_validity,
-          std::set<RtEvent>& applied);
+          std::set<RtEvent>& applied) override;
       virtual void record_fill_inst(
           ApEvent lhs, IndexSpaceExpression* expr, const UniqueInst& inst,
           const FieldMask& fill_mask, std::set<RtEvent>& applied_events,
-          const bool reduction_initialization);
+          const bool reduction_initialization) override;
     protected:
       void record_instance_user(
           InstUsers& users, const UniqueInst& instance,
@@ -447,16 +456,16 @@ namespace Legion {
           const FieldMask& mask, std::set<RtEvent>& applied_events);
     public:
       virtual void record_set_op_sync_event(
-          ApEvent& lhs, const TraceLocalID& tlid);
+          ApEvent& lhs, const TraceLocalID& tlid) override;
       virtual void record_complete_replay(
           const TraceLocalID& tlid, ApEvent pre,
-          std::set<RtEvent>& applied_events);
+          std::set<RtEvent>& applied_events) override;
       virtual void record_reservations(
           const TraceLocalID& tlid, const std::map<Reservation, bool>& locks,
-          std::set<RtEvent>& applied_events);
+          std::set<RtEvent>& applied_events) override;
       virtual void record_future_allreduce(
           const TraceLocalID& tlid, const std::vector<Memory>& target_memories,
-          size_t future_size);
+          size_t future_size) override;
       void record_concurrent_group(
           IndexTask* task, Color color, size_t local, size_t global,
           RtBarrier bar, const std::vector<ShardID>& shards);

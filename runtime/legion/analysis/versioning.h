@@ -125,11 +125,11 @@ namespace Legion {
           EquivalenceSet* set, InnerContext* enclosing,
           unsigned parent_req_index);
     public:
-      virtual void add_subscription_reference(unsigned count = 1);
-      virtual bool remove_subscription_reference(unsigned count = 1);
-      virtual RegionTreeID get_region_tree_id(void) const;
-      virtual IndexSpaceExpression* get_tracker_expression(void) const;
-      virtual ReferenceSource get_reference_source_kind(void) const
+      virtual void add_subscription_reference(unsigned count = 1) override;
+      virtual bool remove_subscription_reference(unsigned count = 1) override;
+      virtual RegionTreeID get_region_tree_id(void) const override;
+      virtual IndexSpaceExpression* get_tracker_expression(void) const override;
+      virtual ReferenceSource get_reference_source_kind(void) const override
       {
         return VERSION_MANAGER_REF;
       }

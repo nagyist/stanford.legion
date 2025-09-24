@@ -39,18 +39,19 @@ namespace Legion {
           bool deterministic, MapperID mapper_id, MappingTagID tag,
           Provenance* provenance, Future initial_value);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual bool invalidates_physical_trace_template(
+          bool& exec_fence) const override
       {
         return false;
       }
       // AllReduceOps should never actually need this but it might get
       // called in the process of doing a mapping call
       virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
-          void)
+          void) override
       {
         return nullptr;
       }
@@ -58,11 +59,12 @@ namespace Legion {
       void invoke_mapper(void);
       ApEvent finalize_serdez_targets(void);
     public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_execution(void);
-      virtual void trigger_replay(void);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_execution(void) override;
+      virtual void trigger_replay(void) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
     protected:
       // These are virtual methods to override for control replication
       virtual void populate_sources(void);
@@ -113,13 +115,13 @@ namespace Legion {
     public:
       void initialize_replication(ReplicateContext* ctx);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     protected:
-      virtual void populate_sources(void);
-      virtual void create_future_instances(void);
-      virtual void all_reduce_serdez(void);
-      virtual ApEvent all_reduce_redop(RtEvent& executed);
+      virtual void populate_sources(void) override;
+      virtual void create_future_instances(void) override;
+      virtual void all_reduce_serdez(void) override;
+      virtual ApEvent all_reduce_redop(RtEvent& executed) override;
     protected:
       BufferExchange* serdez_redop_collective;
       FutureAllReduceCollective* all_reduce_collective;

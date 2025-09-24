@@ -37,10 +37,10 @@ namespace Legion {
       virtual ~InternalOp(void);
     public:
       void initialize_internal(Operation* creator, int creator_req_idx);
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual bool is_internal_op(void) const { return true; }
+      virtual bool is_internal_op(void) const override { return true; }
       virtual const FieldMask& get_internal_mask(void) const = 0;
     public:
       inline Operation* get_creator_op(void) const { return create_op; }
@@ -50,7 +50,7 @@ namespace Legion {
           Operation* target, GenerationID target_gen, int target_idx,
           int source_idx, DependenceType dtype,
           const FieldMask& dependent_mask);
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual unsigned find_parent_index(unsigned idx) override;
     protected:
       // These things are really only needed for tracing
       // Information about the operation that generated

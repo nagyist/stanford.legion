@@ -62,17 +62,17 @@ namespace Legion {
     public:
       PhiView& operator=(const PhiView& rhs) = delete;
     public:
-      virtual void notify_local(void);
-      virtual void pack_valid_ref(void);
-      virtual void unpack_valid_ref(void);
+      virtual void notify_local(void) override;
+      virtual void pack_valid_ref(void) override;
+      virtual void unpack_valid_ref(void) override;
     public:
-      virtual void send_view(AddressSpaceID target);
+      virtual void send_view(AddressSpaceID target) override;
     public:
       virtual void flatten(
           CopyFillAggregator& aggregator, InstanceView* dst_view,
           const FieldMask& src_mask, IndexSpaceExpression* expr,
           PredEvent pred_guard, const PhysicalTraceInfo& trace_info,
-          EquivalenceSet* tracign_eq, CopyAcrossHelper* helper);
+          EquivalenceSet* tracign_eq, CopyAcrossHelper* helper) override;
     public:
       void add_initial_references(bool unpack_references);
     public:

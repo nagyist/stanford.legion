@@ -45,8 +45,8 @@ namespace Legion {
       MemoizableOp(void);
       virtual ~MemoizableOp(void);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       inline PhysicalTemplate* get_template(void) const { return tpl; }
       inline bool is_recording(void) const { return memo_state == MEMO_RECORD; }
@@ -67,7 +67,7 @@ namespace Legion {
       }
       virtual void complete_replay(ApEvent complete) { std::abort(); }
       virtual ApEvent replay_mapping(void) { std::abort(); }
-      virtual MemoizableOp* get_memoizable(void) { return this; }
+      virtual MemoizableOp* get_memoizable(void) override { return this; }
     protected:
       void set_memoizable_state(void);
       bool can_memoize_operation(void);

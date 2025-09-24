@@ -121,23 +121,24 @@ namespace Legion {
       void log_copy_requirements(void) const;
       void perform_base_dependence_analysis(bool permit_projection);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
-      virtual size_t get_region_count(void) const;
-      virtual Mappable* get_mappable(void);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
+      virtual size_t get_region_count(void) const override;
+      virtual Mappable* get_mappable(void) override;
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_complete(ApEvent complete);
-      virtual void trigger_commit(void);
-      virtual bool record_trace_hash(TraceHashRecorder& recorder, uint64_t idx);
+      virtual bool has_prepipeline_stage(void) const override { return true; }
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_complete(ApEvent complete) override;
+      virtual void trigger_commit(void) override;
+      virtual bool record_trace_hash(
+          TraceHashRecorder& recorder, uint64_t idx) override;
       virtual void report_interfering_requirements(
-          unsigned idx1, unsigned idx2);
+          unsigned idx1, unsigned idx2) override;
       virtual RtEvent exchange_indirect_records(
           const unsigned index, const ApEvent local_pre,
           const ApEvent local_post, ApEvent& collective_pre,
@@ -145,26 +146,26 @@ namespace Legion {
           const InstanceSet& instances, const RegionRequirement& req,
           std::vector<IndirectRecord>& records, const bool sources);
     public:
-      virtual void predicate_false(void);
+      virtual void predicate_false(void) override;
     public:
-      virtual unsigned find_parent_index(unsigned idx);
+      virtual unsigned find_parent_index(unsigned idx) override;
       virtual void select_sources(
           const unsigned index, PhysicalManager* target,
           const std::vector<InstanceView*>& sources,
           std::vector<unsigned>& ranking,
-          std::map<unsigned, PhysicalManager*>& points);
+          std::map<unsigned, PhysicalManager*>& points) override;
       virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
-          void);
+          void) override;
       virtual void update_atomic_locks(
-          const unsigned index, Reservation lock, bool exclusive);
+          const unsigned index, Reservation lock, bool exclusive) override;
     public:
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
+          bool human = true) const override;
     protected:
       void perform_type_checking(void) const;
       void perform_copy_across(
@@ -191,12 +192,13 @@ namespace Legion {
           const std::vector<unsigned>& changed_idxs);
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
+      virtual void trigger_replay(void) override;
     public:
       // From Memoizable
-      virtual void complete_replay(ApEvent copy_complete_event);
+      virtual void complete_replay(ApEvent copy_complete_event) override;
       virtual const VersionInfo& get_version_info(unsigned idx) const;
-      virtual const RegionRequirement& get_requirement(unsigned idx) const;
+      virtual const RegionRequirement& get_requirement(
+          unsigned idx) const override;
     protected:
       unsigned get_requirement_offset(unsigned idx) const;
       const char* get_requirement_name(unsigned idx) const;
@@ -211,14 +213,14 @@ namespace Legion {
           bool is_reduce = false);
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
-          bool fill, unsigned count = 1);
+          bool fill, unsigned count = 1) override;
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse& response, const void* orig,
-          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
-      virtual void handle_profiling_update(int count);
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc) override;
+      virtual void handle_profiling_update(int count) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
+          std::set<RtEvent>& applied) const override;
       // Separate function for this so it can be called by derived classes
       RtEvent perform_local_versioning_analysis(void);
     protected:
@@ -346,36 +348,36 @@ namespace Legion {
           InnerContext* ctx, const IndexCopyLauncher& launcher,
           IndexSpace launch_space, Provenance* provenance);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_mapping(void);
-      virtual void trigger_commit(void);
-      virtual void predicate_false(void);
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_mapping(void) override;
+      virtual void trigger_commit(void) override;
+      virtual void predicate_false(void) override;
       virtual void report_interfering_requirements(
-          unsigned idx1, unsigned idx2);
+          unsigned idx1, unsigned idx2) override;
       virtual RtEvent exchange_indirect_records(
           const unsigned index, const ApEvent local_pre,
           const ApEvent local_post, ApEvent& collective_pre,
           ApEvent& collective_post, const TraceInfo& trace_info,
           const InstanceSet& instances, const RegionRequirement& req,
-          std::vector<IndirectRecord>& records, const bool sources);
+          std::vector<IndirectRecord>& records, const bool sources) override;
       virtual RtEvent finalize_exchange(
           const unsigned index, const bool source);
     public:
       virtual RtEvent find_intra_space_dependence(const DomainPoint& point);
-      virtual bool is_pointwise_analyzable(void) const;
+      virtual bool is_pointwise_analyzable(void) const override;
       virtual RtEvent find_pointwise_dependence(
           const DomainPoint& point, GenerationID gen,
-          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
       // From MemoizableOp
-      virtual void trigger_replay(void);
+      virtual void trigger_replay(void) override;
     public:
-      virtual size_t get_collective_points(void) const;
+      virtual size_t get_collective_points(void) const override;
     public:
       virtual IndexSpaceNode* get_shard_points(void) const
       {
@@ -435,45 +437,50 @@ namespace Legion {
       void initialize(IndexCopyOp* owner, const DomainPoint& point);
       void launch(void);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_replay(void);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_replay(void) override;
       // trigger_mapping same as base class
-      virtual void trigger_complete(ApEvent effects);
-      virtual void trigger_commit(void);
+      virtual void trigger_complete(ApEvent effects) override;
+      virtual void trigger_commit(void) override;
       virtual RtEvent exchange_indirect_records(
           const unsigned index, const ApEvent local_pre,
           const ApEvent local_post, ApEvent& collective_pre,
           ApEvent& collective_post, const TraceInfo& trace_info,
           const InstanceSet& instances, const RegionRequirement& req,
-          std::vector<IndirectRecord>& records, const bool sources);
-      virtual unsigned find_parent_index(unsigned idx)
+          std::vector<IndirectRecord>& records, const bool sources) override;
+      virtual unsigned find_parent_index(unsigned idx) override
       {
         return owner->find_parent_index(idx);
       }
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
     public:
-      virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual size_t get_collective_points(void) const override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     public:
       // From ProjectionPoint
-      virtual const DomainPoint& get_domain_point(void) const;
-      virtual void set_projection_result(unsigned idx, LogicalRegion result);
+      virtual const DomainPoint& get_domain_point(void) const override;
+      virtual void set_projection_result(
+          unsigned idx, LogicalRegion result) override;
       virtual void record_intra_space_dependences(
-          unsigned idx, const std::vector<DomainPoint>& region_deps);
+          unsigned idx, const std::vector<DomainPoint>& region_deps) override;
       virtual void record_pointwise_dependence(
           uint64_t previous_context_index, const DomainPoint& previous_point,
-          ShardID shard);
-      virtual const Operation* as_operation(void) const { return this; }
+          ShardID shard) override;
+      virtual const Operation* as_operation(void) const override
+      {
+        return this;
+      }
     public:
       // From Memoizable
-      virtual TraceLocalID get_trace_local_id(void) const;
+      virtual TraceLocalID get_trace_local_id(void) const override;
     protected:
       IndexCopyOp* owner;
       std::vector<RtEvent> pointwise_mapping_dependences;
@@ -497,14 +504,15 @@ namespace Legion {
           std::vector<std::vector<IndirectRecord>*>& targets,
           std::vector<IndirectRecord>& local_records);
     public:
-      virtual MessageKind get_message_kind(void) const
+      virtual MessageKind get_message_kind(void) const override
       {
         return SEND_CONTROL_REPLICATION_INDIRECT_COPY_EXCHANGE;
       }
       virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage);
-      virtual void unpack_collective_stage(Deserializer& derez, int stage);
-      virtual RtEvent post_complete_exchange(void);
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
+      virtual RtEvent post_complete_exchange(void) override;
     protected:
       std::vector<std::vector<IndirectRecord>*> local_targets;
       std::vector<IndirectRecord> all_records;
@@ -525,13 +533,13 @@ namespace Legion {
     public:
       void initialize_replication(ReplicateContext* ctx);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_replay(void);
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_replay(void) override;
     protected:
       IndexSpaceNode* launch_space;
       ShardingID sharding_functor;
@@ -558,32 +566,34 @@ namespace Legion {
     public:
       ReplIndexCopyOp& operator=(const ReplIndexCopyOp& rhs) = delete;
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void trigger_replay(void);
-      virtual IndexSpaceNode* get_shard_points(void) const
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void trigger_replay(void) override;
+      virtual IndexSpaceNode* get_shard_points(void) const override
       {
         return shard_points;
       }
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     protected:
       virtual RtEvent exchange_indirect_records(
           const unsigned index, const ApEvent local_pre,
           const ApEvent local_post, ApEvent& collective_pre,
           ApEvent& collective_post, const TraceInfo& trace_info,
           const InstanceSet& instances, const RegionRequirement& req,
-          std::vector<IndirectRecord>& records, const bool sources);
+          std::vector<IndirectRecord>& records, const bool sources) override;
       virtual RtEvent finalize_exchange(
-          const unsigned index, const bool source);
+          const unsigned index, const bool source) override;
     public:
-      virtual RtEvent find_intra_space_dependence(const DomainPoint& point);
+      virtual RtEvent find_intra_space_dependence(
+          const DomainPoint& point) override;
       virtual void finish_check_point_requirements(
           std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >&
-              point_domains);
+              point_domains) override;
     public:
       void initialize_replication(ReplicateContext* ctx);
     protected:
@@ -621,29 +631,29 @@ namespace Legion {
     public:
       RemoteCopyOp& operator=(const RemoteCopyOp& rhs) = delete;
     public:
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+          bool human = true) const override;
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
       virtual void select_sources(
           const unsigned index, PhysicalManager* target,
           const std::vector<InstanceView*>& sources,
           std::vector<unsigned>& ranking,
-          std::map<unsigned, PhysicalManager*>& points);
+          std::map<unsigned, PhysicalManager*>& points) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual void unpack(Deserializer& derez);
+          std::set<RtEvent>& applied) const override;
+      virtual void unpack(Deserializer& derez) override;
     };
 
     //--------------------------------------------------------------------------
