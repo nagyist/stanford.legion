@@ -129,7 +129,10 @@ namespace Legion {
       }
       // Always do tracing after profiling
       if ((info != nullptr) && info->recording)
-        info->record_merge_events(result, e1, e2);
+      {
+        const ApEvent rhs[2] = {e1, e2};
+        info->record_merge_events(result, rhs, 2);
+      }
       return result;
     }
 
@@ -153,13 +156,17 @@ namespace Legion {
       }
       // Always do tracing after profiling
       if ((info != nullptr) && info->recording)
-        info->record_merge_events(result, e1, e2, e3);
+      {
+        const ApEvent rhs[3] = {e1, e2, e3};
+        info->record_merge_events(result, rhs, 3);
+      }
       return result;
     }
 
     //--------------------------------------------------------------------------
+    template<typename A>
     /*static*/ inline ApEvent Runtime::merge_events(
-        const TraceInfo* info, const std::set<ApEvent>& events)
+        const TraceInfo* info, const std::set<ApEvent, A>& events)
     //--------------------------------------------------------------------------
     {
       if (spy_logging_level <= LIGHT_SPY_LOGGING)
@@ -170,7 +177,7 @@ namespace Legion {
           if ((info != nullptr) && info->recording)
           {
             ApEvent result;
-            info->record_merge_events(result, events);
+            info->record_merge_events(result, &result, 0);
             return result;
           }
           else
@@ -181,8 +188,9 @@ namespace Legion {
           // Still need to do this for tracing because of merge filter code
           if ((info != nullptr) && info->recording)
           {
-            ApEvent result = *(events.begin());
-            info->record_merge_events(result, events);
+            ApEvent event = *(events.begin());
+            ApEvent result = event;
+            info->record_merge_events(result, &event, 1);
             return result;
           }
           else
@@ -190,11 +198,11 @@ namespace Legion {
         }
       }
       // Fuck C++
-      const std::set<ApEvent>* legion_events = &events;
+      const std::set<ApEvent, A>* legion_events = &events;
       const std::set<Realm::Event>* realm_events;
       static_assert(sizeof(legion_events) == sizeof(realm_events));
       static_assert(sizeof(ApEvent) == sizeof(Realm::Event));
-      memcpy(&realm_events, &legion_events, sizeof(legion_events));
+      std::memcpy(&realm_events, &legion_events, sizeof(legion_events));
       ApEvent result(Realm::Event::merge_events(*realm_events));
       if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
@@ -206,19 +214,26 @@ namespace Legion {
       if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(ApEvent) == sizeof(LgEvent));
-        const std::vector<ApEvent> preconditions(events.begin(), events.end());
+        const local::vector<ApEvent> preconditions(
+            events.begin(), events.end());
         implicit_profiler->record_event_merger(
             result, &preconditions.front(), preconditions.size());
       }
       // Always do tracing after profiling
       if ((info != nullptr) && info->recording)
-        info->record_merge_events(result, events);
+      {
+        const local::vector<ApEvent> preconditions(
+            events.begin(), events.end());
+        info->record_merge_events(
+            result, &preconditions.front(), preconditions.size());
+      }
       return result;
     }
 
     //--------------------------------------------------------------------------
+    template<typename A>
     /*static*/ inline ApEvent Runtime::merge_events(
-        const TraceInfo* info, const std::vector<ApEvent>& events)
+        const TraceInfo* info, const std::vector<ApEvent, A>& events)
     //--------------------------------------------------------------------------
     {
       if (spy_logging_level <= LIGHT_SPY_LOGGING)
@@ -229,7 +244,7 @@ namespace Legion {
           if ((info != nullptr) && info->recording)
           {
             ApEvent result;
-            info->record_merge_events(result, events);
+            info->record_merge_events(result, &result, 0);
             return result;
           }
           else
@@ -241,7 +256,7 @@ namespace Legion {
           if ((info != nullptr) && info->recording)
           {
             ApEvent result = events.front();
-            info->record_merge_events(result, events);
+            info->record_merge_events(result, &events.front(), 1);
             return result;
           }
           else
@@ -253,7 +268,7 @@ namespace Legion {
       const std::vector<Realm::Event>* realm_events;
       static_assert(sizeof(legion_events) == sizeof(realm_events));
       static_assert(sizeof(ApEvent) == sizeof(Realm::Event));
-      memcpy(&realm_events, &legion_events, sizeof(legion_events));
+      std::memcpy(&realm_events, &legion_events, sizeof(legion_events));
       ApEvent result(Realm::Event::merge_events(*realm_events));
       if (spy_logging_level > LIGHT_SPY_LOGGING)
       {
@@ -281,7 +296,7 @@ namespace Legion {
       }
       // Always do tracing after profiling
       if ((info != nullptr) && info->recording)
-        info->record_merge_events(result, events);
+        info->record_merge_events(result, &events.front(), events.size());
       return result;
     }
 
@@ -315,8 +330,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    template<typename A>
     /*static*/ inline RtEvent Runtime::merge_events(
-        const std::set<RtEvent>& events)
+        const std::set<RtEvent, A>& events)
     //--------------------------------------------------------------------------
     {
       if (events.empty())
@@ -324,17 +340,18 @@ namespace Legion {
       if (events.size() == 1)
         return *(events.begin());
       // Fuck C++
-      const std::set<RtEvent>* legion_events = &events;
+      const std::set<RtEvent, A>* legion_events = &events;
       const std::set<Realm::Event>* realm_events;
       static_assert(sizeof(legion_events) == sizeof(realm_events));
       static_assert(sizeof(RtEvent) == sizeof(Realm::Event));
-      memcpy(&realm_events, &legion_events, sizeof(legion_events));
+      std::memcpy(&realm_events, &legion_events, sizeof(legion_events));
       // No logging for runtime operations currently
       const RtEvent result(Realm::Event::merge_events(*realm_events));
       if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(RtEvent) == sizeof(LgEvent));
-        const std::vector<RtEvent> preconditions(events.begin(), events.end());
+        const local::vector<RtEvent> preconditions(
+            events.begin(), events.end());
         implicit_profiler->record_event_merger(
             result, &preconditions.front(), preconditions.size());
       }
@@ -342,8 +359,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    template<typename A>
     /*static*/ inline RtEvent Runtime::merge_events(
-        const std::vector<RtEvent>& events)
+        const std::vector<RtEvent, A>& events)
     //--------------------------------------------------------------------------
     {
       if (events.empty())
@@ -351,11 +369,11 @@ namespace Legion {
       if (events.size() == 1)
         return events.front();
       // Fuck C++
-      const std::vector<RtEvent>* legion_events = &events;
+      const std::vector<RtEvent, A>* legion_events = &events;
       const std::vector<Realm::Event>* realm_events;
       static_assert(sizeof(legion_events) == sizeof(realm_events));
       static_assert(sizeof(RtEvent) == sizeof(Realm::Event));
-      memcpy(&realm_events, &legion_events, sizeof(legion_events));
+      std::memcpy(&realm_events, &legion_events, sizeof(legion_events));
       // No logging for runtime operations currently
       const RtEvent result(Realm::Event::merge_events(*realm_events));
       if ((implicit_profiler != nullptr) && result.exists())
@@ -560,11 +578,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    template<typename A>
     /*static*/ inline RtEvent Runtime::protect_merge_events(
-        const std::set<ApEvent>& events)
+        const std::set<ApEvent, A>& events)
     //--------------------------------------------------------------------------
     {
-      const std::set<ApEvent>* ptr = &events;
+      const std::set<ApEvent, A>* ptr = &events;
       const std::set<Realm::Event>* realm_events = nullptr;
       static_assert(sizeof(realm_events) == sizeof(ptr));
       memcpy(&realm_events, &ptr, sizeof(realm_events));

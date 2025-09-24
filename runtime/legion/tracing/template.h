@@ -373,18 +373,7 @@ namespace Legion {
           std::set<RtEvent>& applied) override;
     public:
       virtual void record_merge_events(
-          ApEvent& lhs, ApEvent rhs, const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, ApEvent e1, ApEvent e2,
-          const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, ApEvent e1, ApEvent e2, ApEvent e3,
-          const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, const std::set<ApEvent>& rhs,
-          const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, const std::vector<ApEvent>& rhs,
+          ApEvent& lhs, const ApEvent* rhs, size_t num_rhs,
           const TraceLocalID& tlid) override;
       virtual void record_merge_events(
           PredEvent& lhs, PredEvent e1, PredEvent e2,

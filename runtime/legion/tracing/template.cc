@@ -2842,75 +2842,18 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PhysicalTemplate::record_merge_events(
-        ApEvent& lhs, ApEvent rhs_, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
-      std::vector<ApEvent> rhs(1, rhs_);
-      record_merge_events(lhs, rhs, tlid);
-    }
-
-    //--------------------------------------------------------------------------
-    void PhysicalTemplate::record_merge_events(
-        ApEvent& lhs, ApEvent e1, ApEvent e2, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
-      std::vector<ApEvent> rhs(2);
-      rhs[0] = e1;
-      rhs[1] = e2;
-      record_merge_events(lhs, rhs, tlid);
-    }
-
-    //--------------------------------------------------------------------------
-    void PhysicalTemplate::record_merge_events(
-        ApEvent& lhs, ApEvent e1, ApEvent e2, ApEvent e3,
+        ApEvent& lhs, const ApEvent* rhs, size_t num_rhs,
         const TraceLocalID& tlid)
     //--------------------------------------------------------------------------
     {
-      std::vector<ApEvent> rhs(3);
-      rhs[0] = e1;
-      rhs[1] = e2;
-      rhs[2] = e3;
-      record_merge_events(lhs, rhs, tlid);
-    }
-
-    //--------------------------------------------------------------------------
-    void PhysicalTemplate::record_merge_events(
-        ApEvent& lhs, const std::set<ApEvent>& rhs, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
       AutoLock tpl_lock(template_lock);
       legion_assert(is_recording());
 
       std::set<unsigned> rhs_;
-      for (const ApEvent& event : rhs)
+      for (unsigned idx = 0; idx < num_rhs; idx++)
       {
         std::map<ApEvent, unsigned>::const_iterator finder =
-            event_map.find(event);
-        if (finder != event_map.end())
-          rhs_.insert(finder->second);
-      }
-      if (rhs_.size() == 0)
-        rhs_.insert(fence_completion_id);
-
-      if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
-        Runtime::rename_event(lhs);
-
-      insert_instruction(new MergeEvent(*this, convert_event(lhs), rhs_, tlid));
-    }
-
-    //--------------------------------------------------------------------------
-    void PhysicalTemplate::record_merge_events(
-        ApEvent& lhs, const std::vector<ApEvent>& rhs, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
-      AutoLock tpl_lock(template_lock);
-      legion_assert(is_recording());
-
-      std::set<unsigned> rhs_;
-      for (const ApEvent& event : rhs)
-      {
-        std::map<ApEvent, unsigned>::const_iterator finder =
-            event_map.find(event);
+            event_map.find(rhs[idx]);
         if (finder != event_map.end())
           rhs_.insert(finder->second);
       }
@@ -2920,7 +2863,7 @@ namespace Legion {
       if (lhs.exists())
       {
         // Check for reuse
-        for (unsigned idx = 0; idx < rhs.size(); idx++)
+        for (unsigned idx = 0; idx < num_rhs; idx++)
         {
           if (lhs != rhs[idx])
             continue;

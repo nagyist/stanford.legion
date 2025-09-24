@@ -240,60 +240,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void RemoteTraceRecorder::record_merge_events(
-        ApEvent& lhs, ApEvent rhs, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
-      if (runtime->address_space != origin_space)
-      {
-        std::set<ApEvent> rhs_events;
-        rhs_events.insert(rhs);
-        record_merge_events(lhs, rhs_events, tlid);
-      }
-      else
-        remote_tpl->record_merge_events(lhs, rhs, tlid);
-    }
-
-    //--------------------------------------------------------------------------
-    void RemoteTraceRecorder::record_merge_events(
-        ApEvent& lhs, ApEvent e1, ApEvent e2, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
-      if (runtime->address_space != origin_space)
-      {
-        std::set<ApEvent> rhs_events;
-        rhs_events.insert(e1);
-        rhs_events.insert(e2);
-        record_merge_events(lhs, rhs_events, tlid);
-      }
-      else
-        remote_tpl->record_merge_events(lhs, e1, e2, tlid);
-    }
-
-    //--------------------------------------------------------------------------
-    void RemoteTraceRecorder::record_merge_events(
-        ApEvent& lhs, ApEvent e1, ApEvent e2, ApEvent e3,
+        ApEvent& lhs, const ApEvent* rhs, size_t num_rhs,
         const TraceLocalID& tlid)
     //--------------------------------------------------------------------------
     {
       if (runtime->address_space != origin_space)
       {
-        std::set<ApEvent> rhs_events;
-        rhs_events.insert(e1);
-        rhs_events.insert(e2);
-        rhs_events.insert(e3);
-        record_merge_events(lhs, rhs_events, tlid);
-      }
-      else
-        remote_tpl->record_merge_events(lhs, e1, e2, e3, tlid);
-    }
-
-    //--------------------------------------------------------------------------
-    void RemoteTraceRecorder::record_merge_events(
-        ApEvent& lhs, const std::set<ApEvent>& rhs, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
-      if (runtime->address_space != origin_space)
-      {
         RtUserEvent done = Runtime::create_rt_user_event();
         RemoteTraceUpdate rez;
         {
@@ -304,43 +256,15 @@ namespace Legion {
           rez.serialize(&lhs);
           rez.serialize(lhs);
           tlid.serialize(rez);
-          rez.serialize<size_t>(rhs.size());
-          for (const ApEvent& event : rhs) rez.serialize(event);
+          rez.serialize(num_rhs);
+          rez.serialize(rhs, num_rhs * sizeof(ApEvent));
         }
         rez.dispatch(origin_space);
         // Wait to see if lhs changes
         done.wait();
       }
       else
-        remote_tpl->record_merge_events(lhs, rhs, tlid);
-    }
-
-    //--------------------------------------------------------------------------
-    void RemoteTraceRecorder::record_merge_events(
-        ApEvent& lhs, const std::vector<ApEvent>& rhs, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
-      if (runtime->address_space != origin_space)
-      {
-        RtUserEvent done = Runtime::create_rt_user_event();
-        RemoteTraceUpdate rez;
-        {
-          RezCheck z(rez);
-          rez.serialize(remote_tpl);
-          rez.serialize(REMOTE_TRACE_MERGE_EVENTS);
-          rez.serialize(done);
-          rez.serialize(&lhs);
-          rez.serialize(lhs);
-          tlid.serialize(rez);
-          rez.serialize<size_t>(rhs.size());
-          for (const ApEvent& event : rhs) rez.serialize(event);
-        }
-        rez.dispatch(origin_space);
-        // Wait to see if lhs changes
-        done.wait();
-      }
-      else
-        remote_tpl->record_merge_events(lhs, rhs, tlid);
+        remote_tpl->record_merge_events(lhs, rhs, num_rhs, tlid);
     }
 
     //--------------------------------------------------------------------------
@@ -954,30 +878,9 @@ namespace Legion {
             size_t num_rhs;
             derez.deserialize(num_rhs);
             const ApEvent lhs_copy = lhs;
-            if (num_rhs == 2)
-            {
-              ApEvent e1, e2;
-              derez.deserialize(e1);
-              derez.deserialize(e2);
-              tpl->record_merge_events(lhs, e1, e2, tlid);
-            }
-            else if (num_rhs == 3)
-            {
-              ApEvent e1, e2, e3;
-              derez.deserialize(e1);
-              derez.deserialize(e2);
-              derez.deserialize(e3);
-              tpl->record_merge_events(lhs, e1, e2, e3, tlid);
-            }
-            else
-            {
-              std::vector<ApEvent> rhs_events(num_rhs);
-              for (unsigned idx = 0; idx < num_rhs; idx++)
-              {
-                derez.deserialize(rhs_events[idx]);
-              }
-              tpl->record_merge_events(lhs, rhs_events, tlid);
-            }
+            const ApEvent* rhs = (const ApEvent*)derez.get_current_pointer();
+            tpl->record_merge_events(lhs, rhs, num_rhs, tlid);
+            derez.advance_pointer(num_rhs * sizeof(ApEvent));
             if (lhs != lhs_copy)
             {
               RemoteTraceResponse rez;

@@ -97,10 +97,7 @@ namespace Legion {
           std::set<RtEvent>& applied) override;
       using PhysicalTemplate::record_merge_events;
       virtual void record_merge_events(
-          ApEvent& lhs, const std::set<ApEvent>& rhs,
-          const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, const std::vector<ApEvent>& rhs,
+          ApEvent& lhs, const ApEvent* rhs, size_t num_rhs,
           const TraceLocalID& tlid) override;
       virtual void record_collective_barrier(
           ApBarrier bar, ApEvent pre, const std::pair<size_t, size_t>& key,
