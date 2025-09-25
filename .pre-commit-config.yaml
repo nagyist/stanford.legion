@@ -1,0 +1,21 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v19.1.7
+    hooks:
+      - id: clang-format
+        name: legion-format
+        description: Check if all Legion Runtime files are formatted
+        entry: clang-format
+        files: ^runtime/legion/.*\.(cc|cu|inl|h)$
+        args: ["-i", "-style=file:runtime/legion/.clang-format"]
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: legion-prof-format
+        description: Check if all Legion Prof files follow the rustfmt style
+        entry: cargo 
+        language: system
+        files: ^tools/legion_prof_rs/src/.*\.rs$
+        args: ["fmt", "--manifest-path", "tools/legion_prof_rs/Cargo.toml", "--all", "--", "--check"]
+

@@ -48,8 +48,8 @@ namespace Legion {
       // Check to see if there any input arguments to parse
       long long seed = -1;
       {
-        int argc = HighLevelRuntime::get_input_args().argc;
-        char **argv = HighLevelRuntime::get_input_args().argv;
+        int argc = Runtime::get_input_args().argc;
+        char **argv = Runtime::get_input_args().argv;
         // Parse the input arguments looking for ones for the default mapper
         for (int i=1; i < argc; i++)
         {

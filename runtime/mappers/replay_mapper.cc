@@ -14,7 +14,7 @@
  */
 
 #include "mappers/replay_mapper.h"
-#include "legion/legion_utilities.h"
+#include "legion/utilities/serdez.h"
 
 namespace Legion {
   namespace Mapping {

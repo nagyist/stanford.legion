@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include "legion.h"
 #include "mappers/default_mapper.h"
-#include "legion/legion_replication.h"
 
 using namespace Legion;
 using namespace Legion::Mapping;
@@ -144,8 +143,8 @@ class PointWiseLogicalAnalysisMapper: public DefaultMapper {
     {
       int num_iterations=ITERATIONS;
       {
-        int argc = HighLevelRuntime::get_input_args().argc;
-        char **argv = HighLevelRuntime::get_input_args().argv;
+        int argc = Runtime::get_input_args().argc;
+        char **argv = Runtime::get_input_args().argv;
         for (int i = 1; i < argc; i++)
         {
           if (!strcmp(argv[i],"-i"))

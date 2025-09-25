@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef __LEGION_INTEROP_H__
-#define __LEGION_INTEROP_H__
+#ifndef __INTEROP_H__
+#define __INTEROP_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,5 +30,5 @@ void register_tasks();
 }
 #endif
 
-#endif // __LEGION_INTEROP_H__
+#endif // __INTEROP_H__
 

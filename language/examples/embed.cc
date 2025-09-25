@@ -17,7 +17,7 @@
 #include "embed_tasks.h"
 
 #include "legion.h"
-#include "legion/legion_c_util.h"
+#include "legion/bindings/c_bindings_util.h"
 #include "mappers/default_mapper.h"
 
 using namespace Legion;

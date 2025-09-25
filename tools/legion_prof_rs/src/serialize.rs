@@ -4,6 +4,7 @@ use std::io;
 use std::io::{Read, Seek};
 use std::num::NonZeroU64;
 use std::path::Path;
+use std::str;
 
 use flate2::read::GzDecoder;
 
@@ -12,7 +13,7 @@ use nonmax::NonMaxU64;
 use nom::{
     IResult,
     bytes::complete::{tag, take_till, take_while1},
-    character::{is_alphanumeric, is_digit},
+    character::{is_alphanumeric, is_digit, is_newline},
     combinator::{map, map_opt, map_res, opt},
     multi::{many_m_n, many1, separated_list1},
     number::complete::{le_i32, le_i64, le_u8, le_u32, le_u64},
@@ -99,7 +100,7 @@ pub enum Record {
     OpDesc { kind: u32, name: String },
     MaxDimDesc { max_dim: MaxDim },
     RuntimeConfig { debug: bool, spy: bool, gc: bool, inorder: bool, safe_mapper: bool, safe_runtime: bool, safe_ctrlrepl: bool, part_checks: bool, bounds_checks: bool, resilient: bool },
-    MachineDesc { node_id: NodeID, num_nodes: u32, version: u32, hostname: String, host_id: u64, process_id: u32 },
+    MachineDesc { node_id: NodeID, num_nodes: u32, hostname: String, host_id: u64, process_id: u32 },
     ZeroTime { zero_time: i64 },
     Provenance { pid: ProvenanceID, provenance: String },
     ProcDesc { proc_id: ProcID, kind: ProcKind, cuda_device_uuid: Uuid },
@@ -115,9 +116,9 @@ pub enum Record {
     IndexSubSpaceDesc { parent_id: IPartID, ispace_id: ISpaceID },
     IndexPartitionDesc { parent_id: ISpaceID, unique_id: IPartID, disjoint: bool, point0: u64 },
     IndexSpaceSizeDesc { ispace_id: ISpaceID, dense_size: u64, sparse_size: u64, is_sparse: bool },
-    LogicalRegionDesc { ispace_id: ISpaceID, fspace_id: u32, tree_id: TreeID, name: String },
-    PhysicalInstRegionDesc { fevent: EventID, ispace_id: ISpaceID, fspace_id: u32, tree_id: TreeID },
-    PhysicalInstLayoutDesc { fevent: EventID, field_id: FieldID, fspace_id: u32, has_align: bool, eqk: u32, align_desc: u32 },
+    LogicalRegionDesc { ispace_id: ISpaceID, fspace_id: FSpaceID, tree_id: TreeID, name: String },
+    PhysicalInstRegionDesc { fevent: EventID, ispace_id: ISpaceID, fspace_id: FSpaceID, tree_id: TreeID },
+    PhysicalInstLayoutDesc { fevent: EventID, field_id: FieldID, fspace_id: FSpaceID, has_align: bool, eqk: u32, align_desc: u32 },
     PhysicalInstDimOrderDesc { fevent: EventID, dim: u32, dim_kind: u32 },
     PhysicalInstanceUsage { fevent: EventID, op_id: OpID, index_id: u32, field_id: FieldID },
     TaskKind { task_id: TaskID, name: String, overwrite: bool },
@@ -202,19 +203,13 @@ fn newline(input: &[u8]) -> IResult<&[u8], ()> {
 fn parse_text_i32(input: &[u8]) -> IResult<&[u8], i32> {
     let (input, sign) = opt(tag("-"))(input)?;
     let (input, value) = take_while1(is_digit)(input)?;
-    let value: i32 = String::from_utf8(value.to_owned())
-        .unwrap()
-        .parse()
-        .unwrap();
+    let value: i32 = str::from_utf8(value).unwrap().parse().unwrap();
     Ok((input, if sign.is_none() { value } else { -value }))
 }
 
 fn parse_text_u32(input: &[u8]) -> IResult<&[u8], u32> {
     let (input, value) = take_while1(is_digit)(input)?;
-    let value = String::from_utf8(value.to_owned())
-        .unwrap()
-        .parse()
-        .unwrap();
+    let value = str::from_utf8(value).unwrap().parse().unwrap();
     Ok((input, value))
 }
 
@@ -235,25 +230,30 @@ pub fn is_nul(chr: u8) -> bool {
 
 fn parse_text_name(input: &[u8]) -> IResult<&[u8], String> {
     let (input, name) = take_while1(is_alphanumeric_underscore)(input)?;
-    Ok((input, String::from_utf8(name.to_owned()).unwrap()))
+    Ok((input, str::from_utf8(name).unwrap().to_owned()))
 }
 
 fn parse_text_type(input: &[u8]) -> IResult<&[u8], String> {
     let (input, name) = take_while1(is_alphanumeric_space)(input)?;
-    Ok((input, String::from_utf8(name.to_owned()).unwrap()))
+    Ok((input, str::from_utf8(name).unwrap().to_owned()))
+}
+
+fn parse_text_version(input: &[u8]) -> IResult<&[u8], String> {
+    let (input, name) = take_till(is_newline)(input)?;
+    Ok((input, str::from_utf8(name).unwrap().to_owned()))
 }
 
 //
 // Text parsers for the log file header
 //
 
-fn parse_filetype(input: &[u8]) -> IResult<&[u8], (u32, u32)> {
+fn parse_filetype(input: &[u8]) -> IResult<&[u8], (u32, String)> {
     let (input, _) = tag("FileType: BinaryLegionProf v: ")(input)?;
-    let (input, version_major) = parse_text_u32(input)?;
-    let (input, _) = tag(".")(input)?;
-    let (input, version_minor) = parse_text_u32(input)?;
+    let (input, prof_version) = parse_text_u32(input)?;
     let (input, _) = newline(input)?;
-    Ok((input, (version_major, version_minor)))
+    let (input, legion_version) = parse_text_version(input)?;
+    let (input, _) = newline(input)?;
+    Ok((input, (prof_version, legion_version)))
 }
 
 fn parse_value_format(input: &[u8]) -> IResult<&[u8], ValueFormat> {
@@ -306,12 +306,10 @@ fn parse_cuda_device_uuid(input: &[u8]) -> IResult<&[u8], Uuid> {
     Ok((input, Uuid(values)))
 }
 fn parse_string(input: &[u8]) -> IResult<&[u8], String> {
-    let (input, value) = map_res(take_till(is_nul), |x: &[u8]| {
-        String::from_utf8(x.to_owned())
-    })(input)?;
+    let (input, value) = map_res(take_till(is_nul), |x: &[u8]| str::from_utf8(x))(input)?;
     let (input, terminator) = le_u8(input)?;
     assert!(is_nul(terminator));
-    Ok((input, value))
+    Ok((input, value.to_owned()))
 }
 
 //
@@ -450,7 +448,6 @@ fn parse_runtime_config(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
 fn parse_machine_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, nodeid) = le_u32(input)?;
     let (input, num_nodes) = le_u32(input)?;
-    let (input, version) = le_u32(input)?;
     let (input, hostname) = parse_string(input)?;
     let (input, host_id) = le_u64(input)?;
     let (input, process_id) = le_u32(input)?;
@@ -460,7 +457,6 @@ fn parse_machine_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
         Record::MachineDesc {
             node_id,
             num_nodes,
-            version,
             hostname,
             host_id,
             process_id,
@@ -624,7 +620,7 @@ fn parse_index_space_size_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Re
 }
 fn parse_logical_region_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, ispace_id) = parse_ispace_id(input)?;
-    let (input, fspace_id) = le_u32(input)?;
+    let (input, fspace_id) = parse_fspace_id(input)?;
     let (input, tree_id) = parse_tree_id(input)?;
     let (input, name) = parse_string(input)?;
     Ok((
@@ -640,7 +636,7 @@ fn parse_logical_region_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Reco
 fn parse_physical_inst_region_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, fevent) = parse_event_id(input)?;
     let (input, ispace_id) = parse_ispace_id(input)?;
-    let (input, fspace_id) = le_u32(input)?;
+    let (input, fspace_id) = parse_fspace_id(input)?;
     let (input, tree_id) = parse_tree_id(input)?;
     Ok((
         input,
@@ -655,7 +651,7 @@ fn parse_physical_inst_region_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8]
 fn parse_physical_inst_layout_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, fevent) = parse_event_id(input)?;
     let (input, field_id) = parse_field_id(input)?;
-    let (input, fspace_id) = le_u32(input)?;
+    let (input, fspace_id) = parse_fspace_id(input)?;
     let (input, has_align) = parse_bool(input)?;
     let (input, eqk) = le_u32(input)?;
     let (input, align_desc) = le_u32(input)?;
@@ -1429,16 +1425,16 @@ fn filter_record<'a>(
     }
 }
 
-fn check_version(version: u32) {
-    let expected_version: u32 = include_str!("../../../runtime/legion/legion_profiling_version.h")
+fn check_version(prof_version: u32, legion_version: String) {
+    let expected_version: u32 = include_str!("../../../runtime/legion/tools/profiler_version.h")
         .trim()
         .parse()
         .unwrap();
 
     assert_eq!(
-        version, expected_version,
-        "Legion Prof was built against an incompatible Legion version. Please rebuild with the same version of Legion used by the application to generate the profile logs. (Expected version {}, got version {}.)",
-        expected_version, version
+        prof_version, expected_version,
+        "Legion Prof was built against an incompatible Legion version. (Expected version {}, got version {}.) Please rebuild Legion Prof with the same version of Legion {} used by the application to generate the profile logs.",
+        expected_version, prof_version, legion_version
     );
 }
 
@@ -1454,11 +1450,17 @@ fn parse_record<'a>(
 
 fn parse<'a>(
     input: &'a [u8],
+    path: &Path,
     visible_nodes: &'a [NodeID],
     filter_input: bool,
 ) -> IResult<&'a [u8], Vec<Record>> {
-    let (input, version) = parse_filetype(input)?;
-    assert_eq!(version, (1, 0));
+    let Ok((input, (prof_version, legion_version))) = parse_filetype(input) else {
+        panic!(
+            "Unable to parse header of {}. This could be because it is not a valid Legion Prof logfile or because it was generated by a version of Legion prior to 911657c1140373fceb7f0359b377dc66c1aafec9 (September 4, 2025). Unfortunately Legion Prof cannot tell which case is occurring or even what Legion commit you should use for trying to parse this log file.",
+            path.display(),
+        );
+    };
+    check_version(prof_version, legion_version);
     let (input, record_formats) = many1(parse_record_format)(input)?;
     let mut ids = BTreeMap::new();
     for record_format in record_formats {
@@ -1548,14 +1550,8 @@ fn parse<'a>(
         if let Record::MaxDimDesc { max_dim: d } = &record {
             max_dim = *d;
         }
-        if let Record::MachineDesc {
-            node_id: d,
-            version,
-            ..
-        } = record
-        {
+        if let Record::MachineDesc { node_id: d, .. } = record {
             node_id = Some(d);
-            check_version(version);
         }
         input = input_;
         if !filter_input || filter_record(&record, visible_nodes, node_id) {
@@ -1593,9 +1589,10 @@ pub fn deserialize<P: AsRef<Path>>(
     visible_nodes: &[NodeID],
     filter_input: bool,
 ) -> io::Result<Vec<Record>> {
+    let path = path.as_ref();
     let s = read_file(path)?;
     // throw error here if parse failed
-    let (rest, records) = parse(&s, visible_nodes, filter_input).unwrap();
+    let (rest, records) = parse(&s, path, visible_nodes, filter_input).unwrap();
     assert_eq!(rest.len(), 0);
     Ok(records)
 }

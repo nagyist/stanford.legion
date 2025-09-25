@@ -66,12 +66,12 @@ void top_level_task(const Task *task,
   // index space that will store at most 1024 elements.
   const Domain domain(DomainPoint(0), DomainPoint(1023));
   IndexSpace untyped_is = runtime->create_index_space(ctx, domain); 
-  printf("Created untyped index space %x\n", untyped_is.get_id());
+  printf("Created untyped index space %llu\n", untyped_is.get_id());
   // We create structured index spaces from Rects which we
   // convert to Domains (recall example 02).
   const Rect<1> rect(0,1023);
   IndexSpaceT<1> typed_is = runtime->create_index_space(ctx, rect); 
-  printf("Created typed index space %x\n", typed_is.get_id());
+  printf("Created typed index space %llu\n", typed_is.get_id());
   // Structured index spaces by default already have all their
   // points allocated and they cannot be allocated or deallocated.
   // Unstructured index spaces must have their elements allocated
@@ -97,7 +97,7 @@ void top_level_task(const Task *task,
   // the column entries in a logical region.  Field spaces are created
   // using the 'create_field_space' call.
   FieldSpace fs = runtime->create_field_space(ctx);
-  printf("Created field space field space %x\n", fs.get_id());
+  printf("Created field space field space %llu\n", fs.get_id());
   // Fields can be dynamically allocated and destroyed in fields spaces
   // using field allocators.  For performance reasons there is a compile-time
   // upper bound placed on the maximum number of fields that can be
@@ -129,13 +129,13 @@ void top_level_task(const Task *task,
   // modifications to the field space will effect both logical regions.
   LogicalRegion untyped_lr = 
     runtime->create_logical_region(ctx, untyped_is, fs);
-  printf("Created untyped logical region (%x,%x,%x)\n",
+  printf("Created untyped logical region (%llu,%llu,%llu)\n",
       untyped_lr.get_index_space().get_id(), 
       untyped_lr.get_field_space().get_id(),
       untyped_lr.get_tree_id());
   LogicalRegionT<1> typed_lr = 
     runtime->create_logical_region(ctx, typed_is, fs);
-  printf("Created typed logical region (%x,%x,%x)\n",
+  printf("Created typed logical region (%llu,%llu,%llu)\n",
       typed_lr.get_index_space().get_id(), 
       typed_lr.get_field_space().get_id(),
       typed_lr.get_tree_id());

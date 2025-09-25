@@ -874,6 +874,10 @@ before_script:
         exit 1
       fi
 
+.pre_commit_check: &pre_commit_check
+  script:
+    - pre-commit run --all-files
+
 # For performance tests, run these commands:
 .perf_tests: &perf_tests
   script:
@@ -1602,3 +1606,13 @@ clang_format_realm:
   <<: [*linux, *image_2204, *realm_clang_format]
   variables:
     <<: [*gcc12, *cxx17_normal, *short]
+check_pre_commit:
+  rules:
+    # Always during a merge request update
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    # Never any other time
+    - when: never
+  <<: [*linux, *image_2404, *pre_commit_check]
+  variables:
+    <<: [*gcc12, *cxx17_normal, *short, *prof]

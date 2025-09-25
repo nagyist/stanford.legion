@@ -1,0 +1,526 @@
+/* Copyright 2025 Stanford University, NVIDIA Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Included from garbage_collection.h - do not include this directly
+
+// Useful for IDEs
+#include "legion/kernel/garbage_collection.h"
+
+namespace Legion {
+  namespace Internal {
+
+    //--------------------------------------------------------------------------
+    template<bool ADD>
+    static inline void log_base_ref(
+        ReferenceKind kind, DistributedID did, AddressSpaceID local_space,
+        ReferenceSource src, unsigned cnt)
+    //--------------------------------------------------------------------------
+    {
+      did = LEGION_DISTRIBUTED_ID_FILTER(did);
+      if (ADD)
+        log_garbage.info(
+            "GC Add Base Ref %d %lld %d %d %d", kind, did, local_space, src,
+            cnt);
+      else
+        log_garbage.info(
+            "GC Remove Base Ref %d %lld %d %d %d", kind, did, local_space, src,
+            cnt);
+    }
+
+    //--------------------------------------------------------------------------
+    template<bool ADD>
+    static inline void log_nested_ref(
+        ReferenceKind kind, DistributedID did, AddressSpaceID local_space,
+        DistributedID src, unsigned cnt)
+    //--------------------------------------------------------------------------
+    {
+      did = LEGION_DISTRIBUTED_ID_FILTER(did);
+      src = LEGION_DISTRIBUTED_ID_FILTER(src);
+      if (ADD)
+        log_garbage.info(
+            "GC Add Nested Ref %d %lld %d %lld %d", kind, did, local_space, src,
+            cnt);
+      else
+        log_garbage.info(
+            "GC Remove Nested Ref %d %lld %d %lld %d", kind, did, local_space,
+            src, cnt);
+    }
+
+    //--------------------------------------------------------------------------
+    inline void Collectable::add_reference(unsigned cnt /*= 1*/)
+    //--------------------------------------------------------------------------
+    {
+      references.fetch_add(cnt);
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool Collectable::remove_reference(unsigned cnt /*= 1*/)
+    //--------------------------------------------------------------------------
+    {
+      unsigned prev = references.fetch_sub(cnt);
+      legion_assert(prev >= cnt);  // check for underflow
+      // If previous is equal to count, the value is now
+      // zero so it is safe to reclaim this object
+      return (prev == cnt);
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool Collectable::check_add_reference(unsigned cnt /*= 1*/)
+    //--------------------------------------------------------------------------
+    {
+      unsigned current = references.load();
+      while (current > 0)
+      {
+        unsigned next = current + cnt;
+        if (references.compare_exchange_weak(current, next))
+          return true;
+      }
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool DistributedCollectable::has_remote_instances(void) const
+    //--------------------------------------------------------------------------
+    {
+      AutoLock gc(gc_lock, false /*exclusive*/);
+      return !remote_instances.empty();
+    }
+
+    //--------------------------------------------------------------------------
+    inline size_t DistributedCollectable::count_remote_instances(void) const
+    //--------------------------------------------------------------------------
+    {
+      AutoLock gc(gc_lock, false /*exclusive*/);
+      return remote_instances.pop_count();
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename FUNCTOR>
+    void DistributedCollectable::map_over_remote_instances(FUNCTOR& functor)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock gc(gc_lock, false /*exclusive*/);
+      remote_instances.map(functor);
+    }
+
+    //--------------------------------------------------------------------------
+    inline void DistributedCollectable::add_base_gc_ref(
+        ReferenceSource source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_base_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      add_base_gc_ref_internal(source, cnt);
+#else
+      int current = gc_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (gc_references.compare_exchange_weak(current, next))
+          return;
+      }
+      add_gc_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline void DistributedCollectable::add_nested_gc_ref(
+        DistributedID source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_nested_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      add_nested_gc_ref_internal(LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
+#else
+      int current = gc_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (gc_references.compare_exchange_weak(current, next))
+          return;
+      }
+      add_gc_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool DistributedCollectable::remove_base_gc_ref(
+        ReferenceSource source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_base_ref<false>(GC_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      return remove_base_gc_ref_internal(source, cnt);
+#else
+      int current = gc_references.load();
+      legion_assert(current >= cnt);
+      while (current > cnt)
+      {
+        int next = current - cnt;
+        if (gc_references.compare_exchange_weak(current, next))
+          return false;
+      }
+      return remove_gc_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool DistributedCollectable::remove_nested_gc_ref(
+        DistributedID source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_nested_ref<false>(GC_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      return remove_nested_gc_ref_internal(
+          LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
+#else
+      int current = gc_references.load();
+      legion_assert(current >= cnt);
+      while (current > cnt)
+      {
+        int next = current - cnt;
+        if (gc_references.compare_exchange_weak(current, next))
+          return false;
+      }
+      return remove_gc_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline void DistributedCollectable::add_base_resource_ref(
+        ReferenceSource source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_base_ref<true>(RESOURCE_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      add_base_resource_ref_internal(source, cnt);
+#else
+      int current = resource_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (resource_references.compare_exchange_weak(current, next))
+          return;
+      }
+      add_resource_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline void DistributedCollectable::add_nested_resource_ref(
+        DistributedID source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_nested_ref<true>(RESOURCE_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      add_nested_resource_ref_internal(
+          LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
+#else
+      int current = resource_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (resource_references.compare_exchange_weak(current, next))
+          return;
+      }
+      add_resource_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool DistributedCollectable::remove_base_resource_ref(
+        ReferenceSource source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_base_ref<false>(RESOURCE_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      return remove_base_resource_ref_internal(source, cnt);
+#else
+      int current = resource_references.load();
+      legion_assert(current >= cnt);
+      while (current > cnt)
+      {
+        int next = current - cnt;
+        if (resource_references.compare_exchange_weak(current, next))
+          return false;
+      }
+      return remove_resource_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool DistributedCollectable::remove_nested_resource_ref(
+        DistributedID source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_nested_ref<false>(RESOURCE_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      return remove_nested_resource_ref_internal(
+          LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
+#else
+      int current = resource_references.load();
+      legion_assert(current >= cnt);
+      while (current > cnt)
+      {
+        int next = current - cnt;
+        if (resource_references.compare_exchange_weak(current, next))
+          return false;
+      }
+      return remove_resource_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool DistributedCollectable::check_global_and_increment(
+        ReferenceSource source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt > 0);
+#ifndef LEGION_DEBUG_GC
+      int current = gc_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (gc_references.compare_exchange_weak(current, next))
+        {
+#ifdef LEGION_GC
+          log_base_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
+#endif
+          return true;
+        }
+      }
+      bool result = acquire_global(cnt);
+#else
+      bool result = acquire_global(cnt, source, detailed_base_gc_references);
+#endif
+#ifdef LEGION_GC
+      if (result)
+        log_base_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool DistributedCollectable::check_global_and_increment(
+        DistributedID source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt > 0);
+#ifndef LEGION_DEBUG_GC
+      int current = gc_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (gc_references.compare_exchange_weak(current, next))
+        {
+#ifdef LEGION_GC
+          log_nested_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
+#endif
+          return true;
+        }
+      }
+      bool result = acquire_global(cnt);
+#else
+      bool result = acquire_global(cnt, source, detailed_nested_gc_references);
+#endif
+#ifdef LEGION_GC
+      if (result)
+        log_nested_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    inline void ValidDistributedCollectable::add_base_valid_ref(
+        ReferenceSource source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_base_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      add_base_valid_ref_internal(source, cnt);
+#else
+      int current = valid_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (valid_references.compare_exchange_weak(current, next))
+          return;
+      }
+      add_valid_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline void ValidDistributedCollectable::add_nested_valid_ref(
+        DistributedID source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_nested_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      add_nested_valid_ref_internal(LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
+#else
+      int current = valid_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (valid_references.compare_exchange_weak(current, next))
+          return;
+      }
+      add_valid_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool ValidDistributedCollectable::remove_base_valid_ref(
+        ReferenceSource source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_base_ref<false>(VALID_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      return remove_base_valid_ref_internal(source, cnt);
+#else
+      int current = valid_references.load();
+      legion_assert(current >= cnt);
+      while (current > cnt)
+      {
+        int next = current - cnt;
+        if (valid_references.compare_exchange_weak(current, next))
+          return false;
+      }
+      return remove_valid_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool ValidDistributedCollectable::remove_nested_valid_ref(
+        DistributedID source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt >= 0);
+#ifdef LEGION_GC
+      log_nested_ref<false>(VALID_REF_KIND, did, local_space, source, cnt);
+#endif
+#ifdef LEGION_DEBUG_GC
+      return remove_nested_valid_ref_internal(
+          LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
+#else
+      int current = valid_references.load();
+      legion_assert(current >= cnt);
+      while (current > cnt)
+      {
+        int next = current - cnt;
+        if (valid_references.compare_exchange_weak(current, next))
+          return false;
+      }
+      return remove_valid_reference(cnt);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool ValidDistributedCollectable::check_valid_and_increment(
+        ReferenceSource source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt > 0);
+#ifndef LEGION_DEBUG_GC
+      int current = valid_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (valid_references.compare_exchange_weak(current, next))
+        {
+#ifdef LEGION_GC
+          log_base_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
+#endif
+          return true;
+        }
+      }
+      bool result = acquire_valid(cnt);
+#else
+      bool result = acquire_valid(cnt, source, detailed_base_valid_references);
+#endif
+#ifdef LEGION_GC
+      if (result)
+        log_base_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    inline bool ValidDistributedCollectable::check_valid_and_increment(
+        DistributedID source, int cnt /*=1*/)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(cnt > 0);
+#ifndef LEGION_DEBUG_GC
+      int current = valid_references.load();
+      while (current > 0)
+      {
+        int next = current + cnt;
+        if (valid_references.compare_exchange_weak(current, next))
+        {
+#ifdef LEGION_GC
+          log_nested_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
+#endif
+          return true;
+        }
+      }
+      bool result = acquire_valid(cnt);
+#else
+      bool result =
+          acquire_valid(cnt, source, detailed_nested_valid_references);
+#endif
+#ifdef LEGION_GC
+      if (result)
+        log_nested_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
+#endif
+      return result;
+    }
+
+  }  // namespace Internal
+}  // namespace Legion

@@ -17,8 +17,7 @@
 #include "regent_partitions_cxx.h"
 
 #include "legion.h"
-#include "legion/legion_c_util.h"
-#include "legion/legion_utilities.h"
+#include "legion/bindings/c_bindings_util.h"
 
 // Disable deprecated warnings in this file since we are also
 // trying to maintain backwards compatibility support for older

@@ -886,7 +886,7 @@ ifeq ($(strip $(DEBUG)),1)
     FC_FLAGS	+= -O0 -ggdb
   endif
   REALM_CC_FLAGS	+= -DDEBUG_REALM
-  LEGION_CC_FLAGS	+= -DDEBUG_LEGION
+  LEGION_CC_FLAGS	+= -DLEGION_DEBUG
 else
   CFLAGS	+= -O2
   CC_FLAGS	+= -O2 #-ggdb
@@ -1015,32 +1015,145 @@ MAPPER_SRC	+= $(LG_RT_DIR)/mappers/default_mapper.cc \
 		   $(LG_RT_DIR)/mappers/forwarding_mapper.cc \
 		   $(LG_RT_DIR)/mappers/logging_wrapper.cc
 
-LEGION_SRC 	+= $(LG_RT_DIR)/legion/legion.cc \
-		    $(LG_RT_DIR)/legion/legion_c.cc \
-		    $(LG_RT_DIR)/legion/legion_ops.cc \
-		    $(LG_RT_DIR)/legion/legion_tasks.cc \
-		    $(LG_RT_DIR)/legion/legion_context.cc \
-		    $(LG_RT_DIR)/legion/legion_trace.cc \
-		    $(LG_RT_DIR)/legion/legion_auto_trace.cc \
-		    $(LG_RT_DIR)/legion/legion_spy.cc \
-		    $(LG_RT_DIR)/legion/legion_profiling.cc \
-		    $(LG_RT_DIR)/legion/legion_profiling_serializer.cc \
-		    $(LG_RT_DIR)/legion/legion_instances.cc \
-		    $(LG_RT_DIR)/legion/legion_views.cc \
-		    $(LG_RT_DIR)/legion/legion_analysis.cc \
-		    $(LG_RT_DIR)/legion/legion_constraint.cc \
-		    $(LG_RT_DIR)/legion/legion_mapping.cc \
-		    $(LG_RT_DIR)/legion/legion_redop.cc \
-		    $(LG_RT_DIR)/legion/legion_replication.cc \
-		    $(LG_RT_DIR)/legion/region_tree.cc \
-		    $(LG_RT_DIR)/legion/runtime.cc \
-		    $(LG_RT_DIR)/legion/garbage_collection.cc \
-		    $(LG_RT_DIR)/legion/mapper_manager.cc
+LEGION_SRC 	+= $(LG_RT_DIR)/legion/analysis/acquire.cc \
+		    $(LG_RT_DIR)/legion/analysis/across.cc \
+		    $(LG_RT_DIR)/legion/analysis/aggregator.cc \
+		    $(LG_RT_DIR)/legion/analysis/collective.cc \
+		    $(LG_RT_DIR)/legion/analysis/equivalence_set.cc \
+		    $(LG_RT_DIR)/legion/analysis/filter.cc \
+		    $(LG_RT_DIR)/legion/analysis/logical.cc \
+		    $(LG_RT_DIR)/legion/analysis/overwrite.cc \
+		    $(LG_RT_DIR)/legion/analysis/physical.cc \
+		    $(LG_RT_DIR)/legion/analysis/projection.cc \
+		    $(LG_RT_DIR)/legion/analysis/refinement.cc \
+		    $(LG_RT_DIR)/legion/analysis/registration.cc \
+		    $(LG_RT_DIR)/legion/analysis/release.cc \
+		    $(LG_RT_DIR)/legion/analysis/update.cc \
+		    $(LG_RT_DIR)/legion/analysis/valid.cc \
+		    $(LG_RT_DIR)/legion/analysis/versioning.cc \
+		    $(LG_RT_DIR)/legion/api/accessors.cc \
+		    $(LG_RT_DIR)/legion/api/argument_map.cc \
+		    $(LG_RT_DIR)/legion/api/constraints.cc \
+		    $(LG_RT_DIR)/legion/api/data.cc \
+		    $(LG_RT_DIR)/legion/api/exception.cc \
+		    $(LG_RT_DIR)/legion/api/functors.cc \
+		    $(LG_RT_DIR)/legion/api/future.cc \
+		    $(LG_RT_DIR)/legion/api/future_map.cc \
+		    $(LG_RT_DIR)/legion/api/interop.cc \
+		    $(LG_RT_DIR)/legion/api/launchers.cc \
+		    $(LG_RT_DIR)/legion/api/mapping.cc \
+		    $(LG_RT_DIR)/legion/api/output_region.cc \
+		    $(LG_RT_DIR)/legion/api/physical_region.cc \
+		    $(LG_RT_DIR)/legion/api/predicate.cc \
+		    $(LG_RT_DIR)/legion/api/redop.cc \
+		    $(LG_RT_DIR)/legion/api/registrars.cc \
+		    $(LG_RT_DIR)/legion/api/requirements.cc \
+		    $(LG_RT_DIR)/legion/api/runtime.cc \
+		    $(LG_RT_DIR)/legion/api/sync.cc \
+		    $(LG_RT_DIR)/legion/api/values.cc \
+		    $(LG_RT_DIR)/legion/bindings/c_bindings.cc \
+		    $(LG_RT_DIR)/legion/contexts/context.cc \
+		    $(LG_RT_DIR)/legion/contexts/inner.cc \
+		    $(LG_RT_DIR)/legion/contexts/leaf.cc \
+		    $(LG_RT_DIR)/legion/contexts/remote.cc \
+		    $(LG_RT_DIR)/legion/contexts/replicate.cc \
+		    $(LG_RT_DIR)/legion/contexts/toplevel.cc \
+		    $(LG_RT_DIR)/legion/instances/builder.cc \
+		    $(LG_RT_DIR)/legion/instances/instance.cc \
+		    $(LG_RT_DIR)/legion/instances/layout.cc \
+		    $(LG_RT_DIR)/legion/instances/physical.cc \
+		    $(LG_RT_DIR)/legion/instances/virtual.cc \
+		    $(LG_RT_DIR)/legion/kernel/garbage_collection.cc \
+		    $(LG_RT_DIR)/legion/kernel/runtime.cc \
+		    $(LG_RT_DIR)/legion/managers/mapper.cc \
+		    $(LG_RT_DIR)/legion/managers/memory.cc \
+		    $(LG_RT_DIR)/legion/managers/message.cc \
+		    $(LG_RT_DIR)/legion/managers/processor.cc \
+		    $(LG_RT_DIR)/legion/managers/shard.cc \
+		    $(LG_RT_DIR)/legion/managers/shutdown.cc \
+		    $(LG_RT_DIR)/legion/nodes/across.cc \
+		    $(LG_RT_DIR)/legion/nodes/expression.cc \
+		    $(LG_RT_DIR)/legion/nodes/field.cc \
+		    $(LG_RT_DIR)/legion/nodes/index.cc \
+		    $(LG_RT_DIR)/legion/nodes/region.cc \
+		    $(LG_RT_DIR)/legion/operations/acquire.cc \
+		    $(LG_RT_DIR)/legion/operations/allreduce.cc \
+		    $(LG_RT_DIR)/legion/operations/attach.cc \
+		    $(LG_RT_DIR)/legion/operations/begin.cc \
+		    $(LG_RT_DIR)/legion/operations/boolean.cc \
+		    $(LG_RT_DIR)/legion/operations/close.cc \
+		    $(LG_RT_DIR)/legion/operations/collective.cc \
+		    $(LG_RT_DIR)/legion/operations/complete.cc \
+		    $(LG_RT_DIR)/legion/operations/copy.cc \
+		    $(LG_RT_DIR)/legion/operations/creation.cc \
+		    $(LG_RT_DIR)/legion/operations/deletion.cc \
+		    $(LG_RT_DIR)/legion/operations/dependent.cc \
+		    $(LG_RT_DIR)/legion/operations/detach.cc \
+		    $(LG_RT_DIR)/legion/operations/discard.cc \
+		    $(LG_RT_DIR)/legion/operations/dynamic.cc \
+		    $(LG_RT_DIR)/legion/operations/factory.cc \
+		    $(LG_RT_DIR)/legion/operations/fence.cc \
+		    $(LG_RT_DIR)/legion/operations/fill.cc \
+		    $(LG_RT_DIR)/legion/operations/frame.cc \
+		    $(LG_RT_DIR)/legion/operations/internal.cc \
+		    $(LG_RT_DIR)/legion/operations/mapping.cc \
+		    $(LG_RT_DIR)/legion/operations/memoizable.cc \
+		    $(LG_RT_DIR)/legion/operations/mustepoch.cc \
+		    $(LG_RT_DIR)/legion/operations/operation.cc \
+		    $(LG_RT_DIR)/legion/operations/partition.cc \
+		    $(LG_RT_DIR)/legion/operations/pointwise.cc \
+		    $(LG_RT_DIR)/legion/operations/predicate.cc \
+		    $(LG_RT_DIR)/legion/operations/recurrent.cc \
+		    $(LG_RT_DIR)/legion/operations/refinement.cc \
+		    $(LG_RT_DIR)/legion/operations/release.cc \
+		    $(LG_RT_DIR)/legion/operations/remote.cc \
+		    $(LG_RT_DIR)/legion/operations/reset.cc \
+		    $(LG_RT_DIR)/legion/operations/timing.cc \
+		    $(LG_RT_DIR)/legion/operations/trace.cc \
+		    $(LG_RT_DIR)/legion/operations/tunable.cc \
+		    $(LG_RT_DIR)/legion/tasks/index.cc \
+		    $(LG_RT_DIR)/legion/tasks/individual.cc \
+		    $(LG_RT_DIR)/legion/tasks/multi.cc \
+		    $(LG_RT_DIR)/legion/tasks/point.cc \
+		    $(LG_RT_DIR)/legion/tasks/remote.cc \
+		    $(LG_RT_DIR)/legion/tasks/shard.cc \
+		    $(LG_RT_DIR)/legion/tasks/single.cc \
+		    $(LG_RT_DIR)/legion/tasks/slice.cc \
+		    $(LG_RT_DIR)/legion/tasks/task.cc \
+		    $(LG_RT_DIR)/legion/tools/profiler.cc \
+		    $(LG_RT_DIR)/legion/tools/serializer.cc \
+		    $(LG_RT_DIR)/legion/tracing/automatic.cc \
+		    $(LG_RT_DIR)/legion/tracing/cache.cc \
+		    $(LG_RT_DIR)/legion/tracing/instructions.cc \
+		    $(LG_RT_DIR)/legion/tracing/logical.cc \
+		    $(LG_RT_DIR)/legion/tracing/physical.cc \
+		    $(LG_RT_DIR)/legion/tracing/recognizer.cc \
+		    $(LG_RT_DIR)/legion/tracing/recording.cc \
+		    $(LG_RT_DIR)/legion/tracing/shard.cc \
+		    $(LG_RT_DIR)/legion/tracing/template.cc \
+		    $(LG_RT_DIR)/legion/tracing/viewset.cc \
+		    $(LG_RT_DIR)/legion/tracing/watcher.cc \
+		    $(LG_RT_DIR)/legion/utilities/collectives.cc \
+		    $(LG_RT_DIR)/legion/utilities/coordinates.cc \
+		    $(LG_RT_DIR)/legion/utilities/instance_set.cc \
+		    $(LG_RT_DIR)/legion/utilities/provenance.cc \
+		    $(LG_RT_DIR)/legion/utilities/resources.cc \
+		    $(LG_RT_DIR)/legion/views/allreduce.cc \
+		    $(LG_RT_DIR)/legion/views/collective.cc \
+		    $(LG_RT_DIR)/legion/views/deferred.cc \
+		    $(LG_RT_DIR)/legion/views/fill.cc \
+		    $(LG_RT_DIR)/legion/views/individual.cc \
+		    $(LG_RT_DIR)/legion/views/instance.cc \
+		    $(LG_RT_DIR)/legion/views/logical.cc \
+		    $(LG_RT_DIR)/legion/views/materialized.cc \
+		    $(LG_RT_DIR)/legion/views/phi.cc \
+		    $(LG_RT_DIR)/legion/views/reduction.cc \
+		    $(LG_RT_DIR)/legion/views/replicate.cc
 
-LEGION_CUDA_SRC  += $(LG_RT_DIR)/legion/legion_redop.cu
-LEGION_HIP_SRC   += $(LG_RT_DIR)/legion/legion_redop.cu
+LEGION_CUDA_SRC  += $(LG_RT_DIR)/legion/api/redop.cu
+LEGION_HIP_SRC   += $(LG_RT_DIR)/legion/api/redop.cu
 # LEGION_INST_SRC will be compiled {MAX_DIM}^2 times in parallel
-LEGION_INST_SRC  += $(LG_RT_DIR)/legion/region_tree_tmpl.cc
+LEGION_INST_SRC  += $(LG_RT_DIR)/legion/nodes/nodes_tmpl.cc
 
 USE_FORTRAN ?= 0
 LEGION_USE_FORTRAN ?= 0
@@ -1052,9 +1165,9 @@ ifeq ($(strip $(USE_FORTRAN)),1)
 GEN_FORTRAN_SRC ?=
 FORT_SRC	+= $(GEN_FORTRAN_SRC)
 ifndef LG_INSTALL_DIR
-LEGION_FORT_SRC  += $(LG_RT_DIR)/legion/legion_f_types.f90 \
-		    $(LG_RT_DIR)/legion/legion_f_c_interface.f90 \
-		    $(LG_RT_DIR)/legion/legion_f.f90
+LEGION_FORT_SRC  += $(LG_RT_DIR)/legion/bindings/f_types.f90 \
+		    $(LG_RT_DIR)/legion/bindings/f_c_interface.f90 \
+		    $(LG_RT_DIR)/legion/bindings/f_bindings.f90
 endif
 FC_FLAGS 	+= -cpp
 LD_FLAGS 	+= -lgfortran
@@ -1062,21 +1175,56 @@ endif
 
 # Header files for Legion installation
 INSTALL_HEADERS += legion.h \
-                   legion/bitmask.h \
-                   legion/legion.inl \
-                   legion/legion_allocation.h \
-                   legion/legion_c.h \
-                   legion/legion_c_util.h \
-                   legion/legion_config.h \
-                   legion/legion_constraint.h \
-                   legion/legion_domain.h \
-                   legion/legion_domain.inl \
-                   legion/legion_mapping.h \
-                   legion/legion_mapping.inl \
-                   legion/legion_redop.h \
-                   legion/legion_redop.inl \
-                   legion/legion_types.h \
-                   legion/legion_utilities.h \
+		   legion/legion_c.h \
+		   legion/legion_constraint.h \
+		   legion/legion_domain.h \
+		   legion/legion_mapping.h \
+		   legion/legion_redop.h \
+		   legion/api/config.h \
+		   legion/api/accessors.h \
+		   legion/api/accessors.inl \
+		   legion/api/argument_map.h \
+		   legion/api/argument_map.inl \
+		   legion/api/buffers.h \
+		   legion/api/buffers.inl \
+		   legion/api/constraints.h \
+		   legion/api/data.h \
+		   legion/api/data.inl \
+		   legion/api/exception.h \
+		   legion/api/functors.h \
+		   legion/api/future.h \
+		   legion/api/future.inl \
+		   legion/api/future_map.h \
+		   legion/api/future_map.inl \
+		   legion/api/geometry.h \
+		   legion/api/geometry.inl \
+		   legion/api/interop.h \
+		   legion/api/launchers.h \
+		   legion/api/launchers.inl \
+		   legion/api/mapping.h \
+		   legion/api/mapping.inl \
+		   legion/api/output_region.h \
+		   legion/api/output_region.inl \
+		   legion/api/physical_region.h \
+		   legion/api/physical_region.inl \
+		   legion/api/predicate.h \
+		   legion/api/predicate.inl \
+		   legion/api/redop.h \
+		   legion/api/redop.inl \
+		   legion/api/registrars.h \
+		   legion/api/registrars.inl \
+		   legion/api/requirements.h \
+		   legion/api/requirements.inl \
+		   legion/api/runtime.h \
+		   legion/api/runtime.inl \
+		   legion/api/sync.h \
+		   legion/api/sync.inl \
+		   legion/api/transforms.h \
+		   legion/api/transforms.inl \
+		   legion/api/types.h \
+		   legion/api/values.h \
+		   legion/api/values.inl \
+		   legion/bindings/c_bindings.h \
                    mappers/debug_mapper.h \
                    mappers/default_mapper.h \
                    mappers/default_mapper.inl \
@@ -1269,17 +1417,17 @@ $(REALM_GASNETEX_WRAPPER_OBJS) : %.cc.o : %.cc $(LEGION_DEFINES_HEADER) $(REALM_
 endif
 
 ifneq ($(USE_PGI),1)
-$(LG_RT_DIR)/legion/region_tree_%.cc.o : $(LG_RT_DIR)/legion/region_tree_tmpl.cc $(LEGION_DEFINES_HEADER)
+$(LG_RT_DIR)/legion/nodes/nodes_%.cc.o : $(LG_RT_DIR)/legion/nodes/nodes_tmpl.cc $(LEGION_DEFINES_HEADER)
 	$(CXX) -MMD -o $@ -c $< $(CC_FLAGS) $(INC_FLAGS) -DINST_N1=$(word 1,$(subst _, ,$*)) $(patsubst %,-DINST_N2=%,$(word 2,$(subst _, ,$*))) $(LEGION_DEFCHECK)
 else
 # nvc++ names some symbols based on the source filename, so the trick above
 #  of compiling multiple things from the same template with different defines
 #  causes linker errors - work around by generating a different source file for
 #  each case, but don't leave them lying around
-$(LG_RT_DIR)/legion/region_tree_%.cc :
+$(LG_RT_DIR)/legion/nodes/nodes_%.cc :
 	echo '#define' INST_N1 $(word 1,$(subst _, ,$*)) > $@
 	[ -z "$(word 2,$(subst _, ,$*))" ] || echo '#define' INST_N2 $(word 2,$(subst _, ,$*)) >> $@
-	echo '#include' '"region_tree_tmpl.cc"' >> $@
+	echo '#include' '"nodes_tmpl.cc"' >> $@
 
 .INTERMEDIATE: $(LEGION_INST_OBJS:.o=)
 
@@ -1322,13 +1470,13 @@ endif
 # Special rules for building the legion fortran files because the fortran compiler is dumb
 ifeq ($(strip $(USE_FORTRAN)),1)
 ifndef LG_INSTALL_DIR
-$(LG_RT_DIR)/legion/legion_f_types.f90.o : $(LG_RT_DIR)/legion/legion_f_types.f90 $(LEGION_DEFINES_HEADER)
+$(LG_RT_DIR)/legion/bindings/f_types.f90.o : $(LG_RT_DIR)/legion/bindings/f_types.f90 $(LEGION_DEFINES_HEADER)
 	$(FC) -J$(LG_RT_DIR) -o $@ -c $< $(FC_FLAGS) $(INC_FLAGS)
 
-$(LG_RT_DIR)/legion/legion_f_c_interface.f90.o : $(LG_RT_DIR)/legion/legion_f_c_interface.f90 $(LG_RT_DIR)/legion/legion_f_types.f90.o $(LEGION_DEFINES_HEADER)
+$(LG_RT_DIR)/legion/bindings/f_c_interface.f90.o : $(LG_RT_DIR)/legion/bindings/f_c_interface.f90 $(LG_RT_DIR)/legion/bindings/f_types.f90.o $(LEGION_DEFINES_HEADER)
 	$(FC) -J$(LG_RT_DIR) -o $@ -c $< $(FC_FLAGS) $(INC_FLAGS)
 
-$(LG_RT_DIR)/legion/legion_f.f90.o : $(LG_RT_DIR)/legion/legion_f.f90 $(LG_RT_DIR)/legion/legion_f_c_interface.f90.o $(LG_RT_DIR)/legion/legion_f_types.f90.o $(LEGION_DEFINES_HEADER)
+$(LG_RT_DIR)/legion/bindings/f_bindings.f90.o : $(LG_RT_DIR)/legion/bindings/f_bindings.f90 $(LG_RT_DIR)/legion/bindings/f_c_interface.f90.o $(LG_RT_DIR)/legion/bindings/f_types.f90.o $(LEGION_DEFINES_HEADER)
 	$(FC) -J$(LG_RT_DIR) -o $@ -c $< $(FC_FLAGS) $(INC_FLAGS)
 endif
 

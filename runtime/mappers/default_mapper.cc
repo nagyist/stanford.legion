@@ -85,8 +85,8 @@ namespace Legion {
                  local_proc.id);
       // Check to see if there any input arguments to parse
       {
-        int argc = HighLevelRuntime::get_input_args().argc;
-        char **argv = HighLevelRuntime::get_input_args().argv;
+        int argc = Runtime::get_input_args().argc;
+        char **argv = Runtime::get_input_args().argv;
         bool no_memoize = false;
         // Parse the input arguments looking for ones for the default mapper
         for (int i=1; i < argc; i++)

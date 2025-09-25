@@ -14,7 +14,6 @@
  */
 
 #include "canonical_python.h"
-#include "legion/legion_c_util.h"
 
 #include <libgen.h>
 

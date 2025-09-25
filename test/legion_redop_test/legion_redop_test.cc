@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include "legion.h"
 #include <assert.h>
 #include <complex>
 #include <iomanip>
@@ -20,16 +21,15 @@
 #include <random>
 #include <string.h>
 
+using namespace Legion;
+#ifndef LEGION_REDOP_COMPLEX
 using namespace std;
+#endif
 typedef std::default_random_engine RNG;
 
 #if __cplusplus < 201103L
 #error This test requires C++11 or better.
 #endif
-
-#include "legion/legion_redop.h"
-
-using namespace Legion;
 
 // Define all the 'functors' that will be used to test the implementation
 template <typename Redop> struct RedopTest;
@@ -168,6 +168,40 @@ void check_value(const std::complex<T> &a, const std::complex<T> &b,
     assert(a == b);
   }
 }
+
+#ifdef LEGION_USE_CUDA
+template <typename T>
+void check_value(const cuda::std::complex<T> &a, const cuda::std::complex<T> &b,
+                 const char *name, const char *file, int line) {
+  const T epsilon = 2 * std::numeric_limits<T>::epsilon();
+  if (!(fuzzyCompare(a.real(), b.real(), epsilon) &&
+        fuzzyCompare(a.imag(), b.imag(), epsilon))) {
+    const std::complex<T> a1(a.real(), a.imag());
+    const std::complex<T> b1(b.real(), b.imag());
+    std::cout << std::setprecision(10) << "Comparision failed at " << file
+              << ':' << line << '(' << name << ")! Expected " << a1 << ", got "
+              << b1 << std::endl;
+    assert(a == b);
+  }
+}
+#endif
+
+#ifdef LEGION_USE_HIP
+template <typename T>
+void check_value(const thrust::complex<T> &a, const thrust::complex<T> &b,
+                 const char *name, const char *file, int line) {
+  const T epsilon = 2 * std::numeric_limits<T>::epsilon();
+  if (!(fuzzyCompare(a.real(), b.real(), epsilon) &&
+        fuzzyCompare(a.imag(), b.imag(), epsilon))) {
+    const std::complex<T> a1(a.real(), a.imag());
+    const std::complex<T> b1(b.real(), b.imag());
+    std::cout << std::setprecision(10) << "Comparision failed at " << file
+              << ':' << line << '(' << name << ")! Expected " << a1 << ", got "
+              << b1 << std::endl;
+    assert(a == b);
+  }
+}
+#endif
 
 // Just to get a printable version of the value for character types
 template <>

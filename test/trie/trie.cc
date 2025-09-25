@@ -19,7 +19,7 @@
 #include <set>
 #include <vector>
 
-#include <legion/trie.h>
+#include <legion/tracing/trie.h>
 
 using namespace Legion;
 using namespace Legion::Internal;
@@ -46,7 +46,7 @@ void random_test() {
   for (int i = 0; i < N; i++) {
     while (true) {
       int strlen = (rand() % maxlen) + 1;
-      auto string = random_string(strlen);
+      std::vector<char> string = random_string(strlen);
       if (strings.find(string) == strings.end()) {
         trie.insert(string.begin(), string.end(), empty_t{});
         strings.insert(string);
@@ -57,13 +57,13 @@ void random_test() {
 
   // All of the strings in our set should be in the trie, and a random
   // prefix of each should be in the trie.
-  for (auto string : strings) {
+  for (const std::vector<char>& string : strings) {
     assert(trie.contains(string.begin(), string.end()));
     int len = rand() % string.size();
     assert(trie.prefix(string.begin(), string.begin() + len));
 
     // Also test the query API.
-    auto result = trie.query(string.begin(), string.end());
+    TrieQueryResult result = trie.query(string.begin(), string.end());
     assert(result.contains && result.prefix);
     result = trie.query(string.begin(), string.begin() + len);
     // assert(!result.contains && result.prefix);
@@ -75,11 +75,11 @@ void random_test() {
   for (int i = 0; i < 100; i++) {
     while (true) {
       int strlen = (rand() % maxlen) + 1;
-      auto string = random_string(strlen);
+      std::vector<char> string = random_string(strlen);
       if (strings.find(string) == strings.end()) {
         assert(!trie.contains(string.begin(), string.end()));
         // Also test the query API.
-        auto result = trie.query(string.begin(), string.end());
+        TrieQueryResult result = trie.query(string.begin(), string.end());
         assert(!result.contains);
         break;
       }
@@ -94,7 +94,7 @@ void test_superstring() {
       {'d', 'e'},
       {'f', 'g', 'h', 'i'}
   };
-  for (auto& s : strings) {
+  for (const std::vector<char>& s : strings) {
     trie.insert(s.begin(), s.end(), empty_t{});
   }
   std::vector<char> q1 = {'a', 'b', 'c', 'd', 'e'};

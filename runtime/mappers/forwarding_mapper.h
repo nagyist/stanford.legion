@@ -16,7 +16,7 @@
 #ifndef __FORWARDING_MAPPER_H__
 #define __FORWARDING_MAPPER_H__
 
-#include "legion/legion_mapping.h"
+#include "legion.h"
 
 namespace Legion {
 namespace Mapping {
