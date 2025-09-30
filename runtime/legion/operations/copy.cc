@@ -769,7 +769,6 @@ namespace Legion {
     void CopyOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PredicatedOp::deactivate(false /*free*/);
       // Clear out our region tree state
       src_requirements.clear();
       dst_requirements.clear();
@@ -802,6 +801,7 @@ namespace Legion {
         mapper_data = nullptr;
         mapper_data_size = 0;
       }
+      PredicatedOp::deactivate(false /*free*/);
       // Return this operation to the runtime
       if (freeop)
         runtime->free_operation(this);
@@ -2911,7 +2911,6 @@ namespace Legion {
     void IndexCopyOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PointwiseAnalyzable<CopyOp>::deactivate(false /*free*/);
       // We can deactivate all of our point operations
       for (PointCopyOp* point : points) point->deactivate();
       points.clear();
@@ -2921,6 +2920,7 @@ namespace Legion {
       pending_pointwise_dependences.clear();
       if (remove_launch_space_reference(launch_space))
         delete launch_space;
+      PointwiseAnalyzable<CopyOp>::deactivate(false /*free*/);
       // Return this operation to the runtime
       if (freeop)
         runtime->free_operation(this);
@@ -3765,8 +3765,8 @@ namespace Legion {
     void PointCopyOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      CopyOp::deactivate(false /*free*/);
       pointwise_mapping_dependences.clear();
+      CopyOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -4312,7 +4312,6 @@ namespace Legion {
     {
       if (sharding_collective != nullptr)
         delete sharding_collective;
-      IndexCopyOp::deactivate(false /*free*/);
       pre_indirection_barriers.clear();
       post_indirection_barriers.clear();
       if (!src_collectives.empty())
@@ -4329,6 +4328,7 @@ namespace Legion {
       remove_launch_space_reference(shard_points);
       if (interfering_exchange != nullptr)
         delete interfering_exchange;
+      IndexCopyOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

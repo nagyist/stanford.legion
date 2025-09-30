@@ -192,7 +192,6 @@ namespace Legion {
     void MapOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       // Remove our reference to the region
       region = PhysicalRegion();
       grants.clear();
@@ -210,6 +209,7 @@ namespace Legion {
         mapper_data = nullptr;
         mapper_data_size = 0;
       }
+      Operation::deactivate(false /*free*/);
       // Now return this operation to the queue
       if (freeop)
         runtime->free_operation(this);

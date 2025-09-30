@@ -70,8 +70,8 @@ namespace Legion {
     void ResetOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       requirement.privilege_fields.clear();
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

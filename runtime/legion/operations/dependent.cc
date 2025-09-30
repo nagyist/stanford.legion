@@ -1186,7 +1186,6 @@ namespace Legion {
     void DependentPartitionOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       if (thunk != nullptr)
       {
         delete thunk;
@@ -1211,6 +1210,7 @@ namespace Legion {
       }
       if (remove_launch_space_reference(launch_space))
         delete launch_space;
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -1885,8 +1885,6 @@ namespace Legion {
     void ReplDependentPartitionOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ReplCollectiveViewCreator<CollectiveViewCreator<DependentPartitionOp> >::
-          deactivate(false /*free*/);
       if (gather != nullptr)
         delete gather;
       if (scatter != nullptr)
@@ -1898,6 +1896,8 @@ namespace Legion {
       if (sharding_collective != nullptr)
         delete sharding_collective;
       remove_launch_space_reference(shard_points);
+      ReplCollectiveViewCreator<CollectiveViewCreator<DependentPartitionOp> >::
+          deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

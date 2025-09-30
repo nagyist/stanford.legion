@@ -69,7 +69,6 @@ namespace Legion {
       for (std::pair<const Color, ConcurrentGroup>& group : concurrent_groups)
         if (group.second.task_barrier.exists())
           group.second.task_barrier.destroy_barrier();
-      MultiTask::deactivate(false /*free*/);
       if (!origin_mapped_slices.empty())
       {
         for (SliceTask* const slice : origin_mapped_slices) slice->deactivate();
@@ -92,6 +91,7 @@ namespace Legion {
       interfering_requirements.clear();
       point_requirements.clear();
       legion_assert(pending_pointwise_dependences.empty());
+      MultiTask::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -3028,7 +3028,6 @@ namespace Legion {
       for (std::pair<const Color, ConcurrentGroup>& group : concurrent_groups)
         if (group.second.exchange == nullptr)
           delete group.second.exchange;
-      ReplCollectiveViewCreator<IndexTask>::deactivate(false /*free*/);
       if (serdez_redop_collective != nullptr)
         delete serdez_redop_collective;
       if (all_reduce_collective != nullptr)
@@ -3049,6 +3048,7 @@ namespace Legion {
       if (sharding_collective != nullptr)
         delete sharding_collective;
       unique_intra_space_deps.clear();
+      ReplCollectiveViewCreator<IndexTask>::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
