@@ -60,12 +60,12 @@ namespace Legion {
     void IndividualTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      SingleTask::deactivate(false /*free*/);
       predicate_false_result.clear();
       // Remove our reference on the future
       result = Future();
       predicate_false_future = Future();
       output_region_options.clear();
+      SingleTask::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -1219,9 +1219,9 @@ namespace Legion {
     void ReplIndividualTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      IndividualTask::deactivate(false /*free*/);
       if (sharding_collective != nullptr)
         delete sharding_collective;
+      IndividualTask::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

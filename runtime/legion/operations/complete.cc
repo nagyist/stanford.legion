@@ -159,11 +159,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(!free);
-      OP::deactivate(free);
       if (replayable_collective != nullptr)
         delete replayable_collective;
       if (idempotent_collective != nullptr)
         delete idempotent_collective;
+      OP::deactivate(free);
     }
 
     //--------------------------------------------------------------------------

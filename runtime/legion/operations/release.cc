@@ -193,7 +193,6 @@ namespace Legion {
     void ReleaseOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PredicatedOp::deactivate(false /*free*/);
       restricted_region = PhysicalRegion();
       version_info.clear();
       fields.clear();
@@ -210,6 +209,7 @@ namespace Legion {
         mapper_data = nullptr;
         mapper_data_size = 0;
       }
+      PredicatedOp::deactivate(false /*free*/);
       // Return this operation to the runtime
       if (freeop)
         runtime->free_operation(this);

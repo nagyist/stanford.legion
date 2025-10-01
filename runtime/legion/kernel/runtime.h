@@ -1717,15 +1717,19 @@ namespace Legion {
           const TraceInfo* info, ApEvent e1, ApEvent e2);
       static inline ApEvent merge_events(
           const TraceInfo* info, ApEvent e1, ApEvent e2, ApEvent e3);
+      template<typename A>
       static inline ApEvent merge_events(
-          const TraceInfo* info, const std::set<ApEvent>& events);
+          const TraceInfo* info, const std::set<ApEvent, A>& events);
+      template<typename A>
       static inline ApEvent merge_events(
-          const TraceInfo* info, const std::vector<ApEvent>& events);
+          const TraceInfo* info, const std::vector<ApEvent, A>& events);
     public:
       static inline RtEvent merge_events(RtEvent e1, RtEvent e2);
       static inline RtEvent merge_events(RtEvent e1, RtEvent e2, RtEvent e3);
-      static inline RtEvent merge_events(const std::set<RtEvent>& events);
-      static inline RtEvent merge_events(const std::vector<RtEvent>& events);
+      template<typename A>
+      static inline RtEvent merge_events(const std::set<RtEvent, A>& events);
+      template<typename A>
+      static inline RtEvent merge_events(const std::vector<RtEvent, A>& events);
     public:
       static inline ApUserEvent create_ap_user_event(const TraceInfo* info);
       static inline void trigger_event(
@@ -1748,8 +1752,9 @@ namespace Legion {
     public:
       static inline ApEvent ignorefaults(ApEvent e);
       static inline RtEvent protect_event(ApEvent to_protect);
+      template<typename A>
       static inline RtEvent protect_merge_events(
-          const std::set<ApEvent>& events);
+          const std::set<ApEvent, A>& events);
     public:
       static inline ApBarrier get_previous_phase(const PhaseBarrier& bar);
       inline void phase_barrier_arrive(

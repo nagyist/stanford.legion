@@ -346,7 +346,6 @@ namespace Legion {
     void TaskOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PredicatedOp::deactivate(freeop);
       indexes.clear();
       regions.clear();
       output_regions.clear();
@@ -379,6 +378,7 @@ namespace Legion {
       future_return_size.reset();
       if (!acquired_instances.empty())
         release_acquired_instances(acquired_instances);
+      PredicatedOp::deactivate(freeop);
     }
 
     //--------------------------------------------------------------------------

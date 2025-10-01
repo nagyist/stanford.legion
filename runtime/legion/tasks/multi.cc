@@ -72,7 +72,6 @@ namespace Legion {
     {
       if (implicit_profiler != nullptr)
         implicit_profiler->register_multi_task(this, task_id);
-      PointwiseAnalyzable<CollectiveViewCreator<TaskOp> >::deactivate(freeop);
       if (remove_launch_space_reference(launch_space))
         delete launch_space;
       if ((future_handles != nullptr) && future_handles->remove_reference())
@@ -105,6 +104,7 @@ namespace Legion {
       predicate_false_result.clear();
       predicate_false_future = Future();
       point_mapped_events.clear();
+      PointwiseAnalyzable<CollectiveViewCreator<TaskOp> >::deactivate(freeop);
     }
 
     //--------------------------------------------------------------------------

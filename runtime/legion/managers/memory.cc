@@ -263,6 +263,9 @@ namespace Legion {
         use_event = RtEvent(PhysicalInstance::create_external_instance(
             instance, manager->memory, *layout, *external_resource,
             empty_requests, backing_instances[range.instance].first));
+        // Free up the external resource that Realm created which is
+        // bad for other reasons but necessary to avoid leaks
+        delete external_resource;
         legion_assert(instance.exists());
         legion_assert(allocated.find(instance) == allocated.end());
         // Store it in the allocated data structure

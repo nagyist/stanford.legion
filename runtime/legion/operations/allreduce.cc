@@ -86,7 +86,6 @@ namespace Legion {
     void AllReduceOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MemoizableOp::deactivate(false /*free*/);
       future_map = FutureMap();
       result = Future();
       initial_value = Future();
@@ -98,6 +97,7 @@ namespace Legion {
         free(serdez_redop_buffer);
       if (serdez_redop_instance != nullptr)
         delete serdez_redop_instance;
+      MemoizableOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -556,7 +556,6 @@ namespace Legion {
     void ReplAllReduceOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      AllReduceOp::deactivate(false /*free*/);
       if (serdez_redop_collective != nullptr)
         delete serdez_redop_collective;
       if (all_reduce_collective != nullptr)
@@ -565,6 +564,7 @@ namespace Legion {
         delete reduction_collective;
       if (broadcast_collective != nullptr)
         delete broadcast_collective;
+      AllReduceOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

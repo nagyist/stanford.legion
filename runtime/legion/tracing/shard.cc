@@ -94,7 +94,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardedPhysicalTemplate::record_merge_events(
-        ApEvent& lhs, const std::set<ApEvent>& rhs, const TraceLocalID& tlid)
+        ApEvent& lhs, const ApEvent* rhs, size_t num_rhs,
+        const TraceLocalID& tlid)
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
@@ -103,87 +104,9 @@ namespace Legion {
       std::set<RtEvent> wait_for;
       std::vector<ApEvent> pending_events;
       std::map<ApEvent, RtUserEvent> request_events;
-      for (const ApEvent& event : rhs)
+      for (unsigned idx = 0; idx < num_rhs; idx++)
       {
-        if (!event.exists())
-          continue;
-        std::map<ApEvent, unsigned>::const_iterator finder =
-            event_map.find(event);
-        if (finder == event_map.end())
-        {
-          // We're going to need to check this event later
-          pending_events.emplace_back(event);
-          // See if anyone else has requested this event yet
-          std::map<ApEvent, RtEvent>::const_iterator request_finder =
-              pending_event_requests.find(event);
-          if (request_finder == pending_event_requests.end())
-          {
-            const RtUserEvent request_event = Runtime::create_rt_user_event();
-            pending_event_requests[event] = request_event;
-            wait_for.insert(request_event);
-            request_events[event] = request_event;
-          }
-          else
-            wait_for.insert(request_finder->second);
-        }
-        else if (finder->second != NO_INDEX)
-          rhs_.insert(finder->second);
-      }
-      // If we have anything to wait for we need to do that
-      if (!wait_for.empty())
-      {
-        tpl_lock.release();
-        // Send any request messages first
-        if (!request_events.empty())
-        {
-          for (const std::pair<const ApEvent, RtUserEvent>& it : request_events)
-            request_remote_shard_event(it.first, it.second);
-        }
-        // Do the wait
-        const RtEvent wait_on = Runtime::merge_events(wait_for);
-        if (wait_on.exists() && !wait_on.has_triggered())
-          wait_on.wait();
-        tpl_lock.reacquire();
-        // All our pending events should be here now
-        for (const ApEvent& pending : pending_events)
-        {
-          std::map<ApEvent, unsigned>::const_iterator finder =
-              event_map.find(pending);
-          legion_assert(finder != event_map.end());
-          if (finder->second != NO_INDEX)
-            rhs_.insert(finder->second);
-        }
-      }
-      if (rhs_.size() == 0)
-        rhs_.insert(fence_completion_id);
-
-      if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
-        Runtime::rename_event(lhs);
-      else if (find_event_space(lhs) != runtime->address_space)
-      {
-        // If the lhs event wasn't made on this node then we need to rename it
-        // because we need all events to go back to a node where we know that
-        // we have a shard that can answer queries about it
-        const ApEvent previous = lhs;
-        Runtime::rename_event(lhs);
-        LegionSpy::log_event_dependence(previous, lhs);
-      }
-      insert_instruction(new MergeEvent(*this, convert_event(lhs), rhs_, tlid));
-    }
-
-    //--------------------------------------------------------------------------
-    void ShardedPhysicalTemplate::record_merge_events(
-        ApEvent& lhs, const std::vector<ApEvent>& rhs, const TraceLocalID& tlid)
-    //--------------------------------------------------------------------------
-    {
-      AutoLock tpl_lock(template_lock);
-      legion_assert(is_recording());
-      std::set<unsigned> rhs_;
-      std::set<RtEvent> wait_for;
-      std::vector<ApEvent> pending_events;
-      std::map<ApEvent, RtUserEvent> request_events;
-      for (const ApEvent& event : rhs)
-      {
+        const ApEvent event = rhs[idx];
         if (!event.exists())
           continue;
         std::map<ApEvent, unsigned>::const_iterator finder =
@@ -250,7 +173,7 @@ namespace Legion {
       }
       else
       {
-        for (unsigned idx = 0; idx < rhs.size(); idx++)
+        for (unsigned idx = 0; idx < num_rhs; idx++)
         {
           if (lhs != rhs[idx])
             continue;
