@@ -58,7 +58,6 @@ namespace Legion {
     void SliceTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MultiTask::deactivate(false /*free*/);
       // Deactivate all our points
       for (PointTask* const pt : points) pt->deactivate();
       points.clear();
@@ -70,6 +69,7 @@ namespace Legion {
       created_field_spaces.clear();
       created_index_spaces.clear();
       created_index_partitions.clear();
+      MultiTask::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

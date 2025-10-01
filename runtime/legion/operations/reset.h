@@ -54,8 +54,6 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void) override;
       virtual void trigger_mapping(void) override;
       virtual unsigned find_parent_index(unsigned idx) override;
-    public:
-      void check_privilege(void);
     protected:
       RegionRequirement requirement;
       unsigned parent_req_index;

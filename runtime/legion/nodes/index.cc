@@ -2673,7 +2673,16 @@ namespace Legion {
         if (!total_intersection_volumes.empty())
         {
           total_intersection_volumes.merge(*intersection_volumes);
-          legion_assert(intersection_volumes->empty());
+          if (!intersection_volumes->empty())
+          {
+#ifdef LEGION_DEBUG
+            for (const std::pair<
+                     const std::pair<LegionColor, LegionColor>, uint64_t>& it :
+                 *intersection_volumes)
+              legion_assert(total_intersection_volumes[it.first] == it.second);
+#endif
+            intersection_volumes->clear();
+          }
         }
         else
           total_intersection_volumes.swap(*intersection_volumes);

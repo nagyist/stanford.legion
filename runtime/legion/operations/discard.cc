@@ -48,10 +48,10 @@ namespace Legion {
     void DiscardOp::deactivate(bool free)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       requirement.privilege_fields.clear();
       version_info.clear();
       map_applied_conditions.clear();
+      Operation::deactivate(false /*free*/);
       if (free)
         runtime->free_operation(this);
     }

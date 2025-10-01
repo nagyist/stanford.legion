@@ -201,13 +201,13 @@ namespace Legion {
     void CloseOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      InternalOp::deactivate(freeop);
       if (mapper_data != nullptr)
       {
         free(mapper_data);
         mapper_data = nullptr;
         mapper_data_size = 0;
       }
+      InternalOp::deactivate(freeop);
     }
 
     //--------------------------------------------------------------------------
@@ -272,8 +272,8 @@ namespace Legion {
     void MergeCloseOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      CloseOp::deactivate(false /*free*/);
       close_mask.clear();
+      CloseOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -373,13 +373,13 @@ namespace Legion {
     void PostCloseOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      CloseOp::deactivate(false /*free*/);
       if (!acquired_instances.empty())
         release_acquired_instances(acquired_instances);
       map_applied_conditions.clear();
       profiling_requests.clear();
       target_instances.clear();
       version_info.clear();
+      CloseOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

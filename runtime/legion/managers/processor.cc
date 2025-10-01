@@ -765,6 +765,7 @@ namespace Legion {
         const MapperID map_id = it.first;
         MapperManager* const mapper = it.second;
         Mapper::SelectMappingInput input;
+        input.processor = local_proc;
         {
           RtEvent input_ready;
           // Pull out the current tasks for this mapping operation

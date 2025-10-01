@@ -744,8 +744,8 @@ namespace Legion {
     void CollectiveVersioning<OP>::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      OP::deactivate(freeop);
       legion_assert(pending_versioning.empty());
+      OP::deactivate(freeop);
     }
 
     //--------------------------------------------------------------------------
@@ -986,9 +986,9 @@ namespace Legion {
     void CollectiveViewCreator<OP>::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      OP::deactivate(freeop);
       legion_assert(pending_rendezvous.empty());
       legion_assert(pending_collectives.empty());
+      OP::deactivate(freeop);
     }
 
     //--------------------------------------------------------------------------
@@ -1374,13 +1374,13 @@ namespace Legion {
     void ReplCollectiveVersioning<OP>::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      OP::deactivate(freeop);
       for (typename std::map<
                unsigned, CollectiveVersioningRendezvous*>::const_iterator it =
                collective_versioning_rendezvous.begin();
            it != collective_versioning_rendezvous.end(); it++)
         delete it->second;
       collective_versioning_rendezvous.clear();
+      OP::deactivate(freeop);
     }
 
     //--------------------------------------------------------------------------
@@ -1481,13 +1481,13 @@ namespace Legion {
     void ReplCollectiveViewCreator<OP>::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ReplCollectiveVersioning<OP>::deactivate(freeop);
       for (typename std::map<
                RendezvousKey, CollectiveViewRendezvous*>::const_iterator it =
                collective_view_rendezvous.begin();
            it != collective_view_rendezvous.end(); it++)
         delete it->second;
       collective_view_rendezvous.clear();
+      ReplCollectiveVersioning<OP>::deactivate(freeop);
     }
 
     //--------------------------------------------------------------------------
