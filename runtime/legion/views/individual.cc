@@ -2460,23 +2460,22 @@ namespace Legion {
             (finder->second.remaining_remote_arrivals > 0))
         {
           // We need to save the trace info no matter what
-          if (finder->second.mask == nullptr)
+          if ((finder->second.mask == nullptr) && (local_space == origin))
           {
-            if (local_space == origin)
-            {
-              // Save our state for performing the registration later
-              finder->second.usage = usage;
-              finder->second.mask =
-                  new HeapifyBox<FieldMask, OPERATION_LIFETIME>(user_mask);
-              finder->second.op_id = op_id;
-              finder->second.symbolic = symbolic;
-            }
+            // Save our state for performing the registration later
+            finder->second.usage = usage;
+            finder->second.mask =
+                new HeapifyBox<FieldMask, OPERATION_LIFETIME>(user_mask);
+            finder->second.op_id = op_id;
+            finder->second.symbolic = symbolic;
           }
           return result;
         }
         term_events.swap(finder->second.term_events);
         expr = finder->second.expr;
         legion_assert(finder->second.remote_ready_events.empty());
+        if (finder->second.mask != nullptr)
+          delete finder->second.mask;
         // We're done with our entry after this so no need to keep it
         rendezvous_users.erase(finder);
       }
@@ -2624,6 +2623,7 @@ namespace Legion {
               to_perform.applied, Runtime::merge_events(applied_events));
         else
           Runtime::trigger_event(to_perform.applied);
+        legion_assert(to_perform.mask == nullptr);
       }
       else
       {

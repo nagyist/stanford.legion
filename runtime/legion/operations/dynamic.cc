@@ -76,9 +76,9 @@ namespace Legion {
     void DynamicCollectiveOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MemoizableOp::deactivate(false /*free*/);
       // Free the future
       future = Future();
+      MemoizableOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

@@ -46,9 +46,9 @@ namespace Legion {
     void FuturePredOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       future = Future();
       predicate = Predicate();
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -206,9 +206,9 @@ namespace Legion {
     void NotPredOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       previous = Predicate();
       to_set = Predicate();
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -302,9 +302,9 @@ namespace Legion {
     void AndPredOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       previous.clear();
       to_set = Predicate();
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -416,9 +416,9 @@ namespace Legion {
     void OrPredOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       previous.clear();
       to_set = Predicate();
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

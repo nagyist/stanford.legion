@@ -64,7 +64,6 @@ namespace Legion {
     void SingleTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      TaskOp::deactivate(freeop);
       target_processors.clear();
       physical_instances.clear();
       region_preconditions.clear();
@@ -87,6 +86,7 @@ namespace Legion {
         delete pool_pair.second;
       leaf_memory_pools.clear();
       legion_assert(remote_trace_recorder == nullptr);
+      TaskOp::deactivate(freeop);
     }
 
     //--------------------------------------------------------------------------

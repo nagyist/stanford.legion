@@ -246,7 +246,6 @@ namespace Legion {
     void MustEpochOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       // All the sub-operations we have will deactivate themselves
       indiv_tasks.clear();
       index_tasks.clear();
@@ -275,6 +274,7 @@ namespace Legion {
       output.constraint_mappings.clear();
       slice_version_events.clear();
       commit_preconditions.clear();
+      Operation::deactivate(false /*free*/);
       // Return this operation to the free list
       if (freeop)
         runtime->free_operation(this);
@@ -1837,7 +1837,6 @@ namespace Legion {
     void ReplMustEpochOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MustEpochOp::deactivate(false /*free*/);
       shard_single_tasks.clear();
       if (mapping_broadcast != nullptr)
         delete mapping_broadcast;
@@ -1849,6 +1848,7 @@ namespace Legion {
         delete concurrent_exchange;
       if (sharding_collective != nullptr)
         delete sharding_collective;
+      MustEpochOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

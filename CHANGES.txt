@@ -1,6 +1,25 @@
 This file lists the major changes as they appear in the stable branch.  No
 attempt is made to keep this list accurate for the master branch.
 
+Version 25.09.0 (September 30, 2025)
+  * Build
+    - The Realm build system has been split off, see below for details
+  * Legion
+    - Large-scale refactoring of the Legion code base
+    - All Legion error messages have been rewritten for clarity
+    - Legion now checks for typos in command-line flags and issues errors if
+       any flags are misspelled
+    - Legion source code is now formatted via clang-format
+  * Realm
+    - Realm has been split into its own repository:
+       https://github.com/StanfordLegion/realm
+    - A read-only copy of Realm is still maintained under the Legion repository
+       in the `/realm` directory
+    - The Realm build system has been split and is now invoked via CPM in the
+       Legion CMake build, but must be built separately in the Makefile
+       build. The location of a pre-existing Realm installation can be
+       specified in both builds via `Realm_ROOT`
+
 Version 25.06.0 (July 2, 2025)
   * Build
     - Make UCX bootstrap module optional

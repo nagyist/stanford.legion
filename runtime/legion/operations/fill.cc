@@ -171,7 +171,6 @@ namespace Legion {
     void FillOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PredicatedOp::deactivate(false /*free*/);
       version_info.clear();
       map_applied_conditions.clear();
       future = Future();
@@ -186,6 +185,7 @@ namespace Legion {
         mapper_data = nullptr;
         mapper_data_size = 0;
       }
+      PredicatedOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -664,13 +664,13 @@ namespace Legion {
     void IndexFillOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PointwiseAnalyzable<FillOp>::deactivate(false /*free*/);
       // We can deactivate our point operations
       for (PointFillOp* point : points) point->deactivate();
       points.clear();
       pending_pointwise_dependences.clear();
       if (remove_launch_space_reference(launch_space))
         delete launch_space;
+      PointwiseAnalyzable<FillOp>::deactivate(false /*free*/);
       // Return the operation to the runtime
       if (freeop)
         runtime->free_operation(this);
@@ -1021,8 +1021,8 @@ namespace Legion {
     void PointFillOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      FillOp::deactivate(false /*free*/);
       pointwise_mapping_dependences.clear();
+      FillOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -1264,10 +1264,10 @@ namespace Legion {
     {
       // Make sure we didn't leak our barrier
       legion_assert(!collective_map_barrier.exists());
-      ReplCollectiveVersioning<CollectiveVersioning<FillOp> >::deactivate(
-          false /*free*/);
       if (collective != nullptr)
         delete collective;
+      ReplCollectiveVersioning<CollectiveVersioning<FillOp> >::deactivate(
+          false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -1438,10 +1438,10 @@ namespace Legion {
     {
       if (sharding_collective != nullptr)
         delete sharding_collective;
-      IndexFillOp::deactivate(false /*free*/);
       remove_launch_space_reference(shard_points);
       if (collective != nullptr)
         delete collective;
+      IndexFillOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

@@ -57,8 +57,8 @@ namespace Legion {
       if (implicit_profiler != nullptr)
         implicit_profiler->register_slice_owner(
             this->slice_owner->get_unique_op_id(), this->get_unique_op_id());
-      SingleTask::deactivate(false /*free*/);
       pointwise_mapping_dependences.clear();
+      SingleTask::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

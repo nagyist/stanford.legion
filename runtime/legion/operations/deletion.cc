@@ -180,7 +180,6 @@ namespace Legion {
     void DeletionOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       // We can remove the reference to the allocator once we are
       // done with all of our free operations
       if ((allocator != nullptr) && allocator->remove_reference())
@@ -197,6 +196,7 @@ namespace Legion {
       version_infos.clear();
       map_applied_conditions.clear();
       dependences.clear();
+      Operation::deactivate(false /*free*/);
       // Return this to the available deletion ops on the queue
       if (freeop)
         runtime->free_operation(this);

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024 Stanford University, NVIDIA Corporation
+# Copyright 2025 Stanford University, NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8562,26 +8562,25 @@ class Operation(object):
         mappings = self.find_mapping(index)
         depth = self.context.find_enclosing_context_depth(req, mappings)
         if not register:
+            if collective is not None:
+                key = (index, req.logical_node)
+                replicated = key in collective
+                if not replicated:
+                    collective.add(key)
+            else:
+                replicated = False
             for field in req.fields:
-                if collective is not None:
-                    key = (index, req.logical_node)
-                    replicated = key in collective
-                    if not replicated:
-                        collective.add(key)
-                else:
-                    replicated = False
                 if not req.logical_node.perform_fill_verification(depth, field, self, req,
                                     perform_checks, register=False, replicated=replicated):
                     return False
         elif mappings is not None:
             assert collective is not None
+            key = (index, req.logical_node)
+            # Skip any replicated fill registrations
+            if key in collective:
+                return True; 
+            collective.add(key)
             for field in req.fields:
-                if collective is not None:
-                    key = (index, req.logical_node)
-                    # Skip any replicated fill registrations
-                    if key in collective:
-                        continue
-                    collective.add(key)
                 if not req.logical_node.perform_fill_verification(depth, field, self, req,
                                     perform_checks, register=True, replicated=False):
                     return False
@@ -12579,7 +12578,7 @@ future_dep_pat          = re.compile(
     prefix+"Future Dependence (?P<ctx>[0-9]+) (?P<prev_id>[0-9]+) "+
            "(?P<next_id>[0-9]+) (?P<pointwise>[0-1])")
 future_create_pat       = re.compile(
-    prefix+"Future Creation (?P<uid>[0-9]+) (?P<did>[0-9]+) (?P<dim>[0-9]+) (?P<rem>.*)")
+    prefix+"Future Creation (?P<uid>[0-9]+) (?P<did>[0-9]+) (?P<dim>[0-9]+)(?P<rem>.*)")
 future_use_pat          = re.compile(
     prefix+"Future Usage (?P<uid>[0-9]+) (?P<did>[0-9]+)")
 predicate_use_pat       = re.compile(

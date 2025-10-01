@@ -762,14 +762,15 @@ namespace Legion {
     {
       legion_assert(target.address_space() == runtime->address_space);
       // Check to see if we already have an instance that will be ready
-      bool need_subscribe = false;
       {
         AutoLock f_lock(future_lock);
         if (instances.find(target) != instances.end())
           return true;
         if (pending_instances.find(target) != pending_instances.end())
           return true;
-        need_subscribe = !subscription_event.exists();
+        // // Do the subscription if necessary
+        if (!subscription_event.exists())
+          subscribe(false /*need lock*/);
         // Check to see if we know the size of the future yet
         if (known_upper_bound_size == SIZE_MAX)
         {
@@ -785,11 +786,6 @@ namespace Legion {
               future_size_ready = Runtime::create_rt_user_event();
             const RtEvent wait_on = future_size_ready;
             f_lock.release();
-            if (need_subscribe)
-            {
-              subscribe();
-              need_subscribe = false;
-            }
             wait_on.wait();
             f_lock.reacquire();
             legion_assert(future_size_set);
@@ -804,8 +800,6 @@ namespace Legion {
       }
       if (known_upper_bound_size == 0)
         return true;
-      if (need_subscribe)
-        subscribe();
       legion_assert(known_upper_bound_size < SIZE_MAX);
       // Create the future instance of the given size
       MemoryManager* manager = runtime->find_memory_manager(target);
@@ -858,7 +852,6 @@ namespace Legion {
       legion_assert(op != nullptr);
       // Check to see if we have an internal buffer to use already
       // If not record that we need one and do the subscription
-      bool need_subscribe = false;
       size_t known_upper_bound_size = SIZE_MAX;
       {
         AutoLock f_lock(future_lock);
@@ -871,7 +864,9 @@ namespace Legion {
         }
         else if (local_visible_memory.exists())
           return;
-        need_subscribe = !subscription_event.exists();
+        // Do the subscription if necessary
+        if (!subscription_event.exists())
+          subscribe(false /*need lock*/);
         // Don't have a local instance yet so we need to make one
         // See if we know the upper bound size of the future
         if (future_size_set)
@@ -886,11 +881,6 @@ namespace Legion {
             future_size_ready = Runtime::create_rt_user_event();
           const RtEvent wait_on = future_size_ready;
           f_lock.release();
-          if (need_subscribe)
-          {
-            subscribe();
-            need_subscribe = false;
-          }
           wait_on.wait();
           f_lock.reacquire();
           legion_assert(future_size_set);
@@ -907,8 +897,6 @@ namespace Legion {
           known_upper_bound_size = future_size;
         }
       }
-      if (need_subscribe)
-        subscribe();
       legion_assert(known_upper_bound_size < SIZE_MAX);
       // Create the future instance of the given size
       TaskTreeCoordinates coordinates;
@@ -1144,9 +1132,23 @@ namespace Legion {
     size_t FutureImpl::get_untyped_size(void)
     //--------------------------------------------------------------------------
     {
-      const RtEvent ready_event = subscribe();
-      if (ready_event.exists() && !ready_event.has_triggered())
-        ready_event.wait();
+      // Make sure we are subscribed
+      AutoLock f_lock(future_lock);
+      if (!future_size_set)
+      {
+        if (!future_size_ready.exists())
+        {
+          future_size_ready = Runtime::create_rt_user_event();
+          // Do the subscription if we have need to
+          if (!subscription_event.exists())
+            subscribe(false /*need lock*/);
+        }
+        const RtEvent wait_on = future_size_ready;
+        f_lock.release();
+        wait_on.wait();
+        f_lock.reacquire();
+        legion_assert(future_size_set);
+      }
       return future_size;
     }
 

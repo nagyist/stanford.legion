@@ -80,11 +80,11 @@ namespace Legion {
     void DetachOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       region = PhysicalRegion();
       version_info.clear();
       map_applied_conditions.clear();
       result = Future();  // clear any references on the future
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -364,14 +364,14 @@ namespace Legion {
     void IndexDetachOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PointwiseAnalyzable<CollectiveViewCreator<Operation> >::deactivate(
-          false /*free*/);
       resources = ExternalResources();
       // We can deactivate all of our point operations
       for (PointDetachOp* point : points) point->deactivate();
       points.clear();
       map_applied_conditions.clear();
       result = Future();
+      PointwiseAnalyzable<CollectiveViewCreator<Operation> >::deactivate(
+          false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -996,9 +996,9 @@ namespace Legion {
     void ReplIndexDetachOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ReplCollectiveViewCreator<IndexDetachOp>::deactivate(false /*free*/);
       if (participants != nullptr)
         delete participants;
+      ReplCollectiveViewCreator<IndexDetachOp>::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

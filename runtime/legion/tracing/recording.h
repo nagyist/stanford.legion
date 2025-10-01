@@ -121,17 +121,7 @@ namespace Legion {
           std::set<RtEvent>& applied) = 0;
     public:
       virtual void record_merge_events(
-          ApEvent& lhs, ApEvent rhs, const TraceLocalID& tlid) = 0;
-      virtual void record_merge_events(
-          ApEvent& lhs, ApEvent e1, ApEvent e2, const TraceLocalID& tlid) = 0;
-      virtual void record_merge_events(
-          ApEvent& lhs, ApEvent e1, ApEvent e2, ApEvent e3,
-          const TraceLocalID& tlid) = 0;
-      virtual void record_merge_events(
-          ApEvent& lhs, const std::set<ApEvent>& rhs,
-          const TraceLocalID& tlid) = 0;
-      virtual void record_merge_events(
-          ApEvent& lhs, const std::vector<ApEvent>& rhs,
+          ApEvent& lhs, const ApEvent* rhs, size_t num_events,
           const TraceLocalID& tlid) = 0;
       virtual void record_merge_events(
           PredEvent& lhs, PredEvent e1, PredEvent e2,
@@ -267,18 +257,7 @@ namespace Legion {
           std::set<RtEvent>& applied) override;
     public:
       virtual void record_merge_events(
-          ApEvent& lhs, ApEvent rhs, const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, ApEvent e1, ApEvent e2,
-          const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, ApEvent e1, ApEvent e2, ApEvent e3,
-          const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, const std::set<ApEvent>& rhs,
-          const TraceLocalID& tlid) override;
-      virtual void record_merge_events(
-          ApEvent& lhs, const std::vector<ApEvent>& rhs,
+          ApEvent& lhs, const ApEvent* rhs, size_t num_rhs,
           const TraceLocalID& tlid) override;
       virtual void record_merge_events(
           PredEvent& lhs, PredEvent e1, PredEvent e2,
@@ -415,28 +394,10 @@ namespace Legion {
         rec->record_merge_events(result, e1, e2, tlid);
       }
       inline void record_merge_events(
-          ApEvent& result, ApEvent e1, ApEvent e2) const
+          ApEvent& result, const ApEvent* rhs, size_t num_rhs) const
       {
         base_sanity_check();
-        rec->record_merge_events(result, e1, e2, tlid);
-      }
-      inline void record_merge_events(
-          ApEvent& result, ApEvent e1, ApEvent e2, ApEvent e3) const
-      {
-        base_sanity_check();
-        rec->record_merge_events(result, e1, e2, e3, tlid);
-      }
-      inline void record_merge_events(
-          ApEvent& result, const std::set<ApEvent>& events) const
-      {
-        base_sanity_check();
-        rec->record_merge_events(result, events, tlid);
-      }
-      inline void record_merge_events(
-          ApEvent& result, const std::vector<ApEvent>& events) const
-      {
-        base_sanity_check();
-        rec->record_merge_events(result, events, tlid);
+        rec->record_merge_events(result, rhs, num_rhs, tlid);
       }
       inline void record_collective_barrier(
           ApBarrier bar, ApEvent pre, const std::pair<size_t, size_t>& key,
