@@ -2289,7 +2289,7 @@ namespace Legion {
        * Legion gives the mapper control over when application tasks are
        * mapped, so application tasks can be kept available for stealing
        * or dynamically sent to another node. The select_tasks_to_map
-       * mapper call presents the mapper for this processor with a list of
+       * mapper call presents the mapper for the 'processor' with a list of
        * tasks that are ready to map in the 'ready_tasks' list. For any
        * of the tasks in this list, the mapper can either decide to map
        * the task by placing it in the 'map_tasks' set, or send it to
@@ -2307,6 +2307,7 @@ namespace Legion {
        */
       struct SelectMappingInput {
         std::list<const Task*> ready_tasks;
+        Processor processor;
       };
       struct SelectMappingOutput {
         std::set<const Task*> map_tasks;
