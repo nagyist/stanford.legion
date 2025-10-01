@@ -181,10 +181,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(!free);
-      OP::deactivate(free);
       status_collective_ids.clear();
       if (slow_barrier != nullptr)
         delete slow_barrier;
+      OP::deactivate(free);
     }
 
     //--------------------------------------------------------------------------

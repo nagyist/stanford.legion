@@ -312,12 +312,12 @@ namespace Legion {
     void PendingPartitionOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       if (thunk != nullptr)
         delete thunk;
       thunk = nullptr;
       future_map = FutureMap();  // clear any references
       sources.clear();
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

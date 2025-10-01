@@ -189,7 +189,6 @@ namespace Legion {
     void AttachOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       region = PhysicalRegion();
       version_info.clear();
       map_applied_conditions.clear();
@@ -198,6 +197,7 @@ namespace Legion {
       layout_constraint_set = LayoutConstraintSet();
       if (external_resource != nullptr)
         delete external_resource;
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -521,14 +521,14 @@ namespace Legion {
     void IndexAttachOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PointwiseAnalyzable<CollectiveViewCreator<Operation> >::deactivate(
-          false /*free*/);
       resources = ExternalResources();
       // We can deactivate all of our point operations
       for (PointAttachOp* point : points) point->deactivate();
       points.clear();
       map_applied_conditions.clear();
       commit_preconditions.clear();
+      PointwiseAnalyzable<CollectiveViewCreator<Operation> >::deactivate(
+          false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -1509,12 +1509,12 @@ namespace Legion {
     void ReplAttachOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ReplCollectiveViewCreator<CollectiveViewCreator<AttachOp> >::deactivate(
-          false /*free*/);
       if (did_broadcast != nullptr)
         delete did_broadcast;
       if (single_broadcast != nullptr)
         delete single_broadcast;
+      ReplCollectiveViewCreator<CollectiveViewCreator<AttachOp> >::deactivate(
+          false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -1816,13 +1816,13 @@ namespace Legion {
     void ReplIndexAttachOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ReplCollectiveViewCreator<IndexAttachOp>::deactivate(false /*free*/);
       if (collective != nullptr)
         delete collective;
       if (participants != nullptr)
         delete participants;
       if (interfering_exchange != nullptr)
         delete interfering_exchange;
+      ReplCollectiveViewCreator<IndexAttachOp>::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

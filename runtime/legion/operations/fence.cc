@@ -64,10 +64,10 @@ namespace Legion {
     void FenceOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MemoizableOp::deactivate(false /*free*/);
       map_applied_conditions.clear();
       execution_preconditions.clear();
       result = Future();  // clear out our future reference
+      MemoizableOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

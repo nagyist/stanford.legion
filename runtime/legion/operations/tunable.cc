@@ -84,13 +84,13 @@ namespace Legion {
     void TunableOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       if (arg != nullptr)
         free(arg);
       result = Future();
       futures.clear();
       if (instance != nullptr)
         delete instance;
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -241,12 +241,12 @@ namespace Legion {
     void ReplTunableOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      TunableOp::deactivate(false /*freeop*/);
       if (value_broadcast != nullptr)
       {
         delete value_broadcast;
         value_broadcast = nullptr;
       }
+      TunableOp::deactivate(false /*freeop*/);
       if (freeop)
         runtime->free_operation(this);
     }

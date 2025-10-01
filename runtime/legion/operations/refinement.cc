@@ -49,8 +49,8 @@ namespace Legion {
     void RefinementOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      InternalOp::deactivate(false /*free*/);
       refinement_mask.clear();
+      InternalOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

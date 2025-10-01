@@ -129,9 +129,9 @@ namespace Legion {
     void CreationOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false /*free*/);
       futures.clear();
       fields.clear();
+      Operation::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }

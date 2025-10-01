@@ -170,12 +170,12 @@ namespace Legion {
     void ReplTimingOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ReplFenceOp::deactivate(false /*freeop*/);
       if (timing_collective != nullptr)
       {
         delete timing_collective;
         timing_collective = nullptr;
       }
+      ReplFenceOp::deactivate(false /*freeop*/);
       if (freeop)
         runtime->free_operation(this);
     }
