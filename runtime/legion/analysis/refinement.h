@@ -41,19 +41,20 @@ namespace Legion {
       }
       virtual RefinementTracker* clone(void) const = 0;
       virtual void initialize_no_refine(void) = 0;
+      virtual bool is_child_current_refinement(RegionTreeNode* child) const = 0;
       virtual bool update_child(
-          RegionTreeNode* child, const RegionUsage& usage,
-          bool& allow_refinement) = 0;
+          RegionTreeNode* child, const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask) = 0;
       virtual bool update_projection(
-          ProjectionSummary* summary, const RegionUsage& usage,
-          bool& allow_refinement) = 0;
-      virtual bool update_arrival(const RegionUsage& usage) = 0;
+          ProjectionSummary* summary, const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask) = 0;
       virtual void invalidate_refinement(
           ContextID ctx, const FieldMask& invalidation_mask) = 0;
+      virtual bool merge_refinement(const RefinementTracker* other) const = 0;
     public:
       // This is the number of return children or projections we need
       // to observe in total before we consider a change to a refinement
-      static constexpr uint64_t CHANGE_REFINEMENT_RETURN_COUNT = 256;
+      static constexpr uint64_t CHANGE_REFINEMENT_RETURN_COUNT = 64;
       // Check that this is a power of 2 for fast integer division
       static_assert(
           (CHANGE_REFINEMENT_RETURN_COUNT &
@@ -64,19 +65,7 @@ namespace Legion {
       static constexpr double CHANGE_REFINEMENT_RETURN_WEIGHT = 0.99;
       // This is the timeout for refinements where we will clear out all
       // candidate refinements and reset the state to look again
-      static constexpr uint64_t CHANGE_REFINEMENT_TIMEOUT = 4096;
-      // The maximum number of incomplete projection writes that we're
-      // willing to remember at any particular node in the tree
-      static constexpr uint64_t MAX_INCOMPLETE_WRITES = 32;
-    protected:
-      enum RefinementState {
-        UNREFINED_STATE,
-        COMPLETE_NONWRITE_REFINED_STATE,
-        INCOMPLETE_NONWRITE_REFINED_STATE,
-        COMPLETE_WRITE_REFINED_STATE,
-        INCOMPLETE_WRITE_REFINED_STATE,
-        NO_REFINEMENT_STATE,
-      };
+      static constexpr uint64_t CHANGE_REFINEMENT_TIMEOUT = 256;
     };
 
     /**
@@ -101,21 +90,37 @@ namespace Legion {
       }
       virtual RefinementTracker* clone(void) const override;
       virtual void initialize_no_refine(void) override;
+      virtual bool is_child_current_refinement(
+          RegionTreeNode* child) const override;
       virtual bool update_child(
-          RegionTreeNode* child, const RegionUsage& usage,
-          bool& allow_refinement) override;
+          RegionTreeNode* child, const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask) override;
       virtual bool update_projection(
-          ProjectionSummary* summary, const RegionUsage& usage,
-          bool& allow_refinement) override;
-      virtual bool update_arrival(const RegionUsage& usage) override;
+          ProjectionSummary* summary, const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask) override;
       virtual void invalidate_refinement(
           ContextID ctx, const FieldMask& invalidation_mask) override;
+      virtual bool merge_refinement(
+          const RefinementTracker* other) const override;
     protected:
       bool is_dominant_candidate(double score, bool is_current);
+      bool update_refinement(
+          PartitionNode* child, ContextID ctx, const FieldMask& current_mask);
+      bool update_refinement(
+          ProjectionSummary* summary, ContextID ctx,
+          const FieldMask& current_mask);
       void invalidate_unused_candidates(void);
     public:
       RegionNode* const region;
     protected:
+      enum RefinementState {
+        UNREFINED_STATE,
+        INCOMPLETE_NONWRITE_REFINED_STATE,
+        INCOMPLETE_WRITE_REFINED_STATE,
+        COMPLETE_NONWRITE_REFINED_STATE,
+        COMPLETE_WRITE_REFINED_STATE,
+        NO_REFINEMENT_STATE,
+      };
       RefinementState refinement_state;
       PartitionNode* refined_child;
       ProjectionRegion* refined_projection;
@@ -158,15 +163,18 @@ namespace Legion {
       }
       virtual RefinementTracker* clone(void) const override;
       virtual void initialize_no_refine(void) override;
+      virtual bool is_child_current_refinement(
+          RegionTreeNode* child) const override;
       virtual bool update_child(
-          RegionTreeNode* child, const RegionUsage& usage,
-          bool& allow_refinement) override;
+          RegionTreeNode* child, const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask) override;
       virtual bool update_projection(
-          ProjectionSummary* summary, const RegionUsage& usage,
-          bool& allow_refinement) override;
-      virtual bool update_arrival(const RegionUsage& usage) override;
+          ProjectionSummary* summary, const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask) override;
       virtual void invalidate_refinement(
           ContextID ctx, const FieldMask& invalidation_mask) override;
+      virtual bool merge_refinement(
+          const RefinementTracker* other) const override;
     protected:
       bool is_dominant_candidate(double score, bool is_current);
       void invalidate_unused_candidates(void);
@@ -174,7 +182,6 @@ namespace Legion {
       PartitionNode* const partition;
     protected:
       ProjectionPartition* refined_projection;
-      RefinementState refinement_state;
       // These are children which are disjoint and complete
       // Note we don't need to hold references on them as they are kept alive
       // by the reference we are holding on their partition
@@ -190,12 +197,6 @@ namespace Legion {
       // If we go for too long without seeing a return, we timeout and
       // clear out all the candidates so we can try again
       uint64_t return_timeout;
-      // What fraction of children need to observed before we condider
-      // this partition as being disjoint and complete, 1 means all the
-      // children need to be observed to be considered complete, 2 means
-      // that half the children need to be observed before being complete,
-      // 3 means a third need to be observed before being complete, etc
-      static constexpr uint64_t CHANGE_REFINEMENT_PARTITION_FRACTION = 2;
     };
 
   }  // namespace Internal

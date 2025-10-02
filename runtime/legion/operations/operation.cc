@@ -2143,8 +2143,7 @@ namespace Legion {
             refinements;
         parent_node->register_logical_user(
             req.parent, *user, path, trace_info, proj_info, user_mask,
-            unopened_mask, refinement_mask, logical_analysis, refinements,
-            true /*root*/);
+            unopened_mask, refinement_mask, logical_analysis, refinements);
       }
       if (user->remove_reference())
         delete user;
