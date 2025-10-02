@@ -37,7 +37,7 @@ namespace Legion {
       virtual ~CollectiveAnalysis(void) { }
       virtual size_t get_context_index(void) const = 0;
       virtual unsigned get_requirement_index(void) const = 0;
-      virtual IndexSpaceID get_match_space(void) const = 0;
+      virtual IndexSpace get_match_space(void) const = 0;
       virtual Operation* get_operation(void) const = 0;
       virtual const PhysicalTraceInfo& get_trace_info(void) const = 0;
       void pack_collective_analysis(
@@ -56,7 +56,7 @@ namespace Legion {
                                      public Collectable {
     public:
       RemoteCollectiveAnalysis(
-          size_t ctx_index, unsigned req_index, IndexSpaceID match_space,
+          size_t ctx_index, unsigned req_index, IndexSpace match_space,
           RemoteOp* op, Deserializer& derez);
       virtual ~RemoteCollectiveAnalysis(void);
       virtual size_t get_context_index(void) const override
@@ -67,7 +67,7 @@ namespace Legion {
       {
         return requirement_index;
       }
-      virtual IndexSpaceID get_match_space(void) const override
+      virtual IndexSpace get_match_space(void) const override
       {
         return match_space;
       }
@@ -85,7 +85,7 @@ namespace Legion {
     public:
       const size_t context_index;
       const unsigned requirement_index;
-      const IndexSpaceID match_space;
+      const IndexSpace match_space;
       RemoteOp* const operation;
       const PhysicalTraceInfo trace_info;
     };
@@ -124,7 +124,7 @@ namespace Legion {
       {
         return index;
       }
-      virtual IndexSpaceID get_match_space(void) const override
+      virtual IndexSpace get_match_space(void) const override
       {
         return get_collective_match_space();
       }

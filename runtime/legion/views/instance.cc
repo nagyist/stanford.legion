@@ -66,8 +66,6 @@ namespace Legion {
       derez.deserialize(op_ctx_index);
       unsigned index;
       derez.deserialize(index);
-      IndexSpaceID match_space;
-      derez.deserialize(match_space);
       ApEvent term_event;
       derez.deserialize(term_event);
       size_t local_collective_arrivals;
@@ -89,8 +87,8 @@ namespace Legion {
       InstanceView* inst_view = view->as_instance_view();
       std::vector<RtEvent> registered_events;
       ApEvent pre = inst_view->register_user(
-          usage, user_mask, user_expr, op_id, op_ctx_index, index, match_space,
-          term_event, target, nullptr /*no mapping*/, local_collective_arrivals,
+          usage, user_mask, user_expr, op_id, op_ctx_index, index, term_event,
+          target, nullptr /*no mapping*/, local_collective_arrivals,
           registered_events, applied_events, trace_info, source);
       if (ready_event.exists())
         Runtime::trigger_event(ready_event, pre, trace_info, applied_events);

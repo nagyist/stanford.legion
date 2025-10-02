@@ -486,10 +486,10 @@ namespace Legion {
       legion_assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
 
       const RegionUsage usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
-      IndexSpaceExpression* local_expr =
+      IndexSpaceNode* local_node =
           runtime->get_node(req.region.get_index_space());
       OverwriteAnalysis* analysis = new OverwriteAnalysis(
-          this, index, usage, local_expr, nullptr /*view*/,
+          this, index, usage, local_node, nullptr /*view*/,
           version_info.get_valid_mask(), trace_info, collective_mapping,
           ApEvent::NO_AP_EVENT, PredEvent::NO_PRED_EVENT,
           PredEvent::NO_PRED_EVENT, false /*add restriction*/,

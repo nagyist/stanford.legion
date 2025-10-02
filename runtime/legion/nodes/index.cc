@@ -3143,9 +3143,6 @@ namespace Legion {
         IndexSpaceExpression* expr, std::vector<LegionColor>& colors)
     //--------------------------------------------------------------------------
     {
-      // This should only be called on disjoint and complete partitions
-      legion_assert(is_disjoint());
-      legion_assert(is_complete());
       legion_assert(colors.empty());
       // Check to see if we have this in the cache
       {
@@ -3176,7 +3173,7 @@ namespace Legion {
       // Do a quick test to see if this expression is below us in the
       // index space tree which makes this computation simple
       LegionColor below_color = 0;
-      if (!expr->is_below_in_tree(this, below_color))
+      if (!is_disjoint() || !expr->is_below_in_tree(this, below_color))
       {
         // We can only test this here after we've ruled out the symbolic check
         if (expr->is_empty())

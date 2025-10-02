@@ -32,16 +32,16 @@ namespace Legion {
     //--------------------------------------------------------------------------
     OverwriteAnalysis::OverwriteAnalysis(
         Operation* o, unsigned idx, const RegionUsage& use,
-        IndexSpaceExpression* expr, LogicalView* view, const FieldMask& mask,
+        IndexSpaceNode* expr, LogicalView* view, const FieldMask& mask,
         const PhysicalTraceInfo& t_info, CollectiveMapping* mapping,
         const ApEvent pre, const PredEvent true_g, const PredEvent false_g,
         const bool restriction, const bool first_local)
       : PhysicalAnalysis(
             o, idx, expr, true /*on heap*/, false /*immutable*/,
             true /*exclusive*/, mapping, first_local),
-        usage(use), trace_info(t_info), precondition(pre), true_guard(true_g),
-        false_guard(false_g), add_restriction(restriction),
-        output_aggregator(nullptr)
+        usage(use), upper_bound(expr->handle), trace_info(t_info),
+        precondition(pre), true_guard(true_g), false_guard(false_g),
+        add_restriction(restriction), output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
       if (view != nullptr)
@@ -56,13 +56,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     OverwriteAnalysis::OverwriteAnalysis(
         Operation* o, unsigned idx, const RegionUsage& use,
-        IndexSpaceExpression* expr, const PhysicalTraceInfo& t_info,
+        IndexSpaceNode* expr, const PhysicalTraceInfo& t_info,
         const ApEvent pre, const bool restriction)
       : PhysicalAnalysis(
             o, idx, expr, true /*on heap*/, false /*immutable*/,
             true /*exclusive*/),
-        usage(use), trace_info(t_info), precondition(pre),
-        add_restriction(restriction), output_aggregator(nullptr)
+        usage(use), upper_bound(expr->handle), trace_info(t_info),
+        precondition(pre), add_restriction(restriction),
+        output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     { }
 
@@ -76,8 +77,9 @@ namespace Legion {
       : PhysicalAnalysis(
             o, idx, expr, true /*on heap*/, false /*immutable*/,
             true /*exclusive*/),
-        usage(use), trace_info(t_info), precondition(pre),
-        add_restriction(restriction), output_aggregator(nullptr)
+        usage(use), upper_bound(IndexSpace::NO_SPACE), trace_info(t_info),
+        precondition(pre), add_restriction(restriction),
+        output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
       for (op::FieldMaskMap<LogicalView>::const_iterator it =
@@ -94,7 +96,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     OverwriteAnalysis::OverwriteAnalysis(
         AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
-        IndexSpaceExpression* expr, const RegionUsage& use,
+        IndexSpaceExpression* expr, const RegionUsage& use, IndexSpace bound,
         op::FieldMaskMap<LogicalView>& vws,
         op::FieldMaskMap<InstanceView>& reductions,
         const PhysicalTraceInfo& t_info, const ApEvent pre,
@@ -104,10 +106,10 @@ namespace Legion {
       : PhysicalAnalysis(
             src, prev, o, idx, expr, true /*on heap*/, false /*immutable*/,
             mapping, true /*exclusive*/, first_local),
-        usage(use), trace_info(t_info), views(vws, true /*copy*/),
-        reduction_views(reductions, true /*copy*/), precondition(pre),
-        true_guard(true_g), false_guard(false_g), add_restriction(restriction),
-        output_aggregator(nullptr)
+        usage(use), upper_bound(bound), trace_info(t_info),
+        views(vws, true /*copy*/), reduction_views(reductions, true /*copy*/),
+        precondition(pre), true_guard(true_g), false_guard(false_g),
+        add_restriction(restriction), output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     { }
 
@@ -222,6 +224,7 @@ namespace Legion {
           op->pack_remote_operation(rez, target, applied_events);
           rez.serialize(index);
           rez.serialize(usage);
+          rez.serialize(upper_bound);
           rez.serialize<size_t>(views.size());
           if (!views.empty())
           {
@@ -287,7 +290,6 @@ namespace Legion {
       // In this case we know the expression should be a region
       IndexSpaceNode* expr_node =
           legion_safe_cast<IndexSpaceNode*>(analysis_expr);
-      const IndexSpaceID match_space = expr_node->handle.get_id();
       std::vector<RtEvent> registered_events;
       std::vector<ApEvent> inst_ready_events;
       for (unsigned idx = 0; idx < target_views.size(); idx++)
@@ -306,9 +308,9 @@ namespace Legion {
           }
           const ApEvent ready = it->first->register_user(
               usage, it->second, expr_node, op_id, op_ctx_index, index,
-              match_space, termination, target_instances[idx],
-              collective_mapping, view_collective_arrivals, registered_events,
-              applied_events, trace_info, local_space, symbolic);
+              termination, target_instances[idx], collective_mapping,
+              view_collective_arrivals, registered_events, applied_events,
+              trace_info, local_space, symbolic);
           if (ready.exists())
             inst_ready_events.emplace_back(ready);
         }
@@ -355,6 +357,22 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    IndexSpace OverwriteAnalysis::get_collective_match_space(void) const
+    //--------------------------------------------------------------------------
+    {
+      // The only reason the upper bound index space should not exists should
+      // be for tracing cases. We only invoke this method when performing
+      // copies/fills for overwrites with restricted cases which shouldn't
+      // be happening for tracing so we should always have such a bound.
+      // If you hit the assert you've got a trace condition output being
+      // applied ot an equivalence set with restrictions which is forcing
+      // some copies to be performed which would be really strange.
+      if (!upper_bound.exists())
+        std::abort();
+      return upper_bound;
+    }
+
+    //--------------------------------------------------------------------------
     /*static*/ void RemoteOverwriteAnalysis::handle(
         Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
@@ -384,6 +402,8 @@ namespace Legion {
       derez.deserialize(index);
       RegionUsage usage;
       derez.deserialize(usage);
+      IndexSpace upper_bound;
+      derez.deserialize(upper_bound);
       size_t num_views;
       derez.deserialize(num_views);
       op::FieldMaskMap<LogicalView> views;
@@ -438,9 +458,9 @@ namespace Legion {
 
       // This takes ownership of the operation
       OverwriteAnalysis* analysis = new OverwriteAnalysis(
-          original_source, previous, op, index, expr, usage, views, reductions,
-          trace_info, precondition, true_guard, false_guard, collective_mapping,
-          first_local, add_restriction);
+          original_source, previous, op, index, expr, usage, upper_bound, views,
+          reductions, trace_info, precondition, true_guard, false_guard,
+          collective_mapping, first_local, add_restriction);
       analysis->add_reference();
       // Make sure that all our pointers are ready
       RtEvent ready_event;

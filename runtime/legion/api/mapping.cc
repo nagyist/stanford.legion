@@ -3095,7 +3095,6 @@ namespace Legion {
         }
       }
       held = true;
-      Internal::local_lock_list = this;
     }
 
     //--------------------------------------------------------------------------
@@ -3123,7 +3122,6 @@ namespace Legion {
         }
       }
       held = true;
-      Internal::local_lock_list = this;
     }
 
     //--------------------------------------------------------------------------
@@ -3131,10 +3129,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(!held);
-      legion_assert(Internal::local_lock_list == previous);
 #ifdef LEGION_DEBUG_REENTRANT_LOCKS
-      if (previous != nullptr)
-        previous->check_for_reentrant_locks(&local_lock);
+      local_lock_list->check_for_reentrant_locks(&local_lock, this);
 #endif
       AutoMapperCall call(ctx, Internal::MAPPER_AUTO_LOCK_CALL);
       if (exclusive)
@@ -3155,7 +3151,6 @@ namespace Legion {
           ready = local_lock.rdlock();
         }
       }
-      Internal::local_lock_list = this;
       held = true;
     }
 

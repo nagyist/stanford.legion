@@ -2256,7 +2256,8 @@ namespace Legion {
         // These index expressions cannot be computed, so we'll pretend
         // like they are index spaces to Legion Spy since these are
         // effectively new "atom" index spaces for Legion Spy's analysis
-        const IndexSpaceID fake_space_id = runtime->get_unique_index_space_id();
+        const DistributedID fake_space_id =
+            runtime->get_unique_index_space_id();
         LegionSpy::log_top_index_space(
             fake_space_id, runtime->address_space, std::string_view());
         LegionSpy::log_index_space_expr(fake_space_id, this->expr_id);

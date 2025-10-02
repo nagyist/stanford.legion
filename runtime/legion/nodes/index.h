@@ -21,6 +21,7 @@
 #include "legion/kernel/runtime.h"
 #include "legion/nodes/expression.h"
 #include "legion/utilities/buffers.h"
+#include "legion/views/individual.h"
 
 namespace Legion {
   namespace Internal {
@@ -1521,7 +1522,7 @@ namespace Legion {
       RtUserEvent disjoint_complete_ready;
     protected:
       // Members for the interference cache
-      static const size_t MAX_INTERFERENCE_CACHE_SIZE = 64;
+      static constexpr size_t MAX_INTERFERENCE_CACHE_SIZE = 64;
       std::map<IndexSpaceExprID, InterferenceEntry> interference_cache;
       InterferenceEntry* first_entry;
     protected:
