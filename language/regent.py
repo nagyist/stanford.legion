@@ -92,7 +92,8 @@ lib_path = (
     (os.environ[LD_LIBRARY_PATH].split(':')
      if LD_LIBRARY_PATH in os.environ else []) +
     [os.path.join(terra_dir, 'build'),
-     os.path.join(legion_install_prefix, 'lib')])
+     os.path.join(legion_install_prefix, 'lib'),
+     os.path.join(legion_install_prefix, 'lib64')])
 
 def regent(args, env={}, cwd=None, **kwargs):
     terra_exe = os.path.join(terra_dir, 'terra')

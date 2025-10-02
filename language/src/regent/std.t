@@ -4770,6 +4770,7 @@ function std.saveobj(main_task, filename, filetype, extra_setup_thunk, link_flag
   flags:insertall(objfiles)
   local legion_install_prefix = os.getenv("LEGION_INSTALL_PREFIX")
   local lib_dir = legion_install_prefix .. "/lib"
+  local lib64_dir = legion_install_prefix .. "/lib64"
   if os.getenv('CRAYPE_VERSION') then
     flags:insert("-Wl,-Bdynamic")
   end
@@ -4799,10 +4800,10 @@ function std.saveobj(main_task, filename, filetype, extra_setup_thunk, link_flag
   end
   local realm_dir = os.getenv("Realm_ROOT")
   if realm_dir then
-    flags:insertall({"-L" .. realm_dir .. "/lib"})
+    flags:insertall({"-L" .. realm_dir .. "/lib", "-L" .. realm_dir .. "/lib64"})
   end
   -- FIXME: Detect when Legion is a static library.
-  flags:insertall({"-L" .. lib_dir, "-lregent", "-llegion", "-lrealm"})
+  flags:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm"})
   if gpuhelper.check_gpu_available() then
     flags:insertall(gpuhelper.driver_library_link_flags())
   end
@@ -4938,6 +4939,7 @@ function std.save_tasks(header_filename, filename, filetype, link_flags, registr
   local _, names = std.setup(main_task, nil, task_wrappers, registration_name)
   local legion_install_prefix = os.getenv("LEGION_INSTALL_PREFIX")
   local lib_dir = legion_install_prefix .. "/lib"
+  local lib64_dir = legion_install_prefix .. "/lib64"
 
   -- Export task interface implementations
   for k, v in task_impl:items() do
@@ -4948,9 +4950,9 @@ function std.save_tasks(header_filename, filename, filetype, link_flags, registr
   if link_flags then flags:insertall(link_flags) end
   local realm_dir = os.getenv("Realm_ROOT")
   if realm_dir then
-    flags:insertall({"-L" .. realm_dir .. "/lib"})
+    flags:insertall({"-L" .. realm_dir .. "/lib", "-L" .. realm_dir .. "/lib64"})
   end
-  flags:insertall({"-L" .. lib_dir, "-lregent", "-llegion", "-lrealm"})
+  flags:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm"})
   profile('compile', nil, function()
     if filetype ~= nil then
       terralib.saveobj(filename, filetype, names, flags, nil, base.opt_profile)
