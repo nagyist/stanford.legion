@@ -406,10 +406,14 @@ namespace Legion {
       // has committed or verified its regions.
       bool perform_registration(
           GenerationID our_gen, Operation* op, GenerationID op_gen,
-          bool& registered_dependence, std::atomic<unsigned>& dependences,
+          bool& registered_dependence,
+          std::atomic<unsigned>& mapping_dependences,
+          std::atomic<unsigned>& commit_dependences,
           std::set<Operation*>& notifications);
       // Notify another operation that a mapping dependence is satisfied
       void satisfy_mapping_dependence(void);
+      // Notify another operation that a commit dependence is satisfied
+      void satisfy_commit_dependence(void);
       // Check to see if the operation is still valid
       // for the given GenerationID.  This method is not precise
       // and may return false when the operation has committed.
@@ -548,6 +552,8 @@ namespace Legion {
       std::map<Operation*, GenerationID> outgoing;
       // Mapping dependences
       std::atomic<unsigned> remaining_mapping_dependences;
+      // Commit dependences
+      std::atomic<unsigned> remaining_commit_dependences;
       // Number of outstanding mapping references, once this goes to
       // zero then the set of outgoing edges is fixed
       unsigned outstanding_mapping_references;

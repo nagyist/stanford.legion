@@ -7443,55 +7443,68 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void InnerContext::add_to_trigger_commit_queue(Operation* op)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock c_lock(trigger_commit_lock);
+      legion_no_skip_assert(
+          commit_priority_queue
+              .emplace(std::make_pair(op->get_context_index(), op))
+              .second);
+      if (!outstanding_commit_task)
+      {
+        TriggerCommitArgs args(this);
+        add_base_resource_ref(META_TASK_REF);
+        runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
+        outstanding_commit_task = true;
+      }
+    }
+
+    //--------------------------------------------------------------------------
     bool InnerContext::process_trigger_commit_queue(void)
     //--------------------------------------------------------------------------
     {
-      AutoLock child_lock(child_op_lock);
-      legion_assert(outstanding_commit_task);
-      uint64_t previous_index = 0;
-      for (unsigned idx = 0; idx < context_configuration.meta_task_vector_width;
-           idx++)
+      bool trigger_next = false;
+      std::vector<Operation*> to_perform;
       {
-        legion_assert(!reorder_buffer.empty());
-        ReorderBufferEntry& next = reorder_buffer.front();
-        if (!next.child_complete ||
-            ((idx > 0) && (next.operation_index == previous_index)))
+        AutoLock c_lock(trigger_commit_lock);
+        legion_assert(outstanding_commit_task);
+        to_perform.reserve(std::min<size_t>(
+            commit_priority_queue.size(),
+            context_configuration.meta_task_vector_width));
+        while (
+            !commit_priority_queue.empty() &&
+            (to_perform.size() < context_configuration.meta_task_vector_width))
         {
-          implicit_operation = nullptr;
-          outstanding_commit_task = false;
-          return true;
+          std::map<uint64_t, Operation*>::iterator it =
+              commit_priority_queue.begin();
+          to_perform.push_back(it->second);
+          commit_priority_queue.erase(it);
         }
-        previous_index = next.operation_index;
-        Operation* op = next.operation;
-        child_lock.release();
+        if (!commit_priority_queue.empty())
+          trigger_next = true;
+        else
+          outstanding_commit_task = false;
+      }
+      for (std::vector<Operation*>::const_iterator it = to_perform.begin();
+           it != to_perform.end(); it++)
+      {
         implicit_enclosing_context = did;
-        implicit_operation = op;
-        Provenance* provenance = op->get_provenance();
+        implicit_operation = (*it);
+        Provenance* provenance = (*it)->get_provenance();
         implicit_provenance = (provenance == nullptr) ? 0 : provenance->pid;
-        implicit_unique_op_id = op->get_unique_op_id();
-        op->trigger_commit();
-        child_lock.reacquire();
-        // If we did the commit and there's no more entries we're done
-        if (reorder_buffer.empty())
-        {
-          implicit_operation = nullptr;
-          outstanding_commit_task = false;
-          return true;
-        }
+        implicit_unique_op_id = (*it)->get_unique_op_id();
+        (*it)->trigger_commit();
       }
       implicit_operation = nullptr;
-      ReorderBufferEntry& next = reorder_buffer.front();
-      if (next.complete && (next.operation_index != previous_index))
+      if (trigger_next)
       {
         TriggerCommitArgs args(this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
-        return false;
-      }
-      else
-      {
-        outstanding_commit_task = false;
         return true;
       }
+      else
+        return false;
     }
 
     //--------------------------------------------------------------------------
@@ -7711,6 +7724,7 @@ namespace Legion {
         Operation* op)
     //--------------------------------------------------------------------------
     {
+      legion_assert(!reorder_buffer.empty());
       ReorderBufferEntry& head = reorder_buffer.front();
       legion_assert(head.operation_index <= op->get_context_index());
       uint64_t offset = op->get_context_index() - head.operation_index;
@@ -7726,19 +7740,7 @@ namespace Legion {
     {
       AutoLock child_lock(child_op_lock);
       ReorderBufferEntry& entry = find_rob_entry(op);
-      legion_assert(!entry.child_complete);
       entry.complete = true;
-      entry.child_complete = true;
-      // See if we're at the front of the ROB and need to start the commit
-      // process for this operation
-      if (!outstanding_commit_task &&
-          (entry.operation_index == reorder_buffer.front().operation_index))
-      {
-        outstanding_commit_task = true;
-        TriggerCommitArgs args(this);
-        add_base_resource_ref(META_TASK_REF);
-        runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
-      }
       if (!task_executed && (spy_logging_level > LIGHT_SPY_LOGGING))
       {
         if (entry.complete_event.exists())
@@ -7765,9 +7767,18 @@ namespace Legion {
       {
         AutoLock child_lock(child_op_lock);
         legion_assert(!reorder_buffer.empty());
-        // Operations should be committed in order
-        legion_assert(reorder_buffer.front().operation == op);
-        reorder_buffer.pop_front();
+        // Mark that this operation is commited
+        ReorderBufferEntry& entry = find_rob_entry(op);
+        legion_assert(!entry.committed);
+        entry.committed = true;
+        // Pop as many committed entries off the front fo the ROB as possible
+        while (!reorder_buffer.empty())
+        {
+          const ReorderBufferEntry& front = reorder_buffer.front();
+          if (!front.committed)
+            break;
+          reorder_buffer.pop_front();
+        }
         // Check to see if we need to wake up a window waiter
         // Add some hysteresis here so that we have some runway for when
         // the paused task resumes it can run for a little while.
@@ -7780,20 +7791,8 @@ namespace Legion {
           to_trigger = window_wait;
           window_wait = RtUserEvent::NO_RT_USER_EVENT;
         }
-        // Check to see if we need to launch the next meta task for commit
-        if (!reorder_buffer.empty())
-        {
-          const ReorderBufferEntry& next = reorder_buffer.front();
-          if (!outstanding_commit_task && next.complete)
-          {
-            outstanding_commit_task = true;
-            TriggerCommitArgs args(this);
-            add_base_resource_ref(META_TASK_REF);
-            runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
-          }
-        }
         // See if we need to trigger the all children commited call
-        else if (task_executed)
+        if (reorder_buffer.empty() && task_executed)
           needs_trigger = true;
       }
       if (to_trigger.exists())
@@ -8339,7 +8338,7 @@ namespace Legion {
         {
           if (it->operation_index < current_execution_fence_index)
             break;
-          if (next_fence_index <= it->operation_index)
+          if (it->committed || (next_fence_index <= it->operation_index))
             continue;
           previous_events.insert(it->operation->get_completion_event());
         }
