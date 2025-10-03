@@ -287,15 +287,12 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
                 subprocess.check_call(
                     [make_exe] + flags + ['clean'],
                     cwd=python_bindings_dir)
-        subprocess.check_call(
-            [make_exe] + flags + ['-j', str(thread_count)],
-            cwd=bindings_dir)
         if python:
             subprocess.check_call(
                 [make_exe] + flags + ['-j', str(thread_count)],
                 cwd=python_bindings_dir)
         subprocess.check_call(
-            [make_exe, 'install', 'PREFIX=%s' % regent_install_dir],
+            [make_exe, 'install', 'PREFIX=%s' % regent_install_dir] + flags + ['-j', str(thread_count)],
             cwd=bindings_dir)
 
         # This last bit is necessary because Mac OS X shared libraries
