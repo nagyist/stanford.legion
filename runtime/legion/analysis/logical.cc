@@ -1033,7 +1033,7 @@ namespace Legion {
           continue;
         if (std::binary_search(
                 timeout_users.begin(), timeout_users.begin() + prev_size,
-                it.first))
+                it.first, LogicalUser::Comparator()))
           continue;
         timeout_users.emplace_back(it.first);
       }
