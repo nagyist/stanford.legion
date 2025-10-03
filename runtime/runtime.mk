@@ -1225,6 +1225,7 @@ INSTALL_HEADERS += legion.h \
 		   legion/api/values.h \
 		   legion/api/values.inl \
 		   legion/bindings/c_bindings.h \
+		   legion/bindings/c_bindings_util.h \
                    mappers/debug_mapper.h \
                    mappers/default_mapper.h \
                    mappers/default_mapper.inl \
