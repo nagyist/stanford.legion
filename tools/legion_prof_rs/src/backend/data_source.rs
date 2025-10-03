@@ -255,15 +255,28 @@ impl StateDataSource {
                 kind_index += 1;
 
                 let color = match (kind, device) {
+                    (ProcKind::GPU, None) => Color::ORANGERED, // No device work
                     (ProcKind::GPU, Some(DeviceKind::Device)) => Color::OLIVEDRAB,
                     (ProcKind::GPU, Some(DeviceKind::Host)) => Color::ORANGERED,
                     (ProcKind::CPU, None) => Color::STEELBLUE,
+                    (ProcKind::CPU, Some(DeviceKind::Device)) => Color::OLIVEDRAB,
+                    (ProcKind::CPU, Some(DeviceKind::Host)) => Color::STEELBLUE,
                     (ProcKind::Utility, None) => Color::CRIMSON,
                     (ProcKind::IO, None) => Color::ORANGERED,
+                    (ProcKind::IO, Some(DeviceKind::Device)) => Color::OLIVEDRAB,
+                    (ProcKind::IO, Some(DeviceKind::Host)) => Color::ORANGERED,
                     (ProcKind::ProcGroup, None) => Color::ORANGERED,
+                    (ProcKind::ProcGroup, Some(DeviceKind::Device)) => Color::OLIVEDRAB,
+                    (ProcKind::ProcGroup, Some(DeviceKind::Host)) => Color::ORANGERED,
                     (ProcKind::ProcSet, None) => Color::ORANGERED,
+                    (ProcKind::ProcSet, Some(DeviceKind::Device)) => Color::OLIVEDRAB,
+                    (ProcKind::ProcSet, Some(DeviceKind::Host)) => Color::ORANGERED,
                     (ProcKind::OpenMP, None) => Color::ORANGERED,
-                    (ProcKind::Python, None) => Color::OLIVEDRAB,
+                    (ProcKind::OpenMP, Some(DeviceKind::Device)) => Color::OLIVEDRAB,
+                    (ProcKind::OpenMP, Some(DeviceKind::Host)) => Color::ORANGERED,
+                    (ProcKind::Python, None) => Color::DARKGOLDENROD,
+                    (ProcKind::Python, Some(DeviceKind::Device)) => Color::OLIVEDRAB,
+                    (ProcKind::Python, Some(DeviceKind::Host)) => Color::DARKGOLDENROD,
                     _ => unreachable!(),
                 };
                 let color: Color32 = color.into();

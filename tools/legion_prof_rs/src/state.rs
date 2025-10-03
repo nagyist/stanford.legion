@@ -1002,6 +1002,8 @@ impl Proc {
         self.max_levels_device = max_levels_device;
         self.time_points_device = points_device;
         self.util_time_points_device = util_points_device;
+        // These should be in alignment in order for has_device_timepoints to work
+        assert!((self.max_levels_device == 0) == self.time_points_device.is_empty());
     }
 
     fn stack_time_points(&mut self) {
@@ -1019,7 +1021,13 @@ impl Proc {
     }
 
     pub fn has_device_timepoints(&self) -> bool {
-        !self.time_points_device.is_empty()
+        // Use this instead of looking at time_points_device because it could
+        // be queried either before or after we call stack_time_points which
+        // will swap out time_points_device for time_points_stacked_device.
+        // We also cannot use time_points_stacked_device because it always
+        // has at least one level even if the there are no points due to
+        // the implementation of the stack method.
+        self.max_levels_device > 0
     }
 
     pub fn find_executing_entry(
