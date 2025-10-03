@@ -7733,12 +7733,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool ReplicateContext::match_timeouts(
-        std::vector<LogicalUser*>& timeouts,
-        std::vector<LogicalUser*>& to_delete, TimeoutMatchExchange*& exchange)
+        std::vector<LogicalUser*>& timeouts, TimeoutMatchExchange*& exchange)
     //--------------------------------------------------------------------------
     {
       bool previous_ready = true;
       bool double_latency = false;
+      std::vector<std::pair<size_t, unsigned> > remaining_timeouts;
       if (exchange != nullptr)
       {
         RtEvent ready = exchange->perform_collective_wait(false /*block*/);
@@ -7747,11 +7747,22 @@ namespace Legion {
           previous_ready = false;
           ready.wait();
         }
-        double_latency = exchange->complete_exchange(to_delete);
+        double_latency =
+            exchange->complete_exchange(timeouts, remaining_timeouts);
         delete exchange;
       }
+      else
+      {
+        // No prior exchange means that they all go in the remaining timeouts
+        remaining_timeouts.reserve(timeouts.size());
+        for (LogicalUser* user : timeouts)
+          remaining_timeouts.emplace_back(
+              std::make_pair(user->ctx_index, user->internal_idx));
+        // We can't prune any of these users yet without consensus
+        timeouts.clear();
+      }
       exchange = new TimeoutMatchExchange(this, COLLECTIVE_LOC_79);
-      exchange->perform_exchange(timeouts, previous_ready);
+      exchange->perform_exchange(remaining_timeouts, previous_ready);
       return double_latency;
     }
 
@@ -10972,6 +10983,185 @@ namespace Legion {
       if (result >= total_participants)
         result -= total_participants;
       return result;
+    }
+
+    /////////////////////////////////////////////////////////////
+    // Timeout Match Exchange
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    TimeoutMatchExchange::TimeoutMatchExchange(
+        ReplicateContext* ctx, CollectiveIndexLocation loc)
+      : AllGatherCollective<false>(
+            ctx, ctx->get_next_collective_index(loc, true /*logical*/)),
+        double_latency(false)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    TimeoutMatchExchange::~TimeoutMatchExchange(void)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    void TimeoutMatchExchange::pack_collective_stage(
+        ShardID target, Serializer& rez, int stage)
+    //--------------------------------------------------------------------------
+    {
+      rez.serialize<size_t>(all_timeouts.size());
+      for (unsigned idx = 0; idx < all_timeouts.size(); idx++)
+      {
+        rez.serialize(all_timeouts[idx].first);
+        rez.serialize(all_timeouts[idx].second);
+      }
+      rez.serialize<bool>(double_latency);
+    }
+
+    //--------------------------------------------------------------------------
+    void TimeoutMatchExchange::unpack_collective_stage(
+        Deserializer& derez, int stage)
+    //--------------------------------------------------------------------------
+    {
+      size_t num_timeouts;
+      derez.deserialize(num_timeouts);
+      std::vector<std::pair<size_t, unsigned> > next;
+      for (unsigned idx = 0; idx < num_timeouts; idx++)
+      {
+        std::pair<size_t, unsigned> key;
+        derez.deserialize(key.first);
+        derez.deserialize(key.second);
+        if (std::binary_search(all_timeouts.begin(), all_timeouts.end(), key))
+          next.emplace_back(key);
+      }
+      if (next.size() < all_timeouts.size())
+        all_timeouts.swap(next);
+      bool not_ready;
+      derez.deserialize<bool>(not_ready);
+      if (not_ready)
+        double_latency = true;
+    }
+
+    //--------------------------------------------------------------------------
+    void TimeoutMatchExchange::perform_exchange(
+        std::vector<std::pair<size_t, unsigned> >& timeouts, bool ready)
+    //--------------------------------------------------------------------------
+    {
+      if (!ready)
+        double_latency = true;
+      if (!timeouts.empty())
+      {
+        all_timeouts.swap(timeouts);
+        std::sort(all_timeouts.begin(), all_timeouts.end());
+        // Now uniquify in case there are duplicates since we might have
+        // multiple logical users for different requirements of the same
+        // operation, but if the operation is committed then we know that they
+        // all will have been committed so we don't need to track them all
+        std::vector<std::pair<size_t, unsigned> >::iterator end =
+            std::unique(all_timeouts.begin(), all_timeouts.end());
+        all_timeouts.resize(std::distance(all_timeouts.begin(), end));
+      }
+      perform_collective_async();
+    }
+
+    //--------------------------------------------------------------------------
+    bool TimeoutMatchExchange::complete_exchange(
+        std::vector<LogicalUser*>& timeout_users,
+        std::vector<std::pair<size_t, unsigned> >& remaining_timeouts)
+    //--------------------------------------------------------------------------
+    {
+      // perform collective wait already called by caller
+      if (!all_timeouts.empty())
+      {
+        for (std::vector<LogicalUser*>::iterator it = timeout_users.begin();
+             it != timeout_users.end();
+             /*nothing*/)
+        {
+          const std::pair<size_t, unsigned> key(
+              (*it)->ctx_index, (*it)->internal_idx);
+          if (!std::binary_search(
+                  all_timeouts.begin(), all_timeouts.end(), key))
+          {
+            // If we didn't find it then it goes in the remaining
+            remaining_timeouts.emplace_back(
+                std::make_pair((*it)->ctx_index, (*it)->internal_idx));
+            // We remove it since we can't prune it until everyone agrees
+            it = timeout_users.erase(it);
+          }
+          else  // Everyone agreed to remove it so it stays
+            it++;
+        }
+      }
+      else
+      {
+        // Everything goes into the remaining
+        remaining_timeouts.reserve(timeout_users.size());
+        for (LogicalUser* user : timeout_users)
+          remaining_timeouts.emplace_back(
+              std::make_pair(user->ctx_index, user->internal_idx));
+        // We can't prune any of these users yet without consensus
+        timeout_users.clear();
+      }
+      return double_latency;
+    }
+
+    /////////////////////////////////////////////////////////////
+    // Cross Product Exchange
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    CrossProductExchange::CrossProductExchange(
+        ReplicateContext* ctx, CollectiveIndexLocation loc)
+      : AllGatherCollective<false>(loc, ctx)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    void CrossProductExchange::pack_collective_stage(
+        ShardID target, Serializer& rez, int stage)
+    //--------------------------------------------------------------------------
+    {
+      rez.serialize<size_t>(child_ids.size());
+      for (const std::pair<const LegionColor, IndexPartition>& it : child_ids)
+      {
+        rez.serialize(it.first);
+        rez.serialize(it.second);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void CrossProductExchange::unpack_collective_stage(
+        Deserializer& derez, int stage)
+    //--------------------------------------------------------------------------
+    {
+      size_t num_ids;
+      derez.deserialize(num_ids);
+      for (unsigned idx = 0; idx < num_ids; idx++)
+      {
+        LegionColor color;
+        derez.deserialize(color);
+        derez.deserialize(child_ids[color]);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void CrossProductExchange::exchange_ids(
+        LegionColor color, IndexPartition pid)
+    //--------------------------------------------------------------------------
+    {
+      child_ids.emplace(std::make_pair(color, pid));
+      perform_collective_async();
+    }
+
+    //--------------------------------------------------------------------------
+    void CrossProductExchange::sync_child_ids(
+        LegionColor color, IndexPartition& pid)
+    //--------------------------------------------------------------------------
+    {
+      perform_collective_wait();
+      std::map<LegionColor, IndexPartition>::iterator finder =
+          child_ids.find(color);
+      legion_assert(finder != child_ids.end());
+      pid = finder->second;
     }
 
   }  // namespace Internal

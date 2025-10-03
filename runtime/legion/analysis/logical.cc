@@ -15,7 +15,7 @@
 
 #include "legion/analysis/logical.h"
 #include "legion/analysis/projection.h"
-#include "legion/contexts/inner.h"
+#include "legion/contexts/replicate.h"
 #include "legion/api/functors_impl.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/close.h"
@@ -1024,7 +1024,6 @@ namespace Legion {
       {
         if (!it.first->op->is_operation_committed(it.first->gen))
           continue;
-        it.first->add_reference();
         timeout_users.emplace_back(it.first);
       }
       const size_t prev_size = timeout_users.size();
@@ -1036,23 +1035,18 @@ namespace Legion {
                 timeout_users.begin(), timeout_users.begin() + prev_size,
                 it.first))
           continue;
-        it.first->add_reference();
         timeout_users.emplace_back(it.first);
       }
       // Now we do the exchange and record whether we need to double
       // the timeout check iterations
-      std::vector<LogicalUser*> to_delete;
-      if (analysis.context->match_timeouts(
-              timeout_users, to_delete, timeout_exchange))
+      if (analysis.context->match_timeouts(timeout_users, timeout_exchange))
         total_timeout_check_iterations *= 2;
       remaining_timeout_check_iterations = total_timeout_check_iterations;
       bool tighten_current = false;
       bool tighten_previous = false;
-      for (LogicalUser* const it : to_delete)
+      for (LogicalUser* const it : timeout_users)
       {
-        // One reference from when we were added in the
-        // perform dependence checks function
-        unsigned references_to_remove = 1;
+        unsigned references_to_remove = 0;
         OrderedFieldMaskUsers::iterator finder = curr_epoch_users.find(it);
         if (finder != curr_epoch_users.end())
         {
@@ -1067,6 +1061,7 @@ namespace Legion {
           references_to_remove++;
           tighten_previous = true;
         }
+        legion_assert(references_to_remove > 0);
         if (it->remove_reference(references_to_remove))
           delete it;
       }
