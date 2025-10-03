@@ -56,7 +56,8 @@ if realm_dir then
   link_libraries:insertall({"-L" .. realm_dir .. "/lib"})
 end
 local lib_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib"
-link_libraries:insertall({"-L" .. lib_dir, "-lregent", "-llegion", "-lrealm"})
+local lib64_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib64"
+link_libraries:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm"})
 
 terra main(argc : int, argv : &rawstring)
   escape

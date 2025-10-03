@@ -44,16 +44,17 @@ do
   local realm_dir = os.getenv("Realm_ROOT")
   local realm_libs = ""
   if realm_dir then
-    realm_libs = "-L" .. realm_dir .. "/lib "
+    realm_libs = "-L" .. realm_dir .. "/lib"
   end
   local lib_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib"
-  local libs = "-lregent -llegion -lrealm"
+  local lib64_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib64"
+  local libs = "-L " .. lib_dir .. " -L " .. lib64_dir .. " -lregent -llegion -lrealm"
 
   local cmd = (cxx .. " " .. cxx_flags .. " " .. include_path .. " " ..
                  embed_cc ..
 		 " -I " .. embed_tasks_dir ..
                  " -L " .. embed_tasks_dir .. " " .. " -lembed_tasks " ..
-                 realm_libs .. " -L " .. lib_dir .. " " .. libs .. " " ..
+                 realm_libs .. " " .. libs .. " " ..
                  " -o " .. exe)
   if os.execute(cmd) ~= 0 then
     print("Error: failed to compile " .. embed_cc)
