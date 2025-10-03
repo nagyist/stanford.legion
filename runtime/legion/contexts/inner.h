@@ -883,9 +883,9 @@ namespace Legion {
     public:
 #ifdef LEGION_DEBUG_COLLECTIVES
       virtual MergeCloseOp* get_merge_close_op(
-          Operation* op, RegionTreeNode* node) override;
+          Operation* op, RegionTreeNode* node);
       virtual RefinementOp* get_refinement_op(
-          Operation* op, RegionTreeNode* node) override;
+          Operation* op, RegionTreeNode* node);
 #else
       virtual MergeCloseOp* get_merge_close_op(void);
       virtual RefinementOp* get_refinement_op(void);
