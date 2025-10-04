@@ -255,16 +255,14 @@ impl StateDataSource {
                 kind_index += 1;
 
                 let color = match (kind, device) {
-                    // All Device timelines get the same value
+                    // All Device timelines get the same color
                     (_, Some(DeviceKind::Device)) => Color::OLIVEDRAB,
-                    (ProcKind::GPU, _) => Color::ORANGERED,
+                    // Some processors get special colors
                     (ProcKind::CPU, _) => Color::STEELBLUE,
                     (ProcKind::Utility, _) => Color::CRIMSON,
-                    (ProcKind::IO, _) => Color::ORANGERED,
-                    (ProcKind::ProcGroup, _) => Color::ORANGERED,
-                    (ProcKind::ProcSet, _) => Color::ORANGERED,
-                    (ProcKind::OpenMP, _) => Color::ORANGERED,
                     (ProcKind::Python, _) => Color::DARKGOLDENROD,
+                    // Everything else gets the standard color
+                    _ => Color::ORANGERED,
                 };
                 let color: Color32 = color.into();
 
