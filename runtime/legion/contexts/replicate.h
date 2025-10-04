@@ -792,7 +792,6 @@ namespace Legion {
           bool& dominates) override;
       virtual bool match_timeouts(
           std::vector<LogicalUser*>& timeouts,
-          std::vector<LogicalUser*>& to_delete,
           TimeoutMatchExchange*& exchange) override;
     public:
       virtual std::pair<bool, bool> has_pointwise_dominance(
@@ -1614,6 +1613,69 @@ namespace Legion {
       const bool all_shards_participating;
     protected:
       mutable LocalLock rendezvous_lock;
+    };
+
+    /**
+     * \class TimeoutMatchExchange
+     * This class helps perform all all-reduce exchange between the shards
+     * to see which logical users that have timed out on their analyses
+     * can be collected across all the shards. To be collected all the
+     * shards must agree on what they are pruning.
+     */
+    class TimeoutMatchExchange : public AllGatherCollective<false> {
+    public:
+      TimeoutMatchExchange(ReplicateContext* ctx, CollectiveIndexLocation loc);
+      TimeoutMatchExchange(const TimeoutMatchExchange& rhs) = delete;
+      virtual ~TimeoutMatchExchange(void);
+    public:
+      TimeoutMatchExchange& operator=(const TimeoutMatchExchange& rhs) = delete;
+    public:
+      virtual MessageKind get_message_kind(void) const override
+      {
+        return SEND_CONTROL_REPLICATION_TIMEOUT_MATCH_EXCHANGE;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
+    public:
+      void perform_exchange(
+          std::vector<std::pair<size_t, unsigned> >& timeouts, bool ready);
+      bool complete_exchange(
+          std::vector<LogicalUser*>& timeouts,
+          std::vector<std::pair<size_t, unsigned> >& remaining);
+    protected:
+      // Pair represents <context index,region requirement index> for each user
+      std::vector<std::pair<size_t, unsigned> > all_timeouts;
+      bool double_latency;
+    };
+
+    /**
+     * \class CrossProductExchange
+     * This all-gather exchanges IDs for the creation of replicated
+     * partitions when performing a cross-product partition
+     */
+    class CrossProductExchange : public AllGatherCollective<false> {
+    public:
+      CrossProductExchange(ReplicateContext* ctx, CollectiveIndexLocation loc);
+      CrossProductExchange(const CrossProductExchange& rhs) = delete;
+      virtual ~CrossProductExchange(void) { }
+    public:
+      CrossProductExchange& operator=(const CrossProductExchange& rhs) = delete;
+    public:
+      virtual MessageKind get_message_kind(void) const override
+      {
+        return SEND_CONTROL_REPLICATION_CROSS_PRODUCT_EXCHANGE;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage) override;
+      virtual void unpack_collective_stage(
+          Deserializer& derez, int stage) override;
+    public:
+      void exchange_ids(LegionColor color, IndexPartition pid);
+      void sync_child_ids(LegionColor color, IndexPartition& pid);
+    protected:
+      std::map<LegionColor, IndexPartition> child_ids;
     };
 
   }  // namespace Internal
