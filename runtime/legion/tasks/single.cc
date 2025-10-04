@@ -1398,6 +1398,10 @@ namespace Legion {
     InnerContext* SingleTask::create_implicit_context(void)
     //--------------------------------------------------------------------------
     {
+      // Make sure we have an implicit profiler for the mapper call
+      if ((runtime->profiler != nullptr) && (implicit_profiler == nullptr))
+        implicit_profiler =
+            runtime->profiler->find_or_create_profiling_instance();
       legion_assert(output_regions.empty());
       Mapper::ContextConfigOutput configuration;
       configure_execution_context(configuration);
