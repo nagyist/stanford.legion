@@ -348,8 +348,11 @@ namespace Legion {
       unpack_collective(derez);
       // Send our messages
       send_messages();
+      // Pull the done event onto the stack in case post_broadcast
+      // ends up deleting the object, see CreateCollectiveFillView
+      const RtUserEvent done = done_event;
       // Then trigger our event to indicate that we are ready
-      Runtime::trigger_event(done_event, post_broadcast());
+      Runtime::trigger_event(done, post_broadcast());
     }
 
     //--------------------------------------------------------------------------

@@ -161,6 +161,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PredicatedOp::activate();
+      fill_view_ready = RtEvent::NO_RT_EVENT;
       fill_view = nullptr;
       value = nullptr;
       value_size = 0;
@@ -287,22 +288,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent FillOp::initialize_fill_view(void)
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(fill_view == nullptr);
-      // Note that this returns a fill view with a reference added to it
-      // We remove the reference in trigger_complete
-      if (future.impl != nullptr)
-        fill_view =
-            parent_ctx->find_or_create_fill_view(this, future, set_view);
-      else
-        fill_view =
-            parent_ctx->find_or_create_fill_view(this, value, value_size);
-      return RtEvent::NO_RT_EVENT;
-    }
-
-    //--------------------------------------------------------------------------
     FillView* FillOp::get_fill_view(void) const
     //--------------------------------------------------------------------------
     {
@@ -323,30 +308,6 @@ namespace Legion {
           requirement.parent.index_space.get_id());
       LegionSpy::log_requirement_fields(
           unique_op_id, 0 /*index*/, requirement.privilege_fields);
-    }
-
-    //--------------------------------------------------------------------------
-    void FillOp::register_fill_view_creation(FillView* view, bool set)
-    //--------------------------------------------------------------------------
-    {
-      // Remove the old reference if we already had it
-      if ((fill_view != nullptr) &&
-          fill_view->remove_base_valid_ref(MAPPING_ACQUIRE_REF))
-        delete fill_view;
-      fill_view = view;
-      // No need to add a reference here since we got it from the caller
-      if (future.impl == nullptr)
-      {
-        // Make sure to set the value before registering any eager fill views
-        if (set)
-          fill_view->set_value(value, value_size);
-        parent_ctx->record_fill_view_creation(fill_view);
-      }
-      else
-      {
-        set_view = set;
-        parent_ctx->record_fill_view_creation(future.impl->did, fill_view);
-      }
     }
 
     //--------------------------------------------------------------------------
@@ -375,6 +336,15 @@ namespace Legion {
       // If we are waiting on a future register a dependence
       if (future.impl != nullptr)
         future.impl->register_dependence(this);
+      legion_assert(fill_view == nullptr);
+      // Note that this returns a fill view with a reference added to it
+      // We remove the reference in trigger_complete
+      if (future.impl != nullptr)
+        fill_view = parent_ctx->find_or_create_fill_view(
+            this, future, set_view, fill_view_ready);
+      else
+        fill_view = parent_ctx->find_or_create_fill_view(
+            this, value, value_size, fill_view_ready);
     }
 
     //--------------------------------------------------------------------------
@@ -402,9 +372,8 @@ namespace Legion {
             this, requirement, 0 /*idx*/, false /*skip privileges*/,
             true /*force*/);
       std::set<RtEvent> preconditions;
-      const RtEvent view_ready = initialize_fill_view();
-      if (view_ready.exists())
-        preconditions.insert(view_ready);
+      if (fill_view_ready.exists())
+        preconditions.insert(fill_view_ready);
       perform_versioning_analysis(
           0 /*idx*/, requirement, version_info, preconditions);
       if (!preconditions.empty())
@@ -731,7 +700,6 @@ namespace Legion {
     void IndexFillOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-      const RtEvent view_ready = initialize_fill_view();
       if (parent_req_index == TRACED_PARENT_INDEX)
         parent_req_index = parent_ctx->find_parent_region_index(
             this, requirement, 0 /*idx*/, false /*skip privileges*/,
@@ -748,7 +716,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < points.size(); idx++)
       {
         map_applied_conditions.insert(points[idx]->get_mapped_event());
-        points[idx]->launch(view_ready);
+        points[idx]->launch(fill_view_ready);
       }
       // Record that we are mapped when all our points are mapped
       // and we are executed when all our points are executed
@@ -1165,63 +1133,6 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Create Collective Fill View
-    /////////////////////////////////////////////////////////////
-
-    //--------------------------------------------------------------------------
-    CreateCollectiveFillView::CreateCollectiveFillView(
-        ReplicateContext* ctx, CollectiveID id, FillOp* op, DistributedID did,
-        DistributedID fresh)
-      : AllGatherCollective<false>(ctx, id), fill_op(op), fresh_did(fresh)
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(fresh_did > 0);
-      selected_views.insert(did);
-    }
-
-    //--------------------------------------------------------------------------
-    void CreateCollectiveFillView::pack_collective_stage(
-        ShardID target, Serializer& rez, int stage)
-    //--------------------------------------------------------------------------
-    {
-      rez.serialize<size_t>(selected_views.size());
-      for (const DistributedID& it : selected_views) rez.serialize(it);
-    }
-
-    //--------------------------------------------------------------------------
-    void CreateCollectiveFillView::unpack_collective_stage(
-        Deserializer& derez, int stage)
-    //--------------------------------------------------------------------------
-    {
-      size_t num_views;
-      derez.deserialize(num_views);
-      for (unsigned idx = 0; idx < num_views; idx++)
-      {
-        DistributedID did;
-        derez.deserialize(did);
-        selected_views.insert(did);
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    RtEvent CreateCollectiveFillView::post_complete_exchange(void)
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(!selected_views.empty());
-      if ((selected_views.size() > 1) || ((*selected_views.begin()) == 0))
-      {
-        bool set_view = false;
-        // This call comes back with a MAPPING_ACQUIRE_REF already on the view
-        FillView* fill_view = manager->deduplicate_fill_view_creation(
-            fresh_did, fill_op, set_view);
-        legion_assert(fill_view != nullptr);
-        // Pass the MAPPING_ACQUIRE_REF into the registration
-        fill_op->register_fill_view_creation(fill_view, set_view);
-      }
-      return RtEvent::NO_RT_EVENT;
-    }
-
-    /////////////////////////////////////////////////////////////
     // Repl Fill Op
     /////////////////////////////////////////////////////////////
 
@@ -1238,11 +1149,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ReplFillOp::initialize_replication(
-        ReplicateContext* ctx, DistributedID fresh, bool is_first)
+        ReplicateContext* ctx, bool is_first)
     //--------------------------------------------------------------------------
     {
-      collective_id = ctx->get_next_collective_index(COLLECTIVE_LOC_77);
-      fresh_did = fresh;
       is_first_local_shard = is_first;
     }
 
@@ -1252,9 +1161,6 @@ namespace Legion {
     {
       ReplCollectiveVersioning<CollectiveVersioning<FillOp> >::activate();
       collective_map_barrier = RtBarrier::NO_RT_BARRIER;
-      collective = nullptr;
-      collective_id = 0;
-      fresh_did = 0;
       is_first_local_shard = false;
     }
 
@@ -1264,8 +1170,6 @@ namespace Legion {
     {
       // Make sure we didn't leak our barrier
       legion_assert(!collective_map_barrier.exists());
-      if (collective != nullptr)
-        delete collective;
       ReplCollectiveVersioning<CollectiveVersioning<FillOp> >::deactivate(
           false /*free*/);
       if (freeop)
@@ -1296,9 +1200,8 @@ namespace Legion {
             this, requirement, 0 /*idx*/, false /*skip privileges*/,
             true /*force*/);
       std::set<RtEvent> preconditions;
-      const RtEvent view_ready = initialize_fill_view();
-      if (view_ready.exists())
-        preconditions.insert(view_ready);
+      if (fill_view_ready.exists())
+        preconditions.insert(fill_view_ready);
       perform_versioning_analysis(
           0 /*idx*/, requirement, version_info, preconditions,
           nullptr /*output region*/, true /*rendezvous*/);
@@ -1320,28 +1223,6 @@ namespace Legion {
       return rendezvous_collective_versioning_analysis(
           index, handle, tracker, runtime->address_space, mask,
           parent_req_index);
-    }
-
-    //--------------------------------------------------------------------------
-    RtEvent ReplFillOp::initialize_fill_view(void)
-    //--------------------------------------------------------------------------
-    {
-      // This is happening in the mapping stage of the pipeline so we
-      // need to do a collective rendezvous to see if everyone finds the
-      // same values. If not then we'll need to make a view.
-      if (future.impl != nullptr)
-        fill_view = parent_ctx->find_fill_view(future);
-      else
-        fill_view = parent_ctx->find_fill_view(value, value_size);
-      // Create the rendezvous collective
-      ReplicateContext* repl_ctx =
-          legion_safe_cast<ReplicateContext*>(parent_ctx);
-      legion_assert(collective == nullptr);
-      collective = new CreateCollectiveFillView(
-          repl_ctx, collective_id, this,
-          (fill_view == nullptr) ? 0 : fill_view->did, fresh_did);
-      collective->perform_collective_async();
-      return collective->perform_collective_wait(false /*block*/);
     }
 
     //--------------------------------------------------------------------------
@@ -1426,9 +1307,6 @@ namespace Legion {
       sharding_function = nullptr;
       shard_points = nullptr;
       mapper = nullptr;
-      collective = nullptr;
-      collective_id = 0;
-      fresh_did = 0;
       sharding_collective = nullptr;
     }
 
@@ -1439,8 +1317,6 @@ namespace Legion {
       if (sharding_collective != nullptr)
         delete sharding_collective;
       remove_launch_space_reference(shard_points);
-      if (collective != nullptr)
-        delete collective;
       IndexFillOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
@@ -1529,8 +1405,6 @@ namespace Legion {
         LegionSpy::log_operation_events(
             unique_op_id, ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
         // We have no local points, so we can just trigger
-        // Still do the view initialization to rendezvous with collectives
-        const RtEvent view_ready = initialize_fill_view();
         if (!map_applied_conditions.empty())
           complete_mapping(Runtime::merge_events(map_applied_conditions));
         else
@@ -1539,20 +1413,21 @@ namespace Legion {
         {
           RtEvent future_ready = future.impl->subscribe();
           // Make sure both the future and the view are ready
-          if (view_ready.exists() && !view_ready.has_triggered())
+          if (fill_view_ready.exists() && !fill_view_ready.has_triggered())
           {
             if (!future_ready.has_triggered())
-              future_ready = Runtime::merge_events(view_ready, future_ready);
+              future_ready =
+                  Runtime::merge_events(fill_view_ready, future_ready);
             else
-              future_ready = view_ready;
+              future_ready = fill_view_ready;
           }
           if (!future_ready.has_triggered())
             parent_ctx->add_to_trigger_execution_queue(this, future_ready);
           else
             trigger_execution();  // can do the completion now
         }
-        else if (view_ready.exists() && !view_ready.has_triggered())
-          parent_ctx->add_to_trigger_execution_queue(this, view_ready);
+        else if (fill_view_ready.exists() && !fill_view_ready.has_triggered())
+          parent_ctx->add_to_trigger_execution_queue(this, fill_view_ready);
         else
           trigger_execution();
       }
@@ -1562,28 +1437,6 @@ namespace Legion {
         add_launch_space_reference(shard_points);
         IndexFillOp::trigger_ready();
       }
-    }
-
-    //--------------------------------------------------------------------------
-    RtEvent ReplIndexFillOp::initialize_fill_view(void)
-    //--------------------------------------------------------------------------
-    {
-      // This is happening in the mapping stage of the pipeline so we
-      // need to do a collective rendezvous to see if everyone finds the
-      // same values. If not then we'll need to make a view.
-      if (future.impl != nullptr)
-        fill_view = parent_ctx->find_fill_view(future);
-      else
-        fill_view = parent_ctx->find_fill_view(value, value_size);
-      // Create the rendezvous collective
-      ReplicateContext* repl_ctx =
-          legion_safe_cast<ReplicateContext*>(parent_ctx);
-      legion_assert(collective == nullptr);
-      collective = new CreateCollectiveFillView(
-          repl_ctx, collective_id, this,
-          (fill_view == nullptr) ? 0 : fill_view->did, fresh_did);
-      collective->perform_collective_async();
-      return collective->perform_collective_wait(false /*block*/);
     }
 
     //--------------------------------------------------------------------------
@@ -1621,15 +1474,6 @@ namespace Legion {
       else
         return sharding_function->find_shard_participants(
             launch_space, launch_space->handle, shards);
-    }
-
-    //--------------------------------------------------------------------------
-    void ReplIndexFillOp::initialize_replication(
-        ReplicateContext* ctx, DistributedID fresh)
-    //--------------------------------------------------------------------------
-    {
-      collective_id = ctx->get_next_collective_index(COLLECTIVE_LOC_93);
-      fresh_did = fresh;
     }
 
     /////////////////////////////////////////////////////////////

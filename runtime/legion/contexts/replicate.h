@@ -800,6 +800,17 @@ namespace Legion {
           uint64_t context_index, const DomainPoint& point, ShardID shard,
           RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
+      virtual FillView* find_or_create_fill_view(
+          FillOp* op, const void* value, size_t value_size,
+          RtEvent& ready) override;
+      virtual FillView* find_or_create_fill_view(
+          FillOp* op, const Future& future, bool& set_value,
+          RtEvent& ready) override;
+      void finalize_collective_fill_view(
+          DistributedID view_did, void* allocation, UniqueID op_uid,
+          const void* value, size_t value_size,
+          CreateCollectiveFillView* collective);
+    public:
       virtual Lock create_lock(void) override;
       virtual void destroy_lock(Lock l) override;
       virtual Grant acquire_grant(
@@ -1274,6 +1285,10 @@ namespace Legion {
       // number of repeat jobs that are ready across all the shards
       AllReduceCollective<MinReduction<unsigned>, false>*
           minimize_repeats_collective;
+    protected:
+      // Extra data structures for the fill view cache
+      mutable LocalLock fill_view_lock;
+      std::map<FillView*, size_t> pending_fill_views;
     };
 
     /**
@@ -1676,6 +1691,43 @@ namespace Legion {
       void sync_child_ids(LegionColor color, IndexPartition& pid);
     protected:
       std::map<LegionColor, IndexPartition> child_ids;
+    };
+
+    /**
+     * \class CreateCollectiveFillView
+     * Broadcast out the distributed ID for a new fill view
+     */
+    class CreateCollectiveFillView : public BroadcastCollective {
+    public:
+      CreateCollectiveFillView(
+          ReplicateContext* ctx, CollectiveID id, void* allocation,
+          UniqueID op_uid, const void* value = nullptr, size_t size = 0);
+      CreateCollectiveFillView(const CreateCollectiveFillView& rhs) = delete;
+      virtual ~CreateCollectiveFillView(void);
+    public:
+      CreateCollectiveFillView& operator=(const CreateCollectiveFillView& rhs) =
+          delete;
+    public:
+      inline void broadcast_fill_view_did(DistributedID did)
+      {
+        view_did = did;
+        perform_collective_async();
+      }
+      bool matches(const void* value, size_t value_size) const;
+    public:
+      virtual MessageKind get_message_kind(void) const override
+      {
+        return SEND_CONTROL_REPLICATION_CREATE_FILL_VIEW;
+      }
+      virtual void pack_collective(Serializer& rez) const override;
+      virtual void unpack_collective(Deserializer& derez) override;
+      virtual RtEvent post_broadcast(void) override;
+    protected:
+      void* const allocation;
+      void* const value;
+      const size_t value_size;
+      const UniqueID op_uid;
+      DistributedID view_did;
     };
 
   }  // namespace Internal

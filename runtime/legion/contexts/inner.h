@@ -946,14 +946,10 @@ namespace Legion {
           uint64_t context_index, const DomainPoint& point, ShardID shard,
           RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) override;
     public:
-      void record_fill_view_creation(FillView* view);
-      void record_fill_view_creation(DistributedID future_did, FillView* view);
-      FillView* find_or_create_fill_view(
-          FillOp* op, const void* value, size_t value_size);
-      FillView* find_or_create_fill_view(
-          FillOp* op, const Future& future, bool& set_value);
-      FillView* find_fill_view(const void* value, size_t value_size);
-      FillView* find_fill_view(const Future& future);
+      virtual FillView* find_or_create_fill_view(
+          FillOp* op, const void* value, size_t value_size, RtEvent& ready);
+      virtual FillView* find_or_create_fill_view(
+          FillOp* op, const Future& future, bool& set_view, RtEvent& ready);
     public:
       virtual void notify_instance_deletion(PhysicalManager* deleted) override;
       virtual void add_subscriber_reference(PhysicalManager* manager) override
@@ -1284,8 +1280,13 @@ namespace Legion {
     protected:
       // Cache for fill views
       mutable LocalLock fill_view_lock;
-      std::list<FillView*> value_fill_view_cache;
-      std::list<std::pair<FillView*, DistributedID> > future_fill_view_cache;
+      struct FillViewEntry {
+        FillView* view = nullptr;
+        DistributedID future_did = 0;
+        CreateCollectiveFillView* collective = nullptr;
+        unsigned pending_references = 0;
+      };
+      std::list<FillViewEntry> fill_view_cache;
       static const size_t MAX_FILL_VIEW_CACHE_SIZE = 64;
     protected:
       // This data structure should only be accessed during the logical
