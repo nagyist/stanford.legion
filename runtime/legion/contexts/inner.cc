@@ -231,19 +231,12 @@ namespace Legion {
       }
       // Shouldn't need any lock for these as the context is not longer
       // valid and there shouldn't be any races
-      while (!value_fill_view_cache.empty())
+      while (!fill_view_cache.empty())
       {
-        FillView* next = value_fill_view_cache.front();
-        value_fill_view_cache.pop_front();
+        FillView* next = fill_view_cache.front().view;
         if (next->remove_nested_valid_ref(did))
           delete next;
-      }
-      while (!future_fill_view_cache.empty())
-      {
-        FillView* next = future_fill_view_cache.front().first;
-        future_fill_view_cache.pop_front();
-        if (next->remove_nested_valid_ref(did))
-          delete next;
+        fill_view_cache.pop_front();
       }
       // Traces can refer back to us so make sure we remove our references
       // to them here so they can clean up their resource referenes to us
@@ -9933,47 +9926,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::record_fill_view_creation(FillView* view)
-    //--------------------------------------------------------------------------
-    {
-      if (spy_logging_level <= LIGHT_SPY_LOGGING)
-      {
-        view->add_nested_valid_ref(did);
-        AutoLock f_lock(fill_view_lock);
-        value_fill_view_cache.emplace_back(view);
-        if (value_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
-        {
-          FillView* oldest = value_fill_view_cache.back();
-          value_fill_view_cache.pop_back();
-          if (oldest->remove_nested_valid_ref(did))
-            delete oldest;
-        }
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    void InnerContext::record_fill_view_creation(
-        DistributedID future_did, FillView* view)
-    //--------------------------------------------------------------------------
-    {
-      if (spy_logging_level <= LIGHT_SPY_LOGGING)
-      {
-        view->add_nested_valid_ref(did);
-        AutoLock f_lock(fill_view_lock);
-        future_fill_view_cache.emplace_front(std::make_pair(view, future_did));
-        if (future_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
-        {
-          FillView* oldest = future_fill_view_cache.back().first;
-          future_fill_view_cache.pop_back();
-          if (oldest->remove_nested_valid_ref(did))
-            delete oldest;
-        }
-      }
-    }
-
-    //--------------------------------------------------------------------------
     FillView* InnerContext::find_or_create_fill_view(
-        FillOp* op, const void* value, size_t value_size)
+        FillOp* op, const void* value, size_t value_size, RtEvent& ready)
     //--------------------------------------------------------------------------
     {
       // Two versions of this method depending on whether we are doing
@@ -9982,20 +9936,22 @@ namespace Legion {
       if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
         // See if we can find this in the cache first
-        AutoLock f_lock(fill_view_lock);
-        for (std::list<FillView*>::iterator it = value_fill_view_cache.begin();
-             it != value_fill_view_cache.end(); it++)
+        // No need for a lock if we're not control replicated
+        for (std::list<FillViewEntry>::iterator it = fill_view_cache.begin();
+             it != fill_view_cache.end(); it++)
         {
+          // Skip comparing against fill views from futures
+          if (it->future_did > 0)
+            continue;
           // Safe to do this since we know we're only comparing against other
           // fill views that were also made with eager values
-          if (!(*it)->matches(value, value_size))
+          if (!it->view->matches(value, value_size))
             continue;
           // Record a reference on it and then return
-          FillView* result = (*it);
-          // Move it back to the front of the list
-          value_fill_view_cache.erase(it);
-          value_fill_view_cache.emplace_front(result);
+          FillView* result = it->view;
           result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+          // Move it back to the front of the list
+          fill_view_cache.splice(fill_view_cache.begin(), fill_view_cache, it);
           return result;
         }
         // At this point we have to make it since we couldn't find it
@@ -10005,13 +9961,14 @@ namespace Legion {
         fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
         // Add it to the cache since we're not doing Legion Spy
         fill_view->add_nested_valid_ref(did);
-        value_fill_view_cache.emplace_front(fill_view);
-        if (value_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+        fill_view_cache.emplace_front(
+            FillViewEntry{fill_view, 0 /*did*/, nullptr, 0});
+        if (fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
         {
-          FillView* oldest = value_fill_view_cache.back();
-          value_fill_view_cache.pop_back();
+          FillView* oldest = fill_view_cache.back().view;
           if (oldest->remove_nested_valid_ref(did))
             delete oldest;
+          fill_view_cache.pop_back();
         }
         return fill_view;
       }
@@ -10027,7 +9984,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FillView* InnerContext::find_or_create_fill_view(
-        FillOp* op, const Future& future, bool& set_view)
+        FillOp* op, const Future& future, bool& set_view, RtEvent& ready)
     //--------------------------------------------------------------------------
     {
       legion_assert(!set_view);
@@ -10038,21 +9995,19 @@ namespace Legion {
       if (spy_logging_level <= LIGHT_SPY_LOGGING)
       {
         const DistributedID future_did = future.impl->did;
+        legion_assert(future_did != 0);
         // See if we can find this in the cache first
-        AutoLock f_lock(fill_view_lock);
-        for (std::list<std::pair<FillView*, DistributedID> >::iterator it =
-                 future_fill_view_cache.begin();
-             it != future_fill_view_cache.end(); it++)
+        // No need for a lock if we're not control replicated
+        for (std::list<FillViewEntry>::iterator it = fill_view_cache.begin();
+             it != fill_view_cache.end(); it++)
         {
-          if (it->second != future_did)
+          if (it->future_did != future_did)
             continue;
           // Record a reference on it and then return
-          FillView* result = it->first;
-          // Move it back to the front of the list
-          future_fill_view_cache.erase(it);
-          future_fill_view_cache.emplace_front(
-              std::make_pair(result, future_did));
+          FillView* result = it->view;
           result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+          // Move it back to the front of the list
+          fill_view_cache.splice(fill_view_cache.begin(), fill_view_cache, it);
           return result;
         }
         // We're going to need to set the value for this view
@@ -10063,14 +10018,14 @@ namespace Legion {
         fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
         // Add it to the cache since we're not doing Legion Spy
         fill_view->add_nested_valid_ref(did);
-        future_fill_view_cache.emplace_front(
-            std::make_pair(fill_view, future_did));
-        if (future_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+        fill_view_cache.emplace_front(
+            FillViewEntry{fill_view, future_did, nullptr, 0});
+        if (fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
         {
-          FillView* oldest = future_fill_view_cache.back().first;
-          future_fill_view_cache.pop_back();
+          FillView* oldest = fill_view_cache.back().view;
           if (oldest->remove_nested_valid_ref(did))
             delete oldest;
+          fill_view_cache.pop_back();
         }
         return fill_view;
       }
@@ -10083,68 +10038,6 @@ namespace Legion {
         fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
         return fill_view;
       }
-    }
-
-    //--------------------------------------------------------------------------
-    FillView* InnerContext::find_fill_view(const void* value, size_t value_size)
-    //--------------------------------------------------------------------------
-    {
-      // Two versions of this method depending on whether we are doing
-      // Legion Spy or not, Legion Spy wants to know exactly which op
-      // made each fill view so we can't cache them
-      if (spy_logging_level <= LIGHT_SPY_LOGGING)
-      {
-        // See if we can find this in the cache first
-        AutoLock f_lock(fill_view_lock);
-        for (std::list<FillView*>::iterator it = value_fill_view_cache.begin();
-             it != value_fill_view_cache.end(); it++)
-        {
-          // Safe to do this since we know we're only comparing against other
-          // fill views that were also made with eager values
-          if (!(*it)->matches(value, value_size))
-            continue;
-          // Record a reference on it and then return
-          FillView* result = (*it);
-          // Move it back to the front of the list
-          value_fill_view_cache.erase(it);
-          value_fill_view_cache.emplace_front(result);
-          result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-          return result;
-        }
-      }
-      return nullptr;
-    }
-
-    //--------------------------------------------------------------------------
-    FillView* InnerContext::find_fill_view(const Future& future)
-    //--------------------------------------------------------------------------
-    {
-      legion_assert(future.impl != nullptr);
-      // Two versions of this method depending on whether we are doing
-      // Legion Spy or not, Legion Spy wants to know exactly which op
-      // made each fill view so we can't cache them
-      if (spy_logging_level <= LIGHT_SPY_LOGGING)
-      {
-        const DistributedID future_did = future.impl->did;
-        // See if we can find this in the cache first
-        AutoLock f_lock(fill_view_lock);
-        for (std::list<std::pair<FillView*, DistributedID> >::iterator it =
-                 future_fill_view_cache.begin();
-             it != future_fill_view_cache.end(); it++)
-        {
-          if (it->second != future_did)
-            continue;
-          // Record a reference on it and then return
-          FillView* result = it->first;
-          // Move it back to the front of the list
-          future_fill_view_cache.erase(it);
-          future_fill_view_cache.emplace_front(
-              std::make_pair(result, future_did));
-          result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-          return result;
-        }
-      }
-      return nullptr;
     }
 
     //--------------------------------------------------------------------------

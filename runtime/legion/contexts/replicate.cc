@@ -55,6 +55,7 @@
 #include "legion/tracing/logical.h"
 #include "legion/tracing/shard.h"
 #include "legion/utilities/provenance.h"
+#include "legion/views/fill.h"
 
 #define SWAP_PART_KINDS(k1, k2) std::swap(k1, k2)
 
@@ -6271,8 +6272,7 @@ namespace Legion {
       ReplFillOp* fill_op = runtime->get_operation<ReplFillOp>();
       fill_op->initialize(this, launcher, provenance);
       fill_op->initialize_replication(
-          this, get_next_distributed_id(),
-          shard_manager->is_first_local_shard(owner_shard));
+          this, shard_manager->is_first_local_shard(owner_shard));
       // Check to see if we need to do any unmappings and remappings
       // before we can issue this copy operation
       std::vector<PhysicalRegion> unmapped_regions;
@@ -6366,7 +6366,6 @@ namespace Legion {
       if (runtime->safe_mapper)
         fill_op->set_sharding_collective(new ShardingGatherCollective(
             this, 0 /*owner shard*/, COLLECTIVE_LOC_46));
-      fill_op->initialize_replication(this, get_next_distributed_id());
       // Check to see if we need to do any unmappings and remappings
       // before we can issue this copy operation
       std::vector<PhysicalRegion> unmapped_regions;
@@ -7870,6 +7869,263 @@ namespace Legion {
         return shard_manager->find_pointwise_dependence(
             context_index, point, shard, to_trigger);
       return op->find_pointwise_dependence(point, gen, to_trigger);
+    }
+
+    //--------------------------------------------------------------------------
+    FillView* ReplicateContext::find_or_create_fill_view(
+        FillOp* op, const void* value, size_t value_size, RtEvent& ready)
+    //--------------------------------------------------------------------------
+    {
+      // Two versions of this method depending on whether we are doing
+      // Legion Spy or not, Legion Spy wants to know exactly which op
+      // made each fill view so we can't cache them
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
+      {
+        // See if we can find this in the cache first
+        // Need the lock to protect against races with collectives coming back
+        AutoLock f_lock(fill_view_lock);
+        for (std::list<FillViewEntry>::iterator it = fill_view_cache.begin();
+             it != fill_view_cache.end(); it++)
+        {
+          // Skip comparing against fill views from futures
+          if (it->future_did > 0)
+            continue;
+          if (it->collective != nullptr)
+          {
+            if (!it->collective->matches(value, value_size))
+              continue;
+            it->pending_references++;
+            ready = it->collective->get_done_event();
+          }
+          // Safe to do this since we know we're only comparing against other
+          // fill views that were also made with eager values
+          else if (!it->view->matches(value, value_size))
+            continue;
+          else  // Safe to record a reference on it
+            it->view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+          // Move it back to the front of the list
+          fill_view_cache.splice(fill_view_cache.begin(), fill_view_cache, it);
+          return it->view;
+        }
+      }
+      // Deduplicate the allocation so we have a name for the fill view
+      // This is just the allocation
+      void* allocation = shard_manager->deduplicate_fill_view_allocation(
+          op->get_context_index());
+      CollectiveID collective_id =
+          get_next_collective_index(COLLECTIVE_LOC_77, true /*logical*/);
+      // At this point we have to make a fill view using a collective
+      CreateCollectiveFillView* collective = new CreateCollectiveFillView(
+          this, collective_id, allocation, op->get_unique_op_id(), value,
+          value_size);
+      if (collective->is_origin())
+      {
+        // Make the fill view and then broadcast it out
+        DistributedID fresh_did = runtime->get_available_distributed_id();
+        // This comes back with a MAPPING_ACQUIRE_REF already held
+        bool first_arrival = false;
+        FillView* result = shard_manager->deduplicate_fill_view_creation(
+            allocation, fresh_did, op->get_unique_op_id(), &first_arrival);
+        legion_assert(first_arrival);
+        if (first_arrival)
+          result->set_value(value, value_size);
+        collective->broadcast_fill_view_did(fresh_did);
+        delete collective;
+        if (spy_logging_level <= LIGHT_SPY_LOGGING)
+        {
+          result->add_nested_valid_ref(did);
+          AutoLock f_lock(fill_view_lock);
+          fill_view_cache.emplace_front(
+              FillViewEntry{result, 0 /*future did*/, nullptr, 0});
+          if (fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+          {
+            FillViewEntry& last = fill_view_cache.back();
+            // See if it is done or not
+            if (last.collective == nullptr)
+            {
+              if (last.view->remove_nested_valid_ref(did))
+                delete last.view;
+            }
+            else if (last.pending_references > 0)
+              pending_fill_views.emplace(last.view, last.pending_references);
+            fill_view_cache.pop_back();
+          }
+        }
+        return result;
+      }
+      else
+      {
+        // Static cast this as it will be constructed later
+        FillView* result = static_cast<FillView*>(allocation);
+        // Save this in the right cache for when the result comes back
+        if (spy_logging_level <= LIGHT_SPY_LOGGING)
+        {
+          // Need the lock to modify the collective entry
+          AutoLock f_lock(fill_view_lock);
+          fill_view_cache.emplace_front(
+              FillViewEntry{result, 0 /*future did*/, collective, 0});
+          if (fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+          {
+            FillViewEntry& last = fill_view_cache.back();
+            // See if it is done or not
+            if (last.collective == nullptr)
+            {
+              if (last.view->remove_nested_valid_ref(did))
+                delete last.view;
+            }
+            else if (last.pending_references > 0)
+              pending_fill_views.emplace(last.view, last.pending_references);
+            fill_view_cache.pop_back();
+          }
+        }
+        ready = collective->perform_collective_wait(false /*block*/);
+        return result;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    FillView* ReplicateContext::find_or_create_fill_view(
+        FillOp* op, const Future& future, bool& set_value, RtEvent& ready)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(!set_value);
+      const DistributedID future_did = future.impl->did;
+      legion_assert(future_did != 0);
+      // Two versions of this method depending on whether we are doing
+      // Legion Spy or not, Legion Spy wants to know exactly which op
+      // made each fill view so we can't cache them
+      if (spy_logging_level <= LIGHT_SPY_LOGGING)
+      {
+        // See if we can find this in the cache first
+        // Need the lock to protect against races with collectives coming back
+        for (std::list<FillViewEntry>::iterator it = fill_view_cache.begin();
+             it != fill_view_cache.end(); it++)
+        {
+          if (future_did != it->future_did)
+            continue;
+          AutoLock f_lock(fill_view_lock);
+          if (it->collective != nullptr)
+          {
+            it->pending_references++;
+            ready = it->collective->get_done_event();
+          }
+          else
+            it->view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+          // Move it back to the front of the list
+          fill_view_cache.splice(fill_view_cache.begin(), fill_view_cache, it);
+          return it->view;
+        }
+      }
+      // Deduplicate the allocation so we have a name for the fill view
+      // This is just the allocation
+      void* allocation = shard_manager->deduplicate_fill_view_allocation(
+          op->get_context_index(), &set_value);
+      CollectiveID collective_id =
+          get_next_collective_index(COLLECTIVE_LOC_93, true /*logical*/);
+      // At this point we have to make a fill view using a collective
+      CreateCollectiveFillView* collective = new CreateCollectiveFillView(
+          this, collective_id, allocation, op->get_unique_op_id());
+      if (collective->is_origin())
+      {
+        // Make the fill view and then broadcast it out
+        DistributedID fresh_did = runtime->get_available_distributed_id();
+        // This comes back with a MAPPING_ACQUIRE_REF already held
+        FillView* result = shard_manager->deduplicate_fill_view_creation(
+            allocation, fresh_did, op->get_unique_op_id());
+        collective->broadcast_fill_view_did(fresh_did);
+        delete collective;
+        if (spy_logging_level <= LIGHT_SPY_LOGGING)
+        {
+          result->add_nested_valid_ref(did);
+          AutoLock f_lock(fill_view_lock);
+          fill_view_cache.emplace_front(
+              FillViewEntry{result, future_did, nullptr, 0});
+          if (fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+          {
+            FillViewEntry& last = fill_view_cache.back();
+            // See if it is done or not
+            if (last.collective == nullptr)
+            {
+              if (last.view->remove_nested_valid_ref(did))
+                delete last.view;
+            }
+            else if (last.pending_references > 0)
+              pending_fill_views.emplace(last.view, last.pending_references);
+            fill_view_cache.pop_back();
+          }
+        }
+        return result;
+      }
+      else
+      {
+        // Static cast this as it will be constructed later
+        FillView* result = static_cast<FillView*>(allocation);
+        // Save this in the right cache for when the result comes back
+        if (spy_logging_level <= LIGHT_SPY_LOGGING)
+        {
+          // Need the lock to modify the collective entry
+          AutoLock f_lock(fill_view_lock);
+          fill_view_cache.emplace_front(
+              FillViewEntry{result, future_did, collective, 0});
+          if (fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
+          {
+            FillViewEntry& last = fill_view_cache.back();
+            // See if it is done or not
+            if (last.collective == nullptr)
+            {
+              if (last.view->remove_nested_valid_ref(did))
+                delete last.view;
+            }
+            else if (last.pending_references > 0)
+              pending_fill_views.emplace(last.view, last.pending_references);
+            fill_view_cache.pop_back();
+          }
+        }
+        ready = collective->perform_collective_wait(false /*block*/);
+        return result;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void ReplicateContext::finalize_collective_fill_view(
+        DistributedID view_did, void* allocation, UniqueID op_uid,
+        const void* value, size_t value_size,
+        CreateCollectiveFillView* collective)
+    //--------------------------------------------------------------------------
+    {
+      // Deduplicate the fill view creation across the shards
+      // This comes back with a MAPPING_ACQUIRE_REF on it
+      bool first = false;
+      FillView* view = shard_manager->deduplicate_fill_view_creation(
+          allocation, view_did, op_uid, &first);
+      if (first && (value != nullptr))
+        view->set_value(value, value_size);
+      // Delete the collective associated with this fill view
+      delete collective;
+      AutoLock f_lock(fill_view_lock);
+      // Check the pending set first since that is easy
+      std::map<FillView*, size_t>::iterator finder =
+          pending_fill_views.find(view);
+      if (finder != pending_fill_views.end())
+      {
+        view->add_base_valid_ref(MAPPING_ACQUIRE_REF, finder->second);
+        pending_fill_views.erase(finder);
+        return;
+      }
+      // Search first in the fill view cache
+      for (FillViewEntry& entry : fill_view_cache)
+      {
+        if (entry.view != view)
+          continue;
+        legion_assert(entry.collective == collective);
+        entry.collective = nullptr;
+        if (entry.pending_references > 0)
+          view->add_base_valid_ref(
+              MAPPING_ACQUIRE_REF, entry.pending_references);
+        // Also add our nested reference now
+        view->add_nested_valid_ref(did);
+        return;
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -11162,6 +11418,66 @@ namespace Legion {
           child_ids.find(color);
       legion_assert(finder != child_ids.end());
       pid = finder->second;
+    }
+
+    /////////////////////////////////////////////////////////////
+    // Create Collective Fill View
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    CreateCollectiveFillView::CreateCollectiveFillView(
+        ReplicateContext* ctx, CollectiveID id, void* alloc, UniqueID uid,
+        const void* val, size_t size)
+      : BroadcastCollective(ctx, id, 0 /*origin shard*/), allocation(alloc),
+        value((size > 0) ? std::malloc(size) : nullptr), value_size(size),
+        op_uid(uid), view_did(0)
+    //--------------------------------------------------------------------------
+    {
+      if (size > 0)
+        std::memcpy(value, val, size);
+    }
+
+    //--------------------------------------------------------------------------
+    CreateCollectiveFillView::~CreateCollectiveFillView(void)
+    //--------------------------------------------------------------------------
+    {
+      if (value != nullptr)
+        std::free(value);
+    }
+
+    //--------------------------------------------------------------------------
+    bool CreateCollectiveFillView::matches(const void* val, size_t size) const
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(value_size > 0);
+      if (value_size != size)
+        return false;
+      return (std::memcmp(value, val, size) == 0);
+    }
+
+    //--------------------------------------------------------------------------
+    void CreateCollectiveFillView::pack_collective(Serializer& rez) const
+    //--------------------------------------------------------------------------
+    {
+      rez.serialize(view_did);
+    }
+
+    //--------------------------------------------------------------------------
+    void CreateCollectiveFillView::unpack_collective(Deserializer& derez)
+    //--------------------------------------------------------------------------
+    {
+      derez.deserialize(view_did);
+    }
+
+    //--------------------------------------------------------------------------
+    RtEvent CreateCollectiveFillView::post_broadcast(void)
+    //--------------------------------------------------------------------------
+    {
+      // Tell the replicate context about the new DID for the fill view
+      // DO NOT DO ANYTHING AFTER THIS LINE AS THE CONTEXT MIGHT DELETE THIS
+      context->finalize_collective_fill_view(
+          view_did, allocation, op_uid, value, value_size, this);
+      return RtEvent::NO_RT_EVENT;
     }
 
   }  // namespace Internal

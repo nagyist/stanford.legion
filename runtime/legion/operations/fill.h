@@ -80,7 +80,6 @@ namespace Legion {
       virtual int add_copy_profiling_request(
           const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
           bool fill, unsigned count = 1) override;
-      virtual RtEvent initialize_fill_view(void);
       virtual FillView* get_fill_view(void) const;
     public:
       virtual bool has_prepipeline_stage(void) const override { return true; }
@@ -101,9 +100,6 @@ namespace Legion {
       virtual void trigger_commit(void) override;
     public:
       void log_fill_requirement(void) const;
-      // This call only happens from control replication when we had to
-      // make a new view because not everyone agreed on which view to use
-      void register_fill_view_creation(FillView* view, bool set);
     public:
       // From Memoizable
       virtual const VersionInfo& get_version_info(unsigned idx) const
@@ -130,6 +126,7 @@ namespace Legion {
     public:
       VersionInfo version_info;
       unsigned parent_req_index;
+      RtEvent fill_view_ready;
       FillView* fill_view;
       Future future;
       void* value;
@@ -257,38 +254,6 @@ namespace Legion {
     };
 
     /**
-     * \class CreateCollectiveFillView
-     * This collective checks to see if all the shards picked the
-     * same fill view, and if not, then will make a new collective
-     * fill view for the shards to use
-     */
-    class CreateCollectiveFillView : public AllGatherCollective<false> {
-    public:
-      CreateCollectiveFillView(
-          ReplicateContext* ctx, CollectiveID id, FillOp* op,
-          DistributedID fill_view, DistributedID fresh_did);
-      CreateCollectiveFillView(const CreateCollectiveFillView& rhs) = delete;
-      virtual ~CreateCollectiveFillView(void) { }
-    public:
-      CreateCollectiveFillView& operator=(const CreateCollectiveFillView& rhs) =
-          delete;
-    public:
-      virtual MessageKind get_message_kind(void) const override
-      {
-        return SEND_CONTROL_REPLICATION_CREATE_FILL_VIEW;
-      }
-      virtual void pack_collective_stage(
-          ShardID target, Serializer& rez, int stage) override;
-      virtual void unpack_collective_stage(
-          Deserializer& derez, int stage) override;
-      virtual RtEvent post_complete_exchange(void) override;
-    protected:
-      FillOp* const fill_op;
-      const DistributedID fresh_did;
-      std::set<DistributedID> selected_views;
-    };
-
-    /**
      * \class ReplFillOp
      * A copy operation that is aware that it is being
      * executed in a control replication context.
@@ -302,8 +267,7 @@ namespace Legion {
     public:
       ReplFillOp& operator=(const ReplFillOp& rhs) = delete;
     public:
-      void initialize_replication(
-          ReplicateContext* ctx, DistributedID fresh_did, bool is_first_local);
+      void initialize_replication(ReplicateContext* ctx, bool is_first_local);
     public:
       virtual void activate(void) override;
       virtual void deactivate(bool free = true) override;
@@ -321,13 +285,9 @@ namespace Legion {
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
           const FieldMask& mask, unsigned parent_req_index) override;
-      virtual RtEvent initialize_fill_view(void) override;
       virtual void predicate_false(void) override;
     public:
       RtBarrier collective_map_barrier;
-      CreateCollectiveFillView* collective;
-      CollectiveID collective_id;
-      DistributedID fresh_did;
       bool is_first_local_shard;
     };
 
@@ -351,24 +311,17 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void) override;
       virtual void trigger_ready(void) override;
       virtual void trigger_replay(void) override;
-      virtual RtEvent initialize_fill_view(void) override;
       virtual IndexSpaceNode* get_shard_points(void) const override
       {
         return shard_points;
       }
       virtual bool find_shard_participants(
           std::vector<ShardID>& shards) override;
-    public:
-      void initialize_replication(
-          ReplicateContext* ctx, DistributedID fresh_did);
     protected:
       ShardingID sharding_functor;
       ShardingFunction* sharding_function;
       IndexSpaceNode* shard_points;
       MapperManager* mapper;
-      CreateCollectiveFillView* collective;
-      CollectiveID collective_id;
-      DistributedID fresh_did;
     public:
       inline void set_sharding_collective(ShardingGatherCollective* collective)
       {

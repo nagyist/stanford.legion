@@ -177,8 +177,10 @@ namespace Legion {
           RegionNode* node, size_t op_ctx_index, unsigned refinement_number,
           InnerContext* context, bool first_shard,
           const std::vector<ShardID>* creating_shards = nullptr);
+      void* deduplicate_fill_view_allocation(size_t key, bool* first = nullptr);
       FillView* deduplicate_fill_view_creation(
-          DistributedID did, FillOp* op, bool& set_view);
+          void* ptr, DistributedID fresh_did, UniqueID op_uid,
+          bool* first = nullptr);
       void deduplicate_attaches(
           const IndexAttachLauncher& launcher, std::vector<unsigned>& indexes);
       Future deduplicate_future_creation(
@@ -403,7 +405,8 @@ namespace Legion {
       std::map<DistributedID, std::pair<FutureImpl*, size_t> > created_futures;
       std::map<DistributedID, std::pair<ReplFutureMapImpl*, size_t> >
           created_future_maps;
-      std::map<DistributedID, std::pair<FillView*, size_t> > created_fill_views;
+      std::map<size_t, std::pair<void*, size_t> > fill_view_allocations;
+      std::map<void*, size_t> fill_view_creations;
       // ApEvents describing the completion of each shard
       ApUserEvent all_shards_complete;
       std::set<ApEvent> shard_effects;

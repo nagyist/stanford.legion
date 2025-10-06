@@ -747,64 +747,85 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FillView* ShardManager::deduplicate_fill_view_creation(
-        DistributedID fill_did, FillOp* op, bool& set_view)
+    void* ShardManager::deduplicate_fill_view_allocation(
+        size_t key, bool* first)
     //--------------------------------------------------------------------------
     {
-      legion_assert(!set_view);
+      legion_assert((first == nullptr) || !(*first));
       if (local_shards.size() > 1)
       {
-        FillView* result = nullptr;
         AutoLock m_lock(manager_lock);
-        // See if we already have this here or not
-        std::map<DistributedID, std::pair<FillView*, size_t> >::iterator
-            finder = created_fill_views.find(fill_did);
-        if (finder != created_fill_views.end())
+        std::map<size_t, std::pair<void*, size_t> >::iterator finder =
+            fill_view_allocations.find(key);
+        if (finder != fill_view_allocations.end())
         {
-          result = finder->second.first;
+          void* result = finder->second.first;
           legion_assert(finder->second.second > 0);
           if (--finder->second.second == 0)
-          {
-            created_fill_views.erase(finder);
-            set_view = true;
-            // Return the extra reference we added when we made the view
-          }
-          else  // Add a reference to return
-            result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+            fill_view_allocations.erase(finder);
           return result;
         }
-        void* location =
-            runtime->find_or_create_pending_collectable_location<FillView>(
-                fill_did);
-        result = new (location) FillView(
-            fill_did, op->get_unique_op_id(), false /*register now*/,
-            collective_mapping);
-        // Make sure we hold a valid reference before we register it
-        // otherwise there can be races with deletions, add two of them
-        // one for returning and one for us to hold until we're done
-        result->add_base_valid_ref(MAPPING_ACQUIRE_REF, 2 /*ref count*/);
-        result->register_with_runtime();
-        // Record it for the shards that come later
-        std::pair<FillView*, size_t>& pending = created_fill_views[fill_did];
-        pending.first = result;
-        pending.second = local_shards.size() - 1;
-        return result;
+        else
+        {
+          void* result = legion_malloc<FillView, LONG_LIFETIME>(
+              sizeof(FillView), alignof(FillView));
+          if (first != nullptr)
+            *first = true;
+          fill_view_allocations.emplace(
+              key, std::make_pair(result, local_shards.size() - 1));
+          return result;
+        }
       }
       else
       {
-        void* location =
-            runtime->find_or_create_pending_collectable_location<FillView>(
-                fill_did);
-        FillView* fill_view = new (location) FillView(
-            fill_did, op->get_unique_op_id(), false /*register now*/,
-            collective_mapping);
-        // Make sure we hold a valid reference before we register it
-        // otherwise there can be races with deletions
-        fill_view->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-        fill_view->register_with_runtime();
-        // Only one shard so do the setting
-        set_view = true;
-        return fill_view;
+        void* result = legion_malloc<FillView, LONG_LIFETIME>(
+            sizeof(FillView), alignof(FillView));
+        if (first != nullptr)
+          *first = true;
+        return result;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    FillView* ShardManager::deduplicate_fill_view_creation(
+        void* ptr, DistributedID fresh_did, UniqueID op_uid, bool* first)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert((first == nullptr) || !(*first));
+      if (local_shards.size() > 1)
+      {
+        AutoLock m_lock(manager_lock);
+        std::map<void*, size_t>::iterator finder =
+            fill_view_creations.find(ptr);
+        if (finder != fill_view_creations.end())
+        {
+          FillView* result = static_cast<FillView*>(ptr);
+          legion_assert(finder->second > 0);
+          if (--finder->second == 0)
+            fill_view_creations.erase(finder);
+          return result;
+        }
+        else
+        {
+          if (first != nullptr)
+            *first = true;
+          FillView* result = new (ptr) FillView(
+              fresh_did, op_uid, false /*register now*/, collective_mapping);
+          result->add_base_valid_ref(MAPPING_ACQUIRE_REF, local_shards.size());
+          result->register_with_runtime();
+          fill_view_creations.emplace(ptr, local_shards.size());
+          return result;
+        }
+      }
+      else
+      {
+        if (first != nullptr)
+          *first = true;
+        FillView* result = new (ptr) FillView(
+            fresh_did, op_uid, false /*register now*/, collective_mapping);
+        result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
+        result->register_with_runtime();
+        return result;
       }
     }
 

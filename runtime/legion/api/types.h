@@ -715,6 +715,7 @@ namespace Legion {
     class TimeoutMatchExchange;
     class ConcurrentAllreduce;
     class BufferBroadcast;
+    class CreateCollectiveFillView;
 
     // The invalid color
     constexpr LegionColor INVALID_COLOR =
