@@ -1331,6 +1331,8 @@ namespace Legion {
       virtual RtEvent post_complete_exchange(void) override;
     protected:
       FutureImpl* to_complete;
+      const size_t total_elements;
+      const void* const input;
       void* const output;
       const size_t element_size;
       std::vector<const void*> valid_elements;

@@ -10317,9 +10317,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ConsensusMatchExchange::ConsensusMatchExchange(
         ReplicateContext* ctx, CollectiveIndexLocation loc, FutureImpl* f,
-        const void* input, void* out, size_t size, size_t count)
-      : AllGatherCollective<false>(ctx, loc), to_complete(f), output(out),
-        element_size(size)
+        const void* in, void* out, size_t size, size_t count)
+      : AllGatherCollective<false>(ctx, loc), to_complete(f),
+        total_elements(count), input(in), output(out), element_size(size)
     //--------------------------------------------------------------------------
     {
       to_complete->add_base_gc_ref(COLLECTIVE_REF);
@@ -10388,13 +10388,25 @@ namespace Legion {
     RtEvent ConsensusMatchExchange::post_complete_exchange(void)
     //--------------------------------------------------------------------------
     {
-      // Copy each of the elements in the list of valid elements into the output
-      uintptr_t ptr = reinterpret_cast<uintptr_t>(output);
       const size_t valid_count = valid_elements.size();
-      for (unsigned idx = 0; idx < valid_count; idx++)
-        std::memcpy(
-            reinterpret_cast<void*>(ptr + idx * element_size),
-            valid_elements[idx], element_size);
+      if (!valid_elements.empty())
+      {
+        // We need to maintain the ordering of the elements from the
+        // input to the output, so walk over them in order
+        uintptr_t in_ptr = reinterpret_cast<uintptr_t>(input);
+        uintptr_t out_ptr = reinterpret_cast<uintptr_t>(output);
+        for (unsigned idx = 0; idx < total_elements; idx++)
+        {
+          const void* element =
+              reinterpret_cast<const void*>(in_ptr + idx * element_size);
+          if (!std::binary_search(
+                  valid_elements.begin(), valid_elements.end(), element,
+                  ElementComparator(element_size)))
+            continue;
+          std::memcpy(reinterpret_cast<void*>(out_ptr), element, element_size);
+          out_ptr += element_size;
+        }
+      }
       to_complete->set_local(&valid_count, sizeof(valid_count), false /*own*/);
       // A little bit of fun here, we can self delete because the
       // implementation of AllGatherCollective allows that
