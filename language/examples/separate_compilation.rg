@@ -57,7 +57,7 @@ if realm_dir then
 end
 local lib_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib"
 local lib64_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib64"
-link_libraries:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm"})
+link_libraries:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm", "-lz"})
 
 terra main(argc : int, argv : &rawstring)
   escape
@@ -71,8 +71,15 @@ terra main(argc : int, argv : &rawstring)
   end
 end
 
+local main_obj = tmp_dir .. "separate_compilation.o"
 local executable = tmp_dir .. "separate_compilation.exe"
-terralib.saveobj(executable, {main=main}, link_libraries)
+terralib.saveobj(main_obj, {main=main})
+
+local cxx = os.getenv("CXX") or "c++"
+if os.execute(cxx .. " " .. main_obj .. " " .. link_libraries:concat(" ") .. " -o " .. executable) ~= 0 then
+  print("Error: failed to compile " .. executable)
+  assert(false)
+end
 
 local args = rawget(_G, "arg")
 local executable_args = terralib.newlist()
