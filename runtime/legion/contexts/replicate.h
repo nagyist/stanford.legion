@@ -1292,42 +1292,28 @@ namespace Legion {
     };
 
     /**
-     * \class ConsensusMatchBase
-     * A base class for consensus match
-     */
-    class ConsensusMatchBase : public AllGatherCollective<true> {
-    public:
-      struct ConsensusMatchArgs : public LgTaskArgs<ConsensusMatchArgs> {
-      public:
-        static constexpr LgTaskID TASK_ID = LG_DEFER_CONSENSUS_MATCH_TASK_ID;
-      public:
-        ConsensusMatchArgs(void) = default;
-        ConsensusMatchArgs(ConsensusMatchBase* b)
-          : LgTaskArgs(false, false), base(b)
-        { }
-        void execute(void) const;
-      public:
-        ConsensusMatchBase* base;
-      };
-    public:
-      ConsensusMatchBase(ReplicateContext* ctx, CollectiveIndexLocation loc);
-      ConsensusMatchBase(const ConsensusMatchBase& rhs) = delete;
-      virtual ~ConsensusMatchBase(void);
-    public:
-      virtual void complete_exchange(void) = 0;
-    };
-
-    /**
      * \class ConsensusMatchExchange
      * This is collective for performing a consensus exchange between
      * the shards for a collection of values.
      */
-    template<typename T>
-    class ConsensusMatchExchange : ConsensusMatchBase {
+    class ConsensusMatchExchange : public AllGatherCollective<false> {
+    public:
+      struct ElementComparator {
+      public:
+        ElementComparator(size_t size) : element_size(size) { }
+      public:
+        inline bool operator()(const void* lhs, const void* rhs) const
+        {
+          return (std::memcmp(lhs, rhs, element_size) < 0);
+        }
+      public:
+        const size_t element_size;
+      };
     public:
       ConsensusMatchExchange(
           ReplicateContext* ctx, CollectiveIndexLocation loc,
-          Future to_complete, void* output);
+          FutureImpl* to_complete, const void* input, void* output,
+          size_t element_size, size_t num_elements);
       ConsensusMatchExchange(const ConsensusMatchExchange& rhs) = delete;
       virtual ~ConsensusMatchExchange(void);
     public:
@@ -1342,14 +1328,12 @@ namespace Legion {
           ShardID target, Serializer& rez, int stage) override;
       virtual void unpack_collective_stage(
           Deserializer& derez, int stage) override;
-    public:
-      bool match_elements_async(const void* input, size_t num_elements);
-      virtual void complete_exchange(void) override;
+      virtual RtEvent post_complete_exchange(void) override;
     protected:
-      Future to_complete;
-      T* const output;
-      std::map<T, size_t> element_counts;
-      size_t max_elements;
+      FutureImpl* to_complete;
+      void* const output;
+      const size_t element_size;
+      std::vector<const void*> valid_elements;
     };
 
     /**

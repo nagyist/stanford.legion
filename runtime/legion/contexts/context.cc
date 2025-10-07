@@ -1305,13 +1305,5 @@ namespace Legion {
       return variant_impl;
     }
 
-    //--------------------------------------------------------------------------
-    /*static*/ void TaskContext::help_complete_future(
-        Future& f, const void* result, size_t result_size, bool own)
-    //--------------------------------------------------------------------------
-    {
-      f.impl->set_local(result, result_size, own);
-    }
-
   }  // namespace Internal
 }  // namespace Legion

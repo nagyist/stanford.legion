@@ -268,58 +268,16 @@ namespace Legion {
           break;
       }
       const size_t future_size = sizeof(num_elements);
-      Future result(new FutureImpl(
+      FutureImpl* future = new FutureImpl(
           this, true /*register*/, runtime->get_available_distributed_id(),
-          provenance));
-      result.impl->set_future_result_size(future_size, runtime->address_space);
-      switch (element_size)
-      {
-        case 1:
-          {
-            ConsensusMatchExchange<uint8_t>* collective =
-                new ConsensusMatchExchange<uint8_t>(
-                    this, COLLECTIVE_LOC_89, result, output);
-            if (collective->match_elements_async(input, num_elements))
-              delete collective;
-            break;
-          }
-        case 2:
-          {
-            ConsensusMatchExchange<uint16_t>* collective =
-                new ConsensusMatchExchange<uint16_t>(
-                    this, COLLECTIVE_LOC_89, result, output);
-            if (collective->match_elements_async(input, num_elements))
-              delete collective;
-            break;
-          }
-        case 4:
-          {
-            ConsensusMatchExchange<uint32_t>* collective =
-                new ConsensusMatchExchange<uint32_t>(
-                    this, COLLECTIVE_LOC_89, result, output);
-            if (collective->match_elements_async(input, num_elements))
-              delete collective;
-            break;
-          }
-        case 8:
-          {
-            ConsensusMatchExchange<uint64_t>* collective =
-                new ConsensusMatchExchange<uint64_t>(
-                    this, COLLECTIVE_LOC_89, result, output);
-            if (collective->match_elements_async(input, num_elements))
-              delete collective;
-            break;
-          }
-        default:
-          {
-            Fatal fatal;
-            fatal << "Unsupported size " << element_size
-                  << " for consensus match in task " << get_task_name()
-                  << " (UID " << get_unique_id() << ").";
-            fatal.raise();
-          }
-      }
-      return result;
+          provenance);
+      future->set_future_result_size(future_size, runtime->address_space);
+      // The consensus match object will delete itself!
+      ConsensusMatchExchange* collective = new ConsensusMatchExchange(
+          this, COLLECTIVE_LOC_89, future, input, output, element_size,
+          num_elements);
+      collective->perform_collective_async();
+      return Future(future);
     }
 
     //--------------------------------------------------------------------------
@@ -10353,157 +10311,96 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Consensus Match Base
-    /////////////////////////////////////////////////////////////
-
-    //--------------------------------------------------------------------------
-    ConsensusMatchBase::ConsensusMatchBase(
-        ReplicateContext* ctx, CollectiveIndexLocation loc)
-      : AllGatherCollective(loc, ctx)
-    //--------------------------------------------------------------------------
-    { }
-
-    //--------------------------------------------------------------------------
-    ConsensusMatchBase::~ConsensusMatchBase(void)
-    //--------------------------------------------------------------------------
-    { }
-
-    //--------------------------------------------------------------------------
-    void ConsensusMatchBase::ConsensusMatchArgs::execute(void) const
-    //--------------------------------------------------------------------------
-    {
-      base->complete_exchange();
-      delete base;
-    }
-
-    /////////////////////////////////////////////////////////////
     // Consensus Match Exchange
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    template<typename T>
-    ConsensusMatchExchange<T>::ConsensusMatchExchange(
-        ReplicateContext* ctx, CollectiveIndexLocation loc, Future f, void* out)
-      : ConsensusMatchBase(ctx, loc), to_complete(f),
-        output(static_cast<T*>(out))
-    //--------------------------------------------------------------------------
-    { }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    ConsensusMatchExchange<T>::~ConsensusMatchExchange(void)
-    //--------------------------------------------------------------------------
-    { }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    void ConsensusMatchExchange<T>::pack_collective_stage(
-        ShardID target, Serializer& rez, int stage)
+    ConsensusMatchExchange::ConsensusMatchExchange(
+        ReplicateContext* ctx, CollectiveIndexLocation loc, FutureImpl* f,
+        const void* input, void* out, size_t size, size_t count)
+      : AllGatherCollective<false>(ctx, loc), to_complete(f), output(out),
+        element_size(size)
     //--------------------------------------------------------------------------
     {
-      rez.serialize<size_t>(element_counts.size());
-      for (typename std::map<T, size_t>::const_iterator it =
-               element_counts.begin();
-           it != element_counts.end(); it++)
-      {
-        rez.serialize(it->first);
-        rez.serialize(it->second);
-      }
+      to_complete->add_base_gc_ref(COLLECTIVE_REF);
+      uintptr_t ptr = reinterpret_cast<uintptr_t>(input);
+      valid_elements.resize(count);
+      for (unsigned idx = 0; idx < count; idx++)
+        valid_elements[idx] = reinterpret_cast<void*>(ptr + idx * element_size);
+      // Sort the valid elements so that we can efficiently query them
+      std::sort(
+          valid_elements.begin(), valid_elements.end(),
+          ElementComparator(element_size));
     }
 
     //--------------------------------------------------------------------------
-    template<typename T>
-    void ConsensusMatchExchange<T>::unpack_collective_stage(
+    ConsensusMatchExchange::~ConsensusMatchExchange(void)
+    //--------------------------------------------------------------------------
+    {
+      if (to_complete->remove_base_gc_ref(COLLECTIVE_REF))
+        delete to_complete;
+    }
+
+    //--------------------------------------------------------------------------
+    void ConsensusMatchExchange::pack_collective_stage(
+        ShardID target, Serializer& rez, int stage)
+    //--------------------------------------------------------------------------
+    {
+      rez.serialize<size_t>(valid_elements.size());
+      for (unsigned idx = 0; idx < valid_elements.size(); idx++)
+        rez.serialize(valid_elements[idx], element_size);
+    }
+
+    //--------------------------------------------------------------------------
+    void ConsensusMatchExchange::unpack_collective_stage(
         Deserializer& derez, int stage)
     //--------------------------------------------------------------------------
     {
       size_t num_elements;
       derez.deserialize(num_elements);
-      if (!participating)
+      if (num_elements > 0)
       {
-        legion_assert(stage == -1);
-        // Edge case at the end of a match
-        // Just overwrite since our data comes back
+        uintptr_t ptr =
+            reinterpret_cast<uintptr_t>(derez.get_current_pointer());
+        std::vector<const void*> incoming_elements(num_elements);
         for (unsigned idx = 0; idx < num_elements; idx++)
+          incoming_elements[idx] =
+              reinterpret_cast<const void*>(ptr + idx * element_size);
+        derez.advance_pointer(num_elements * element_size);
+        // Elements are already sorted in order
+        for (std::vector<const void*>::iterator it = valid_elements.begin();
+             it != valid_elements.end();
+             /*nothing*/)
         {
-          T element;
-          derez.deserialize(element);
-          derez.deserialize(element_counts[element]);
-        }
-      }
-      else
-      {
-        // Common case
-        for (unsigned idx = 0; idx < num_elements; idx++)
-        {
-          T element;
-          derez.deserialize(element);
-          typename std::map<T, size_t>::iterator finder =
-              element_counts.find(element);
-          if (finder != element_counts.end())
-          {
-            size_t count;
-            derez.deserialize(count);
-            finder->second += count;
-          }
+          if (std::binary_search(
+                  incoming_elements.begin(), incoming_elements.end(), *it,
+                  ElementComparator(element_size)))
+            it++;
           else
-            derez.deserialize(element_counts[element]);
+            it = valid_elements.erase(it);
         }
       }
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    bool ConsensusMatchExchange<T>::match_elements_async(
-        const void* input, size_t num_elements)
-    //--------------------------------------------------------------------------
-    {
-      const T* inputs = static_cast<const T*>(input);
-      for (unsigned idx = 0; idx < num_elements; idx++)
-        element_counts[inputs[idx]] = 1;
-      max_elements = num_elements;
-      perform_collective_async();
-      const RtEvent precondition = perform_collective_wait(false /*block*/);
-      if (precondition.exists() && !precondition.has_triggered())
-      {
-        ConsensusMatchArgs args(this);
-        runtime->issue_runtime_meta_task(
-            args, LG_LATENCY_DEFERRED_PRIORITY, precondition);
-        return false;
-      }
       else
-      {
-        complete_exchange();
-        return true;
-      }
+        valid_elements.clear();
     }
 
     //--------------------------------------------------------------------------
-    template<typename T>
-    void ConsensusMatchExchange<T>::complete_exchange(void)
+    RtEvent ConsensusMatchExchange::post_complete_exchange(void)
     //--------------------------------------------------------------------------
     {
-      const size_t total_shards = manager->total_shards;
-      size_t next_index = 0;
-      for (typename std::map<T, size_t>::const_iterator it =
-               element_counts.begin();
-           it != element_counts.end(); it++)
-      {
-        legion_assert(it->second <= total_shards);
-        if (it->second < total_shards)
-          continue;
-        legion_assert(next_index < max_elements);
-        output[next_index++] = it->first;
-      }
-      // A little bit of help from the replicate context to complete the future
-      context->help_complete_future(
-          to_complete, &next_index, sizeof(next_index), false /*own*/);
+      // Copy each of the elements in the list of valid elements into the output
+      uintptr_t ptr = reinterpret_cast<uintptr_t>(output);
+      const size_t valid_count = valid_elements.size();
+      for (unsigned idx = 0; idx < valid_count; idx++)
+        std::memcpy(
+            reinterpret_cast<void*>(ptr + idx * element_size),
+            valid_elements[idx], element_size);
+      to_complete->set_local(&valid_count, sizeof(valid_count), false /*own*/);
+      // A little bit of fun here, we can self delete because the
+      // implementation of AllGatherCollective allows that
+      delete this;
+      return RtEvent::NO_RT_EVENT;
     }
-
-    template class ConsensusMatchExchange<uint8_t>;
-    template class ConsensusMatchExchange<uint16_t>;
-    template class ConsensusMatchExchange<uint32_t>;
-    template class ConsensusMatchExchange<uint64_t>;
 
     /////////////////////////////////////////////////////////////
     // VerifyReplicableExchange

@@ -550,10 +550,6 @@ namespace Legion {
           const IndexTaskLauncher& launch, IndexSpace launch_space,
           ReductionOpID redop, Provenance* provenance);
     public:
-      // A little help for ConsensusMatchExchange since it is templated
-      static void help_complete_future(
-          Future& f, const void* ptr, size_t size, bool own);
-    public:
       SingleTask* const owner_task;
       const std::vector<RegionRequirement>& regions;
       const std::vector<OutputRequirement>& output_reqs;
