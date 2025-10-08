@@ -1033,6 +1033,7 @@ LEGION_SRC 	+= $(LG_RT_DIR)/legion/analysis/acquire.cc \
 		    $(LG_RT_DIR)/legion/analysis/versioning.cc \
 		    $(LG_RT_DIR)/legion/api/accessors.cc \
 		    $(LG_RT_DIR)/legion/api/argument_map.cc \
+		    $(LG_RT_DIR)/legion/api/buffers.cc \
 		    $(LG_RT_DIR)/legion/api/constraints.cc \
 		    $(LG_RT_DIR)/legion/api/data.cc \
 		    $(LG_RT_DIR)/legion/api/exception.cc \
@@ -1187,6 +1188,7 @@ INSTALL_HEADERS += legion.h \
 		   legion/api/argument_map.inl \
 		   legion/api/buffers.h \
 		   legion/api/buffers.inl \
+		   legion/api/buffers.cc \
 		   legion/api/constraints.h \
 		   legion/api/data.h \
 		   legion/api/data.inl \

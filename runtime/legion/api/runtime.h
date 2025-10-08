@@ -16,11 +16,13 @@
 #ifndef __LEGION_RUNTIME_H__
 #define __LEGION_RUNTIME_H__
 
+#include "legion/api/buffers.h"
 #include "legion/api/functors.h"
 #include "legion/api/future.h"
 #include "legion/api/launchers.h"
 #include "legion/api/registrars.h"
 #include "legion/api/transforms.h"
+#include "legion/api/values.h"
 
 #define LEGION_PRINT_ONCE(runtime, ctx, file, fmt, ...) \
   {                                                     \
@@ -3236,6 +3238,63 @@ namespace Legion {
     void set_local_task_variable(
         Context ctx, LocalVariableID id, const T* value,
         void (*destructor)(void*) = nullptr);
+  public:
+    //------------------------------------------------------------------------
+    // Deferred Buffer/Value Creation/Destruction
+    //------------------------------------------------------------------------
+    /**
+     * Try to allocate a deferred value given the parameters in
+     * the deferred value request. If the allocation fails then
+     * the value will not exist. Note that you can  implicitly convert
+     * the untyped version of the value to a typed version after
+     * you unpack the optional.
+     * @param ctx the enclosing task context
+     * @param request struct describing the value parameters
+     * @return an UntypedDeferredValue object
+     */
+    UntypedDeferredValue allocate_deferred_value(
+        Context ctx, const DeferredValueRequest& request);
+
+    /**
+     * Destroy a deferred value eagerly before the end of the
+     * task. Note this is not required as the runtime will clean
+     * up this value at the end of the task anyway and indeed
+     * not encouraged but we support it in case users want to;
+     * @param ctx the enclosing task context
+     * @param value the deferred value to be destroyed
+     * @param precondition event to defer the deletion on if any
+     */
+    void destroy_deferred_value(
+        Context ctx, UntypedDeferredValue& value,
+        Realm::Event precondition = Realm::Event::NO_EVENT);
+
+    /**
+     * Try to allocate a deferred buffer given the parameters in
+     * the deferred buffer request. If the allocation fails then
+     * the buffer will not exist. Note that you can implicitly
+     * convert the untyped version of the value to a typed version
+     * after you unpack the optional.
+     * @param ctx the enclosing task context
+     * @param request struct describing the buffer parameters
+     * @return an UntypedDeferredBuffer struct
+     */
+    template<typename COORD_T = coord_t>
+    UntypedDeferredBuffer<COORD_T> allocate_deferred_buffer(
+        Context ctx, const DeferredBufferRequest& request);
+
+    /**
+     * Destroy a deferred buffer eagerly before the end of the
+     * task. Note this is not required as the runtime will clean
+     * up this value at the end of the task anyway and indeed
+     * not encouraged but we support it in case users want to;
+     * @param ctx the enclosing task context
+     * @param buffer the deferred buffer to be destroyed
+     * @param precondition event to defer the deletion on if any
+     */
+    template<typename COORD_T = coord_t>
+    void destroy_deferred_buffer(
+        Context ctx, UntypedDeferredBuffer<COORD_T>& buffer,
+        Realm::Event precondition = Realm::Event::NO_EVENT);
   public:
     //------------------------------------------------------------------------
     // Timing Operations
