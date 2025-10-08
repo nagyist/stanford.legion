@@ -79,7 +79,8 @@
 #ifndef NDEBUG
 #define legion_no_skip_assert(expr) assert(expr)
 #else
-#error "NDEBUG is not allowed to be defined at the same time as LEGION_DEBUG"
+#error \
+    "Why are you trying to build a debug version of Legion while also defining NDEBUG?"
 #endif
 template<typename T1, typename T2>
 inline T1 legion_safe_cast(T2* ptr)
