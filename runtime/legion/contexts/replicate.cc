@@ -10391,19 +10391,14 @@ namespace Legion {
       const size_t valid_count = valid_elements.size();
       if (!valid_elements.empty())
       {
-        // We need to maintain the ordering of the elements from the
-        // input to the output, so walk over them in order
-        uintptr_t in_ptr = reinterpret_cast<uintptr_t>(input);
+        // We guarantee that the elements appear in the same order across
+        // all the shards so we make that the sorted order
         uintptr_t out_ptr = reinterpret_cast<uintptr_t>(output);
-        for (unsigned idx = 0; idx < total_elements; idx++)
+        for (unsigned idx = 0; idx < valid_elements.size(); idx++)
         {
-          const void* element =
-              reinterpret_cast<const void*>(in_ptr + idx * element_size);
-          if (!std::binary_search(
-                  valid_elements.begin(), valid_elements.end(), element,
-                  ElementComparator(element_size)))
-            continue;
-          std::memcpy(reinterpret_cast<void*>(out_ptr), element, element_size);
+          std::memcpy(
+              reinterpret_cast<void*>(out_ptr), valid_elements[idx],
+              element_size);
           out_ptr += element_size;
         }
       }
