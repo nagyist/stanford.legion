@@ -59,6 +59,11 @@ local lib_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib"
 local lib64_dir = os.getenv("LEGION_INSTALL_PREFIX") .. "/lib64"
 link_libraries:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm", "-lz"})
 
+local ffi = require("ffi")
+if ffi.os == "Linux" then
+  link_libraries:insert("-latomic")
+end
+
 terra main(argc : int, argv : &rawstring)
   escape
     for i, thunk in ipairs(loaders) do

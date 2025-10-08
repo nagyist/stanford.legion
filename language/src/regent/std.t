@@ -4685,7 +4685,6 @@ function std.start(main_task, extra_setup_thunk)
   if #objfiles > 0 then
     local dylib = os.tmpname()
     local cmd = os.getenv('CXX') or 'c++'
-    local ffi = require("ffi")
     if ffi.os == "OSX" then
       cmd = cmd .. ' -dynamiclib -single_module -undefined dynamic_lookup -fPIC'
     else
@@ -4806,6 +4805,9 @@ function std.saveobj(main_task, filename, filetype, extra_setup_thunk, link_flag
   flags:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm"})
   if gpuhelper.check_gpu_available() then
     flags:insertall(gpuhelper.driver_library_link_flags())
+  end
+  if ffi.os == "Linux" then
+    flags:insert("-latomic")
   end
 
   profile('compile', nil, function()
@@ -4953,6 +4955,7 @@ function std.save_tasks(header_filename, filename, filetype, link_flags, registr
     flags:insertall({"-L" .. realm_dir .. "/lib", "-L" .. realm_dir .. "/lib64"})
   end
   flags:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm"})
+
   profile('compile', nil, function()
     if filetype ~= nil then
       terralib.saveobj(filename, filetype, names, flags, nil, base.opt_profile)
