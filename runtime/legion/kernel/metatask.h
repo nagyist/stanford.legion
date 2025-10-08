@@ -96,7 +96,6 @@ namespace Legion {
   __op__(LG_DEFER_TRACE_UPDATE_TASK_ID, ShardedPhysicalTemplate::DeferTraceUpdateArgs, "Deferred Trace Update") \
   __op__(LG_DEFER_DELETE_FUTURE_INSTANCE_TASK_ID, FutureInstance::DeferDeleteFutureInstanceArgs, "Deferred Delete Future Instance") \
   __op__(LG_FREE_EXTERNAL_TASK_ID, FutureInstance::FreeExternalArgs, "Deferred Free External Future Instance") \
-  __op__(LG_DEFER_CONSENSUS_MATCH_TASK_ID, ConsensusMatchBase::ConsensusMatchArgs, "Deferred Consensus Match") \
   __op__(LG_DEFER_COLLECTIVE_TASK_ID, ShardCollective::DeferCollectiveArgs, "Deferred Collective Async") \
   __op__(LG_DEFER_ISSUE_FILL_TASK_ID, FillView::DeferIssueFill, "Deferred Issue Fill") \
   __op__(LG_DEFER_MUST_EPOCH_RETURN_TASK_ID, ReplMustEpochOp::DeferMustEpochReturnResourcesArgs, "Deferred Must Epoch Return Resources") \
