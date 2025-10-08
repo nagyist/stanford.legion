@@ -861,19 +861,6 @@ before_script:
     - ctest --output-on-failure --test-dir build
     - echo OK
 
-.realm_clang_format: &realm_clang_format
-  script:
-    - git diff -U0 --no-color ${CI_MERGE_REQUEST_DIFF_BASE_SHA} -- '**realm/*.cc' '**realm/*.h' | clang-format-diff-14 -p1 2>&1 > /tmp/not-formatted.diff
-    - |
-      if grep -q '[^[:space:]]' /tmp/not-formatted.diff; then
-        echo 'Code is not formatted'
-        echo 'Run clang-format-diff on your changes to fix these:'
-        echo "    git diff -U0 --no-color origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME} -- '**realm/*.cc' '**realm/*.h' | clang-format-diff-14 -p1 -i"
-        echo "Diff formatting result:"
-        cat /tmp/not-formatted.diff
-        exit 1
-      fi
-
 .pre_commit_check: &pre_commit_check
   script:
     - pre-commit run --all-files
@@ -1596,16 +1583,6 @@ gcc12_asan_realm:
   <<: [*linux, *image_2204, *realm_sanitizer_tests]
   variables:
     <<: [*gcc12, *cxx17_normal, *asan, *short, *cpptrace]
-clang_format_realm:
-  rules:
-    # Always during a merge request update
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: always
-    # Never any other time
-    - when: never
-  <<: [*linux, *image_2204, *realm_clang_format]
-  variables:
-    <<: [*gcc12, *cxx17_normal, *short]
 check_pre_commit:
   rules:
     # Always during a merge request update
