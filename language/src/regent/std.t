@@ -4802,7 +4802,7 @@ function std.saveobj(main_task, filename, filetype, extra_setup_thunk, link_flag
     flags:insertall({"-L" .. realm_dir .. "/lib", "-L" .. realm_dir .. "/lib64"})
   end
   -- FIXME: Detect when Legion is a static library.
-  flags:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm"})
+  flags:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm", "-lz"})
   if gpuhelper.check_gpu_available() then
     flags:insertall(gpuhelper.driver_library_link_flags())
   end
@@ -4954,7 +4954,10 @@ function std.save_tasks(header_filename, filename, filetype, link_flags, registr
   if realm_dir then
     flags:insertall({"-L" .. realm_dir .. "/lib", "-L" .. realm_dir .. "/lib64"})
   end
-  flags:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm"})
+  flags:insertall({"-L" .. lib_dir, "-L" .. lib64_dir, "-lregent", "-llegion", "-lrealm", "-lz"})
+  if ffi.os == "Linux" then
+    flags:insert("-latomic")
+  end
 
   profile('compile', nil, function()
     if filetype ~= nil then
