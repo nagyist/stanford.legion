@@ -10109,7 +10109,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalInstance InnerContext::create_task_local_instance(
-        Memory memory, Realm::InstanceLayoutGeneric* layout)
+        Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
+        RtEvent& use_event)
     //--------------------------------------------------------------------------
     {
       LgEvent unique_event;
@@ -10117,12 +10118,16 @@ namespace Legion {
       if (runtime->profiler != nullptr)
         Runtime::rename_event(unique_event);
       MemoryManager* manager = runtime->find_memory_manager(memory);
-      RtEvent use_event;
       PhysicalInstance instance = manager->create_task_local_instance(
           get_unique_id(), context_coordinates, unique_event, layout, use_event,
           nullptr /*safe_for_unbounded_pools*/);
       if (!instance.exists())
       {
+        if (can_fail)
+        {
+          delete layout;
+          return instance;
+        }
         const size_t remaining = manager->query_available_memory();
         if (layout->bytes_used <= remaining)
         {
@@ -10158,11 +10163,12 @@ namespace Legion {
           error.raise();
         }
       }
-      task_local_instances[instance] = unique_event;
       delete layout;
-      // Make sure that it is safe to use this instance before handing it back
-      if (use_event.exists())
-        use_event.wait();
+      // We support multiple (OpenMP) threads calling in here simultaneously
+      // so we need to protect this data structure, we co-opt the inline-Lock
+      // here since we're unlikely to be contending with inline mappings
+      AutoLock i_lock(inline_lock);
+      task_local_instances[instance] = unique_event;
       return instance;
     }
 
@@ -10171,17 +10177,20 @@ namespace Legion {
         PhysicalInstance instance, RtEvent precondition)
     //--------------------------------------------------------------------------
     {
-      std::map<PhysicalInstance, LgEvent>::iterator finder =
-          task_local_instances.find(instance);
-      if (finder == task_local_instances.end())
       {
-        Error error(LEGION_INTERFACE_EXCEPTION);
-        error << "Detected double deletion of deferred buffer " << instance
-              << " in parent task " << get_task_name() << " (UID "
-              << get_unique_id() << ").";
-        error.raise();
+        AutoLock i_lock(inline_lock);
+        std::map<PhysicalInstance, LgEvent>::iterator finder =
+            task_local_instances.find(instance);
+        if (finder == task_local_instances.end())
+        {
+          Error error(LEGION_INTERFACE_EXCEPTION);
+          error << "Detected double deletion of deferred buffer " << instance
+                << " in parent task " << get_task_name() << " (UID "
+                << get_unique_id() << ").";
+          error.raise();
+        }
+        task_local_instances.erase(finder);
       }
-      task_local_instances.erase(finder);
       MemoryManager* manager =
           runtime->find_memory_manager(instance.get_location());
 #ifdef LEGION_MALLOC_INSTANCES

@@ -21,8 +21,9 @@
 namespace Legion {
 
   //--------------------------------------------------------------------------
+  template<typename T>
   static inline bool bound_entails(
-      EqualityKind eq1, long v1, EqualityKind eq2, long v2)
+      EqualityKind eq1, T v1, EqualityKind eq2, T v2)
   //--------------------------------------------------------------------------
   {
     switch (eq1)
@@ -102,8 +103,9 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
+  template<typename T>
   static inline bool bound_conflicts(
-      EqualityKind eq1, long v1, EqualityKind eq2, long v2)
+      EqualityKind eq1, T v1, EqualityKind eq2, T v2)
   //--------------------------------------------------------------------------
   {
     switch (eq1)

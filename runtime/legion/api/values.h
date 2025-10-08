@@ -22,6 +22,33 @@
 namespace Legion {
 
   /**
+   * \struct DeferredValueRequest
+   * Configuration struct for the creation of deferred values
+   */
+  struct DeferredValueRequest {
+  public:
+    DeferredValueRequest(void) = default;
+    // Convenience constructors
+    DeferredValueRequest(
+        Memory mem, size_t size, size_t align = alignof(std::max_align_t),
+        const void* initial = nullptr);
+    DeferredValueRequest(
+        Memory::Kind kind, size_t size,
+        size_t align = alignof(std::max_align_t),
+        const void* initial = nullptr);
+  public:
+    size_t field_size = 0;
+    size_t alignment = alignof(std::max_align_t);
+    const void* initial_value = nullptr;
+    union {
+      Memory exact = Memory::NO_MEMORY;
+      Memory::Kind kind;
+    } memory;
+    bool is_exact = true;
+    bool can_fail = false;
+  };
+
+  /**
    * \class UntypedDeferredValue
    * This is a type-erased deferred value with the type of the field.
    */
@@ -42,33 +69,20 @@ namespace Legion {
     inline operator DeferredReduction<REDOP, EXCLUSIVE>(void) const;
     inline size_t field_size(void) const;
   public:
+    inline bool exists(void) const { return instance.exists(); }
     void finalize(Context ctx) const;
     Realm::RegionInstance get_instance(void) const;
     static void report_incompatible_accessor(
         const char* accessor_kind, bool buffer = false);
-    static void report_nondense_domain(void);
-    static void report_nondense_rect(void);
   protected:
     Realm::RegionInstance instance;
   protected:
-    void initialize(
-        Memory memory, size_t field_size, const void* initial_value,
-        size_t alignment);
-    // Helper methods for DeferredValues and DeferredBuffers
-    static Memory find_memory_by_kind(Memory::Kind kind, bool value);
-    static Realm::RegionInstance allocate_instance(
-        Memory memory, Realm::InstanceLayoutGeneric* layout);
-    static void destroy_instance(
-        Realm::RegionInstance, Realm::Event precondition);
     static Domain get_index_space_bounds(IndexSpace space);
+    friend class Runtime;
     template<PrivilegeMode, typename, int, typename, typename, bool>
     friend class FieldAccessor;
     template<typename, bool, int, typename, typename, bool>
     friend class ReductionAccessor;
-    template<typename>
-    friend class UntypedDeferredBuffer;
-    template<typename, int, typename, bool>
-    friend class DeferredBuffer;
   };
 
   /**

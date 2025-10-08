@@ -36,7 +36,9 @@ namespace Legion {
       size_t alignment)
   //--------------------------------------------------------------------------
   {
-    initialize(memory, field_size, initial_value, alignment);
+    DeferredValueRequest request(memory, field_size, alignment, initial_value);
+    Runtime* runtime = Runtime::get_runtime();
+    *this = runtime->allocate_deferred_value(Runtime::get_context(), request);
   }
 
   //--------------------------------------------------------------------------
@@ -45,80 +47,9 @@ namespace Legion {
       size_t alignment)
   //--------------------------------------------------------------------------
   {
-    const Memory memory = find_memory_by_kind(memkind, true /*value*/);
-    initialize(memory, field_size, initial_value, alignment);
-  }
-
-  //--------------------------------------------------------------------------
-  void UntypedDeferredValue::initialize(
-      Memory memory, size_t field_size, const void* initial_value,
-      size_t alignment)
-  //--------------------------------------------------------------------------
-  {
-    const Realm::Point<1, coord_t> zero(0);
-    Realm::IndexSpace<1, coord_t> bounds = Realm::Rect<1, coord_t>(zero, zero);
-    const std::vector<size_t> field_sizes(1, field_size);
-    Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
-    int dim_order[1];
-    dim_order[0] = 0;
-    Realm::InstanceLayoutGeneric* layout =
-        Realm::InstanceLayoutGeneric::choose_instance_layout(
-            bounds, constraints, dim_order);
-    layout->alignment_reqd = alignment;
-    instance = allocate_instance(memory, layout);
-    if (initial_value != nullptr)
-    {
-      // Check to see if we can write to it directly
-      Runtime* runtime = Runtime::get_runtime();
-      Context ctx = Runtime::get_context();
-      const Processor exec_proc = runtime->get_executing_processor(ctx);
-      Machine machine = Realm::Machine::get_machine();
-      if (machine.has_affinity(exec_proc, memory))
-      {
-        // Has affinity so we shold jsut be able to memcpy this
-        void* ptr = instance.pointer_untyped(0 /*offset*/, field_size);
-        std::memcpy(ptr, initial_value, field_size);
-      }
-      else
-      {
-        Realm::ProfilingRequestSet no_requests;
-        std::vector<Realm::CopySrcDstField> dsts(1);
-        dsts[0].set_field(instance, 0 /*field id*/, field_size);
-        const Internal::LgEvent wait_on(
-            bounds.fill(dsts, no_requests, initial_value, field_size));
-        if (wait_on.exists())
-          wait_on.wait();
-      }
-    }
-  }
-
-  //--------------------------------------------------------------------------
-  /*static*/ Memory UntypedDeferredValue::find_memory_by_kind(
-      Memory::Kind kind, bool value)
-  //--------------------------------------------------------------------------
-  {
-    Machine machine = Realm::Machine::get_machine();
-    Machine::MemoryQuery finder(machine);
+    DeferredValueRequest request(memkind, field_size, alignment, initial_value);
     Runtime* runtime = Runtime::get_runtime();
-    Context ctx = Runtime::get_context();
-    const Processor exec_proc = runtime->get_executing_processor(ctx);
-    finder.best_affinity_to(exec_proc);
-    finder.only_kind(kind);
-    if (finder.count() == 0)
-    {
-      finder = Machine::MemoryQuery(machine);
-      finder.has_affinity_to(exec_proc);
-      finder.only_kind(kind);
-    }
-    if (finder.count() == 0)
-    {
-      Error error(LEGION_INTERFACE_EXCEPTION);
-      error << "Unable to find associated " << kind << " memory kind for "
-            << exec_proc << " when performed an (Untyped)Deferred"
-            << (value ? "Value" : "Buffer") << " creation";
-      error.raise();
-    }
-    return finder.first();
+    *this = runtime->allocate_deferred_value(Runtime::get_context(), request);
   }
 
   //--------------------------------------------------------------------------
@@ -144,44 +75,6 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  /*static*/ Realm::RegionInstance UntypedDeferredValue::allocate_instance(
-      Memory memory, Realm::InstanceLayoutGeneric* layout)
-  //--------------------------------------------------------------------------
-  {
-    if (Internal::implicit_context == nullptr)
-    {
-      Error error(LEGION_INTERFACE_EXCEPTION);
-      error << "Illegal request to create a DeferredBuffer, DeferredValue, "
-            << "or a DeferredReduction outside of a Legion task.";
-      error.raise();
-    }
-    return Internal::implicit_context->create_task_local_instance(
-        memory, layout);
-  }
-
-  //--------------------------------------------------------------------------
-  /*static*/ void UntypedDeferredValue::destroy_instance(
-      Realm::RegionInstance instance, Realm::Event precondition)
-  //--------------------------------------------------------------------------
-  {
-    if (Internal::implicit_context == nullptr)
-    {
-      Error error(LEGION_INTERFACE_EXCEPTION);
-      error << "Illegal request to destroy a DeferredBuffer, DeferredValue, "
-            << "or a DeferredReduction outside of a Legion task.";
-      error.raise();
-    }
-    // Don't trust events passed in by users to be safe from poison
-    if (precondition.exists())
-      return Internal::implicit_context->destroy_task_local_instance(
-          instance,
-          Internal::RtEvent(Realm::Event::ignorefaults(precondition)));
-    else
-      return Internal::implicit_context->destroy_task_local_instance(
-          instance, Internal::RtEvent::NO_RT_EVENT);
-  }
-
-  //--------------------------------------------------------------------------
   /*static*/ Domain UntypedDeferredValue::get_index_space_bounds(
       IndexSpace space)
   //--------------------------------------------------------------------------
@@ -197,28 +90,6 @@ namespace Legion {
     Error error(LEGION_INTERFACE_EXCEPTION);
     error << "Incompatible " << accessor_kind << " for "
           << (buffer ? "(Untyped)DeferredBuffer" : "(Untyped)DeferredValue");
-    error.raise();
-  }
-
-  //--------------------------------------------------------------------------
-  /*static*/ void UntypedDeferredValue::report_nondense_domain(void)
-  //--------------------------------------------------------------------------
-  {
-    Error error(LEGION_INTERFACE_EXCEPTION);
-    error << "DeferredBuffer only supporst dense domains. Make sure your "
-          << "domain for a DeferredBuffer does not have a sparsity map.";
-    error.raise();
-  }
-
-  //--------------------------------------------------------------------------
-  /*static*/ void UntypedDeferredValue::report_nondense_rect(void)
-  //--------------------------------------------------------------------------
-  {
-    Error error(LEGION_INTERFACE_EXCEPTION);
-    error << "Illegal request for point of non-dense rectangle in a "
-          << "DeferredBuffer. Make sure that you only ask for rectangles "
-          << "that are dense in the layout of the deferred buffer or use "
-          << "the version that passes back strides.";
     error.raise();
   }
 

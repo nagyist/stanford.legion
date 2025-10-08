@@ -21,6 +21,25 @@
 namespace Legion {
 
   //--------------------------------------------------------------------------
+  inline DeferredValueRequest::DeferredValueRequest(
+      Memory mem, size_t size, size_t align, const void* initial)
+    : field_size(size), alignment(align), initial_value(initial), is_exact(true)
+  //--------------------------------------------------------------------------
+  {
+    memory.exact = mem;
+  }
+
+  //--------------------------------------------------------------------------
+  inline DeferredValueRequest::DeferredValueRequest(
+      Memory::Kind kind, size_t size, size_t align, const void* initial)
+    : field_size(size), alignment(align), initial_value(initial),
+      is_exact(false)
+  //--------------------------------------------------------------------------
+  {
+    memory.kind = kind;
+  }
+
+  //--------------------------------------------------------------------------
   template<typename T>
   inline DeferredValue<T>::DeferredValue(void) : UntypedDeferredValue()
   //--------------------------------------------------------------------------

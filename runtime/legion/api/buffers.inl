@@ -154,6 +154,106 @@ namespace Legion {
   }  // namespace Internal
 
   //--------------------------------------------------------------------------
+  inline DeferredBufferRequest::DeferredBufferRequest(
+      Memory mem, const Domain& domain, size_t size, size_t align,
+      bool fortran_order_dims, const void* initial)
+    : field_size(size), alignment(align), initial_value(initial),
+      is_exact(true), is_value(true)
+  //--------------------------------------------------------------------------
+  {
+    memory.exact = mem;
+    bounds.value = domain;
+    dim_order.resize(domain.get_dim());
+    if (fortran_order_dims)
+    {
+      for (unsigned idx = 0; idx < dim_order.size(); idx++)
+        dim_order[idx] = static_cast<DimensionKind>(
+            static_cast<unsigned>(LEGION_DIM_X) + idx);
+    }
+    else
+    {
+      for (unsigned idx = 0; idx < dim_order.size(); idx++)
+        dim_order[idx] = static_cast<DimensionKind>(
+            static_cast<unsigned>(LEGION_DIM_X) + dim_order.size() - (idx + 1));
+    }
+  }
+
+  //--------------------------------------------------------------------------
+  inline DeferredBufferRequest::DeferredBufferRequest(
+      Memory::Kind kind, const Domain& domain, size_t size, size_t align,
+      bool fortran_order_dims, const void* initial)
+    : field_size(size), alignment(align), initial_value(initial),
+      is_exact(false), is_value(true)
+  //--------------------------------------------------------------------------
+  {
+    memory.kind = kind;
+    bounds.value = domain;
+    dim_order.resize(domain.get_dim());
+    if (fortran_order_dims)
+    {
+      for (unsigned idx = 0; idx < dim_order.size(); idx++)
+        dim_order[idx] = static_cast<DimensionKind>(
+            static_cast<unsigned>(LEGION_DIM_X) + idx);
+    }
+    else
+    {
+      for (unsigned idx = 0; idx < dim_order.size(); idx++)
+        dim_order[idx] = static_cast<DimensionKind>(
+            static_cast<unsigned>(LEGION_DIM_X) + dim_order.size() - (idx + 1));
+    }
+  }
+
+  //--------------------------------------------------------------------------
+  inline DeferredBufferRequest::DeferredBufferRequest(
+      Memory mem, const IndexSpace& space, size_t size, size_t align,
+      bool fortran_order_dims, const void* initial)
+    : field_size(size), alignment(align), initial_value(initial),
+      is_exact(true), is_value(false)
+  //--------------------------------------------------------------------------
+  {
+    memory.exact = mem;
+    bounds.name = space;
+    dim_order.resize(space.get_dim());
+    if (fortran_order_dims)
+    {
+      for (unsigned idx = 0; idx < dim_order.size(); idx++)
+        dim_order[idx] = static_cast<DimensionKind>(
+            static_cast<unsigned>(LEGION_DIM_X) + idx);
+    }
+    else
+    {
+      for (unsigned idx = 0; idx < dim_order.size(); idx++)
+        dim_order[idx] = static_cast<DimensionKind>(
+            static_cast<unsigned>(LEGION_DIM_X) + dim_order.size() - (idx + 1));
+    }
+  }
+
+  //--------------------------------------------------------------------------
+  inline DeferredBufferRequest::DeferredBufferRequest(
+      Memory::Kind kind, const IndexSpace& space, size_t size, size_t align,
+      bool fortran_order_dims, const void* initial)
+    : field_size(size), alignment(align), initial_value(initial),
+      is_exact(false), is_value(false)
+  //--------------------------------------------------------------------------
+  {
+    memory.kind = kind;
+    bounds.name = space;
+    dim_order.resize(space.get_dim());
+    if (fortran_order_dims)
+    {
+      for (unsigned idx = 0; idx < dim_order.size(); idx++)
+        dim_order[idx] = static_cast<DimensionKind>(
+            static_cast<unsigned>(LEGION_DIM_X) + idx);
+    }
+    else
+    {
+      for (unsigned idx = 0; idx < dim_order.size(); idx++)
+        dim_order[idx] = static_cast<DimensionKind>(
+            static_cast<unsigned>(LEGION_DIM_X) + dim_order.size() - (idx + 1));
+    }
+  }
+
+  //--------------------------------------------------------------------------
   template<typename FT, int N, typename T, bool CB>
   inline DeferredBuffer<FT, N, T, CB>::DeferredBuffer(void)
     : instance(Realm::RegionInstance::NO_INST)
@@ -168,12 +268,9 @@ namespace Legion {
       size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /* = false*/)
   //--------------------------------------------------------------------------
   {
-    if (!space.dense())
-      UntypedDeferredValue::report_nondense_domain();
-    const Realm::Memory memory =
-        UntypedDeferredValue::find_memory_by_kind(kind, false);
-    initialize_layout(alignment, fortran_order_dims);
-    initialize(memory, space, initial_value);
+    DeferredBufferRequest request(
+        kind, space, sizeof(FT), alignment, fortran_order_dims, initial_value);
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -184,10 +281,10 @@ namespace Legion {
       size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /*= false*/)
   //--------------------------------------------------------------------------
   {
-    const Realm::Memory memory =
-        UntypedDeferredValue::find_memory_by_kind(kind, false);
-    initialize_layout(alignment, fortran_order_dims);
-    initialize(memory, rect, initial_value);
+    DeferredBufferRequest request(
+        kind, Domain(rect), sizeof(FT), alignment, fortran_order_dims,
+        initial_value);
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -198,10 +295,10 @@ namespace Legion {
       size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /* = false*/)
   //--------------------------------------------------------------------------
   {
-    if (!space.dense())
-      UntypedDeferredValue::report_nondense_domain();
-    initialize_layout(alignment, fortran_order_dims);
-    initialize(memory, space, initial_value);
+    DeferredBufferRequest request(
+        memory, space, sizeof(FT), alignment, fortran_order_dims,
+        initial_value);
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -212,8 +309,10 @@ namespace Legion {
       size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /*= false*/)
   //--------------------------------------------------------------------------
   {
-    initialize_layout(alignment, fortran_order_dims);
-    initialize(memory, rect, initial_value);
+    DeferredBufferRequest request(
+        memory, Domain(rect), sizeof(FT), alignment, fortran_order_dims,
+        initial_value);
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -226,11 +325,12 @@ namespace Legion {
     : ordering(_ordering), alignment(_alignment)
   //--------------------------------------------------------------------------
   {
-    if (!space.dense())
-      UntypedDeferredValue::report_nondense_domain();
-    const Realm::Memory memory =
-        UntypedDeferredValue::find_memory_by_kind(kind, false);
-    initialize(memory, space, initial_value);
+    DeferredBufferRequest request(kind, space, sizeof(FT), alignment);
+    if (!ordering.empty())
+      request.dim_order.insert(
+          request.dim_order.end(), ordering.begin(), ordering.end());
+    request.initial_value = initial_value;
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -243,9 +343,15 @@ namespace Legion {
     : ordering(_ordering), alignment(_alignment)
   //--------------------------------------------------------------------------
   {
-    const Realm::Memory memory =
-        UntypedDeferredValue::find_memory_by_kind(kind, false);
-    initialize(memory, rect, initial_value);
+    DeferredBufferRequest request(kind, Domain(rect), sizeof(FT), alignment);
+    if (!ordering.empty())
+    {
+      request.dim_order.clear();
+      request.dim_order.insert(
+          request.dim_order.end(), ordering.begin(), ordering.end());
+    }
+    request.initial_value = initial_value;
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -258,9 +364,15 @@ namespace Legion {
     : ordering(_ordering), alignment(_alignment)
   //--------------------------------------------------------------------------
   {
-    if (!space.dense())
-      UntypedDeferredValue::report_nondense_domain();
-    initialize(memory, space, initial_value);
+    DeferredBufferRequest request(memory, space, sizeof(FT), alignment);
+    if (!ordering.empty())
+    {
+      request.dim_order.clear();
+      request.dim_order.insert(
+          request.dim_order.end(), ordering.begin(), ordering.end());
+    }
+    request.initial_value = initial_value;
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -273,68 +385,15 @@ namespace Legion {
     : ordering(_ordering), alignment(_alignment)
   //--------------------------------------------------------------------------
   {
-    initialize(memory, rect, initial_value);
-  }
-
-  //--------------------------------------------------------------------------
-  template<typename FT, int N, typename T, bool CB>
-  void DeferredBuffer<FT, N, T, CB>::initialize_layout(
-      size_t _alignment, bool fortran_order_dims)
-  //--------------------------------------------------------------------------
-  {
-    if (fortran_order_dims)
+    DeferredBufferRequest request(memory, Domain(rect), sizeof(FT), alignment);
+    if (!ordering.empty())
     {
-      for (int i = 0; i < N; i++)
-        ordering[i] =
-            static_cast<DimensionKind>(static_cast<int>(LEGION_DIM_X) + i);
+      request.dim_order.clear();
+      request.dim_order.insert(
+          request.dim_order.end(), ordering.begin(), ordering.end());
     }
-    else
-    {
-      for (int i = 0; i < N; i++)
-        ordering[i] = static_cast<DimensionKind>(
-            static_cast<int>(LEGION_DIM_X) + N - (i + 1));
-    }
-
-    alignment = _alignment;
-  }
-
-  //--------------------------------------------------------------------------
-  template<typename FT, int N, typename T, bool CB>
-  void DeferredBuffer<FT, N, T, CB>::initialize(
-      Memory memory, DomainT<N, T> space, const FT* initial_value)
-  //--------------------------------------------------------------------------
-  {
-    assert(space.dense());
-    const std::vector<size_t> field_sizes(1, sizeof(FT));
-    Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
-    int dim_order[N];
-    for (int i = 0; i < N; ++i)
-      dim_order[i] =
-          static_cast<int>(ordering[i]) - static_cast<int>(LEGION_DIM_X);
-    Realm::InstanceLayoutGeneric* layout =
-        Realm::InstanceLayoutGeneric::choose_instance_layout(
-            space, constraints, dim_order);
-    layout->alignment_reqd = alignment;
-    instance = UntypedDeferredValue::allocate_instance(memory, layout);
-    bounds = space.bounds;
-    if (initial_value != nullptr)
-    {
-      Realm::ProfilingRequestSet no_requests;
-      std::vector<Realm::CopySrcDstField> dsts(1);
-      dsts[0].set_field(instance, 0 /*field id*/, sizeof(FT));
-      const Internal::LgEvent wait_on(
-          bounds.fill(dsts, no_requests, initial_value, sizeof(FT)));
-      if (wait_on.exists())
-        wait_on.wait();
-    }
-#ifndef NDEBUG
-    const bool is_compatible = Realm::AffineAccessor<FT, N, T>::is_compatible(
-        instance, 0 /*fid*/, bounds);
-#endif
-    assert(is_compatible);
-    // We can make the accessor
-    accessor =
-        Realm::AffineAccessor<FT, N, T>(instance, 0 /*field id*/, bounds);
+    request.initial_value = initial_value;
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -378,7 +437,7 @@ namespace Legion {
     assert(Internal::is_dense_layout(r, accessor.strides, sizeof(FT)));
 #else
     if (!Internal::is_dense_layout(r, accessor.strides, sizeof(FT)))
-      UntypedDeferredValue::report_nondense_rect();
+      UntypedDeferredBuffer<T>::report_nondense_rect();
 #endif
     return accessor.ptr(r.lo);
   }
@@ -409,8 +468,10 @@ namespace Legion {
   inline void DeferredBuffer<FT, N, T, CB>::destroy(Realm::Event precondition)
   //--------------------------------------------------------------------------
   {
-    UntypedDeferredValue::destroy_instance(instance, precondition);
+    UntypedDeferredBuffer<T> untyped = *this;
+    untyped.destroy(precondition);
     instance = Realm::RegionInstance::NO_INST;
+    accessor.reset();
   }
 
   //--------------------------------------------------------------------------
@@ -446,69 +507,9 @@ namespace Legion {
     : field_size(fs), dims(d)
   //--------------------------------------------------------------------------
   {
-    assert(dims > 0);
-    assert(dims <= LEGION_MAX_DIM);
-    const Memory memory =
-        UntypedDeferredValue::find_memory_by_kind(memkind, false);
-    const std::vector<size_t> field_sizes(1, field_size);
-    Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
-    Realm::InstanceLayoutGeneric* layout = nullptr;
-    const Domain domain = UntypedDeferredValue::get_index_space_bounds(space);
-    switch (dims)
-    {
-#define DIMFUNC(DIM)                                                    \
-  case DIM:                                                             \
-    {                                                                   \
-      const DomainT<DIM, T> bounds = domain;                            \
-      if (!bounds.dense())                                              \
-      {                                                                 \
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n"); \
-        std::abort();                                                   \
-      }                                                                 \
-      int dim_order[DIM];                                               \
-      if (fortran_order_dims)                                           \
-      {                                                                 \
-        for (int i = 0; i < DIM; i++) dim_order[i] = i;                 \
-      }                                                                 \
-      else                                                              \
-      {                                                                 \
-        for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);     \
-      }                                                                 \
-      layout = Realm::InstanceLayoutGeneric::choose_instance_layout(    \
-          bounds, constraints, dim_order);                              \
-      break;                                                            \
-    }
-      LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-      default:
-        std::abort();
-    }
-    layout->alignment_reqd = alignment;
-    instance = UntypedDeferredValue::allocate_instance(memory, layout);
-    if (initial_value != nullptr)
-    {
-      Realm::ProfilingRequestSet no_requests;
-      std::vector<Realm::CopySrcDstField> dsts(1);
-      dsts[0].set_field(instance, 0 /*field id*/, field_size);
-      Internal::LgEvent wait_on;
-      switch (dims)
-      {
-#define DIMFUNC(DIM)                                                  \
-  case DIM:                                                           \
-    {                                                                 \
-      const DomainT<DIM, T> bounds = domain;                          \
-      wait_on = Internal::LgEvent(                                    \
-          bounds.fill(dsts, no_requests, initial_value, field_size)); \
-      break;                                                          \
-    }
-        LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-        default:
-          std::abort();
-      }
-      if (wait_on.exists())
-        wait_on.wait();
-    }
+    DeferredBufferRequest request(
+        memkind, space, fs, alignment, fortran_order_dims, initial_value);
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -519,68 +520,9 @@ namespace Legion {
     : field_size(fs), dims(d)
   //--------------------------------------------------------------------------
   {
-    assert(dims > 0);
-    assert(dims <= LEGION_MAX_DIM);
-    if (!space.dense())
-    {
-      fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-      std::abort();
-    }
-    const Memory memory =
-        UntypedDeferredValue::find_memory_by_kind(memkind, false);
-    const std::vector<size_t> field_sizes(1, field_size);
-    Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
-    Realm::InstanceLayoutGeneric* layout = nullptr;
-    switch (dims)
-    {
-#define DIMFUNC(DIM)                                                 \
-  case DIM:                                                          \
-    {                                                                \
-      const DomainT<DIM, T> bounds = space;                          \
-      int dim_order[DIM];                                            \
-      if (fortran_order_dims)                                        \
-      {                                                              \
-        for (int i = 0; i < DIM; i++) dim_order[i] = i;              \
-      }                                                              \
-      else                                                           \
-      {                                                              \
-        for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);  \
-      }                                                              \
-      layout = Realm::InstanceLayoutGeneric::choose_instance_layout( \
-          bounds, constraints, dim_order);                           \
-      break;                                                         \
-    }
-      LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-      default:
-        std::abort();
-    }
-    layout->alignment_reqd = alignment;
-    instance = UntypedDeferredValue::allocate_instance(memory, layout);
-    if (initial_value != nullptr)
-    {
-      Realm::ProfilingRequestSet no_requests;
-      std::vector<Realm::CopySrcDstField> dsts(1);
-      dsts[0].set_field(instance, 0 /*field id*/, field_size);
-      Internal::LgEvent wait_on;
-      switch (dims)
-      {
-#define DIMFUNC(DIM)                                                  \
-  case DIM:                                                           \
-    {                                                                 \
-      const DomainT<DIM, T> bounds = space;                           \
-      wait_on = Internal::LgEvent(                                    \
-          bounds.fill(dsts, no_requests, initial_value, field_size)); \
-      break;                                                          \
-    }
-        LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-        default:
-          std::abort();
-      }
-      if (wait_on.exists())
-        wait_on.wait();
-    }
+    DeferredBufferRequest request(
+        memkind, space, fs, alignment, fortran_order_dims, initial_value);
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -591,67 +533,9 @@ namespace Legion {
     : field_size(fs), dims(d)
   //--------------------------------------------------------------------------
   {
-    assert(dims > 0);
-    assert(dims <= LEGION_MAX_DIM);
-    const std::vector<size_t> field_sizes(1, field_size);
-    Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
-    Realm::InstanceLayoutGeneric* layout = nullptr;
-    const Domain domain = UntypedDeferredValue::get_index_space_bounds(space);
-    switch (dims)
-    {
-#define DIMFUNC(DIM)                                                    \
-  case DIM:                                                             \
-    {                                                                   \
-      const DomainT<DIM, T> bounds = domain;                            \
-      if (!bounds.dense())                                              \
-      {                                                                 \
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n"); \
-        std::abort();                                                   \
-      }                                                                 \
-      int dim_order[DIM];                                               \
-      if (fortran_order_dims)                                           \
-      {                                                                 \
-        for (int i = 0; i < DIM; i++) dim_order[i] = i;                 \
-      }                                                                 \
-      else                                                              \
-      {                                                                 \
-        for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);     \
-      }                                                                 \
-      layout = Realm::InstanceLayoutGeneric::choose_instance_layout(    \
-          bounds, constraints, dim_order);                              \
-      break;                                                            \
-    }
-      LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-      default:
-        std::abort();
-    }
-    layout->alignment_reqd = alignment;
-    instance = UntypedDeferredValue::allocate_instance(memory, layout);
-    if (initial_value != nullptr)
-    {
-      Realm::ProfilingRequestSet no_requests;
-      std::vector<Realm::CopySrcDstField> dsts(1);
-      dsts[0].set_field(instance, 0 /*field id*/, field_size);
-      Internal::LgEvent wait_on;
-      switch (dims)
-      {
-#define DIMFUNC(DIM)                                                  \
-  case DIM:                                                           \
-    {                                                                 \
-      const DomainT<DIM, T> bounds = domain;                          \
-      wait_on = Internal::LgEvent(                                    \
-          bounds.fill(dsts, no_requests, initial_value, field_size)); \
-      break;                                                          \
-    }
-        LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-        default:
-          std::abort();
-      }
-      if (wait_on.exists())
-        wait_on.wait();
-    }
+    DeferredBufferRequest request(
+        memory, space, fs, alignment, fortran_order_dims, initial_value);
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -662,66 +546,9 @@ namespace Legion {
     : field_size(fs), dims(d)
   //--------------------------------------------------------------------------
   {
-    assert(dims > 0);
-    assert(dims <= LEGION_MAX_DIM);
-    if (!space.dense())
-    {
-      fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-      std::abort();
-    }
-    const std::vector<size_t> field_sizes(1, field_size);
-    Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
-    Realm::InstanceLayoutGeneric* layout = nullptr;
-    switch (dims)
-    {
-#define DIMFUNC(DIM)                                                 \
-  case DIM:                                                          \
-    {                                                                \
-      const DomainT<DIM, T> bounds = space;                          \
-      int dim_order[DIM];                                            \
-      if (fortran_order_dims)                                        \
-      {                                                              \
-        for (int i = 0; i < DIM; i++) dim_order[i] = i;              \
-      }                                                              \
-      else                                                           \
-      {                                                              \
-        for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);  \
-      }                                                              \
-      layout = Realm::InstanceLayoutGeneric::choose_instance_layout( \
-          bounds, constraints, dim_order);                           \
-      break;                                                         \
-    }
-      LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-      default:
-        std::abort();
-    }
-    layout->alignment_reqd = alignment;
-    instance = UntypedDeferredValue::allocate_instance(memory, layout);
-    if (initial_value != nullptr)
-    {
-      Realm::ProfilingRequestSet no_requests;
-      std::vector<Realm::CopySrcDstField> dsts(1);
-      dsts[0].set_field(instance, 0 /*field id*/, field_size);
-      Internal::LgEvent wait_on;
-      switch (dims)
-      {
-#define DIMFUNC(DIM)                                                  \
-  case DIM:                                                           \
-    {                                                                 \
-      const DomainT<DIM, T> bounds = space;                           \
-      wait_on = Internal::LgEvent(                                    \
-          bounds.fill(dsts, no_requests, initial_value, field_size)); \
-      break;                                                          \
-    }
-        LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-        default:
-          std::abort();
-      }
-      if (wait_on.exists())
-        wait_on.wait();
-    }
+    DeferredBufferRequest request(
+        memory, space, fs, alignment, fortran_order_dims, initial_value);
+    *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
   //--------------------------------------------------------------------------
@@ -746,27 +573,53 @@ namespace Legion {
     assert(dims == DIM);
     DeferredBuffer<FT, DIM, T> result;
     result.instance = instance;
-#ifndef NDEBUG
-    const bool is_compatible = Realm::AffineAccessor<FT, DIM, T>::is_compatible(
-        instance, 0 /*field id*/);
-#endif
-    assert(is_compatible);
-    // We can make the accessor
-    result.accessor =
-        Realm::AffineAccessor<FT, DIM, T>(instance, 0 /*field id*/);
     result.bounds = instance.template get_indexspace<DIM, T>().bounds;
+    legion_assert((Realm::AffineAccessor<FT, DIM, T>::is_compatible(
+        instance, 0 /*field id*/, result.bounds)));
+    // We can make the accessor
+    result.accessor = Realm::AffineAccessor<FT, DIM, T>(
+        instance, 0 /*field id*/, result.bounds);
+    // Can't just use accessor.base because it might not point to the low point
+    if (!result.bounds.empty())
+    {
+      uintptr_t ptr =
+          reinterpret_cast<uintptr_t>(result.accessor.ptr(result.bounds.lo));
+      result.alignment = ptr & -ptr;
+      // Figure out the order of the dimensions based on strides
+      bool used[DIM];
+      for (int d = 0; d < DIM; d++) used[d] = false;
+      for (int d1 = 0; d1 < DIM; d1++)
+      {
+        int smallest_dim = -1;
+        size_t smallest_stride = std::numeric_limits<size_t>::max();
+        for (int d2 = 0; d2 < DIM; d2++)
+        {
+          if (used[d2])
+            continue;
+          size_t stride = result.accessor.strides[d2];
+          if (stride < smallest_stride)
+          {
+            smallest_dim = d2;
+            smallest_stride = stride;
+          }
+        }
+        legion_assert(smallest_dim >= 0);
+        result.ordering[d1] = static_cast<DimensionKind>(
+            static_cast<int>(LEGION_DIM_X) + smallest_dim);
+        used[smallest_dim] = true;
+      }
+    }
+    else
+    {
+      // Can have maximum alignment since it is empty
+      result.alignment = std::numeric_limits<size_t>::max();
+      // Dimension ordering is undefined for empty spaces
+      // so just pick an arbitrary one
+      for (int d = 0; d < DIM; d++)
+        result.ordering[d] =
+            static_cast<DimensionKind>(static_cast<int>(LEGION_DIM_X) + d);
+    }
     return result;
-  }
-
-  //--------------------------------------------------------------------------
-  template<typename T>
-  inline void UntypedDeferredBuffer<T>::destroy(Realm::Event precondition)
-  //--------------------------------------------------------------------------
-  {
-    UntypedDeferredValue::destroy_instance(instance, precondition);
-    instance = Realm::RegionInstance::NO_INST;
-    field_size = 0;
-    dims = 0;
   }
 
 }  // namespace Legion

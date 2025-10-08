@@ -200,7 +200,8 @@ list(APPEND LEGION_SRC
   legion/api/accessors.inl
   legion/api/argument_map.h               legion/api/argument_map.cc
   legion/api/argument_map.inl             legion/api/argument_map_impl.h
-  legion/api/buffers.h                    legion/api/buffers.inl
+  legion/api/buffers.h                    legion/api/buffers.cc
+  legion/api/buffers.inl
   legion/api/config.h
   legion/api/constraints.h                legion/api/constraints.cc
   legion/api/data.h                       legion/api/data.cc

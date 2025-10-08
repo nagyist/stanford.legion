@@ -22,6 +22,48 @@
 namespace Legion {
 
   /**
+   * \struct DeferredBufferRequest
+   * Configuration struct for creation of deferred buffers
+   */
+  struct DeferredBufferRequest {
+  public:
+    DeferredBufferRequest(void) = default;
+    // Convenience constructors
+    DeferredBufferRequest(
+        Memory mem, const Domain& bounds, size_t size,
+        size_t align = alignof(std::max_align_t),
+        bool fortran_order_dims = false, const void* initial = nullptr);
+    DeferredBufferRequest(
+        Memory::Kind kind, const Domain& bounds, size_t size,
+        size_t align = alignof(std::max_align_t),
+        bool fortran_order_dims = false, const void* initial = nullptr);
+    DeferredBufferRequest(
+        Memory mem, const IndexSpace& space, size_t size,
+        size_t align = alignof(std::max_align_t),
+        bool fortran_order_dims = false, const void* initial = nullptr);
+    DeferredBufferRequest(
+        Memory::Kind kind, const IndexSpace& space, size_t size,
+        size_t align = alignof(std::max_align_t),
+        bool fortran_order_dims = false, const void* initial = nullptr);
+  public:
+    size_t field_size = 0;
+    size_t alignment = alignof(std::max_align_t);
+    const void* initial_value = nullptr;
+    std::vector<DimensionKind> dim_order;
+    union {
+      Memory exact = Memory::NO_MEMORY;
+      Memory::Kind kind;
+    } memory;
+    union {
+      Domain value;
+      IndexSpace name;
+    } bounds = {Domain::NO_DOMAIN};
+    bool is_exact = true;
+    bool is_value = true;
+    bool can_fail = false;
+  };
+
+  /**
    * \class DeferredBuffer
    * A deferred buffer is a local instance that can be made inside of a
    * task that will live just for lifetime of the task without needing to
@@ -94,10 +136,6 @@ namespace Legion {
         std::array<DimensionKind, DIM> ordering,
         const T* initial_value = nullptr,
         size_t alignment = std::alignment_of<T>());
-  protected:
-    inline void initialize_layout(size_t alignment, bool fortran_order_dims);
-    inline void initialize(
-        Memory memory, DomainT<DIM, COORD_T> bounds, const T* initial_value);
   public:
     __LEGION_CUDA_HD__
     inline T read(const Point<DIM, COORD_T>& p) const;
@@ -112,6 +150,7 @@ namespace Legion {
     __LEGION_CUDA_HD__
     inline T& operator[](const Point<DIM, COORD_T>& p) const;
   public:
+    inline bool exists(void) const { return instance.exists(); }
     inline void destroy(Realm::Event precondition = Realm::Event::NO_EVENT);
     __LEGION_CUDA_HD__
     inline Realm::RegionInstance get_instance(void) const;
@@ -168,13 +207,20 @@ namespace Legion {
     template<typename T, int DIM, bool BC>
     inline operator DeferredBuffer<T, DIM, COORD_T, BC>(void) const;
   public:
-    inline void destroy(Realm::Event precondition = Realm::Event::NO_EVENT);
+    inline bool exists(void) const { return instance.exists(); }
+    void destroy(Realm::Event precondition = Realm::Event::NO_EVENT);
     inline Realm::RegionInstance get_instance(void) const { return instance; }
   private:
+    static UntypedDeferredBuffer<COORD_T> allocate_buffer(
+        const DeferredBufferRequest& request);
+    static void report_nondense_rect(void);
+    friend class Runtime;
     template<PrivilegeMode, typename, int, typename, typename, bool>
     friend class FieldAccessor;
     template<typename, bool, int, typename, typename, bool>
     friend class ReductionAccessor;
+    template<typename, int, typename, bool>
+    friend class DeferredBuffer;
     Realm::RegionInstance instance;
     size_t field_size;
     int dims;

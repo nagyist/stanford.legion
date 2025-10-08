@@ -1586,17 +1586,19 @@ namespace Legion {
   {
     // Don't check against implicit_context here because this method might
     // be called from OpenMP processors which don't have implicit_context set
-    if (ctx == nullptr)
+    if ((ctx == nullptr) || ((Internal::implicit_context != nullptr) &&
+                             (Internal::implicit_context != ctx)))
     {
       Error error(LEGION_INTERFACE_EXCEPTION);
       error << "Invalid task context passed to Runtime::safe_cast";
       error.raise();
     }
+    unsigned long long start = 0;
     Internal::AutoProvenance prov;
-    const unsigned long long start =
-        ctx->begin_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov) ?
-            Realm::Clock::current_time_in_nanoseconds() :
-            0;
+    // Only do timing on the main thread
+    if ((Internal::implicit_context != nullptr) &&
+        ctx->begin_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov))
+      start = Realm::Clock::current_time_in_nanoseconds();
     switch (point.get_dim())
     {
 #define DIMFUNC(DIM)                                                         \
@@ -1623,9 +1625,10 @@ namespace Legion {
           error.raise();
         }
     }
-    ctx->end_runtime_call(
-        Internal::RUNTIME_SAFE_CAST_CALL, prov, start,
-        (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
+    if (Internal::implicit_context != nullptr)
+      ctx->end_runtime_call(
+          Internal::RUNTIME_SAFE_CAST_CALL, prov, start,
+          (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
     return DomainPoint::nil();
   }
 
@@ -1635,8 +1638,28 @@ namespace Legion {
       TypeTag type_tag, const char* func)
   //--------------------------------------------------------------------------
   {
-    AutoCall<Internal::RUNTIME_SAFE_CAST_CALL> call(ctx, func);
-    return ctx->safe_cast(region.get_index_space(), realm_point, type_tag);
+    // Don't check against implicit_context here because this method might
+    // be called from OpenMP processors which don't have implicit_context set
+    if ((ctx == nullptr) || ((Internal::implicit_context != nullptr) &&
+                             (Internal::implicit_context != ctx)))
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Invalid task context passed to Runtime::safe_cast";
+      error.raise();
+    }
+    unsigned long long start = 0;
+    Internal::AutoProvenance prov;
+    // Only do timing on the main thread
+    if ((Internal::implicit_context != nullptr) &&
+        ctx->begin_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov))
+      start = Realm::Clock::current_time_in_nanoseconds();
+    const bool result =
+        ctx->safe_cast(region.get_index_space(), realm_point, type_tag);
+    if (Internal::implicit_context != nullptr)
+      ctx->end_runtime_call(
+          Internal::RUNTIME_SAFE_CAST_CALL, prov, start,
+          (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
+    return result;
   }
 
   //--------------------------------------------------------------------------
@@ -3053,6 +3076,355 @@ namespace Legion {
     AutoCall<Internal::RUNTIME_SET_LOCAL_VARIABLE_CALL> call(ctx, __func__);
     ctx->set_local_task_variable(id, value, destructor);
   }
+
+  //--------------------------------------------------------------------------
+  static Memory find_memory_by_kind(Context ctx, Memory::Kind kind, bool value)
+  //--------------------------------------------------------------------------
+  {
+    Machine machine = Realm::Machine::get_machine();
+    Machine::MemoryQuery finder(machine);
+    const Processor exec_proc = ctx->get_executing_processor();
+    finder.best_affinity_to(exec_proc);
+    finder.only_kind(kind);
+    if (finder.count() == 0)
+    {
+      finder = Machine::MemoryQuery(machine);
+      finder.has_affinity_to(exec_proc);
+      finder.only_kind(kind);
+    }
+    if (finder.count() == 0)
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Unable to find associated " << kind << " memory kind for "
+            << exec_proc << " when performed an (Untyped)Deferred"
+            << (value ? "Value" : "Buffer") << " creation in " << *ctx << ".";
+      error.raise();
+    }
+    return finder.first();
+  }
+
+  //--------------------------------------------------------------------------
+  UntypedDeferredValue Runtime::allocate_deferred_value(
+      Context ctx, const DeferredValueRequest& request)
+  //--------------------------------------------------------------------------
+  {
+    // Don't check against implicit_context here because this method might
+    // be called from OpenMP processors which don't have implicit_context set
+    if ((ctx == nullptr) || ((Internal::implicit_context != nullptr) &&
+                             (Internal::implicit_context != ctx)))
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error
+          << "Invalid task context passed to Runtime::allocate_deferred_value";
+      error.raise();
+    }
+    unsigned long long start = 0;
+    Internal::AutoProvenance prov;
+    // Only do timing on the main thread
+    if ((Internal::implicit_context != nullptr) &&
+        ctx->begin_runtime_call(
+            Internal::RUNTIME_ALLOCATE_DEFERRED_VALUE_CALL, prov))
+      start = Realm::Clock::current_time_in_nanoseconds();
+    // Figure out the memory
+    const Memory memory =
+        request.is_exact ?
+            request.memory.exact :
+            find_memory_by_kind(ctx, request.memory.kind, true /*value*/);
+    // Create the instance layout
+    const Realm::Point<1, coord_t> zero(0);
+    Realm::IndexSpace<1, coord_t> bounds = Realm::Rect<1, coord_t>(zero, zero);
+    const std::vector<size_t> field_sizes(1, request.field_size);
+    Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
+    int dim_order[1];
+    dim_order[0] = 0;
+    Realm::InstanceLayoutGeneric* layout =
+        Realm::InstanceLayoutGeneric::choose_instance_layout(
+            bounds, constraints, dim_order);
+    layout->alignment_reqd = request.alignment;
+    Internal::RtEvent use_event;
+    UntypedDeferredValue result;
+    result.instance = ctx->create_task_local_instance(
+        memory, layout, request.can_fail, use_event);
+    if (result.instance.exists() && (request.initial_value != nullptr))
+    {
+      const Processor exec_proc = ctx->get_executing_processor();
+      Machine machine = Realm::Machine::get_machine();
+      if (machine.has_affinity(exec_proc, memory))
+      {
+        if (use_event.exists())
+          use_event.wait();
+        // Has affinity so we shold jsut be able to memcpy this
+        void* ptr =
+            result.instance.pointer_untyped(0 /*offset*/, request.field_size);
+        std::memcpy(ptr, request.initial_value, request.field_size);
+      }
+      else
+      {
+        Realm::ProfilingRequestSet no_requests;
+        std::vector<Realm::CopySrcDstField> dsts(1);
+        dsts[0].set_field(result.instance, 0 /*field id*/, request.field_size);
+        const Internal::RtEvent wait_on(bounds.fill(
+            dsts, no_requests, request.initial_value, request.field_size,
+            use_event));
+        if (wait_on.exists())
+          wait_on.wait();
+      }
+    }
+    else if (use_event.exists())
+      use_event.wait();
+    if (Internal::implicit_context != nullptr)
+      ctx->end_runtime_call(
+          Internal::RUNTIME_ALLOCATE_DEFERRED_VALUE_CALL, prov, start,
+          (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
+    return result;
+  }
+
+  //--------------------------------------------------------------------------
+  void Runtime::destroy_deferred_value(
+      Context ctx, UntypedDeferredValue& value, Realm::Event precondition)
+  //--------------------------------------------------------------------------
+  {
+    // Don't check against implicit_context here because this method might
+    // be called from OpenMP processors which don't have implicit_context set
+    if ((ctx == nullptr) || ((Internal::implicit_context != nullptr) &&
+                             (Internal::implicit_context != ctx)))
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Invalid task context passed to Runtime::destroy_deferred_value";
+      error.raise();
+    }
+    unsigned long long start = 0;
+    Internal::AutoProvenance prov;
+    // Only do timing on the main thread
+    if ((Internal::implicit_context != nullptr) &&
+        ctx->begin_runtime_call(
+            Internal::RUNTIME_DESTROY_DEFERRED_VALUE_CALL, prov))
+      start = Realm::Clock::current_time_in_nanoseconds();
+    // Don't trust events passed in by users to be safe from poison
+    if (precondition.exists())
+      ctx->destroy_task_local_instance(
+          value.instance,
+          Internal::RtEvent(Realm::Event::ignorefaults(precondition)));
+    else
+      ctx->destroy_task_local_instance(
+          value.instance, Internal::RtEvent::NO_RT_EVENT);
+    value.instance = Realm::RegionInstance::NO_INST;
+    if (Internal::implicit_context != nullptr)
+      ctx->end_runtime_call(
+          Internal::RUNTIME_DESTROY_DEFERRED_VALUE_CALL, prov, start,
+          (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
+  }
+
+  //--------------------------------------------------------------------------
+  template<typename T>
+  UntypedDeferredBuffer<T> Runtime::allocate_deferred_buffer(
+      Context ctx, const DeferredBufferRequest& request)
+  //--------------------------------------------------------------------------
+  {
+    // Don't check against implicit_context here because this method might
+    // be called from OpenMP processors which don't have implicit_context set
+    if ((ctx == nullptr) || ((Internal::implicit_context != nullptr) &&
+                             (Internal::implicit_context != ctx)))
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error
+          << "Invalid task context passed to Runtime::allocate_deferred_buffer";
+      error.raise();
+    }
+    unsigned long long start = 0;
+    Internal::AutoProvenance prov;
+    // Only do timing on the main thread
+    if ((Internal::implicit_context != nullptr) &&
+        ctx->begin_runtime_call(
+            Internal::RUNTIME_ALLOCATE_DEFERRED_BUFFER_CALL, prov))
+      start = Realm::Clock::current_time_in_nanoseconds();
+    // Figure out the domain
+    Domain domain;
+    if (!request.is_value)
+    {
+      const int dim = request.bounds.name.get_dim();
+      switch (dim)
+      {
+#define DIMFUNC(DIM)                                                \
+  case DIM:                                                         \
+    {                                                               \
+      DomainT<DIM, coord_t> realm_is;                               \
+      runtime->get_index_space_domain(                              \
+          request.bounds.name, &realm_is,                           \
+          Internal::NT_TemplateHelper::encode_tag<DIM, coord_t>()); \
+      domain = realm_is;                                            \
+      break;                                                        \
+    }
+        LEGION_FOREACH_N(DIMFUNC)
+#undef DIMFUNC
+        default:
+          {
+            Error error(LEGION_DYNAMIC_TYPE_EXCEPTION);
+            error
+                << "Unsupported dimension " << dim << " for "
+                << "Runtime::allocate_deferred_buffer. This probably means you "
+                << "need to build Legion with support for more dimensions.";
+            error.raise();
+          }
+      }
+    }
+    else
+      domain = request.bounds.value;
+    if ((domain.get_dim() < 1) || (LEGION_MAX_DIM <= domain.get_dim()))
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Domain for a deferred buffer creation in " << *ctx << " has "
+            << domain.get_dim() << "dimensions which are not in the range [1,"
+            << LEGION_MAX_DIM << "].";
+      error.raise();
+    }
+    else if (
+        !request.dim_order.empty() &&
+        (request.dim_order.size() != size_t(domain.get_dim())))
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Specified dimension ordering for a deferred buffer creation in "
+            << *ctx << " has " << request.dim_order.size() << " dimensions "
+            << "but the domain of the request has " << domain.get_dim()
+            << " dimensions. The number of dimensions must match.";
+      error.raise();
+    }
+    if (!domain.dense())
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error << "Specified non-dense domain for deferred buffer creation in "
+            << *ctx << ". Deferred buffers must always be dense currently.";
+      error.raise();
+    }
+    // Figure out the memory
+    const Memory memory =
+        request.is_exact ?
+            request.memory.exact :
+            find_memory_by_kind(ctx, request.memory.kind, false /*value*/);
+    const std::vector<size_t> field_sizes(1, request.field_size);
+    Realm::InstanceLayoutConstraints constraints(field_sizes, 0 /*blocking*/);
+    Realm::InstanceLayoutGeneric* layout = nullptr;
+    switch (domain.get_dim())
+    {
+#define DIMFUNC(DIM)                                                       \
+  case DIM:                                                                \
+    {                                                                      \
+      const DomainT<DIM, T> bounds = domain;                               \
+      int dim_order[DIM];                                                  \
+      if (request.dim_order.empty())                                       \
+      {                                                                    \
+        for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);        \
+      }                                                                    \
+      else                                                                 \
+      {                                                                    \
+        for (int i = 0; i < DIM; i++) dim_order[i] = request.dim_order[i]; \
+      }                                                                    \
+      layout = Realm::InstanceLayoutGeneric::choose_instance_layout(       \
+          bounds, constraints, dim_order);                                 \
+      break;                                                               \
+    }
+      LEGION_FOREACH_N(DIMFUNC)
+#undef DIMFUNC
+      default:
+        std::abort();
+    }
+    layout->alignment_reqd = request.alignment;
+    Internal::RtEvent use_event;
+    UntypedDeferredBuffer<T> result;
+    result.instance = ctx->create_task_local_instance(
+        memory, layout, request.can_fail, use_event);
+    if (result.instance.exists())
+    {
+      result.field_size = request.field_size;
+      result.dims = domain.get_dim();
+      if (request.initial_value != nullptr)
+      {
+        Realm::ProfilingRequestSet no_requests;
+        std::vector<Realm::CopySrcDstField> dsts(1);
+        dsts[0].set_field(result.instance, 0 /*field id*/, request.field_size);
+        switch (domain.get_dim())
+        {
+#define DIMFUNC(DIM)                                                      \
+  case DIM:                                                               \
+    {                                                                     \
+      const Rect<DIM, T> bounds = domain;                                 \
+      const Internal::RtEvent wait_on(bounds.fill(                        \
+          dsts, no_requests, request.initial_value, request.field_size)); \
+      if (wait_on.exists())                                               \
+        wait_on.wait();                                                   \
+      break;                                                              \
+    }
+          LEGION_FOREACH_N(DIMFUNC)
+#undef DIMFUNC
+          default:
+            std::abort();
+        }
+      }
+      else if (use_event.exists())
+        use_event.wait();
+    }
+    if (Internal::implicit_context != nullptr)
+      ctx->end_runtime_call(
+          Internal::RUNTIME_ALLOCATE_DEFERRED_BUFFER_CALL, prov, start,
+          (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
+    return result;
+  }
+
+  // Intantiate this for the types of coordinates that Realm supports
+  template UntypedDeferredBuffer<int> Runtime::allocate_deferred_buffer<int>(
+      Context ctx, const DeferredBufferRequest&);
+  template UntypedDeferredBuffer<unsigned> Runtime::allocate_deferred_buffer<
+      unsigned>(Context ctx, const DeferredBufferRequest&);
+  template UntypedDeferredBuffer<long long> Runtime::allocate_deferred_buffer<
+      long long>(Context ctx, const DeferredBufferRequest&);
+
+  //--------------------------------------------------------------------------
+  template<typename T>
+  void Runtime::destroy_deferred_buffer(
+      Context ctx, UntypedDeferredBuffer<T>& buffer, Realm::Event precondition)
+  //--------------------------------------------------------------------------
+  {
+    // Don't check against implicit_context here because this method might
+    // be called from OpenMP processors which don't have implicit_context set
+    if ((ctx == nullptr) || ((Internal::implicit_context != nullptr) &&
+                             (Internal::implicit_context != ctx)))
+    {
+      Error error(LEGION_INTERFACE_EXCEPTION);
+      error
+          << "Invalid task context passed to Runtime::destroy_deferred_buffer";
+      error.raise();
+    }
+    unsigned long long start = 0;
+    Internal::AutoProvenance prov;
+    // Only do timing on the main thread
+    if ((Internal::implicit_context != nullptr) &&
+        ctx->begin_runtime_call(
+            Internal::RUNTIME_DESTROY_DEFERRED_BUFFER_CALL, prov))
+      start = Realm::Clock::current_time_in_nanoseconds();
+    // Don't trust events passed in by users to be safe from poison
+    if (precondition.exists())
+      ctx->destroy_task_local_instance(
+          buffer.instance,
+          Internal::RtEvent(Realm::Event::ignorefaults(precondition)));
+    else
+      ctx->destroy_task_local_instance(
+          buffer.instance, Internal::RtEvent::NO_RT_EVENT);
+    buffer.instance = Realm::RegionInstance::NO_INST;
+    buffer.field_size = 0;
+    buffer.dims = 0;
+    if (Internal::implicit_context != nullptr)
+      ctx->end_runtime_call(
+          Internal::RUNTIME_DESTROY_DEFERRED_BUFFER_CALL, prov, start,
+          (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
+  }
+
+  // Intantiate this for the types of coordinates that Realm supports
+  template void Runtime::destroy_deferred_buffer<int>(
+      Context ctx, UntypedDeferredBuffer<int>&, Realm::Event);
+  template void Runtime::destroy_deferred_buffer<unsigned>(
+      Context ctx, UntypedDeferredBuffer<unsigned>&, Realm::Event);
+  template void Runtime::destroy_deferred_buffer<long long>(
+      Context ctx, UntypedDeferredBuffer<long long>&, Realm::Event);
 
   //--------------------------------------------------------------------------
   Future Runtime::get_current_time(Context ctx, Future precondition)

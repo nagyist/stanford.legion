@@ -300,6 +300,10 @@ namespace Legion {
       RUNTIME_GET_LOCAL_TASK_CALL,
       RUNTIME_GET_LOCAL_VARIABLE_CALL,
       RUNTIME_SET_LOCAL_VARIABLE_CALL,
+      RUNTIME_ALLOCATE_DEFERRED_VALUE_CALL,
+      RUNTIME_DESTROY_DEFERRED_VALUE_CALL,
+      RUNTIME_ALLOCATE_DEFERRED_BUFFER_CALL,
+      RUNTIME_DESTROY_DEFERRED_BUFFER_CALL,
       RUNTIME_ISSUE_TIMING_MEASUREMENT_CALL,
       RUNTIME_GET_EXECUTING_PROCESSOR_CALL,
       RUNTIME_GET_CURRENT_TASK_CALL,
@@ -664,6 +668,10 @@ namespace Legion {
       "Runtime::get_local_task",                             \
       "Runtime::set_local_task_variable",                    \
       "Runtime::get_local_task_variable",                    \
+      "Runtime::allocate_deferred_value",                    \
+      "Runtime::destroy_deferred_value",                     \
+      "Runtime::allocate_deferred_buffer",                   \
+      "Runtime::destroy_deferred_buffer",                    \
       "Runtime::issue_timing_measurement",                   \
       "Runtime::get_executing_processor",                    \
       "Runtime::get_current_task",                           \

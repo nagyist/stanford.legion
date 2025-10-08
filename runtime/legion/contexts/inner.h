@@ -966,7 +966,8 @@ namespace Legion {
           Memory memory, size_t size, bool silence_warnings = false,
           const char* warning_string = nullptr) override;
       virtual PhysicalInstance create_task_local_instance(
-          Memory memory, Realm::InstanceLayoutGeneric* layout) override;
+          Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
+          RtEvent& use_event) override;
       virtual void destroy_task_local_instance(
           PhysicalInstance instance, RtEvent precondition) override;
       virtual size_t query_available_memory(Memory target) override;

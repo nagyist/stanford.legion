@@ -1700,10 +1700,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalInstance LeafContext::create_task_local_instance(
-        Memory memory, Realm::InstanceLayoutGeneric* layout)
+        Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
+        RtEvent& use_event)
     //--------------------------------------------------------------------------
     {
-      RtEvent use_event;
+      // We support multiple OpenMP threads creating buffers in parallel
+      AutoLock l_lock(leaf_lock);
       LgEvent unique_event;
       if (runtime->profiler != nullptr)
         Runtime::rename_event(unique_event);
@@ -1729,12 +1731,12 @@ namespace Legion {
         const PhysicalInstance instance = manager->create_task_local_instance(
             get_unique_id(), coordinates, unique_event, layout, use_event,
             &safe_for_unbounded_pools);
+        delete layout;
         if (footprint == 0)
         {
           legion_assert(instance.exists());
           legion_assert(!use_event.exists());
           task_local_instances[instance] = unique_event;
-          delete layout;
           return instance;
         }
         if (instance.exists())
@@ -1761,9 +1763,28 @@ namespace Legion {
             task_local_instances[instance] = unique_event;
             return instance;
           }
-          else
-            instance.destroy(use_event);  // Can't use so destroy immediately
+          instance.destroy(use_event);  // Can't use so destroy immediately
+          if (can_fail)
+            return PhysicalInstance::NO_INST;
+          Error error(LEGION_RESOURCE_EXCEPTION);
+          error
+              << "Failed to allocate DeferredBuffer/Value/Reduction of "
+              << footprint << " bytes for leaf task " << *this << " in "
+              << manager->get_name() << " memory because there was no "
+              << "space reserved at the point of mapping the task for dynamic "
+              << "allocations. If you designate a task as a leaf task variant "
+              << "then it is your responsibility to tell Legion how much "
+              << "memory needs to be allocated for satisfying dynamic "
+              << "allocations during the execution of the task. Legion did "
+              << "try to allocate an eager instance in this case and was able "
+              << "to get an allocation but it was not immediately ready which "
+              << "prevented it from being used without risking a resource "
+              << "deadlock. This suggests that with appropriate upper bounds "
+              << "your program will likely be able to fit in memory.";
+          error.raise();
         }
+        else if (can_fail)
+          return instance;
         else if (safe_for_unbounded_pools.exists())
         {
           Error error(LEGION_RESOURCE_EXCEPTION);
@@ -1774,17 +1795,12 @@ namespace Legion {
               << " memory because there was no space reserved at the point of "
               << "mapping the task for dynamic allocations. If you designate a "
               << "task as a leaf task variant then it is your responsibility "
-                 "to "
-              << "tell Legion how much memory needs to be allocated for "
-                 "satisfying "
-              << "dynamic allocations during the execution of the task. Legion "
-                 "did "
-              << "try to allocate an eager instance in this case but "
-                 "discovered "
-              << "an unbounded pool in the memory which prevented us from "
-                 "attempting "
-              << "the eager allocation (because it cannot be done safely), so "
-                 "you "
+              << "to tell Legion how much memory needs to be allocated for "
+              << "satisfying dynamic allocations during the execution of the "
+              << "task. Legion did try to allocate an eager instance in this "
+              << "case but discovered an unbounded pool in the memory which "
+              << "prevented the runtime from attempting the eager allocation "
+              << "(because it cannot be done safely), so you "
               << "might not actually be out of memory.";
           error.raise();
         }
@@ -1798,14 +1814,11 @@ namespace Legion {
               << "space reserved at the point of mapping the task for dynamic "
               << "allocations. If you designate a task as a leaf task variant "
               << "then it is your responsibility to tell Legion how much "
-                 "memory "
-              << "needs to be allocated for satisfying dynamic allocations "
-                 "during "
-              << "the execution of the task. Legion did try to allocate an "
-              << "eager instance in this case but discovered an unbounded pool "
-              << "in the memory which prevented us from attempting the eager "
-              << "allocation (because it cannot be done safely), so you might "
-              << "not actually be out of memory.";
+              << "memory needs to be allocated for satisfying dynamic "
+              << "allocations during the execution of the task. Legion did "
+              << "try to allocate an eager instance in this case but was "
+              << "unable to get an instance meaning you are very likely out "
+              << "of memory.";
           error.raise();
         }
       }
@@ -1842,6 +1855,11 @@ namespace Legion {
           get_unique_id(), unique_event, layout, use_event);
       if (!instance.exists())
       {
+        if (can_fail)
+        {
+          delete layout;
+          return instance;
+        }
         MemoryManager* manager = runtime->find_memory_manager(memory);
         const size_t memory_limit = manager->query_available_memory();
         if (finder->second->get_bounds().scope == LEGION_BOUNDED_POOL)
@@ -1921,10 +1939,8 @@ namespace Legion {
           error.raise();
         }
       }
-      task_local_instances[instance] = unique_event;
       delete layout;
-      if (use_event.exists())
-        use_event.wait();
+      task_local_instances[instance] = unique_event;
       return instance;
     }
 
@@ -1933,6 +1949,8 @@ namespace Legion {
         PhysicalInstance instance, RtEvent precondition)
     //--------------------------------------------------------------------------
     {
+      // We support multiple OpenMP threads creating buffers in parallel
+      AutoLock l_lock(leaf_lock);
       std::map<PhysicalInstance, LgEvent>::iterator finder =
           task_local_instances.find(instance);
       if (finder == task_local_instances.end())
