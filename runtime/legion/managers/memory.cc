@@ -1607,7 +1607,16 @@ namespace Legion {
         Runtime::merge_events(ready_events).wait();
       for (PhysicalManager* const & physical_manager : captured_instances)
       {
+#ifdef LEGION_DEBUG
+        // This is a work-around for an overzealous assertion in the
+        // physical manager valid reference addition here. We know we
+        // hold a packed reference, but it doesn't, so we have to make
+        // this look safe for it
+        legion_no_skip_assert(
+            physical_manager->acquire_instance(UNBOUNDED_POOL_REF));
+#else
         physical_manager->add_base_valid_ref(UNBOUNDED_POOL_REF);
+#endif
         physical_manager->unpack_valid_ref();
       }
     }
