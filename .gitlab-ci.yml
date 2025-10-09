@@ -263,24 +263,15 @@ cache: &global_cache
   TEST_REGENT: "0"
   LEGION_WARNINGS_FATAL: "1"
 
-.realm: &realm # test realm using makefile
-  TEST_REALM: "1"
-
 .ctest: &ctest
   TEST_CTEST: "1"
 
-# The realm unit tests only works on single node
-.realm_unit_ctest: &realm_unit_ctest
-  TEST_REALM_UNIT_CTEST: "1"
-
 .regent: &regent
   TEST_LEGION_CXX: "0"
-  TEST_REALM: "0"
   TEST_FUZZER: "0"
   NO_PRETTY: "1"
 .regent_pretty: &regent_pretty
   TEST_LEGION_CXX: "0"
-  TEST_REALM: "0"
   TEST_FUZZER: "0"
   REGENT_SAFE_COMPILER: "1"
 .parallel: &parallel
@@ -615,8 +606,6 @@ before_script:
   image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-hpcsdk:250509
 .image_icc: &image_icc
   image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-icc:250509
-.image_msvc178: &image_msvc178
-  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-msvc:250206
 
 ###
 ### Tests
@@ -793,36 +782,6 @@ before_script:
       - runner_system_failure
       - unknown_failure
 
-# testing MSVC builds is kinda hacky right now - not supported by test.py
-.msvc_tests: &msvc_tests
-  <<: *test_rules
-  script:
-    - ln -s $CPM_SOURCE_CACHE /home/wine/.wine/drive_c/cpm_src
-    - ln -s `pwd` /home/wine/.wine/drive_c/repo
-    - cd /home/wine/.wine/drive_c
-    - |
-      REALM_CMAKE_ARGS="-DGASNet_ROOT="${GASNET_ROOT}" -DGASNET_CONDUIT=${CONDUIT} -DKokkos_ROOT="${Kokkos_DIR}" -DCPPTRACE_GET_SYMBOLS_WITH_NOTHING=ON -DREALM_BUILD_TESTS=ON -DREALM_BUILD_BENCHMARKS=ON -DCMAKE_HIP_PLATFORM=nvidia"
-      if [[ -z "${UCX_ROOT}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_UCX=OFF"; fi
-      if [[ -z "${GASNET_ROOT}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_GASNETEX=OFF"; fi
-      if [[ -z "${Kokkos_DIR}" ]]; then REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_KOKKOS=OFF"; fi
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_CPPTRACE=${REALM_BACKTRACE_USE_CPPTRACE:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_PREALM=${USE_PROF:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_CUDA=${USE_CUDA:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_NVTX=${USE_NVTX:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_HIP=${USE_HIP:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_MPI=${USE_MPI:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_HDF5=${USE_HDF:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_OPENMP=${USE_OPENMP:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_ENABLE_PYTHON=${USE_PYTHON:-0}"
-      REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS} -DREALM_MAX_DIM=${MAX_DIM:-3}"
-      export REALM_CMAKE_ARGS="${REALM_CMAKE_ARGS}"
-      unset CPM_SOURCE_CACHE
-    - su wine -c "wine64 cmd /c 'x64.bat && cmake -G Ninja -S repo/realm -B build -DCMAKE_INSTALL_PREFIX=install $REALM_CMAKE_ARGS'"
-    # wine doesn't seem to cope with concurrent file access, so use a serial build
-    - su wine -c "wine64 cmd /c 'x64.bat && cmake --build build -j1'"
-    - su wine -c "wine64 cmd /c 'x64.bat && set PATH=C:\\Tools\\VS2022\\VC\\Redist\\MSVC\\14.38.33130\\debug_nonredist\\x64\\Microsoft.VC143.DebugCRT;C:\\Tools\\SDK\\10\\bin\\10.0.20348.0\\x64\\ucrt;%PATH% && ctest --test-dir build --output-on-failure'"
-    - echo OK
-
 # use a custom script for running Realm tests with sanitizers
 .realm_sanitizer_tests: &realm_sanitizer_tests
   <<: *test_rules
@@ -954,12 +913,12 @@ gcc9_cxx17_debug_openmp_system_regent:
 gcc9_cxx17_debug_python3_cmake_prof_legion:
   <<: [*linux, *image_2004, *tests]
   variables:
-    <<: [*gcc9, *terra12, *debug, *cxx17_normal, *python3, *cmake, *legion, *ctest, *realm_unit_ctest, *prof, *shared, *short]
+    <<: [*gcc9, *terra12, *debug, *cxx17_normal, *python3, *cmake, *legion, *ctest, *prof, *shared, *short]
 #   * LLVM
 gcc9_cxx17_debug_llvm_cmake_legion:
   <<: [*linux, *image_2004, *tests]
   variables:
-    <<: [*gcc9, *terra12, *debug, *cxx17_normal, *llvm, *llvm12, *cmake, *legion, *ctest, *realm_unit_ctest, *shared, *cpptrace]
+    <<: [*gcc9, *terra12, *debug, *cxx17_normal, *llvm, *llvm12, *cmake, *legion, *ctest, *shared, *cpptrace]
 gcc9_cxx17_debug_llvm_regent:
   <<: [*linux_compute, *image_2004, *tests]
   variables:
@@ -1224,7 +1183,7 @@ clang12_cxx17_debug_python3_legion:
 clang12_cxx17_debug_llvm_cmake_legion:
   <<: [*linux, *image_2004, *tests]
   variables:
-    <<: [*clang12, *terra12, *debug, *cxx17_normal, *llvm, *llvm12, *cmake, *legion, *ctest, *realm_unit_ctest, *cpptrace]
+    <<: [*clang12, *terra12, *debug, *cxx17_normal, *llvm, *llvm12, *cmake, *legion, *ctest, *cpptrace]
 clang12_cxx17_debug_llvm_regent:
   <<: [*linux_compute, *image_2004, *tests]
   variables:
@@ -1364,7 +1323,7 @@ macos_clang_cxx17_release_legion:
 macos_clang_cxx20_release_cmake_legion:
   <<: [*macos, *tests]
   variables:
-    <<: [*macos_clang, *release, *cxx20_normal, *cmake, *legion, *ctest, *realm_unit_ctest, *short, *no_ccache]
+    <<: [*macos_clang, *release, *cxx20_normal, *cmake, *legion, *ctest, *short, *no_ccache]
 # macos_clang_cxx17_debug_cmake_regent:
 #   <<: [*macos, *tests]
 #   variables:
@@ -1455,48 +1414,48 @@ clang14_cxx20_release_regent:
     <<: [*clang14, *terra14, *release, *cxx20_normal, *regent]
 
 # HIP CUDA tests:
-nvidia_hip_cuda125_gcc10_cxx17_debug_cuda_legion_realm:
+nvidia_hip_cuda125_gcc10_cxx17_debug_cuda_legion:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*gcc11, *debug, *cxx17_normal, *hip_cuda125, *legion, *realm, *short, *shared]
+    <<: [*gcc11, *debug, *cxx17_normal, *hip_cuda125, *legion, *short, *shared]
 
 # CUDA tests:
 nvidia_cuda117_gcc10_cxx17_debug_cmake_cuda_dynamic_legion:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*gcc10, *debug, *cxx17_normal, *cuda117, *cmake, *legion, *cuda_dynamic, *ctest, *realm_unit_ctest, *short, *shared, *cpptrace]
+    <<: [*gcc10, *debug, *cxx17_normal, *cuda117, *cmake, *legion, *cuda_dynamic, *ctest, *short, *shared, *cpptrace]
 nvidia_cuda117_gcc10_cxx17_release_cmake_cuda_legion:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*gcc10, *release, *cxx17_normal, *cuda117, *legion, *cmake, *ctest, *realm_unit_ctest, *shared]
+    <<: [*gcc10, *release, *cxx17_normal, *cuda117, *legion, *cmake, *ctest, *shared]
 nvidia_cuda121_gcc11_cxx17_debug_cmake_cuda_legion:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*gcc11, *debug, *cxx17_normal, *cuda121, *legion, *short, *cmake, *ctest, *realm_unit_ctest, *shared, *cpptrace]
+    <<: [*gcc11, *debug, *cxx17_normal, *cuda121, *legion, *short, *cmake, *ctest, *shared, *cpptrace]
 nvidia_cuda121_gcc11_cxx17_release_cmake_cuda_legion:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*gcc11, *release, *cxx17_normal, *cuda121, *cmake, *legion, *ctest, *realm_unit_ctest, *shared]
+    <<: [*gcc11, *release, *cxx17_normal, *cuda121, *cmake, *legion, *ctest, *shared]
 nvidia_cuda125_gcc11_cxx17_release_cmake_cuda_legion:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*gcc11, *release, *cxx17_normal, *cuda125, *legion, *cmake, *ctest, *realm_unit_ctest, *shared]
+    <<: [*gcc11, *release, *cxx17_normal, *cuda125, *legion, *cmake, *ctest, *shared]
 nvidia_cuda125_gcc11_cxx20_debug_checks_cmake_cuda_legion:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*gcc11, *debug, *cxx20_normal, *checks, *cuda125, *legion, *short, *cmake, *ctest, *realm_unit_ctest, *shared, *cpptrace]
+    <<: [*gcc11, *debug, *cxx20_normal, *checks, *cuda125, *legion, *short, *cmake, *ctest, *shared, *cpptrace]
 nvidia_cuda125_gcc11_cxx20_release_cmake_cuda_legion:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*gcc11, *release, *cxx20_normal, *cuda125, *cmake, *legion, *ctest, *realm_unit_ctest, *shared]
+    <<: [*gcc11, *release, *cxx20_normal, *cuda125, *cmake, *legion, *ctest, *shared]
 nvidia_cuda125_clang12_cxx17_release_cmake_cuda_regent:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*clang12, *llvm12, *release, *cxx17_normal, *cuda125, *regent, *cmake, *ctest, *realm_unit_ctest, *short]
+    <<: [*clang12, *llvm12, *release, *cxx17_normal, *cuda125, *regent, *cmake, *ctest, *short]
 nvidia_cuda125_clang12_cxx20_release_cmake_cuda_regent:
   <<: [*nvidia, *tests]
   variables:
-    <<: [*clang12, *llvm12, *release, *cxx20_normal, *cuda125, *cmake, *ctest, *realm_unit_ctest, *regent, *shared]
+    <<: [*clang12, *llvm12, *release, *cxx20_normal, *cuda125, *cmake, *ctest, *regent, *shared]
 nvidia_cuda125_gcc11_cxx17_debug_maxdim4_external2:
   <<: [*nvidia, *external_tests]
   variables:
@@ -1562,27 +1521,8 @@ icc212_cxx17_release_legion:
 icc212_cxx17_debug_cmake_legion:
   <<: [*linux, *image_icc, *tests]
   variables:
-    <<: [*icc212, *debug, *cxx17_precise, *cmake, *legion, *ctest, *realm_unit_ctest, *short, *cpptrace]
+    <<: [*icc212, *debug, *cxx17_precise, *cmake, *legion, *ctest, *short, *cpptrace]
 
-# MSVC (Realm only):
-#msvc178_realm:
-#  <<: [*linux_avx, *image_msvc178, *msvc_tests]
-#  variables:
-#    <<: [*short]
-
-# sanitizer tests (Realm only):
-gcc12_tsan_realm:
-  <<: [*linux, *image_2204, *realm_sanitizer_tests]
-  variables:
-    <<: [*gcc12, *cxx17_normal, *tsan, *short, *cpptrace]
-gcc12_ubsan_realm:
-  <<: [*linux, *image_2204, *realm_sanitizer_tests]
-  variables:
-    <<: [*gcc12, *cxx17_normal, *ubsan, *short, *cpptrace]
-gcc12_asan_realm:
-  <<: [*linux, *image_2204, *realm_sanitizer_tests]
-  variables:
-    <<: [*gcc12, *cxx17_normal, *asan, *short, *cpptrace]
 check_pre_commit:
   rules:
     # Always during a merge request update
