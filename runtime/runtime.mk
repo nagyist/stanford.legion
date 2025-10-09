@@ -696,6 +696,7 @@ NVCC_FLAGS += -gencode arch=compute_$(lastword $(GPU_ARCH))$(COMMA)code=compute_
 endif
 
 NVCC_FLAGS += -Xcudafe --diag_suppress=boolean_controlling_expr_is_constant
+endif
 
 # Realm uses GASNet if requested (detect both gasnet1 and gasnetex here)
 REALM_USE_GASNETEX_WRAPPER := 0
