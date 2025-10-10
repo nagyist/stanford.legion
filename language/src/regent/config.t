@@ -19,10 +19,7 @@ local data = require("common/data")
 
 local config = {}
 
-local expect_vars = terralib.newlist({"TERRA_PATH", "INCLUDE_PATH", "LG_RT_DIR", "USE_CMAKE"})
-if os.getenv("USE_CMAKE") == "1" then
-  expect_vars:insert("CMAKE_BUILD_DIR")
-end
+local expect_vars = terralib.newlist({"TERRA_PATH", "INCLUDE_PATH", "LEGION_INSTALL_PREFIX"})
 local ffi = require("ffi")
 if ffi.os == "OSX" then
   expect_vars:insert("DYLD_LIBRARY_PATH")

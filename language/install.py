@@ -194,38 +194,7 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
     # Don't blow away an existing directory
     assert not (clean_first and build_dir is not None)
 
-    # If building support for CUDA then check CUDA version is not blacklisted
-    # CUDA 9.2 and 10.0 have thrust bugs that break complex support
-    if cuda:
-        try:
-            nvcc_version = subprocess.check_output([os.environ['CUDA']+'/bin/nvcc', '--version']).decode('utf-8')
-        except (KeyError,FileNotFoundError,subprocess.CalledProcessError):
-            try:
-                nvcc_version = subprocess.check_output(["nvcc", "--version"]).decode('utf-8')
-            except (FileNotFoundError,subprocess.CalledProcessError):
-                print('Error: Unable to verify CUDA version is not blacklisted for Regent')
-                sys.exit(1)
-        pattern = re.compile(' V(?P<major>[0-9]+)\.(?P<minor>[0-9]+)')
-        major_version = None
-        minor_version = None
-        for line in nvcc_version.splitlines():
-            match = pattern.search(line)
-            if match is None:
-                continue
-            major_version = int(match.group('major'))
-            minor_version = int(match.group('minor'))
-            break
-        if major_version is None:
-            print('Error: Unabled to verify CUDA version is not blacklisted for Regent')
-            sys.exit(1)
-        elif (major_version == 9 and minor_version == 2) or \
-                (major_version == 10 and minor_version == 0):
-            print('Error: CUDA version '+str(major_version)+'.'+
-                    str(minor_version)+' is blacklisted for Regent due '+
-                    'to a Thrust bug that breaks complex number support. '+
-                    'Please either upgrade or downgrade your version '+
-                    'of CUDA to a version that is not 9.2 or 10.0')
-            sys.exit(1)
+    regent_install_dir = os.path.join(regent_dir, 'install')
     if cmake:
         regent_build_dir = os.path.join(regent_dir, 'build')
         if build_dir is None:
@@ -247,7 +216,8 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
         if not os.path.exists(build_dir):
             os.mkdir(build_dir)
         flags = (
-            ['-DCMAKE_BUILD_TYPE=%s' % ('Debug' if debug else 'Release'),
+            ['-DCMAKE_INSTALL_PREFIX=%s' % regent_install_dir,
+             '-DCMAKE_BUILD_TYPE=%s' % ('Debug' if debug else 'Release'),
              '-DLegion_USE_CUDA=%s' % ('ON' if cuda else 'OFF'),
              '-DLegion_USE_HIP=%s' % ('ON' if hip else 'OFF'),
              '-DLegion_USE_OpenMP=%s' % ('ON' if openmp else 'OFF'),
@@ -287,6 +257,9 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
         subprocess.check_call(
             [make_exe] + make_flags + ['-j', str(thread_count)],
             cwd=build_dir)
+        subprocess.check_call(
+            [make_exe, 'install'],
+            cwd=build_dir)
     else:
         flags = (
             ['LG_RT_DIR=%s' % runtime_dir,
@@ -314,13 +287,13 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
                 subprocess.check_call(
                     [make_exe] + flags + ['clean'],
                     cwd=python_bindings_dir)
-        subprocess.check_call(
-            [make_exe] + flags + ['-j', str(thread_count)],
-            cwd=bindings_dir)
         if python:
             subprocess.check_call(
                 [make_exe] + flags + ['-j', str(thread_count)],
                 cwd=python_bindings_dir)
+        subprocess.check_call(
+            [make_exe, 'install', 'PREFIX=%s' % regent_install_dir] + flags + ['-j', str(thread_count)],
+            cwd=bindings_dir)
 
         # This last bit is necessary because Mac OS X shared libraries
         # have paths hard-coded into them, and in this case those paths

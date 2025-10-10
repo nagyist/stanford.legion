@@ -20,6 +20,8 @@ import argparse, codecs, glob, itertools, json, multiprocessing, os, optparse, q
 from collections import OrderedDict
 import regent
 
+root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
 _version = sys.version_info.major
 
 if _version == 2: # Python 2.x:
@@ -98,7 +100,7 @@ def run(filename, debug, verbose, timelimit, flags, env):
     return ' '.join(args)
 
 def run_spy(logfiles, verbose, py_exe_path):
-    cmd = [py_exe_path, os.path.join(regent.root_dir(), 'tools', 'legion_spy.py'),
+    cmd = [py_exe_path, os.path.join(root_dir, 'tools', 'legion_spy.py'),
            '--logical',
            '--physical',
            '--cycle',
@@ -118,7 +120,7 @@ def run_spy(logfiles, verbose, py_exe_path):
         raise TestFailure(' '.join(cmd), retcode, output.decode('utf-8') if output is not None else None)
 
 def run_gc(logfiles, verbose, py_exe_path):
-    cmd = [py_exe_path, os.path.join(regent.root_dir(), 'tools', 'legion_gc.py'),
+    cmd = [py_exe_path, os.path.join(root_dir, 'tools', 'legion_gc.py'),
            '--leaks',
            '--cycles',
            '--assert'] + logfiles
@@ -164,7 +166,7 @@ def run_prof_rs_subnode(out_dir, logfiles, verbose, subnodes, py_exe_path, legio
     result_dir = os.path.join(out_dir, 'legion_prof_filter_input_rs')
     cmd = [
         py_exe_path,
-        os.path.join(regent.root_dir(), 'tools', 'legion_prof_verify_subnodes.py'),
+        os.path.join(root_dir, 'tools', 'legion_prof_verify_subnodes.py'),
         '--outdir', out_dir,
         '--nodes', str(subnodes),
         '--rust',

@@ -39,7 +39,7 @@ else:
     runtime_dir = os.path.join(os.path.dirname(regent_dir), 'runtime')
 # Find Realm (in the environment) or assume installed at root
 realm_root_dir = os.environ.get('Realm_ROOT')
-bindings_dir = os.path.join(os.path.dirname(runtime_dir), 'bindings', 'regent')
+# FIXME: find these in the Legion installation.
 python_dir = os.path.join(os.path.dirname(runtime_dir), 'bindings', 'python')
 
 # Find CUDA.
@@ -64,28 +64,18 @@ if not llvm_dir:
         if not os.path.exists(llvm_dir):
             llvm_dir = None
 
-# Detect use of CMake.
-if 'USE_CMAKE' in os.environ:
-    cmake = os.environ['USE_CMAKE'] == '1'
-else:
-    cmake_config_filename = os.path.join(regent_dir, '.cmake.json')
-    cmake = load_json_config(cmake_config_filename)
-cmake_build_dir = os.path.join(regent_dir, 'build')
-
 legion_install_prefix_filename = os.path.join(regent_dir, '.legion_install_prefix.json')
-legion_install_prefix = None
+legion_install_prefix = os.path.join(regent_dir, 'install')
 if os.path.exists(legion_install_prefix_filename):
-    legion_install_prefix = load_json_config(legion_install_prefix_filename)
+    prefix = load_json_config(legion_install_prefix_filename)
+    if prefix is not None:
+        legion_install_prefix = prefix
 
 include_path = (
     (os.environ['INCLUDE_PATH'].split(';')
      if 'INCLUDE_PATH' in os.environ else []) +
-    [bindings_dir,
-     runtime_dir,
-    ] +
-    ([os.path.join(realm_root_dir, 'include')] if realm_root_dir else []) +
-    ([os.path.join(cmake_build_dir, 'runtime')] if cmake else []) +
-    ([os.path.join(legion_install_prefix, 'include')] if legion_install_prefix is not None else []))
+    [os.path.join(legion_install_prefix, 'include')] +
+    ([os.path.join(realm_root_dir, 'include')] if realm_root_dir else []))
 if cuda_include_dir is not None:
     include_path.append(cuda_include_dir)
 if rocm_include_dir is not None:
@@ -101,17 +91,9 @@ if os_name == 'Darwin':
 lib_path = (
     (os.environ[LD_LIBRARY_PATH].split(':')
      if LD_LIBRARY_PATH in os.environ else []) +
-    [os.path.join(terra_dir, 'build')])
-
-if legion_install_prefix is not None:
-    lib_path += [os.path.join(legion_install_prefix, 'lib')]
-elif cmake:
-    lib_path += [os.path.join(cmake_build_dir, 'lib')]
-else:
-    lib_path += [bindings_dir]
-
-def root_dir():
-    return os.path.dirname(runtime_dir)
+    [os.path.join(terra_dir, 'build'),
+     os.path.join(legion_install_prefix, 'lib'),
+     os.path.join(legion_install_prefix, 'lib64')])
 
 def regent(args, env={}, cwd=None, **kwargs):
     terra_exe = os.path.join(terra_dir, 'terra')
@@ -143,8 +125,7 @@ def regent(args, env={}, cwd=None, **kwargs):
         [os.path.join(regent_dir, 'src', '?.t'),
          os.path.join(regent_dir, 'src', '?.rg'),
          os.path.join(terra_dir, 'tests', 'lib', '?.t'),
-         os.path.join(terra_dir, 'release', 'include', '?.t'),
-         os.path.join(bindings_dir, '?.t')])
+         os.path.join(terra_dir, 'release', 'include', '?.t')])
 
     if first_arg is not None:
         python_path.append(os.path.dirname(first_arg))
@@ -156,13 +137,8 @@ def regent(args, env={}, cwd=None, **kwargs):
         LD_LIBRARY_PATH: ':'.join(lib_path),
         'INCLUDE_PATH': ';'.join(include_path),
         'PYTHONPATH': ':'.join(python_path),
-        'LG_RT_DIR': runtime_dir,
-        'USE_CMAKE': '1' if cmake else '0',
-        'CMAKE_BUILD_DIR': cmake_build_dir,
+        'LEGION_INSTALL_PREFIX': legion_install_prefix,
     }
-
-    if legion_install_prefix is not None:
-        terra_env['LEGION_INSTALL_PREFIX'] = legion_install_prefix
 
     if cuda_dir is not None:
         terra_env['CUDA_HOME'] = cuda_dir

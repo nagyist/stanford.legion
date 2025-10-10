@@ -27,6 +27,7 @@ USE_GASNET      ?= 0		# Include GASNet support (requires GASNet)
 USE_HDF         ?= 0		# Include HDF5 support (requires HDF5)
 ALT_MAPPERS     ?= 0		# Include alternative mappers (not recommended)
 USE_SPY         ?= 0    # Include detailed Legion Spy support
+SHARED_OBJECTS	?= 1		# Generate shared objects for Legion and Realm
 
 # Put the binary file name here
 ifeq ($(shell uname), Darwin)
@@ -40,14 +41,11 @@ GEN_SRC		?= regent.cc regent_gpu.cc regent_partitions.cc bishop_mapper.cc bishop
 GEN_GPU_SRC	?= regent_cuda.cu		# .cu files
 GEN_HIP_SRC	?= regent_cuda.cu		# .cu files
 
-CC_FLAGS ?= #-DPROF_BINDING
+CC_FLAGS ?=
 NVCC_FLAGS ?=
 GASNET_FLAGS ?=
 INC_FLAGS ?=
 LD_FLAGS ?=
-
-#BOUNDS_CHECKS = 1
-#USE_SPY = 1
 
 CC_FLAGS += -fPIC
 NVCC_FLAGS += -Xcompiler -fPIC

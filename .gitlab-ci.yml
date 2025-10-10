@@ -270,10 +270,12 @@ cache: &global_cache
   TEST_LEGION_CXX: "0"
   TEST_FUZZER: "0"
   NO_PRETTY: "1"
+  SHARED_OBJECTS: "1" # Regent requires shared objects
 .regent_pretty: &regent_pretty
   TEST_LEGION_CXX: "0"
   TEST_FUZZER: "0"
   REGENT_SAFE_COMPILER: "1"
+  SHARED_OBJECTS: "1" # Regent requires shared objects
 .parallel: &parallel
   REGENT_JOBS: "2"
 .incremental: &incremental
