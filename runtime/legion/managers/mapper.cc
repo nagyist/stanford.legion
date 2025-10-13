@@ -239,8 +239,21 @@ namespace Legion {
     MapperManager::~MapperManager(void)
     //--------------------------------------------------------------------------
     {
-      // We can now delete our mapper
-      delete mapper;
+      // Mapper was deleted in the prepare_for_shutdown call or by
+      // one of the instance deletion notifications
+      legion_assert(shutdown_semaphore.load() < 0);
+    }
+
+    //--------------------------------------------------------------------------
+    void MapperManager::prepare_for_shutdown(void)
+    //--------------------------------------------------------------------------
+    {
+      // Try to decrement the shutdown semaphore, if we succeed then we
+      // can delete the underlying mapper object because there are no
+      // outstanding deletion notifications
+      const int previous = shutdown_semaphore.fetch_sub(1);
+      if (previous == 0)
+        delete mapper;
     }
 
     //--------------------------------------------------------------------------
@@ -768,12 +781,12 @@ namespace Legion {
     void MapperManager::notify_instance_deletion(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo* previous = implicit_mapper_call;
+      MappingCallInfo* previous_mapper_call = implicit_mapper_call;
       // This is subtle: in order to avoid deadlock between mapper calls either
       // to the same mapper or between mappers, all we need to check is that
       // the mapper call is still in a reentrant mode, if it is then we can do
       // the next mapper call directly, otherwise we need to defer it
-      if ((previous != nullptr) && !previous->reentrant)
+      if ((previous_mapper_call != nullptr) && !previous_mapper_call->reentrant)
       {
         DeferInstanceCollectionArgs args(this, manager);
         manager->add_base_resource_ref(MAPPER_REF);
@@ -781,27 +794,49 @@ namespace Legion {
       }
       else
       {
+        // Check to make sure the mapper hasn't been deleted as
+        // part of the shutdown process which is indicated by a negative
+        // semaphore value
+        int previous = shutdown_semaphore.load();
+        if (previous < 0)
+          return;
+        // Keep tryting to increment but if it ever is negative then that
+        // is game over as the mapper has been deleted
+        while (
+            !shutdown_semaphore.compare_exchange_weak(previous, previous + 1))
+        {
+          if (previous < 0)
+            return;
+        }
+        // Successfully incremented the shutdown semaphore
         implicit_mapper_call = nullptr;
         const MappingInstance instance(manager);
         MappingCallInfo ctx(this, HANDLE_INSTANCE_COLLECTION_CALL, nullptr);
         mapper->handle_instance_collection(&ctx, instance);
+        if (manager->remove_base_resource_ref(MAPPER_REF))
+          delete manager;
+        // Now decrement the shutdown semaphore
+        previous = shutdown_semaphore.fetch_sub(1);
+        legion_assert(previous >= 0);
+        // Once the shutdown semaphore becomes negate we delete the mapper
+        if (previous == 0)
+          delete mapper;
+        implicit_mapper_call = previous_mapper_call;
       }
-      implicit_mapper_call = previous;
     }
 
     //--------------------------------------------------------------------------
     void MapperManager::add_subscriber_reference(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-      // Nothing to do currently
+      add_reference();
     }
 
     //--------------------------------------------------------------------------
     bool MapperManager::remove_subscriber_reference(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-      // Nothing to do, make sure we don't get deleted
-      return false;
+      return remove_reference();
     }
 
     //--------------------------------------------------------------------------

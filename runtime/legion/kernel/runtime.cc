@@ -1059,7 +1059,7 @@ namespace Legion {
             Mapper* mapper =
                 new Mapping::TestMapper(mapper_runtime, machine, it.first);
             MapperManager* wrapper = wrap_mapper(mapper, 0, it.first);
-            it.second->add_mapper(0, wrapper, false /*check*/, true /*owns*/);
+            it.second->add_mapper(0, wrapper, false /*check*/);
           }
         }
         else if (supply_default_mapper)
@@ -1072,7 +1072,7 @@ namespace Legion {
                 new Mapping::DefaultMapper(mapper_runtime, machine, it.first);
             MapperManager* wrapper =
                 wrap_mapper(mapper, 0, it.first, true /*is default mapper*/);
-            it.second->add_mapper(0, wrapper, false /*check*/, true /*owns*/);
+            it.second->add_mapper(0, wrapper, false /*check*/);
           }
         }
       }
@@ -1089,8 +1089,7 @@ namespace Legion {
                 mapper_runtime, machine, it.first, replay_file.c_str());
             MapperManager* wrapper = wrap_mapper(mapper, 0, it.first);
             it.second->add_mapper(
-                0, wrapper, false /*check*/, true /*owns*/,
-                true /*skip replay*/);
+                0, wrapper, false /*check*/, true /*skip replay*/);
           }
         }
         else
@@ -1102,8 +1101,7 @@ namespace Legion {
                 mapper_runtime, machine, it.first, replay_file.c_str());
             MapperManager* wrapper = wrap_mapper(mapper, 0, it.first);
             it.second->add_mapper(
-                0, wrapper, false /*check*/, true /*owns*/,
-                true /*skip replay*/);
+                0, wrapper, false /*check*/, true /*skip replay*/);
           }
         }
       }
@@ -1930,20 +1928,15 @@ namespace Legion {
       MapperManager* manager = wrap_mapper(mapper, map_id, proc);
       if (all_local_procs)
       {
-        bool own = true;
         // Save it to all the managers
         for (const std::pair<const Processor, ProcessorManager*>& it :
              proc_managers)
-        {
-          it.second->add_mapper(map_id, manager, true /*check*/, own);
-          own = false;
-        }
+          it.second->add_mapper(map_id, manager, true /*check*/);
       }
       else if (proc.address_space() == address_space)
       {
         legion_assert(proc_managers.find(proc) != proc_managers.end());
-        proc_managers[proc]->add_mapper(
-            map_id, manager, true /*check*/, true /*own*/);
+        proc_managers[proc]->add_mapper(map_id, manager, true /*check*/);
       }
       else
       {
@@ -2135,19 +2128,15 @@ namespace Legion {
       MapperManager* manager = wrap_mapper(mapper, 0, proc);
       if (all_local_procs)
       {
-        bool own = true;
         // Save it to all the managers
         for (const std::pair<const Processor, ProcessorManager*>& it :
              proc_managers)
-        {
-          it.second->replace_default_mapper(manager, own);
-          own = false;
-        }
+          it.second->replace_default_mapper(manager);
       }
       else if (local_procs.find(proc) != local_procs.end())
       {
         legion_assert(proc_managers.find(proc) != proc_managers.end());
-        proc_managers[proc]->replace_default_mapper(manager, true /*own*/);
+        proc_managers[proc]->replace_default_mapper(manager);
       }
       else
       {
