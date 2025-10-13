@@ -102,6 +102,7 @@ namespace Legion {
       std::map<MapperID, MapperManager*>::iterator finder = mappers.find(mid);
       if (finder != mappers.end())
       {
+        finder->second->prepare_for_shutdown();
         if (finder->second->remove_reference())
           delete finder->second;
         finder->second = m;
@@ -138,6 +139,7 @@ namespace Legion {
       std::map<MapperID, MapperManager*>::iterator finder = mappers.find(0);
       if (finder != mappers.end())
       {
+        finder->second->prepare_for_shutdown();
         if (finder->second->remove_reference())
           delete finder->second;
         finder->second = m;
