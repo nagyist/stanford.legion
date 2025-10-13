@@ -239,6 +239,7 @@ namespace Legion {
     MapperManager::~MapperManager(void)
     //--------------------------------------------------------------------------
     {
+      legion_assert(shutdown);
       // Mapper was deleted in the prepare_for_shutdown call or by
       // one of the instance deletion notifications
       legion_assert(shutdown_semaphore.load() < 0);
@@ -248,6 +249,12 @@ namespace Legion {
     void MapperManager::prepare_for_shutdown(void)
     //--------------------------------------------------------------------------
     {
+      // Deduplicate prepare for shutdown calls from different processors
+      // Only the first one should need to do anything
+      // No need for a lock since these are all coming from the same thread
+      if (shutdown)
+        return;
+      shutdown = true;
       // Try to decrement the shutdown semaphore, if we succeed then we
       // can delete the underlying mapper object because there are no
       // outstanding deletion notifications

@@ -294,6 +294,7 @@ namespace Legion {
       // the underlying mapper and call backs for instance deletions
       // Once it becomes negative then it is safe to delete the mapper
       std::atomic<int> shutdown_semaphore = 0;
+      bool shutdown = false;
     };
 
     /**
