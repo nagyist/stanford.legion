@@ -62,16 +62,18 @@ namespace Legion {
     void ProcessorManager::prepare_for_shutdown(void)
     //--------------------------------------------------------------------------
     {
-      for (std::pair<const MapperID, std::pair<MapperManager*, bool> >& entry :
-           mappers)
-        if (entry.second.second)
-          delete entry.second.first;
+      for (std::pair<const MapperID, MapperManager*>& entry : mappers)
+      {
+        entry.second->prepare_for_shutdown();
+        if (entry.second->remove_reference())
+          delete entry.second;
+      }
       mappers.clear();
     }
 
     //--------------------------------------------------------------------------
     void ProcessorManager::add_mapper(
-        MapperID mid, MapperManager* m, bool check, bool own, bool skip_replay)
+        MapperID mid, MapperManager* m, bool check, bool skip_replay)
     //--------------------------------------------------------------------------
     {
       // Don't do this if we are doing replay execution
@@ -95,25 +97,26 @@ namespace Legion {
             << "where it will be safe to perform dynamic registrations.";
         warn.raise();
       }
+      m->add_reference();
       AutoLock m_lock(mapper_lock);
-      std::map<MapperID, std::pair<MapperManager*, bool> >::iterator finder =
-          mappers.find(mid);
+      std::map<MapperID, MapperManager*>::iterator finder = mappers.find(mid);
       if (finder != mappers.end())
       {
-        if (finder->second.second)
-          delete finder->second.first;
-        finder->second = std::pair<MapperManager*, bool>(m, own);
+        finder->second->prepare_for_shutdown();
+        if (finder->second->remove_reference())
+          delete finder->second;
+        finder->second = m;
       }
       else
       {
-        mappers[mid] = std::pair<MapperManager*, bool>(m, own);
+        mappers.emplace(mid, m);
         AutoLock q_lock(queue_lock);
         mapper_states[mid] = MapperState();
       }
     }
 
     //--------------------------------------------------------------------------
-    void ProcessorManager::replace_default_mapper(MapperManager* m, bool own)
+    void ProcessorManager::replace_default_mapper(MapperManager* m)
     //--------------------------------------------------------------------------
     {
       // Don't do this if we are doing replay execution
@@ -131,18 +134,19 @@ namespace Legion {
              << "registrations.";
         warn.raise();
       }
+      m->add_reference();
       AutoLock m_lock(mapper_lock);
-      std::map<MapperID, std::pair<MapperManager*, bool> >::iterator finder =
-          mappers.find(0);
+      std::map<MapperID, MapperManager*>::iterator finder = mappers.find(0);
       if (finder != mappers.end())
       {
-        if (finder->second.second)
-          delete finder->second.first;
-        finder->second = std::pair<MapperManager*, bool>(m, own);
+        finder->second->prepare_for_shutdown();
+        if (finder->second->remove_reference())
+          delete finder->second;
+        finder->second = m;
       }
       else
       {
-        mappers[0] = std::pair<MapperManager*, bool>(m, own);
+        mappers.emplace(0, m);
         AutoLock q_lock(queue_lock);
         mapper_states[0] = MapperState();
       }
@@ -155,18 +159,18 @@ namespace Legion {
       // Easy case if we are doing replay execution
       if (replay_execution)
       {
-        std::map<MapperID, std::pair<MapperManager*, bool> >::const_iterator
-            finder = mappers.find(0);
+        std::map<MapperID, MapperManager*>::const_iterator finder =
+            mappers.find(0);
         legion_assert(finder != mappers.end());
-        return finder->second.first;
+        return finder->second;
       }
       AutoLock m_lock(mapper_lock, false /*exclusive*/);
       MapperManager* result = nullptr;
       // We've got the lock, so do the operation
-      std::map<MapperID, std::pair<MapperManager*, bool> >::const_iterator
-          finder = mappers.find(mid);
+      std::map<MapperID, MapperManager*>::const_iterator finder =
+          mappers.find(mid);
       if (finder != mappers.end())
-        result = finder->second.first;
+        result = finder->second;
       return result;
     }
 
@@ -175,9 +179,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock m_lock(mapper_lock, false /*exclusive*/);
-      for (const std::pair<const MapperID, std::pair<MapperManager*, bool> >&
-               entry : mappers)
-        if (!entry.second.first->is_default_mapper)
+      for (const std::pair<const MapperID, MapperManager*>& entry : mappers)
+        if (!entry.second->is_default_mapper)
           return true;
       return false;
     }
@@ -754,11 +757,9 @@ namespace Legion {
       {
         AutoLock m_lock(mapper_lock, false /*exclusive*/);
         // Fast path for no deferred mappers
-        current_mappers.resize(mappers.size());
-        unsigned idx = 0;
-        for (const std::pair<const MapperID, std::pair<MapperManager*, bool> >&
-                 it : mappers)
-          current_mappers[idx++] = std::make_pair(it.first, it.second.first);
+        current_mappers.reserve(mappers.size());
+        for (const std::pair<const MapperID, MapperManager*>& it : mappers)
+          current_mappers.emplace_back(it);
       }
       for (const std::pair<MapperID, MapperManager*>& it : current_mappers)
       {

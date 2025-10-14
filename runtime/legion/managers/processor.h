@@ -90,9 +90,8 @@ namespace Legion {
       void prepare_for_shutdown(void);
     public:
       void add_mapper(
-          MapperID mid, MapperManager* m, bool check, bool own,
-          bool skip_replay = false);
-      void replace_default_mapper(MapperManager* m, bool own);
+          MapperID mid, MapperManager* m, bool check, bool skip_replay = false);
+      void replace_default_mapper(MapperManager* m);
       MapperManager* find_mapper(MapperID mid) const;
       bool has_non_default_mapper(void) const;
     public:
@@ -183,7 +182,7 @@ namespace Legion {
       std::vector<ContextState> context_states;
     protected:
       // Mapper objects
-      std::map<MapperID, std::pair<MapperManager*, bool /*own*/> > mappers;
+      std::map<MapperID, MapperManager*> mappers;
       // For each mapper something to track its state
       struct MapperState {
       public:

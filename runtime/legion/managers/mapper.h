@@ -31,7 +31,8 @@ namespace Legion {
      * possibly preempt.  This later class of calls are the ones that
      * are made virtual so that the
      */
-    class MapperManager : public InstanceDeletionSubscriber {
+    class MapperManager : public InstanceDeletionSubscriber,
+                          public Collectable {
     public:
       struct AcquireStatus {
       public:
@@ -79,6 +80,7 @@ namespace Legion {
           bool is_default);
       virtual ~MapperManager(void);
     public:
+      void prepare_for_shutdown(void);
       const char* get_mapper_name(void) const;
     public:  // Task mapper calls
       void invoke_select_task_options(
@@ -287,6 +289,12 @@ namespace Legion {
       // Mappers that have tried to steal from us and which we
       // should advertise work when we have it
       std::set<Processor> failed_thiefs;
+    protected:
+      // This shutdown semaphore helps with shutdown races between deleting
+      // the underlying mapper and call backs for instance deletions
+      // Once it becomes negative then it is safe to delete the mapper
+      std::atomic<int> shutdown_semaphore = 0;
+      bool shutdown = false;
     };
 
     /**

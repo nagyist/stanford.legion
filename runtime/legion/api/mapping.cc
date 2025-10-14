@@ -1929,9 +1929,8 @@ namespace Legion {
         return false;
       AutoMapperCall call(ctx, Internal::MAPPER_SUBSCRIBE_INSTANCE_CALL);
       Internal::PhysicalManager* manager = instance.impl->as_physical_manager();
-      const bool result = manager->register_deletion_subscriber(
+      return manager->register_deletion_subscriber(
           ctx->manager, true /*allow duplicates*/);
-      return result;
     }
 
     //--------------------------------------------------------------------------
