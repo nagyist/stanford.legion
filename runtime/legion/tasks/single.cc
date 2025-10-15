@@ -1228,8 +1228,7 @@ namespace Legion {
 
         // Create a physical manager that is not bound to any instance
         PhysicalManager* manager = memory_manager->create_unbound_instance(
-            req.region, constraints, single_task_termination, map_id,
-            target_proc, 0 /*priority*/);
+            req.region, constraints, single_task_termination, 0 /*priority*/);
 
         // Add an instance ref of the new manager to the instance set
         instance_set.add_instance(

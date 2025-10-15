@@ -454,8 +454,7 @@ namespace Legion {
     public:
       PhysicalManager* create_unbound_instance(
           LogicalRegion region, LayoutConstraintSet& constraints,
-          ApEvent ready_event, MapperID mapper_id, Processor target_proc,
-          GCPriority priority);
+          ApEvent ready_event, GCPriority priority);
       void check_instance_deletions(const std::vector<PhysicalManager*>& del);
     protected:
       // We serialize all allocation attempts in a memory in order to
