@@ -47,6 +47,7 @@ namespace Legion {
 
     // clang-format off
     // All the different kinds of active mssages 
+    // (kind, type, name, response, escape context, escape op)
 #define LEGION_ACTIVE_MESSAGES(__op__) \
   __op__(SEND_STARTUP_BARRIER, StartupBarrierMessage, "Startup Barrier Message", false, true, true) \
   __op__(TASK_MESSAGE, TaskMessage, "Distribute Task Message", false, true, true) \
@@ -326,6 +327,8 @@ namespace Legion {
   __op__(SEND_NOTIFY_COLLECTED_INSTANCES, NotifyCollectedInstances, "Notify Collected Instances Message", false, true, true) \
   __op__(SEND_CREATE_MEMORY_POOL_REQUEST, CreatePoolRequest, "Create Memory Pool Request", false, false, false) \
   __op__(SEND_CREATE_MEMORY_POOL_RESPONSE, CreatePoolResponse, "Create Memory Pool Response", true, false, false) \
+  __op__(SEND_CREATE_UNBOUND_REQUEST, CreateUnboundRequest, "Create Unbound Instance Request", false, false, false) \
+  __op__(SEND_CREATE_UNBOUND_RESPONSE, CreateUnboundResponse, "Create Unbound Instances Response", true, false, false) \
   __op__(SEND_CREATE_FUTURE_INSTANCE_REQUEST, CreateFutureInstanceRequest, "Create Future Instance Request", false, false, false) \
   __op__(SEND_CREATE_FUTURE_INSTANCE_RESPONSE, CreateFutureInstanceResponse, "Create Future Instance Response", true, false, false) \
   __op__(SEND_FREE_FUTURE_INSTANCE, FreeFutureInstance, "Free Future Instance Message", false, true, true) \
