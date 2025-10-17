@@ -129,12 +129,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LgEvent::record_event_wait(Realm::Backtrace& bt) const
+    void LgEvent::record_event_wait(
+        Realm::Backtrace& bt, ProvenanceID pid) const
     //--------------------------------------------------------------------------
     {
       legion_assert(exists());
       legion_assert(implicit_profiler != nullptr);
-      implicit_profiler->record_event_wait(*this, bt);
+      implicit_profiler->record_event_wait(*this, pid, bt);
     }
 
     //--------------------------------------------------------------------------

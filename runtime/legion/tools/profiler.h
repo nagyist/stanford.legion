@@ -498,6 +498,7 @@ namespace Legion {
         ProcID proc_id;
         LgEvent fevent;
         LgEvent event;
+        ProvenanceID provenance_id;
         unsigned long long backtrace_id;
       };
       struct ProfTaskInfo {
@@ -697,7 +698,8 @@ namespace Legion {
       void record_application_range(
           ProvenanceID pid, timestamp_t start, timestamp_t stop);
       void record_async_effect(ApEvent effect, const char* provenance);
-      void record_event_wait(LgEvent event, Realm::Backtrace& bt);
+      void record_event_wait(
+          LgEvent event, ProvenanceID pid, Realm::Backtrace& bt);
       void begin_external_wait(LgEvent event);
       void end_external_wait(LgEvent event);
     public:

@@ -1495,13 +1495,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LegionProfInstance::record_event_wait(
-        LgEvent event, Realm::Backtrace& bt)
+        LgEvent event, ProvenanceID pid, Realm::Backtrace& bt)
     //--------------------------------------------------------------------------
     {
       // Check to see if we have a backtrace ID for this backtrace yet
       unsigned long long backtrace_id = owner->find_backtrace_id(bt);
-      event_wait_infos.emplace_back(
-          EventWaitInfo{local_proc.id, implicit_fevent, event, backtrace_id});
+      event_wait_infos.emplace_back(EventWaitInfo{
+          local_proc.id, implicit_fevent, event, pid, backtrace_id});
       if (event.is_barrier())
         record_barrier_use(event, implicit_unique_op_id);
       owner->update_footprint(sizeof(EventWaitInfo), this);

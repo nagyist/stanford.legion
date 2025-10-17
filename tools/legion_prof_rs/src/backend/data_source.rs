@@ -25,7 +25,8 @@ use crate::conditional_assert;
 use crate::state::{
     BacktraceID, ChanEntry, ChanID, Color, Config, Container, ContainerEntry, Copy, CopyInstInfo,
     DeviceKind, EventEntry, EventEntryKind, EventID, Fill, FillInstInfo, Inst, MemID, MemKind,
-    NodeID, OpID, ProcEntryKind, ProcID, ProcKind, ProfUID, State, TimeRange, Timestamp,
+    NodeID, OpID, ProcEntryKind, ProcID, ProcKind, ProfUID, ProvenanceID, State, TimeRange,
+    Timestamp,
 };
 
 impl Into<ts::Timestamp> for Timestamp {
@@ -941,6 +942,7 @@ impl StateDataSource {
                      opacity: f32,
                      status: Option<FieldID>,
                      wait_callee: Option<ProfUID>,
+                     wait_provenance: Option<ProvenanceID>,
                      wait_backtrace: Option<BacktraceID>,
                      wait_event: Option<EventID>,
                      find_previous_executing: bool| {
@@ -969,6 +971,15 @@ impl StateDataSource {
                                     self.generate_proc_link(callee),
                                     None,
                                 ));
+                            }
+                            if let Some(pid) = wait_provenance {
+                                if let Some(provenance) = self.state.find_provenance(pid) {
+                                    item_meta.fields.push(ItemField(
+                                        self.fields.provenance,
+                                        Self::parse_provenance(provenance),
+                                        None,
+                                    ));
+                                }
                             }
                             if let Some(backtrace) = wait_backtrace {
                                 item_meta.fields.push(ItemField(
@@ -1057,6 +1068,7 @@ impl StateDataSource {
                             None,
                             None,
                             None,
+                            None,
                             false,
                         );
                         add_item(
@@ -1064,6 +1076,7 @@ impl StateDataSource {
                             0.15,
                             Some(self.fields.status_waiting),
                             wait.callee,
+                            wait.provenance,
                             wait.backtrace,
                             wait.event,
                             false,
@@ -1072,6 +1085,7 @@ impl StateDataSource {
                             ready_interval,
                             0.45,
                             Some(self.fields.status_ready),
+                            None,
                             None,
                             None,
                             None,
@@ -1089,11 +1103,12 @@ impl StateDataSource {
                             None,
                             None,
                             None,
+                            None,
                             false,
                         );
                     }
                 } else {
-                    add_item(view_interval, 1.0, None, None, None, None, false);
+                    add_item(view_interval, 1.0, None, None, None, None, None, false);
                 }
             }
         }

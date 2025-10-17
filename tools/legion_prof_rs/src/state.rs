@@ -626,7 +626,7 @@ pub struct Proc {
     tasks: BTreeMap<OpID, ProfUID>,
     message_tasks: BTreeSet<ProfUID>,
     meta_tasks: BTreeMap<(OpID, VariantID), Vec<ProfUID>>,
-    event_waits: BTreeMap<ProfUID, BTreeMap<EventID, BacktraceID>>,
+    event_waits: BTreeMap<ProfUID, BTreeMap<EventID, (BacktraceID, Option<ProvenanceID>)>>,
     max_levels: u32,
     time_points: Vec<ProcPoint>,
     time_points_stacked: Vec<Vec<ProcPoint>>,
@@ -694,11 +694,17 @@ impl Proc {
         })
     }
 
-    fn record_event_wait(&mut self, task_uid: ProfUID, event: EventID, backtrace: BacktraceID) {
+    fn record_event_wait(
+        &mut self,
+        task_uid: ProfUID,
+        event: EventID,
+        provenance: Option<ProvenanceID>,
+        backtrace: BacktraceID,
+    ) {
         self.event_waits
             .entry(task_uid)
             .or_insert_with(BTreeMap::new)
-            .insert(event, backtrace);
+            .insert(event, (backtrace, provenance));
     }
 
     fn set_kind(&mut self, kind: ProcKind) -> &mut Self {
@@ -801,10 +807,14 @@ impl Proc {
             // Push waits into the smallest subcall we can find
             let mut to_remove = Vec::new();
             for (idx, wait) in task_entry.waiters.wait_intervals.iter_mut().enumerate() {
-                let mut backtrace = if let Some(event) = wait.event {
-                    event_waits.remove(&event)
+                let (mut backtrace, mut provenance) = if let Some(event) = wait.event {
+                    if let Some((bt, prov)) = event_waits.remove(&event) {
+                        (Some(bt), prov)
+                    } else {
+                        (None, None)
+                    }
                 } else {
-                    None
+                    (None, None)
                 };
                 // Find the smallest containing call
                 for (call_uid, call_start, call_stop) in calls.iter() {
@@ -818,10 +828,12 @@ impl Proc {
                                 wait.ready,
                                 wait.end,
                                 wait.event.unwrap(),
+                                provenance,
                                 backtrace,
                             ));
                         to_remove.push(idx);
                         backtrace = None;
+                        provenance = None;
                         break;
                     } else {
                         // Waits should not be partially overlapping with calls
@@ -830,6 +842,7 @@ impl Proc {
                 }
                 // Save the remaining backtrace if there is one to this waiter
                 wait.backtrace = backtrace;
+                wait.provenance = provenance;
             }
             // Remove any waits that we moved into a call
             for idx in to_remove.iter().rev() {
@@ -889,7 +902,10 @@ impl Proc {
             let task_entry = self.entries.get_mut(task_uid).unwrap();
             for wait in task_entry.waiters.wait_intervals.iter_mut() {
                 if let Some(event) = wait.event {
-                    wait.backtrace = waiters.remove(&event);
+                    if let Some((backtrace, provenance)) = waiters.remove(&event) {
+                        wait.backtrace = Some(backtrace);
+                        wait.provenance = provenance;
+                    }
                 }
             }
         }
@@ -2526,6 +2542,7 @@ pub struct WaitInterval {
     pub end: Timestamp,
     pub callee: Option<ProfUID>,
     pub event: Option<EventID>,
+    pub provenance: Option<ProvenanceID>,
     pub backtrace: Option<BacktraceID>,
 }
 
@@ -2535,6 +2552,7 @@ impl WaitInterval {
         ready: Timestamp,
         end: Timestamp,
         event: EventID,
+        provenance: Option<ProvenanceID>,
         backtrace: Option<BacktraceID>,
     ) -> Self {
         assert!(start <= ready);
@@ -2545,6 +2563,7 @@ impl WaitInterval {
             end,
             callee: None,
             event: Some(event),
+            provenance,
             backtrace,
         }
     }
@@ -2558,6 +2577,7 @@ impl WaitInterval {
             end,
             callee: Some(callee),
             event: None,
+            provenance: None,
             backtrace: None,
         }
     }
@@ -4809,7 +4829,9 @@ fn process_record(
                 .find_task_mut(*op_id)
                 .unwrap()
                 .waiters
-                .add_wait_interval(WaitInterval::from_event(*start, *ready, *end, *event, None));
+                .add_wait_interval(WaitInterval::from_event(
+                    *start, *ready, *end, *event, None, None,
+                ));
         }
         Record::MetaWaitInfo {
             op_id,
@@ -4824,7 +4846,9 @@ fn process_record(
                 .find_last_meta_mut(*op_id, *lg_id)
                 .unwrap()
                 .waiters
-                .add_wait_interval(WaitInterval::from_event(*start, *ready, *end, *event, None));
+                .add_wait_interval(WaitInterval::from_event(
+                    *start, *ready, *end, *event, None, None,
+                ));
         }
         Record::TaskInfo {
             op_id,
@@ -5203,11 +5227,12 @@ fn process_record(
             proc_id,
             fevent,
             event,
+            provenance,
             backtrace_id,
         } => {
             let task_uid = state.create_fevent_reference(*fevent);
             let proc = state.procs.get_mut(proc_id).unwrap();
-            proc.record_event_wait(task_uid, *event, *backtrace_id);
+            proc.record_event_wait(task_uid, *event, *provenance, *backtrace_id);
         }
         Record::EventMergerInfo {
             result,
