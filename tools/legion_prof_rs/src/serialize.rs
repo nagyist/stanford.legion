@@ -146,7 +146,7 @@ pub enum Record {
     ProfTaskInfo { proc_id: ProcID, op_id: OpID, start: Timestamp, stop: Timestamp, creator: EventID, fevent: EventID, completion: bool },
     CalibrationErr { calibration_err: i64 },
     BacktraceDesc { backtrace_id: BacktraceID , backtrace: String },
-    EventWaitInfo { proc_id: ProcID, fevent: EventID, event: EventID, backtrace_id: BacktraceID },
+    EventWaitInfo { proc_id: ProcID, fevent: EventID, event: EventID, provenance: Option<ProvenanceID>, backtrace_id: BacktraceID },
     EventMergerInfo { result: EventID, fevent: EventID, performed: Timestamp, pre0: Option<EventID>, pre1: Option<EventID>, pre2: Option<EventID>, pre3: Option<EventID> },
     EventTriggerInfo { result: EventID, fevent: EventID, precondition: Option<EventID>, performed: Timestamp },
     EventPoisonInfo { result: EventID, fevent: EventID, performed: Timestamp },
@@ -1200,6 +1200,7 @@ fn parse_event_wait_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> 
     let (input, proc_id) = parse_proc_id(input)?;
     let (input, fevent) = parse_event_id(input)?;
     let (input, event) = parse_event_id(input)?;
+    let (input, provenance) = parse_option_provenance_id(input)?;
     let (input, backtrace_id) = parse_backtrace_id(input)?;
     Ok((
         input,
@@ -1207,6 +1208,7 @@ fn parse_event_wait_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> 
             proc_id,
             fevent,
             event,
+            provenance,
             backtrace_id,
         },
     ))

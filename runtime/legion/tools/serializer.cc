@@ -436,6 +436,8 @@ namespace Legion {
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "wait_event:unsigned long long:" << sizeof(LgEvent) << delim
+         << "provenance:unsigned long long:" << sizeof(unsigned long long)
+         << delim
          << "backtrace_id:unsigned long long:" << sizeof(unsigned long long)
          << "}" << std::endl;
 
@@ -1424,6 +1426,7 @@ namespace Legion {
       lp_fwrite(f, (char*)&info.proc_id, sizeof(info.proc_id));
       lp_fwrite(f, (char*)&info.fevent.id, sizeof(info.fevent.id));
       lp_fwrite(f, (char*)&info.event.id, sizeof(info.event.id));
+      lp_fwrite(f, (char*)&info.provenance_id, sizeof(info.provenance_id));
       lp_fwrite(f, (char*)&info.backtrace_id, sizeof(info.backtrace_id));
     }
 
@@ -2437,8 +2440,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       log_prof.print(
-          "Prof Event Wait Info " IDFMT " " IDFMT " " IDFMT " %lld",
-          info.proc_id, info.fevent.id, info.event.id, info.backtrace_id);
+          "Prof Event Wait Info " IDFMT " " IDFMT " " IDFMT " %lld %lld",
+          info.proc_id, info.fevent.id, info.event.id, info.provenance_id,
+          info.backtrace_id);
     }
 
     //--------------------------------------------------------------------------

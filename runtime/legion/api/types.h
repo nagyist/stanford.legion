@@ -809,7 +809,7 @@ namespace Legion {
       void begin_wait(Context ctx, bool from_application) const;
       void end_wait(Context ctx, bool from_application) const;
       void begin_mapper_call_wait(MappingCallInfo* call) const;
-      void record_event_wait(Realm::Backtrace& bt) const;
+      void record_event_wait(Realm::Backtrace& bt, ProvenanceID pid) const;
       void record_event_trigger(LgEvent precondition) const;
     };
 
@@ -1335,7 +1335,7 @@ namespace Legion {
           // Record the backtrace too
           Realm::Backtrace bt;
           bt.capture_backtrace();
-          record_event_wait(bt);
+          record_event_wait(bt, local_provenance);
         }
       }
       else  // Just do the normal wait
@@ -1355,7 +1355,7 @@ namespace Legion {
           // a stack overflow with repeated calls into wait
           Realm::Backtrace bt;
           bt.capture_backtrace();
-          record_event_wait(bt);
+          record_event_wait(bt, local_provenance);
         }
       }
       // Write the context back
@@ -1465,7 +1465,7 @@ namespace Legion {
           // Record the backtrace too
           Realm::Backtrace bt;
           bt.capture_backtrace();
-          record_event_wait(bt);
+          record_event_wait(bt, local_provenance);
         }
       }
       else  // Just do the normal wait
@@ -1485,7 +1485,7 @@ namespace Legion {
           // a stack overflow with repeated calls into wait
           Realm::Backtrace bt;
           bt.capture_backtrace();
-          record_event_wait(bt);
+          record_event_wait(bt, local_provenance);
         }
       }
       // Write the context back
