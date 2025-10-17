@@ -3270,7 +3270,7 @@ namespace Legion {
     }
     else
       domain = request.bounds.value;
-    if ((domain.get_dim() < 1) || (LEGION_MAX_DIM <= domain.get_dim()))
+    if ((domain.get_dim() < 1) || (LEGION_MAX_DIM < domain.get_dim()))
     {
       Error error(LEGION_INTERFACE_EXCEPTION);
       error << "Domain for a deferred buffer creation in " << *ctx << " has "
