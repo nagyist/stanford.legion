@@ -249,8 +249,8 @@ namespace Legion {
           Memory memory, ApEvent& inst_ready, bool silence_warnings,
           const char* warning_string);
       FutureInstance* create_instance(
-          Operation* op, Memory memory, size_t size,
-          RtEvent* safe_for_unbounded_pools);
+          Operation* op, const TaskTreeCoordinates& coords, Memory memory,
+          size_t size, RtEvent* safe_for_unbounded_pools);
       // Must be holding the lock when calling initialize_instance
       ApEvent record_instance(FutureInstance* instance, UniqueID creator_uid);
       Memory find_best_source(Memory target) const;
