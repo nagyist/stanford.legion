@@ -6745,6 +6745,7 @@ namespace Legion {
           prepipeline_queue.pop_front();
         }
       }
+      // No need for a sort here, these operations are already in program order
       // Perform our prepipeline tasks
       for (const std::pair<Operation*, GenerationID>& it : to_perform)
         it.first->execute_prepipeline_stage(it.second, false /*need wait*/);
@@ -6942,6 +6943,7 @@ namespace Legion {
         else
           launch_next_op = dependence_queue.front();
       }
+      // No need for a sort these operations are already in program order
       // Perform our operations
       for (Operation* const & it : to_perform)
       {
@@ -7129,6 +7131,12 @@ namespace Legion {
         if (!ready_queue.empty())
           next = ready_queue.front();
       }
+      // Sort these into program order to guarantee forward progress
+      std::sort(
+          to_perform.begin(), to_perform.end(),
+          [](Operation* lhs, Operation* rhs) {
+            return lhs->get_context_index() < rhs->get_context_index();
+          });
       for (Operation* const & it : to_perform)
       {
         implicit_enclosing_context = did;
@@ -7168,6 +7176,7 @@ namespace Legion {
       SingleTask* next = process_queue<SingleTask*>(
           enqueue_task_lock, precondition, enqueue_task_queue,
           enqueue_task_comp_queue, to_perform, previous_fevent, performed);
+      // No need to sort here, we're just adding these to the ready queue
       for (SingleTask* const & it : to_perform)
       {
         implicit_enclosing_context = did;
@@ -7208,6 +7217,12 @@ namespace Legion {
       Operation* next = process_queue<Operation*>(
           trigger_execution_lock, precondition, trigger_execution_queue,
           trigger_execution_comp_queue, to_perform, previous_fevent, performed);
+      // Sort these in program order to guarantee forward progress
+      std::sort(
+          to_perform.begin(), to_perform.end(),
+          [](Operation* lhs, Operation* rhs) {
+            return lhs->get_context_index(), rhs->get_context_index();
+          });
       for (Operation* const & it : to_perform)
       {
         implicit_enclosing_context = did;
@@ -7249,6 +7264,12 @@ namespace Legion {
           deferred_execution_lock, precondition, deferred_execution_queue,
           deferred_execution_comp_queue, to_perform, previous_fevent,
           performed);
+      // Sort these into program order to guarantee forward progress
+      std::sort(
+          to_perform.begin(), to_perform.end(),
+          [](Operation* lhs, Operation* rhs) {
+            return lhs->get_context_index(), rhs->get_context_index();
+          });
       for (Operation* const & it : to_perform)
       {
         implicit_enclosing_context = did;
@@ -7289,6 +7310,12 @@ namespace Legion {
       Operation* next = process_queue<Operation*>(
           deferred_mapped_lock, precondition, deferred_mapped_queue,
           deferred_mapped_comp_queue, to_perform, previous_fevent, performed);
+      // Sort these into program order to guarantee forward progress
+      std::sort(
+          to_perform.begin(), to_perform.end(),
+          [](Operation* lhs, Operation* rhs) {
+            return lhs->get_context_index() < rhs->get_context_index();
+          });
       for (Operation* const & it : to_perform)
       {
         implicit_enclosing_context = did;
@@ -7410,6 +7437,12 @@ namespace Legion {
           next = deferred_completion_queue.front().op;
         }
       }
+      // Sort these based on program order to guarantee forward progress
+      std::sort(
+          to_perform.begin(), to_perform.end(),
+          [](const CompletionEntry& lhs, const CompletionEntry& rhs) {
+            return lhs.op->get_context_index() < rhs.op->get_context_index();
+          });
       for (const CompletionEntry& it : to_perform)
       {
         bool poisoned = false;
@@ -7479,6 +7512,12 @@ namespace Legion {
         else
           outstanding_commit_task = false;
       }
+      // Sort these based on program order to guarantee forward progress
+      std::sort(
+          to_perform.begin(), to_perform.end(),
+          [](Operation* lhs, Operation* rhs) {
+            return lhs->get_context_index() < rhs->get_context_index();
+          });
       for (std::vector<Operation*>::const_iterator it = to_perform.begin();
            it != to_perform.end(); it++)
       {
@@ -7525,6 +7564,14 @@ namespace Legion {
               deferred_commit_lock, precondition, deferred_commit_queue,
               deferred_commit_comp_queue, to_perform, previous_fevent,
               performed);
+      // Sort these based on program order to guarantee forward progress
+      std::sort(
+          to_perform.begin(), to_perform.end(),
+          [](const std::pair<Operation*, bool>& lhs,
+             const std::pair<Operation*, bool>& rhs) {
+            return lhs.first->get_context_index() <
+                   rhs.first->get_context_index();
+          });
       for (const std::pair<Operation*, bool>& it : to_perform)
       {
         implicit_enclosing_context = did;
