@@ -1519,6 +1519,17 @@ namespace Legion {
       // Make sure that they are all on the same node and of the same kind
       const Processor& first = processors.front();
       const Processor::Kind kind = first.kind();
+      if (is_concurrent() &&
+          ((kind == Processor::PROC_GROUP) || (kind == Processor::PROC_SET)))
+      {
+        Error error(LEGION_MAPPER_EXCEPTION);
+        error << "Invalid mapper output. Mapper " << *mapper
+              << "requested a group processor for " << *this
+              << " in a concurrent index space task launch. When mapping "
+              << "a concurrent index space task launch then group "
+              << "processors are not permitted.";
+        error.raise();
+      }
       const AddressSpace space = first.address_space();
       for (unsigned idx = 0; idx < processors.size(); idx++)
       {
