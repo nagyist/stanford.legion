@@ -966,6 +966,10 @@ impl StateDataSource {
                                     .insert(1, ItemField(status, Field::Interval(interval), None));
                             }
                             if let Some(callee) = wait_callee {
+                                // Filter out any other callee fields
+                                item_meta
+                                    .fields
+                                    .retain(|item_field| item_field.0 != self.fields.callee);
                                 item_meta.fields.push(ItemField(
                                     self.fields.callee,
                                     self.generate_proc_link(callee),
@@ -973,6 +977,10 @@ impl StateDataSource {
                                 ));
                             }
                             if let Some(pid) = wait_provenance {
+                                // Filter out any other provenance fields
+                                item_meta
+                                    .fields
+                                    .retain(|item_field| item_field.0 != self.fields.provenance);
                                 if let Some(provenance) = self.state.find_provenance(pid) {
                                     item_meta.fields.push(ItemField(
                                         self.fields.provenance,
@@ -982,6 +990,10 @@ impl StateDataSource {
                                 }
                             }
                             if let Some(backtrace) = wait_backtrace {
+                                // Filter out any other backtrace fields
+                                item_meta
+                                    .fields
+                                    .retain(|item_field| item_field.0 != self.fields.backtrace);
                                 item_meta.fields.push(ItemField(
                                     self.fields.backtrace,
                                     Field::String(
@@ -991,6 +1003,10 @@ impl StateDataSource {
                                 ));
                             }
                             if let Some(event) = wait_event {
+                                // Filter out any other critical fields
+                                item_meta
+                                    .fields
+                                    .retain(|item_field| item_field.0 != self.fields.critical);
                                 if let Some(event_entry) = self.state.find_critical_entry(event) {
                                     item_meta.fields.push(ItemField(
                                         self.fields.critical,
@@ -999,6 +1015,10 @@ impl StateDataSource {
                                     ));
                                     // Record the time it took for Realm to propagate the event trigger
                                     if event_entry.kind != EventEntryKind::UnknownEvent {
+                                        // Filter out any other trigger_time fields
+                                        item_meta.fields.retain(|item_field| {
+                                            item_field.0 != self.fields.trigger_time
+                                        });
                                         let trigger_time = event_entry.trigger_time.unwrap();
                                         item_meta.fields.push(ItemField(
                                             self.fields.trigger_time,
@@ -1034,6 +1054,12 @@ impl StateDataSource {
                                         device,
                                     )
                                 {
+                                    // Filter out any other previous_executing or
+                                    // scheduling_overhead fields
+                                    item_meta.fields.retain(|item_field| {
+                                        item_field.0 != self.fields.previous_executing
+                                            && item_field.0 != self.fields.scheduling_overhead
+                                    });
                                     item_meta.fields.push(ItemField(
                                         self.fields.previous_executing,
                                         self.generate_previous_executing_link(
