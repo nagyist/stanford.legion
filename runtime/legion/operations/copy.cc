@@ -3620,6 +3620,11 @@ namespace Legion {
         const RegionRequirement& req = dst_requirements[idx];
         if (!IS_WRITE(req) || IS_COLLECTIVE(req))
           continue;
+        // If this is part of an indirection copy then we can't really
+        // know what is actually being written so we don't check it
+        if ((idx < src_indirect_requirements.size()) ||
+            (idx < dst_indirect_requirements.size()))
+          continue;
         // If the projection functions are invertible then we don't have to
         // worry about interference because the runtime knows how to hook
         // up those kinds of dependences
