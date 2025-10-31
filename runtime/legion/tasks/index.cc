@@ -2576,6 +2576,8 @@ namespace Legion {
                   req.region :
                   function->project_point(
                       this, req_pair.second, launch_domain, *itr);
+          if (!point_region.exists())
+            continue;
           IndexSpaceNode* node =
               runtime->get_node(point_region.get_index_space());
           DomainPoint interfering;
