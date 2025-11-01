@@ -8804,7 +8804,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should be the owner for this space
-      legion_assert((space % total_address_spaces) == address_space);
+      legion_assert(
+          (LEGION_DISTRIBUTED_ID_FILTER(space) % total_address_spaces) ==
+          address_space);
       AutoLock l_lock(lookup_lock);
       legion_assert(
           pending_index_spaces.find(space) == pending_index_spaces.end());
@@ -8816,7 +8818,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should be the owner for this space
-      legion_assert((pid % total_address_spaces) == address_space);
+      legion_assert(
+          (LEGION_DISTRIBUTED_ID_FILTER(pid) % total_address_spaces) ==
+          address_space);
       AutoLock l_lock(lookup_lock);
       legion_assert(pending_partitions.find(pid) == pending_partitions.end());
       pending_partitions[pid] = RtUserEvent::NO_RT_USER_EVENT;
@@ -8827,7 +8831,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should be the owner for this space
-      legion_assert((space % total_address_spaces) == address_space);
+      legion_assert(
+          (LEGION_DISTRIBUTED_ID_FILTER(space) % total_address_spaces) ==
+          address_space);
       AutoLock l_lock(lookup_lock);
       legion_assert(
           pending_field_spaces.find(space) == pending_field_spaces.end());
