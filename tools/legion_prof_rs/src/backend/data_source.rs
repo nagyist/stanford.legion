@@ -274,18 +274,11 @@ impl StateDataSource {
                         entry_map.insert(proc_id.clone(), EntryKind::Proc(*proc, *device));
                         proc_entries.insert(*proc, proc_id);
 
-                        let short_name = format!(
-                            "{}{}{}",
-                            kind_first_letter,
-                            proc.proc_in_node(),
-                            short_suffix
-                        );
+                        let short_name =
+                            format!("{}{}{}", kind_first_letter, proc_index, short_suffix);
                         let long_name = format!(
-                            "{} {} {}{}",
-                            node_long_name,
-                            kind_name,
-                            proc.proc_in_node(),
-                            long_suffix
+                            "{} {} {}{} Processor(0x{:x})",
+                            node_long_name, kind_name, proc_index, long_suffix, proc.0
                         );
 
                         let max_rows =
@@ -365,12 +358,10 @@ impl StateDataSource {
 
                         let rows = state.mems.get(mem).unwrap().max_levels(None) as u64 + 1;
                         mem_slots.push(EntryInfo::Slot {
-                            short_name: format!("{}{}", kind_first_letter, mem.mem_in_node()),
+                            short_name: format!("{}{}", kind_first_letter, mem_index),
                             long_name: format!(
-                                "{} {} {}",
-                                node_long_name,
-                                kind_name,
-                                mem.mem_in_node()
+                                "{} {} {} Memory(0x{:x})",
+                                node_long_name, kind_name, mem_index, mem.0
                             ),
                             max_rows: rows,
                         });
@@ -411,21 +402,30 @@ impl StateDataSource {
                                 let kind = state.mems.get(src).unwrap().kind;
                                 let kind_first_letter =
                                     format!("{:?}", kind).chars().next().unwrap().to_lowercase();
-                                let src_node = src.node_id().0;
-                                (
-                                    Some(format!(
-                                        "Node {} {:?} {}",
-                                        src_node,
-                                        kind,
-                                        src.mem_in_node()
-                                    )),
-                                    Some(format!(
-                                        "n{}{}{}",
-                                        src_node,
-                                        kind_first_letter,
-                                        src.mem_in_node()
-                                    )),
-                                )
+                                let src_node = src.node_id();
+                                let mem_group = MemGroup(Some(src_node), kind);
+                                if let Some(mem_vec) = mem_groups.get(&mem_group) {
+                                    // Vector should be sorted so we can binary search
+                                    let mem_index = mem_vec.binary_search(&src).unwrap();
+                                    (
+                                        Some(format!(
+                                            "Node {} {:?} {} Memory(0x{:x})",
+                                            src_node.0, kind, mem_index, src.0
+                                        )),
+                                        Some(format!(
+                                            "n{}{}{}",
+                                            src_node.0, kind_first_letter, mem_index
+                                        )),
+                                    )
+                                } else {
+                                    (
+                                        Some(format!(
+                                            "Node {} {:?} ? Memory(0x{:x})",
+                                            src_node.0, kind, src.0
+                                        )),
+                                        Some(format!("n{}{}?", src_node.0, kind_first_letter)),
+                                    )
+                                }
                             }
                             _ => (None, None),
                         };
@@ -437,21 +437,30 @@ impl StateDataSource {
                                 let kind = state.mems.get(dst).unwrap().kind;
                                 let kind_first_letter =
                                     format!("{:?}", kind).chars().next().unwrap().to_lowercase();
-                                let dst_node = dst.node_id().0;
-                                (
-                                    Some(format!(
-                                        "Node {} {:?} {}",
-                                        dst_node,
-                                        kind,
-                                        dst.mem_in_node()
-                                    )),
-                                    Some(format!(
-                                        "n{}{}{}",
-                                        dst_node,
-                                        kind_first_letter,
-                                        dst.mem_in_node()
-                                    )),
-                                )
+                                let dst_node = dst.node_id();
+                                let mem_group = MemGroup(Some(dst_node), kind);
+                                if let Some(mem_vec) = mem_groups.get(&mem_group) {
+                                    // Vector should be sorted so we can binary search
+                                    let mem_index = mem_vec.binary_search(&dst).unwrap();
+                                    (
+                                        Some(format!(
+                                            "Node {} {:?} {} Memory(0x{:x})",
+                                            dst_node.0, kind, mem_index, dst.0
+                                        )),
+                                        Some(format!(
+                                            "n{}{}{}",
+                                            dst_node.0, kind_first_letter, mem_index
+                                        )),
+                                    )
+                                } else {
+                                    (
+                                        Some(format!(
+                                            "Node {} {:?} ? Memory(0x{:x})",
+                                            dst_node.0, kind, dst.0
+                                        )),
+                                        Some(format!("n{}{}?", dst_node.0, kind_first_letter)),
+                                    )
+                                }
                             }
                             _ => (None, None),
                         };
@@ -1961,12 +1970,22 @@ impl StateDataSource {
                     None,
                 ));
                 if let Some(proc) = self.state.procs.get(&mapper_proc) {
-                    let proc_name = format!(
-                        "Node {} {:?} {}",
-                        mapper_proc.node_id().0,
-                        proc.kind,
-                        mapper_proc.proc_in_node()
-                    );
+                    let proc_node = mapper_proc.node_id();
+                    let proc_kind = proc.kind.unwrap();
+                    let proc_group = ProcGroup(Some(proc_node), proc_kind, None);
+                    let proc_name = if let Some(proc_vec) = self.proc_groups.get(&proc_group) {
+                        let proc_index = proc_vec.binary_search(&mapper_proc).unwrap();
+                        format!(
+                            "Node {} {:?} {} Processor(0x{:x})",
+                            proc_node.0, proc_kind, proc_index, mapper_proc.0
+                        )
+                    } else {
+                        // Don't know what index it is
+                        format!(
+                            "Node {} {:?} ? Processor(0x{:x})",
+                            proc_node.0, proc_kind, mapper_proc.0
+                        )
+                    };
                     fields.push(ItemField(
                         self.fields.mapper_proc,
                         Field::String(proc_name),

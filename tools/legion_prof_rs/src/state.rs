@@ -613,6 +613,9 @@ impl ProcID {
     pub fn node_id(&self) -> NodeID {
         NodeID((self.0 >> 40) & ((1 << 16) - 1))
     }
+    // You probably don't want to use this function since we try to render
+    // by relative processor IDs for each kind now, but it's still here
+    // for backwards compatibility on older backends
     pub fn proc_in_node(&self) -> u64 {
         (self.0) & ((1 << 12) - 1)
     }
@@ -1230,6 +1233,9 @@ impl MemID {
     pub fn node_id(&self) -> NodeID {
         NodeID((self.0 >> 40) & ((1 << 16) - 1))
     }
+    // You probably don't want to use this function since we try to render
+    // by relative memory IDs for each kind now, but it's still here
+    // for backwards compatibility on older backends
     pub fn mem_in_node(&self) -> u64 {
         (self.0) & ((1 << 8) - 1)
     }
