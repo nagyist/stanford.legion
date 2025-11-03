@@ -1143,7 +1143,7 @@ impl Container for Proc {
     ) -> Option<(ProfUID, Timestamp, Timestamp)> {
         // If this is an I/O processor then there is no concept of a "previous"
         // as there might be multiple ranges executing at the same time
-        // Same is true for "external
+        // Same is true for "external"
         let proc_kind = self.kind.unwrap();
         if proc_kind == ProcKind::IO || proc_kind == ProcKind::External {
             return None;
