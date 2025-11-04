@@ -42,7 +42,7 @@ pub enum ProcKind {
 impl ProcKind {
     fn name(self) -> &'static str {
         match self {
-            ProcKind::External => "External",
+            ProcKind::External => "Extern",
             ProcKind::GPU => "GPU",
             ProcKind::CPU => "CPU",
             ProcKind::Utility => "Utility",
