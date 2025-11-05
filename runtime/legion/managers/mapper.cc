@@ -817,17 +817,20 @@ namespace Legion {
         }
         // Successfully incremented the shutdown semaphore
         implicit_mapper_call = nullptr;
-        const MappingInstance instance(manager);
-        MappingCallInfo ctx(this, HANDLE_INSTANCE_COLLECTION_CALL, nullptr);
-        mapper->handle_instance_collection(&ctx, instance);
+        {
+          const MappingInstance instance(manager);
+          MappingCallInfo ctx(this, HANDLE_INSTANCE_COLLECTION_CALL, nullptr);
+          mapper->handle_instance_collection(&ctx, instance);
+        }
         if (manager->remove_base_resource_ref(MAPPER_REF))
           delete manager;
         // Now decrement the shutdown semaphore
         previous = shutdown_semaphore.fetch_sub(1);
         legion_assert(previous >= 0);
-        // Once the shutdown semaphore becomes negate we delete the mapper
+        // Once the shutdown semaphore becomes negative we delete the mapper
         if (previous == 0)
           delete mapper;
+        legion_assert((previous_mapper_call == nullptr) || (previous > 0));
         implicit_mapper_call = previous_mapper_call;
       }
     }
