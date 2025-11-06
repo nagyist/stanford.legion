@@ -271,13 +271,15 @@ namespace Legion {
       FutureImpl* future = new FutureImpl(
           this, true /*register*/, runtime->get_available_distributed_id(),
           provenance);
+      // Create the handle to add a reference before doing the match
+      Future result(future);
       future->set_future_result_size(future_size, runtime->address_space);
       // The consensus match object will delete itself!
       ConsensusMatchExchange* collective = new ConsensusMatchExchange(
           this, COLLECTIVE_LOC_89, future, input, output, element_size,
           num_elements);
       collective->perform_collective_async();
-      return Future(future);
+      return result;
     }
 
     //--------------------------------------------------------------------------
