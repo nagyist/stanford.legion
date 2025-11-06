@@ -393,9 +393,8 @@ namespace Legion {
         functor->iterator.is_valid = is_itr.valid;
         if (is_itr.valid)
         {
-          // Always use coord_t for the rect so we don't demux unnecessarily
-          Realm::Rect<N::N, coord_t> rect = is_itr.rect;
-          Realm::PointInRectIterator<N::N, coord_t> rect_itr(rect);
+          Realm::Rect<N::N, T> rect = is_itr.rect;
+          Realm::PointInRectIterator<N::N, T> rect_itr(rect);
           static_assert(
               sizeof(rect_itr) <= sizeof(functor->iterator.rect_iterator));
           assert(rect_itr.valid);
@@ -426,9 +425,8 @@ namespace Legion {
         functor->iterator.is_valid = is_itr.valid;
         if (is_itr.valid)
         {
-          // Convert to rect with coord_t
-          Realm::Rect<N::N, coord_t> rect = is_itr.rect;
-          Realm::PointInRectIterator<N::N, coord_t> new_rectitr(rect);
+          Realm::Rect<N::N, T> rect = is_itr.rect;
+          Realm::PointInRectIterator<N::N, T> new_rectitr(rect);
           legion_assert(new_rectitr.valid);
           functor->iterator.rect_valid = true;
           functor->iterator.p = new_rectitr.p;
