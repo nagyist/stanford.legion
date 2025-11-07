@@ -24,10 +24,11 @@ use crate::backend::common::{CopyInstInfoVec, FillInstInfoVec, InstPretty, SizeP
 use crate::num_util::Postincrement;
 use crate::serialize::Record;
 
-// Make sure this is up to date with lowlevel.h
+// Make sure this is up to date with realm_c.h
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, TryFromPrimitive)]
 #[repr(i32)]
 pub enum ProcKind {
+    External = 0, // This is technically a NO_PROC, but we've repurposed it
     GPU = 1,
     CPU = 2,
     Utility = 3,
@@ -41,6 +42,7 @@ pub enum ProcKind {
 impl ProcKind {
     fn name(self) -> &'static str {
         match self {
+            ProcKind::External => "Extern",
             ProcKind::GPU => "GPU",
             ProcKind::CPU => "CPU",
             ProcKind::Utility => "Utility",
@@ -1144,7 +1146,9 @@ impl Container for Proc {
     ) -> Option<(ProfUID, Timestamp, Timestamp)> {
         // If this is an I/O processor then there is no concept of a "previous"
         // as there might be multiple ranges executing at the same time
-        if self.kind.unwrap() == ProcKind::IO {
+        // Same is true for "external"
+        let proc_kind = self.kind.unwrap();
+        if proc_kind == ProcKind::IO || proc_kind == ProcKind::External {
             return None;
         }
         let mut result = None;
