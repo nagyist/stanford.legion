@@ -964,45 +964,22 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  inline Domain::DomainPointIterator::DomainPointIterator(const Domain& d)
-    : is_type(d.is_type)
+  inline Domain::DomainPointIterator::DomainPointIterator(
+      const Domain& d, bool order)
+    : is_type(d.is_type), fortran_order(order)
   //----------------------------------------------------------------------------
   {
     p.dim = d.get_dim();
     if (d.dense())
     {
-      // We've just got a rect so we can do the dumb thing
-      switch (p.get_dim())
+      iter_valid = false;
+      rect_valid = !d.empty();
+      if (rect_valid)
       {
-        case 0:
-          {
-            is_valid = false;
-            break;
-          }
-#define DIMFUNC(DIM)                                            \
-  case DIM:                                                     \
-    {                                                           \
-      Rect<DIM, coord_t> rect = d;                              \
-      Realm::PointInRectIterator<DIM, coord_t> rect_itr(rect);  \
-      static_assert(sizeof(rect_itr) <= sizeof(rect_iterator)); \
-      rect_valid = rect_itr.valid;                              \
-      if (rect_valid)                                           \
-      {                                                         \
-        is_valid = true;                                        \
-        p = rect_itr.p;                                         \
-        memcpy(rect_iterator, &rect_itr, sizeof(rect_itr));     \
-      }                                                         \
-      else                                                      \
-      {                                                         \
-        is_valid = false;                                       \
-      }                                                         \
-      break;                                                    \
-    }
-          LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-        default:
-          assert(0);
-      };
+        rect_lo = d.lo();
+        rect_hi = d.hi();
+        p = rect_lo;
+      }
     }
     else
     {
@@ -1015,62 +992,72 @@ namespace Legion {
   //----------------------------------------------------------------------------
   inline Domain::DomainPointIterator::DomainPointIterator(
       const DomainPointIterator& rhs)
-    : p(rhs.p), is_type(rhs.is_type), is_valid(rhs.is_valid),
-      rect_valid(rhs.rect_valid)
+    : p(rhs.p), rect_lo(rhs.rect_lo), rect_hi(rhs.rect_hi),
+      is_type(rhs.is_type), iter_valid(rhs.iter_valid),
+      rect_valid(rhs.rect_valid), fortran_order(rhs.fortran_order)
   //----------------------------------------------------------------------------
   {
-    memcpy(
-        is_iterator, rhs.is_iterator,
-        sizeof(Realm::IndexSpaceIterator<MAX_RECT_DIM, coord_t>));
-    memcpy(
-        rect_iterator, rhs.rect_iterator,
-        sizeof(Realm::PointInRectIterator<MAX_RECT_DIM, coord_t>));
+    if (iter_valid)
+      std::memcpy(
+          is_iterator, rhs.is_iterator,
+          sizeof(Realm::IndexSpaceIterator<MAX_RECT_DIM, coord_t>));
   }
 
   //----------------------------------------------------------------------------
   inline bool Domain::DomainPointIterator::step(void)
   //----------------------------------------------------------------------------
   {
-    assert(is_valid && rect_valid);
-    // Step the rect iterator first and see if we can just get a new point
-    // from the rect iterator without needing to demux
-    switch (p.get_dim())
+    assert(rect_valid);
+    // Just stepping to the next point inside of the rect if we can
+    const int dim = p.get_dim();
+    if (fortran_order)
     {
-#define DIMFUNC(DIM)                                        \
-  case DIM:                                                 \
-    {                                                       \
-      Realm::PointInRectIterator<DIM, coord_t> rect_itr;    \
-      memcpy(&rect_itr, rect_iterator, sizeof(rect_itr));   \
-      rect_itr.step();                                      \
-      rect_valid = rect_itr.valid;                          \
-      if (rect_valid)                                       \
-      {                                                     \
-        p = rect_itr.p;                                     \
-        memcpy(rect_iterator, &rect_itr, sizeof(rect_itr)); \
-      }                                                     \
-      break;                                                \
+      // do dimensions in increasing order
+      for (int d = 0; d < dim; d++)
+      {
+        if (p[d] < rect_hi[d])
+        {
+          p[d]++;
+          return true;
+        }
+        p[d] = rect_lo[d];
+      }
     }
-      LEGION_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-      default:
-        assert(0);
-    }
-    if (!rect_valid && (is_type > 0))
+    else
     {
-      // If we had a sparsity map, try to step the index space iterator
-      // to the next rectangle using a demux
+      // do dimensions in decreasing order
+      for (int d = dim - 1; d >= 0; d--)
+      {
+        if (p[d] < rect_hi[d])
+        {
+          p[d]++;
+          return true;
+        }
+        p[d] = rect_lo[d];
+      }
+    }
+    // Stepping to the next rect if there is one
+    legion_assert(p == rect_lo);
+    if (iter_valid)
+    {
+      // See if we can step to the next rectangle in the sparsity map
       IteratorStepFunctor functor(*this);
       Internal::NT_TemplateHelper::demux<IteratorStepFunctor>(
           is_type, &functor);
+      return true;
     }
-    return is_valid && rect_valid;
+    else
+    {
+      rect_valid = false;
+      return false;
+    }
   }
 
   //----------------------------------------------------------------------------
   inline Domain::DomainPointIterator::operator bool(void) const
   //----------------------------------------------------------------------------
   {
-    return is_valid && rect_valid;
+    return rect_valid;
   }
 
   //----------------------------------------------------------------------------
@@ -1086,15 +1073,16 @@ namespace Legion {
   //----------------------------------------------------------------------------
   {
     p = rhs.p;
-    memcpy(
-        is_iterator, rhs.is_iterator,
-        sizeof(Realm::IndexSpaceIterator<MAX_RECT_DIM, coord_t>));
-    memcpy(
-        rect_iterator, rhs.rect_iterator,
-        sizeof(Realm::PointInRectIterator<MAX_RECT_DIM, coord_t>));
     is_type = rhs.is_type;
-    is_valid = rhs.is_valid;
+    fortran_order = rhs.fortran_order;
     rect_valid = rhs.rect_valid;
+    rect_lo = rhs.rect_lo;
+    rect_hi = rhs.rect_hi;
+    iter_valid = rhs.iter_valid;
+    if (iter_valid)
+      std::memcpy(
+          is_iterator, rhs.is_iterator,
+          sizeof(Realm::IndexSpaceIterator<MAX_RECT_DIM, coord_t>));
     return *this;
   }
 
