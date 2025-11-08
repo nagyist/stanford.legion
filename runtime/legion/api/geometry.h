@@ -278,8 +278,10 @@ namespace Legion {
       uint8_t
           is_iterator[sizeof(Realm::IndexSpaceIterator<MAX_RECT_DIM, coord_t>)];
       DomainPoint rect_lo, rect_hi;
-      TypeTag is_type;
-      bool iter_valid, rect_valid, fortran_order;
+      TypeTag is_type = 0;
+      bool iter_valid = false;
+      bool rect_valid = false;
+      bool fortran_order = true;
     };
   protected:
   public:
