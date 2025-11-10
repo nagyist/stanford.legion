@@ -822,8 +822,6 @@ namespace Legion {
           MappingCallInfo ctx(this, HANDLE_INSTANCE_COLLECTION_CALL, nullptr);
           mapper->handle_instance_collection(&ctx, instance);
         }
-        if (manager->remove_base_resource_ref(MAPPER_REF))
-          delete manager;
         // Now decrement the shutdown semaphore
         previous = shutdown_semaphore.fetch_sub(1);
         legion_assert(previous >= 0);
