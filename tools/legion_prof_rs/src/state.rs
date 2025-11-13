@@ -5498,17 +5498,21 @@ fn process_record(
             performed,
         } => {
             let creator_uid = state.create_fevent_reference(*unique);
-            if let Some(result) = *result {
-                let dst = state.record_event_node(
+            let dst = if let Some(result) = *result {
+                Some(state.record_event_node(
                     result,
                     EventEntryKind::InstanceReady,
                     creator_uid,
                     *performed,
                     None,
                     false,
-                );
-                if let Some(precondition) = *precondition {
-                    state.create_inst(*unique, insts).set_critical(precondition);
+                ))
+            } else {
+                None
+            };
+            if let Some(precondition) = *precondition {
+                state.create_inst(*unique, insts).set_critical(precondition);
+                if let Some(dst) = dst {
                     let src = state.find_event_node(precondition);
                     state.event_graph.add_edge(src, dst, ());
                 }
