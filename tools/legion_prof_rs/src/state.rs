@@ -5498,18 +5498,24 @@ fn process_record(
             performed,
         } => {
             let creator_uid = state.create_fevent_reference(*unique);
-            let dst = state.record_event_node(
-                *result,
-                EventEntryKind::InstanceReady,
-                creator_uid,
-                *performed,
-                None,
-                false,
-            );
+            let dst = if let Some(result) = *result {
+                Some(state.record_event_node(
+                    result,
+                    EventEntryKind::InstanceReady,
+                    creator_uid,
+                    *performed,
+                    None,
+                    false,
+                ))
+            } else {
+                None
+            };
             if let Some(precondition) = *precondition {
                 state.create_inst(*unique, insts).set_critical(precondition);
-                let src = state.find_event_node(precondition);
-                state.event_graph.add_edge(src, dst, ());
+                if let Some(dst) = dst {
+                    let src = state.find_event_node(precondition);
+                    state.event_graph.add_edge(src, dst, ());
+                }
             }
         }
         Record::InstanceRedistrictInfo {
@@ -5520,20 +5526,26 @@ fn process_record(
             performed,
         } => {
             let creator_uid = state.create_fevent_reference(*previous);
-            let dst = state.record_event_node(
-                *result,
-                EventEntryKind::InstanceRedistrict,
-                creator_uid,
-                *performed,
-                None,
-                true, /*deduplicate*/
-            );
+            let dst = if let Some(result) = *result {
+                Some(state.record_event_node(
+                    result,
+                    EventEntryKind::InstanceRedistrict,
+                    creator_uid,
+                    *performed,
+                    None,
+                    true, /*deduplicate*/
+                ))
+            } else {
+                None
+            };
             let next_inst = state.create_inst(*next, insts);
             next_inst.set_previous(creator_uid);
             if let Some(precondition) = *precondition {
                 next_inst.set_critical(precondition);
-                let src = state.find_event_node(precondition);
-                state.event_graph.add_edge(src, dst, ());
+                if let Some(dst) = dst {
+                    let src = state.find_event_node(precondition);
+                    state.event_graph.add_edge(src, dst, ());
+                }
             }
         }
         Record::SpawnInfo { fevent, spawn } => {
