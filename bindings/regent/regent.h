@@ -24,6 +24,12 @@
 #define REGENT_USE_CUDA 0
 #endif
 
+#ifdef LEGION_REDOP_COMPLEX
+#define REGENT_REDOP_COMPLEX 1
+#else
+#define REGENT_REDOP_COMPLEX 0
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
