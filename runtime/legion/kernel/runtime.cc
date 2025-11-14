@@ -8845,7 +8845,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should be the owner for this space
-      legion_assert((tid % total_address_spaces) == address_space);
+      legion_assert(
+          (LEGION_DISTRIBUTED_ID_FILTER(tid) % total_address_spaces) ==
+          address_space);
       AutoLock l_lock(lookup_lock);
       legion_assert(
           pending_region_trees.find(tid) == pending_region_trees.end());
