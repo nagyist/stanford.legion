@@ -276,7 +276,9 @@ namespace Legion {
         RegistrationCallback call, bool dedup, size_t tag)
       : withoutargs(call), dedup_tag(tag), deduplicate(dedup), has_args(false)
     //--------------------------------------------------------------------------
-    { }
+    {
+      legion_assert(withoutargs);
+    }
 
     //--------------------------------------------------------------------------
     PendingRegistrationCallback::PendingRegistrationCallback(
@@ -285,7 +287,9 @@ namespace Legion {
       : withargs(call), buffer(buf), dedup_tag(tag), deduplicate(dedup),
         has_args(true)
     //--------------------------------------------------------------------------
-    { }
+    {
+      legion_assert(withargs);
+    }
 
     //--------------------------------------------------------------------------
     PendingRegistrationCallback::PendingRegistrationCallback(
@@ -296,9 +300,15 @@ namespace Legion {
     {
       rhs.buffer = UntypedBuffer();
       if (has_args)
+      {
         withargs = std::move(rhs.withargs);
+        legion_assert(withargs);
+      }
       else
+      {
         withoutargs = std::move(rhs.withoutargs);
+        legion_assert(withoutargs);
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1234,11 +1244,11 @@ namespace Legion {
           // First check to that we can convert the std::function back into
           // a function pointer, if we can't do that then there's no hope
           const Realm::FunctionPointerImplementation impl(
-              *(callback.has_args ?
-                    (void (* const *)())callback.withargs
-                        .target<RegistrationWithArgsCallbackFnptr>() :
-                    (void (* const *)())callback.withoutargs
-                        .target<RegistrationCallbackFnptr>()));
+              (callback.has_args ?
+                   (void (*)())callback.withargs
+                       .target<RegistrationWithArgsCallbackFnptr>() :
+                   (void (*)())callback.withoutargs
+                       .target<RegistrationCallbackFnptr>()));
           if (impl.fnptr == nullptr)
           {
             Fatal fatal;
@@ -1251,6 +1261,13 @@ namespace Legion {
                 << "a call to 'dladdr'. This requires that they come from a "
                 << "shared object or the binary is linked with the '-rdynamic' "
                 << "flag.";
+#ifdef __clang__
+            fatal << " It looks like you compiled Legion with clang so if "
+                  << "your callback is actually a function pointer it's likely "
+                  << "that you are hitting this LLVM bug: "
+                  << "https://github.com/llvm/llvm-project/issues/36746 "
+                  << "Please double check before reporting any issues.";
+#endif
             fatal.raise();
           }
           // Convert this to it's portable representation or raise an error
@@ -1341,12 +1358,12 @@ namespace Legion {
         }
         else
         {
-          void* fnptr = *(
-              callback.has_args ?
-                  (void**)callback.withargs
-                      .target<RegistrationWithArgsCallbackFnptr>() :
-                  (void**)
-                      callback.withoutargs.target<RegistrationCallbackFnptr>());
+          void* fnptr =
+              (callback.has_args ?
+                   (void*)callback.withargs
+                       .target<RegistrationWithArgsCallbackFnptr>() :
+                   (void*)callback.withoutargs
+                       .target<RegistrationCallbackFnptr>());
           if (fnptr == nullptr)
           {
             Fatal fatal;
@@ -1356,6 +1373,13 @@ namespace Legion {
                      "facilitate "
                   << "identification of the same callback from different "
                      "sources.";
+#ifdef __clang__
+            fatal << " It looks like you compiled Legion with clang so if "
+                  << "your callback is actually a function pointer it's likely "
+                  << "that you are hitting this LLVM bug: "
+                  << "https://github.com/llvm/llvm-project/issues/36746 "
+                  << "Please double check before reporting any issues.";
+#endif
             fatal.raise();
           }
           std::map<void*, RtEvent>::const_iterator local_finder =
@@ -12290,6 +12314,13 @@ namespace Legion {
         RegistrationCallback callback, bool deduplicate, size_t dedup_tag)
     //--------------------------------------------------------------------------
     {
+      if (!callback)
+      {
+        Warning warning;
+        warning << "Skipping request to add an empty registration callback";
+        warning.raise();
+        return;
+      }
       if (!runtime_started)
       {
         std::vector<PendingRegistrationCallback>& registration_callbacks =
@@ -12314,6 +12345,13 @@ namespace Legion {
         bool deduplicate, size_t dedup_tag)
     //--------------------------------------------------------------------------
     {
+      if (!callback)
+      {
+        Warning warning;
+        warning << "Skipping request to add an empty registration callback";
+        warning.raise();
+        return;
+      }
       if (!runtime_started)
       {
         std::vector<PendingRegistrationCallback>& registration_callbacks =
@@ -12347,6 +12385,13 @@ namespace Legion {
         size_t dedup_tag)
     //--------------------------------------------------------------------------
     {
+      if (!callback)
+      {
+        Warning warning;
+        warning << "Skipping request to perform an empty registration callback";
+        warning.raise();
+        return;
+      }
       if (runtime_started)
       {
         const PendingRegistrationCallback registration(
@@ -12374,6 +12419,13 @@ namespace Legion {
         bool global, bool deduplicate, size_t dedup_tag)
     //--------------------------------------------------------------------------
     {
+      if (!callback)
+      {
+        Warning warning;
+        warning << "Skipping request to perform an empty registration callback";
+        warning.raise();
+        return;
+      }
       if (runtime_started)
       {
         const PendingRegistrationCallback registration(
