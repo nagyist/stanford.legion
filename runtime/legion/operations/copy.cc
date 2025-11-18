@@ -3613,17 +3613,19 @@ namespace Legion {
     void IndexCopyOp::start_check_point_requirements(void)
     //--------------------------------------------------------------------------
     {
+      // If this is part of an indirection copy then we can't really know
+      // what is actually being written so we aren't going to check it
+      // This is the same as what Legion Spy does for now, TBD if there
+      // is something better that we can do
+      if (!src_indirect_requirements.empty() ||
+          !dst_indirect_requirements.empty())
+        return;
       // Handle any region requirements which can interfere with itself
       // which wouldn't have been picked up the logical analysis
       for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
       {
         const RegionRequirement& req = dst_requirements[idx];
         if (!IS_WRITE(req) || IS_COLLECTIVE(req))
-          continue;
-        // If this is part of an indirection copy then we can't really
-        // know what is actually being written so we don't check it
-        if ((idx < src_indirect_requirements.size()) ||
-            (idx < dst_indirect_requirements.size()))
           continue;
         // If the projection functions are invertible then we don't have to
         // worry about interference because the runtime knows how to hook
