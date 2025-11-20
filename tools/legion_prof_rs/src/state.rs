@@ -842,7 +842,13 @@ impl Proc {
                         break;
                     } else {
                         // Waits should not be partially overlapping with calls
-                        assert!((wait.end <= *call_start) || (*call_stop <= wait.start));
+                        // Note this still allows waits which dominates entire
+                        // calls which can happen on external threads
+                        assert!(
+                            (wait.end <= *call_start)
+                                || (*call_stop <= wait.start)
+                                || ((wait.start <= *call_start) && (*call_stop <= wait.end))
+                        );
                     }
                 }
                 // Save the remaining backtrace if there is one to this waiter
