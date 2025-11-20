@@ -1149,6 +1149,8 @@ def run_tests(test_modules=None,
 
     if not tmp_dir:
         tmp_dir = tempfile.mkdtemp(dir=root_dir)
+        if keep_tmp_dir:
+            os.chmod(tmp_dir, 0o755)
     else:
         if os.path.exists(tmp_dir):
             shutil.rmtree(tmp_dir)
