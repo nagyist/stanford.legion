@@ -11508,18 +11508,37 @@ namespace Legion {
       if (!proxy.exists())
       {
         legion_assert(!local_procs.empty());
-        for (const Processor& local_proc : local_procs)
+        if (proc_kind != Processor::NO_KIND)
         {
-          if (local_proc.kind() == proc_kind)
+          for (const Processor& local_proc : local_procs)
           {
-            proxy = local_proc;
-            break;
+            if (local_proc.kind() == proc_kind)
+            {
+              proxy = local_proc;
+              break;
+            }
+          }
+          if (!proxy.exists())
+          {
+            Error error(LEGION_RESOURCE_EXCEPTION);
+            error << "Unable to find a proxy processor of kind " << proc_kind
+                  << " for implicit top-level task ";
+            if (task_name != nullptr)
+              error << task_name;
+            else
+              error << top_task_id;
+            error << " on node " << address_space
+                  << ". If you specify that a particular kind of "
+                  << "processor kind must be found for an implicit "
+                  << "top-level task then you must guarantee that the "
+                  << "machine was configured with at least one such "
+                  << "processor on this node.";
+            error.raise();
           }
         }
+        else  // Processor kind doesn't matter so use any
+          proxy = *local_procs.begin();
       }
-      // TODO: remove this once realm supports drafting this thread
-      // as a new kind of processor to use
-      legion_assert(proxy.exists());
       SingleTask* local_task = nullptr;
       // Now that the runtime is started we can make our context
       if (control_replicable && (total_address_spaces > 1))
