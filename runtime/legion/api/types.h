@@ -16,6 +16,7 @@
 #ifndef __LEGION_TYPES_H__
 #define __LEGION_TYPES_H__
 
+#include <cassert>
 #include <limits>
 #include <optional>
 #include <functional>
