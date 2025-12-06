@@ -457,7 +457,7 @@ do
     end
   end
   -- Prefill the table of reduction op IDs for complex types.
-  do
+  if c.REGENT_REDOP_COMPLEX == 1 then
     base.update_reduction_op("+", base.complex32, c.LEGION_REDOP_SUM_COMPLEX64)
     base.update_reduction_op("-", base.complex32, c.LEGION_REDOP_SUM_COMPLEX64)
     base.update_reduction_op("*", base.complex32, c.LEGION_REDOP_PROD_COMPLEX64)

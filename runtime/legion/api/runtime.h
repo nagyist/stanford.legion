@@ -4683,7 +4683,8 @@ namespace Legion {
      * proceeding to the next node.
      */
     Context begin_implicit_task(
-        TaskID top_task_id, MapperID mapper_id, Processor::Kind proc_kind,
+        TaskID top_task_id, MapperID mapper_id,
+        Processor::Kind proc_kind = Processor::NO_KIND,
         const char* task_name = nullptr, bool control_replicable = false,
         unsigned shard_per_address_space = 1, int shard_id = -1,
         DomainPoint shard_point = DomainPoint());

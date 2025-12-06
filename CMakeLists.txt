@@ -421,7 +421,7 @@ if("${Legion_NETWORKS}" MATCHES ".*gasnet(1|ex).*")
     set(GASNet_GITREPO ${Legion_EMBED_GASNet_GITREPO})
 
     set(Legion_EMBED_GASNet_GITREF
-      "3db4ea2f92ea6bfba6fe9538cb001b6a34b2f373" # master as of 2025-02-20
+      "e6415859b1019d9155fd73ee2178350911522e1f" # master as of 2025-09-05
       CACHE STRING "Branch/tag/commit to use from StanfordLegion/gasnet repository")
     set(GASNet_GITREF ${Legion_EMBED_GASNet_GITREF})
 
@@ -1018,9 +1018,6 @@ if(Legion_BUILD_ALL OR Legion_BUILD_BINDINGS)
   option(Legion_REDOP_COMPLEX "Use reduction operators for complex types" ON)
 else()
   option(Legion_REDOP_COMPLEX "Use reduction operators for complex types" OFF)
-endif()
-if((Legion_BUILD_ALL OR Legion_BUILD_BINDINGS) AND NOT Legion_REDOP_COMPLEX)
-  message(FATAL_ERROR "Bindings require Legion_REDOP_COMPLEX to be set")
 endif()
 if(Legion_REDOP_COMPLEX)
   # define variable for legion_defines.h

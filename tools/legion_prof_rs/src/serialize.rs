@@ -154,8 +154,8 @@ pub enum Record {
     BarrierArrivalInfo { result: EventID, fevent: EventID, precondition: Option<EventID>, performed: Timestamp },
     ReservationAcquireInfo { result: EventID, fevent: EventID, precondition: Option<EventID>, performed: Timestamp, reservation: u64 },
     CompletionQueueInfo { result: EventID, fevent: EventID, performed: Timestamp, pre0: Option<EventID>, pre1: Option<EventID>, pre2: Option<EventID>, pre3: Option<EventID> },
-    InstanceReadyInfo { result: EventID, precondition: Option<EventID>, unique: EventID, performed: Timestamp },
-    InstanceRedistrictInfo { result: EventID, precondition: Option<EventID>, previous: EventID, next: EventID, performed: Timestamp },
+    InstanceReadyInfo { result: Option<EventID>, precondition: Option<EventID>, unique: EventID, performed: Timestamp },
+    InstanceRedistrictInfo { result: Option<EventID>, precondition: Option<EventID>, previous: EventID, next: EventID, performed: Timestamp },
     SpawnInfo { fevent: EventID, spawn: Timestamp },
 }
 
@@ -1312,7 +1312,7 @@ fn parse_reservation_acquire_info(input: &[u8], _max_dim: i32) -> IResult<&[u8],
     ))
 }
 fn parse_instance_ready_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
-    let (input, result) = parse_event_id(input)?;
+    let (input, result) = parse_option_event_id(input)?;
     let (input, precondition) = parse_option_event_id(input)?;
     let (input, unique) = parse_event_id(input)?;
     let (input, performed) = parse_timestamp(input)?;
@@ -1327,7 +1327,7 @@ fn parse_instance_ready_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Reco
     ))
 }
 fn parse_instance_redistrict_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
-    let (input, result) = parse_event_id(input)?;
+    let (input, result) = parse_option_event_id(input)?;
     let (input, precondition) = parse_option_event_id(input)?;
     let (input, previous) = parse_event_id(input)?;
     let (input, next) = parse_event_id(input)?;

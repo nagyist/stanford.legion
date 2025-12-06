@@ -24,10 +24,11 @@ use crate::backend::common::{CopyInstInfoVec, FillInstInfoVec, InstPretty, SizeP
 use crate::num_util::Postincrement;
 use crate::serialize::Record;
 
-// Make sure this is up to date with lowlevel.h
+// Make sure this is up to date with realm_c.h
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, TryFromPrimitive)]
 #[repr(i32)]
 pub enum ProcKind {
+    External = 0, // This is technically a NO_PROC, but we've repurposed it
     GPU = 1,
     CPU = 2,
     Utility = 3,
@@ -41,6 +42,7 @@ pub enum ProcKind {
 impl ProcKind {
     fn name(self) -> &'static str {
         match self {
+            ProcKind::External => "Extern",
             ProcKind::GPU => "GPU",
             ProcKind::CPU => "CPU",
             ProcKind::Utility => "Utility",
@@ -613,6 +615,9 @@ impl ProcID {
     pub fn node_id(&self) -> NodeID {
         NodeID((self.0 >> 40) & ((1 << 16) - 1))
     }
+    // You probably don't want to use this function since we try to render
+    // by relative processor IDs for each kind now, but it's still here
+    // for backwards compatibility on older backends
     pub fn proc_in_node(&self) -> u64 {
         (self.0) & ((1 << 12) - 1)
     }
@@ -837,7 +842,13 @@ impl Proc {
                         break;
                     } else {
                         // Waits should not be partially overlapping with calls
-                        assert!((wait.end <= *call_start) || (*call_stop <= wait.start));
+                        // Note this still allows waits which dominates entire
+                        // calls which can happen on external threads
+                        assert!(
+                            (wait.end <= *call_start)
+                                || (*call_stop <= wait.start)
+                                || ((wait.start <= *call_start) && (*call_stop <= wait.end))
+                        );
                     }
                 }
                 // Save the remaining backtrace if there is one to this waiter
@@ -1141,7 +1152,9 @@ impl Container for Proc {
     ) -> Option<(ProfUID, Timestamp, Timestamp)> {
         // If this is an I/O processor then there is no concept of a "previous"
         // as there might be multiple ranges executing at the same time
-        if self.kind.unwrap() == ProcKind::IO {
+        // Same is true for "external"
+        let proc_kind = self.kind.unwrap();
+        if proc_kind == ProcKind::IO || proc_kind == ProcKind::External {
             return None;
         }
         let mut result = None;
@@ -1230,6 +1243,9 @@ impl MemID {
     pub fn node_id(&self) -> NodeID {
         NodeID((self.0 >> 40) & ((1 << 16) - 1))
     }
+    // You probably don't want to use this function since we try to render
+    // by relative memory IDs for each kind now, but it's still here
+    // for backwards compatibility on older backends
     pub fn mem_in_node(&self) -> u64 {
         (self.0) & ((1 << 8) - 1)
     }
@@ -5488,18 +5504,24 @@ fn process_record(
             performed,
         } => {
             let creator_uid = state.create_fevent_reference(*unique);
-            let dst = state.record_event_node(
-                *result,
-                EventEntryKind::InstanceReady,
-                creator_uid,
-                *performed,
-                None,
-                false,
-            );
+            let dst = if let Some(result) = *result {
+                Some(state.record_event_node(
+                    result,
+                    EventEntryKind::InstanceReady,
+                    creator_uid,
+                    *performed,
+                    None,
+                    false,
+                ))
+            } else {
+                None
+            };
             if let Some(precondition) = *precondition {
                 state.create_inst(*unique, insts).set_critical(precondition);
-                let src = state.find_event_node(precondition);
-                state.event_graph.add_edge(src, dst, ());
+                if let Some(dst) = dst {
+                    let src = state.find_event_node(precondition);
+                    state.event_graph.add_edge(src, dst, ());
+                }
             }
         }
         Record::InstanceRedistrictInfo {
@@ -5510,20 +5532,26 @@ fn process_record(
             performed,
         } => {
             let creator_uid = state.create_fevent_reference(*previous);
-            let dst = state.record_event_node(
-                *result,
-                EventEntryKind::InstanceRedistrict,
-                creator_uid,
-                *performed,
-                None,
-                true, /*deduplicate*/
-            );
+            let dst = if let Some(result) = *result {
+                Some(state.record_event_node(
+                    result,
+                    EventEntryKind::InstanceRedistrict,
+                    creator_uid,
+                    *performed,
+                    None,
+                    true, /*deduplicate*/
+                ))
+            } else {
+                None
+            };
             let next_inst = state.create_inst(*next, insts);
             next_inst.set_previous(creator_uid);
             if let Some(precondition) = *precondition {
                 next_inst.set_critical(precondition);
-                let src = state.find_event_node(precondition);
-                state.event_graph.add_edge(src, dst, ());
+                if let Some(dst) = dst {
+                    let src = state.find_event_node(precondition);
+                    state.event_graph.add_edge(src, dst, ());
+                }
             }
         }
         Record::SpawnInfo { fevent, spawn } => {

@@ -276,7 +276,9 @@ namespace Legion {
         RegistrationCallback call, bool dedup, size_t tag)
       : withoutargs(call), dedup_tag(tag), deduplicate(dedup), has_args(false)
     //--------------------------------------------------------------------------
-    { }
+    {
+      legion_assert(withoutargs);
+    }
 
     //--------------------------------------------------------------------------
     PendingRegistrationCallback::PendingRegistrationCallback(
@@ -285,7 +287,9 @@ namespace Legion {
       : withargs(call), buffer(buf), dedup_tag(tag), deduplicate(dedup),
         has_args(true)
     //--------------------------------------------------------------------------
-    { }
+    {
+      legion_assert(withargs);
+    }
 
     //--------------------------------------------------------------------------
     PendingRegistrationCallback::PendingRegistrationCallback(
@@ -296,9 +300,15 @@ namespace Legion {
     {
       rhs.buffer = UntypedBuffer();
       if (has_args)
+      {
         withargs = std::move(rhs.withargs);
+        legion_assert(withargs);
+      }
       else
+      {
         withoutargs = std::move(rhs.withoutargs);
+        legion_assert(withoutargs);
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -1234,11 +1244,11 @@ namespace Legion {
           // First check to that we can convert the std::function back into
           // a function pointer, if we can't do that then there's no hope
           const Realm::FunctionPointerImplementation impl(
-              *(callback.has_args ?
-                    (void (* const *)())callback.withargs
-                        .target<RegistrationWithArgsCallbackFnptr>() :
-                    (void (* const *)())callback.withoutargs
-                        .target<RegistrationCallbackFnptr>()));
+              (callback.has_args ?
+                   (void (*)())callback.withargs
+                       .target<RegistrationWithArgsCallbackFnptr>() :
+                   (void (*)())callback.withoutargs
+                       .target<RegistrationCallbackFnptr>()));
           if (impl.fnptr == nullptr)
           {
             Fatal fatal;
@@ -1251,6 +1261,13 @@ namespace Legion {
                 << "a call to 'dladdr'. This requires that they come from a "
                 << "shared object or the binary is linked with the '-rdynamic' "
                 << "flag.";
+#ifdef __clang__
+            fatal << " It looks like you compiled Legion with clang so if "
+                  << "your callback is actually a function pointer it's likely "
+                  << "that you are hitting this LLVM bug: "
+                  << "https://github.com/llvm/llvm-project/issues/36746 "
+                  << "Please double check before reporting any issues.";
+#endif
             fatal.raise();
           }
           // Convert this to it's portable representation or raise an error
@@ -1341,12 +1358,12 @@ namespace Legion {
         }
         else
         {
-          void* fnptr = *(
-              callback.has_args ?
-                  (void**)callback.withargs
-                      .target<RegistrationWithArgsCallbackFnptr>() :
-                  (void**)
-                      callback.withoutargs.target<RegistrationCallbackFnptr>());
+          void* fnptr =
+              (callback.has_args ?
+                   (void*)callback.withargs
+                       .target<RegistrationWithArgsCallbackFnptr>() :
+                   (void*)callback.withoutargs
+                       .target<RegistrationCallbackFnptr>());
           if (fnptr == nullptr)
           {
             Fatal fatal;
@@ -1356,6 +1373,13 @@ namespace Legion {
                      "facilitate "
                   << "identification of the same callback from different "
                      "sources.";
+#ifdef __clang__
+            fatal << " It looks like you compiled Legion with clang so if "
+                  << "your callback is actually a function pointer it's likely "
+                  << "that you are hitting this LLVM bug: "
+                  << "https://github.com/llvm/llvm-project/issues/36746 "
+                  << "Please double check before reporting any issues.";
+#endif
             fatal.raise();
           }
           std::map<void*, RtEvent>::const_iterator local_finder =
@@ -8804,7 +8828,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should be the owner for this space
-      legion_assert((space % total_address_spaces) == address_space);
+      legion_assert(
+          (LEGION_DISTRIBUTED_ID_FILTER(space) % total_address_spaces) ==
+          address_space);
       AutoLock l_lock(lookup_lock);
       legion_assert(
           pending_index_spaces.find(space) == pending_index_spaces.end());
@@ -8816,7 +8842,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should be the owner for this space
-      legion_assert((pid % total_address_spaces) == address_space);
+      legion_assert(
+          (LEGION_DISTRIBUTED_ID_FILTER(pid) % total_address_spaces) ==
+          address_space);
       AutoLock l_lock(lookup_lock);
       legion_assert(pending_partitions.find(pid) == pending_partitions.end());
       pending_partitions[pid] = RtUserEvent::NO_RT_USER_EVENT;
@@ -8827,7 +8855,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should be the owner for this space
-      legion_assert((space % total_address_spaces) == address_space);
+      legion_assert(
+          (LEGION_DISTRIBUTED_ID_FILTER(space) % total_address_spaces) ==
+          address_space);
       AutoLock l_lock(lookup_lock);
       legion_assert(
           pending_field_spaces.find(space) == pending_field_spaces.end());
@@ -8839,7 +8869,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should be the owner for this space
-      legion_assert((tid % total_address_spaces) == address_space);
+      legion_assert(
+          (LEGION_DISTRIBUTED_ID_FILTER(tid) % total_address_spaces) ==
+          address_space);
       AutoLock l_lock(lookup_lock);
       legion_assert(
           pending_region_trees.find(tid) == pending_region_trees.end());
@@ -11476,18 +11508,37 @@ namespace Legion {
       if (!proxy.exists())
       {
         legion_assert(!local_procs.empty());
-        for (const Processor& local_proc : local_procs)
+        if (proc_kind != Processor::NO_KIND)
         {
-          if (local_proc.kind() == proc_kind)
+          for (const Processor& local_proc : local_procs)
           {
-            proxy = local_proc;
-            break;
+            if (local_proc.kind() == proc_kind)
+            {
+              proxy = local_proc;
+              break;
+            }
+          }
+          if (!proxy.exists())
+          {
+            Error error(LEGION_RESOURCE_EXCEPTION);
+            error << "Unable to find a proxy processor of kind " << proc_kind
+                  << " for implicit top-level task ";
+            if (task_name != nullptr)
+              error << task_name;
+            else
+              error << top_task_id;
+            error << " on node " << address_space
+                  << ". If you specify that a particular kind of "
+                  << "processor kind must be found for an implicit "
+                  << "top-level task then you must guarantee that the "
+                  << "machine was configured with at least one such "
+                  << "processor on this node.";
+            error.raise();
           }
         }
+        else  // Processor kind doesn't matter so use any
+          proxy = *local_procs.begin();
       }
-      // TODO: remove this once realm supports drafting this thread
-      // as a new kind of processor to use
-      legion_assert(proxy.exists());
       SingleTask* local_task = nullptr;
       // Now that the runtime is started we can make our context
       if (control_replicable && (total_address_spaces > 1))
@@ -12282,6 +12333,13 @@ namespace Legion {
         RegistrationCallback callback, bool deduplicate, size_t dedup_tag)
     //--------------------------------------------------------------------------
     {
+      if (!callback)
+      {
+        Warning warning;
+        warning << "Skipping request to add an empty registration callback";
+        warning.raise();
+        return;
+      }
       if (!runtime_started)
       {
         std::vector<PendingRegistrationCallback>& registration_callbacks =
@@ -12306,6 +12364,13 @@ namespace Legion {
         bool deduplicate, size_t dedup_tag)
     //--------------------------------------------------------------------------
     {
+      if (!callback)
+      {
+        Warning warning;
+        warning << "Skipping request to add an empty registration callback";
+        warning.raise();
+        return;
+      }
       if (!runtime_started)
       {
         std::vector<PendingRegistrationCallback>& registration_callbacks =
@@ -12339,6 +12404,13 @@ namespace Legion {
         size_t dedup_tag)
     //--------------------------------------------------------------------------
     {
+      if (!callback)
+      {
+        Warning warning;
+        warning << "Skipping request to perform an empty registration callback";
+        warning.raise();
+        return;
+      }
       if (runtime_started)
       {
         const PendingRegistrationCallback registration(
@@ -12366,6 +12438,13 @@ namespace Legion {
         bool global, bool deduplicate, size_t dedup_tag)
     //--------------------------------------------------------------------------
     {
+      if (!callback)
+      {
+        Warning warning;
+        warning << "Skipping request to perform an empty registration callback";
+        warning.raise();
+        return;
+      }
       if (runtime_started)
       {
         const PendingRegistrationCallback registration(

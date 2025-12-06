@@ -16,6 +16,7 @@
 #ifndef __LEGION_TYPES_H__
 #define __LEGION_TYPES_H__
 
+#include <cassert>
 #include <limits>
 #include <optional>
 #include <functional>
@@ -24,6 +25,12 @@
 #include "realm/id.h"
 #include "realm/dynamic_templates.h"
 #include "legion/api/config.h"
+
+// Sanity check that the build knows what it is doing
+static_assert(
+    REALM_MAX_DIM == LEGION_MAX_DIM,
+    "LEGION_MAX_DIM and REALM_MAX_DIM must be the same");
+
 #ifdef LEGION_REDOP_COMPLEX
 #ifdef LEGION_REDOP_HALF
 #define COMPLEX_HALF

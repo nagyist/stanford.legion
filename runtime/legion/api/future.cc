@@ -1320,8 +1320,11 @@ namespace Legion {
       FutureInstance* instance = nullptr;
       if (size > 0)
       {
+        TaskTreeCoordinates coordinates;
+        op->compute_task_tree_coordinates(coordinates);
         instance = create_instance(
-            op, runtime->runtime_system_memory, size, safe_for_unbounded_pools);
+            op, coordinates, runtime->runtime_system_memory, size,
+            safe_for_unbounded_pools);
         ready = previous->copy_to(instance, op, ApEvent::NO_AP_EVENT);
       }
       AutoLock f_lock(future_lock);
@@ -1615,24 +1618,28 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FutureInstance* FutureImpl::create_instance(
-        Operation* op, Memory memory, size_t size,
-        RtEvent* safe_for_unbounded_pools)
+        Operation* op, const TaskTreeCoordinates& coordinates, Memory memory,
+        size_t size, RtEvent* safe_for_unbounded_pools)
     //--------------------------------------------------------------------------
     {
       legion_assert(size > 0);
       legion_assert(instances.find(memory) == instances.end());
       legion_assert(memory.address_space() == runtime->address_space);
       MemoryManager* manager = runtime->find_memory_manager(memory);
-      TaskTreeCoordinates coordinates;
-      op->compute_task_tree_coordinates(coordinates);
       FutureInstance* instance = manager->create_future_instance(
-          op->get_unique_op_id(), coordinates, size, safe_for_unbounded_pools);
+          (op == nullptr) ? context->get_unique_id() : op->get_unique_op_id(),
+          coordinates, size, safe_for_unbounded_pools);
       if (instance == nullptr)
       {
         Error error(LEGION_RESOURCE_EXCEPTION);
-        error << "Failed to allocate instance of " << *this << " of " << size
-              << " bytes for " << *op << " because " << manager->get_name()
-              << " memory " << memory << " is full.";
+        if (op == nullptr)
+          error << "Failed to allocate instance of " << *this << " of " << size
+                << " bytes in " << *context << " because "
+                << manager->get_name() << " memory " << memory << " is full.";
+        else
+          error << "Failed to allocate instance of " << *this << " of " << size
+                << " bytes for " << *op << " because " << manager->get_name()
+                << " memory " << memory << " is full.";
         error.raise();
       }
       return instance;
@@ -2264,9 +2271,12 @@ namespace Legion {
             // stage of the pipeline for some operation, but it's a "small"
             // future and it's going to the host memory so it will hit the
             // path that just calls malloc and not perform an allocation
+            TaskTreeCoordinates coordinates;
+            context->compute_task_tree_coordinates(coordinates);
             FutureInstance* instance = create_instance(
-                context->owner_task, runtime->runtime_system_memory,
-                future_size, nullptr /*safe_for_unbounded_pools*/);
+                context->owner_task, coordinates,
+                runtime->runtime_system_memory, future_size,
+                nullptr /*safe_for_unbounded_pools*/);
             inst_ready = record_instance(instance, context->get_unique_id());
             legion_assert(local_visible_memory.exists());
           }
@@ -2370,9 +2380,12 @@ namespace Legion {
               // stage of the pipeline for some operation, but it's a "small"
               // future and it's going to the host memory so it will hit the
               // path that just calls malloc and not perform an allocation
+              TaskTreeCoordinates coordinates;
+              context->compute_task_tree_coordinates(coordinates);
               FutureInstance* instance = create_instance(
-                  context->owner_task, runtime->runtime_system_memory,
-                  future_size, nullptr /*safe_for_unbounded_pools*/);
+                  context->owner_task, coordinates,
+                  runtime->runtime_system_memory, future_size,
+                  nullptr /*safe_for_unbounded_pools*/);
               local_visible_ready =
                   record_instance(instance, context->get_unique_id());
               legion_assert(local_visible_memory.exists());

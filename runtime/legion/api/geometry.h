@@ -16,6 +16,7 @@
 #ifndef __LEGION_GEOMETRY_H__
 #define __LEGION_GEOMETRY_H__
 
+#include <cstring>
 #include "legion/api/types.h"
 
 namespace Legion {
@@ -249,10 +250,13 @@ namespace Legion {
     // Returns the bounding box for this Domain and a point.
     // WARNING: only works with structured Domain.
     Domain convex_hull(const DomainPoint& p) const;
-
+  private:
+    struct IteratorInitFunctor;
+    struct IteratorStepFunctor;
+  public:
     class DomainPointIterator {
     public:
-      DomainPointIterator(const Domain& d);
+      DomainPointIterator(const Domain& d, bool fortran_order = true);
       DomainPointIterator(const DomainPointIterator& rhs);
 
       bool step(void);
@@ -264,18 +268,20 @@ namespace Legion {
       DomainPointIterator operator++(int /*i am postfix*/);
     public:
       DomainPoint p;
+    private:
+      friend struct IteratorInitFunctor;
+      friend struct IteratorStepFunctor;
       // Realm's iterators are copyable by value so we can just always
       // copy them in and out of some buffers
       static_assert(std::is_trivially_copyable<
                     Realm::IndexSpaceIterator<MAX_RECT_DIM, coord_t> >::value);
-      static_assert(std::is_trivially_copyable<
-                    Realm::PointInRectIterator<MAX_RECT_DIM, coord_t> >::value);
       uint8_t
           is_iterator[sizeof(Realm::IndexSpaceIterator<MAX_RECT_DIM, coord_t>)];
-      uint8_t rect_iterator[sizeof(
-          Realm::PointInRectIterator<MAX_RECT_DIM, coord_t>)];
-      TypeTag is_type;
-      bool is_valid, rect_valid;
+      DomainPoint rect_lo, rect_hi;
+      TypeTag is_type = 0;
+      bool iter_valid = false;
+      bool rect_valid = false;
+      bool fortran_order = true;
     };
   protected:
   public:
@@ -389,23 +395,25 @@ namespace Legion {
       {
         DomainT<N::N, T> is = functor->domain;
         Realm::IndexSpaceIterator<N::N, T> is_itr(is);
+        static_assert(N::N <= LEGION_MAX_DIM);
+        static_assert(sizeof(T) <= sizeof(coord_t));
         static_assert(sizeof(is_itr) <= sizeof(functor->iterator.is_iterator));
-        functor->iterator.is_valid = is_itr.valid;
+        functor->iterator.rect_valid = is_itr.valid;
         if (is_itr.valid)
         {
-          // Always use coord_t for the rect so we don't demux unnecessarily
-          Realm::Rect<N::N, coord_t> rect = is_itr.rect;
-          Realm::PointInRectIterator<N::N, coord_t> rect_itr(rect);
-          static_assert(
-              sizeof(rect_itr) <= sizeof(functor->iterator.rect_iterator));
-          assert(rect_itr.valid);
-          functor->iterator.rect_valid = true;
-          functor->iterator.p = rect_itr.p;
-          memcpy(functor->iterator.rect_iterator, &rect_itr, sizeof(rect_itr));
-          memcpy(functor->iterator.is_iterator, &is_itr, sizeof(is_itr));
+          functor->iterator.rect_lo = is_itr.rect.lo;
+          functor->iterator.rect_hi = is_itr.rect.hi;
+          functor->iterator.p = is_itr.rect.lo;
+          if (is_itr.step())
+          {
+            functor->iterator.iter_valid = true;
+            std::memcpy(functor->iterator.is_iterator, &is_itr, sizeof(is_itr));
+          }
+          else
+            functor->iterator.iter_valid = false;
         }
         else
-          functor->iterator.rect_valid = false;
+          functor->iterator.iter_valid = false;
       }
     public:
       const Domain& domain;
@@ -418,25 +426,16 @@ namespace Legion {
       template<typename N, typename T>
       static inline void demux(IteratorStepFunctor* functor)
       {
-        // We already know the rect iterator is not valid here
-        legion_assert(!functor->iterator.rect_valid);
         Realm::IndexSpaceIterator<N::N, T> is_itr;
-        memcpy(&is_itr, functor->iterator.is_iterator, sizeof(is_itr));
+        std::memcpy(&is_itr, functor->iterator.is_iterator, sizeof(is_itr));
+        legion_assert(is_itr.valid);
+        functor->iterator.p = is_itr.rect.lo;
+        functor->iterator.rect_lo = is_itr.rect.lo;
+        functor->iterator.rect_hi = is_itr.rect.hi;
         is_itr.step();
-        functor->iterator.is_valid = is_itr.valid;
+        functor->iterator.iter_valid = is_itr.valid;
         if (is_itr.valid)
-        {
-          // Convert to rect with coord_t
-          Realm::Rect<N::N, coord_t> rect = is_itr.rect;
-          Realm::PointInRectIterator<N::N, coord_t> new_rectitr(rect);
-          legion_assert(new_rectitr.valid);
-          functor->iterator.rect_valid = true;
-          functor->iterator.p = new_rectitr.p;
-          memcpy(
-              functor->iterator.rect_iterator, &new_rectitr,
-              sizeof(new_rectitr));
-          memcpy(functor->iterator.is_iterator, &is_itr, sizeof(is_itr));
-        }
+          std::memcpy(functor->iterator.is_iterator, &is_itr, sizeof(is_itr));
       }
     public:
       DomainPointIterator& iterator;

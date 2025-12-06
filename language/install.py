@@ -188,7 +188,7 @@ def symlink(from_path, to_path):
 
 def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, runtime_dir,
                      cmake, cmake_exe, build_dir,
-                     debug, cuda, hip, openmp, python, llvm, hdf, spy,
+                     debug, cuda, hip, openmp, python, llvm, hdf, spy, redop_complex,
                      gasnet, gasnet_dir, conduit, clean_first,
                      extra_flags, thread_count, verbose):
     # Don't blow away an existing directory
@@ -226,6 +226,7 @@ def install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, 
              '-DLegion_USE_GASNet=%s' % ('ON' if gasnet else 'OFF'),
              '-DLegion_USE_HDF5=%s' % ('ON' if hdf else 'OFF'),
              '-DLegion_SPY=%s' % ('ON' if spy else 'OFF'),
+             '-DLegion_REDOP_COMPLEX=%s' % ('ON' if redop_complex else 'OFF'),
              '-DLegion_BUILD_BINDINGS=ON',
              '-DBUILD_SHARED_LIBS=ON',
             ] +
@@ -336,7 +337,7 @@ def get_legion_install_prefix(legion_install_prefix, regent_dir, default=None):
     return legion_install_prefix
 
 def install(gasnet=False, cuda=False, hip=False, openmp=False, python=False, llvm=False, hdf=False,
-            spy=False, conduit=None, cmake=None,
+            spy=False, redop_complex=True, conduit=None, cmake=None,
             cmake_exe=None, cmake_build_dir=None,
             legion_install_prefix=None, llvm_dir=None,
             terra_url=None, terra_branch=None, external_terra_dir=None,
@@ -400,7 +401,7 @@ def install(gasnet=False, cuda=False, hip=False, openmp=False, python=False, llv
         python_bindings_dir = os.path.join(legion_dir, 'bindings', 'python')
         install_bindings(regent_dir, legion_dir, bindings_dir, python_bindings_dir, runtime_dir,
                          cmake, cmake_exe, cmake_build_dir,
-                         debug, cuda, hip, openmp, python, llvm, hdf, spy,
+                         debug, cuda, hip, openmp, python, llvm, hdf, spy, redop_complex,
                          gasnet, gasnet_dir, conduit, clean_first,
                          extra_flags, thread_count, verbose)
 
@@ -459,6 +460,10 @@ def driver():
         '--spy', dest='spy', action='store_true', required=False,
         default=os.environ.get('USE_SPY') == '1',
         help='Build Legion with detailed Legion Spy enabled.')
+    parser.add_argument(
+        '--redop-complex', dest='redop_complex', action='store_true', required=False,
+        default=os.environ.get('USE_COMPLEX', '1') == '1',
+        help='Enable Legion built-in complex reduction operators.')
     parser.add_argument(
         '--conduit', dest='conduit', action='store', required=False,
         default=os.environ.get('CONDUIT'),

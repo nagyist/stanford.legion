@@ -1910,12 +1910,14 @@ namespace Legion {
                           LEGION_READ_WRITE,
             (redop > 0) ? LEGION_ATOMIC : LEGION_EXCLUSIVE, redop);
         IndexSpaceNode* target = dynamic_cast<IndexSpaceNode*>(copy_expr);
-        if (target != nullptr)
+        if ((target != nullptr) && target->check_valid_and_increment(did))
         {
           PhysicalUser* user = new PhysicalUser(
               usage, copy_expr, term_event, op_id, index, true /*copy user*/,
               true /*covers*/);
           add_internal_node_user(user, copy_mask, target);
+          if (target->remove_nested_valid_ref(did))
+            std::abort();  // should never hit this
         }
         else
         {
@@ -1923,12 +1925,14 @@ namespace Legion {
           IndexSpaceExpression* canonical =
               copy_expr->get_canonical_expression();
           target = dynamic_cast<IndexSpaceNode*>(canonical);
-          if (target != nullptr)
+          if ((target != nullptr) && target->check_valid_and_increment(did))
           {
             PhysicalUser* user = new PhysicalUser(
                 usage, copy_expr, term_event, op_id, index, true /*copy user*/,
                 true /*covers*/);
             add_internal_node_user(user, copy_mask, target);
+            if (target->remove_nested_valid_ref(did))
+              std::abort();  // should never hit this
           }
           else
           {

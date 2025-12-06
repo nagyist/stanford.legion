@@ -48,11 +48,20 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
+    /*static*/ void MemoryPool::pack_null_pool(Serializer& rez)
+    //--------------------------------------------------------------------------
+    {
+      rez.serialize(Memory::NO_MEMORY);
+    }
+
+    //--------------------------------------------------------------------------
     /*static*/ MemoryPool* MemoryPool::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       Memory memory;
       derez.deserialize(memory);
+      if (!memory.exists())
+        return nullptr;
       MemoryManager* manager = runtime->find_memory_manager(memory);
       bool bounded;
       derez.deserialize<bool>(bounded);
@@ -4728,7 +4737,7 @@ namespace Legion {
           if (pool != nullptr)
             pool->serialize(rez);
           else
-            FutureInstance::pack_null(rez);
+            MemoryPool::pack_null_pool(rez);
           rez.serialize(remote_safe_for_unbounded_pools);
           if (remote_safe_for_unbounded_pools != nullptr)
             rez.serialize(safe_for_unbounded_pools);

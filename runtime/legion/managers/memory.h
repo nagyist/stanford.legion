@@ -58,6 +58,7 @@ namespace Legion {
       virtual void finalize_pool(RtEvent done) = 0;
     public:
       virtual void serialize(Serializer& rez) = 0;
+      static void pack_null_pool(Serializer& rez);
       static MemoryPool* deserialize(Deserializer& derez);
     public:
       static constexpr FieldID FID = 0;

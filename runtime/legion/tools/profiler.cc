@@ -2602,7 +2602,7 @@ namespace Legion {
       // renders all implicit top-level tasks separately
       LegionProfDesc::ProcDesc desc;
       desc.proc_id = proc;
-      desc.kind = Processor::IO_PROC;
+      desc.kind = Processor::NO_KIND;
       serializer->serialize(desc);
       // Also record a task and variant for external threads
       LegionProfDesc::TaskKind external_task;
