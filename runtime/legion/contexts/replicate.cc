@@ -10320,7 +10320,7 @@ namespace Legion {
     ConsensusMatchExchange::ConsensusMatchExchange(
         ReplicateContext* ctx, CollectiveIndexLocation loc, FutureImpl* f,
         const void* in, void* out, size_t size, size_t count)
-      : AllGatherCollective<false>(ctx, loc), to_complete(f),
+      : AllGatherCollective<false>(loc, ctx), to_complete(f),
         total_elements(count), input(in), output(out), element_size(size)
     //--------------------------------------------------------------------------
     {
