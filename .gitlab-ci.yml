@@ -98,13 +98,13 @@ cache: &global_cache
   # cmake gets confused and can't figure out library arch
   EXTRA_CMAKE_ARGS: "-DCMAKE_LIBRARY_ARCHITECTURE=x86_64-linux-gnu"
 .icc: &icc
-  CC: "/opt/intel/oneapi/compiler/2025.3.0/bin/icx"
-  CXX: "/opt/intel/oneapi/compiler/2025.3.0/bin/icpx"
-  F90: "/opt/intel/oneapi/compiler/2025.3.0/bin/ifx"
+  CC: "/opt/intel/oneapi/compiler/2025.3/bin/icx"
+  CXX: "/opt/intel/oneapi/compiler/2025.3/bin/icpx"
+  F90: "/opt/intel/oneapi/compiler/2025.3/bin/ifx"
   # work around obnoxious warnings about -g without -O0
   EXTRA_CMAKE_ARGS: "-DCMAKE_CXX_FLAGS_DEBUG='-g -O0'"
   # for libsvml.so, auto-linked by newer Intel compilers
-  LD_LIBRARY_PATH: "/opt/intel/oneapi/compiler/2025.3.0/lib"
+  LD_LIBRARY_PATH: "/opt/intel/oneapi/compiler/2025.3/lib"
 .macos_clang: &macos_clang # on macOS, we don't control the compiler version
   CC:  "clang"
   CXX: "clang++"
