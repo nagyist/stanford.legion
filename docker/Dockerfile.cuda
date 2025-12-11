@@ -10,13 +10,14 @@ RUN dpkg --add-architecture i386 && \
     apt-get install -qq \
       build-essential autoconf git time wget \
       libpython3-dev python3-pip pypy3 \
-      g++-9 g++-10 g++-11 \
-      gfortran-9 gfortran-10 gfortran-11 \
+      g++-9 g++-10 g++-11 g++-12 \
+      gfortran-9 gfortran-10 gfortran-11 gfortran-12 \
       gcc-9-multilib g++-9-multilib \
       gcc-10-multilib g++-10-multilib \
       gcc-11-multilib g++-11-multilib \
-      clang-11 libclang-11-dev llvm-11-dev \
+      gcc-12-multilib g++-12-multilib \
       clang-12 libclang-12-dev llvm-12-dev libomp-12-dev \
+      clang-14 clang-format-14 libclang-14-dev llvm-14-dev libomp-14-dev libmlir-14-dev \
       libdw-dev \
       libncurses5-dev libedit-dev \
       zlib1g-dev zlib1g-dev:i386 \
@@ -35,7 +36,8 @@ RUN wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | apt-key add - && \
 
 RUN pip3 install --upgrade 'pip>=22,<23' && \
     pip3 install --upgrade 'setuptools>=62,<63' 'setuptools_rust>=1.3,<1.4' && \
-    pip3 install cffi github3.py 'numpy>=1.22,<1.23' 'cryptography>=37,<38' 'pandas>=1.4,<1.5' 'h5py>=3.10,<3.11' 'notebook>=6.4,<6.5' 'mypy>=1.7,<1.8' joblib daff tabulate
+    pip3 install 'cffi>=1.16,<1.17' github3.py 'numpy>=1.22,<1.23' 'cryptography>=37,<38' 'pandas>=1.4,<1.5' 'h5py>=3.10,<3.11' 'notebook>=6.4,<6.5' 'mypy>=1.7,<1.8' joblib daff tabulate
+
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain 1.85.1 -y
 
 # install gitlab-runner
