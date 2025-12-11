@@ -158,6 +158,7 @@ cache: &global_cache
   USE_OPENMP_SYSTEM_RUNTIME: "1"
 .python3: &python3
   USE_PYTHON: "1"
+  PYTHON_EXE: "python3"
   REALM_PYTHON_LIB: "/usr/lib/x86_64-linux-gnu/libpython3.10.so"
 .hdf5: &hdf5
   USE_HDF: "1"
