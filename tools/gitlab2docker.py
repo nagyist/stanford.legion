@@ -154,7 +154,7 @@ else:
     scr = generate_script(args, cfg, job)
     df = generate_dockerfile(args, cfg, job, script=scr)
 
-    cmd = [ 'docker', 'build' ]
+    cmd = [ 'docker', 'build', '--no-cache' ]
 
     if args.network:
         cmd.extend([ '--network', args.network ])
