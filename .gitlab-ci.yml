@@ -49,10 +49,7 @@ cache: &global_cache
     paths:
       - $DEP_CACHE
     policy: $CACHE_POLICY
-  - key:
-      files:
-        - tools/legion_prof_rs/Cargo.lock
-      prefix: cargo
+  - key: "cargo-prof-$USE_PROF"
     paths:
       - $CARGO_HOME
       - tools/legion_prof_rs/target/
