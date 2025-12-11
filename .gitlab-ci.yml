@@ -703,7 +703,7 @@ before_script:
       if [[ -n "$CXX_STANDARD" ]]; then
         export EXTRA_CMAKE_ARGS="${EXTRA_CMAKE_ARGS} -DCMAKE_CXX_STANDARD=${CXX_STANDARD} -DCMAKE_CUDA_STANDARD=${CXX_STANDARD}"
       fi
-    - $TEST_PYTHON_EXE ./test.py --tmp-dir ${CI_PROJECT_DIR}/tmp-build
+    - $TEST_PYTHON_EXE ./test.py --tmp-dir ${CI_PROJECT_DIR}/tmp-build --keep
     - |
       if [[ "$USE_CCACHE" -eq 1 ]]; then
         ccache --show-stats
@@ -774,7 +774,7 @@ before_script:
       cp realm/install/include/realm_defines.h runtime/realm
       export Realm_ROOT="$(pwd)/realm/install"
       export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${Realm_ROOT}/lib
-    - $TEST_PYTHON_EXE ./test.py $TEST_PY_ARGS --tmp-dir ${CI_PROJECT_DIR}/tmp
+    - $TEST_PYTHON_EXE ./test.py $TEST_PY_ARGS --tmp-dir ${CI_PROJECT_DIR}/tmp-build --keep
   retry:
     max: 0
     when:
@@ -836,7 +836,7 @@ before_script:
     - git config --global user.email "legion-testing@googlegroups.com"
     - export PERF_MIN_NODES=1
     - export PERF_MAX_NODES=1
-    - $TEST_PYTHON_EXE ./test.py --test=perf --tmp-dir ${CI_PROJECT_DIR}/tmp
+    - $TEST_PYTHON_EXE ./test.py --test=perf --tmp-dir ${CI_PROJECT_DIR}/tmp-build --keep
   retry:
     max: 0
     when:
