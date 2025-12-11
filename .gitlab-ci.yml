@@ -97,14 +97,14 @@ cache: &global_cache
   F90: "/opt/nvidia/hpc_sdk/Linux_x86_64/25.1/compilers/bin/nvfortran"
   # cmake gets confused and can't figure out library arch
   EXTRA_CMAKE_ARGS: "-DCMAKE_LIBRARY_ARCHITECTURE=x86_64-linux-gnu"
-.icc212: &icc212
-  CC: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/icx"
-  CXX: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/icpx"
-  F90: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/ifx"
+.icc: &icc
+  CC: "/opt/intel/oneapi/compiler/2025.3.0/bin/icx"
+  CXX: "/opt/intel/oneapi/compiler/2025.3.0/bin/icpx"
+  F90: "/opt/intel/oneapi/compiler/2025.3.0/bin/ifx"
   # work around obnoxious warnings about -g without -O0
   EXTRA_CMAKE_ARGS: "-DCMAKE_CXX_FLAGS_DEBUG='-g -O0'"
   # for libsvml.so, auto-linked by newer Intel compilers
-  LD_LIBRARY_PATH: "/opt/intel/oneapi/compiler/2023.1.0/linux/compiler/lib/intel64_lin"
+  LD_LIBRARY_PATH: "/opt/intel/oneapi/compiler/2025.3.0/lib"
 .macos_clang: &macos_clang # on macOS, we don't control the compiler version
   CC:  "clang"
   CXX: "clang++"
@@ -607,7 +607,7 @@ before_script:
 .image_hpcsdk: &image_hpcsdk
   image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-hpcsdk:250509
 .image_icc: &image_icc
-  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-icc:250509
+  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-icc:251210
 
 ###
 ### Tests
@@ -1516,14 +1516,14 @@ hpcsdk251_cxx17_debug_cmake_legion:
     <<: [*hpcsdk251, *debug, *cxx17_normal, *cmake, *legion, *ctest, *short, *cpptrace]
 
 # Intel compiler (icx/icpx) tests:
-icc212_cxx17_release_legion:
+icc_cxx17_release_legion:
   <<: [*linux, *image_icc, *tests]
   variables:
-    <<: [*icc212, *release, *cxx17_precise, *legion]
-icc212_cxx17_debug_cmake_legion:
+    <<: [*icc, *release, *cxx17_precise, *legion]
+icc_cxx17_debug_cmake_legion:
   <<: [*linux, *image_icc, *tests]
   variables:
-    <<: [*icc212, *debug, *cxx17_precise, *cmake, *legion, *ctest, *short, *cpptrace]
+    <<: [*icc, *debug, *cxx17_precise, *cmake, *legion, *ctest, *short, *cpptrace]
 
 check_pre_commit:
   rules:
