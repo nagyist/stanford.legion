@@ -601,6 +601,8 @@ namespace Legion {
         {
           if (!future_memories[idx].exists())
             continue;
+          if (futures[idx].impl == nullptr)
+            continue;
           if (future_memories[idx].address_space() != target_space)
           {
             Error error(LEGION_MAPPER_EXCEPTION);
@@ -625,6 +627,8 @@ namespace Legion {
         Memory target_memory = Memory::NO_MEMORY;
         for (unsigned idx = future_memories.size(); idx < futures.size(); idx++)
         {
+          if (futures[idx].impl == nullptr)
+            continue;
           if (!target_memory.exists())
           {
             if (target_space != runtime->address_space)
@@ -1257,6 +1261,8 @@ namespace Legion {
       {
         for (unsigned idx = 0; idx < futures.size(); idx++)
         {
+          if (futures[idx].impl == nullptr)
+            continue;
           const Memory memory = future_memories[idx];
           // Safe to block here indefinitely waiting for unbounded pools
           futures[idx].impl->request_application_instance(
