@@ -158,12 +158,7 @@ cache: &global_cache
   USE_OPENMP_SYSTEM_RUNTIME: "1"
 .python3: &python3
   USE_PYTHON: "1"
-  # FIXME: It would be nice to find a better way to do this,
-  # but the alternatives look scary
-  PYTHON_EXE: "python3"
-  PYTHON_LIB: "/usr/lib/x86_64-linux-gnu/libpython3.10.so"
-  PYTHON_VERSION_MAJOR: "3"
-  TEST_PYTHON_EXE: "python3"
+  REALM_PYTHON_LIB: "/usr/lib/x86_64-linux-gnu/libpython3.10.so"
 .hdf5: &hdf5
   USE_HDF: "1"
   HDF_HEADER: "hdf5/serial/hdf5.h"
