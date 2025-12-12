@@ -54,6 +54,7 @@ if(Legion_VERSION STREQUAL "")
   endif()
   unset(_git_result)
 endif()
+set(Legion_VERSION "${Legion_VERSION}" CACHE STRING "string to use for Legion/Realm version" FORCE)
 # these are the actual variables that are written into the headers
 set(LEGION_VERSION "${Legion_VERSION}")
 
