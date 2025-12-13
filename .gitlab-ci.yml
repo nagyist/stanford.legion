@@ -76,6 +76,7 @@ cache: &global_cache
   CC:  "clang-14"
   CXX: "clang++-14"
   F90: "gfortran-11"
+.clang_use_lld: &clang_use_lld
   CFLAGS: "-fuse-ld=lld"
   CXXFLAGS: "-fuse-ld=lld"
 .clang18: &clang18
@@ -1181,29 +1182,29 @@ clang14_cxx17_debug_hdf5_regent:
 clang14_cxx17_debug_gasnetex_mpi_cmake_legion:
   <<: [*linux, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *gasnetex_mpi, *gasnetex_wrapper, *cmake, *shared, *legion, *ctest, *cpptrace]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *gasnetex_mpi, *gasnetex_wrapper, *cmake, *shared, *legion, *ctest, *cpptrace, *clang_use_lld]
 clang14_cxx17_debug_gasnetex_mpi_regent:
   <<: [*linux_compute, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *gasnetex_mpi, *regent, *incremental]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *gasnetex_mpi, *regent, *incremental, *clang_use_lld]
 #   * MPI
 clang14_cxx17_debug_mpi_cmake_legion:
   <<: [*linux, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *mpi, *cmake, *legion, *ctest, *cpptrace]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *mpi, *cmake, *legion, *ctest, *cpptrace, *clang_use_lld]
 clang14_cxx17_debug_mpi_regent:
   <<: [*linux_compute, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *mpi, *regent, *incremental]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *mpi, *regent, *incremental, *clang_use_lld]
 #   * UCX
 clang14_cxx17_debug_ucx_cmake_legion:
  <<: [*linux, *image_2204, *tests]
  variables:
-   <<: [*clang14, *terra14, *debug, *cxx17_normal, *ucx, *cmake, *legion, *ctest, *cpptrace]
+   <<: [*clang14, *terra14, *debug, *cxx17_normal, *ucx, *cmake, *legion, *ctest, *cpptrace, *clang_use_lld]
 clang14_cxx17_debug_ucx_regent:
  <<: [*linux_compute, *image_2204, *tests]
  variables:
-   <<: [*clang14, *terra14, *debug, *cxx17_normal, *ucx, *regent, *incremental]
+   <<: [*clang14, *terra14, *debug, *cxx17_normal, *ucx, *regent, *incremental, *clang_use_lld]
 # * Integration: Python + Regent
 clang14_cxx17_debug_python3_regent:
   <<: [*linux, *image_2204, *tests]
@@ -1213,61 +1214,61 @@ clang14_cxx17_debug_python3_regent:
 clang14_cxx17_debug_llvm_gasnetex_mpi_legion:
   <<: [*linux_compute, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *gasnetex_mpi, *legion]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *gasnetex_mpi, *legion, *clang_use_lld]
 clang14_cxx17_debug_llvm_gasnetex_mpi_regent:
   <<: [*linux_compute, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *gasnetex_mpi, *regent, *incremental]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *gasnetex_mpi, *regent, *incremental, *clang_use_lld]
 # * Integration: LLVM + MPI
 clang14_cxx17_debug_llvm_mpi_legion:
   <<: [*linux_compute, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *mpi, *legion]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *mpi, *legion, *clang_use_lld]
 clang14_cxx17_debug_llvm_mpi_regent:
   <<: [*linux_compute, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *mpi, *regent, *incremental]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *mpi, *regent, *incremental, *clang_use_lld]
 # * Integration: LLVM + UCX
 #clang14_cxx17_debug_llvm_ucx_legion:
 #  <<: [*linux_compute, *image_2204, *tests]
 #  variables:
-#    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *ucx, *legion]
+#    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *ucx, *legion, *clang_use_lld]
 #clang14_cxx17_debug_llvm_ucx_regent:
 #  <<: [*linux_compute, *image_2204, *tests]
 #  variables:
-#    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *ucx, *regent, *incremental]
+#    <<: [*clang14, *terra14, *debug, *cxx17_normal, *llvm, *llvm14, *ucx, *regent, *incremental, *clang_use_lld]
 # * Integration: HDF5 + GASNet
 clang14_cxx17_debug_hdf5_gasnetex_mpi_legion:
   <<: [*linux_compute, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *gasnetex_mpi, *legion]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *gasnetex_mpi, *legion, *clang_use_lld]
 clang14_cxx17_debug_hdf5_gasnetex_mpi_regent:
   <<: [*linux, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *gasnetex_mpi, *regent, *incremental]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *gasnetex_mpi, *regent, *incremental, *clang_use_lld]
 # * Integration: HDF5 + MPI
 clang14_cxx17_debug_hdf5_mpi_legion:
   <<: [*linux_compute, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *mpi, *legion]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *mpi, *legion, *clang_use_lld]
 clang14_cxx17_debug_hdf5_mpi_regent:
   <<: [*linux, *image_2204, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *mpi, *regent, *incremental]
+    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *mpi, *regent, *incremental, *clang_use_lld]
 # * Integration: HDF5 + UCX
 #clang14_cxx17_debug_hdf5_ucx_legion:
 #  <<: [*linux_compute, *image_2204, *tests]
 #  variables:
-#    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *ucx, *legion]
+#    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *ucx, *legion, *clang_use_lld]
 #clang14_cxx17_debug_hdf5_ucx_regent:
 #  <<: [*linux, *image_2204, *tests]
 #  variables:
-#    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *ucx, *regent, *incremental]
+#    <<: [*clang14, *terra14, *debug, *cxx17_normal, *hdf5, *ucx, *regent, *incremental, *clang_use_lld]
 # * Integration: HDF5 + GASNet
 # clang14_cxx17_debug_spy_gasnet_regent:
 #   <<: [*linux_compute, *image_2204, *tests]
 #   variables:
-#     <<: [*clang14, *terra14, *debug, *cxx17_normal, *spy, *gasnet, *regent]
+#     <<: [*clang14, *terra14, *debug, *cxx17_normal, *spy, *gasnet, *regent, *clang_use_lld]
 # * Different architectures
 clang14_cxx17_32bit_debug_legion:
   <<: [*linux, *image_2204, *tests]
