@@ -76,6 +76,8 @@ cache: &global_cache
   CC:  "clang-14"
   CXX: "clang++-14"
   F90: "gfortran-11"
+  CFLAGS: "-fuse-ld=lld"
+  CXXFLAGS: "-fuse-ld=lld"
 .clang18: &clang18
   CC:  "clang-18"
   CXX: "clang++-18"
@@ -125,10 +127,8 @@ cache: &global_cache
   PRIVILEGE_CHECKS: "1"
 
 .cxx17_normal: &cxx17_normal
-  CXXFLAGS: ""
   CXX_STANDARD: "17"
 .cxx17_external: &cxx17_external
-  CXXFLAGS: ""
   CXX_STANDARD: "17"
   # Extra flags here for external projects that don't enforce C++ versions correctly
   CXX_FLAGS: "-std=c++17"
@@ -141,7 +141,6 @@ cache: &global_cache
   CXXFLAGS: "-fp-model=precise"
   CXX_STANDARD: "17"
 .cxx20_normal: &cxx20_normal
-  CXXFLAGS: ""
   CXX_STANDARD: "20"
 .cxx17_32bit_normal: &cxx17_32bit_normal
   CFLAGS: "-m32"
@@ -580,9 +579,9 @@ before_script:
 
 # Each job will run in a fresh container with this image.
 .image_2204: &image_2204
-  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-22.04:250509
+  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-22.04:251212
 .image_2404: &image_2404
-  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-24.04:250509
+  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-24.04:251212
 .image_hpcsdk: &image_hpcsdk
   image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-hpcsdk:250509
 .image_icc: &image_icc
