@@ -46,8 +46,14 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.22.6/cmake-3.22.6
     rm cmake-3.22.6-linux-x86_64.tar.gz
 
 RUN git clone https://github.com/terralang/terra.git && \
+    mkdir terra/deps && \
+    cd terra/deps && \
+    wget https://github.com/terralang/llvm-build/releases/download/llvm-18.1.8/clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz && \
+    echo "d9a1a9355fc6b07900200ae21af50c360c56bf56e163adcc253b7c041eb090a3  clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz" | shasum --check && \
+    tar xf clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz && \
+    cd ../.. && \
     cd terra/build && \
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/terra18 .. && \
+    cmake -DCMAKE_PREFIX_PATH=../deps/clang+llvm-18.1.8-x86_64-linux-gnu -DCMAKE_INSTALL_PREFIX=/usr/local/terra18 .. && \
     make install -j8 && \
     rm -rf terra
 
