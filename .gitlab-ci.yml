@@ -300,7 +300,7 @@ before_script:
   - |
     if [[ -z $THREADS ]]; then
       if [[ "$(uname)" = "Linux" ]]; then
-        export THREADS=$(nproc --all)
+        export THREADS=$(taskset -p $$ | awk '{print $NF}' | python3 -c "import sys; print(bin(int(sys.stdin.read().strip(), 16)).count('1'))")
       elif [[ "$(uname)" = "Darwin" ]]; then
         export THREADS=$(sysctl -n hw.ncpu)
       else
