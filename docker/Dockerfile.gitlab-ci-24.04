@@ -55,6 +55,7 @@ RUN git clone https://github.com/terralang/terra.git && \
     cd terra/build && \
     cmake -DCMAKE_POLICY_DEFAULT_CMP0074=NEW -DLLVM_ROOT=$PWD/../deps/clang+llvm-18.1.8-x86_64-linux-gnu -DCMAKE_INSTALL_PREFIX=/usr/local/terra18 .. && \
     make install -j8 && \
+    cd ../.. && \
     rm -rf terra
 
 RUN pip3 install --break-system-packages 'pre-commit>=4.1,<5'

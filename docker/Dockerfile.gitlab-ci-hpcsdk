@@ -29,6 +29,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --defau
 #     cd terra/build && \
 #     cmake -DCMAKE_INSTALL_PREFIX=/usr/local/terra12 .. && \
 #     make install -j8 && \
+#     cd ../.. && \
 #     rm -rf terra
 
 # delete a bunch of stuff we don't need (yet) - NOTE: this is only useful

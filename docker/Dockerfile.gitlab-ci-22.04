@@ -43,6 +43,7 @@ RUN git clone https://github.com/terralang/terra.git && \
     cd terra/build && \
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local/terra14 .. && \
     make install -j8 && \
+    cd ../.. && \
     rm -rf terra
 
 RUN wget https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.5.tar.gz && \
