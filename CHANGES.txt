@@ -3,7 +3,7 @@ attempt is made to keep this list accurate for the master branch.
 
 Version 25.12.0 (December 16, 2025)
   * Legion
-    - Re-enable out of order commit while still ensure that deletion
+    - Re-enable out of order commit while still ensuring that deletion
        operations commit in-order with respect to all the operations that came
        before them
     - Relax getting the future size to allow it to return the result as soon
