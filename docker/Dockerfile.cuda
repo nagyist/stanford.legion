@@ -16,10 +16,10 @@ RUN dpkg --add-architecture i386 && \
       gcc-10-multilib g++-10-multilib \
       gcc-11-multilib g++-11-multilib \
       gcc-12-multilib g++-12-multilib \
-      clang-12 libclang-12-dev llvm-12-dev libomp-12-dev \
-      clang-14 clang-format-14 libclang-14-dev llvm-14-dev libomp-14-dev libmlir-14-dev \
+      clang-12 libclang-12-dev llvm-12-dev \
+      clang-14 clang-format-14 lld-14 libclang-14-dev llvm-14-dev libomp-14-dev libmlir-14-dev \
       libdw-dev \
-      libncurses5-dev libedit-dev \
+      libedit-dev libncurses5-dev libffi-dev libpfm4-dev libxml2-dev \
       zlib1g-dev zlib1g-dev:i386 \
       mpich libmpich-dev \
       libblas-dev liblapack-dev libhdf5-dev \

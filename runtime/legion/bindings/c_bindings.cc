@@ -6955,7 +6955,7 @@ void registration_callback_wrapper(
 {
   legion_machine_t machine_ = CObjectWrapper::wrap(&machine);
   legion_runtime_t rt_ = CObjectWrapper::wrap(rt);
-  legion_processor_t local_procs_[local_procs.size()];
+  std::vector<legion_processor_t> local_procs_(local_procs.size());
 
   unsigned idx = 0;
   for (const Processor& proc : local_procs)
@@ -6965,7 +6965,7 @@ void registration_callback_wrapper(
 
   for (legion_registration_callback_pointer_t& callback : callbacks)
   {
-    callback(machine_, rt_, local_procs_, idx);
+    callback(machine_, rt_, local_procs_.data(), idx);
   }
 }
 

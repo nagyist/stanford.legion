@@ -669,11 +669,8 @@ namespace Legion {
 	      std::string send_message = 
 		Serialize(print_tasks,stop_tasks, procs_map_int);
 
-	      int send_size = send_message.size()+1;
-	      char send_mess_chars[send_size];
-	      strcpy(send_mess_chars, send_message.c_str());
-	      void *message_point = &send_mess_chars;
-	      mrt->broadcast(ctx, message_point, send_size*sizeof(char));  
+	      std::vector<char>send_mess_chars(send_message.begin(), send_message.end());
+	      mrt->broadcast(ctx, send_mess_chars.data(), send_mess_chars.size());
 	      //Broadcast the information to all processors on exit            	
 	      break;
 	    }
@@ -1257,11 +1254,8 @@ namespace Legion {
 	//std::string send_message = Serialize(tasks_map, procs_map_int);
 	std::string send_message = 
 	  Serialize(print_tasks, stop_tasks, procs_map_int);
-	int send_size = send_message.size()+1;
-	char send_mess_chars[send_size];
-	strcpy(send_mess_chars, send_message.c_str());
-	void *message_point = &send_mess_chars;
-	mrt->broadcast(ctx, message_point, send_size*sizeof(char));                                        
+        std::vector<char>send_mess_chars(send_message.begin(), send_message.end());
+        mrt->broadcast(ctx, send_mess_chars.data(), send_mess_chars.size());
 	databroadcasted=1;
 
       }
