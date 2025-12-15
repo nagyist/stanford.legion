@@ -589,7 +589,7 @@ before_script:
 .image_2204: &image_2204
   image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-22.04:251212
 .image_2404: &image_2404
-  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-24.04:251212
+  image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-24.04:251213
 .image_hpcsdk: &image_hpcsdk
   image: registry.gitlab.com/stanfordlegion/legion/gitlab-ci-hpcsdk:250509
 .image_icc: &image_icc
@@ -1339,15 +1339,14 @@ clang18_cxx20_release_legion:
   <<: [*linux, *image_2404, *tests]
   variables:
     <<: [*clang18, *terra18, *release, *cxx20_normal, *legion]
-# FIXME: LLVM 18 packages for Ubuntu 24.04 are broken so downgrade to Clang 14
-clang14_cxx20_debug_regent:
-  <<: [*linux, *image_2204, *tests]
+clang18_cxx20_debug_regent:
+  <<: [*linux, *image_2404, *tests]
   variables:
-    <<: [*clang14, *terra14, *debug, *cxx20_normal, *regent]
-clang14_cxx20_release_regent:
-  <<: [*linux, *image_2204, *tests]
+    <<: [*clang18, *terra18, *debug, *cxx20_normal, *regent]
+clang18_cxx20_release_regent:
+  <<: [*linux, *image_2404, *tests]
   variables:
-    <<: [*clang14, *terra14, *release, *cxx20_normal, *regent]
+    <<: [*clang18, *terra18, *release, *cxx20_normal, *regent]
 
 # HIP CUDA tests:
 nvidia_hip_cuda125_gcc10_cxx17_debug_cuda_legion:
