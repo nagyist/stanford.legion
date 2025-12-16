@@ -1,7 +1,7 @@
 use std::cmp::{Reverse, max, min};
 use std::collections::BTreeMap;
 
-use crate::state::{Proc, ProcEntry, ProcEntryKind, State, Timestamp};
+use crate::state::{Container, Proc, ProcEntry, ProcEntryKind, State, Timestamp};
 
 #[derive(Debug, Copy, Clone)]
 struct ProcEntryStats {
@@ -61,11 +61,7 @@ fn accumulate_statistics(
         for wait in &entry.waiters.wait_intervals {
             let waiting = wait.end - wait.start;
             assert!(waiting <= total);
-            if waiting <= total {
-                total -= waiting;
-            } else {
-                total = Timestamp::ZERO;
-            }
+            total -= waiting;
         }
         stats.running_time += total;
     }
@@ -141,11 +137,27 @@ fn print_statistics(
                         state.meta_variants.get(variant_id).unwrap().name
                     );
                 }
-                ProcEntryKind::MapperCall(_, _, call_kind) => {
-                    println!(
-                        "      Mapper Call {}",
-                        state.mapper_call_kinds.get(call_kind).unwrap().name
-                    );
+                ProcEntryKind::MapperCall(mapper_id, proc_id, call_kind) => {
+                    let proc_name = if let Some(proc) = state.procs.get(&proc_id) {
+                        &proc.name(state)
+                    } else {
+                        "NO_PROC"
+                    };
+                    if let Some(mapper) = state.mappers.get(&(*mapper_id, *proc_id)) {
+                        println!(
+                            "      Mapper Call {} for mapper {} on proc {}",
+                            state.mapper_call_kinds.get(call_kind).unwrap().name,
+                            mapper.name,
+                            proc_name
+                        );
+                    } else {
+                        println!(
+                            "      Mapper Call {} for mapper {} on proc {}",
+                            state.mapper_call_kinds.get(call_kind).unwrap().name,
+                            mapper_id.0,
+                            proc_name
+                        );
+                    }
                 }
                 ProcEntryKind::RuntimeCall(call_kind) => {
                     println!(
