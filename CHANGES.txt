@@ -10,6 +10,13 @@ Version 25.12.0 (December 16, 2025)
        as the future size is set in advance of the future being set
     - Add a field to `select_tasks_to_map` input struct to describe which
        processor's ready queue is being processed
+    - Improve Legion's internal heuristics for deciding the right granularity
+       at which to perform physical analysis to better align with the
+       partitions being used by applications
+    - Legion's physical analysis for instances now leverages our existing
+       KD-Tree infrastructure when lots of sub-tasks are accessing the same
+       instance from a single partition which improves the cost of analysis
+       asymptotically
     - Bug fixes and internal refactoring
   * Tools
     - Better rendering of external processors in Legion Prof
