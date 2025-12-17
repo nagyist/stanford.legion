@@ -52,6 +52,12 @@ namespace Legion {
       "LogicalPartitionT is not trivially copyable");
   LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
+  // These types should be densely packed with no padding
+  static_assert(std::has_unique_object_representations_v<IndexSpace>);
+  static_assert(std::has_unique_object_representations_v<IndexPartition>);
+  static_assert(std::has_unique_object_representations_v<FieldSpace>);
+  static_assert(std::has_unique_object_representations_v<LogicalRegion>);
+  static_assert(std::has_unique_object_representations_v<LogicalPartition>);
 
   const LogicalRegion LogicalRegion::NO_REGION = LogicalRegion();
   const LogicalPartition LogicalPartition::NO_PART = LogicalPartition();
