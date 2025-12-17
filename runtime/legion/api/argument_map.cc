@@ -515,7 +515,8 @@ namespace Legion {
       }
       else
         future_map = ctx->construct_future_map(
-            point_set->handle, arguments, provenance, true /*internal*/);
+            point_set->handle, arguments, provenance, false /*collective*/,
+            0 /*sharding id*/, true /*internal*/, false /*check space*/);
       equivalent = true;      // mark that these are equivalent
       dependent_futures = 0;  // reset this for the next unpack
       return future_map;

@@ -113,6 +113,16 @@ namespace Legion {
     void LgEvent::end_wait(Context ctx, bool from_application) const
     //--------------------------------------------------------------------------
     {
+      if ((runtime->profiler != nullptr) && (implicit_profiler == nullptr) &&
+          implicit_fevent.exists())
+      {
+        // This can occur when a (meta-)task that was previously running,
+        // but waited on a event, and Realm wakes it up on a new kernel
+        // thread that has never run a task before and therefore hasn't
+        // been assigned an implicit profiler yet
+        implicit_profiler =
+            runtime->profiler->find_or_create_profiling_instance();
+      }
       if (ctx != nullptr)
         ctx->end_wait(*this, from_application);
       else if (

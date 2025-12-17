@@ -237,7 +237,7 @@ namespace Legion {
         owner(own)
     //--------------------------------------------------------------------------
     {
-      if (external_fevent.exists())
+      if (external_fevent.exists() && !implicit_fevent.exists())
         implicit_fevent = external_fevent;
     }
 
