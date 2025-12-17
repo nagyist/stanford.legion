@@ -16,8 +16,13 @@
 #include "regent_partitions.h"
 #include "regent_partitions_cxx.h"
 
+#include <type_traits>
+
 #include "legion.h"
 #include "legion/bindings/c_bindings_util.h"
+
+// These types should be densely packed with no padding
+static_assert(std::has_unique_object_representations_v<legion_terra_index_cross_product_t>);
 
 // Disable deprecated warnings in this file since we are also
 // trying to maintain backwards compatibility support for older
