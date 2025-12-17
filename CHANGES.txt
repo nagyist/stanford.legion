@@ -1,6 +1,34 @@
 This file lists the major changes as they appear in the stable branch.  No
 attempt is made to keep this list accurate for the master branch.
 
+Version 25.12.0 (December 16, 2025)
+  * Legion
+    - Re-enable out of order commit while still ensuring that deletion
+       operations commit in-order with respect to all the operations that came
+       before them
+    - Relax getting the future size to allow it to return the result as soon
+       as the future size is set in advance of the future being set
+    - Add a field to `select_tasks_to_map` input struct to describe which
+       processor's ready queue is being processed
+    - Improve Legion's internal heuristics for deciding the right granularity
+       at which to perform physical analysis to better align with the
+       partitions being used by applications
+    - Legion's physical analysis for instances now leverages our existing
+       KD-Tree infrastructure when lots of sub-tasks are accessing the same
+       instance from a single partition which improves the cost of analysis
+       asymptotically
+    - Bug fixes and internal refactoring
+  * Tools
+    - Better rendering of external processors in Legion Prof
+    - Use relative numbering of processors in Legion Prof
+    - Bug fixes in Legion Prof
+  * Regent
+    - Regent now assumes that Legion has been installed to some prefix, and
+       `install.py` will create its own installation at `language/install` if
+       none is available
+    - Support for using Legion with complex support disabled
+    - Fixes for linking GPU-enabled binaries
+
 Version 25.09.0 (September 30, 2025)
   * Build
     - The Realm build system has been split off, see below for details
