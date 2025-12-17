@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-typedef struct legion_terra_index_cross_product_t {
+typedef struct __attribute__((packed)) legion_terra_index_cross_product_t {
   legion_index_partition_t partition;
   legion_color_t other_color;
 } legion_terra_index_cross_product_t;
