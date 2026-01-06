@@ -67,7 +67,8 @@ namespace Legion {
   inline size_t IndexSpace::hash(void) const
   //--------------------------------------------------------------------------
   {
-    return std::hash<unsigned>{}(did);  // uniquely identifies this index space
+    // uniquely identifies this index space
+    return std::hash<decltype(did)>{}(did);
   }
 
   //--------------------------------------------------------------------------
@@ -174,7 +175,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     // uniquely identifies this index partition
-    return std::hash<unsigned>{}(did);
+    return std::hash<decltype(did)>{}(did);
   }
 
   //--------------------------------------------------------------------------
@@ -266,7 +267,8 @@ namespace Legion {
   inline size_t FieldSpace::hash(void) const
   //--------------------------------------------------------------------------
   {
-    return std::hash<unsigned>{}(did);  // uniquely identifies this field space
+    // uniquely identifies this field space
+    return std::hash<decltype(did)>{}(did);
   }
 
   //--------------------------------------------------------------------------
