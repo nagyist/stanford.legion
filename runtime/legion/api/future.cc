@@ -93,9 +93,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if (impl != nullptr)
-      return std::hash<unsigned long long>{}(impl->did);
+      return std::hash<DistributedID>{}(impl->did);
     else
-      return std::hash<unsigned long long>{}(0);
+      return std::hash<DistributedID>{}(0);
   }
 
   //--------------------------------------------------------------------------

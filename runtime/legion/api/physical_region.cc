@@ -97,7 +97,7 @@ namespace Legion {
   std::size_t PhysicalRegion::hash(void) const
   //--------------------------------------------------------------------------
   {
-    return std::hash<const void*>{}(impl);
+    return std::hash<decltype(impl)>{}(impl);
   }
 
   //--------------------------------------------------------------------------
