@@ -117,6 +117,10 @@ list(
   sparsity_map_test.cc
   addrsplit_channel_test.cc
   topology_test.cc
+  hash.cc
+  hpp_span_test.cc
+  hpp_runtime_test.cc
+  hpp_event_test.cc
 )
 list(TRANSFORM REALM_UNIT_TESTS PREPEND "${REALM_TEST_DIR}/unit_tests/")
 add_executable(realm_unit_tests ${REALM_UNIT_TESTS})
@@ -193,8 +197,7 @@ if(REALM_ENABLE_COVERAGE)
     add_custom_command(
       TARGET coverage
       POST_BUILD
-      COMMAND ;
-      COMMENT "Cobertura coverage report saved in ${PROJECT_BINARY_DIR}/coverage.xml"
+      COMMAND ${CMAKE_COMMAND} -E echo "Cobertura coverage report saved in ${PROJECT_BINARY_DIR}/coverage.xml"
     )
   else()
     set(CODE_COVERAGE_VERBOSE TRUE)

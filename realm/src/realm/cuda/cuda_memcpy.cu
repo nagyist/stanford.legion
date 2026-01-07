@@ -66,65 +66,70 @@ static __device__ inline size_t coords_to_index(Offset_t *coords, const Offset_t
 }
 
 template <typename T, typename Offset_t = size_t>
-static __device__ inline void memcpy_kernel_transpose(
-    Realm::Cuda::MemcpyTransposeInfo<Offset_t> info, T* tile) {
-  __restrict__ T *out_base = reinterpret_cast<T *>(info.dst);
-  __restrict__ T *in_base = reinterpret_cast<T *>(info.src);
+static __device__ inline void
+memcpy_kernel_transpose(Realm::Cuda::MemcpyTransposeInfo<Offset_t> info, T *tile)
+{
+  T* __restrict__ out_base = reinterpret_cast<T *>(info.dst);
+  T* __restrict__ in_base = reinterpret_cast<T *>(info.src);
   const Offset_t tile_size = info.tile_size;
+
   const Offset_t tidx = threadIdx.x % tile_size;
   const Offset_t tidy = (threadIdx.x / tile_size) % tile_size;
+
   const Offset_t grid_dimx = ((info.extents[2] + tile_size - 1) / tile_size);
   const Offset_t grid_dimy = ((info.extents[1] + tile_size - 1) / tile_size);
-  const Offset_t contig_bytes = info.extents[0];
-  const Offset_t chunks = contig_bytes / sizeof(T);
 
-  const Offset_t src_stride_x = info.src_strides[1] / contig_bytes;
-  const Offset_t src_stride_y = info.src_strides[0] / contig_bytes;
+  const Offset_t chunks = info.extents[0] / sizeof(T);
 
-  const Offset_t dst_stride_y = info.dst_strides[1] / contig_bytes;
-  const Offset_t dst_stride_x = info.dst_strides[0] / contig_bytes;
+  const Offset_t src_size_dim0 = info.src_strides[0] / sizeof(T);
+  const Offset_t src_size_dim1 = info.src_strides[1] / sizeof(T);
+
+  const Offset_t dst_size_dim1 = info.dst_strides[1] / sizeof(T);
+  const Offset_t dst_size_dim0 = info.dst_strides[0] / sizeof(T);
 
   for(Offset_t block = blockIdx.x; block < grid_dimx * grid_dimy; block += gridDim.x) {
     Offset_t block_idx = block % grid_dimx;
     Offset_t block_idy = block / grid_dimx;
 
-    Offset_t x_base = block_idx * tile_size * chunks + tidx;
-    Offset_t y_base = block_idy * tile_size + tidy;
+    Offset_t gx_tile_idx = block_idx * tile_size * chunks + tidx;
+    Offset_t gy_tile_idx = block_idy * tile_size + tidy;
 
     __syncthreads();
 
     for(Offset_t block_offset = 0; block_offset < chunks * tile_size;
         block_offset += tile_size) {
-      if(x_base + block_offset < info.extents[2] * chunks && y_base < info.extents[1]) {
+      if(gx_tile_idx + block_offset < info.extents[2] * chunks &&
+         gy_tile_idx < info.extents[1]) {
         Offset_t in_tile_idx = tidx + (tile_size + 1) * tidy * chunks;
 
-        // The purpose of this calculation is to handle XYZ -> ZYX case
-        // where contig_bytes > sizeof(T)
-        Offset_t x_base_idx =
-            ((x_base / chunks) * (src_stride_x * chunks) + x_base % chunks);
+        Offset_t xe = gx_tile_idx + block_offset;
+        Offset_t chunk_idx = xe / chunks;
+        Offset_t chunk_rem = xe % chunks;
+
         tile[in_tile_idx + block_offset] =
-            in_base[x_base_idx + y_base * src_stride_y * chunks +
-                    block_offset * src_stride_x];
+            in_base[chunk_idx * src_size_dim1 + gy_tile_idx * src_size_dim0 + chunk_rem];
       }
     }
 
     __syncthreads();
 
-    x_base = block_idy * tile_size * chunks + tidx;
-    y_base = block_idx * tile_size + tidy;
+    gx_tile_idx = block_idy * tile_size * chunks + tidx;
+    gy_tile_idx = block_idx * tile_size + tidy;
 
     for(Offset_t block_offset = 0; block_offset < chunks * tile_size;
         block_offset += tile_size) {
-      if(x_base + block_offset < info.extents[1] * chunks && y_base < info.extents[2]) {
+      if(gx_tile_idx + block_offset < info.extents[1] * chunks &&
+         gy_tile_idx < info.extents[2]) {
         Offset_t out_tile_idx =
             (tidy + (tile_size + 1) * ((tidx + block_offset) / chunks)) * chunks +
             (tidx + block_offset) % chunks;
 
-        Offset_t x_base_idx =
-            ((x_base / chunks) * (dst_stride_x * chunks) + x_base % chunks);
+        Offset_t xe = gx_tile_idx + block_offset;
+        Offset_t chunk_idx = xe / chunks;
+        Offset_t chunk_rem = xe % chunks;
 
-        out_base[x_base_idx + dst_stride_y * y_base * chunks +
-                 block_offset * dst_stride_x] = tile[out_tile_idx];
+        out_base[chunk_idx * dst_size_dim0 + gy_tile_idx * dst_size_dim1 + chunk_rem] =
+            tile[out_tile_idx];
       }
     }
   }
@@ -143,8 +148,8 @@ memcpy_affine_batch(Realm::Cuda::AffineCopyPair<N, Offset_t> *info,
   for(size_t rect = 0; rect < nrects; rect++) {
     Realm::Cuda::AffineCopyPair<N, Offset_t> &current_info = info[rect];
     const Offset_t vol = current_info.volume;
-    __restrict__ T *dst = reinterpret_cast<T *>(current_info.dst.addr);
-    __restrict__ T *src = reinterpret_cast<T *>(current_info.src.addr);
+    T* __restrict__ dst = reinterpret_cast<T *>(current_info.dst.addr);
+    T* __restrict__ src = reinterpret_cast<T *>(current_info.src.addr);
 
     while(offset < vol) {
       T tmp[MAX_UNROLL];
@@ -203,8 +208,8 @@ static __device__ inline void
 memcpy_indirect_points(Realm::Cuda::MemcpyIndirectInfo<3, Offset_t> info)
 {
   Offset_t offset = blockIdx.x * blockDim.x + threadIdx.x;
-  __restrict__ T *dst_ind_base = reinterpret_cast<T *>(info.dst_ind_addr);
-  __restrict__ T *src_ind_base = reinterpret_cast<T *>(info.src_ind_addr);
+  T* __restrict__ dst_ind_base = reinterpret_cast<T *>(info.dst_ind_addr);
+  T* __restrict__ src_ind_base = reinterpret_cast<T *>(info.src_ind_addr);
 
   Offset_t chunks = info.field_size / sizeof(DT);
 
@@ -230,9 +235,9 @@ memcpy_indirect_points(Realm::Cuda::MemcpyIndirectInfo<3, Offset_t> info)
       dst_index = index;
     }
 
-    __restrict__ DT *dst =
+    DT* __restrict__ dst =
         reinterpret_cast<DT *>(info.dst_addr + dst_index * info.field_size);
-    __restrict__ DT *src =
+    DT* __restrict__ src =
         reinterpret_cast<DT *>(info.src_addr + src_index * info.field_size);
     for(Offset_t chunk_idx = 0; chunk_idx < chunks; chunk_idx++) {
       dst[chunk_idx] = src[chunk_idx];
@@ -250,7 +255,7 @@ memfill_affine_batch(const Realm::Cuda::AffineFillInfo<N, Offset_t>& info)
   for(size_t rect = 0; rect < info.num_rects; rect++) {
     const Realm::Cuda::AffineFillRect<N, Offset_t> &current_info = info.subrects[rect];
     const Offset_t vol = current_info.volume;
-    __restrict__ T *addr = reinterpret_cast<T *>(current_info.addr);
+    T* __restrict__ addr = reinterpret_cast<T *>(current_info.addr);
     while(offset < vol) {
       unsigned i = 0;
 #pragma unroll

@@ -56,17 +56,19 @@ endif()
 if(Realm_SHORT_VERSION STREQUAL "" AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/VERSION)
   file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION _REALM_FULL_VERSION)
   string(STRIP "${_REALM_FULL_VERSION}" _REALM_FULL_VERSION)
-  string(REGEX MATCH "v([0-9\.]+)(-.+)?"  "${_REALM_FULL_VERSION}")
-  set(Realm_SHORT_VERSION ${CMAKE_MATCH_1})
-  set(Realm_VERSION_META ${CMAKE_MATCH_2})
-else()
-  if(Realm_SHORT_VERSION STREQUAL "")
-    set(Realm_SHORT_VERSION 0.0.1)
-    if(Realm_VERSION_META STREQUAL "")
-      set(Realm_VERSION_META "-unknown")
-    endif()
+  string(REGEX MATCH "v([0-9\.]+)(-.+)?" _ "${_REALM_FULL_VERSION}")
+  if(CMAKE_MATCH_1)
+    set(Realm_SHORT_VERSION ${CMAKE_MATCH_1})
+    set(Realm_VERSION_META ${CMAKE_MATCH_2})
   endif()
 endif()
+if(Realm_SHORT_VERSION STREQUAL "")
+  set(Realm_SHORT_VERSION 0.0.1)
+  if(Realm_VERSION_META STREQUAL "")
+    set(Realm_VERSION_META "-unknown")
+  endif()
+endif()
+message("-- Realm version: ${Realm_SHORT_VERSION}${Realm_VERSION_META}")
 #endregion
 
 project(
@@ -160,6 +162,10 @@ cmake_dependent_option(
   "NOT WIN32; REALM_ENABLE_LIBDL" OFF
 )
 cmake_dependent_option(
+  REALM_INSTALL_GASNETEX_WRAPPER "Compile and install the dynamic GASNetEx ABI stability wrapper" OFF
+  "REALM_ENABLE_GASNETEX_WRAPPER" OFF
+)
+cmake_dependent_option(
   REALM_ENABLE_PYTHON "Compile with Python support" ON "REALM_ENABLE_LIBDL" OFF
 )
 
@@ -225,10 +231,24 @@ set_package_properties(
   PURPOSE "To display backtraces"
 )
 
+if (REALM_USE_CUDART_HIJACK)
+  message(FATAL_ERROR "CUDART HIJACK is no longer supported")
+endif()
+
+if (REALM_USE_HIP_HIJACK)
+  message(FATAL_ERROR "HIP HIJACK is no longer supported")
+endif()
+
 # TODO(cperry): rename with REALM_ prefix
 set(COMPILE_TIME_MIN_LEVEL "LEVEL_${REALM_LOG_LEVEL}")
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   set(DEBUG_REALM 1)
+endif()
+
+if (NOT MAKE_EXECUTABLE MATCHES ".*make.*")
+  find_program(MAKE_EXECUTABLE NAMES make gnumake smake gmake)
+else()
+  set(MAKE_EXECUTABLE ${CMAKE_MAKE_PROGRAM})
 endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
@@ -392,7 +412,7 @@ if(REALM_ENABLE_CUDA OR (REALM_ENABLE_HIP AND CMAKE_HIP_PLATFORM STREQUAL "nvidi
     # the CUDA::nvtx3 and CUDA::nvToolsExt targets are mutually exclusive, they don't
     # appear to be so in earlier versions. So if we have nvtx3, prefer that, otherwise
     # fall back to nvToolsExt.
-    set(REALM_USE_NVTX ${REALM_ENABLE_CUDA})
+    set(REALM_USE_NVTX ${REALM_ENABLE_NVTX})
     if(TARGET CUDA::nvtx3)
       list(APPEND REALM_LIBRARIES CUDA::nvtx3)
     elseif(TARGET CUDA::nvToolsExt)
@@ -553,8 +573,6 @@ if(REALM_ENABLE_UCX)
       INSTALL_DIR "${ucx_ROOT_DIR}"
       CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
       contrib/configure-release-mt "--prefix=<INSTALL_DIR>" ${UCX_CONFIG_ARGS}
-      BUILD_COMMAND $(MAKE)
-      INSTALL_COMMAND $(MAKE) install
       BUILD_IN_SOURCE TRUE
       BUILD_JOB_SERVER_AWARE TRUE
       BUILD_BYPRODUCTS <INSTALL_DIR>/lib/${CMAKE_SHARED_LIBRARY_PREFIX}ucp${CMAKE_SHARED_LIBRARY_SUFFIX}
@@ -602,8 +620,6 @@ if(REALM_ENABLE_UCX)
         INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/ucc-install"
         CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ./autogen.sh
         COMMAND ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ./configure "--prefix=<INSTALL_DIR>" ${UCC_CONFIG_ARGS}
-        BUILD_COMMAND $(MAKE)
-        INSTALL_COMMAND $(MAKE) install
         BUILD_IN_SOURCE TRUE
         BUILD_JOB_SERVER_AWARE TRUE
         BUILD_BYPRODUCTS <INSTALL_DIR>/lib/${CMAKE_SHARED_LIBRARY_PREFIX}ucc${CMAKE_SHARED_LIBRARY_SUFFIX}
@@ -708,9 +724,10 @@ if(REALM_ENABLE_GASNETEX)
 
     FetchContent_Declare(
       GASNet
-      URL https://gasnet.lbl.gov/EX/GASNet-2024.5.0.tar.gz
-      URL_HASH SHA256=f945e80f71d340664766b66290496d230e021df5e5cd88f404d101258446daa9
+      URL https://gasnet.lbl.gov/EX/GASNet-2025.8.0.tar.gz
+      URL_HASH SHA256=bd5919099477d1d2f59c247d006e9d1ac017c9190c974f5e069667418e5bf48d
       SOURCE_DIR "${GASNet_SOURCE_DIR}" INSTALL_DIR "${GASNet_ROOT}"
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
     FetchContent_MakeAvailable(GASNet)
 
@@ -724,7 +741,7 @@ if(REALM_ENABLE_GASNETEX)
         WORKING_DIRECTORY ${GASNet_SOURCE_DIR}
       )
       execute_process(
-        COMMAND "${CMAKE_MAKE_PROGRAM}" -j install COMMAND_ECHO STDOUT COMMAND_ERROR_IS_FATAL ANY
+        COMMAND "${MAKE_EXECUTABLE}" -j install COMMAND_ECHO STDOUT COMMAND_ERROR_IS_FATAL ANY
         WORKING_DIRECTORY ${GASNet_SOURCE_DIR}
       )
       set(GASNet_CONFIG_ARGS_INTERNAL
@@ -739,15 +756,18 @@ if(REALM_ENABLE_GASNETEX)
     message(FATAL_ERROR "Failed to find GASNet")
   else()
     set(GEX_WRAPPER_BUILD_SHARED ${REALM_ENABLE_GASNETEX_WRAPPER})
-    if(GEX_WRAPPER_BUILD_SHARED OR NOT BUILD_SHARED_LIBS)
+    if (REALM_INSTALL_GASNETEX_WRAPPER)
       set(GEX_NO_INSTALL FALSE)
+      add_subdirectory(
+        ${REALM_SOURCE_DIR}/gasnetex/gasnetex_wrapper ${CMAKE_CURRENT_BINARY_DIR}/gasnetex_wrapper
+      )
     else()
       set(GEX_NO_INSTALL TRUE)
+      add_subdirectory(
+        ${REALM_SOURCE_DIR}/gasnetex/gasnetex_wrapper ${CMAKE_CURRENT_BINARY_DIR}/gasnetex_wrapper
+        EXCLUDE_FROM_ALL
+      )
     endif()
-    add_subdirectory(
-      ${REALM_SOURCE_DIR}/gasnetex/gasnetex_wrapper ${CMAKE_CURRENT_BINARY_DIR}/gasnetex_wrapper
-      EXCLUDE_FROM_ALL
-    )
     if(NOT REALM_ENABLE_GASNETEX_WRAPPER)
       list(APPEND REALM_LIBRARIES GASNet::GASNet)
       list(APPEND REALM_STATIC_DEPENDS GASNet)
@@ -807,6 +827,7 @@ if(TARGET Kokkos::kokkoscore AND REALM_ENABLE_KOKKOS)
 endif()
 if(TARGET GASNet::GASNet AND REALM_ENABLE_GASNETEX)
   set(REALM_USE_GASNETEX TRUE)
+  set(REALM_USE_GASNETEX_WRAPPER ${REALM_ENABLE_GASNETEX_WRAPPER})
 endif()
 if(TARGET ucx::ucp AND REALM_ENABLE_UCX)
   set(REALM_USE_UCX TRUE)
@@ -1073,7 +1094,9 @@ if(REALM_BUILD_DOCS AND DOXYGEN_FOUND)
   endif()
   # This should include all public header files and nothing else.
   file(GLOB_RECURSE REALM_DOC_FILES "src/*.h")
-  list(APPEND REALM_DOC_FILES ${CMAKE_CURRENT_BINARY_DIR}/include)
+  list(APPEND REALM_DOC_FILES ${CMAKE_CURRENT_BINARY_DIR}/include
+                              ${CMAKE_CURRENT_SOURCE_DIR}/README.md
+  )
   doxygen_add_docs(docs ${REALM_DOC_FILES} COMMENT "Generate docs" ALL)
 endif()
 #endregion

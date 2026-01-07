@@ -20,6 +20,7 @@
 // nop, but helps IDEs
 #include "realm/point.h"
 
+#include "realm/realm_assert.h"
 #include "realm/serialize.h"
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
@@ -96,14 +97,14 @@ namespace Realm {
   template <int N, typename T>
   REALM_CUDA_HD inline T &Point<N, T>::operator[](int index)
   {
-    assert(index < N);
+    REALM_ASSERT(index < N);
     return values[index];
   }
 
   template <int N, typename T>
   REALM_CUDA_HD inline const T &Point<N, T>::operator[](int index) const
   {
-    assert(index < N);
+    REALM_ASSERT(index < N);
     return values[index];
   }
 
@@ -232,13 +233,13 @@ namespace Realm {
     REALM_CUDA_HD
     T &operator[](int index)
     {
-      assert(index == 0);
+      REALM_ASSERT(index == 0);
       return value;
     }
     REALM_CUDA_HD
     const T &operator[](int index) const
     {
-      assert(index == 0);
+      REALM_ASSERT(index == 0);
       return value;
     }
 
@@ -647,6 +648,23 @@ namespace Realm {
   }
 
   template <int M, int N, typename T, typename T2>
+  REALM_CUDA_HD bool operator==(const Matrix<M, N, T> &lhs, const Matrix<M, N, T2> &rhs)
+  {
+    for(int i = 0; i < M; i++) {
+      if(lhs[i] != rhs[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <int M, int N, typename T, typename T2>
+  REALM_CUDA_HD bool operator!=(const Matrix<M, N, T> &lhs, const Matrix<M, N, T2> &rhs)
+  {
+    return !(lhs == rhs);
+  }
+
+  template <int M, int N, typename T, typename T2>
   REALM_CUDA_HD inline Point<M, T> operator*(const Matrix<M, N, T> &m,
                                              const Point<N, T2> &p)
   {
@@ -730,7 +748,7 @@ namespace Realm {
   template <int N, typename T>
   REALM_CUDA_HD inline bool PointInRectIterator<N, T>::step(void)
   {
-    assert(valid); // can't step an iterator that's already done
+    REALM_ASSERT(valid); // can't step an iterator that's already done
     if(!valid) {
       return false;
     }
@@ -812,5 +830,37 @@ namespace std {
     }
     return false;
   }
+
+  template<int N, typename T>
+  struct hash<Realm::Point<N, T> > {
+    std::size_t operator()(const Realm::Point<N, T>& p) const noexcept {
+      const std::hash<T> h;
+      size_t ret = 0;
+      for (size_t i = 0; i < N; i++) {
+        ret = Realm::hash_combine(ret, h(p[i]));
+      }
+      return ret;
+    }
+  };
+
+  template<int M, int N, typename T>
+  struct hash<Realm::Matrix<M, N, T> > {
+    std::size_t operator()(const Realm::Matrix<M, N, T>& m) const noexcept {
+      const std::hash<Realm::Point<N, T> > h;
+      size_t ret = 0;
+      for (size_t i = 0; i < M; i++) {
+        ret = Realm::hash_combine(ret, h(m[i]));
+      }
+      return ret;
+    }
+  };
+
+  template<int N, typename T>
+  struct hash<Realm::Rect<N, T> > {
+    std::size_t operator()(const Realm::Rect<N, T>& r) const noexcept {
+      const std::hash<Realm::Point<N, T> > h;
+      return Realm::hash_combine(h(r.lo), h(r.hi));
+    }
+  };
 
 }; // namespace std

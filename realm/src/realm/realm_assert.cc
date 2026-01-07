@@ -15,27 +15,18 @@
  * limitations under the License.
  */
 
-#ifndef TEST_COMMON_H
-#define TEST_COMMON_H
-
-#include "realm/inst_impl.h"
-#include "realm/inst_layout.h"
-#include <utility>
-
-#include "../test_utils.h"
+#include "realm/realm_assert.h"
+#include "realm/logging.h"
 
 namespace Realm {
 
-  template <int N, typename T>
-  RegionInstanceImpl *create_inst(MemoryImpl *mem_impl, Rect<N, T> bounds,
-                                  const std::vector<FieldID> &field_ids,
-                                  const std::vector<size_t> &field_sizes);
+  Logger log_assert("assert");
 
-  template <typename Func, size_t... Is>
-  void dispatch_for_dimension(int dim, Func &&func, std::index_sequence<Is...>);
+  REALM_INTERNAL_API_EXTERNAL_LINKAGE void realm_assert_fail(const char *cond_text,
+                                                             const char *file, int line)
+  {
+    log_assert.fatal("Assertion failed: (%s) at %s:%d", cond_text, file, line);
+    abort();
+  }
 
 } // namespace Realm
-
-#include "test_common.inl"
-
-#endif // TEST_COMMON_H

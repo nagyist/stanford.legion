@@ -28,7 +28,7 @@ static constexpr unsigned LEGION_PROF_VERSION =
 // which means we'll have to manually update PRealm when the
 // logging interface with Legion changes
 #if 0
-#include "legion/tools/profiler_version.h"
+#include "legion/legion_profiling_version.h"
 #else
     1008 // the current Legion Prof version we work with
 #endif
