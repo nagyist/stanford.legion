@@ -1,0 +1,51 @@
+# Copyright 2025 Stanford University, NVIDIA Corporation
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# These checks are to be modified and made stricter as files are fixed
+Checks: >
+    -*,
+    clang-analyzer-*
+    bugprone-*,
+    portability-*,
+    concurrency-*,
+    misc-*,
+    readability-idenfifier-naming,
+    cppcoreguidelines-avoid-magic-numbers,
+    cppcoreguidelines-virtual-class-destructor,
+    modernize-use-override,
+    modernize-use-noexcept,
+    modernize-use-nullptr,
+    readability-simplify-boolean-expr,
+    readability-simplify-subscript-expr,
+    readability-uppercase-literal-suffix,
+    readability-static-definition-in-anonymous-namespace,
+    readability-braces-around-statements,
+    readability-container-*,
+    readability-delete-null-pointer,
+    readability-else-after-return,
+
+FormatStyle: file
+
+CheckOptions:
+  - { key: readability-identifier-naming.NamespaceCase,            value: CamelCase  }
+  - { key: readability-identifier-naming.ClassCase,                value: CamelCase  }
+  - { key: readability-identifier-naming.StructCase,               value: CamelCase  }
+  - { key: readability-identifier-naming.FunctionCase,             value: lower_case }
+  - { key: readability-identifier-naming.VariableCase,             value: lower_case }
+  - { key: readability-identifier-naming.ConstantCase,             value: UPPER_CASE }
+  - { key: readability-identifier-naming.LocalConstantCase,        value: UPPER_CASE }
+  - { key: readability-identifier-naming.ConstantParameterCase,    value: lower_case }
+  - { key: readability-identifier-naming.MacroCase,                value: UPPER_CASE }
+  - { key: readability-function-cognitive-complexity.IgnoreMacros, value: true       }
