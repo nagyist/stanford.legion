@@ -6327,96 +6327,92 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(type_tag != 0);
-      const std::pair<Domain, TypeTag> key(domain, type_tag);
+      // Two different paths depending on whether this domain is dense or sparse
+      if (domain.dense())
       {
-        AutoLock is_lock(is_slice_lock, false /*exclusive*/);
-        std::map<
-            std::pair<Domain, TypeTag>,
-            std::pair<IndexSpace, RtUserEvent> >::const_iterator finder =
-            index_slice_spaces.find(key);
-        if (finder != index_slice_spaces.end() && finder->second.first.exists())
         {
-          if (take_ownership && !domain.dense())
-          {
-            Domain copy = domain;
-            copy.destroy();
-          }
-          return finder->second.first;
+          AutoLock is_lock(is_slice_lock, false /*exclusive*/);
+          std::map<Domain, IndexSpaceNode*>::const_iterator finder =
+              dense_slice_spaces.find(domain);
+          if (finder != dense_slice_spaces.end())
+            return finder->second->handle;
         }
-      }
-      RtEvent wait_on;
-      {
-        // Retake the lock in excluisve mode
         AutoLock is_lock(is_slice_lock);
-        // See if we lost the race
-        std::map<
-            std::pair<Domain, TypeTag>,
-            std::pair<IndexSpace, RtUserEvent> >::iterator finder =
-            index_slice_spaces.find(key);
-        if (finder != index_slice_spaces.end())
-        {
-          if (finder->second.first.exists())
-          {
-            if (take_ownership && !domain.dense())
-            {
-              Domain copy = domain;
-              copy.destroy();
-            }
-            return finder->second.first;
-          }
-          else if (!finder->second.second.exists())
-            finder->second.second = Runtime::create_rt_user_event();
-          wait_on = finder->second.second;
-        }
-        else
-        {
-          // Insert it as a guard since we're going to make it
-          index_slice_spaces.emplace(std::make_pair(
-              key, std::make_pair(
-                       IndexSpace::NO_SPACE, RtUserEvent::NO_RT_USER_EVENT)));
-        }
-      }
-      if (!wait_on.exists())
-      {
+        // Check to make sure we didn't lose the race
+        std::map<Domain, IndexSpaceNode*>::const_iterator finder =
+            dense_slice_spaces.find(domain);
+        if (finder != dense_slice_spaces.end())
+          return finder->second->handle;
         const IndexSpace result(
             get_unique_index_space_id(), get_unique_index_tree_id(), type_tag);
-        create_node(
+        IndexSpaceNode* node = create_node(
             result, domain, take_ownership, nullptr /*parent*/, 0 /*color*/,
             RtEvent::NO_RT_EVENT, provenance, ApEvent::NO_AP_EVENT,
             0 /*expr id*/, nullptr /*mapping*/, true /*add root reference*/);
         LegionSpy::log_top_index_space(
             result.get_id(), address_space,
             (provenance == nullptr) ? std::string_view() : provenance->human);
-        // Overwrite and leak for now, don't care too much as this
-        // should occur infrequently
-        AutoLock is_lock(is_slice_lock);
-        std::map<
-            std::pair<Domain, TypeTag>,
-            std::pair<IndexSpace, RtUserEvent> >::iterator finder =
-            index_slice_spaces.find(key);
-        legion_assert(finder != index_slice_spaces.end());
-        legion_assert(!finder->second.first.exists());
-        finder->second.first = result;
-        if (finder->second.second.exists())
-          Runtime::trigger_event(finder->second.second);
+        dense_slice_spaces.emplace(domain, node);
         return result;
       }
       else
       {
-        if (take_ownership && !domain.dense())
+        // Create an expression from the domain and get its canonical result
+        // Don't need to worry about deleting this explicitly since this will
+        // create a task-local reference to it that will be removed at the
+        // end of this task and will implicitly delete it if necessary
+        IndexSpaceExpression* temp_expr =
+            InternalExpressionCreator::create_with_domain(type_tag, domain);
+        const uint64_t hash = temp_expr->get_canonical_hash();
+        IndexSpaceExpression* canonical = temp_expr->get_canonical_expression();
+        // If the temp expression is its own canonical expression then it
+        // definitely doesn't overlap with anything else
+        if (canonical != temp_expr)
         {
-          Domain copy = domain;
-          copy.destroy();
+          // See if we can find another entry in the sparse slice spaces
+          AutoLock is_lock(is_slice_lock, false /*exclusive*/);
+          std::unordered_map<uint64_t, SliceSpaces>::const_iterator finder =
+              sparse_slice_spaces.find(hash);
+          if (finder != sparse_slice_spaces.end())
+          {
+            for (unsigned idx = 0; idx < finder->second.size(); idx++)
+            {
+              if (finder->second[idx]->get_canonical_expression() != canonical)
+                continue;
+              if (take_ownership)
+              {
+                Domain copy = domain;
+                copy.destroy();
+              }
+              return finder->second[idx]->handle;
+            }
+          }
         }
-        wait_on.wait();
-        AutoLock is_lock(is_slice_lock, false /*exclusive*/);
-        std::map<
-            std::pair<Domain, TypeTag>,
-            std::pair<IndexSpace, RtUserEvent> >::const_iterator finder =
-            index_slice_spaces.find(key);
-        legion_assert(finder != index_slice_spaces.end());
-        legion_assert(finder->second.first.exists());
-        return finder->second.first;
+        // If we get here then take the lock and try again
+        AutoLock is_lock(is_slice_lock);
+        SliceSpaces& spaces = sparse_slice_spaces[hash];
+        // Check again to make sure we didn't lose the race
+        for (unsigned idx = 0; idx < spaces.size(); idx++)
+        {
+          if (spaces[idx]->get_canonical_expression() != canonical)
+            continue;
+          if (take_ownership)
+          {
+            Domain copy = domain;
+            copy.destroy();
+          }
+          return spaces[idx]->handle;
+        }
+        // Create a new index space node to save for us to use
+        const IndexSpace result(
+            get_unique_index_space_id(), get_unique_index_tree_id(), type_tag);
+        IndexSpaceNode* node = temp_expr->create_node(
+            result, RtEvent::NO_RT_EVENT, provenance, nullptr /*mapping*/);
+        LegionSpy::log_top_index_space(
+            result.get_id(), address_space,
+            (provenance == nullptr) ? std::string_view() : provenance->human);
+        spaces.insert(node);
+        return result;
       }
     }
 
@@ -6591,10 +6587,13 @@ namespace Legion {
         proc_pair.second->prepare_for_shutdown();
       // Destroy any index slice spaces that we made during execution
       std::set<RtEvent> applied;
-      for (const std::pair<
-               const std::pair<Domain, TypeTag>,
-               std::pair<IndexSpace, RtUserEvent> >& it : index_slice_spaces)
-        destroy_index_space(it.second.first, address_space, applied);
+      for (const std::pair<const Domain, IndexSpaceNode*>& it :
+           dense_slice_spaces)
+        destroy_index_space(it.second->handle, address_space, applied);
+      for (const std::pair<const uint64_t, SliceSpaces>& it :
+           sparse_slice_spaces)
+        for (unsigned idx = 0; idx < it.second.size(); idx++)
+          destroy_index_space(it.second[idx]->handle, address_space, applied);
       for (const std::pair<const ProjectionID, ProjectionFunction*>& proj_pair :
            projection_functions)
         proj_pair.second->prepare_for_shutdown();

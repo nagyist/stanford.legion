@@ -1464,8 +1464,9 @@ namespace Legion {
           pending_collectables;
     protected:
       mutable LocalLock is_slice_lock;
-      std::map<std::pair<Domain, TypeTag>, std::pair<IndexSpace, RtUserEvent> >
-          index_slice_spaces;
+      std::map<Domain, IndexSpaceNode*> dense_slice_spaces;
+      typedef SmallPointerVector<IndexSpaceNode, false> SliceSpaces;
+      std::unordered_map<uint64_t /*hash*/, SliceSpaces> sparse_slice_spaces;
     protected:
       // The runtime keeps track of remote contexts so they
       // can be re-used by multiple tasks that get sent remotely

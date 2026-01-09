@@ -2362,21 +2362,5 @@ namespace Legion {
         Runtime::trigger_event(ready);
     }
 
-    //--------------------------------------------------------------------------
-    /*static*/ IndexSpaceOperation*
-        InternalExpressionCreator::create_with_domain(
-            TypeTag tag, const Domain& dom)
-    //--------------------------------------------------------------------------
-    {
-      InternalExpressionCreator creator(tag, dom);
-      creator.create_operation();
-
-      IndexSpaceOperation* out = creator.result;
-      out->add_base_expression_reference(LIVE_EXPR_REF);
-      ImplicitReferenceTracker::record_live_expression(out);
-
-      return out;
-    }
-
   }  // namespace Internal
 }  // namespace Legion
