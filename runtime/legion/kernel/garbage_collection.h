@@ -201,7 +201,13 @@ namespace Legion {
       static inline void record_live_expression(IndexSpaceExpression* expr)
       {
         if (implicit_reference_tracker == nullptr)
+        {
+          // Should always be inside a Legion/Realm task for this
+          // If we're not we might not check at the end of the task
+          // to clean up these references so this avoids leaking
+          legion_assert(Processor::get_executing_processor().exists());
           implicit_reference_tracker = new ImplicitReferenceTracker;
+        }
         implicit_reference_tracker->live_expressions.emplace_back(expr);
       }
     private:

@@ -686,7 +686,7 @@ namespace Legion {
     class InternalExpressionCreator {
     public:
       InternalExpressionCreator(TypeTag t, const Domain& d)
-        : type_tag(t), dom(d)
+        : type_tag(t), domain(d)
       { }
 
       virtual void create_operation()
@@ -697,15 +697,25 @@ namespace Legion {
       template<typename N, typename T>
       static inline void demux(InternalExpressionCreator* creator)
       {
-        Rect<N::N, T> rect = creator->dom;
-        creator->result = new InternalExpression<N::N, T>(&rect, 1);
+        DomainT<N::N, T> domain = creator->domain;
+        if (!domain.dense())
+        {
+          std::vector<Rect<N::N, T> > rects;
+          for (Realm::IndexSpaceIterator<N::N, T> itr(domain); itr.valid;
+               itr.step())
+            rects.push_back(itr.rect);
+          creator->result =
+              new InternalExpression<N::N, T>(&rects.front(), rects.size());
+        }
+        else
+          creator->result = new InternalExpression<N::N, T>(&domain.bounds, 1);
       }
 
       static IndexSpaceOperation* create_with_domain(
           TypeTag tag, const Domain& dom);
     public:
       const TypeTag type_tag;
-      const Domain dom;
+      const Domain domain;
       IndexSpaceOperation* result;
     };
 
