@@ -314,25 +314,32 @@ namespace Legion {
         }
         // If we've arrived add ourselves as a user
         state.register_local_user(user, user_mask);
-        if (proj_info.is_projecting() && !!current_refinement_mask)
+        // Update our refinement state if we're on the current refinement
+        if (!!current_refinement_mask)
         {
-          // Update the refinement information here for deciding if we need
-          // to change refinements later
           FieldMask new_refinements;
-          if (user.shard_proj == nullptr)
+          if (proj_info.is_projecting())
           {
-            ProjectionSummary* summary =
-                state.find_or_create_projection_summary(
-                    user.op, user.idx, trace_info.req, logical_analysis,
-                    proj_info);
-            state.update_refinement_projection(
-                ctx, summary, user.usage, current_refinement_mask,
-                new_refinements);
+            // Update the refinement information here for deciding if we need
+            // to change refinements later
+            if (user.shard_proj == nullptr)
+            {
+              ProjectionSummary* summary =
+                  state.find_or_create_projection_summary(
+                      user.op, user.idx, trace_info.req, logical_analysis,
+                      proj_info);
+              state.update_refinement_projection(
+                  ctx, summary, user.usage, current_refinement_mask,
+                  new_refinements);
+            }
+            else
+              state.update_refinement_projection(
+                  ctx, user.shard_proj, user.usage, current_refinement_mask,
+                  new_refinements);
           }
           else
-            state.update_refinement_projection(
-                ctx, user.shard_proj, user.usage, current_refinement_mask,
-                new_refinements);
+            state.update_refinement_node(
+                ctx, user.usage, current_refinement_mask, new_refinements);
           if (!!new_refinements)
             logical_analysis.record_pending_refinement(
                 privilege_root, user.idx, user.op->find_parent_index(user.idx),

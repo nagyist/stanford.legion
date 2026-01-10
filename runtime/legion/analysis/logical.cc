@@ -709,6 +709,62 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void LogicalState::update_refinement_node(
+        ContextID ctx, const RegionUsage& usage, const FieldMask& current_mask,
+        FieldMask& updated_refinements)
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(!!current_mask);
+      // This function filters through the refinement trackers and updates
+      // them as necessary. Since the refinement trackers are not field aware,
+      // this function will clone them and delete them as necessary to make
+      // sure that each field is accurately represented
+      FieldMask need_tracker = current_mask;
+      local::vector<RefinementTracker*> to_check;
+      if (!(current_mask * refinement_trackers.get_valid_mask()))
+      {
+        local::FieldMaskMap<RefinementTracker> to_add;
+        for (lng::FieldMaskMap<RefinementTracker>::iterator it =
+                 refinement_trackers.begin();
+             it != refinement_trackers.end(); it++)
+        {
+          const FieldMask overlap = current_mask & it->second;
+          if (!overlap)
+            continue;
+          RefinementTracker* prev = nullptr;
+          if (it->first->update_node(
+                  usage, ctx, overlap,
+                  (overlap == it->second) ? nullptr : &prev))
+          {
+            updated_refinements |= overlap;
+            to_check.emplace_back(it->first);
+          }
+          if (prev != nullptr)
+          {
+            FieldMask prev_mask = it->second - overlap;
+            to_add.insert(prev, prev_mask);
+            it.filter(prev_mask);
+          }
+          need_tracker -= overlap;
+          if (!need_tracker)
+            break;
+        }
+        // Add new entries
+        for (const std::pair<RefinementTracker*, FieldMask>& it : to_add)
+          refinement_trackers.insert(it.first, it.second);
+      }
+      if (!!need_tracker)
+      {
+        // Makes an unrefined tracker which is what we want for this node
+        RefinementTracker* new_tracker = owner->create_refinement_tracker();
+        refinement_trackers.insert(new_tracker, need_tracker);
+        to_check.emplace_back(new_tracker);
+      }
+      if (!to_check.empty())
+        deduplicate_refinements(to_check);
+    }
+
+    //--------------------------------------------------------------------------
     void LogicalState::update_refinement_child(
         ContextID ctx, RegionTreeNode* child, const RegionUsage& usage,
         const FieldMask& current_mask, FieldMask& child_mask,
@@ -721,10 +777,10 @@ namespace Legion {
       // this function will clone them and delete them as necessary to make
       // sure that each field is accurately represented
       FieldMask need_tracker = current_mask;
+      local::vector<RefinementTracker*> to_check;
       if (!(current_mask * refinement_trackers.get_valid_mask()))
       {
         local::FieldMaskMap<RefinementTracker> to_add;
-        local::set<RefinementTracker*> to_check;
         for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
@@ -732,47 +788,27 @@ namespace Legion {
           const FieldMask overlap = current_mask & it->second;
           if (!overlap)
             continue;
-          if (overlap != it->second)
-          {
-            RefinementTracker* diff = it->first->clone();
-            FieldMask diff_mask = it->second - overlap;
-            to_add.insert(diff, diff_mask);
-            it.filter(diff_mask);
-          }
+          RefinementTracker* prev = nullptr;
           // Check to see if we changed the suggested refinement
-          if (it->first->update_child(child, usage, ctx, overlap))
+          if (it->first->update_child(
+                  child, usage, ctx, overlap,
+                  (overlap == it->second) ? nullptr : &prev))
           {
             child_mask |= overlap;
             updated_refinements |= overlap;
-            to_check.insert(it->first);
+            to_check.emplace_back(it->first);
           }
           else if (it->first->is_child_current_refinement(child))
             child_mask |= overlap;
+          if (prev != nullptr)
+          {
+            FieldMask prev_mask = it->second - overlap;
+            to_add.insert(prev, prev_mask);
+            it.filter(prev_mask);
+          }
           need_tracker -= overlap;
           if (!need_tracker)
             break;
-        }
-        // Check to see if we can merge any updated ones
-        for (local::set<RefinementTracker*>::const_iterator cit =
-                 to_check.begin();
-             cit != to_check.end(); cit++)
-        {
-          for (lng::FieldMaskMap<RefinementTracker>::iterator it =
-                   refinement_trackers.begin();
-               it != refinement_trackers.end(); it++)
-          {
-            if (to_check.find(it->first) != to_check.end())
-              continue;
-            if (!it->first->merge_refinement(*cit))
-              continue;
-            lng::FieldMaskMap<RefinementTracker>::iterator finder =
-                refinement_trackers.find(*cit);
-            legion_assert(finder != refinement_trackers.end());
-            it.merge(finder->second);
-            refinement_trackers.erase(finder);
-            delete (*cit);
-            break;
-          }
         }
         // Add new entries
         for (const std::pair<RefinementTracker*, FieldMask>& it : to_add)
@@ -781,11 +817,15 @@ namespace Legion {
       if (!!need_tracker)
       {
         RefinementTracker* new_tracker = owner->create_refinement_tracker();
-        new_tracker->update_child(child, usage, ctx, need_tracker);
+        new_tracker->update_child(child, usage, ctx, need_tracker, nullptr);
         if (new_tracker->is_child_current_refinement(child))
           child_mask |= need_tracker;
         refinement_trackers.insert(new_tracker, need_tracker);
+        to_check.emplace_back(new_tracker);
       }
+      // Now we need to merge any trackers that have changed state
+      if (!to_check.empty())
+        deduplicate_refinements(to_check);
     }
 
     //--------------------------------------------------------------------------
@@ -800,10 +840,10 @@ namespace Legion {
       // this function will clone them and delete them as necessary to make
       // sure that each field is accurately represented
       FieldMask need_tracker = proj_mask;
+      local::vector<RefinementTracker*> to_check;
       if (!(proj_mask * refinement_trackers.get_valid_mask()))
       {
         local::FieldMaskMap<RefinementTracker> to_add;
-        local::set<RefinementTracker*> to_check;
         for (lng::FieldMaskMap<RefinementTracker>::iterator it =
                  refinement_trackers.begin();
              it != refinement_trackers.end(); it++)
@@ -811,43 +851,23 @@ namespace Legion {
           const FieldMask overlap = proj_mask & it->second;
           if (!overlap)
             continue;
-          if (overlap != it->second)
-          {
-            RefinementTracker* diff = it->first->clone();
-            FieldMask diff_mask = it->second - overlap;
-            to_add.insert(diff, diff_mask);
-            it.filter(diff_mask);
-          }
-          if (it->first->update_projection(summary, usage, ctx, overlap))
+          RefinementTracker* prev = nullptr;
+          if (it->first->update_projection(
+                  summary, usage, ctx, overlap,
+                  (overlap == it->second) ? nullptr : &prev))
           {
             updated_refinements |= overlap;
-            to_check.insert(it->first);
+            to_check.emplace_back(it->first);
+          }
+          if (prev != nullptr)
+          {
+            FieldMask prev_mask = it->second - overlap;
+            to_add.insert(prev, prev_mask);
+            it.filter(prev_mask);
           }
           need_tracker -= overlap;
           if (!need_tracker)
             break;
-        }
-        // Check to see if we can merge any updated ones
-        for (local::set<RefinementTracker*>::const_iterator cit =
-                 to_check.begin();
-             cit != to_check.end(); cit++)
-        {
-          for (lng::FieldMaskMap<RefinementTracker>::iterator it =
-                   refinement_trackers.begin();
-               it != refinement_trackers.end(); it++)
-          {
-            if (to_check.find(it->first) != to_check.end())
-              continue;
-            if (!it->first->merge_refinement(*cit))
-              continue;
-            lng::FieldMaskMap<RefinementTracker>::iterator finder =
-                refinement_trackers.find(*cit);
-            legion_assert(finder != refinement_trackers.end());
-            it.merge(finder->second);
-            refinement_trackers.erase(finder);
-            delete (*cit);
-            break;
-          }
         }
         // Add new entries
         for (local::FieldMaskMap<RefinementTracker>::const_iterator it =
@@ -858,8 +878,44 @@ namespace Legion {
       if (!!need_tracker)
       {
         RefinementTracker* new_tracker = owner->create_refinement_tracker();
-        new_tracker->update_projection(summary, usage, ctx, need_tracker);
+        new_tracker->update_projection(
+            summary, usage, ctx, need_tracker, nullptr);
         refinement_trackers.insert(new_tracker, need_tracker);
+        to_check.emplace_back(new_tracker);
+      }
+      if (!to_check.empty())
+        deduplicate_refinements(to_check);
+    }
+
+    //--------------------------------------------------------------------------
+    void LogicalState::deduplicate_refinements(
+        local::vector<RefinementTracker*>& to_check)
+    //--------------------------------------------------------------------------
+    {
+      for (local::vector<RefinementTracker*>::const_iterator cit =
+               to_check.begin();
+           cit != to_check.end(); cit++)
+      {
+        // Check to make sure it can't be merged with any other trackers
+        for (lng::FieldMaskMap<RefinementTracker>::iterator it =
+                 refinement_trackers.begin();
+             it != refinement_trackers.end(); it++)
+        {
+          // Skip checking against ourself
+          if (*cit == it->first)
+            continue;
+          // See if these can be merged together
+          if (!it->first->merge_refinement(*cit))
+            continue;
+          // Merged with another one so remove this entry
+          lng::FieldMaskMap<RefinementTracker>::iterator finder =
+              refinement_trackers.find(*cit);
+          legion_assert(finder != refinement_trackers.end());
+          it.merge(finder->second);
+          refinement_trackers.erase(finder);
+          delete (*cit);
+          break;
+        }
       }
     }
 
