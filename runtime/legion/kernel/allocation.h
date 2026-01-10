@@ -16,6 +16,9 @@
 #ifndef __LEGION_ALLOCATION__
 #define __LEGION_ALLOCATION__
 
+#if __cplusplus >= 202002L
+#include <bit>
+#endif
 #include <set>
 #include <map>
 #include <new>

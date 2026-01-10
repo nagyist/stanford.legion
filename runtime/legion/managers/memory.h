@@ -512,7 +512,61 @@ namespace Legion {
       // represents a range of memory that can be collected
       // This data structure is protected by the manager_lock
       typedef lng::map<PhysicalManager*, GCPriority> TreeInstances;
-      lng::map<RegionTreeID, TreeInstances> current_instances;
+      // We use a two-part key here that is sorted three different ways
+      // First we split on region tree ID since we only need to do finds
+      // for matching instances in particular region tree and then we
+      // sort by the field mask hash as a summary of which fields a
+      // particular instance has. This field mask has is sorted by
+      // popcount first since we want to easily discount instances
+      // that have fewer fields than what we're searching for.
+      struct TreeFieldKey : public std::pair<RegionTreeID, uint64_t> {
+      public:
+        TreeFieldKey(void) = default;
+        TreeFieldKey(RegionTreeID tid, uint64_t hash)
+          : std::pair<RegionTreeID, uint64_t>(tid, hash)
+        { }
+        TreeFieldKey(PhysicalManager* manager);
+      };
+      struct TreeFieldComparator {
+      public:
+        inline int popcount(uint64_t value) const
+        {
+#if __cplusplus >= 202002L
+          return std::popcount(value);
+#elif defined(__clang__) || defined(__GCC__)
+          return __builtin_popcountll(value);
+#else
+          // Adapted from Hacker's Delight
+          // put count of each 2 bits into those 2 bits
+          value -= (value >> 1) & 0x5555555555555555ULL;
+          // put count of each 4 bits into those 4 bits
+          value = (value & 0x3333333333333333ULL) +
+                  ((value >> 2) & 0x3333333333333333ULL);
+          // put count of each 8 bits into those 8 bits
+          value = (value + (value >> 4)) & 0x0f0f0f0f0f0f0f0fULL;
+          // sum all bytes into top byte
+          return int((value * 0x0101010101010101ULL) >> 56);
+#endif
+        }
+        inline bool operator()(
+            const TreeFieldKey& lhs, const TreeFieldKey& rhs) const
+        {
+          if (lhs.first < rhs.first)
+            return true;
+          if (lhs.first > rhs.first)
+            return false;
+          const int lhs_popcount = popcount(lhs.second);
+          const int rhs_popcount = popcount(rhs.second);
+          if (lhs_popcount < rhs_popcount)
+            return true;
+          if (lhs_popcount > rhs_popcount)
+            return false;
+          return lhs.second < rhs.second;
+        }
+      };
+      typedef lng::map<TreeFieldKey, TreeInstances, TreeFieldComparator>
+          TreeFieldInstances;
+      TreeFieldInstances current_instances;
       // Keep track of all groupings of instances based on their
       // garbage collection priorities and placement in memory
       std::map<
