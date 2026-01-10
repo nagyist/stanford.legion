@@ -42,12 +42,18 @@ namespace Legion {
       virtual RefinementTracker* clone(void) const = 0;
       virtual void initialize_no_refine(void) = 0;
       virtual bool is_child_current_refinement(RegionTreeNode* child) const = 0;
+      virtual bool update_node(
+          const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) = 0;
       virtual bool update_child(
           RegionTreeNode* child, const RegionUsage& usage, ContextID ctx,
-          const FieldMask& current_mask) = 0;
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) = 0;
       virtual bool update_projection(
           ProjectionSummary* summary, const RegionUsage& usage, ContextID ctx,
-          const FieldMask& current_mask) = 0;
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) = 0;
       virtual void invalidate_refinement(
           ContextID ctx, const FieldMask& invalidation_mask) = 0;
       virtual bool merge_refinement(const RefinementTracker* other) const = 0;
@@ -92,12 +98,18 @@ namespace Legion {
       virtual void initialize_no_refine(void) override;
       virtual bool is_child_current_refinement(
           RegionTreeNode* child) const override;
+      virtual bool update_node(
+          const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) override;
       virtual bool update_child(
           RegionTreeNode* child, const RegionUsage& usage, ContextID ctx,
-          const FieldMask& current_mask) override;
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) override;
       virtual bool update_projection(
           ProjectionSummary* summary, const RegionUsage& usage, ContextID ctx,
-          const FieldMask& current_mask) override;
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) override;
       virtual void invalidate_refinement(
           ContextID ctx, const FieldMask& invalidation_mask) override;
       virtual bool merge_refinement(
@@ -110,6 +122,7 @@ namespace Legion {
           ProjectionSummary* summary, ContextID ctx,
           const FieldMask& current_mask);
       void invalidate_unused_candidates(void);
+      void invalidate_all_candidates(void);
     public:
       RegionNode* const region;
     protected:
@@ -121,9 +134,9 @@ namespace Legion {
         COMPLETE_WRITE_REFINED_STATE,
         NO_REFINEMENT_STATE,
       };
-      RefinementState refinement_state;
-      PartitionNode* refined_child;
-      ProjectionRegion* refined_projection;
+      RefinementState refinement_state = UNREFINED_STATE;
+      PartitionNode* refined_child = nullptr;
+      ProjectionRegion* refined_projection = nullptr;
     protected:
       // Track the candidate children and projections and how often
       // we have observed a return back to them
@@ -133,11 +146,17 @@ namespace Legion {
       std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t> >
           candidate_projections;
       // Monotonically increasing clock counting total number of traversals
-      uint64_t total_traversals;
+      // Counter resets whenever we change refinements to allow for merging
+      // of different trackers that all refine at the same time
+      uint64_t total_traversals = 0;
       // The timeout tracks how long we've gone without seeing a return
       // If we go for too long without seeing a return, we timeout and
       // clear out all the candidates so we can try again
-      uint64_t return_timeout;
+      uint64_t return_timeout = 0;
+      // We can also have a candidate for coarsening back to unrefined
+      // However we only consider this if we go a whole epoch without
+      // seeing a single refinement traversal
+      uint64_t coarsen_count = 0;
     };
 
     /**
@@ -165,12 +184,18 @@ namespace Legion {
       virtual void initialize_no_refine(void) override;
       virtual bool is_child_current_refinement(
           RegionTreeNode* child) const override;
+      virtual bool update_node(
+          const RegionUsage& usage, ContextID ctx,
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) override;
       virtual bool update_child(
           RegionTreeNode* child, const RegionUsage& usage, ContextID ctx,
-          const FieldMask& current_mask) override;
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) override;
       virtual bool update_projection(
           ProjectionSummary* summary, const RegionUsage& usage, ContextID ctx,
-          const FieldMask& current_mask) override;
+          const FieldMask& current_mask,
+          RefinementTracker** clone_on_update) override;
       virtual void invalidate_refinement(
           ContextID ctx, const FieldMask& invalidation_mask) override;
       virtual bool merge_refinement(
@@ -178,6 +203,7 @@ namespace Legion {
     protected:
       bool is_dominant_candidate(double score, bool is_current);
       void invalidate_unused_candidates(void);
+      void invalidate_all_candidates(void);
     public:
       PartitionNode* const partition;
     protected:

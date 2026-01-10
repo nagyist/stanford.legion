@@ -29,8 +29,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RegionRefinementTracker::RegionRefinementTracker(RegionNode* node)
-      : region(node), refinement_state(UNREFINED_STATE), refined_child(nullptr),
-        refined_projection(nullptr), total_traversals(0), return_timeout(0)
+      : region(node)
     //--------------------------------------------------------------------------
     {
       region->add_base_resource_ref(REFINEMENT_REF);
@@ -46,15 +45,7 @@ namespace Legion {
       if ((refined_projection != nullptr) &&
           refined_projection->remove_reference())
         delete refined_projection;
-      for (const std::pair<PartitionNode* const, std::pair<double, uint64_t>>&
-               it : candidate_partitions)
-        if (it.first->remove_base_resource_ref(REFINEMENT_REF))
-          delete it.first;
-      for (const std::pair<
-               ProjectionRegion* const, std::pair<double, uint64_t>>& it :
-           candidate_projections)
-        if (it.first->remove_reference())
-          delete it.first;
+      invalidate_all_candidates();
       if (region->remove_base_resource_ref(REFINEMENT_REF))
         delete region;
     }
@@ -90,6 +81,7 @@ namespace Legion {
       }
       tracker->total_traversals = total_traversals;
       tracker->return_timeout = return_timeout;
+      tracker->coarsen_count = coarsen_count;
       return tracker;
     }
 
@@ -112,11 +104,61 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool RegionRefinementTracker::update_child(
-        RegionTreeNode* node, const RegionUsage& usage, ContextID ctx,
-        const FieldMask& current_mask)
+    bool RegionRefinementTracker::update_node(
+        const RegionUsage& usage, ContextID ctx, const FieldMask& current_mask,
+        RefinementTracker** clone_on_update)
     //--------------------------------------------------------------------------
     {
+      // Nothing to do if we're already in an unrefined state
+      if (refinement_state == UNREFINED_STATE)
+      {
+        legion_assert(candidate_partitions.empty());
+        legion_assert(candidate_projections.empty());
+        return false;
+      }
+      if (clone_on_update != nullptr)
+        *clone_on_update = clone();
+      // We're already in a refined state so we need to see if we want to
+      // coarsen back, this should happen rarely and the test for it occurring
+      // should be quite strong due to the costs associated with switching
+      // back and forth between coarse- and fine-grained refinements
+      // Step the clock for a new traversal
+      total_traversals++;
+      if (coarsen_count > 0)
+        return_timeout = 0;
+      if (++coarsen_count < CHANGE_REFINEMENT_RETURN_COUNT)
+        return false;
+      // We saw an entire epoch of accesses directly to this region
+      // without a single intervening traversal or projection so
+      // this meets the test for coarsening back to this region
+      invalidate_unused_candidates();
+      // Invalidate our current refinement
+      if (refined_child != nullptr)
+      {
+        refined_child->invalidate_logical_refinement(ctx, current_mask);
+        if (refined_child->remove_base_resource_ref(REFINEMENT_REF))
+          delete refined_child;
+        refined_child = nullptr;
+      }
+      else
+      {
+        legion_assert(refined_projection != nullptr);
+        if (refined_projection->remove_reference())
+          delete refined_projection;
+        refined_projection = nullptr;
+      }
+      refinement_state = UNREFINED_STATE;
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    bool RegionRefinementTracker::update_child(
+        RegionTreeNode* node, const RegionUsage& usage, ContextID ctx,
+        const FieldMask& current_mask, RefinementTracker** clone_on_update)
+    //--------------------------------------------------------------------------
+    {
+      // Reset the coarsen count since we traversed a subtree
+      coarsen_count = 0;
       legion_assert(!node->is_region());
       PartitionNode* child = node->as_partition_node();
       // First see if we need to change states
@@ -126,6 +168,8 @@ namespace Legion {
           {
             legion_assert(refined_child == nullptr);
             legion_assert(refined_projection == nullptr);
+            if (clone_on_update != nullptr)
+              *clone_on_update = clone();
             // If we don't have any refinements, we'll always allow them
             if (child->row_source->is_complete())
               refinement_state = IS_WRITE(usage) ?
@@ -142,6 +186,8 @@ namespace Legion {
             // See if we need to change states
             if (child->row_source->is_complete())
             {
+              if (clone_on_update != nullptr)
+                *clone_on_update = clone();
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
                                      COMPLETE_NONWRITE_REFINED_STATE;
@@ -149,6 +195,8 @@ namespace Legion {
             }
             else if (IS_WRITE(usage))
             {
+              if (clone_on_update != nullptr)
+                *clone_on_update = clone();
               refinement_state = INCOMPLETE_WRITE_REFINED_STATE;
               return update_refinement(child, ctx, current_mask);
             }
@@ -158,6 +206,8 @@ namespace Legion {
           {
             if (child->row_source->is_complete())
             {
+              if (clone_on_update != nullptr)
+                *clone_on_update = clone();
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
                                      COMPLETE_NONWRITE_REFINED_STATE;
@@ -173,6 +223,8 @@ namespace Legion {
               return false;
             if (IS_WRITE(usage))
             {
+              if (clone_on_update != nullptr)
+                *clone_on_update = clone();
               refinement_state = COMPLETE_WRITE_REFINED_STATE;
               return update_refinement(child, ctx, current_mask);
             }
@@ -191,6 +243,14 @@ namespace Legion {
         default:
           std::abort();
       }
+      // Handle a special case where we return to the current refinement
+      // without having seen any intervening candidates in which case
+      // we can't just leave this tracker as-is like nothing happened
+      // We'll only start counting once we see a new candidate
+      if ((total_traversals == 0) && (child == refined_child))
+        return false;
+      if (clone_on_update != nullptr)
+        *clone_on_update = clone();
       // If we get here then we haven't changed state so check to
       // see if this partition makes us want to change state
       // Step the clock for a new traversal
@@ -258,20 +318,24 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool RegionRefinementTracker::update_projection(
         ProjectionSummary* summary, const RegionUsage& usage, ContextID ctx,
-        const FieldMask& current_mask)
+        const FieldMask& current_mask, RefinementTracker** clone_on_update)
     //--------------------------------------------------------------------------
     {
       // If this is a projection with the identity projection on a region
       // then we don't want to consider this like a projection and instead
       // want to treat it like we're using this region directly
       if (summary->projection->projection_id == 0)
-        return false;
+        return update_node(usage, ctx, current_mask, clone_on_update);
+      // Reset the coarsen count since we traversed a projection
+      coarsen_count = 0;
       switch (refinement_state)
       {
         case UNREFINED_STATE:
           {
             legion_assert(refined_child == nullptr);
             legion_assert(refined_projection == nullptr);
+            if (clone_on_update != nullptr)
+              *clone_on_update = clone();
             if (summary->is_complete())
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
@@ -287,6 +351,8 @@ namespace Legion {
             // See if we need to change states
             if (summary->is_complete())
             {
+              if (clone_on_update != nullptr)
+                *clone_on_update = clone();
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
                                      COMPLETE_NONWRITE_REFINED_STATE;
@@ -294,6 +360,8 @@ namespace Legion {
             }
             else if (IS_WRITE(usage))
             {
+              if (clone_on_update != nullptr)
+                *clone_on_update = clone();
               refinement_state = INCOMPLETE_WRITE_REFINED_STATE;
               return update_refinement(summary, ctx, current_mask);
             }
@@ -303,6 +371,8 @@ namespace Legion {
           {
             if (summary->is_complete())
             {
+              if (clone_on_update != nullptr)
+                *clone_on_update = clone();
               refinement_state = IS_WRITE(usage) ?
                                      COMPLETE_WRITE_REFINED_STATE :
                                      COMPLETE_NONWRITE_REFINED_STATE;
@@ -318,6 +388,8 @@ namespace Legion {
               return false;
             if (IS_WRITE(usage))
             {
+              if (clone_on_update != nullptr)
+                *clone_on_update = clone();
               refinement_state = COMPLETE_WRITE_REFINED_STATE;
               return update_refinement(summary, ctx, current_mask);
             }
@@ -338,6 +410,14 @@ namespace Legion {
       }
       ProjectionRegion* projection =
           summary->get_tree()->as_region_projection();
+      // Handle a special case where we return to the current refinement
+      // without having seen any intervening candidates in which case
+      // we can't just leave this tracker as-is like nothing happened
+      // We'll only start counting once we see a new candidate
+      if ((total_traversals == 0) && (projection == refined_projection))
+        return false;
+      if (clone_on_update != nullptr)
+        *clone_on_update = clone();
       // Step the clock for a new traversal
       total_traversals++;
       // Check to see if we observed this refinement before
@@ -421,7 +501,14 @@ namespace Legion {
         return false;
       if (refined_projection != other->refined_projection)
         return false;
-      // Ignore the candidates, we don't actually care if they're the same
+      // Only merge if these are both in the state where they are not
+      // tracking any candidate refinements
+      if ((total_traversals != 0) || (other->total_traversals != 0))
+        return false;
+      legion_assert(candidate_partitions.empty());
+      legion_assert(candidate_projections.empty());
+      legion_assert(other->candidate_partitions.empty());
+      legion_assert(other->candidate_projections.empty());
       return true;
     }
 
@@ -515,8 +602,7 @@ namespace Legion {
           delete refined_projection;
         refined_projection = nullptr;
       }
-      const bool changed = (child != refined_child);
-      if (changed)
+      if (child != refined_child)
       {
         if (refined_child != nullptr)
         {
@@ -526,9 +612,18 @@ namespace Legion {
         }
         refined_child = child;
         refined_child->add_base_resource_ref(REFINEMENT_REF);
+        // Reset everything back to the beginning
+        invalidate_all_candidates();
+        total_traversals = 0;
+        return_timeout = 0;
+        coarsen_count = 0;
+        return true;
       }
-      invalidate_unused_candidates();
-      return changed;
+      else
+      {
+        invalidate_unused_candidates();
+        return false;
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -546,17 +641,25 @@ namespace Legion {
           delete refined_child;
         refined_child = nullptr;
       }
-      const bool changed = (projection != refined_projection);
-      if (changed)
+      if (projection != refined_projection)
       {
         if ((refined_projection != nullptr) &&
             refined_projection->remove_reference())
           delete refined_projection;
         refined_projection = projection;
         refined_projection->add_reference();
+        // Reset everything back to the beginning
+        invalidate_all_candidates();
+        total_traversals = 0;
+        return_timeout = 0;
+        coarsen_count = 0;
+        return true;
       }
-      invalidate_unused_candidates();
-      return changed;
+      else
+      {
+        invalidate_unused_candidates();
+        return false;
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -608,6 +711,23 @@ namespace Legion {
       }
     }
 
+    //--------------------------------------------------------------------------
+    void RegionRefinementTracker::invalidate_all_candidates(void)
+    //--------------------------------------------------------------------------
+    {
+      for (const std::pair<PartitionNode* const, std::pair<double, uint64_t>>&
+               it : candidate_partitions)
+        if (it.first->remove_base_resource_ref(REFINEMENT_REF))
+          delete it.first;
+      candidate_partitions.clear();
+      for (const std::pair<
+               ProjectionRegion* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
+        if (it.first->remove_reference())
+          delete it.first;
+      candidate_projections.clear();
+    }
+
     /////////////////////////////////////////////////////////////
     // PartitionRefinementTracker
     /////////////////////////////////////////////////////////////
@@ -631,11 +751,7 @@ namespace Legion {
       for (RegionNode* const it : children)
         if (it->remove_base_resource_ref(REFINEMENT_REF))
           delete it;
-      for (const std::pair<
-               ProjectionPartition* const, std::pair<double, uint64_t>>& it :
-           candidate_projections)
-        if (it.first->remove_reference())
-          delete it.first;
+      invalidate_all_candidates();
       if (partition->remove_base_resource_ref(REFINEMENT_REF))
         delete partition;
     }
@@ -690,9 +806,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    bool PartitionRefinementTracker::update_node(
+        const RegionUsage& usage, ContextID ctx, const FieldMask& current_mask,
+        RefinementTracker** clone_on_update)
+    //--------------------------------------------------------------------------
+    {
+      // This should never be called because we should never have a
+      // non-projection region requirement end at a partition
+      std::abort();
+    }
+
+    //--------------------------------------------------------------------------
     bool PartitionRefinementTracker::update_child(
         RegionTreeNode* node, const RegionUsage& usage, ContextID ctx,
-        const FieldMask& current_mask)
+        const FieldMask& current_mask, RefinementTracker** clone_on_update)
     //--------------------------------------------------------------------------
     {
       // No refinement tracking through aliased partitions
@@ -700,33 +827,28 @@ namespace Legion {
         return false;
       legion_assert(node->is_region());
       RegionNode* child = node->as_region_node();
-      total_traversals++;
-      if (children.empty())
+      const bool was_empty = children.empty();
+      // Always add this child to the list of children
+      if (!std::binary_search(children.begin(), children.end(), child))
       {
+        // Add the child to the list of children
         child->add_base_resource_ref(REFINEMENT_REF);
         children.emplace_back(child);
-        if (refined_projection == nullptr)
-          // Children become the initial refinement
-          return true;
-        if (++return_timeout == CHANGE_REFINEMENT_TIMEOUT)
-        {
-          invalidate_unused_candidates();
-          return_timeout = 0;
-        }
-        children_score = 0.0;
-        children_last = total_traversals;
+        std::sort(children.begin(), children.end());
       }
-      else
+      // Handle a special case where we return to the current refinement
+      // without having seen any intervening candidates in which case
+      // we can't just leave this tracker as-is like nothing happened
+      // We'll only start counting once we see a new candidate
+      if ((total_traversals == 0) && (refined_projection == nullptr))
+        return false;
+      if (clone_on_update != nullptr)
+        *clone_on_update = clone();
+      total_traversals++;
+      if (!was_empty)
       {
         // Returned to the children so reset the timeout
         return_timeout = 0;
-        if (!std::binary_search(children.begin(), children.end(), child))
-        {
-          // Add the child to the list of children
-          child->add_base_resource_ref(REFINEMENT_REF);
-          children.emplace_back(child);
-          std::sort(children.begin(), children.end());
-        }
         if (refined_projection == nullptr)
         {
           // Children are still the refinement
@@ -752,10 +874,25 @@ namespace Legion {
             if (refined_projection->remove_reference())
               delete refined_projection;
             refined_projection = nullptr;
-            invalidate_unused_candidates();
+            // Reset everything back to the start
+            invalidate_all_candidates();
+            children_score = -1.0;
+            children_last = 0;
+            total_traversals = 0;
             return true;
           }
         }
+      }
+      else if (refined_projection != nullptr)
+      {
+        // First child candidate
+        if (++return_timeout == CHANGE_REFINEMENT_TIMEOUT)
+        {
+          invalidate_unused_candidates();
+          return_timeout = 0;
+        }
+        children_score = 0.0;
+        children_last = total_traversals;
       }
       return false;
     }
@@ -763,7 +900,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool PartitionRefinementTracker::update_projection(
         ProjectionSummary* summary, const RegionUsage& usage, ContextID ctx,
-        const FieldMask& current_mask)
+        const FieldMask& current_mask, RefinementTracker** clone_on_update)
     //--------------------------------------------------------------------------
     {
       ProjectionPartition* projection =
@@ -771,11 +908,21 @@ namespace Legion {
       // Special case if we have no refinements
       if ((refined_projection == nullptr) && children.empty())
       {
+        if (clone_on_update != nullptr)
+          *clone_on_update = clone();
         // We'll just become the refinement right away
         refined_projection = projection;
         refined_projection->add_reference();
         return true;
       }
+      // Handle a special case where we return to the current refinement
+      // without having seen any intervening candidates in which case
+      // we can't just leave this tracker as-is like nothing happened
+      // We'll only start counting once we see a new candidate
+      if ((total_traversals == 0) && (refined_projection == projection))
+        return false;
+      if (clone_on_update != nullptr)
+        *clone_on_update = clone();
       // Update the score and see if we want to change
       total_traversals++;
       // Check to see if we observed this refinement before
@@ -824,7 +971,11 @@ namespace Legion {
               delete refined_projection;
             refined_projection = projection;
             refined_projection->add_reference();
-            invalidate_unused_candidates();
+            // Reset everything back to the start
+            invalidate_all_candidates();
+            children_score = -1.0;
+            children_last = 0;
+            total_traversals = 0;
             return true;
           }
           invalidate_unused_candidates();
@@ -872,6 +1023,15 @@ namespace Legion {
           legion_safe_cast<const PartitionRefinementTracker*>(rhs);
       if (refined_projection != other->refined_projection)
         return false;
+      // Only do the merge if we have no candidates
+      if ((total_traversals != 0) || (other->total_traversals != 0))
+        return false;
+      legion_assert(candidate_projections.empty());
+      legion_assert(other->candidate_projections.empty());
+      // Technically we could still union these sets of children
+      // together since we allow the sets of children to overapproximate
+      // for each individual field, but that would require modifying the
+      // calling code and doesn't seem like it is worth the optimization
       if (children.size() != other->children.size())
         return false;
       for (unsigned idx1 = 0; idx1 < children.size(); idx1++)
@@ -887,7 +1047,6 @@ namespace Legion {
         if (!found)
           return false;
       }
-      // Ignore the candidates, we don't actually care if they're the same
       return true;
     }
 
@@ -991,6 +1150,18 @@ namespace Legion {
             it++;
         }
       }
+    }
+
+    //--------------------------------------------------------------------------
+    void PartitionRefinementTracker::invalidate_all_candidates(void)
+    //--------------------------------------------------------------------------
+    {
+      for (const std::pair<
+               ProjectionPartition* const, std::pair<double, uint64_t>>& it :
+           candidate_projections)
+        if (it.first->remove_reference())
+          delete it.first;
+      candidate_projections.clear();
     }
 
   }  // namespace Internal
