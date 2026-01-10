@@ -1686,8 +1686,7 @@ namespace Legion {
       std::vector<PhysicalManager*> to_check;
       {
         AutoLock m_lock(manager_lock, false /*exclusive*/);
-        for (lng::map<RegionTreeID, TreeInstances>::const_iterator cit =
-                 current_instances.begin();
+        for (TreeFieldInstances::const_iterator cit = current_instances.begin();
              cit != current_instances.end(); cit++)
           for (TreeInstances::const_iterator it = cit->second.begin();
                it != cit->second.end(); it++)
@@ -1717,8 +1716,7 @@ namespace Legion {
       std::vector<PhysicalManager*> to_delete;
       {
         AutoLock m_lock(manager_lock);
-        for (lng::map<RegionTreeID, TreeInstances>::iterator cit =
-                 current_instances.begin();
+        for (TreeFieldInstances::iterator cit = current_instances.begin();
              cit != current_instances.end(); cit++)
         {
           for (TreeInstances::iterator it = cit->second.begin();
@@ -1791,8 +1789,7 @@ namespace Legion {
       // collected since we already waited for any pending collections to
       // finish and their meta tasks to run to prune them out of the
       // current_instances data structure
-      for (lng::map<RegionTreeID, TreeInstances>::const_iterator cit =
-               current_instances.begin();
+      for (TreeFieldInstances::const_iterator cit = current_instances.begin();
            cit != current_instances.end(); cit++)
         for (TreeInstances::const_iterator it = cit->second.begin();
              it != cit->second.end(); it++)
@@ -1807,12 +1804,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    MemoryManager::TreeFieldKey::TreeFieldKey(PhysicalManager* manager)
+      : std::pair<RegionTreeID, uint64_t>(
+            manager->tree_id, manager->layout->allocated_fields.get_hash_key())
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
     void MemoryManager::register_remote_instance(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
       legion_assert(!is_owner);
+      const TreeFieldKey key(manager);
       AutoLock m_lock(manager_lock);
-      TreeInstances& insts = current_instances[manager->tree_id];
+      TreeInstances& insts = current_instances[key];
       legion_assert(insts.find(manager) == insts.end());
       insts[manager] = LEGION_GC_NEVER_PRIORITY;
     }
@@ -1822,9 +1827,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(!is_owner);
+      const TreeFieldKey key(manager);
       AutoLock m_lock(manager_lock);
-      lng::map<RegionTreeID, TreeInstances>::iterator finder =
-          current_instances.find(manager->tree_id);
+      TreeFieldInstances::iterator finder = current_instances.find(key);
       legion_assert(finder != current_instances.end());
       legion_assert(finder->second.find(manager) != finder->second.end());
       finder->second.erase(manager);
@@ -1838,9 +1843,9 @@ namespace Legion {
     {
       legion_assert(is_owner);
       {
+        const TreeFieldKey key(manager);
         AutoLock m_lock(manager_lock);
-        lng::map<RegionTreeID, TreeInstances>::iterator tree_finder =
-            current_instances.find(manager->tree_id);
+        TreeFieldInstances::iterator tree_finder = current_instances.find(key);
         legion_assert(tree_finder != current_instances.end());
         TreeInstances::iterator finder = tree_finder->second.find(manager);
         legion_assert(finder != tree_finder->second.end());
@@ -2664,10 +2669,13 @@ namespace Legion {
       AutoLock c_lock(collection_lock);
       std::vector<PhysicalManager*> to_delete;
       {
+        const TreeFieldKey lower_bound(tree_id, 0);
+        const TreeFieldKey upper_bound(
+            tree_id, std::numeric_limits<uint64_t>::max());
         AutoLock m_lock(manager_lock);
-        lng::map<RegionTreeID, TreeInstances>::iterator finder =
-            current_instances.find(tree_id);
-        if (finder != current_instances.end())
+        for (TreeFieldInstances::iterator finder =
+                 current_instances.lower_bound(lower_bound);
+             finder != current_instances.upper_bound(upper_bound); finder++)
         {
           for (TreeInstances::iterator it = finder->second.begin();
                it != finder->second.end(); it++)
@@ -2707,9 +2715,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(is_owner);
+      const TreeFieldKey key(manager);
       AutoLock m_lock(manager_lock);
-      lng::map<RegionTreeID, TreeInstances>::iterator tree_finder =
-          current_instances.find(manager->tree_id);
+      TreeFieldInstances::iterator tree_finder = current_instances.find(key);
       legion_assert(tree_finder != current_instances.end());
       TreeInstances::iterator finder = tree_finder->second.find(manager);
       legion_assert(finder != tree_finder->second.end());
@@ -3447,27 +3455,46 @@ namespace Legion {
       std::deque<PhysicalManager*> candidates;
       if (tree_id != 0)
       {
+        FieldMask field_mask;
+        TreeFieldKey lower_bound(tree_id, 0);
+        if (!constraints.field_constraint.field_set.empty())
+        {
+          RegionNode* root = runtime->get_tree(tree_id);
+          std::vector<unsigned> indexes(
+              constraints.field_constraint.field_set.size());
+          root->column_source->get_field_indexes(
+              constraints.field_constraint.field_set, indexes);
+          for (unsigned idx : indexes) field_mask.set_bit(idx);
+          lower_bound.second = field_mask.get_hash_key();
+        }
+        const TreeFieldKey upper_bound(
+            tree_id, std::numeric_limits<uint64_t>::max());
         // Hold the lock while searching here
         AutoLock m_lock(manager_lock, false /*exclusive*/);
-        lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
-            current_instances.find(tree_id);
-        if (finder == current_instances.end())
-          return false;
-        for (TreeInstances::const_iterator it = finder->second.begin();
-             it != finder->second.end(); it++)
+        for (TreeFieldInstances::const_iterator finder =
+                 current_instances.lower_bound(lower_bound);
+             finder != current_instances.upper_bound(upper_bound); finder++)
         {
-          if (it->first->is_collected())
+          // Check to see if the field hash dominates
+          if ((finder->first.second & lower_bound.second) != lower_bound.second)
             continue;
-          it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-          candidates.emplace_back(it->first);
+          for (TreeInstances::const_iterator it = finder->second.begin();
+               it != finder->second.end(); it++)
+          {
+            if (it->first->is_collected())
+              continue;
+            if (!!(field_mask - it->first->layout->allocated_fields))
+              continue;
+            it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
+            candidates.emplace_back(it->first);
+          }
         }
       }
       else
       {
         // Just get all the instances since we don't care about regions
         AutoLock m_lock(manager_lock, false /*exclusive*/);
-        for (lng::map<RegionTreeID, TreeInstances>::const_iterator rit =
-                 current_instances.begin();
+        for (TreeFieldInstances::const_iterator rit = current_instances.begin();
              rit != current_instances.end(); rit++)
         {
           for (TreeInstances::const_iterator it = rit->second.begin();
@@ -3560,27 +3587,46 @@ namespace Legion {
       std::deque<PhysicalManager*> candidates;
       if (tree_id != 0)
       {
+        FieldMask field_mask;
+        TreeFieldKey lower_bound(tree_id, 0);
+        if (!constraints.field_constraint.field_set.empty())
+        {
+          RegionNode* root = runtime->get_tree(tree_id);
+          std::vector<unsigned> indexes(
+              constraints.field_constraint.field_set.size());
+          root->column_source->get_field_indexes(
+              constraints.field_constraint.field_set, indexes);
+          for (unsigned idx : indexes) field_mask.set_bit(idx);
+          lower_bound.second = field_mask.get_hash_key();
+        }
+        const TreeFieldKey upper_bound(
+            tree_id, std::numeric_limits<uint64_t>::max());
         // Hold the lock while searching here
         AutoLock m_lock(manager_lock, false /*exclusive*/);
-        lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
-            current_instances.find(tree_id);
-        if (finder == current_instances.end())
-          return;
-        for (TreeInstances::const_iterator it = finder->second.begin();
-             it != finder->second.end(); it++)
+        for (TreeFieldInstances::const_iterator finder =
+                 current_instances.lower_bound(lower_bound);
+             finder != current_instances.upper_bound(upper_bound); finder++)
         {
-          if (it->first->is_collected())
+          // Check to see if the field hash dominates
+          if ((finder->first.second & lower_bound.second) != lower_bound.second)
             continue;
-          it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-          candidates.emplace_back(it->first);
+          for (TreeInstances::const_iterator it = finder->second.begin();
+               it != finder->second.end(); it++)
+          {
+            if (it->first->is_collected())
+              continue;
+            if (!!(field_mask - it->first->layout->allocated_fields))
+              continue;
+            it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
+            candidates.emplace_back(it->first);
+          }
         }
       }
       else
       {
         // Just get all the instances since we don't care about regions
         AutoLock m_lock(manager_lock, false /*exclusive*/);
-        for (lng::map<RegionTreeID, TreeInstances>::const_iterator rit =
-                 current_instances.begin();
+        for (TreeFieldInstances::const_iterator rit = current_instances.begin();
              rit != current_instances.end(); rit++)
         {
           for (TreeInstances::const_iterator it = rit->second.begin();
@@ -3669,19 +3715,39 @@ namespace Legion {
         return false;
       std::deque<PhysicalManager*> candidates;
       {
+        FieldMask field_mask;
+        TreeFieldKey lower_bound(tree_id, 0);
+        if (!constraints.field_constraint.field_set.empty())
+        {
+          RegionNode* root = runtime->get_tree(tree_id);
+          std::vector<unsigned> indexes(
+              constraints.field_constraint.field_set.size());
+          root->column_source->get_field_indexes(
+              constraints.field_constraint.field_set, indexes);
+          for (unsigned idx : indexes) field_mask.set_bit(idx);
+          lower_bound.second = field_mask.get_hash_key();
+        }
+        const TreeFieldKey upper_bound(
+            tree_id, std::numeric_limits<uint64_t>::max());
         // Hold the lock while searching here
         AutoLock m_lock(manager_lock, false /*exclusive*/);
-        lng::map<RegionTreeID, TreeInstances>::const_iterator finder =
-            current_instances.find(tree_id);
-        if (finder == current_instances.end())
-          return false;
-        for (TreeInstances::const_iterator it = finder->second.begin();
-             it != finder->second.end(); it++)
+        for (TreeFieldInstances::const_iterator finder =
+                 current_instances.lower_bound(lower_bound);
+             finder != current_instances.upper_bound(upper_bound); finder++)
         {
-          if (it->first->is_collected())
+          // Check to see if the field hash dominates
+          if ((finder->first.second & lower_bound.second) != lower_bound.second)
             continue;
-          it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-          candidates.emplace_back(it->first);
+          for (TreeInstances::const_iterator it = finder->second.begin();
+               it != finder->second.end(); it++)
+          {
+            if (it->first->is_collected())
+              continue;
+            if (!!(field_mask - it->first->layout->allocated_fields))
+              continue;
+            it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
+            candidates.emplace_back(it->first);
+          }
         }
       }
       // If we have any candidates check their constraints
@@ -4412,8 +4478,9 @@ namespace Legion {
         manager->add_base_valid_ref(NEVER_GC_REF);
       // Record the manager here as being eligible for collection
       {
+        const TreeFieldKey key(manager);
         AutoLock m_lock(manager_lock);
-        TreeInstances& insts = current_instances[manager->tree_id];
+        TreeInstances& insts = current_instances[key];
         legion_assert(insts.find(manager) == insts.end());
         insts[manager] = priority;
         if (priority != LEGION_GC_NEVER_PRIORITY)
@@ -4431,8 +4498,9 @@ namespace Legion {
         AutoLock m_lock(manager_lock);
         for (PhysicalManager* manager : instances)
         {
-          lng::map<RegionTreeID, TreeInstances>::iterator current_finder =
-              current_instances.find(manager->tree_id);
+          const TreeFieldKey key(manager);
+          TreeFieldInstances::iterator current_finder =
+              current_instances.find(key);
           if (current_finder == current_instances.end())
             continue;
           TreeInstances::iterator finder = current_finder->second.find(manager);
@@ -5294,8 +5362,9 @@ namespace Legion {
       // Since we're going to put this in the table add a reference
       manager->add_base_resource_ref(MEMORY_MANAGER_REF);
       {
+        const TreeFieldKey key(manager);
         AutoLock m_lock(manager_lock);
-        TreeInstances& insts = current_instances[manager->tree_id];
+        TreeInstances& insts = current_instances[key];
         legion_assert(insts.find(manager) == insts.end());
         insts[manager] = LEGION_GC_NEVER_PRIORITY;
       }
