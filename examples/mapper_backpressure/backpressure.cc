@@ -195,7 +195,8 @@ void worker(const Task* task, const std::vector<PhysicalRegion>& regions, Contex
   // deschedule this task while the fill is occurring and start execution of another
   // parallel task.
   double initVal = 0.f;
-  DeferredBuffer<double, 1> buf(Memory::Kind::SYSTEM_MEM, DomainT<1>(Rect<1>(0, 500000)), &initVal);
+  DeferredBuffer<double, 1> buf(Memory::Kind::SYSTEM_MEM, DomainT<1>(Rect<1>(0, 500000)), &initVal, 
+      alignof(double), false/*fortran order dims*/, false/*escaping*/);
   // Sleep for a little bit to see some interesting interleavings.
   usleep(500 * 1000);
   std::cout << "finishing worker " << workerIdx << std::endl;
@@ -229,7 +230,7 @@ int main(int argc, char** argv) {
     TaskVariantRegistrar registrar(TID_WORKER, "worker");
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
     registrar.set_leaf();
-    registrar.leaf_pool_bounds.emplace(std::make_pair(Memory::Kind::SYSTEM_MEM,
+    registrar.non_escaping_leaf_pool_bounds.emplace(std::make_pair(Memory::Kind::SYSTEM_MEM,
           PoolBounds(500001*sizeof(double), 16)));
     Runtime::preregister_task_variant<worker>(registrar, "worker");
   }

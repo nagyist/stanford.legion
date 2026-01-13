@@ -150,7 +150,7 @@ namespace Legion {
         bool postmap_task;
         std::vector<Processor> target_procs;
         std::vector<Memory> future_locations;
-        std::map<Memory, PoolBounds> pool_bounds;
+        std::map<std::pair<Memory, bool>, PoolBounds> pool_bounds;
         std::deque<InstanceSet> physical_instances;
       };
       typedef lng::map<TraceLocalID, CachedMapping> CachedMappings;
@@ -353,7 +353,7 @@ namespace Legion {
           TaskPriority& task_priority, bool& postmap_task,
           std::vector<Processor>& target_proc,
           std::vector<Memory>& future_locations,
-          std::map<Memory, PoolBounds>& pool_bounds,
+          std::map<std::pair<Memory, bool>, PoolBounds>& pool_bounds,
           std::deque<InstanceSet>& physical_instances) const;
       void get_task_reservations(
           SingleTask* task, std::map<Reservation, bool>& reservations) const;

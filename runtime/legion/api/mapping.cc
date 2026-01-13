@@ -2125,7 +2125,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool MapperRuntime::acquire_pool(
-        MapperContext ctx, Memory memory, const PoolBounds& bounds) const
+        MapperContext ctx, Memory memory, const PoolBounds& bounds,
+        bool escaping) const
     //--------------------------------------------------------------------------
     {
       if (!memory.exists() || !bounds.is_bounded() || (bounds.size == 0))
@@ -2149,7 +2150,7 @@ namespace Legion {
           legion_safe_cast<Internal::SingleTask*>(ctx->operation);
       Internal::RtEvent unbounded_pool_wait;
       const bool result = task->acquire_leaf_memory_pool(
-          memory, bounds,
+          memory, bounds, escaping,
           safe_for_unbounded_pools ? nullptr : &unbounded_pool_wait);
       if (!safe_for_unbounded_pools && unbounded_pool_wait.exists())
         ctx->report_unsafe_allocation_in_unbounded_pool(
@@ -2158,7 +2159,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperRuntime::release_pool(MapperContext ctx, Memory memory)
+    void MapperRuntime::release_pool(
+        MapperContext ctx, Memory memory, bool escaping)
     //--------------------------------------------------------------------------
     {
       if (!memory.exists())
@@ -2177,7 +2179,7 @@ namespace Legion {
       legion_assert(ctx->operation != nullptr);
       Internal::SingleTask* task =
           legion_safe_cast<Internal::SingleTask*>(ctx->operation);
-      task->release_leaf_memory_pool(memory);
+      task->release_leaf_memory_pool(memory, escaping);
     }
 
     //--------------------------------------------------------------------------

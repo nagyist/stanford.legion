@@ -148,7 +148,13 @@ namespace Legion {
     // execution of the task. Pool bounds can also be set to request
     // an unbounded pool allocation. Note that requesting an unbound
     // memory allocation will likely result in severe performance degradation.
+    // All these pool bounds are escaping meaning that allocations performed
+    // in the resulting pools can outlive the lifetime of the task.
     std::map<Memory::Kind, PoolBounds> leaf_pool_bounds;
+    // If the leaf task wants to make pools for non-escaping allocations
+    // it can specify non-escaping leaf pool bounds. These must be
+    // concrete pools as unbounded pools are always escaping.
+    std::map<Memory::Kind, PoolBounds> non_escaping_leaf_pool_bounds;
   public:
     // TaskIDs for which this variant can serve as a generator
     std::set<TaskID> generator_tasks;

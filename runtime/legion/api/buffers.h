@@ -32,19 +32,23 @@ namespace Legion {
     DeferredBufferRequest(
         Memory mem, const Domain& bounds, size_t size,
         size_t align = alignof(std::max_align_t),
-        bool fortran_order_dims = false, const void* initial = nullptr);
+        bool fortran_order_dims = false, const void* initial = nullptr,
+        bool escaping = true);
     DeferredBufferRequest(
         Memory::Kind kind, const Domain& bounds, size_t size,
         size_t align = alignof(std::max_align_t),
-        bool fortran_order_dims = false, const void* initial = nullptr);
+        bool fortran_order_dims = false, const void* initial = nullptr,
+        bool escaping = true);
     DeferredBufferRequest(
         Memory mem, const IndexSpace& space, size_t size,
         size_t align = alignof(std::max_align_t),
-        bool fortran_order_dims = false, const void* initial = nullptr);
+        bool fortran_order_dims = false, const void* initial = nullptr,
+        bool escaping = true);
     DeferredBufferRequest(
         Memory::Kind kind, const IndexSpace& space, size_t size,
         size_t align = alignof(std::max_align_t),
-        bool fortran_order_dims = false, const void* initial = nullptr);
+        bool fortran_order_dims = false, const void* initial = nullptr,
+        bool escaping = true);
   public:
     size_t field_size = 0;
     size_t alignment = alignof(std::max_align_t);
@@ -61,6 +65,7 @@ namespace Legion {
     bool is_exact = true;
     bool is_value = true;
     bool can_fail = false;
+    bool escaping = true;
   };
 
   /**
@@ -99,43 +104,43 @@ namespace Legion {
         Memory::Kind kind, const Domain& bounds,
         const T* initial_value = nullptr,
         size_t alignment = std::alignment_of<T>(),
-        bool fortran_order_dims = false);
+        bool fortran_order_dims = false, bool escaping = true);
     DeferredBuffer(
         const Rect<DIM, COORD_T>& bounds, Memory::Kind kind,
         const T* initial_value = nullptr,
         size_t alignment = std::alignment_of<T>(),
-        bool fortran_order_dims = false);
+        bool fortran_order_dims = false, bool escaping = true);
   public:  // Constructors specifying a specific memory
     DeferredBuffer(
         Memory memory, const Domain& bounds, const T* initial_value = nullptr,
         size_t alignment = std::alignment_of<T>(),
-        bool fortran_order_dims = false);
+        bool fortran_order_dims = false, bool escaping = true);
     DeferredBuffer(
         const Rect<DIM, COORD_T>& bounds, Memory memory,
         const T* initial_value = nullptr,
         size_t alignment = std::alignment_of<T>(),
-        bool fortran_order_dims = false);
+        bool fortran_order_dims = false, bool escaping = true);
   public:  // Constructors specifying a specific ordering
     DeferredBuffer(
         Memory::Kind kind, const Domain& bounds,
         std::array<DimensionKind, DIM> ordering,
         const T* initial_value = nullptr,
-        size_t alignment = std::alignment_of<T>());
+        size_t alignment = std::alignment_of<T>(), bool escaping = true);
     DeferredBuffer(
         const Rect<DIM, COORD_T>& bounds, Memory::Kind kind,
         std::array<DimensionKind, DIM> ordering,
         const T* initial_value = nullptr,
-        size_t alignment = std::alignment_of<T>());
+        size_t alignment = std::alignment_of<T>(), bool escaping = true);
     DeferredBuffer(
         Memory memory, const Domain& bounds,
         std::array<DimensionKind, DIM> ordering,
         const T* initial_value = nullptr,
-        size_t alignment = std::alignment_of<T>());
+        size_t alignment = std::alignment_of<T>(), bool escaping = true);
     DeferredBuffer(
         const Rect<DIM, COORD_T>& bounds, Memory memory,
         std::array<DimensionKind, DIM> ordering,
         const T* initial_value = nullptr,
-        size_t alignment = std::alignment_of<T>());
+        size_t alignment = std::alignment_of<T>(), bool escaping = true);
   public:
     __LEGION_CUDA_HD__
     inline T read(const Point<DIM, COORD_T>& p) const;
@@ -186,20 +191,20 @@ namespace Legion {
     UntypedDeferredBuffer(
         size_t field_size, int dims, Memory::Kind kind, const Domain& bounds,
         const void* initial_value = nullptr, size_t alignment = 16,
-        bool fortran_order_dims = false);
+        bool fortran_order_dims = false, bool escaping = true);
     UntypedDeferredBuffer(
         size_t field_size, int dims, Memory::Kind kind, IndexSpace bounds,
         const void* initial_value = nullptr, size_t alignment = 16,
-        bool fortran_order_dims = false);
+        bool fortran_order_dims = false, bool escaping = true);
   public:  // Constructors specifying a specific memory
     UntypedDeferredBuffer(
         size_t field_size, int dims, Memory memory, const Domain& bounds,
         const void* initial_value = nullptr, size_t alignment = 16,
-        bool fortran_order_dims = false);
+        bool fortran_order_dims = false, bool escaping = true);
     UntypedDeferredBuffer(
         size_t field_size, int dims, Memory memory, IndexSpace bounds,
         const void* initial_value = nullptr, size_t alignment = 16,
-        bool fortran_order_dims = false);
+        bool fortran_order_dims = false, bool escaping = true);
   public:
     template<typename T, int DIM>
     UntypedDeferredBuffer(const DeferredBuffer<T, DIM, COORD_T>& rhs);

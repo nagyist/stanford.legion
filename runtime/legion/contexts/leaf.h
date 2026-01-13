@@ -29,7 +29,8 @@ namespace Legion {
                         public Heapify<LeafContext, CONTEXT_LIFETIME> {
     public:
       LeafContext(
-          SingleTask* owner, std::map<Memory, MemoryPool*>&& pools,
+          SingleTask* owner,
+          std::map<std::pair<Memory, bool>, MemoryPool*>&& pools,
           bool inline_task = false);
       LeafContext(const LeafContext& rhs) = delete;
       virtual ~LeafContext(void);
@@ -359,10 +360,11 @@ namespace Legion {
           const char* warning_string = nullptr) override;
       virtual PhysicalInstance create_task_local_instance(
           Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
-          RtEvent& use_event) override;
+          bool escaping, RtEvent& use_event) override;
       virtual void destroy_task_local_instance(
           PhysicalInstance instance, RtEvent precondition) override;
-      virtual size_t query_available_memory(Memory target) override;
+      virtual size_t query_available_memory(
+          Memory target, bool escaping) override;
       virtual void release_memory_pool(Memory target) override;
     public:
       virtual void end_task(
@@ -411,7 +413,7 @@ namespace Legion {
 #ifndef LEGION_DEBUG
       const
 #endif
-          std::map<Memory, MemoryPool*>
+          std::map<std::pair<Memory, bool /*escaping*/>, MemoryPool*>
               memory_pools;
     protected:
       mutable LocalLock leaf_lock;

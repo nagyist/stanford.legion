@@ -31,7 +31,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     LeafContext::LeafContext(
-        SingleTask* owner, std::map<Memory, MemoryPool*>&& pools,
+        SingleTask* owner,
+        std::map<std::pair<Memory, bool>, MemoryPool*>&& pools,
         bool inline_task)
       : TaskContext(
             owner, owner->get_depth(), owner->regions, owner->output_regions,
@@ -1515,8 +1516,9 @@ namespace Legion {
         const char* warning_string)
     //--------------------------------------------------------------------------
     {
-      std::map<Memory, MemoryPool*>::const_iterator finder =
-          memory_pools.find(memory);
+      const std::pair<Memory, bool> key(memory, true /*escaping*/);
+      std::map<std::pair<Memory, bool>, MemoryPool*>::const_iterator finder =
+          memory_pools.find(key);
       if (finder == memory_pools.end())
       {
         TaskTreeCoordinates coordinates;
@@ -1701,17 +1703,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalInstance LeafContext::create_task_local_instance(
         Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
-        RtEvent& use_event)
+        bool escaping, RtEvent& use_event)
     //--------------------------------------------------------------------------
     {
+      const std::pair<Memory, bool> key(memory, escaping);
       // We support multiple OpenMP threads creating buffers in parallel
       AutoLock l_lock(leaf_lock);
       LgEvent unique_event;
       if (runtime->profiler != nullptr)
         Runtime::rename_event(unique_event);
       const size_t footprint = layout->bytes_used;
-      std::map<Memory, MemoryPool*>::const_iterator finder =
-          memory_pools.find(memory);
+      std::map<std::pair<Memory, bool>, MemoryPool*>::const_iterator finder =
+          memory_pools.find(key);
       // Handle a special case for zero-byte instances here
       if ((footprint == 0) || (finder == memory_pools.end()))
       {
@@ -1736,7 +1739,8 @@ namespace Legion {
         {
           legion_assert(instance.exists());
           legion_assert(!use_event.exists());
-          task_local_instances[instance] = unique_event;
+          task_local_instances[instance] =
+              std::make_pair(unique_event, true /*escaping*/);
           return instance;
         }
         if (instance.exists())
@@ -1760,7 +1764,8 @@ namespace Legion {
                    "registration "
                 << "or dynamically at the point that the task is mapped.";
             warning.raise();
-            task_local_instances[instance] = unique_event;
+            task_local_instances[instance] =
+                std::make_pair(unique_event, true /*escaping*/);
             return instance;
           }
           instance.destroy(use_event);  // Can't use so destroy immediately
@@ -1940,7 +1945,7 @@ namespace Legion {
         }
       }
       delete layout;
-      task_local_instances[instance] = unique_event;
+      task_local_instances[instance] = std::make_pair(unique_event, escaping);
       return instance;
     }
 
@@ -1951,7 +1956,7 @@ namespace Legion {
     {
       // We support multiple OpenMP threads creating buffers in parallel
       AutoLock l_lock(leaf_lock);
-      std::map<PhysicalInstance, LgEvent>::iterator finder =
+      std::map<PhysicalInstance, std::pair<LgEvent, bool>>::iterator finder =
           task_local_instances.find(instance);
       if (finder == task_local_instances.end())
       {
@@ -1965,29 +1970,40 @@ namespace Legion {
             << "allocations in a memory pool after it has been released.";
         error.raise();
       }
-      std::map<Memory, MemoryPool*>::const_iterator pool_finder =
-          memory_pools.find(instance.get_location());
+      std::pair<Memory, bool> key(instance.get_location(), true /*escaping*/);
+      std::map<std::pair<Memory, bool>, MemoryPool*>::const_iterator
+          pool_finder = memory_pools.find(key);
       if (pool_finder == memory_pools.end())
       {
-        // This case occurs when the user has taken the unsafe path in
-        // the instance creation code above and needs to delete this
-        // instance that is not associated with any pool
-        MemoryManager* manager =
-            runtime->find_memory_manager(instance.get_location());
-        manager->free_task_local_instance(instance, precondition);
+        // Try again for non-escaping
+        key.second = false;
+        pool_finder = memory_pools.find(key);
+        if (pool_finder == memory_pools.end())
+        {
+          // This case occurs when the user has taken the unsafe path in
+          // the instance creation code above and needs to delete this
+          // instance that is not associated with any pool
+          MemoryManager* manager =
+              runtime->find_memory_manager(instance.get_location());
+          manager->free_task_local_instance(instance, precondition);
+        }
+        else
+          pool_finder->second->free_instance(
+              instance, precondition, finder->second.first);
       }
       else
         pool_finder->second->free_instance(
-            instance, precondition, finder->second);
+            instance, precondition, finder->second.first);
       task_local_instances.erase(finder);
     }
 
     //--------------------------------------------------------------------------
-    size_t LeafContext::query_available_memory(Memory memory)
+    size_t LeafContext::query_available_memory(Memory memory, bool escaping)
     //--------------------------------------------------------------------------
     {
-      std::map<Memory, MemoryPool*>::const_iterator finder =
-          memory_pools.find(memory);
+      const std::pair<Memory, bool> key(memory, escaping);
+      std::map<std::pair<Memory, bool>, MemoryPool*>::const_iterator finder =
+          memory_pools.find(key);
       if (finder == memory_pools.end())
         return 0;
       else
@@ -1998,8 +2014,9 @@ namespace Legion {
     void LeafContext::release_memory_pool(Memory target)
     //--------------------------------------------------------------------------
     {
-      std::map<Memory, MemoryPool*>::const_iterator finder =
-          memory_pools.find(target);
+      const std::pair<Memory, bool> key(target, true /*escaping*/);
+      std::map<std::pair<Memory, bool>, MemoryPool*>::const_iterator finder =
+          memory_pools.find(key);
       if (finder != memory_pools.end())
         finder->second->release_pool(get_unique_id());
     }
@@ -2055,20 +2072,22 @@ namespace Legion {
       if (!memory_pools.empty())
       {
         // See if this is an instance that we made
-        std::map<PhysicalInstance, LgEvent>::iterator finder =
+        std::map<PhysicalInstance, std::pair<LgEvent, bool>>::iterator finder =
             task_local_instances.find(instance);
-        if (finder != task_local_instances.end())
+        if (finder != task_local_instances.end() && finder->second.second)
         {
           // Special case where we can reuse the existing instance because
           // we're escaping this into exactly one other instance with the
           // same unique event result
           if ((layouts == nullptr) && (num_results == 1) &&
               !unique_events[0].exists() &&
-              (unique_events[0] == finder->second))
-            unique_events[0] = finder->second;
+              (unique_events[0] == finder->second.first))
+            unique_events[0] = finder->second.first;
           // See if this is in a memory for which we have a pool
-          std::map<Memory, MemoryPool*>::const_iterator pool_finder =
-              memory_pools.find(instance.get_location());
+          const std::pair<Memory, bool> key(
+              instance.get_location(), true /*escaping*/);
+          std::map<std::pair<Memory, bool>, MemoryPool*>::const_iterator
+              pool_finder = memory_pools.find(key);
           if ((pool_finder != memory_pools.end()) &&
               pool_finder->second->contains_instance(instance))
           {
@@ -2093,13 +2112,15 @@ namespace Legion {
         return;
       if (effects.exists() && !safe_effects.exists())
         safe_effects = Runtime::protect_event(effects);
-      for (std::pair<const PhysicalInstance, LgEvent>& it :
+      for (std::pair<const PhysicalInstance, std::pair<LgEvent, bool>>& it :
            task_local_instances)
       {
         // Check to see if we have a memory pool that contains this in which
         // case we shouldn't actually free up the instance like this
-        std::map<Memory, MemoryPool*>::const_iterator finder =
-            memory_pools.find(it.first.get_location());
+        const std::pair<Memory, bool> key(
+            it.first.get_location(), it.second.second);
+        std::map<std::pair<Memory, bool>, MemoryPool*>::const_iterator finder =
+            memory_pools.find(key);
         if ((finder != memory_pools.end()) &&
             finder->second->contains_instance(it.first))
           continue;
@@ -2112,9 +2133,13 @@ namespace Legion {
 #endif
       }
       task_local_instances.clear();
-      for (const std::map<Memory, MemoryPool*>::value_type& it : memory_pools)
+      for (const std::map<std::pair<Memory, bool>, MemoryPool*>::value_type&
+               it : memory_pools)
       {
-        it.second->finalize_pool(safe_effects);
+        // Can skip this if it is non-escaping since it would already
+        // have been finalized if that were the case
+        if (it.first.second)
+          it.second->finalize_pool(safe_effects);
         delete it.second;
       }
 #ifdef LEGION_DEBUG
@@ -2128,7 +2153,8 @@ namespace Legion {
     {
       if (!memory_pools.empty())
       {
-        for (const std::map<Memory, MemoryPool*>::value_type& it : memory_pools)
+        for (const std::map<std::pair<Memory, bool>, MemoryPool*>::value_type&
+                 it : memory_pools)
           delete it.second;
 #ifdef LEGION_DEBUG
         memory_pools.clear();

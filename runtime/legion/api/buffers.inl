@@ -156,9 +156,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   inline DeferredBufferRequest::DeferredBufferRequest(
       Memory mem, const Domain& domain, size_t size, size_t align,
-      bool fortran_order_dims, const void* initial)
+      bool fortran_order_dims, const void* initial, bool escape)
     : field_size(size), alignment(align), initial_value(initial),
-      is_exact(true), is_value(true)
+      is_exact(true), is_value(true), escaping(escape)
   //--------------------------------------------------------------------------
   {
     memory.exact = mem;
@@ -181,9 +181,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   inline DeferredBufferRequest::DeferredBufferRequest(
       Memory::Kind kind, const Domain& domain, size_t size, size_t align,
-      bool fortran_order_dims, const void* initial)
+      bool fortran_order_dims, const void* initial, bool escape)
     : field_size(size), alignment(align), initial_value(initial),
-      is_exact(false), is_value(true)
+      is_exact(false), is_value(true), escaping(escape)
   //--------------------------------------------------------------------------
   {
     memory.kind = kind;
@@ -206,9 +206,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   inline DeferredBufferRequest::DeferredBufferRequest(
       Memory mem, const IndexSpace& space, size_t size, size_t align,
-      bool fortran_order_dims, const void* initial)
+      bool fortran_order_dims, const void* initial, bool escape)
     : field_size(size), alignment(align), initial_value(initial),
-      is_exact(true), is_value(false)
+      is_exact(true), is_value(false), escaping(escape)
   //--------------------------------------------------------------------------
   {
     memory.exact = mem;
@@ -231,9 +231,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   inline DeferredBufferRequest::DeferredBufferRequest(
       Memory::Kind kind, const IndexSpace& space, size_t size, size_t align,
-      bool fortran_order_dims, const void* initial)
+      bool fortran_order_dims, const void* initial, bool escape)
     : field_size(size), alignment(align), initial_value(initial),
-      is_exact(false), is_value(false)
+      is_exact(false), is_value(false), escaping(escape)
   //--------------------------------------------------------------------------
   {
     memory.kind = kind;
@@ -265,11 +265,13 @@ namespace Legion {
   inline DeferredBuffer<FT, N, T, CB>::DeferredBuffer(
       Memory::Kind kind, const Domain& space,
       const FT* initial_value /* = nullptr*/,
-      size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /* = false*/)
+      size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /* = false*/,
+      bool escaping)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(
-        kind, space, sizeof(FT), alignment, fortran_order_dims, initial_value);
+        kind, space, sizeof(FT), alignment, fortran_order_dims, initial_value,
+        escaping);
     *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
@@ -278,12 +280,13 @@ namespace Legion {
   inline DeferredBuffer<FT, N, T, CB>::DeferredBuffer(
       const Rect<N, T>& rect, Memory::Kind kind,
       const FT* initial_value /*= nullptr*/,
-      size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /*= false*/)
+      size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /*= false*/,
+      bool escaping)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(
         kind, Domain(rect), sizeof(FT), alignment, fortran_order_dims,
-        initial_value);
+        initial_value, escaping);
     *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
@@ -292,12 +295,13 @@ namespace Legion {
   inline DeferredBuffer<FT, N, T, CB>::DeferredBuffer(
       Memory memory, const Domain& space,
       const FT* initial_value /* = nullptr*/,
-      size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /* = false*/)
+      size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /* = false*/,
+      bool escaping)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(
-        memory, space, sizeof(FT), alignment, fortran_order_dims,
-        initial_value);
+        memory, space, sizeof(FT), alignment, fortran_order_dims, initial_value,
+        escaping);
     *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
@@ -306,12 +310,13 @@ namespace Legion {
   inline DeferredBuffer<FT, N, T, CB>::DeferredBuffer(
       const Rect<N, T>& rect, Memory memory,
       const FT* initial_value /*= nullptr*/,
-      size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /*= false*/)
+      size_t alignment /* = alignof(FT)*/, bool fortran_order_dims /*= false*/,
+      bool escaping)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(
         memory, Domain(rect), sizeof(FT), alignment, fortran_order_dims,
-        initial_value);
+        initial_value, escaping);
     *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
@@ -321,11 +326,12 @@ namespace Legion {
       Memory::Kind kind, const Domain& space,
       std::array<DimensionKind, N> _ordering,
       const FT* initial_value /* = nullptr*/,
-      size_t _alignment /* = alignof(FT)*/)
+      size_t _alignment /* = alignof(FT)*/, bool escaping)
     : ordering(_ordering), alignment(_alignment)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(kind, space, sizeof(FT), alignment);
+    request.escaping = escaping;
     if (!ordering.empty())
       request.dim_order.insert(
           request.dim_order.end(), ordering.begin(), ordering.end());
@@ -339,11 +345,12 @@ namespace Legion {
       const Rect<N, T>& rect, Memory::Kind kind,
       std::array<DimensionKind, N> _ordering,
       const FT* initial_value /*= nullptr*/,
-      size_t _alignment /* = alignof(FT)*/)
+      size_t _alignment /* = alignof(FT)*/, bool escaping)
     : ordering(_ordering), alignment(_alignment)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(kind, Domain(rect), sizeof(FT), alignment);
+    request.escaping = escaping;
     if (!ordering.empty())
     {
       request.dim_order.clear();
@@ -360,11 +367,12 @@ namespace Legion {
       Memory memory, const Domain& space,
       std::array<DimensionKind, N> _ordering,
       const FT* initial_value /* = nullptr*/,
-      size_t _alignment /* = alignof(FT)*/)
+      size_t _alignment /* = alignof(FT)*/, bool escaping)
     : ordering(_ordering), alignment(_alignment)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(memory, space, sizeof(FT), alignment);
+    request.escaping = escaping;
     if (!ordering.empty())
     {
       request.dim_order.clear();
@@ -381,11 +389,12 @@ namespace Legion {
       const Rect<N, T>& rect, Memory memory,
       std::array<DimensionKind, N> _ordering,
       const FT* initial_value /*= nullptr*/,
-      size_t _alignment /* = alignof(FT)*/)
+      size_t _alignment /* = alignof(FT)*/, bool escaping)
     : ordering(_ordering), alignment(_alignment)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(memory, Domain(rect), sizeof(FT), alignment);
+    request.escaping = escaping;
     if (!ordering.empty())
     {
       request.dim_order.clear();
@@ -503,12 +512,14 @@ namespace Legion {
   template<typename T>
   UntypedDeferredBuffer<T>::UntypedDeferredBuffer(
       size_t fs, int d, Memory::Kind memkind, IndexSpace space,
-      const void* initial_value, size_t alignment, bool fortran_order_dims)
+      const void* initial_value, size_t alignment, bool fortran_order_dims,
+      bool escaping)
     : field_size(fs), dims(d)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(
-        memkind, space, fs, alignment, fortran_order_dims, initial_value);
+        memkind, space, fs, alignment, fortran_order_dims, initial_value,
+        escaping);
     *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
@@ -516,12 +527,14 @@ namespace Legion {
   template<typename T>
   UntypedDeferredBuffer<T>::UntypedDeferredBuffer(
       size_t fs, int d, Memory::Kind memkind, const Domain& space,
-      const void* initial_value, size_t alignment, bool fortran_order_dims)
+      const void* initial_value, size_t alignment, bool fortran_order_dims,
+      bool escaping)
     : field_size(fs), dims(d)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(
-        memkind, space, fs, alignment, fortran_order_dims, initial_value);
+        memkind, space, fs, alignment, fortran_order_dims, initial_value,
+        escaping);
     *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
@@ -529,12 +542,14 @@ namespace Legion {
   template<typename T>
   UntypedDeferredBuffer<T>::UntypedDeferredBuffer(
       size_t fs, int d, Memory memory, IndexSpace space,
-      const void* initial_value, size_t alignment, bool fortran_order_dims)
+      const void* initial_value, size_t alignment, bool fortran_order_dims,
+      bool escaping)
     : field_size(fs), dims(d)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(
-        memory, space, fs, alignment, fortran_order_dims, initial_value);
+        memory, space, fs, alignment, fortran_order_dims, initial_value,
+        escaping);
     *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 
@@ -542,12 +557,14 @@ namespace Legion {
   template<typename T>
   UntypedDeferredBuffer<T>::UntypedDeferredBuffer(
       size_t fs, int d, Memory memory, const Domain& space,
-      const void* initial_value, size_t alignment, bool fortran_order_dims)
+      const void* initial_value, size_t alignment, bool fortran_order_dims,
+      bool escaping)
     : field_size(fs), dims(d)
   //--------------------------------------------------------------------------
   {
     DeferredBufferRequest request(
-        memory, space, fs, alignment, fortran_order_dims, initial_value);
+        memory, space, fs, alignment, fortran_order_dims, initial_value,
+        escaping);
     *this = UntypedDeferredBuffer<T>::allocate_buffer(request);
   }
 

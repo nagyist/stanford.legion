@@ -2145,7 +2145,7 @@ namespace Legion {
         realm_descriptor(realm),
         execution_constraints(registrar.execution_constraints),
         layout_constraints(registrar.layout_constraints),
-        leaf_pool_bounds(registrar.leaf_pool_bounds),
+        leaf_pool_bounds(make_pool_bounds(own, v, registrar)),
         user_data_size(udata_size), leaf_variant(registrar.leaf_variant),
         inner_variant(registrar.inner_variant),
         idempotent_variant(registrar.idempotent_variant),
@@ -2363,10 +2363,12 @@ namespace Legion {
             if (leaf_variant)
             {
               rez.serialize<size_t>(leaf_pool_bounds.size());
-              for (const std::pair<const Memory::Kind, PoolBounds>& pool_pair :
-                   leaf_pool_bounds)
+              for (const std::pair<
+                       const std::pair<Memory::Kind, bool>, PoolBounds>&
+                       pool_pair : leaf_pool_bounds)
               {
-                rez.serialize(pool_pair.first);
+                rez.serialize(pool_pair.first.first);
+                rez.serialize(pool_pair.first.second);
                 rez.serialize(pool_pair.second);
               }
             }
@@ -2499,6 +2501,46 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    /*static*/ std::map<std::pair<Memory::Kind, bool>, PoolBounds>
+        VariantImpl::make_pool_bounds(
+            TaskImpl* task, VariantID v, const TaskVariantRegistrar& registrar)
+    //--------------------------------------------------------------------------
+    {
+      std::map<std::pair<Memory::Kind, bool>, PoolBounds> pool_bounds;
+      for (const std::pair<const Memory::Kind, PoolBounds>& bound :
+           registrar.leaf_pool_bounds)
+        pool_bounds.emplace(std::make_pair(
+            std::make_pair(bound.first, true /*escaping*/), bound.second));
+      for (const std::pair<const Memory::Kind, PoolBounds>& bound :
+           registrar.non_escaping_leaf_pool_bounds)
+      {
+        if (!bound.second.is_bounded())
+        {
+          Warning warning;
+          warning << "Detected non-escaping unbounded pool requested in "
+                  << bound.first << " memory for variant " << v << " of "
+                  << task->get_name() << ". ";
+          if (pool_bounds
+                  .emplace(std::make_pair(
+                      std::make_pair(bound.first, true /*escaping*/),
+                      bound.second))
+                  .second)
+            warning << "Promoted this an escaping memory pool.";
+          else
+            warning << "Unable to promote this to an escaping memory pool "
+                    << "since an escaping pool was already specified for this "
+                    << "kind of memory.";
+          warning.raise();
+        }
+        else
+          pool_bounds.emplace(std::make_pair(
+              std::make_pair(bound.first, false /*escaping*/), bound.second));
+      }
+      // Hope the compiler does move return-value optimization
+      return pool_bounds;
+    }
+
+    //--------------------------------------------------------------------------
     /*static*/ void VariantBroadcast::handle(
         Deserializer& derez, AddressSpaceID)
     //--------------------------------------------------------------------------
@@ -2546,7 +2588,12 @@ namespace Legion {
         {
           Memory::Kind memkind;
           derez.deserialize(memkind);
-          derez.deserialize(registrar.leaf_pool_bounds[memkind]);
+          bool escaping;
+          derez.deserialize(escaping);
+          if (escaping)
+            derez.deserialize(registrar.leaf_pool_bounds[memkind]);
+          else
+            derez.deserialize(registrar.non_escaping_leaf_pool_bounds[memkind]);
         }
       }
       derez.deserialize(registrar.inner_variant);

@@ -3435,16 +3435,20 @@ namespace Legion {
      * than the size returned by this function.
      * @param ctx enclosing task context
      * @param target the memory being queried
+     * @param escaping query the escaping or non-escaping pool
      * @return the instantaneous remaining size in the target memory
      */
-    size_t query_available_memory(Context ctx, Memory target);
+    size_t query_available_memory(
+        Context ctx, Memory target, bool escaping = true);
 
     /**
      * Inform the runtime that a task is done performing memory
      * allocations in a given memory ahead of the completion of
      * the task. This will allow the runtime to free up the memory
      * pool for additional allocations earlier than waiting for
-     * the completion of the task.
+     * the completion of the task. Note that you can only release
+     * escaping pools of memories as the non-escaping pools have
+     * already appeared to have freed up their memory.
      * @param ctx enclosing task context
      * @param memory the memory in which allocations are finished
      */

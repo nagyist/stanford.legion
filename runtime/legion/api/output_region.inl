@@ -39,7 +39,8 @@ namespace Legion {
     std::copy_n(ordering.begin(), DIM, ord.begin());
 
     DeferredBuffer<T, DIM, COORD_T, CHECK_BOUNDS> buffer(
-        bounds, target_memory(), ord, initial_value, alignment);
+        bounds, target_memory(), ord, initial_value, alignment,
+        true /*escaping*/);
     if (return_buffer)
       return_data(extents, field_id, buffer.instance, false);
     return buffer;

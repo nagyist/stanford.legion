@@ -122,7 +122,7 @@ namespace Legion {
         LgEvent unique, MemoryManager* man)
       : MemoryPool(alignment), manager(man), limit(remain),
         remaining_bytes(remain), first_unused_range(SENTINEL),
-        ranges_initialized(false), released(false)
+        ranges_initialized(false), released(false), finalized(false)
     //--------------------------------------------------------------------------
     {
       legion_assert(manager != nullptr);
@@ -136,7 +136,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ConcretePool::~ConcretePool(void)
     //--------------------------------------------------------------------------
-    { }
+    {
+      if (!finalized)
+        finalize_pool(RtEvent::NO_RT_EVENT);
+    }
 
     //--------------------------------------------------------------------------
     ApEvent ConcretePool::get_ready_event(void) const
@@ -390,7 +393,7 @@ namespace Legion {
         const Range& range = ranges[finder->second];
         // Free up the back instance since we know that we're not
         // going to bother recycling this memory since we're released
-        std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >::iterator
+        std::map<PhysicalInstance, std::pair<RtEvent, LgEvent>>::iterator
             backing_finder = backing_instances.find(range.instance);
         legion_assert(backing_finder != backing_instances.end());
         backing_finder->first.destroy(
@@ -422,7 +425,7 @@ namespace Legion {
         if (!backing_instances.empty())
         {
           legion_assert(backing_instances.size() == 1);
-          std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >::
+          std::map<PhysicalInstance, std::pair<RtEvent, LgEvent>>::
               const_iterator it = backing_instances.begin();
           legion_assert(it->second.first.has_triggered());
           // If we're on the local node for the instance then set up the ranges
@@ -695,6 +698,7 @@ namespace Legion {
         UniqueID creator_uid)
     //--------------------------------------------------------------------------
     {
+      // Should have handled escaping detection earlier
       legion_assert(index < ranges.size());
       Range* range = &ranges[index];
       // We only need to update the ranges if we're not released because
@@ -783,8 +787,8 @@ namespace Legion {
         current = current_range.next;
       }
       // Perform instance redistricting to create all the new instances
-      std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >::iterator
-          finder = backing_instances.find(range->instance);
+      std::map<PhysicalInstance, std::pair<RtEvent, LgEvent>>::iterator finder =
+          backing_instances.find(range->instance);
       legion_assert(finder != backing_instances.end());
       RtEvent result;
 #ifdef LEGION_DEBUG
@@ -970,13 +974,14 @@ namespace Legion {
     {
       if (!released)
       {
+        released = true;
         // Release all the pending frees
         for (const std::pair<const unsigned, RtEvent>& entry : pending_frees)
           deallocate(entry.first);
         pending_frees.clear();
         // Iterate over all the existing allocations and escape their ranges
         // and replace their backing stores with the escaped instances
-        std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >
+        std::map<PhysicalInstance, std::pair<RtEvent, LgEvent>>
             new_backing_instances;
         for (const std::pair<const PhysicalInstance, unsigned>& entry :
              allocated)
@@ -998,7 +1003,7 @@ namespace Legion {
         }
         // Then go through and delete the remaining backing stores
         for (const std::pair<
-                 const PhysicalInstance, std::pair<RtEvent, LgEvent> >& entry :
+                 const PhysicalInstance, std::pair<RtEvent, LgEvent>>& entry :
              backing_instances)
         {
           manager->update_remaining_capacity(
@@ -1007,7 +1012,6 @@ namespace Legion {
         }
         // Now the only remaining backing instances are the ones we made
         backing_instances.swap(new_backing_instances);
-        released = true;
       }
     }
 
@@ -1015,15 +1019,9 @@ namespace Legion {
     void ConcretePool::finalize_pool(RtEvent done)
     //--------------------------------------------------------------------------
     {
-      // Iterate over all the remaining backing stores delete them
-      // once the done event is triggered
-      for (const std::pair<
-               const PhysicalInstance, std::pair<RtEvent, LgEvent> >& it :
-           backing_instances)
-      {
-        manager->update_remaining_capacity(it.first.get_layout()->bytes_used);
-        it.first.destroy(Runtime::merge_events(it.second.first, done));
-      }
+      legion_assert(!finalized);
+      manager->release_concrete_pool(done, backing_instances);
+      finalized = true;
     }
 
     //--------------------------------------------------------------------------
@@ -1172,6 +1170,7 @@ namespace Legion {
     void ConcretePool::serialize(Serializer& rez)
     //--------------------------------------------------------------------------
     {
+      legion_assert(!finalized);
       rez.serialize(manager->memory);
       rez.serialize<bool>(true);  // bounded;
       rez.serialize(remaining_bytes);
@@ -1179,7 +1178,7 @@ namespace Legion {
       if (!backing_instances.empty())
       {
         legion_assert(backing_instances.size() == 1);
-        std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >::const_iterator
+        std::map<PhysicalInstance, std::pair<RtEvent, LgEvent>>::const_iterator
             finder = backing_instances.begin();
         rez.serialize(finder->first);
         rez.serialize(finder->second.first);
@@ -1191,6 +1190,7 @@ namespace Legion {
         rez.serialize(RtEvent::NO_RT_EVENT);
         rez.serialize(LgEvent::NO_LG_EVENT);
       }
+      finalized = true;  // was sent remotely which is the same as finalized
     }
 
     //--------------------------------------------------------------------------
@@ -1198,7 +1198,8 @@ namespace Legion {
         MemoryManager* man, UnboundPoolScope s, TaskTreeCoordinates& coords,
         size_t max_bytes)
       : MemoryPool(std::numeric_limits<size_t>::max()), manager(man),
-        max_freed_bytes(max_bytes), freed_bytes(0), scope(s), released(false)
+        max_freed_bytes(max_bytes), freed_bytes(0), scope(s), released(false),
+        finalized(false)
     //--------------------------------------------------------------------------
     {
       legion_assert(manager != nullptr);
@@ -1209,7 +1210,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     UnboundPool::~UnboundPool(void)
     //--------------------------------------------------------------------------
-    { }
+    {
+      if (!finalized)
+        finalize_pool(RtEvent::NO_RT_EVENT);
+    }
 
     //--------------------------------------------------------------------------
     ApEvent UnboundPool::get_ready_event(void) const
@@ -1344,7 +1348,7 @@ namespace Legion {
         // If it doesn't work, free all our freed instances (which are all
         // smaller than the size or we would have found a hole to use) and
         // then try again
-        for (const std::pair<const size_t, std::list<FreedInstance> >&
+        for (const std::pair<const size_t, std::list<FreedInstance>>&
                  fit_entry : freed_instances)
           for (const FreedInstance& freed_instance : fit_entry.second)
             manager->free_task_local_instance(
@@ -1425,7 +1429,7 @@ namespace Legion {
         // If it doesn't work, free all our freed instances (which are all
         // smaller than the size or we would have found a hole to use) and
         // then try again
-        for (const std::pair<const size_t, std::list<FreedInstance> >&
+        for (const std::pair<const size_t, std::list<FreedInstance>>&
                  fit_entry : freed_instances)
           for (const FreedInstance& freed_instance : fit_entry.second)
             manager->free_task_local_instance(
@@ -1445,7 +1449,7 @@ namespace Legion {
         LgEvent& previous_unique)
     //--------------------------------------------------------------------------
     {
-      for (std::map<size_t, std::list<FreedInstance> >::iterator sit =
+      for (std::map<size_t, std::list<FreedInstance>>::iterator sit =
                freed_instances.lower_bound(size);
            sit != freed_instances.end(); sit++)
       {
@@ -1514,7 +1518,7 @@ namespace Legion {
           // until we're back under the limit of bytes we can buffer
           while (!freed_instances.empty())
           {
-            std::map<size_t, std::list<FreedInstance> >::iterator it =
+            std::map<size_t, std::list<FreedInstance>>::iterator it =
                 freed_instances.begin();
             while (!it->second.empty())
             {
@@ -1550,7 +1554,7 @@ namespace Legion {
     {
       if (!released)
       {
-        for (const std::pair<const size_t, std::list<FreedInstance> >&
+        for (const std::pair<const size_t, std::list<FreedInstance>>&
                  fit_entry : freed_instances)
           for (const FreedInstance& freed_instance : fit_entry.second)
             manager->free_task_local_instance(
@@ -1577,6 +1581,7 @@ namespace Legion {
     void UnboundPool::serialize(Serializer& rez)
     //--------------------------------------------------------------------------
     {
+      legion_assert(!finalized);
       legion_assert(manager != nullptr);
       rez.serialize(manager->memory);
       rez.serialize<bool>(false);  // bounded;
@@ -1592,6 +1597,7 @@ namespace Legion {
           delete physical_manager;
       }
       captured_instances.clear();
+      finalized = true;  // Send remotely counts as being finalized
     }
 
     //--------------------------------------------------------------------------
@@ -1767,7 +1773,7 @@ namespace Legion {
     {
       if (priority != LEGION_GC_NEVER_PRIORITY)
       {
-        std::map<GCPriority, std::set<PhysicalManager*> >::iterator finder =
+        std::map<GCPriority, std::set<PhysicalManager*>>::iterator finder =
             collectable_instances.find(priority);
         if (finder != collectable_instances.end())
         {
@@ -4136,7 +4142,7 @@ namespace Legion {
         LocalLock& c_lock, LocalLock& m_lock, AddressSpaceID local, Memory mem,
         size_t needed, size_t cap, std::atomic<size_t>& remaining,
         std::map<
-            GCPriority, std::set<PhysicalManager*>, std::greater<GCPriority> >&
+            GCPriority, std::set<PhysicalManager*>, std::greater<GCPriority>>&
             collectables)
       : collection_lock(c_lock), manager_lock(m_lock),
         collectable_instances(collectables), memory(mem), local_space(local),
@@ -4164,7 +4170,7 @@ namespace Legion {
       for (PhysicalManager* manager : perfect_holes)
         if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
           delete manager;
-      for (const std::pair<const size_t, std::vector<PhysicalManager*> >& it :
+      for (const std::pair<const size_t, std::vector<PhysicalManager*>>& it :
            large_holes)
         for (PhysicalManager* manager : it.second)
           if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
@@ -4191,7 +4197,7 @@ namespace Legion {
       {
         std::map<
             GCPriority, std::set<PhysicalManager*>,
-            std::greater<GCPriority> >::iterator next =
+            std::greater<GCPriority>>::iterator next =
             collectable_instances.lower_bound(current_priority);
         if ((next->first == current_priority) && advance)
           next = std::next(next);
@@ -4285,7 +4291,7 @@ namespace Legion {
         // the ones that are closest in size to the largest
         while (!large_holes.empty())
         {
-          std::map<size_t, std::vector<PhysicalManager*> >::iterator sit =
+          std::map<size_t, std::vector<PhysicalManager*>>::iterator sit =
               large_holes.begin();
           while (!sit->second.empty())
           {
@@ -4722,10 +4728,63 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void MemoryManager::release_concrete_pool(
+        RtEvent done,
+        const std::map<PhysicalInstance, std::pair<RtEvent, LgEvent>>&
+            backing_instances)
+    //--------------------------------------------------------------------------
+    {
+      if (is_owner)
+      {
+        // Iterate over all the remaining backing stores delete them
+        // once the done event is triggered
+        size_t total_size = 0;
+        for (const std::pair<
+                 const PhysicalInstance, std::pair<RtEvent, LgEvent>>& it :
+             backing_instances)
+        {
+          total_size += it.first.get_layout()->bytes_used;
+          it.first.destroy(Runtime::merge_events(it.second.first, done));
+        }
+        update_remaining_capacity(total_size);
+      }
+      else
+      {
+        // Have to send a message to the owner node to do the update
+        ReleasePoolRequest rez;
+        {
+          RezCheck z(rez);
+          rez.serialize(memory);
+          rez.serialize<bool>(true);  // concrete
+          rez.serialize<size_t>(backing_instances.size());
+          for (const std::pair<
+                   const PhysicalInstance, std::pair<RtEvent, LgEvent>>& it :
+               backing_instances)
+          {
+            rez.serialize(it.first);
+            rez.serialize(Runtime::merge_events(it.second.first, done));
+          }
+        }
+        rez.dispatch(owner_space);
+      }
+    }
+
+    //--------------------------------------------------------------------------
     void MemoryManager::release_unbound_pool(void)
     //--------------------------------------------------------------------------
     {
-      legion_assert(is_owner);
+      if (!is_owner)
+      {
+        // Have to send a message to the owner to do the update
+        ReleasePoolRequest rez;
+        {
+          RezCheck z(rez);
+          rez.serialize(memory);
+          rez.serialize<bool>(false);  // not concrete
+        }
+        rez.dispatch(owner_space);
+        return;
+      }
       AutoLock m_lock(manager_lock);
       legion_assert(outstanding_unbounded_allocations > 0);
       if (--outstanding_unbounded_allocations > 0)
@@ -4834,6 +4893,37 @@ namespace Legion {
       RtUserEvent ready;
       derez.deserialize(ready);
       Runtime::trigger_event(ready);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ReleasePoolRequest::handle(
+        Deserializer& derez, AddressSpaceID)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory memory;
+      derez.deserialize(memory);
+      MemoryManager* manager = runtime->find_memory_manager(memory);
+      bool concrete;
+      derez.deserialize<bool>(concrete);
+      if (concrete)
+      {
+        size_t num_instances;
+        derez.deserialize(num_instances);
+        size_t total_size = 0;
+        for (unsigned idx = 0; idx < num_instances; idx++)
+        {
+          PhysicalInstance instance;
+          derez.deserialize(instance);
+          total_size += instance.get_layout()->bytes_used;
+          RtEvent done;
+          derez.deserialize(done);
+          instance.destroy(done);
+        }
+        manager->update_remaining_capacity(total_size);
+      }
+      else
+        manager->release_unbound_pool();
     }
 
     //--------------------------------------------------------------------------

@@ -33,10 +33,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   UntypedDeferredValue::UntypedDeferredValue(
       size_t field_size, Memory memory, const void* initial_value,
-      size_t alignment)
+      size_t alignment, bool escaping)
   //--------------------------------------------------------------------------
   {
-    DeferredValueRequest request(memory, field_size, alignment, initial_value);
+    DeferredValueRequest request(
+        memory, field_size, alignment, initial_value, escaping);
     Runtime* runtime = Runtime::get_runtime();
     *this = runtime->allocate_deferred_value(Runtime::get_context(), request);
   }
@@ -44,10 +45,11 @@ namespace Legion {
   //--------------------------------------------------------------------------
   UntypedDeferredValue::UntypedDeferredValue(
       size_t field_size, Memory::Kind memkind, const void* initial_value,
-      size_t alignment)
+      size_t alignment, bool escaping)
   //--------------------------------------------------------------------------
   {
-    DeferredValueRequest request(memkind, field_size, alignment, initial_value);
+    DeferredValueRequest request(
+        memkind, field_size, alignment, initial_value, escaping);
     Runtime* runtime = Runtime::get_runtime();
     *this = runtime->allocate_deferred_value(Runtime::get_context(), request);
   }
