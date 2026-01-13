@@ -126,12 +126,6 @@ namespace Legion {
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator __m128d(void) const
-        {
-          __m128d result;
-          memcpy(&result, ptr, sizeof(result));
-          return result;
-        };
       public:
         inline void operator=(const __m128i& value)
         {
@@ -162,12 +156,6 @@ namespace Legion {
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator __m128d(void) const
-        {
-          __m128d result;
-          memcpy(&result, ptr, sizeof(result));
-          return result;
-        };
       public:
         const T* const ptr;
       };
@@ -180,18 +168,21 @@ namespace Legion {
           : ptr(base + ((sizeof(__m256d) / sizeof(T)) * index))
         { }
       public:
+#ifdef __AVX2__
         inline operator __m256i(void) const
         {
           __m256i result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
+#else
         inline operator __m256d(void) const
         {
           __m256d result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
+#endif
       public:
         inline void operator=(const __m256i& value)
         {
