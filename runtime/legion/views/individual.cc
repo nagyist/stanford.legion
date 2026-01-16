@@ -878,6 +878,8 @@ namespace Legion {
         AutoLock v_lock(view_lock, false /*exclusive*/);
         if (subviews.empty())
           return true;
+        if (mask * subviews.get_valid_mask())
+          return false;
         for (lng::FieldMaskMap<
                  SpaceView, ViewComparator<SpaceView> >::const_iterator it =
                  subviews.begin();
@@ -898,11 +900,13 @@ namespace Legion {
         node->find_interfering_children(expr, interfering_colors);
         if (!interfering_colors.empty())
         {
+          AutoLock v_lock(view_lock, false /*exclusive*/);
+          if (subviews.empty())
+            return true;
+          if (mask * subviews.get_valid_mask())
+            return false;
           if (interfering_colors.size() < subviews.size())
           {
-            AutoLock v_lock(view_lock, false /*exclusive*/);
-            if (subviews.empty())
-              return true;
             for (const LegionColor& color : interfering_colors)
             {
               lng::FieldMaskMap<SpaceView, ViewComparator<SpaceView> >::
@@ -920,9 +924,6 @@ namespace Legion {
           else
           {
             std::sort(interfering_colors.begin(), interfering_colors.end());
-            AutoLock v_lock(view_lock, false /*exclusive*/);
-            if (subviews.empty())
-              return true;
             for (lng::FieldMaskMap<
                      SpaceView, ViewComparator<SpaceView> >::const_iterator it =
                      subviews.begin();
@@ -1925,13 +1926,24 @@ namespace Legion {
           IndexSpaceExpression* canonical =
               copy_expr->get_canonical_expression();
           target = dynamic_cast<IndexSpaceNode*>(canonical);
-          if ((target != nullptr) && target->check_valid_and_increment(did))
+          // Need to add a valid reference to make sure we can safely use
+          // this node and everything above it in the tree. If the node
+          // has a parent we need to add the valid reference to the
+          // partition which will keep a valid reference all the way
+          // up the tree and also on its immediate children
+          if ((target != nullptr) &&
+              ((target->parent == nullptr) ?
+                   target->check_valid_and_increment(did) :
+                   target->parent->check_valid_and_increment(did)))
           {
             PhysicalUser* user = new PhysicalUser(
                 usage, copy_expr, term_event, op_id, index, true /*copy user*/,
                 true /*covers*/);
             add_internal_node_user(user, copy_mask, target);
-            if (target->remove_nested_valid_ref(did))
+            // Remove the extra valid reference that we added
+            if ((target->parent == nullptr) ?
+                    target->remove_nested_valid_ref(did) :
+                    target->parent->remove_nested_valid_ref(did))
               std::abort();  // should never hit this
           }
           else
