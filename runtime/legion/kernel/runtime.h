@@ -1066,7 +1066,7 @@ namespace Legion {
           IndexSpace domain, Provenance* provenance,
           const std::optional<uint64_t>& ctx_index);
       IndexSpace find_or_create_index_slice_space(
-          const Domain& launch_domain, bool take_ownership, TypeTag type_tag,
+          const Domain& launch_domain, bool take_ownership,
           Provenance* provenance);
     public:
       void increment_outstanding_top_level_tasks(void);
