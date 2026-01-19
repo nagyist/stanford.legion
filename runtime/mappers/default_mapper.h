@@ -508,7 +508,7 @@ namespace Legion {
       static const char* create_default_name(Processor p);
       template<int DIM>
       static void default_decompose_points(
-                            const DomainT<DIM,coord_t> &point_space,
+                            const Domain& domain,
                             const std::vector<Processor> &targets,
                             const Point<DIM,coord_t> &blocking,
                             bool recurse, bool stealable,

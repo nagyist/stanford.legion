@@ -75,8 +75,6 @@ namespace Legion {
       void clone_multi_from(
           MultiTask* task, IndexSpace is, Processor p, bool recurse,
           bool stealable);
-      void validate_slicing(
-          IndexSpace input_space, const std::vector<IndexSpace>& slice_spaces);
       RtBarrier get_concurrent_task_barrier(Color color) const;
     public:
       virtual void activate(void) override;

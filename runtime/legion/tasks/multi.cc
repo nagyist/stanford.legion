@@ -155,11 +155,31 @@ namespace Legion {
           error.raise();
         }
         // Check to see if we need to get an index space for this domain
-        if (!slice.domain_is.exists() && (slice.domain.get_volume() > 0))
+        if (!slice.domain_is.exists())
+        {
+          // Skip any empty slices
+          if (slice.domain.get_volume() == 0)
+            continue;
+          if (slice.domain.dense())
+            slice.domain.is_type = internal_space.get_type_tag();
+          else if (slice.domain.is_type != internal_space.get_type_tag())
+          {
+            Error error(LEGION_MAPPER_EXCEPTION);
+            error << "Invalid mapper output from invocation of 'slice_task' "
+                  << "on mapper " << mapper->get_mapper_name()
+                  << ". Mapper returned sparse slice domain for task "
+                  << get_task_name() << " (UID " << get_unique_id()
+                  << ") with a sparsity map of a different type (type_tag="
+                  << slice.domain.is_type << ") than original index space "
+                  << "to be sliced (type_tag=" << internal_space.get_type_tag()
+                  << ").";
+            error.raise();
+          }
           slice.domain_is = runtime->find_or_create_index_slice_space(
-              slice.domain, slice.take_ownership, internal_space.get_type_tag(),
-              get_provenance());
-        if (slice.domain_is.get_type_tag() != internal_space.get_type_tag())
+              slice.domain, slice.take_ownership, get_provenance());
+        }
+        else if (
+            slice.domain_is.get_type_tag() != internal_space.get_type_tag())
         {
           Error error(LEGION_MAPPER_EXCEPTION);
           error << "Invalid mapper output from invocation of 'slice_task' "
@@ -212,10 +232,13 @@ namespace Legion {
       }
       if (output.verify_correctness || runtime->safe_mapper)
       {
-        std::vector<IndexSpace> slice_spaces(slices.size());
+        std::vector<IndexSpace> slice_spaces;
+        slice_spaces.reserve(slices.size());
         for (unsigned idx = 0; idx < output.slices.size(); idx++)
-          slice_spaces[idx] = output.slices[idx].domain_is;
-        validate_slicing(internal_space, slice_spaces);
+          if (output.slices[idx].domain_is.exists())
+            slice_spaces.push_back(output.slices[idx].domain_is);
+        IndexSpaceNode* node = runtime->get_node(internal_space);
+        node->validate_slicing(slice_spaces, this, mapper);
       }
       trigger_slices();
       // If we succeeded and this is an intermediate slice task

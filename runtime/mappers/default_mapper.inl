@@ -19,7 +19,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM>
     /*static*/ void DefaultMapper::default_decompose_points(
-                           const DomainT<DIM,coord_t> &point_space,
+                           const Domain& domain,
                            const std::vector<Processor> &targets,
                            const Point<DIM,coord_t> &num_blocks,
                            bool recurse, bool stealable,
@@ -32,8 +32,9 @@ namespace Legion {
       Point<DIM,coord_t> ones;
       for (int i = 0; i < DIM; i++)
         ones[i] = 1;
-      Point<DIM,coord_t> num_points = 
-        point_space.bounds.hi - point_space.bounds.lo + ones;
+      const Point<DIM,coord_t> lo = domain.lo();
+      const Point<DIM,coord_t> hi = domain.hi();
+      Point<DIM,coord_t> num_points = hi - lo + ones;
       Rect<DIM,coord_t> blocks(zeroes, num_blocks - ones);
       size_t next_index = 0;
       slices.reserve(blocks.volume());
@@ -41,20 +42,20 @@ namespace Legion {
         Point<DIM,coord_t> block_lo = *pir;
         Point<DIM,coord_t> block_hi = *pir + ones;
         Point<DIM,coord_t> slice_lo =
-          num_points * block_lo / num_blocks + point_space.bounds.lo;
+          num_points * block_lo / num_blocks + lo;
         Point<DIM,coord_t> slice_hi = 
-          num_points * block_hi / num_blocks + point_space.bounds.lo - ones;
+          num_points * block_hi / num_blocks + lo - ones;
         // Construct a new slice space based on the new bounds 
         // and any existing sparsity map, tighten if necessary
-        DomainT<DIM,coord_t> slice_space;
-        slice_space.bounds.lo = slice_lo;
-        slice_space.bounds.hi = slice_hi;
-        slice_space.sparsity = point_space.sparsity;
-        if (!slice_space.dense())
-          slice_space = slice_space.tighten();
-        if (slice_space.volume() > 0) {
+        Rect<DIM,coord_t> slice_rect(slice_lo, slice_hi);
+        if (slice_rect.volume() > 0) {
           TaskSlice slice;
-          slice.domain = slice_space;
+          slice.domain = slice_rect;
+          if (!domain.dense())
+          {
+            slice.domain.is_id = domain.is_id;
+            slice.domain.is_type = domain.is_type;
+          }
           slice.proc = targets[next_index++ % targets.size()];
           slice.recurse = recurse;
           slice.stealable = stealable;
