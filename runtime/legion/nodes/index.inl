@@ -3352,9 +3352,11 @@ namespace Legion {
       if (index_points.size() == get_volume())
         return handle;
       Realm::IndexSpace<DIM, T> realm_is(index_points);
-      const Domain domain((DomainT<DIM, T>(realm_is)));
+      Domain domain((DomainT<DIM, T>(realm_is)));
+      // Make sure this is set even if the realm index space is dense
+      domain.is_type = handle.get_type_tag();
       return runtime->find_or_create_index_slice_space(
-          domain, true /*take ownership*/, handle.get_type_tag(), provenance);
+          domain, true /*take ownership*/, provenance);
     }
 
     //--------------------------------------------------------------------------

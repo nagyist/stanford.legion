@@ -6322,10 +6322,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     IndexSpace Runtime::find_or_create_index_slice_space(
-        const Domain& domain, bool take_ownership, TypeTag type_tag,
-        Provenance* provenance)
+        const Domain& domain, bool take_ownership, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
+      const TypeTag type_tag = domain.is_type;
       legion_assert(type_tag != 0);
       // Two different paths depending on whether this domain is dense or sparse
       if (domain.dense())
@@ -7044,15 +7044,6 @@ namespace Legion {
     {
       IndexSpaceNode* node = get_node(handle);
       launch_domain = node->get_tight_domain();
-    }
-
-    //--------------------------------------------------------------------------
-    void MultiTask::validate_slicing(
-        IndexSpace input_space, const std::vector<IndexSpace>& slice_spaces)
-    //--------------------------------------------------------------------------
-    {
-      IndexSpaceNode* node = runtime->get_node(input_space);
-      node->validate_slicing(slice_spaces, this, mapper);
     }
 
     //--------------------------------------------------------------------------

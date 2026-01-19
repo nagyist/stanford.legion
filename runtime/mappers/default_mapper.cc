@@ -1120,12 +1120,11 @@ namespace Legion {
       // Before we do anything else, see if it is in the cache
       std::map<Domain,std::vector<TaskSlice> >::const_iterator finder =
         cached_slices.find(input.domain);
-      if (finder != cached_slices.end()) {
+      if (input.domain.dense() && (finder != cached_slices.end())) {
         output.slices = finder->second;
         return;
       }
 
-#if 1
       // The two-level decomposition doesn't work so for now do a
       // simple one-level decomposition across all the processors.
       // Unless we're doing same address space mapping or this is
@@ -1148,10 +1147,10 @@ namespace Legion {
 #define BLOCK(DIM) \
         case DIM: \
           { \
-            DomainT<DIM,coord_t> point_space = input.domain; \
+            Rect<DIM,coord_t> bounds = input.domain.bounds<DIM,coord_t>(); \
             Point<DIM,coord_t> num_blocks = \
-              default_select_num_blocks<DIM>(procs.size(), point_space.bounds); \
-            default_decompose_points<DIM>(point_space, procs, \
+              default_select_num_blocks<DIM>(procs.size(), bounds); \
+            default_decompose_points<DIM>(input.domain, procs, \
                   num_blocks, false/*recurse*/, \
                   stealing_enabled, output.slices); \
             break; \
@@ -1161,97 +1160,9 @@ namespace Legion {
         default: // don't support other dimensions right now
           assert(false);
       }
-#else
-      // Figure out how many points are in this index space task
-      const size_t total_points = input.domain.get_volume();
-
-      // Do two-level slicing, first slice into slices that fit on a
-      // node and then slice across the processors of the right kind
-      // on the local node. If we only have one node though, just break
-      // into chunks that evenly divide among processors.
-      switch (input.domain.get_dim())
-      {
-        case 1:
-          {
-            DomainT<1,coord_t> point_space = input.domain;
-            if (remote.size() > 1) {
-              if (total_points <= local.size()) {
-                Point<1,coord_t> num_blocks(local.size());
-                default_decompose_points<1>(point_space, local,
-                    num_blocks, false/*recurse*/,
-                    stealing_enabled, output.slices);
-              } else {
-                Point<1,coord_t> num_blocks(remote.size());
-                default_decompose_points<1>(point_space, remote,
-                    num_blocks, true/*recurse*/,
-                    stealing_enabled, output.slices);
-              }
-            } else {
-              Point<1,coord_t> num_blocks(local.size());
-              default_decompose_points<1>(point_space, local,
-                  num_blocks, false/*recurse*/,
-                  stealing_enabled, output.slices);
-            }
-            break;
-          }
-        case 2:
-          {
-            DomainT<2,coord_t> point_space = input.domain;
-            if (remote.size() > 1) {
-              if (total_points <= local.size()) {
-                Point<2,coord_t> num_blocks =
-                  default_select_num_blocks<2>(local.size(),point_space.bounds);
-                default_decompose_points<2>(point_space, local,
-                    num_blocks, false/*recurse*/,
-                    stealing_enabled, output.slices);
-              } else {
-                Point<2,coord_t> num_blocks =
-                 default_select_num_blocks<2>(remote.size(),point_space.bounds);
-                default_decompose_points<2>(point_space, remote,
-                    num_blocks, true/*recurse*/,
-                    stealing_enabled, output.slices);
-              }
-            } else {
-              Point<2,coord_t> num_blocks =
-                default_select_num_blocks<2>(local.size(), point_space.bounds);
-              default_decompose_points<2>(point_space, local,
-                  num_blocks, false/*recurse*/,
-                  stealing_enabled, output.slices);
-            }
-            break;
-          }
-        case 3:
-          {
-            DomainT<3,coord_t> point_space = input.domain;
-            if (remote.size() > 1) {
-              if (total_points <= local.size()) {
-                Point<3,coord_t> num_blocks =
-                  default_select_num_blocks<3>(local.size(),point_space.bounds);
-                default_decompose_points<3>(point_space, local,
-                    num_blocks, false/*recurse*/,
-                    stealing_enabled, output.slices);
-              } else {
-                Point<3,coord_t> num_blocks =
-                 default_select_num_blocks<3>(remote.size(),point_space.bounds);
-                default_decompose_points<3>(point_space, remote,
-                    num_blocks, true/*recurse*/,
-                    stealing_enabled, output.slices);
-              }
-            } else {
-              Point<3,coord_t> num_blocks =
-                default_select_num_blocks<3>(local.size(), point_space.bounds);
-              default_decompose_points<3>(point_space, local,
-                  num_blocks, false/*recurse*/,
-                  stealing_enabled, output.slices);
-            }
-            break;
-          }
-        default: // don't support other dimensions right now
-          assert(false);
-      }
-#endif
-
-      // Save the result in the cache
+      // Save the result in the cache if it is dense
+      // Only safe to save dense results since sparsity maps
+      // can be recycled
       cached_slices[input.domain] = output.slices;
     }
 
