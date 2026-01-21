@@ -1263,6 +1263,7 @@ namespace Legion {
                sit.second)
           {
             rez.serialize(rit.first->handle);
+            rit.first->pack_global_ref();
             rez.serialize(rit.second.size());
             for (const std::pair<EquivalenceSet*, FieldMask>& it : rit.second)
             {
@@ -1292,6 +1293,7 @@ namespace Legion {
           {
             RegionNode* region = created_nodes[idx];
             rez.serialize(region->handle);
+            region->pack_global_ref();
             local::FieldMaskMap<EquivalenceSet> eq_sets;
             if (created_trees[idx] != nullptr)
               created_trees[idx]->find_local_equivalence_sets(
@@ -8642,6 +8644,8 @@ namespace Legion {
               current, it->first, it->second, local_shard, false /*current*/);
           it->first->unpack_global_ref();
         }
+        // Remove the global reference that we held on the node
+        node->unpack_global_ref();
       }
     }
 
