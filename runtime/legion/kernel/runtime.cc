@@ -10987,6 +10987,7 @@ namespace Legion {
       if (parse_bool(*it, "-lg:warn_backtrace", warnings_backtrace) ||
           parse_bool(*it, "-lg:warn", runtime_warnings) ||
           parse_bool(*it, "-lg:werror", warnings_are_errors) ||
+          parse_bool(*it, "-lg:leaks", report_leaks) ||
           parse_bool(*it, "-lg:registration", record_registration) ||
           parse_bool(*it, "-lg:nosteal", stealing_disabled) ||
           parse_bool(*it, "-lg:nosteal", stealing_disabled) ||
