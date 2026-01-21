@@ -558,6 +558,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < created_nodes.size(); idx++)
         {
           RegionNode* region = created_nodes[idx];
+          region->pack_global_ref();
           rez.serialize(region->handle);
           local::FieldMaskMap<EquivalenceSet> eq_sets;
           created_trees[idx]->find_local_equivalence_sets(
@@ -638,7 +639,8 @@ namespace Legion {
             done_event, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(done_event);
-      for (EqKDTree* const & it : created_trees)
+      for (RegionNode* node : created_nodes) node->unpack_global_ref();
+      for (EqKDTree* it : created_trees)
         if ((it != nullptr) && it->remove_reference())
           delete it;
       context->unpack_global_ref();
