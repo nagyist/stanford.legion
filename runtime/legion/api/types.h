@@ -1315,11 +1315,11 @@ namespace Legion {
         const Realm::UserEvent done = Realm::UserEvent::create_user_event();
         local_lock_list_copy->advise_sleep_entry(done);
         begin_wait(local_ctx, false /*from application*/);
-        // Now we can do the wait
-        if (!Processor::get_executing_processor().exists())
-          Realm::Event::external_wait();
-        else
-          Realm::Event::wait();
+        // Now we can do the wait (Realm checks for external waits itself now)
+        Realm::Event::wait();
+        // Restore our implicit fevent in case we have profiling to do
+        // Must restore implicit_fevent before calling end_wait
+        implicit_fevent = local_fevent;
         end_wait(local_ctx, false /*from application*/);
         // When we wake up, notify that we are done and exited the wait
         local_lock_list_copy->advise_sleep_exit();
@@ -1327,8 +1327,6 @@ namespace Legion {
         done.trigger();
         // Restore our local lock list
         local_lock_list = local_lock_list_copy;
-        // Restore our implicit fevent in case we have profiling to do
-        implicit_fevent = local_fevent;
         // If we're profiling we need to record that we triggered this
         // event as it will help us hook up the critical path for
         // local lock acquires
@@ -1348,13 +1346,12 @@ namespace Legion {
       else  // Just do the normal wait
       {
         begin_wait(local_ctx, false /*from application*/);
-        if (!Processor::get_executing_processor().exists())
-          Realm::Event::external_wait();
-        else
-          Realm::Event::wait();
-        end_wait(local_ctx, false /*from application*/);
+        // Realm checks for external waits itself now
+        Realm::Event::wait();
         // Restore our implicit fevent in case we have profiling to do
+        // Must restore implicit_fevent before calling end_wait
         implicit_fevent = local_fevent;
+        end_wait(local_ctx, false /*from application*/);
         if (implicit_profiler != nullptr)
         {
           // Have to do this recording after the wait because it might
@@ -1445,11 +1442,11 @@ namespace Legion {
         const Realm::UserEvent done = Realm::UserEvent::create_user_event();
         local_lock_list_copy->advise_sleep_entry(done);
         begin_wait(local_ctx, from_app);
-        // Now we can do the wait
-        if (!Processor::get_executing_processor().exists())
-          Realm::Event::external_wait_faultaware(poisoned);
-        else
-          Realm::Event::wait_faultaware(poisoned);
+        // Now we can do the wait (Realm checks for external waits itself now)
+        Realm::Event::wait_faultaware(poisoned);
+        // Restore our implicit fevent in case we have profiling to do
+        // Must restore implicit_fevent before calling end_wait
+        implicit_fevent = local_fevent;
         end_wait(local_ctx, from_app);
         // When we wake up, notify that we are done and exited the wait
         local_lock_list_copy->advise_sleep_exit();
@@ -1457,8 +1454,6 @@ namespace Legion {
         done.trigger();
         // Restore our local lock list
         local_lock_list = local_lock_list_copy;
-        // Restore our implicit fevent in case we have profiling to do
-        implicit_fevent = local_fevent;
         // If we're profiling we need to record that we triggered this
         // event as it will help us hook up the critical path for
         // local lock acquires
@@ -1478,13 +1473,12 @@ namespace Legion {
       else  // Just do the normal wait
       {
         begin_wait(local_ctx, from_app);
-        if (!Processor::get_executing_processor().exists())
-          Realm::Event::external_wait_faultaware(poisoned);
-        else
-          Realm::Event::wait_faultaware(poisoned);
-        end_wait(local_ctx, from_app);
+        // Realm checks for external waits itself now
+        Realm::Event::wait_faultaware(poisoned);
         // Restore our implicit fevent in case we have profiling to do
+        // Must restore implicit_fevent before calling end_wait
         implicit_fevent = local_fevent;
+        end_wait(local_ctx, from_app);
         if (implicit_profiler != nullptr)
         {
           // Have to do this recording after the wait because it might
