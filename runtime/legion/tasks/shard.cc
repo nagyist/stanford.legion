@@ -517,8 +517,8 @@ namespace Legion {
       }
       else
       {
-        for (const std::pair<const Memory, MemoryPool*>& pool_pair :
-             leaf_memory_pools)
+        for (const std::pair<const std::pair<Memory, bool>, MemoryPool*>&
+                 pool_pair : leaf_memory_pools)
         {
           const ApEvent ready = pool_pair.second->get_ready_event();
           if (ready.exists())

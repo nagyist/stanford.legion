@@ -601,9 +601,11 @@ namespace Legion {
         case SEND_NOTIFY_COLLECTED_INSTANCES:
           break;
         case SEND_CREATE_MEMORY_POOL_REQUEST:
-          break;
+          return POOL_VIRTUAL_CHANNEL;
         case SEND_CREATE_MEMORY_POOL_RESPONSE:
           break;
+        case SEND_RELEASE_MEMORY_POOL_REQUEST:
+          return POOL_VIRTUAL_CHANNEL;
         case SEND_CREATE_UNBOUND_REQUEST:
           break;
         case SEND_CREATE_UNBOUND_RESPONSE:

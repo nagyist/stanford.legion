@@ -2707,11 +2707,22 @@ namespace Legion {
       for (const std::pair<const Memory, PoolBounds>& it :
            output.leaf_pool_bounds)
       {
-        // Check to see if it is is bounded, if it is we can safe it, if not
+        // Check to see if it is is bounded, if it is we can save it, if not
         // then we already issued a warning in the task that this is going
         // to invalidate the trace replay so do that now
         if (it.second.is_bounded())
-          mapping.pool_bounds.insert(it);
+          mapping.pool_bounds.emplace(std::make_pair(
+              std::make_pair(it.first, true /*escaping*/), it.second));
+        else
+          record_no_consensus();
+      }
+      for (const std::pair<const Memory, PoolBounds>& it :
+           output.non_escaping_leaf_pool_bounds)
+      {
+        // We should only be saving bounded pools here anyway
+        if (it.second.is_bounded())
+          mapping.pool_bounds.emplace(std::make_pair(
+              std::make_pair(it.first, false /*escaping*/), it.second));
         else
           record_no_consensus();
       }
@@ -2736,7 +2747,7 @@ namespace Legion {
         TaskPriority& task_priority, bool& postmap_task,
         std::vector<Processor>& target_procs,
         std::vector<Memory>& future_locations,
-        std::map<Memory, PoolBounds>& pool_bounds,
+        std::map<std::pair<Memory, bool>, PoolBounds>& pool_bounds,
         std::deque<InstanceSet>& physical_instances) const
     //--------------------------------------------------------------------------
     {

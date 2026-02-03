@@ -491,6 +491,10 @@ namespace Legion {
           const std::vector<PhysicalRegion>& physical_regions) const;
     public:
       static bool check_padding(const TaskLayoutConstraintSet& constraints);
+      static std::map<std::pair<Memory::Kind, bool>, PoolBounds>
+          make_pool_bounds(
+              TaskImpl* impl, VariantID v,
+              const TaskVariantRegistrar& registrar);
     public:
       const VariantID vid;
       TaskImpl* const owner;
@@ -504,7 +508,8 @@ namespace Legion {
     public:
       const ExecutionConstraintSet execution_constraints;
       const TaskLayoutConstraintSet layout_constraints;
-      const std::map<Memory::Kind, PoolBounds> leaf_pool_bounds;
+      const std::map<std::pair<Memory::Kind, bool>, PoolBounds>
+          leaf_pool_bounds;
     private:
       void* user_data;
       size_t user_data_size;

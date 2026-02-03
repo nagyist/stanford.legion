@@ -141,12 +141,13 @@ namespace Legion {
       void perform_post_mapping(const TraceInfo& trace_info);
       void check_future_return_bounds(FutureInstance* instance) const;
       void create_leaf_memory_pools(
-          VariantImpl* impl, std::map<Memory, PoolBounds>& dynamic_pool_bounds);
+          VariantImpl* impl,
+          std::map<std::pair<Memory, bool>, PoolBounds>& dynamic_pool_bounds);
     public:
       bool acquire_leaf_memory_pool(
-          Memory memory, const PoolBounds& bounds,
+          Memory memory, const PoolBounds& bounds, bool escaping,
           RtEvent* safe_for_unbounded_pools);
-      void release_leaf_memory_pool(Memory memory);
+      void release_leaf_memory_pool(Memory memory, bool escaping);
     protected:
       void pack_single_task(Serializer& rez, AddressSpaceID target);
       void unpack_single_task(
@@ -263,7 +264,8 @@ namespace Legion {
       std::vector<ApEvent> region_preconditions;
       std::vector<std::vector<PhysicalManager*> > source_instances;
       std::vector<Memory> future_memories;
-      std::map<Memory, MemoryPool*> leaf_memory_pools;
+      std::map<std::pair<Memory, bool /*escaping*/>, MemoryPool*>
+          leaf_memory_pools;
     protected:  // Mapper choices
       std::vector<unsigned> untracked_valid_regions;
       VariantID selected_variant;

@@ -445,10 +445,10 @@ namespace Legion {
           const char* warning_string = nullptr) = 0;
       virtual PhysicalInstance create_task_local_instance(
           Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
-          RtEvent& use_event) = 0;
+          bool escaping, RtEvent& use_event) = 0;
       virtual void destroy_task_local_instance(
           PhysicalInstance instance, RtEvent precondition) = 0;
-      virtual size_t query_available_memory(Memory target) = 0;
+      virtual size_t query_available_memory(Memory target, bool escaping) = 0;
       virtual void release_memory_pool(Memory target) = 0;
     public:
       const std::vector<PhysicalRegion>& begin_task(Processor proc);
@@ -603,7 +603,8 @@ namespace Legion {
     protected:
       // Map of task local instances including their unique events
       // from the profilters perspective
-      std::map<PhysicalInstance, LgEvent> task_local_instances;
+      std::map<PhysicalInstance, std::pair<LgEvent, bool /*escaping*/> >
+          task_local_instances;
     protected:
       std::vector<ExceptionHandlerID> exception_handler_stack;
       std::vector<long long> user_profiling_ranges;

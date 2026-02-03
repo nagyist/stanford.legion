@@ -22,8 +22,9 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   inline DeferredValueRequest::DeferredValueRequest(
-      Memory mem, size_t size, size_t align, const void* initial)
-    : field_size(size), alignment(align), initial_value(initial), is_exact(true)
+      Memory mem, size_t size, size_t align, const void* initial, bool escape)
+    : field_size(size), alignment(align), initial_value(initial),
+      is_exact(true), escaping(escape)
   //--------------------------------------------------------------------------
   {
     memory.exact = mem;
@@ -31,9 +32,10 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   inline DeferredValueRequest::DeferredValueRequest(
-      Memory::Kind kind, size_t size, size_t align, const void* initial)
+      Memory::Kind kind, size_t size, size_t align, const void* initial,
+      bool escape)
     : field_size(size), alignment(align), initial_value(initial),
-      is_exact(false)
+      is_exact(false), escaping(escape)
   //--------------------------------------------------------------------------
   {
     memory.kind = kind;
@@ -48,8 +50,10 @@ namespace Legion {
   //--------------------------------------------------------------------------
   template<typename T>
   inline DeferredValue<T>::DeferredValue(
-      T initial_value, size_t alignment, Memory::Kind memory_kind)
-    : UntypedDeferredValue(sizeof(T), memory_kind, &initial_value, alignment)
+      T initial_value, size_t alignment, Memory::Kind memory_kind,
+      bool escaping)
+    : UntypedDeferredValue(
+          sizeof(T), memory_kind, &initial_value, alignment, escaping)
   //--------------------------------------------------------------------------
   {
     if (!Realm::AffineAccessor<T, 1, coord_t>::is_compatible(instance, 0))
@@ -61,8 +65,9 @@ namespace Legion {
   //--------------------------------------------------------------------------
   template<typename T>
   inline DeferredValue<T>::DeferredValue(
-      T initial_value, Memory memory, size_t alignment)
-    : UntypedDeferredValue(sizeof(T), memory, &initial_value, alignment)
+      T initial_value, Memory memory, size_t alignment, bool escaping)
+    : UntypedDeferredValue(
+          sizeof(T), memory, &initial_value, alignment, escaping)
   //--------------------------------------------------------------------------
   {
     if (!Realm::AffineAccessor<T, 1, coord_t>::is_compatible(instance, 0))
@@ -123,8 +128,9 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   template<typename REDOP, bool EXCLUSIVE>
-  inline DeferredReduction<REDOP, EXCLUSIVE>::DeferredReduction(size_t align)
-    : DeferredValue<typename REDOP::RHS>(REDOP::identity, align)
+  inline DeferredReduction<REDOP, EXCLUSIVE>::DeferredReduction(
+      size_t align, bool escaping)
+    : DeferredValue<typename REDOP::RHS>(REDOP::identity, align, escaping)
   //--------------------------------------------------------------------------
   { }
 

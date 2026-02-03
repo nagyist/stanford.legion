@@ -1000,7 +1000,8 @@ namespace Legion {
         std::set<unsigned> untracked_valid_regions;
         std::vector<Memory> future_locations;
         std::vector<Processor> target_procs;
-        std::map<Memory, PoolBounds> leaf_pool_bounds;
+        std::map<Memory, PoolBounds> leaf_pool_bounds,
+            non_escaping_leaf_pool_bounds;
         VariantID chosen_variant = 0;
         TaskPriority task_priority = 0;
         RealmPriority copy_fill_priority = 0;
@@ -2765,10 +2766,12 @@ namespace Legion {
       // tasks. These pools will be implicitly used to satisfy any leaf_pool
       // bounds requested for mapping the task. This interface allows mappers
       // to discover if leaf pools can be allocated and potentially switch to
-      // an alternative mapping strategy if they cannot.
+      // an alternative mapping strategy if they cannot. Mappers must say
+      // whether the pool being acquired is escaping or non-escaping.
       bool acquire_pool(
-          MapperContext ctx, Memory memory, const PoolBounds& bounds) const;
-      void release_pool(MapperContext ctx, Memory memory);
+          MapperContext ctx, Memory memory, const PoolBounds& bounds,
+          bool escaping = true) const;
+      void release_pool(MapperContext ctx, Memory memory, bool escaping = true);
     public:
       //------------------------------------------------------------------------
       // Methods for creating index spaces which mappers need to do

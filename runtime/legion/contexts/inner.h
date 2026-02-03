@@ -967,10 +967,11 @@ namespace Legion {
           const char* warning_string = nullptr) override;
       virtual PhysicalInstance create_task_local_instance(
           Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
-          RtEvent& use_event) override;
+          bool escaping, RtEvent& use_event) override;
       virtual void destroy_task_local_instance(
           PhysicalInstance instance, RtEvent precondition) override;
-      virtual size_t query_available_memory(Memory target) override;
+      virtual size_t query_available_memory(
+          Memory target, bool escaping) override;
       virtual void release_memory_pool(Memory target) override;
     public:
       virtual void end_task(

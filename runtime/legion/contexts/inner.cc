@@ -10157,7 +10157,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalInstance InnerContext::create_task_local_instance(
         Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
-        RtEvent& use_event)
+        bool escaping, RtEvent& use_event)
     //--------------------------------------------------------------------------
     {
       LgEvent unique_event;
@@ -10215,7 +10215,8 @@ namespace Legion {
       // so we need to protect this data structure, we co-opt the inline-Lock
       // here since we're unlikely to be contending with inline mappings
       AutoLock i_lock(inline_lock);
-      task_local_instances[instance] = unique_event;
+      task_local_instances[instance] =
+          std::make_pair(unique_event, true /*escaping*/);
       return instance;
     }
 
@@ -10226,7 +10227,7 @@ namespace Legion {
     {
       {
         AutoLock i_lock(inline_lock);
-        std::map<PhysicalInstance, LgEvent>::iterator finder =
+        std::map<PhysicalInstance, std::pair<LgEvent, bool> >::iterator finder =
             task_local_instances.find(instance);
         if (finder == task_local_instances.end())
         {
@@ -10248,7 +10249,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    size_t InnerContext::query_available_memory(Memory memory)
+    size_t InnerContext::query_available_memory(Memory memory, bool escaping)
     //--------------------------------------------------------------------------
     {
       MemoryManager* manager = runtime->find_memory_manager(memory);

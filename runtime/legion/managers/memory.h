@@ -153,6 +153,8 @@ namespace Legion {
       bool ranges_initialized;
       // Whether this pool has been released
       bool released;
+      // Whether this pool has been finalized
+      bool finalized;
     };
 
     /**
@@ -213,6 +215,7 @@ namespace Legion {
       size_t freed_bytes;
       const UnboundPoolScope scope;
       bool released;
+      bool finalized;
     };
 
     /**
@@ -325,6 +328,7 @@ namespace Legion {
       }
       inline void update_remaining_capacity(size_t size)
       {
+        legion_assert(is_owner);
         remaining_capacity.fetch_add(size);
       }
     public:
@@ -425,6 +429,10 @@ namespace Legion {
       MemoryPool* create_memory_pool(
           UniqueID creator_uid, TaskTreeCoordinates& coordinates,
           const PoolBounds& bounds, RtEvent* safe_for_unbounded_pools);
+      void release_concrete_pool(
+          RtEvent done,
+          const std::map<PhysicalInstance, std::pair<RtEvent, LgEvent> >&
+              backing_instances);
       void release_unbound_pool(void);
       uint64_t order_collective_unbounded_pools(SingleTask* task);
       RtEvent finalize_collective_unbounded_pools_order(

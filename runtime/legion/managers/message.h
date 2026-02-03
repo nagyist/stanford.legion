@@ -34,7 +34,7 @@ namespace Legion {
       FIELD_SPACE_VIRTUAL_CHANNEL = 4,
       REFERENCE_VIRTUAL_CHANNEL = 6,
       UPDATE_VIRTUAL_CHANNEL = 7,  // deferred-priority
-      SUBSET_VIRTUAL_CHANNEL = 8,
+      POOL_VIRTUAL_CHANNEL = 8,
       COLLECTIVE_VIRTUAL_CHANNEL = 9,
       LAYOUT_CONSTRAINT_VIRTUAL_CHANNEL = 10,
       EXPRESSION_VIRTUAL_CHANNEL = 11,
@@ -327,6 +327,7 @@ namespace Legion {
   __op__(SEND_NOTIFY_COLLECTED_INSTANCES, NotifyCollectedInstances, "Notify Collected Instances Message", false, true, true) \
   __op__(SEND_CREATE_MEMORY_POOL_REQUEST, CreatePoolRequest, "Create Memory Pool Request", false, false, false) \
   __op__(SEND_CREATE_MEMORY_POOL_RESPONSE, CreatePoolResponse, "Create Memory Pool Response", true, false, false) \
+  __op__(SEND_RELEASE_MEMORY_POOL_REQUEST, ReleasePoolRequest, "Release Memory Pool Request", false, true, true) \
   __op__(SEND_CREATE_UNBOUND_REQUEST, CreateUnboundRequest, "Create Unbound Instance Request", false, false, false) \
   __op__(SEND_CREATE_UNBOUND_RESPONSE, CreateUnboundResponse, "Create Unbound Instances Response", true, false, false) \
   __op__(SEND_CREATE_FUTURE_INSTANCE_REQUEST, CreateFutureInstanceRequest, "Create Future Instance Request", false, false, false) \

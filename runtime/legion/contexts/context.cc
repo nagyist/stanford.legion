@@ -58,8 +58,8 @@ namespace Legion {
       if (!task_local_variables.empty())
       {
         for (const std::pair<
-                 const LocalVariableID, std::pair<void*, void (*)(void*)> >&
-                 it : task_local_variables)
+                 const LocalVariableID, std::pair<void*, void (*)(void*)>>& it :
+             task_local_variables)
         {
           if (it.second.second != nullptr)
             (*it.second.second)(it.second.first);
@@ -816,24 +816,33 @@ namespace Legion {
     {
       legion_assert(num_results > 0);
       legion_assert((layouts != nullptr) || (num_results == 1));
-      std::map<PhysicalInstance, LgEvent>::iterator finder =
+      std::map<PhysicalInstance, std::pair<LgEvent, bool>>::iterator finder =
           task_local_instances.find(instance);
       LgEvent old_unique_event;
       if (finder != task_local_instances.end())
       {
+        if (!finder->second.second)
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error
+              << "Task " << *owner_task << " attempted to escape "
+              << "an unescapable instance in memory " << instance.get_location()
+              << ". Escaping instances must be allocated from escaping pools.";
+          error.raise();
+        }
         // Special case where we can reuse the existing instance because
         // we're escaping this into exactly one other instance with the
         // same unique event result
         if ((layouts == nullptr) && (num_results == 1) &&
             (!unique_events[0].exists() ||
-             (unique_events[0] == finder->second)))
+             (unique_events[0] == finder->second.first)))
         {
-          unique_events[0] = finder->second;
+          unique_events[0] = finder->second.first;
           task_local_instances.erase(finder);
           return RtEvent::NO_RT_EVENT;
         }
         // Everything else falls through and we redistrict instance
-        old_unique_event = finder->second;
+        old_unique_event = finder->second.first;
         task_local_instances.erase(finder);
       }
       std::vector<Realm::ProfilingRequestSet> requests(num_results);
@@ -926,8 +935,8 @@ namespace Legion {
         return;
       if (effects.exists() && !safe_effects.exists())
         safe_effects = Runtime::protect_event(effects);
-      for (const std::pair<const PhysicalInstance, LgEvent>& it :
-           task_local_instances)
+      for (const std::pair<const PhysicalInstance, std::pair<LgEvent, bool>>&
+               it : task_local_instances)
       {
         MemoryManager* manager =
             runtime->find_memory_manager(it.first.get_location());
@@ -1034,7 +1043,7 @@ namespace Legion {
     void* TaskContext::get_local_task_variable(LocalVariableID id)
     //--------------------------------------------------------------------------
     {
-      std::map<LocalVariableID, std::pair<void*, void (*)(void*)> >::
+      std::map<LocalVariableID, std::pair<void*, void (*)(void*)>>::
           const_iterator finder = task_local_variables.find(id);
       if (finder == task_local_variables.end())
       {
@@ -1051,7 +1060,7 @@ namespace Legion {
         LocalVariableID id, const void* value, void (*destructor)(void*))
     //--------------------------------------------------------------------------
     {
-      std::map<LocalVariableID, std::pair<void*, void (*)(void*)> >::iterator
+      std::map<LocalVariableID, std::pair<void*, void (*)(void*)>>::iterator
           finder = task_local_variables.find(id);
       if (finder != task_local_variables.end())
       {

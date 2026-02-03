@@ -31,11 +31,11 @@ namespace Legion {
     // Convenience constructors
     DeferredValueRequest(
         Memory mem, size_t size, size_t align = alignof(std::max_align_t),
-        const void* initial = nullptr);
+        const void* initial = nullptr, bool escaping = true);
     DeferredValueRequest(
         Memory::Kind kind, size_t size,
-        size_t align = alignof(std::max_align_t),
-        const void* initial = nullptr);
+        size_t align = alignof(std::max_align_t), const void* initial = nullptr,
+        bool escaping = true);
   public:
     size_t field_size = 0;
     size_t alignment = alignof(std::max_align_t);
@@ -46,6 +46,7 @@ namespace Legion {
     } memory;
     bool is_exact = true;
     bool can_fail = false;
+    bool escaping = true;
   };
 
   /**
@@ -57,10 +58,12 @@ namespace Legion {
     UntypedDeferredValue(void);
     UntypedDeferredValue(
         size_t field_size, Memory target_memory,
-        const void* initial_value = nullptr, size_t alignment = 16);
+        const void* initial_value = nullptr, size_t alignment = 16,
+        bool escaping = true);
     UntypedDeferredValue(
         size_t field_size, Memory::Kind memory_kind = Memory::Z_COPY_MEM,
-        const void* initial_value = nullptr, size_t alignment = 16);
+        const void* initial_value = nullptr, size_t alignment = 16,
+        bool escaping = true);
     UntypedDeferredValue(const UntypedDeferredValue& rhs);
   public:
     template<typename T>
@@ -103,10 +106,10 @@ namespace Legion {
   public:
     DeferredValue(
         T initial_value, size_t alignment = std::alignment_of<T>(),
-        Memory::Kind memory_kind = Memory::Z_COPY_MEM);
+        Memory::Kind memory_kind = Memory::Z_COPY_MEM, bool escaping = true);
     DeferredValue(
         T initial_value, Memory target_memory,
-        size_t alignment = std::alignment_of<T>());
+        size_t alignment = std::alignment_of<T>(), bool escaping = true);
   public:
     __LEGION_CUDA_HD__
     inline T read(void) const;
@@ -143,7 +146,8 @@ namespace Legion {
   class DeferredReduction : public DeferredValue<typename REDOP::RHS> {
   public:
     DeferredReduction(
-        size_t alignment = std::alignment_of<typename REDOP::RHS>());
+        size_t alignment = std::alignment_of<typename REDOP::RHS>(),
+        bool escaping = true);
   public:
     __LEGION_CUDA_HD__
     inline void reduce(typename REDOP::RHS val) const;

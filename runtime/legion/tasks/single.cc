@@ -81,8 +81,8 @@ namespace Legion {
       if ((shard_manager != nullptr) &&
           shard_manager->remove_base_gc_ref(SINGLE_TASK_REF))
         delete shard_manager;
-      for (const std::pair<const Memory, MemoryPool*>& pool_pair :
-           leaf_memory_pools)
+      for (const std::pair<const std::pair<Memory, bool>, MemoryPool*>&
+               pool_pair : leaf_memory_pools)
         delete pool_pair.second;
       leaf_memory_pools.clear();
       legion_assert(remote_trace_recorder == nullptr);
@@ -194,10 +194,11 @@ namespace Legion {
         for (unsigned region_idx : untracked_valid_regions)
           rez.serialize(region_idx);
         rez.serialize<size_t>(leaf_memory_pools.size());
-        for (const std::pair<const Memory, MemoryPool*>& pool_pair :
-             leaf_memory_pools)
+        for (const std::pair<const std::pair<Memory, bool>, MemoryPool*>&
+                 pool_pair : leaf_memory_pools)
         {
-          rez.serialize(pool_pair.first);
+          rez.serialize(pool_pair.first.first);
+          rez.serialize(pool_pair.first.second);
           pool_pair.second->serialize(rez);
         }
       }
@@ -278,9 +279,10 @@ namespace Legion {
         derez.deserialize(num_pools);
         for (unsigned idx = 0; idx < num_pools; idx++)
         {
-          Memory memory;
-          derez.deserialize(memory);
-          leaf_memory_pools[memory] = MemoryPool::deserialize(derez);
+          std::pair<Memory, bool> key;
+          derez.deserialize(key.first);
+          derez.deserialize(key.second);
+          leaf_memory_pools[key] = MemoryPool::deserialize(derez);
         }
       }
       update_no_access_regions();
@@ -760,7 +762,43 @@ namespace Legion {
       // could accidentally end up blocking ourselves from doing memory
       // allocations if we have an unbounded pool
       if (variant_impl->is_leaf())
-        create_leaf_memory_pools(variant_impl, output.leaf_pool_bounds);
+      {
+        std::map<std::pair<Memory, bool>, PoolBounds> dynamic_pool_bounds;
+        // Combine the escaping and non-escaping data structures together
+        // Should really have done this from the start but didn't think
+        // the pool design through completely
+        for (const std::pair<const Memory, PoolBounds>& bounds :
+             output.leaf_pool_bounds)
+          dynamic_pool_bounds.emplace(std::make_pair(
+              std::make_pair(bounds.first, true /*escaping*/), bounds.second));
+        for (const std::pair<const Memory, PoolBounds>& bounds :
+             output.non_escaping_leaf_pool_bounds)
+        {
+          if (!bounds.second.is_bounded())
+          {
+            Warning warning;
+            warning << "Detected request for non-escaping unbounded pool "
+                    << " in memory " << bounds.first << " by 'map_task' for "
+                    << *this << " by mapper " << *mapper << ". ";
+            if (dynamic_pool_bounds
+                    .emplace(std::make_pair(
+                        std::make_pair(bounds.first, true /*escaping*/),
+                        bounds.second))
+                    .second)
+              warning
+                  << "Promoted this request up to an escaping unbounded pool.";
+            else
+              warning << "Another kind of escaping pool was already requested "
+                      << "for this memory so this request will be ignored.";
+            warning.raise();
+          }
+          else
+            dynamic_pool_bounds.emplace(std::make_pair(
+                std::make_pair(bounds.first, false /*escaping*/),
+                bounds.second));
+        }
+        create_leaf_memory_pools(variant_impl, dynamic_pool_bounds);
+      }
       else
       {
         // If we're a concurrent task or a collectively mapped task then we
@@ -772,8 +810,8 @@ namespace Legion {
         if (!leaf_memory_pools.empty())
         {
           // Free up any leaf memory pools that we have since we don't need them
-          for (const std::pair<const Memory, MemoryPool*>& pool_pair :
-               leaf_memory_pools)
+          for (const std::pair<const std::pair<Memory, bool>, MemoryPool*>&
+                   pool_pair : leaf_memory_pools)
             delete pool_pair.second;
           leaf_memory_pools.clear();
         }
@@ -1056,8 +1094,8 @@ namespace Legion {
       // To prevent this unbound pools need to capture valid references on
       // any acquired instances for this task to ensure that we don't try
       // to use our own instances to satisfy an unbounded pool allocation.
-      for (const std::pair<const Memory, MemoryPool*>& pool_pair :
-           leaf_memory_pools)
+      for (const std::pair<const std::pair<Memory, bool>, MemoryPool*>&
+               pool_pair : leaf_memory_pools)
         pool_pair.second->capture_task_instances(acquired_instances);
       if (!output_regions.empty())
       {
@@ -1252,7 +1290,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       LegionSpy::log_replay_operation(unique_op_id);
-      std::map<Memory, PoolBounds> pool_bounds;
+      std::map<std::pair<Memory, bool>, PoolBounds> pool_bounds;
       tpl->get_mapper_output(
           this, selected_variant, task_priority, perform_postmap,
           target_processors, future_memories, pool_bounds, physical_instances);
@@ -1269,10 +1307,18 @@ namespace Legion {
               memory, this, nullptr /*safe_for_unbounded_pools*/);
         }
       }
-      // Make any memory pools required to replay this task
-      for (const std::pair<const Memory, PoolBounds>& pool_pair : pool_bounds)
+      if (!single_task_termination.exists())
       {
-        MemoryManager* manager = runtime->find_memory_manager(pool_pair.first);
+        single_task_termination = Runtime::create_ap_user_event(nullptr);
+        record_completion_effect(single_task_termination);
+      }
+      RtEvent safe_single_task_termination;
+      // Make any memory pools required to replay this task
+      for (const std::pair<const std::pair<Memory, bool>, PoolBounds>&
+               pool_pair : pool_bounds)
+      {
+        MemoryManager* manager =
+            runtime->find_memory_manager(pool_pair.first.first);
         // Recompute these each time as they might be consumed each time
         TaskTreeCoordinates coordinates;
         compute_task_tree_coordinates(coordinates);
@@ -1295,6 +1341,17 @@ namespace Legion {
               << "finding a bigger machine.";
           error.raise();
         }
+        // Finalize any non-escaping pools
+        if (!pool_pair.first.second)
+        {
+          if (!safe_single_task_termination.exists())
+          {
+            legion_assert(single_task_termination.exists());
+            safe_single_task_termination =
+                Runtime::protect_event(single_task_termination);
+          }
+          pool->finalize_pool(safe_single_task_termination);
+        }
         leaf_memory_pools.emplace(std::make_pair(pool_pair.first, pool));
       }
       // Make sure to propagate any future sizes that we know about here
@@ -1311,11 +1368,6 @@ namespace Legion {
           // Record the future output size
           handle_future_size(*future_return_size, map_applied_conditions);
         }
-      }
-      if (!single_task_termination.exists())
-      {
-        single_task_termination = Runtime::create_ap_user_event(nullptr);
-        record_completion_effect(single_task_termination);
       }
       set_origin_mapped(true);  // it's like this was origin mapped
       // should only be replaying leaf tasks currently
@@ -1606,31 +1658,46 @@ namespace Legion {
           output.future_locations = future_memories;
         // Make sure we save all the future pool bounds sizes including
         // the ones that come statically from the task variant
-        for (const std::pair<const Memory, MemoryPool*>& pool_pair :
-             leaf_memory_pools)
+        for (const std::pair<const std::pair<Memory, bool>, MemoryPool*>&
+                 pool_pair : leaf_memory_pools)
         {
-          std::map<Memory, PoolBounds>::const_iterator finder =
-              output.leaf_pool_bounds.find(pool_pair.first);
-          if (finder == output.leaf_pool_bounds.end())
-            finder = output.leaf_pool_bounds
-                         .insert(std::make_pair(
-                             pool_pair.first, pool_pair.second->get_bounds()))
-                         .first;
-          // Issue a warning to the user if the pool is unbounded that
-          // this is going to invalidate the trace capture
-          if (!finder->second.is_bounded())
+          if (pool_pair.first.second)
           {
-            MemoryManager* manager =
-                runtime->find_memory_manager(pool_pair.first);
-            Warning warning;
-            warning
-                << "Detected unbounded pool in trace. Mapper " << *mapper
-                << " requested to trace task " << *this
-                << " with an unbounded memory pool in " << manager->get_name()
-                << " memory " << manager->memory
-                << ". Unbounded pools are not permitted in traces and will "
-                << "prevent this recording of the trace from being replayed.";
-            warning.raise();
+            // Escaping pool case
+            std::map<Memory, PoolBounds>::const_iterator finder =
+                output.leaf_pool_bounds.find(pool_pair.first.first);
+            if (finder == output.leaf_pool_bounds.end())
+              finder = output.leaf_pool_bounds
+                           .emplace(std::make_pair(
+                               pool_pair.first.first,
+                               pool_pair.second->get_bounds()))
+                           .first;
+            // Issue a warning to the user if the pool is unbounded that
+            // this is going to invalidate the trace capture
+            if (!finder->second.is_bounded())
+            {
+              MemoryManager* manager =
+                  runtime->find_memory_manager(pool_pair.first.first);
+              Warning warning;
+              warning
+                  << "Detected unbounded pool in trace. Mapper " << *mapper
+                  << " requested to trace task " << *this
+                  << " with an unbounded memory pool in " << manager->get_name()
+                  << " memory " << manager->memory
+                  << ". Unbounded pools are not permitted in traces and will "
+                  << "prevent this recording of the trace from being replayed.";
+              warning.raise();
+            }
+          }
+          else
+          {
+            // non-escaping pool case
+            std::map<Memory, PoolBounds>::const_iterator finder =
+                output.non_escaping_leaf_pool_bounds.find(
+                    pool_pair.first.first);
+            if (finder == output.non_escaping_leaf_pool_bounds.end())
+              output.non_escaping_leaf_pool_bounds.emplace(std::make_pair(
+                  pool_pair.first.first, pool_pair.second->get_bounds()));
           }
         }
         const TraceLocalID tlid = get_trace_local_id();
@@ -2511,7 +2578,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void SingleTask::create_leaf_memory_pools(
-        VariantImpl* variant, std::map<Memory, PoolBounds>& dynamic_pool_bounds)
+        VariantImpl* variant,
+        std::map<std::pair<Memory, bool>, PoolBounds>& dynamic_pool_bounds)
     //--------------------------------------------------------------------------
     {
       if (dynamic_pool_bounds.empty() && variant->leaf_pool_bounds.empty())
@@ -2525,27 +2593,28 @@ namespace Legion {
         return;
       }
       // Fill in the dynamic pool bounds with the static versions
-      for (const std::pair<const Memory::Kind, PoolBounds>& pool_pair :
-           variant->leaf_pool_bounds)
+      for (const std::pair<const std::pair<Memory::Kind, bool>, PoolBounds>&
+               pool_pair : variant->leaf_pool_bounds)
       {
         // This might occur if we're doing origin mapping on a remote node
         // from where the task is going to ultimately run
         Machine::MemoryQuery query(runtime->machine);
-        query.only_kind(pool_pair.first);
+        query.only_kind(pool_pair.first.first);
         query.best_affinity_to(target_proc);
         if (query.count() == 0)
         {
           Error error(LEGION_MAPPER_EXCEPTION);
-          error << "Unable to find a visible " << pool_pair.first
+          error << "Unable to find a visible " << pool_pair.first.first
                 << " memory from processor " << target_proc << " for " << *this
                 << " for creating dynamic memory pool from static constraint.";
           error.raise();
         }
         const Memory target = query.first();
+        const std::pair<Memory, bool> key(target, pool_pair.first.second);
         // Check to see if we also got a dynamic memory pool bound, if we
         // did then it needs to tighten what already existed
-        std::map<Memory, PoolBounds>::const_iterator finder =
-            dynamic_pool_bounds.find(target);
+        std::map<std::pair<Memory, bool>, PoolBounds>::const_iterator finder =
+            dynamic_pool_bounds.find(key);
         if (finder != dynamic_pool_bounds.end())
         {
           if (pool_pair.second.is_bounded())
@@ -2613,7 +2682,7 @@ namespace Legion {
               warning
                   << "Selected variant " << variant->get_name() << " of "
                   << *this << " was registered with an unbound memory pool for "
-                  << pool_pair.first << " memory and mapper " << *mapper
+                  << pool_pair.first.first << " memory and mapper " << *mapper
                   << "failed to tighten the bound. Unbound memory pools are "
                   << "very bad for performance and we strongly encourage all "
                   << "users to avoid using them except for extenuating "
@@ -2635,9 +2704,9 @@ namespace Legion {
               Error error(LEGION_MAPPER_EXCEPTION);
               error << "Mapper " << *mapper << " selected variant "
                     << variant->get_name() << " which statically mandates a "
-                    << "strict unbounded memory pool in " << pool_pair.first
-                    << " memory for concurrent task " << *this
-                    << ". Strict unbounded "
+                    << "strict unbounded memory pool in "
+                    << pool_pair.first.first << " memory for concurrent task "
+                    << *this << ". Strict unbounded "
                     << "memory pools are not permitted to be used when "
                     << "mapping concurrent index space tasks because they "
                     << "can lead to deadlocks. Instead you should use either "
@@ -2652,7 +2721,7 @@ namespace Legion {
               error
                   << "Mapper " << *mapper << " selected variant "
                   << variant->get_name() << " which statically mandates a "
-                  << "strict unbounded memory pool in " << pool_pair.first
+                  << "strict unbounded memory pool in " << pool_pair.first.first
                   << " memory for task " << *this
                   << " while the mapper also requested "
                   << "collective mapping of " << check_collective_regions.size()
@@ -2673,7 +2742,7 @@ namespace Legion {
             warning
                 << "Selected variant " << variant->get_name() << " of task "
                 << *this << " was registered with an unbound memory pool for "
-                << pool_pair.first << " memory and mapper " << *mapper
+                << pool_pair.first.first << " memory and mapper " << *mapper
                 << "failed to tighten the bound. Unbound memory pools are "
                 << "very bad for performance and we strongly encourage all "
                 << "users to avoid using them except for extenuating "
@@ -2681,7 +2750,7 @@ namespace Legion {
                 << "by a task is truly unbounded.";
             warning.raise();
           }
-          dynamic_pool_bounds.emplace(std::make_pair(target, pool_pair.second));
+          dynamic_pool_bounds.emplace(std::make_pair(key, pool_pair.second));
         }
       }
       // If we're a concurrent task or a collectively mapped task then we
@@ -2695,20 +2764,21 @@ namespace Legion {
           !check_collective_regions.empty())
       {
         uint64_t max_lamport_clock = 0;
-        for (const std::pair<const Memory, PoolBounds>& pool_pair :
-             dynamic_pool_bounds)
+        for (const std::pair<const std::pair<Memory, bool>, PoolBounds>&
+                 pool_pair : dynamic_pool_bounds)
         {
           if (pool_pair.second.is_bounded())
             continue;
           MemoryManager* manager =
-              runtime->find_memory_manager(pool_pair.first);
+              runtime->find_memory_manager(pool_pair.first.first);
           // We might want to relax this restriction in the future to allow
           // tasks to make deferred buffers on memories that are "remote"
           // from where they are executing
-          if (pool_pair.first.address_space() != target_proc.address_space())
+          if (pool_pair.first.first.address_space() !=
+              target_proc.address_space())
           {
             Error error(LEGION_MAPPER_EXCEPTION);
-            error << manager->get_name() << " memory " << pool_pair.first
+            error << manager->get_name() << " memory " << pool_pair.first.first
                   << " is not visible from the target processor of " << *this
                   << " for creating dynamic memory pool.";
             error.raise();
@@ -2749,20 +2819,23 @@ namespace Legion {
           order_collectively_mapped_unbounded_pools(
               max_lamport_clock, false /*need result*/);
       }
-      std::map<Memory, MemoryPool*> acquired_pools;
+      RtEvent safe_single_task_termination;
+      std::map<std::pair<Memory, bool>, MemoryPool*> acquired_pools;
       acquired_pools.swap(leaf_memory_pools);
       // Now we can go through and create the pools for use by this task
-      for (const std::pair<const Memory, PoolBounds>& pool_pair :
-           dynamic_pool_bounds)
+      for (const std::pair<const std::pair<Memory, bool>, PoolBounds>&
+               pool_pair : dynamic_pool_bounds)
       {
-        MemoryManager* manager = runtime->find_memory_manager(pool_pair.first);
+        MemoryManager* manager =
+            runtime->find_memory_manager(pool_pair.first.first);
         // We might want to relax this restriction in the future to allow tasks
         // to make deferred buffers on memories that are "remote" from where
         // they are executing
-        if (pool_pair.first.address_space() != target_proc.address_space())
+        if (pool_pair.first.first.address_space() !=
+            target_proc.address_space())
         {
           Error error(LEGION_MAPPER_EXCEPTION);
-          error << manager->get_name() << " memory " << pool_pair.first
+          error << manager->get_name() << " memory " << pool_pair.first.first
                 << " is not visible from the target processor of " << *this
                 << " for creating dynamic memory pool.";
           error.raise();
@@ -2770,13 +2843,24 @@ namespace Legion {
         if (pool_pair.second.is_bounded())
         {
           // Check to see if acquired a memory pool for this already
-          std::map<Memory, MemoryPool*>::iterator finder =
+          std::map<std::pair<Memory, bool>, MemoryPool*>::iterator finder =
               acquired_pools.find(pool_pair.first);
           if (finder != acquired_pools.end())
           {
             // These should all be bounded pools
             legion_assert(
                 finder->second->get_bounds().scope == LEGION_BOUNDED_POOL);
+            if (!pool_pair.first.second)
+            {
+              // Non-escaping so do the finalize now
+              if (!safe_single_task_termination.exists())
+              {
+                legion_assert(single_task_termination.exists());
+                safe_single_task_termination =
+                    Runtime::protect_event(single_task_termination);
+              }
+              finder->second->finalize_pool(safe_single_task_termination);
+            }
             leaf_memory_pools.insert(acquired_pools.extract(finder));
             continue;
           }
@@ -2822,23 +2906,27 @@ namespace Legion {
                      "requirements.";
               error.raise();
             }
-            if (runtime->runtime_warnings &&
-                (variant->leaf_pool_bounds.find(pool_pair.first.kind()) ==
-                 variant->leaf_pool_bounds.end()))
+            if (runtime->runtime_warnings)
             {
-              Warning warning;
-              warning
-                  << "Mapper " << *mapper
-                  << " requested an unbound memory pool in "
-                  << manager->get_name() << " memory for leaf task " << *this
-                  << ". Unbound memory pools are very bad "
-                  << "for performance and we strongly encourage all users to "
-                     "avoid"
-                  << " using them except for extenuating circumstances when "
-                     "the "
-                  << "amount of dynamic memory required by a task is truly "
-                     "unbounded.";
-              warning.raise();
+              const std::pair<Memory::Kind, bool> key(
+                  pool_pair.first.first.kind(), true /*escaping*/);
+              if (variant->leaf_pool_bounds.find(key) ==
+                  variant->leaf_pool_bounds.end())
+              {
+                Warning warning;
+                warning
+                    << "Mapper " << *mapper
+                    << " requested an unbound memory pool in "
+                    << manager->get_name() << " memory for leaf task " << *this
+                    << ". Unbound memory pools are very bad "
+                    << "for performance and we strongly encourage all users to "
+                       "avoid"
+                    << " using them except for extenuating circumstances when "
+                       "the "
+                    << "amount of dynamic memory required by a task is truly "
+                       "unbounded.";
+                warning.raise();
+              }
             }
           }
           // If this is our first unbounded allocation then we need to
@@ -2863,10 +2951,10 @@ namespace Legion {
             // Release all unbounded pools
             for (unsigned idx = 0; idx < unbound_acquired_index; idx++)
             {
-              std::map<Memory, MemoryPool*>::iterator finder =
-                  leaf_memory_pools.find(unbounded_pools[idx]->memory);
+              std::map<std::pair<Memory, bool>, MemoryPool*>::iterator finder =
+                  leaf_memory_pools.find(
+                      std::make_pair(unbounded_pools[idx]->memory, true));
               legion_assert(finder != leaf_memory_pools.end());
-              finder->second->release_pool(get_unique_id());
               delete finder->second;
               leaf_memory_pools.erase(finder);
             }
@@ -2879,8 +2967,9 @@ namespace Legion {
                  unbound_acquired_index++)
             {
               MemoryManager* target = unbounded_pools[unbound_acquired_index];
-              std::map<Memory, PoolBounds>::const_iterator finder =
-                  dynamic_pool_bounds.find(target->memory);
+              std::map<std::pair<Memory, bool>, PoolBounds>::const_iterator
+                  finder = dynamic_pool_bounds.find(
+                      std::make_pair(target->memory, true));
               legion_assert(finder != dynamic_pool_bounds.end());
               legion_assert(!finder->second.is_bounded());
               // Recompute these each time as they might be consumed each time
@@ -2890,8 +2979,8 @@ namespace Legion {
                   get_unique_id(), coordinates, finder->second, &try_again);
               if (try_again.exists())
                 break;
-              leaf_memory_pools.emplace(
-                  std::make_pair(target->memory, unbound_pool));
+              leaf_memory_pools.emplace(std::make_pair(
+                  std::make_pair(target->memory, true), unbound_pool));
             }
             legion_assert(
                 try_again.exists() ==
@@ -2923,6 +3012,17 @@ namespace Legion {
               << "sure that memory can be reserved for all pools in advance.";
           error.raise();
         }
+        if (!pool_pair.first.second)
+        {
+          // Non escaping pools need to be finalized early
+          if (!safe_single_task_termination.exists())
+          {
+            legion_assert(single_task_termination.exists());
+            safe_single_task_termination =
+                Runtime::protect_event(single_task_termination);
+          }
+          pool->finalize_pool(safe_single_task_termination);
+        }
         leaf_memory_pools.emplace(std::make_pair(pool_pair.first, pool));
         // Keep track of all our unbounded pools
         if (!pool_pair.second.is_bounded())
@@ -2937,22 +3037,24 @@ namespace Legion {
       }
       // If we have any pools left in the acquired set we can delete them
       // since we're not going to need them
-      for (const std::pair<const Memory, MemoryPool*>& pool_pair :
-           acquired_pools)
+      for (const std::pair<const std::pair<Memory, bool>, MemoryPool*>&
+               pool_pair : acquired_pools)
         delete pool_pair.second;
+      acquired_pools.clear();
     }
 
     //--------------------------------------------------------------------------
     bool SingleTask::acquire_leaf_memory_pool(
-        Memory memory, const PoolBounds& bounds,
+        Memory memory, const PoolBounds& bounds, bool escaping,
         RtEvent* safe_for_unbounded_pools)
     //--------------------------------------------------------------------------
     {
       legion_assert(bounds.is_bounded());
+      const std::pair<Memory, bool> key(memory, escaping);
       // Check to see if we already have a memory pool for this memory of
       // the given size, if we do then we're already good
-      std::map<Memory, MemoryPool*>::iterator finder =
-          leaf_memory_pools.find(memory);
+      std::map<std::pair<Memory, bool>, MemoryPool*>::iterator finder =
+          leaf_memory_pools.find(key);
       if (finder != leaf_memory_pools.end())
       {
         if ((bounds.size <= finder->second->query_available_memory()) &&
@@ -2969,20 +3071,21 @@ namespace Legion {
           get_unique_id(), coordinates, bounds, safe_for_unbounded_pools);
       if (pool == nullptr)
         return false;
-      leaf_memory_pools[memory] = pool;
+      leaf_memory_pools[key] = pool;
       return true;
     }
 
     //--------------------------------------------------------------------------
-    void SingleTask::release_leaf_memory_pool(Memory memory)
+    void SingleTask::release_leaf_memory_pool(Memory memory, bool escaping)
     //--------------------------------------------------------------------------
     {
-      std::map<Memory, MemoryPool*>::iterator finder =
-          leaf_memory_pools.find(memory);
+      const std::pair<Memory, bool> key(memory, escaping);
+      std::map<std::pair<Memory, bool>, MemoryPool*>::iterator finder =
+          leaf_memory_pools.find(key);
       if (finder != leaf_memory_pools.end())
       {
         delete finder->second;
-        leaf_memory_pools.erase(finder);
+        leaf_memory_pools.erase(key);
       }
     }
 
@@ -3537,8 +3640,8 @@ namespace Legion {
       }
       else
       {
-        for (const std::pair<const Memory, MemoryPool*>& pool_pair :
-             leaf_memory_pools)
+        for (const std::pair<const std::pair<Memory, bool>, MemoryPool*>&
+                 pool_pair : leaf_memory_pools)
         {
           const ApEvent ready = pool_pair.second->get_ready_event();
           if (ready.exists())
