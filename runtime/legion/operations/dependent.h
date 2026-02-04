@@ -377,38 +377,44 @@ namespace Legion {
       void initialize(DependentPartitionOp* owner, const DomainPoint& point);
       void launch(void);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-      virtual void trigger_prepipeline_stage(void);
-      virtual void trigger_dependence_analysis(void);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
+      virtual void trigger_prepipeline_stage(void) override;
+      virtual void trigger_dependence_analysis(void) override;
       virtual ApEvent trigger_thunk(
           IndexSpace handle, ApEvent insts_ready,
           const InstanceSet& mapped_instances,
-          const PhysicalTraceInfo& trace_info, const DomainPoint& color);
-      virtual void trigger_complete(ApEvent effect);
-      virtual void trigger_commit(void);
-      virtual PartitionKind get_partition_kind(void) const;
-      virtual unsigned find_parent_index(unsigned idx)
+          const PhysicalTraceInfo& trace_info,
+          const DomainPoint& color) override;
+      virtual void trigger_complete(ApEvent effect) override;
+      virtual void trigger_commit(void) override;
+      virtual PartitionKind get_partition_kind(void) const override;
+      virtual unsigned find_parent_index(unsigned idx) override
       {
         return owner->find_parent_index(idx);
       }
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
     public:
-      virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual size_t get_collective_points(void) const override;
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
     public:
       // From ProjectionPoint
-      virtual const DomainPoint& get_domain_point(void) const;
-      virtual void set_projection_result(unsigned idx, LogicalRegion result);
+      virtual const DomainPoint& get_domain_point(void) const override;
+      virtual void set_projection_result(
+          unsigned idx, LogicalRegion result) override;
       virtual void record_intra_space_dependences(
-          unsigned idx, const std::vector<DomainPoint>& region_deps);
+          unsigned idx, const std::vector<DomainPoint>& region_deps) override;
       virtual void record_pointwise_dependence(
           uint64_t previous_context_index, const DomainPoint& previous_point,
-          ShardID shard);
-      virtual const Operation* as_operation(void) const { return this; }
+          ShardID shard) override;
+      virtual const Operation* as_operation(void) const override
+      {
+        return this;
+      }
     public:
       DependentPartitionOp* owner;
     };
@@ -586,30 +592,30 @@ namespace Legion {
     public:
       RemotePartitionOp& operator=(const RemotePartitionOp& rhs) = delete;
     public:
-      virtual UniqueID get_unique_id(void) const;
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual const Task* get_parent_task(void) const;
+      virtual UniqueID get_unique_id(void) const override;
+      virtual uint64_t get_context_index(void) const override;
+      virtual void set_context_index(uint64_t index) override;
+      virtual int get_depth(void) const override;
+      virtual const Task* get_parent_task(void) const override;
       virtual const std::string_view& get_provenance_string(
-          bool human = true) const;
-      virtual PartitionKind get_partition_kind(void) const;
-      virtual ContextCoordinate get_task_tree_coordinate(void) const
+          bool human = true) const override;
+      virtual PartitionKind get_partition_kind(void) const override;
+      virtual ContextCoordinate get_task_tree_coordinate(void) const override
       {
         return ContextCoordinate(context_index, index_point);
       }
     public:
-      virtual const char* get_logging_name(void) const;
-      virtual OpKind get_operation_kind(void) const;
+      virtual const char* get_logging_name(void) const override;
+      virtual OpKind get_operation_kind(void) const override;
       virtual void select_sources(
           const unsigned index, PhysicalManager* target,
           const std::vector<InstanceView*>& sources,
           std::vector<unsigned>& ranking,
-          std::map<unsigned, PhysicalManager*>& points);
+          std::map<unsigned, PhysicalManager*>& points) override;
       virtual void pack_remote_operation(
           Serializer& rez, AddressSpaceID target,
-          std::set<RtEvent>& applied) const;
-      virtual void unpack(Deserializer& derez);
+          std::set<RtEvent>& applied) const override;
+      virtual void unpack(Deserializer& derez) override;
     protected:
       PartitionKind part_kind;
     };
