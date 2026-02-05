@@ -603,6 +603,14 @@ namespace Legion {
         LogicalRegion handle;
         derez.deserialize(handle);
         RegionNode* node = runtime->get_node(handle);
+#ifdef LEGION_DEBUG
+        // A little bit strange here, but we have to add a reference
+        // to keep the debug checks on packing and unpacking references
+        // happy here. In release mode we know we're safe because we
+        // still have the packed reference we were sent with
+        legion_no_skip_assert(node->check_global_and_increment(META_TASK_REF));
+        node->unpack_global_ref();
+#endif
         created_nodes[idx1] = node;
         EqKDTree* tree = node->row_source->create_equivalence_set_kd_tree(
             src_mapping.empty() ? 1 : src_mapping.size());
@@ -639,7 +647,13 @@ namespace Legion {
             done_event, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(done_event);
+#ifdef LEGION_DEBUG
+      for (RegionNode* node : created_nodes)
+        if (node->remove_base_gc_ref(META_TASK_REF))
+          delete node;
+#else
       for (RegionNode* node : created_nodes) node->unpack_global_ref();
+#endif
       for (EqKDTree* it : created_trees)
         if ((it != nullptr) && it->remove_reference())
           delete it;
