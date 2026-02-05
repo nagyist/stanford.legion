@@ -2767,10 +2767,20 @@ namespace Legion {
       // bounds requested for mapping the task. This interface allows mappers
       // to discover if leaf pools can be allocated and potentially switch to
       // an alternative mapping strategy if they cannot. Mappers must say
-      // whether the pool being acquired is escaping or non-escaping.
+      // whether the pool being acquired is escaping or non-escaping. If the
+      // mapper already acquired a pool for this operation in the same memory
+      // and with the same escaping property then the prior pool will be
+      // released if the acquire for the new pool succeeds because Legion
+      // does not permit operations to have more than one pool in the same
+      // memory with the same escaping property. Users can decide if they
+      // want the prior pool (if any) to be released before the acquire
+      // attempt (optimistically) or only when the acquire succeeds to allocate
+      // the new pool (pessimistically). The former allows the memory from
+      // the previous pool to be used to satisfy the new pool being acquired
+      // while the latter ensures that at least one memory pool is always live.
       bool acquire_pool(
           MapperContext ctx, Memory memory, const PoolBounds& bounds,
-          bool escaping = true) const;
+          bool escaping = true, bool optimistic = false) const;
       void release_pool(MapperContext ctx, Memory memory, bool escaping = true);
     public:
       //------------------------------------------------------------------------
