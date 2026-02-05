@@ -529,29 +529,30 @@ namespace Legion {
     public:
       void initialize_replication(ReplicateContext* context);
     public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
+      virtual void activate(void) override;
+      virtual void deactivate(bool free = true) override;
     public:
       // Need to pick our sharding functor
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual void finalize_mapping(void);
+      virtual void trigger_dependence_analysis(void) override;
+      virtual void trigger_ready(void) override;
+      virtual void finalize_mapping(void) override;
       virtual ApEvent trigger_thunk(
           IndexSpace handle, ApEvent insts_ready,
           const InstanceSet& mapped_instances, const PhysicalTraceInfo& info,
-          const DomainPoint& color);
-      virtual void trigger_execution(void);
-      virtual void select_partition_projection(void);
-      virtual IndexSpaceNode* get_shard_points(void) const
+          const DomainPoint& color) override;
+      virtual void trigger_execution(void) override;
+      virtual void select_partition_projection(void) override;
+      virtual IndexSpaceNode* get_shard_points(void) const override
       {
         return shard_points;
       }
-      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual bool find_shard_participants(
+          std::vector<ShardID>& shards) override;
       virtual bool perform_collective_analysis(
-          CollectiveMapping*& mapping, bool& first_local);
+          CollectiveMapping*& mapping, bool& first_local) override;
       virtual RtEvent perform_collective_versioning_analysis(
           unsigned index, LogicalRegion handle, EqSetTracker* tracker,
-          const FieldMask& mask, unsigned parent_req_index);
+          const FieldMask& mask, unsigned parent_req_index) override;
     protected:
       void select_sharding_function(void);
       void find_remote_targets(
