@@ -3045,7 +3045,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool SingleTask::acquire_leaf_memory_pool(
-        Memory memory, const PoolBounds& bounds, bool escaping,
+        Memory memory, const PoolBounds& bounds, bool escaping, bool optimistic,
         RtEvent* safe_for_unbounded_pools)
     //--------------------------------------------------------------------------
     {
@@ -3060,9 +3060,12 @@ namespace Legion {
         if ((bounds.size <= finder->second->query_available_memory()) &&
             (bounds.alignment <= finder->second->max_alignment))
           return true;
-        // Otherwise release this pool since we're going to make a new one
-        delete finder->second;
-        leaf_memory_pools.erase(finder);
+        if (optimistic)
+        {
+          // Otherwise release this pool since we're going to make a new one
+          delete finder->second;
+          leaf_memory_pools.erase(finder);
+        }
       }
       TaskTreeCoordinates coordinates;
       compute_task_tree_coordinates(coordinates);
@@ -3071,7 +3074,13 @@ namespace Legion {
           get_unique_id(), coordinates, bounds, safe_for_unbounded_pools);
       if (pool == nullptr)
         return false;
-      leaf_memory_pools[key] = pool;
+      if (!optimistic && (finder != leaf_memory_pools.end()))
+      {
+        delete finder->second;
+        finder->second = pool;
+      }
+      else
+        leaf_memory_pools[key] = pool;
       return true;
     }
 
