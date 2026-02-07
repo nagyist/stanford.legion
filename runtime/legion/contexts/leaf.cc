@@ -1702,8 +1702,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalInstance LeafContext::create_task_local_instance(
-        Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
-        bool escaping, RtEvent& use_event)
+        Memory memory, const Realm::InstanceLayoutGeneric& layout,
+        bool can_fail, bool escaping, RtEvent& use_event)
     //--------------------------------------------------------------------------
     {
       const std::pair<Memory, bool> key(memory, escaping);
@@ -1712,7 +1712,7 @@ namespace Legion {
       LgEvent unique_event;
       if (runtime->profiler != nullptr)
         Runtime::rename_event(unique_event);
-      const size_t footprint = layout->bytes_used;
+      const size_t footprint = layout.bytes_used;
       std::map<std::pair<Memory, bool>, MemoryPool*>::const_iterator finder =
           memory_pools.find(key);
       // Handle a special case for zero-byte instances here
@@ -1734,7 +1734,6 @@ namespace Legion {
         const PhysicalInstance instance = manager->create_task_local_instance(
             get_unique_id(), coordinates, unique_event, layout, use_event,
             &safe_for_unbounded_pools);
-        delete layout;
         if (footprint == 0)
         {
           legion_assert(instance.exists());
@@ -1840,7 +1839,7 @@ namespace Legion {
             << "pool after it has been released it.";
         error.raise();
       }
-      if (finder->second->max_alignment < layout->alignment_reqd)
+      if (finder->second->max_alignment < layout.alignment_reqd)
       {
         MemoryManager* manager = runtime->find_memory_manager(memory);
         Error error(LEGION_RESOURCE_EXCEPTION);
@@ -1848,8 +1847,7 @@ namespace Legion {
             << "Failed to allocate DeferredBuffer/Value/Reduction of "
             << footprint << " bytes for leaf task " << *this << " in "
             << manager->get_name() << " memory because the maximum "
-            << "alignment required by the instance of "
-            << layout->alignment_reqd
+            << "alignment required by the instance of " << layout.alignment_reqd
             << " bytes is larger the reserved alignment for the pool of "
             << finder->second->max_alignment << " bytes. You need to ask "
             << "for a larger maximum alignment for the pool if you plan to do "
@@ -1861,10 +1859,7 @@ namespace Legion {
       if (!instance.exists())
       {
         if (can_fail)
-        {
-          delete layout;
           return instance;
-        }
         MemoryManager* manager = runtime->find_memory_manager(memory);
         const size_t memory_limit = manager->query_available_memory();
         if (finder->second->get_bounds().scope == LEGION_BOUNDED_POOL)
@@ -1896,7 +1891,7 @@ namespace Legion {
                 << " bytes free in the pool of " << pool_limit
                 << "bytes but they are sufficiently fragmented such that a "
                    "hole "
-                << footprint << " bytes aligned on a " << layout->alignment_reqd
+                << footprint << " bytes aligned on a " << layout.alignment_reqd
                 << " byte boundary cannot be found. We "
                 << "recommend you check the order of allocations and alignment "
                 << "requirements to try to minimize the amount of padding "
@@ -1944,7 +1939,6 @@ namespace Legion {
           error.raise();
         }
       }
-      delete layout;
       task_local_instances[instance] = std::make_pair(unique_event, escaping);
       return instance;
     }
