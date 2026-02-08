@@ -44,7 +44,7 @@ namespace Legion {
           UniqueID creator_uid, size_t size) = 0;
       virtual PhysicalInstance allocate_instance(
           UniqueID creator_uid, LgEvent unique_event,
-          const Realm::InstanceLayoutGeneric* layout, RtEvent& use_event) = 0;
+          const Realm::InstanceLayoutGeneric& layout, RtEvent& use_event) = 0;
       virtual bool contains_instance(PhysicalInstance instance) const = 0;
       virtual RtEvent escape_task_local_instance(
           PhysicalInstance instance, RtEvent safe_effects, size_t num_results,
@@ -99,7 +99,7 @@ namespace Legion {
           UniqueID creator_uid, size_t size) override;
       virtual PhysicalInstance allocate_instance(
           UniqueID creator_uid, LgEvent unique_event,
-          const Realm::InstanceLayoutGeneric* layout,
+          const Realm::InstanceLayoutGeneric& layout,
           RtEvent& use_event) override;
       virtual bool contains_instance(PhysicalInstance instance) const override;
       virtual RtEvent escape_task_local_instance(
@@ -182,7 +182,7 @@ namespace Legion {
           UniqueID creator_uid, size_t size) override;
       virtual PhysicalInstance allocate_instance(
           UniqueID creator_uid, LgEvent unique_event,
-          const Realm::InstanceLayoutGeneric* layout,
+          const Realm::InstanceLayoutGeneric& layout,
           RtEvent& use_event) override;
       virtual bool contains_instance(PhysicalInstance instance) const override;
       virtual RtEvent escape_task_local_instance(
@@ -420,7 +420,7 @@ namespace Legion {
           PhysicalInstance inst, size_t size, RtEvent free_event);
       PhysicalInstance create_task_local_instance(
           UniqueID creator_uid, const TaskTreeCoordinates& coordinates,
-          LgEvent unique_event, const Realm::InstanceLayoutGeneric* layout,
+          LgEvent unique_event, const Realm::InstanceLayoutGeneric& layout,
           RtEvent& use_event, RtEvent* safe_for_unbounded_pools);
       void free_task_local_instance(
           PhysicalInstance instance,
@@ -487,7 +487,7 @@ namespace Legion {
 #ifdef LEGION_MALLOC_INSTANCES
     public:
       RtEvent allocate_legion_instance(
-          const Realm::InstanceLayoutGeneric* layout,
+          const Realm::InstanceLayoutGeneric& layout,
           const Realm::ProfilingRequestSet& requests, PhysicalInstance& inst,
           LgEvent unique_event, bool needs_defer = true);
       void record_legion_instance(

@@ -10156,8 +10156,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalInstance InnerContext::create_task_local_instance(
-        Memory memory, Realm::InstanceLayoutGeneric* layout, bool can_fail,
-        bool escaping, RtEvent& use_event)
+        Memory memory, const Realm::InstanceLayoutGeneric& layout,
+        bool can_fail, bool escaping, RtEvent& use_event)
     //--------------------------------------------------------------------------
     {
       LgEvent unique_event;
@@ -10171,22 +10171,19 @@ namespace Legion {
       if (!instance.exists())
       {
         if (can_fail)
-        {
-          delete layout;
           return instance;
-        }
         const size_t remaining = manager->query_available_memory();
-        if (layout->bytes_used <= remaining)
+        if (layout.bytes_used <= remaining)
         {
           Error error(LEGION_RESOURCE_EXCEPTION);
           error << "Failed to allocate DeferredBuffer/Value/Reduction for task "
                 << get_task_name() << " (UID " << get_unique_id() << ") in "
                 << manager->get_name() << " memory of size "
-                << layout->bytes_used << " bytes. There are still " << remaining
+                << layout.bytes_used << " bytes. There are still " << remaining
                 << " bytes free in the memory, "
                 << "but they are fragmented such that a hole of "
-                << layout->bytes_used << " bytes aligned on a "
-                << layout->alignment_reqd << " byte boundary "
+                << layout.bytes_used << " bytes aligned on a "
+                << layout.alignment_reqd << " byte boundary "
                 << "could not be found. We recommend you check the order of "
                    "allocations "
                 << "and alignment requirements to try to minimize the amount "
@@ -10202,7 +10199,7 @@ namespace Legion {
           error
               << "Failed to allocate DeferredBuffer/Value/Reduction for task "
               << get_task_name() << " (UID " << get_unique_id() << ") in "
-              << manager->get_name() << " memory of size " << layout->bytes_used
+              << manager->get_name() << " memory of size " << layout.bytes_used
               << " bytes. If you receive this error then you really are out of "
                  "memory. "
               << "You have two options: increase the size of this memory when "
@@ -10210,7 +10207,6 @@ namespace Legion {
           error.raise();
         }
       }
-      delete layout;
       // We support multiple (OpenMP) threads calling in here simultaneously
       // so we need to protect this data structure, we co-opt the inline-Lock
       // here since we're unlikely to be contending with inline mappings

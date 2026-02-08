@@ -3144,7 +3144,8 @@ namespace Legion {
     Internal::RtEvent use_event;
     UntypedDeferredValue result;
     result.instance = ctx->create_task_local_instance(
-        memory, layout, request.can_fail, request.escaping, use_event);
+        memory, *layout, request.can_fail, request.escaping, use_event);
+    delete layout;
     if (result.instance.exists() && (request.initial_value != nullptr))
     {
       const Processor exec_proc = ctx->get_executing_processor();
@@ -3332,7 +3333,8 @@ namespace Legion {
     Internal::RtEvent use_event;
     UntypedDeferredBuffer<T> result;
     result.instance = ctx->create_task_local_instance(
-        memory, layout, request.can_fail, request.escaping, use_event);
+        memory, *layout, request.can_fail, request.escaping, use_event);
+    delete layout;
     if (result.instance.exists())
     {
       result.field_size = request.field_size;
