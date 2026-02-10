@@ -1010,8 +1010,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert((remote_targets == nullptr) || remote_targets->empty());
-      return op->create_partition_by_field(
-          fid, pid, instances, results, instances_ready);
+      IndexPartNode* partition = runtime->get_node(pid);
+      return partition->parent->create_by_field(
+          op, fid, partition, instances, results, instances_ready);
     }
 
     //--------------------------------------------------------------------------
@@ -1025,8 +1026,10 @@ namespace Legion {
       // Should never see these here
       legion_assert(remote_targets == nullptr);
       legion_assert(results == nullptr);
-      return op->create_partition_by_image(
-          fid, pid, projection, instances, instances_ready);
+      IndexPartNode* part = runtime->get_node(pid);
+      IndexPartNode* proj = runtime->get_node(projection);
+      return part->parent->create_by_image(
+          op, fid, part, proj, instances, instances_ready);
     }
 
     //--------------------------------------------------------------------------
@@ -1040,8 +1043,10 @@ namespace Legion {
       // Should never see these here
       legion_assert(remote_targets == nullptr);
       legion_assert(results == nullptr);
-      return op->create_partition_by_image_range(
-          fid, pid, projection, instances, instances_ready);
+      IndexPartNode* part = runtime->get_node(pid);
+      IndexPartNode* proj = runtime->get_node(projection);
+      return part->parent->create_by_image_range(
+          op, fid, part, proj, instances, instances_ready);
     }
 
     //--------------------------------------------------------------------------
@@ -1052,8 +1057,10 @@ namespace Legion {
         std::vector<DeppartResult>* results)
     //--------------------------------------------------------------------------
     {
-      return op->create_partition_by_preimage(
-          fid, pid, projection, instances, remote_targets, results,
+      IndexPartNode* part = runtime->get_node(pid);
+      IndexPartNode* proj = runtime->get_node(projection);
+      return part->parent->create_by_preimage(
+          op, fid, part, proj, instances, remote_targets, results,
           instances_ready);
     }
 
@@ -1065,8 +1072,10 @@ namespace Legion {
         std::vector<DeppartResult>* results)
     //--------------------------------------------------------------------------
     {
-      return op->create_partition_by_preimage_range(
-          fid, pid, projection, instances, remote_targets, results,
+      IndexPartNode* part = runtime->get_node(pid);
+      IndexPartNode* proj = runtime->get_node(projection);
+      return part->parent->create_by_preimage_range(
+          op, fid, part, proj, instances, remote_targets, results,
           instances_ready);
     }
 
@@ -1081,8 +1090,9 @@ namespace Legion {
       // Should never see these here
       legion_assert(remote_targets == nullptr);
       legion_assert(results == nullptr);
-      return op->create_association(
-          fid, domain, range, instances, instances_ready);
+      IndexSpaceNode* dom = runtime->get_node(domain);
+      IndexSpaceNode* rng = runtime->get_node(range);
+      return dom->create_association(op, fid, rng, instances, instances_ready);
     }
 
     //--------------------------------------------------------------------------
@@ -1369,85 +1379,6 @@ namespace Legion {
         return get_shard_points()->get_volume();
       else
         return 1;
-    }
-
-    //--------------------------------------------------------------------------
-    ApEvent DependentPartitionOp::create_partition_by_field(
-        FieldID fid, IndexPartition pending,
-        const std::vector<FieldDataDescriptor>& instances,
-        std::vector<DeppartResult>* results, ApEvent instances_ready)
-    //--------------------------------------------------------------------------
-    {
-      IndexPartNode* partition = runtime->get_node(pending);
-      return partition->parent->create_by_field(
-          this, fid, partition, instances, results, instances_ready);
-    }
-
-    //--------------------------------------------------------------------------
-    ApEvent DependentPartitionOp::create_partition_by_image(
-        FieldID fid, IndexPartition pending, IndexPartition proj,
-        std::vector<FieldDataDescriptor>& instances, ApEvent instances_ready)
-    //--------------------------------------------------------------------------
-    {
-      IndexPartNode* partition = runtime->get_node(pending);
-      IndexPartNode* projection = runtime->get_node(proj);
-      return partition->parent->create_by_image(
-          this, fid, partition, projection, instances, instances_ready);
-    }
-
-    //--------------------------------------------------------------------------
-    ApEvent DependentPartitionOp::create_partition_by_image_range(
-        FieldID fid, IndexPartition pending, IndexPartition proj,
-        std::vector<FieldDataDescriptor>& instances, ApEvent instances_ready)
-    //--------------------------------------------------------------------------
-    {
-      IndexPartNode* partition = runtime->get_node(pending);
-      IndexPartNode* projection = runtime->get_node(proj);
-      return partition->parent->create_by_image_range(
-          this, fid, partition, projection, instances, instances_ready);
-    }
-
-    //--------------------------------------------------------------------------
-    ApEvent DependentPartitionOp::create_partition_by_preimage(
-        FieldID fid, IndexPartition pending, IndexPartition proj,
-        const std::vector<FieldDataDescriptor>& instances,
-        const std::map<DomainPoint, Domain>* remote_targets,
-        std::vector<DeppartResult>* results, ApEvent instances_ready)
-    //--------------------------------------------------------------------------
-    {
-      IndexPartNode* partition = runtime->get_node(pending);
-      IndexPartNode* projection = runtime->get_node(proj);
-      return partition->parent->create_by_preimage(
-          this, fid, partition, projection, instances, remote_targets, results,
-          instances_ready);
-    }
-
-    //--------------------------------------------------------------------------
-    ApEvent DependentPartitionOp::create_partition_by_preimage_range(
-        FieldID fid, IndexPartition pending, IndexPartition proj,
-        const std::vector<FieldDataDescriptor>& instances,
-        const std::map<DomainPoint, Domain>* remote_targets,
-        std::vector<DeppartResult>* results, ApEvent instances_ready)
-    //--------------------------------------------------------------------------
-    {
-      IndexPartNode* partition = runtime->get_node(pending);
-      IndexPartNode* projection = runtime->get_node(proj);
-      return partition->parent->create_by_preimage_range(
-          this, fid, partition, projection, instances, remote_targets, results,
-          instances_ready);
-    }
-
-    //--------------------------------------------------------------------------
-    ApEvent DependentPartitionOp::create_association(
-        FieldID fid, IndexSpace dom, IndexSpace ran,
-        const std::vector<FieldDataDescriptor>& instances,
-        ApEvent instances_ready)
-    //--------------------------------------------------------------------------
-    {
-      IndexSpaceNode* domain = runtime->get_node(dom);
-      IndexSpaceNode* range = runtime->get_node(ran);
-      return domain->create_association(
-          this, fid, range, instances, instances_ready);
     }
 
     //--------------------------------------------------------------------------

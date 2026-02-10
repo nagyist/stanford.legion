@@ -304,30 +304,6 @@ namespace Legion {
       void finalize_partition_profiling(void);
       void find_open_complete_partitions(
           std::vector<LogicalPartition>& partitions) const;
-      ApEvent create_partition_by_field(
-          FieldID fid, IndexPartition pending,
-          const std::vector<FieldDataDescriptor>& instances,
-          std::vector<DeppartResult>* results, ApEvent instances_ready);
-      ApEvent create_partition_by_image(
-          FieldID fid, IndexPartition pending, IndexPartition projection,
-          std::vector<FieldDataDescriptor>& instances, ApEvent instances_ready);
-      ApEvent create_partition_by_image_range(
-          FieldID fid, IndexPartition pending, IndexPartition projection,
-          std::vector<FieldDataDescriptor>& instances, ApEvent instances_ready);
-      ApEvent create_partition_by_preimage(
-          FieldID fid, IndexPartition pending, IndexPartition projection,
-          const std::vector<FieldDataDescriptor>& instances,
-          const std::map<DomainPoint, Domain>* remote_targets,
-          std::vector<DeppartResult>* results, ApEvent instances_ready);
-      ApEvent create_partition_by_preimage_range(
-          FieldID fid, IndexPartition pending, IndexPartition projection,
-          const std::vector<FieldDataDescriptor>& instances,
-          const std::map<DomainPoint, Domain>* remote_targets,
-          std::vector<DeppartResult>* results, ApEvent instances_ready);
-      ApEvent create_association(
-          FieldID fid, IndexSpace domain, IndexSpace range,
-          const std::vector<FieldDataDescriptor>& instances,
-          ApEvent instances_ready);
     public:
       void handle_point_complete(ApEvent effects);
       void handle_point_commit(RtEvent point_committed);
