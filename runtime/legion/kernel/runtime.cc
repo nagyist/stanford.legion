@@ -3447,6 +3447,13 @@ namespace Legion {
         return;
       get_node(handle)->attach_semantic_information(
           tag, address_space, buffer, size, is_mutable, !global);
+      if (tag == LEGION_NAME_SEMANTIC_TAG)
+      {
+        const char* name = static_cast<const char*>(buffer);
+        LegionSpy::log_index_space_name(handle.get_id(), name);
+        if (implicit_profiler != nullptr)
+          implicit_profiler->register_index_space(handle.get_id(), name);
+      }
       if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
@@ -3465,6 +3472,13 @@ namespace Legion {
         return;
       get_node(handle)->attach_semantic_information(
           tag, address_space, buffer, size, is_mutable, !global);
+      if (tag == LEGION_NAME_SEMANTIC_TAG)
+      {
+        const char* name = static_cast<const char*>(buffer);
+        LegionSpy::log_index_partition_name(handle.get_id(), name);
+        if (implicit_profiler != nullptr)
+          implicit_profiler->register_index_part(handle.get_id(), name);
+      }
       if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
@@ -3483,6 +3497,13 @@ namespace Legion {
         return;
       get_node(handle)->attach_semantic_information(
           tag, address_space, buffer, size, is_mutable, !global);
+      if (tag == LEGION_NAME_SEMANTIC_TAG)
+      {
+        const char* name = static_cast<const char*>(buffer);
+        LegionSpy::log_field_space_name(handle.get_id(), name);
+        if (implicit_profiler != nullptr)
+          implicit_profiler->register_field_space(handle.get_id(), name);
+      }
       if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
@@ -3502,6 +3523,17 @@ namespace Legion {
         return;
       get_node(handle)->attach_semantic_information(
           fid, tag, address_space, buffer, size, is_mutable, !global);
+      if (tag == LEGION_NAME_SEMANTIC_TAG)
+      {
+        const char* name = static_cast<const char*>(buffer);
+        LegionSpy::log_field_name(handle.get_id(), fid, name);
+        if (implicit_profiler != nullptr)
+        {
+          FieldSpaceNode* node = get_node(handle);
+          implicit_profiler->register_field(
+              handle.get_id(), fid, node->get_field_size(fid), name);
+        }
+      }
       if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
@@ -3520,6 +3552,17 @@ namespace Legion {
         return;
       get_node(handle)->attach_semantic_information(
           tag, address_space, buffer, size, is_mutable, !global);
+      if (tag == LEGION_NAME_SEMANTIC_TAG)
+      {
+        const char* name = static_cast<const char*>(buffer);
+        LegionSpy::log_logical_region_name(
+            handle.get_index_space().get_id(),
+            handle.get_field_space().get_id(), handle.get_tree_id(), name);
+        if (implicit_profiler != nullptr)
+          implicit_profiler->register_logical_region(
+              handle.get_index_space().get_id(),
+              handle.get_field_space().get_id(), handle.get_tree_id(), name);
+      }
       if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
@@ -3539,6 +3582,13 @@ namespace Legion {
         return;
       get_node(handle)->attach_semantic_information(
           tag, address_space, buffer, size, is_mutable, !global);
+      if (tag == LEGION_NAME_SEMANTIC_TAG)
+      {
+        const char* name = static_cast<const char*>(buffer);
+        LegionSpy::log_logical_partition_name(
+            handle.get_index_partition().get_id(),
+            handle.get_field_space().get_id(), handle.get_tree_id(), name);
+      }
       if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
