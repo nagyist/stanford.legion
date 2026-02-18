@@ -1519,7 +1519,7 @@ fn check_version(prof_version: u32, legion_version: String) {
 
     assert_eq!(
         prof_version, expected_version,
-        "Legion Prof was built against an incompatible Legion version. (Expected version {}, got version {}.) Please rebuild Legion Prof with the same version of Legion {} used by the application to generate the profile logs.",
+        "Legion Prof was built against an incompatible Legion version. (Expected version {}, got version {}.) Please rebuild Legion Prof with the same version of Legion {} used by the application to generate the profile logs. You can also refer to this page to identify a Legion commit to use with each Legion Prof version https://gitlab.com/StanfordLegion/legion/-/commits/master/runtime/legion/tools/profiler_version.h?ref_type=heads",
         expected_version, prof_version, legion_version
     );
 }
