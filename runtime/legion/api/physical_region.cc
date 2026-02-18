@@ -399,9 +399,11 @@ namespace Legion {
     PhysicalRegionImpl::PhysicalRegionImpl(
         const RegionRequirement& r, RtEvent mapped, ApEvent ready,
         ApUserEvent term, bool m, TaskContext* ctx, MapperID mid,
-        MappingTagID t, bool leaf, bool virt, bool col, uint64_t blocking)
-      : Collectable(), context(ctx), map_id(mid), tag(t), leaf_region(leaf),
-        virtual_mapped(virt), collective(col),
+        MappingTagID t, bool leaf, bool virt, bool col, uint64_t blocking,
+        unsigned index)
+      : Collectable(), context(ctx), map_id(mid), tag(t),
+        requirement_index(index), leaf_region(leaf), virtual_mapped(virt),
+        collective(col),
         replaying((ctx != nullptr) ? ctx->owner_task->is_replaying() : false),
         req(r), mapped_event(mapped), ready_event(ready),
         termination_event(term), blocking_index(blocking), mapped(m),
@@ -539,7 +541,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PhysicalRegionImpl::unmap_region(void)
+    void PhysicalRegionImpl::unmap_region(bool escaped)
     //--------------------------------------------------------------------------
     {
       if (!mapped)
@@ -580,6 +582,38 @@ namespace Legion {
       termination_event = ApUserEvent::NO_AP_USER_EVENT;
       mapped = false;
       valid = false;
+      // Report any usage to the profiler
+      report_usage(escaped);
+    }
+
+    //--------------------------------------------------------------------------
+    void PhysicalRegionImpl::report_usage(bool escaped)
+    //--------------------------------------------------------------------------
+    {
+      if (!start_time)
+        return;
+      const long long stop_time =
+          escaped ? 0 : Realm::Clock::current_time_in_nanoseconds();
+      const UniqueID uid = context->get_unique_id();
+      const DistributedID bounds_expr =
+          runtime->get_node(req.region.index_space)
+              ->record_profiler_expression();
+      FieldSpaceNode* fs_node = runtime->get_node(req.region.field_space);
+      for (FieldID fid : req.privilege_fields)
+      {
+        const unsigned fidx = fs_node->get_field_index(fid);
+        for (unsigned idx = 0; idx < references.size(); idx++)
+        {
+          const InstanceRef& ref = references[idx];
+          if (!ref.get_valid_fields().is_set(fidx))
+            continue;
+          implicit_profiler->register_physical_instance_use(
+              ref.get_physical_manager()->get_unique_event(), uid, bounds_expr,
+              fid, req.privilege, req.redop, *start_time, stop_time,
+              requirement_index);
+          break;
+        }
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -588,6 +622,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_assert(!mapped);
+      legion_assert(!start_time);
       legion_assert(!termination_event.exists());
       blocking_index = blocking;
       termination_event = Runtime::create_ap_user_event(nullptr);
@@ -989,6 +1024,11 @@ namespace Legion {
             else
               bounds->get_index_space_domain(realm_is, type_tag);
           }
+          // Save the start-using time on the first access for non-leaf
+          // tasks. Leaf tasks will record their region usage separate
+          // since they don't rely on mapping and unmapping
+          if ((runtime->profiler != nullptr) && !start_time)
+            start_time = Realm::Clock::current_time_in_nanoseconds();
           return manager->get_instance();
         }
       }
@@ -1505,7 +1545,7 @@ namespace Legion {
       {
         if (!region.impl->is_mapped())
           continue;
-        region.impl->unmap_region();
+        region.impl->unmap_region(false /*escaped*/);
         ctx->unregister_inline_mapped_region(region);
       }
       // Now initialize the detach operation

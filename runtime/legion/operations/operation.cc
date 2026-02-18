@@ -372,9 +372,6 @@ namespace Legion {
                   unique_op_id, index, field_id, inst_event);
           }
         }
-        if ((implicit_profiler != nullptr) && !manager->is_virtual_manager())
-          implicit_profiler->register_physical_instance_use(
-              inst_event, unique_op_id, index, valid_fields);
       }
     }
 

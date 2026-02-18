@@ -73,6 +73,8 @@ namespace Legion {
       virtual void serialize(
           const LegionProfInstance::PhysicalInstDimOrderDesc&) = 0;
       virtual void serialize(
+          const LegionProfInstance::PhysicalInstanceSpaces&) = 0;
+      virtual void serialize(
           const LegionProfInstance::PhysicalInstanceUsage&) = 0;
       virtual void serialize(const LegionProfInstance::IndexSpaceSizeDesc&) = 0;
       virtual void serialize(const LegionProfDesc::TaskKind&) = 0;
@@ -108,6 +110,9 @@ namespace Legion {
       virtual void serialize(
           const LegionProfInstance::FillInstInfo&,
           const LegionProfInstance::FillInfo&) = 0;
+      virtual void serialize(
+          const LegionProfInstance::PartInstInfo&,
+          const LegionProfInstance::PartitionInfo&) = 0;
       virtual void serialize(const LegionProfDesc::ProcDesc&) = 0;
       virtual void serialize(const LegionProfDesc::MemDesc&) = 0;
       virtual void serialize(const LegionProfDesc::ProcMemDesc&) = 0;
@@ -164,6 +169,8 @@ namespace Legion {
           const LegionProfInstance::PhysicalInstLayoutDesc&) override;
       void serialize(
           const LegionProfInstance::PhysicalInstDimOrderDesc&) override;
+      void serialize(
+          const LegionProfInstance::PhysicalInstanceSpaces&) override;
       void serialize(const LegionProfInstance::PhysicalInstanceUsage&) override;
       void serialize(const LegionProfInstance::IndexSpaceSizeDesc&) override;
       void serialize(const LegionProfDesc::TaskKind&) override;
@@ -198,6 +205,9 @@ namespace Legion {
       void serialize(
           const LegionProfInstance::FillInstInfo&,
           const LegionProfInstance::FillInfo&) override;
+      void serialize(
+          const LegionProfInstance::PartInstInfo&,
+          const LegionProfInstance::PartitionInfo&) override;
       void serialize(const LegionProfDesc::ProcDesc&) override;
       void serialize(const LegionProfDesc::MemDesc&) override;
       void serialize(const LegionProfDesc::ProcMemDesc&) override;
@@ -266,11 +276,13 @@ namespace Legion {
         PHYSICAL_INST_REGION_ID,
         PHYSICAL_INST_LAYOUT_ID,
         PHYSICAL_INST_LAYOUT_DIM_ID,
+        PHYSICAL_INST_SPACES_ID,
         PHYSICAL_INST_USAGE_ID,
         INDEX_SPACE_SIZE_ID,
         INDEX_INST_INFO_ID,
         COPY_INST_INFO_ID,
         FILL_INST_INFO_ID,
+        PARTITION_INST_INFO_ID,
         BACKTRACE_DESC_ID,
         EVENT_WAIT_INFO_ID,
         EVENT_MERGER_INFO_ID,
@@ -323,6 +335,8 @@ namespace Legion {
           const LegionProfInstance::PhysicalInstLayoutDesc&) override;
       void serialize(
           const LegionProfInstance::PhysicalInstDimOrderDesc&) override;
+      void serialize(
+          const LegionProfInstance::PhysicalInstanceSpaces&) override;
       void serialize(const LegionProfInstance::PhysicalInstanceUsage&) override;
       void serialize(const LegionProfInstance::IndexSpaceSizeDesc&) override;
       void serialize(const LegionProfDesc::TaskKind&) override;
@@ -357,6 +371,9 @@ namespace Legion {
       void serialize(
           const LegionProfInstance::FillInstInfo&,
           const LegionProfInstance::FillInfo&) override;
+      void serialize(
+          const LegionProfInstance::PartInstInfo&,
+          const LegionProfInstance::PartitionInfo&) override;
       void serialize(const LegionProfDesc::ProcDesc&) override;
       void serialize(const LegionProfDesc::MemDesc&) override;
       void serialize(const LegionProfDesc::ProcMemDesc&) override;

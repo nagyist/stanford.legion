@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io;
 use std::io::{Read, Seek};
-use std::num::NonZeroU64;
+use std::num::{NonZeroU32, NonZeroU64};
 use std::path::Path;
 use std::str;
 
@@ -21,10 +21,11 @@ use nom::{
 
 use serde::Serialize;
 
+use crate::geometry::ISpaceID;
 use crate::state::{
-    BacktraceID, EventID, FSpaceID, FieldID, IPartID, ISpaceID, InstID, MapperCallKindID, MapperID,
-    MemID, NodeID, OpID, ProcID, ProvenanceID, RuntimeCallKindID, State, TaskID, Timestamp, TreeID,
-    VariantID,
+    BacktraceID, EventID, FSpaceID, FieldID, IPartID, InstID, MapperCallKindID, MapperID, MemID,
+    NodeID, OpID, PrivilegeMode, ProcID, ProvenanceID, ReductionID, RuntimeCallKindID, State,
+    TaskID, Timestamp, TreeID, VariantID,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -120,7 +121,8 @@ pub enum Record {
     PhysicalInstRegionDesc { fevent: EventID, ispace_id: ISpaceID, fspace_id: FSpaceID, tree_id: TreeID },
     PhysicalInstLayoutDesc { fevent: EventID, field_id: FieldID, fspace_id: FSpaceID, has_align: bool, eqk: u32, align_desc: u32 },
     PhysicalInstDimOrderDesc { fevent: EventID, dim: u32, dim_kind: u32 },
-    PhysicalInstanceUsage { fevent: EventID, op_id: OpID, index_id: u32, field_id: FieldID },
+    PhysicalInstanceSpaces { fevent: EventID, union_space: Option<ISpaceID>, piece_space: Option<ISpaceID> },
+    PhysicalInstanceUsage { inst_event: EventID, fevent: EventID, op_id: OpID, start: Timestamp, stop: Option<Timestamp>, index_expr: Option<ISpaceID>, privilege: PrivilegeMode, field: FieldID, index: Option<u32> },
     TaskKind { task_id: TaskID, name: String, overwrite: bool },
     TaskVariant { task_id: TaskID, variant_id: VariantID, name: String },
     OperationInstance { op_id: OpID, parent_id: Option<OpID>, kind: u32, provenance: Option<ProvenanceID> },
@@ -133,12 +135,13 @@ pub enum Record {
     GPUTaskInfo { op_id: OpID, task_id: TaskID, variant_id: VariantID, proc_id: ProcID, create: Timestamp, ready: Timestamp, start: Timestamp, stop: Timestamp, gpu_start: Timestamp, gpu_stop: Timestamp, creator: Option<EventID>, critical: Option<EventID>, fevent: EventID },
     MetaInfo { op_id: OpID, lg_id: VariantID, proc_id: ProcID, create: Timestamp, ready: Timestamp, start: Timestamp, stop: Timestamp, creator: Option<EventID>, critical: Option<EventID>, fevent: EventID },
     MessageInfo { op_id: OpID, lg_id: VariantID, proc_id: ProcID, spawn: Timestamp, create: Timestamp, ready: Timestamp, start: Timestamp, stop: Timestamp, creator: Option<EventID>, critical: Option<EventID>, fevent: EventID },
-    CopyInfo { op_id: OpID, size: u64, create: Timestamp, ready: Timestamp, start: Timestamp, stop: Timestamp, creator: Option<EventID>, critical: Option<EventID>, fevent: EventID, collective: u32 },
-    CopyInstInfo { src: MemID, dst: MemID, src_fid: FieldID, dst_fid: FieldID, src_inst: Option<EventID>, dst_inst: Option<EventID>, fevent: EventID, num_hops: u32, indirect: bool },
-    FillInfo { op_id: OpID, size: u64, create: Timestamp, ready: Timestamp, start: Timestamp, stop: Timestamp, creator: Option<EventID>, critical: Option<EventID>, fevent: EventID },
+    CopyInfo { op_id: OpID, size: u64, create: Timestamp, ready: Timestamp, start: Timestamp, stop: Timestamp, creator: Option<EventID>, critical: Option<EventID>, fevent: EventID, collective: u32, redop: Option<ReductionID>, copy_expr: Option<ISpaceID> },
+    CopyInstInfo { src: MemID, dst: MemID, src_fid: FieldID, dst_fid: FieldID, src_inst: Option<EventID>, dst_inst: Option<EventID>, src_expr: Option<ISpaceID>, dst_expr: Option<ISpaceID>, fevent: EventID, num_hops: u32, indirect: bool },
+    FillInfo { op_id: OpID, size: u64, create: Timestamp, ready: Timestamp, start: Timestamp, stop: Timestamp, creator: Option<EventID>, critical: Option<EventID>, fevent: EventID, collective: u32, fill_expr: Option<ISpaceID> },
     FillInstInfo { dst: MemID, fid: FieldID, dst_inst: EventID, fevent: EventID },
     InstTimelineInfo { fevent: EventID, inst_id: InstID, mem_id: MemID, size: u64, op_id: OpID, create: Timestamp, ready: Timestamp, destroy: Timestamp, creator: EventID },
     PartitionInfo { op_id: OpID, part_op: DepPartOpKind, create: Timestamp, ready: Timestamp, start: Timestamp, stop: Timestamp, creator: Option<EventID>, critical: Option<EventID>, fevent: EventID },
+    PartInstInfo { src: MemID, fid: FieldID, src_inst: EventID, src_expr: Option<ISpaceID>, fevent: EventID },
     MapperCallInfo { mapper_id: MapperID, mapper_proc: ProcID, kind: MapperCallKindID, op_id: OpID, start: Timestamp, stop: Timestamp, proc_id: ProcID, fevent: Option<EventID> },
     RuntimeCallInfo { kind: RuntimeCallKindID, start: Timestamp, stop: Timestamp, proc_id: ProcID, fevent: Option<EventID> },
     ApplicationCallInfo { provenance: ProvenanceID, start: Timestamp, stop: Timestamp, proc_id: ProcID, fevent: Option<EventID> },
@@ -311,6 +314,23 @@ fn parse_string(input: &[u8]) -> IResult<&[u8], String> {
     assert!(is_nul(terminator));
     Ok((input, value.to_owned()))
 }
+fn parse_privilege_mode(input: &[u8]) -> IResult<&[u8], PrivilegeMode> {
+    let (input, privilege) = le_u32(input)?;
+    match privilege {
+        0 => Ok((input, PrivilegeMode::NoAccess)),
+        1 => Ok((input, PrivilegeMode::ReadOnly)),
+        2 => Ok((input, PrivilegeMode::WriteOnly)),
+        4 => {
+            let (input, redop) = parse_redop_id(input)?;
+            Ok((input, PrivilegeMode::Reduce(redop)))
+        }
+        6 => Ok((input, PrivilegeMode::ReadWrite)),
+        7 => Ok((input, PrivilegeMode::ReadWrite)),
+        _ => {
+            panic!("Detected bad privilege {:x}", privilege);
+        }
+    }
+}
 
 //
 // Binary parsers for type aliases
@@ -329,7 +349,10 @@ fn parse_ipart_id(input: &[u8]) -> IResult<&[u8], IPartID> {
     map(le_u64, IPartID)(input)
 }
 fn parse_ispace_id(input: &[u8]) -> IResult<&[u8], ISpaceID> {
-    map(le_u64, ISpaceID)(input)
+    map(le_u64, |x| ISpaceID(NonZeroU64::new(x).unwrap()))(input)
+}
+fn parse_option_ispace_id(input: &[u8]) -> IResult<&[u8], Option<ISpaceID>> {
+    map(le_u64, |x| NonZeroU64::new(x).map(ISpaceID))(input)
 }
 fn parse_fspace_id(input: &[u8]) -> IResult<&[u8], FSpaceID> {
     map(le_u64, FSpaceID)(input)
@@ -348,6 +371,12 @@ fn parse_mapper_call_kind_id(input: &[u8]) -> IResult<&[u8], MapperCallKindID> {
 }
 fn parse_mem_id(input: &[u8]) -> IResult<&[u8], MemID> {
     map(le_u64, MemID)(input)
+}
+fn parse_redop_id(input: &[u8]) -> IResult<&[u8], ReductionID> {
+    map(le_u32, |x| ReductionID(NonZeroU32::new(x).unwrap()))(input)
+}
+fn parse_option_redop_id(input: &[u8]) -> IResult<&[u8], Option<ReductionID>> {
+    map(le_u32, |x| NonZeroU32::new(x).map(ReductionID))(input)
 }
 fn parse_option_op_id(input: &[u8]) -> IResult<&[u8], Option<OpID>> {
     map(le_u64, |x| NonMaxU64::new(x).map(OpID))(input)
@@ -372,6 +401,9 @@ fn parse_task_id(input: &[u8]) -> IResult<&[u8], TaskID> {
 }
 fn parse_timestamp(input: &[u8]) -> IResult<&[u8], Timestamp> {
     map(le_u64, Timestamp::from_ns)(input)
+}
+fn parse_option_timestamp(input: &[u8]) -> IResult<&[u8], Option<Timestamp>> {
+    map(le_u64, |x| NonMaxU64::new(x).map(Timestamp::from_value))(input)
 }
 fn parse_variant_id(input: &[u8]) -> IResult<&[u8], VariantID> {
     map(le_u32, VariantID)(input)
@@ -680,18 +712,41 @@ fn parse_physical_inst_layout_dim_desc(input: &[u8], _max_dim: i32) -> IResult<&
         },
     ))
 }
+fn parse_physical_inst_spaces(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
+    let (input, fevent) = parse_event_id(input)?;
+    let (input, union_space) = parse_option_ispace_id(input)?;
+    let (input, piece_space) = parse_option_ispace_id(input)?;
+    Ok((
+        input,
+        Record::PhysicalInstanceSpaces {
+            fevent,
+            union_space,
+            piece_space,
+        },
+    ))
+}
 fn parse_physical_inst_usage(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
+    let (input, inst_event) = parse_event_id(input)?;
     let (input, fevent) = parse_event_id(input)?;
     let (input, op_id) = parse_op_id(input)?;
-    let (input, index_id) = le_u32(input)?;
-    let (input, field_id) = parse_field_id(input)?;
+    let (input, start) = parse_timestamp(input)?;
+    let (input, stop) = parse_option_timestamp(input)?;
+    let (input, index_expr) = parse_option_ispace_id(input)?;
+    let (input, field) = parse_field_id(input)?;
+    let (input, index) = le_i32(input)?;
+    let (input, privilege) = parse_privilege_mode(input)?;
     Ok((
         input,
         Record::PhysicalInstanceUsage {
+            inst_event,
             fevent,
             op_id,
-            index_id,
-            field_id,
+            start,
+            stop,
+            index_expr,
+            field,
+            privilege,
+            index: index.try_into().ok(),
         },
     ))
 }
@@ -944,6 +999,8 @@ fn parse_copy_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, critical) = parse_option_event_id(input)?;
     let (input, fevent) = parse_event_id(input)?;
     let (input, collective) = le_u32(input)?;
+    let (input, redop) = parse_option_redop_id(input)?;
+    let (input, copy_expr) = parse_option_ispace_id(input)?;
     Ok((
         input,
         Record::CopyInfo {
@@ -957,6 +1014,8 @@ fn parse_copy_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
             critical,
             fevent,
             collective,
+            redop,
+            copy_expr,
         },
     ))
 }
@@ -967,6 +1026,8 @@ fn parse_copy_inst_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, dst_fid) = parse_field_id(input)?;
     let (input, src_inst) = parse_option_event_id(input)?;
     let (input, dst_inst) = parse_option_event_id(input)?;
+    let (input, src_expr) = parse_option_ispace_id(input)?;
+    let (input, dst_expr) = parse_option_ispace_id(input)?;
     let (input, fevent) = parse_event_id(input)?;
     let (input, num_hops) = le_u32(input)?;
     let (input, indirect) = parse_bool(input)?;
@@ -979,6 +1040,8 @@ fn parse_copy_inst_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
             dst_fid,
             src_inst,
             dst_inst,
+            src_expr,
+            dst_expr,
             fevent,
             num_hops,
             indirect,
@@ -995,6 +1058,8 @@ fn parse_fill_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, creator) = parse_option_event_id(input)?;
     let (input, critical) = parse_option_event_id(input)?;
     let (input, fevent) = parse_event_id(input)?;
+    let (input, collective) = le_u32(input)?;
+    let (input, fill_expr) = parse_option_ispace_id(input)?;
     Ok((
         input,
         Record::FillInfo {
@@ -1007,6 +1072,8 @@ fn parse_fill_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
             creator,
             critical,
             fevent,
+            collective,
+            fill_expr,
         },
     ))
 }
@@ -1071,6 +1138,23 @@ fn parse_partition_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
             stop,
             creator,
             critical,
+            fevent,
+        },
+    ))
+}
+fn parse_part_inst_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
+    let (input, src) = parse_mem_id(input)?;
+    let (input, fid) = parse_field_id(input)?;
+    let (input, src_inst) = parse_event_id(input)?;
+    let (input, src_expr) = parse_option_ispace_id(input)?;
+    let (input, fevent) = parse_event_id(input)?;
+    Ok((
+        input,
+        Record::PartInstInfo {
+            src,
+            fid,
+            src_inst,
+            src_expr,
             fevent,
         },
     ))
@@ -1507,6 +1591,7 @@ fn parse<'a>(
         "PhysicalInstDimOrderDesc",
         parse_physical_inst_layout_dim_desc,
     );
+    insert("PhysicalInstanceSpaces", parse_physical_inst_spaces);
     insert("PhysicalInstanceUsage", parse_physical_inst_usage);
     insert("TaskKind", parse_task_kind);
     insert("TaskVariant", parse_task_variant);
@@ -1526,6 +1611,7 @@ fn parse<'a>(
     insert("FillInstInfo", parse_fill_inst_info);
     insert("InstTimelineInfo", parse_inst_timeline);
     insert("PartitionInfo", parse_partition_info);
+    insert("PartitionInstInfo", parse_part_inst_info);
     insert("MapperCallInfo", parse_mapper_call_info);
     insert("RuntimeCallInfo", parse_runtime_call_info);
     insert("ApplicationCallInfo", parse_application_call_info);

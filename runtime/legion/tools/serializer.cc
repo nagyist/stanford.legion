@@ -213,11 +213,24 @@ namespace Legion {
          << "dim:unsigned:" << sizeof(unsigned) << delim
          << "dim_kind:unsigned:" << sizeof(unsigned) << "}" << std::endl;
 
+      ss << "PhysicalInstanceSpaces {" << "id:" << PHYSICAL_INST_SPACES_ID
+         << delim << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
+         << "union_space:unsigned long long:" << sizeof(unsigned long long)
+         << delim
+         << "piece_space:unsigned long long:" << sizeof(unsigned long long)
+         << "}" << std::endl;
+
       ss << "PhysicalInstanceUsage {" << "id:" << PHYSICAL_INST_USAGE_ID
          << delim << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
+         << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
-         << "index_id:unsigned:" << sizeof(unsigned) << delim
-         << "field_id:unsigned:" << sizeof(unsigned) << "}" << std::endl;
+         << "start:timestamp_t:" << sizeof(timestamp_t) << delim
+         << "stop:timestamp_t:" << sizeof(timestamp_t) << delim
+         << "index_expr:unsigned long long:" << sizeof(unsigned long long)
+         << delim << "field:unsigned:" << sizeof(unsigned) << delim
+         << "index:unsigned:" << sizeof(unsigned) << delim
+         << "mode:unsigned:" << sizeof(unsigned) << delim
+         << "redop:unsigned:" << sizeof(unsigned) << "}" << std::endl;
 
       ss << "TaskKind {" << "id:" << TASK_KIND_ID << delim
          << "task_id:TaskID:" << sizeof(TaskID) << delim
@@ -339,7 +352,9 @@ namespace Legion {
          << "creator:unsigned long long:" << sizeof(LgEvent) << delim
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
-         << "collective:unsigned:" << sizeof(CollectiveKind) << "}"
+         << "collective:unsigned:" << sizeof(CollectiveKind) << delim
+         << "reduction:unsigned:" << sizeof(ReductionOpID) << delim
+         << "copy_expr:unsigned long long:" << sizeof(unsigned long long) << "}"
          << std::endl;
 
       ss << "CopyInstInfo {" << "id:" << COPY_INST_INFO_ID << delim
@@ -349,7 +364,10 @@ namespace Legion {
          << "dst_fid:unsigned:" << sizeof(FieldID) << delim
          << "src_inst:unsigned long long:" << sizeof(LgEvent) << delim
          << "dst_inst:unsigned long long:" << sizeof(LgEvent) << delim
-         << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
+         << "src_expr:unsigned long long:" << sizeof(unsigned long long)
+         << delim
+         << "dst_expr:unsigned long long:" << sizeof(unsigned long long)
+         << delim << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "num_hops:unsigned:" << sizeof(unsigned) << delim
          << "indirect:bool:" << sizeof(bool) << "}" << std::endl;
 
@@ -362,7 +380,10 @@ namespace Legion {
          << "stop:timestamp_t:" << sizeof(timestamp_t) << delim
          << "creator:unsigned long long:" << sizeof(LgEvent) << delim
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
-         << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
+         << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
+         << "collective:unsigned:" << sizeof(CollectiveKind) << delim
+         << "fill_expr:unsigned long long:" << sizeof(unsigned long long) << "}"
+         << std::endl;
 
       ss << "FillInstInfo {" << "id:" << FILL_INST_INFO_ID << delim
          << "dst:MemID:" << sizeof(MemID) << delim
@@ -392,6 +413,14 @@ namespace Legion {
          << "creator:unsigned long long:" << sizeof(LgEvent) << delim
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
+
+      ss << "PartitionInstInfo {" << "id:" << PARTITION_INST_INFO_ID << delim
+         << "src:MemID:" << sizeof(MemID) << delim
+         << "fid:unsigned:" << sizeof(FieldID) << delim
+         << "src_inst:unsigned long long:" << sizeof(LgEvent) << delim
+         << "src_expr:unsigned long long:" << sizeof(unsigned long long)
+         << delim << "fevent:unsigned long long:" << sizeof(LgEvent) << "}"
+         << std::endl;
 
       ss << "MapperCallInfo {" << "id:" << MAPPER_CALL_INFO_ID << delim
          << "mapper_id:MapperID:" << sizeof(MapperID) << delim
@@ -875,15 +904,43 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LegionProfBinarySerializer::serialize(
+        const LegionProfInstance::PhysicalInstanceSpaces& spaces)
+    //--------------------------------------------------------------------------
+    {
+      int ID = PHYSICAL_INST_SPACES_ID;
+      lp_fwrite(f, (char*)&ID, sizeof(ID));
+      lp_fwrite(f, (char*)&(spaces.inst_uid.id), sizeof(spaces.inst_uid.id));
+      lp_fwrite(f, (char*)&(spaces.union_space), sizeof(spaces.union_space));
+      lp_fwrite(f, (char*)&(spaces.piece_space), sizeof(spaces.piece_space));
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfBinarySerializer::serialize(
         const LegionProfInstance::PhysicalInstanceUsage& usage)
     //--------------------------------------------------------------------------
     {
       int ID = PHYSICAL_INST_USAGE_ID;
       lp_fwrite(f, (char*)&ID, sizeof(ID));
       lp_fwrite(f, (char*)&(usage.inst_uid.id), sizeof(usage.inst_uid.id));
-      lp_fwrite(f, (char*)&(usage.op_id), sizeof(UniqueID));
-      lp_fwrite(f, (char*)&(usage.index), sizeof(unsigned));
-      lp_fwrite(f, (char*)&(usage.field), sizeof(unsigned));
+      lp_fwrite(f, (char*)&(usage.fevent.id), sizeof(usage.fevent.id));
+      lp_fwrite(f, (char*)&(usage.op_id), sizeof(usage.op_id));
+      lp_fwrite(f, (char*)&(usage.start), sizeof(usage.start));
+      // A little bit of a quirk of Legion Prof here, it wants to use
+      // u64::max to indicate that this is a None value whereas Legion
+      // is representing it as zero currently
+      if (usage.stop == 0)
+      {
+        constexpr uint64_t max = std::numeric_limits<uint64_t>::max();
+        lp_fwrite(f, (char*)&max, sizeof(max));
+      }
+      else
+        lp_fwrite(f, (char*)&(usage.stop), sizeof(usage.stop));
+      lp_fwrite(f, (char*)&(usage.index_expr), sizeof(usage.index_expr));
+      lp_fwrite(f, (char*)&(usage.field), sizeof(usage.field));
+      lp_fwrite(f, (char*)&(usage.index), sizeof(usage.index));
+      lp_fwrite(f, (char*)&(usage.mode), sizeof(usage.mode));
+      if (usage.mode == LEGION_REDUCE)
+        lp_fwrite(f, (char*)&(usage.redop), sizeof(usage.redop));
     }
 
     //--------------------------------------------------------------------------
@@ -1137,6 +1194,8 @@ namespace Legion {
       lp_fwrite(f, (char*)&(copy_info.fevent), sizeof(copy_info.fevent.id));
       lp_fwrite(
           f, (char*)&(copy_info.collective), sizeof(copy_info.collective));
+      lp_fwrite(f, (char*)&(copy_info.redop), sizeof(copy_info.redop));
+      lp_fwrite(f, (char*)&(copy_info.copy_expr), sizeof(copy_info.copy_expr));
       for (const LegionProfInstance::CopyInstInfo& inst_info :
            copy_info.inst_infos)
         serialize(inst_info, copy_info);
@@ -1160,6 +1219,8 @@ namespace Legion {
       lp_fwrite(
           f, (char*)&(copy_inst.dst_inst_uid.id),
           sizeof(copy_inst.dst_inst_uid.id));
+      lp_fwrite(f, (char*)&(copy_inst.src_expr), sizeof(copy_inst.src_expr));
+      lp_fwrite(f, (char*)&(copy_inst.dst_expr), sizeof(copy_inst.dst_expr));
       lp_fwrite(f, (char*)&(copy_info.fevent), sizeof(copy_info.fevent.id));
       lp_fwrite(f, (char*)&(copy_inst.num_hops), sizeof(copy_inst.num_hops));
       lp_fwrite(f, (char*)&(copy_inst.indirect), sizeof(copy_inst.indirect));
@@ -1181,6 +1242,9 @@ namespace Legion {
       lp_fwrite(f, (char*)&(fill_info.creator), sizeof(fill_info.creator));
       lp_fwrite(f, (char*)&(fill_info.critical), sizeof(fill_info.critical));
       lp_fwrite(f, (char*)&(fill_info.fevent), sizeof(fill_info.fevent.id));
+      lp_fwrite(
+          f, (char*)&(fill_info.collective), sizeof(fill_info.collective));
+      lp_fwrite(f, (char*)&(fill_info.fill_expr), sizeof(fill_info.fill_expr));
       for (const LegionProfInstance::FillInstInfo& inst_info :
            fill_info.inst_infos)
         serialize(inst_info, fill_info);
@@ -1263,6 +1327,27 @@ namespace Legion {
           sizeof(partition_info.critical));
       lp_fwrite(
           f, (char*)&(partition_info.fevent), sizeof(partition_info.fevent));
+      for (const LegionProfInstance::PartInstInfo& inst_info :
+           partition_info.inst_infos)
+        serialize(inst_info, partition_info);
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfBinarySerializer::serialize(
+        const LegionProfInstance::PartInstInfo& part_inst,
+        const LegionProfInstance::PartitionInfo& partition_info)
+    //--------------------------------------------------------------------------
+    {
+      int ID = PARTITION_INST_INFO_ID;
+      lp_fwrite(f, (char*)&ID, sizeof(ID));
+      lp_fwrite(f, (char*)&(part_inst.src), sizeof(part_inst.src));
+      lp_fwrite(f, (char*)&(part_inst.fid), sizeof(part_inst.fid));
+      lp_fwrite(
+          f, (char*)&(part_inst.src_inst_uid.id),
+          sizeof(part_inst.src_inst_uid.id));
+      lp_fwrite(f, (char*)&(part_inst.src_expr), sizeof(part_inst.src_expr));
+      lp_fwrite(
+          f, (char*)&(partition_info.fevent), sizeof(partition_info.fevent.id));
     }
 
     //--------------------------------------------------------------------------
@@ -1979,12 +2064,25 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LegionProfASCIISerializer::serialize(
+        const LegionProfInstance::PhysicalInstanceSpaces& spaces)
+    //--------------------------------------------------------------------------
+    {
+      log_prof.print(
+          "Physical Inst Piece " IDFMT " %llu %llu", spaces.inst_uid.id,
+          spaces.union_space, spaces.piece_space);
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfASCIISerializer::serialize(
         const LegionProfInstance::PhysicalInstanceUsage& usage)
     //--------------------------------------------------------------------------
     {
       log_prof.print(
-          "Physical Inst Usage " IDFMT " %llu %u %u", usage.inst_uid.id,
-          usage.op_id, usage.index, usage.field);
+          "Physical Inst Usage " IDFMT " " IDFMT
+          " %llu %llu %llu %llu %u %u %u %d",
+          usage.inst_uid.id, usage.fevent.id, usage.op_id, usage.start,
+          usage.stop, usage.index_expr, usage.mode, usage.redop, usage.field,
+          usage.index);
     }
 
     //--------------------------------------------------------------------------
@@ -2257,10 +2355,11 @@ namespace Legion {
     {
       log_prof.print(
           "Prof Copy Info %llu %llu %llu %llu %llu %llu " IDFMT " " IDFMT
-          " " IDFMT " %u",
+          " " IDFMT " %u %u %llu",
           copy_info.op_id, copy_info.size, copy_info.create, copy_info.ready,
           copy_info.start, copy_info.stop, copy_info.creator.id,
-          copy_info.critical.id, copy_info.fevent.id, copy_info.collective);
+          copy_info.critical.id, copy_info.fevent.id, copy_info.collective,
+          copy_info.redop, copy_info.copy_expr);
       for (const LegionProfInstance::CopyInstInfo& inst_info :
            copy_info.inst_infos)
         serialize(inst_info, copy_info);
@@ -2274,10 +2373,11 @@ namespace Legion {
     {
       log_prof.print(
           "Prof Copy Inst Info " IDFMT " " IDFMT " %d %d " IDFMT " " IDFMT
-          " " IDFMT " %u %u",
+          " %llu %llu " IDFMT " %u %u",
           copy_inst.src, copy_inst.dst, copy_inst.src_fid, copy_inst.dst_fid,
           copy_inst.src_inst_uid.id, copy_inst.dst_inst_uid.id,
-          copy_info.fevent.id, copy_inst.num_hops, copy_inst.indirect ? 1 : 0);
+          copy_inst.src_expr, copy_inst.dst_expr, copy_info.fevent.id,
+          copy_inst.num_hops, copy_inst.indirect ? 1 : 0);
     }
 
     //--------------------------------------------------------------------------
@@ -2287,10 +2387,11 @@ namespace Legion {
     {
       log_prof.print(
           "Prof Fill Info %llu %llu %llu %llu %llu %llu " IDFMT " " IDFMT
-          " " IDFMT,
+          " " IDFMT " %u %llu",
           fill_info.op_id, fill_info.size, fill_info.create, fill_info.ready,
           fill_info.start, fill_info.stop, fill_info.creator.id,
-          fill_info.critical.id, fill_info.fevent.id);
+          fill_info.critical.id, fill_info.fevent.id, fill_info.collective,
+          fill_info.fill_expr);
       for (const LegionProfInstance::FillInstInfo& inst_info :
            fill_info.inst_infos)
         serialize(inst_info, fill_info);
@@ -2333,6 +2434,21 @@ namespace Legion {
           partition_info.create, partition_info.start, partition_info.stop,
           partition_info.creator.id, partition_info.critical.id,
           partition_info.fevent.id);
+      for (const LegionProfInstance::PartInstInfo& inst_info :
+           partition_info.inst_infos)
+        serialize(inst_info, partition_info);
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfASCIISerializer::serialize(
+        const LegionProfInstance::PartInstInfo& part_inst,
+        const LegionProfInstance::PartitionInfo& partition_info)
+    //--------------------------------------------------------------------------
+    {
+      log_prof.print(
+          "Prof Partition Inst Info " IDFMT " %d " IDFMT " %llu " IDFMT,
+          part_inst.src, part_inst.fid, part_inst.src_inst_uid.id,
+          part_inst.src_expr, partition_info.fevent.id);
     }
 
     //--------------------------------------------------------------------------

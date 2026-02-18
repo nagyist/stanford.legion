@@ -3020,7 +3020,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3194,7 +3194,7 @@ namespace Legion {
               "in task %s (UID %lld).",
               get_task_name(), get_unique_id());
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3271,7 +3271,7 @@ namespace Legion {
               "in task %s (UID %lld).",
               get_task_name(), get_unique_id());
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3348,7 +3348,7 @@ namespace Legion {
               "in task %s (UID %lld).",
               get_task_name(), get_unique_id());
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3443,7 +3443,7 @@ namespace Legion {
               "in task %s (UID %lld).",
               get_task_name(), get_unique_id());
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3521,7 +3521,7 @@ namespace Legion {
               "in task %s (UID %lld).",
               get_task_name(), get_unique_id());
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -6099,7 +6099,8 @@ namespace Legion {
       if (IS_NO_ACCESS(launcher.requirement))
         return PhysicalRegion();
       ReplMapOp* map_op = runtime->get_operation<ReplMapOp>();
-      PhysicalRegion result = map_op->initialize(this, launcher, provenance);
+      PhysicalRegion result = map_op->initialize(
+          this, launcher, provenance, physical_region_count++);
       map_op->initialize_replication(this);
       if (current_trace != nullptr)
       {
@@ -6253,7 +6254,7 @@ namespace Legion {
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(fill_op, launcher.static_dependences);
@@ -6342,7 +6343,7 @@ namespace Legion {
               get_task_name(), get_unique_id());
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(fill_op, launcher.static_dependences);
@@ -6403,7 +6404,7 @@ namespace Legion {
           }
           // Unmap any regions which are conflicting
           for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-            unmapped_regions[idx].impl->unmap_region();
+            unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
         }
       }
       add_to_dependence_queue(discard_op, launcher.static_dependences);
@@ -6478,7 +6479,7 @@ namespace Legion {
               get_task_name(), get_unique_id());
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(copy_op, launcher.static_dependences);
@@ -6574,7 +6575,7 @@ namespace Legion {
               get_task_name(), get_unique_id());
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(copy_op, launcher.static_dependences);
@@ -6639,7 +6640,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the acquire operation
       add_to_dependence_queue(acquire_op, launcher.static_dependences);
@@ -6704,7 +6705,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the release operation
       add_to_dependence_queue(release_op, launcher.static_dependences);
@@ -6760,7 +6761,8 @@ namespace Legion {
         error.raise();
       }
       ReplAttachOp* attach_op = runtime->get_operation<ReplAttachOp>();
-      PhysicalRegion result = attach_op->initialize(this, launcher, provenance);
+      PhysicalRegion result = attach_op->initialize(
+          this, launcher, provenance, physical_region_count++);
       attach_op->initialize_replication(
           this, launcher.collective, launcher.deduplicate_across_shards,
           shard_manager->is_first_local_shard(owner_shard));
@@ -6846,7 +6848,8 @@ namespace Legion {
       IndexSpaceNode* launch_space = collective.get_launch_space(provenance);
       ExternalResources result = attach_op->initialize(
           this, node, launch_space, launcher, indexes, provenance,
-          true /*replicated*/);
+          true /*replicated*/, physical_region_count);
+      physical_region_count += indexes.size();
       attach_op->initialize_replication(this);
       const RegionRequirement& req = attach_op->get_requirement();
       bool parent_conflict = false, inline_conflict = false;
@@ -6959,7 +6962,7 @@ namespace Legion {
       if (region.is_mapped())
       {
         unregister_inline_mapped_region(region);
-        region.impl->unmap_region();
+        region.impl->unmap_region(false /*escaped*/);
       }
       if (!add_to_dependence_queue(op, nullptr /*deps*/, unordered))
       {
@@ -7075,7 +7078,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Now we can issue the must epoch
       add_to_dependence_queue(epoch_op);

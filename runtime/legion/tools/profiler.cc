@@ -144,7 +144,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<size_t ENTRIES>
-    SmallNameClosure<ENTRIES>::SmallNameClosure(void)
+    SmallNameClosure<ENTRIES>::SmallNameClosure(
+        IndexSpaceExpression* expr, ReductionOpID r)
+      : copy_expr((expr == nullptr) ? 0 : expr->record_profiler_expression()),
+        redop(r)
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < ENTRIES; idx++)
@@ -154,7 +157,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<size_t ENTRIES>
     void SmallNameClosure<ENTRIES>::record_instance_name(
-        PhysicalInstance instance, LgEvent name)
+        PhysicalInstance instance, LgEvent name, DistributedID subspace)
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < ENTRIES; idx++)
@@ -163,11 +166,13 @@ namespace Legion {
         {
           instances[idx] = instance;
           names[idx] = name;
+          subspaces[idx] = subspace;
           return;
         }
         if (instances[idx] == instance)
         {
           legion_assert(names[idx] == name);
+          legion_assert(subspaces[idx] == subspace);
           return;
         }
       }
@@ -188,9 +193,64 @@ namespace Legion {
       std::abort();
     }
 
+    //--------------------------------------------------------------------------
+    template<size_t ENTRIES>
+    DistributedID SmallNameClosure<ENTRIES>::find_instance_subspace(
+        PhysicalInstance inst) const
+    //--------------------------------------------------------------------------
+    {
+      for (unsigned idx = 0; idx < ENTRIES; idx++)
+        if (instances[idx] == inst)
+          return subspaces[idx];
+      // Should always find it before this
+      std::abort();
+    }
+
     // Explicit instantiations for 1 and 2
     template class SmallNameClosure<1>;
     template class SmallNameClosure<2>;
+
+    //--------------------------------------------------------------------------
+    LargeNameClosure::LargeNameClosure(
+        IndexSpaceExpression* expr, FieldID f, size_t expected, ReductionOpID r)
+      : copy_expr((expr == nullptr) ? 0 : expr->record_profiler_expression()),
+        redop(r), fid(f)
+    //--------------------------------------------------------------------------
+    {
+      entries.reserve(expected);
+    }
+
+    //--------------------------------------------------------------------------
+    void LargeNameClosure::record_instance_name(
+        PhysicalInstance instance, LgEvent name, DistributedID subspace)
+    //--------------------------------------------------------------------------
+    {
+      entries.emplace_back(Entry{instance, name, subspace});
+    }
+
+    //--------------------------------------------------------------------------
+    LgEvent LargeNameClosure::find_instance_name(
+        PhysicalInstance instance) const
+    //--------------------------------------------------------------------------
+    {
+      for (const Entry& entry : entries)
+        if (entry.instance == instance)
+          return entry.name;
+      // Should always find it
+      std::abort();
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedID LargeNameClosure::find_instance_subspace(
+        PhysicalInstance instance) const
+    //--------------------------------------------------------------------------
+    {
+      for (const Entry& entry : entries)
+        if (entry.instance == instance)
+          return entry.subspace;
+      // Should always find it
+      std::abort();
+    }
 
     //--------------------------------------------------------------------------
     LegionProfMarker::LegionProfMarker(const char* _name)
@@ -502,25 +562,38 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_physical_instance_use(
-        LgEvent inst_uid, UniqueID op_id, unsigned index,
-        const std::vector<FieldID>& fields)
+    void LegionProfInstance::register_physical_instance_spaces(
+        LgEvent inst_uid, DistributedID union_space, DistributedID piece_space)
     //--------------------------------------------------------------------------
     {
-      const unsigned offset = phy_inst_usage.size();
-      phy_inst_usage.resize(offset + fields.size());
-      unsigned idx = 0;
-      for (const FieldID& field : fields)
-      {
-        PhysicalInstanceUsage& usage = phy_inst_usage[offset + idx];
-        usage.inst_uid = inst_uid;
-        usage.op_id = op_id;
-        usage.index = index;
-        usage.field = field;
-        idx++;
-      }
-      owner->update_footprint(
-          fields.size() * sizeof(PhysicalInstanceUsage), this);
+      PhysicalInstanceSpaces& spaces =
+          phy_inst_spaces.emplace_back(PhysicalInstanceSpaces());
+      spaces.inst_uid = inst_uid;
+      spaces.union_space = union_space;
+      spaces.piece_space = piece_space;
+      owner->update_footprint(sizeof(PhysicalInstanceSpaces), this);
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfInstance::register_physical_instance_use(
+        LgEvent inst_uid, UniqueID op_id, DistributedID index_expr,
+        FieldID field, PrivilegeMode mode, ReductionOpID redop,
+        timestamp_t start, timestamp_t stop, int index)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalInstanceUsage& usage =
+          phy_inst_usage.emplace_back(PhysicalInstanceUsage());
+      usage.inst_uid = inst_uid;
+      usage.fevent = implicit_fevent;
+      usage.op_id = op_id;
+      usage.index_expr = index_expr;
+      usage.mode = mode & LEGION_READ_WRITE;  // only need the privilege bits
+      usage.redop = redop;
+      usage.field = field;
+      usage.index = index;
+      usage.start = start;
+      usage.stop = stop;
+      owner->update_footprint(sizeof(PhysicalInstanceUsage), this);
     }
 
     //--------------------------------------------------------------------------
@@ -1038,6 +1111,8 @@ namespace Legion {
       info.collective = (CollectiveKind)prof_info->id;
       legion_assert(!cpinfo.inst_info.empty());
       InstanceNameClosure* closure = prof_info->extra.closure;
+      info.copy_expr = closure->find_copy_expression();
+      info.redop = closure->find_redop();
       typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo
           InstInfo;
       for (const InstInfo& inst_info_item : cpinfo.inst_info)
@@ -1071,12 +1146,15 @@ namespace Legion {
             indirect.src_fid = inst_info_item.src_indirection_field;
             indirect.src_inst_uid = closure->find_instance_name(
                 inst_info_item.src_indirection_inst);
+            indirect.src_expr = closure->find_instance_subspace(
+                inst_info_item.src_indirection_inst);
           }
           else
           {
             indirect.src = 0;
             indirect.src_fid = 0;
             indirect.src_inst_uid = LgEvent::NO_LG_EVENT;
+            indirect.src_expr = 0;
           }
           if (inst_info_item.dst_indirection_inst.exists())
           {
@@ -1085,21 +1163,27 @@ namespace Legion {
             indirect.dst_fid = inst_info_item.dst_indirection_field;
             indirect.dst_inst_uid = closure->find_instance_name(
                 inst_info_item.dst_indirection_inst);
+            indirect.dst_expr = closure->find_instance_subspace(
+                inst_info_item.dst_indirection_inst);
           }
           else
           {
             indirect.dst = 0;
             indirect.dst_fid = 0;
             indirect.dst_inst_uid = LgEvent::NO_LG_EVENT;
+            indirect.dst_expr = 0;
           }
           for (const PhysicalInstance& src_inst : inst_info_item.src_insts)
           {
             Memory src_location = src_inst.get_location();
             LgEvent src_name = closure->find_instance_name(src_inst);
+            DistributedID src_expr = closure->find_instance_subspace(src_inst);
             for (const PhysicalInstance& dst_inst : inst_info_item.dst_insts)
             {
               Memory dst_location = dst_inst.get_location();
               LgEvent dst_name = closure->find_instance_name(dst_inst);
+              DistributedID dst_expr =
+                  closure->find_instance_subspace(dst_inst);
               for (const Realm::FieldID& src_fid : inst_info_item.src_fields)
               {
                 for (const Realm::FieldID& dst_fid : inst_info_item.dst_fields)
@@ -1111,6 +1195,8 @@ namespace Legion {
                   inst_info.dst_fid = dst_fid;
                   inst_info.src_inst_uid = src_name;
                   inst_info.dst_inst_uid = dst_name;
+                  inst_info.src_expr = src_expr;
+                  inst_info.dst_expr = dst_expr;
                   inst_info.num_hops = inst_info_item.num_hops;
                   inst_info.indirect = false;
                 }
@@ -1130,6 +1216,8 @@ namespace Legion {
           Memory dst_location = dst_inst.get_location();
           LgEvent src_name = closure->find_instance_name(src_inst);
           LgEvent dst_name = closure->find_instance_name(dst_inst);
+          DistributedID src_expr = closure->find_instance_subspace(src_inst);
+          DistributedID dst_expr = closure->find_instance_subspace(dst_inst);
           const unsigned offset = info.inst_infos.size();
           info.inst_infos.resize(offset + inst_info_item.src_fields.size());
           unsigned idx = 0;
@@ -1142,6 +1230,8 @@ namespace Legion {
             inst_info.dst_fid = inst_info_item.dst_fields[idx];
             inst_info.src_inst_uid = src_name;
             inst_info.dst_inst_uid = dst_name;
+            inst_info.src_expr = src_expr;
+            inst_info.dst_expr = dst_expr;
             inst_info.num_hops = inst_info_item.num_hops;
             inst_info.indirect = false;
             idx++;
@@ -1192,6 +1282,7 @@ namespace Legion {
         info.fevent = LgEvent(fevent.finish_event);
       info.collective = (CollectiveKind)prof_info->id;
       InstanceNameClosure* closure = prof_info->extra.closure;
+      info.fill_expr = closure->find_copy_expression();
       typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo
           InstInfo;
       for (const InstInfo& inst_info_item : cpinfo.inst_info)
@@ -1277,6 +1368,20 @@ namespace Legion {
       if (prof_info->critical.is_barrier())
         record_barrier_use(prof_info->critical, prof_info->op_id);
       info.fevent = LgEvent(fevent.finish_event);
+      if (prof_info->extra.closure != nullptr)
+      {
+        LargeNameClosure* closure =
+            legion_safe_cast<LargeNameClosure*>(prof_info->extra.closure);
+        info.inst_infos.reserve(closure->entries.size());
+        for (const LargeNameClosure::Entry& entry : closure->entries)
+        {
+          info.inst_infos.emplace_back(PartInstInfo{
+              entry.instance.get_location(), closure->fid, entry.name,
+              entry.subspace});
+        }
+        if (closure->remove_reference())
+          delete closure;
+      }
       owner->update_footprint(sizeof(PartitionInfo), this);
     }
 
@@ -1646,6 +1751,11 @@ namespace Legion {
         serializer->serialize(phy_inst_dim_order_desc);
       }
 
+      for (const PhysicalInstanceSpaces& phy_inst_space : phy_inst_spaces)
+      {
+        serializer->serialize(phy_inst_space);
+      }
+
       for (const PhysicalInstanceUsage& phy_inst_usage_item : phy_inst_usage)
       {
         serializer->serialize(phy_inst_usage_item);
@@ -1967,7 +2077,6 @@ namespace Legion {
         if (t_curr >= t_stop)
           return diff;
       }
-
       while (!phy_inst_dim_order_rdesc.empty())
       {
         PhysicalInstDimOrderDesc& front = phy_inst_dim_order_rdesc.front();
@@ -1978,7 +2087,25 @@ namespace Legion {
         if (t_curr >= t_stop)
           return diff;
       }
-
+      while (!phy_inst_spaces.empty())
+      {
+        PhysicalInstanceSpaces& spaces = phy_inst_spaces.front();
+        serializer->serialize(spaces);
+        diff += sizeof(spaces);
+        phy_inst_spaces.pop_front();
+        const long long t_curr = Realm::Clock::current_time_in_microseconds();
+        if (t_curr >= t_stop)
+          return diff;
+      }
+      while (!phy_inst_usage.empty())
+      {
+        PhysicalInstanceUsage& usage = phy_inst_usage.front();
+        serializer->serialize(usage);
+        diff += sizeof(usage);
+        const long long t_curr = Realm::Clock::current_time_in_microseconds();
+        if (t_curr >= t_stop)
+          return diff;
+      }
       while (!index_space_size_desc.empty())
       {
         IndexSpaceSizeDesc& front = index_space_size_desc.front();
@@ -1989,7 +2116,6 @@ namespace Legion {
         if (t_curr >= t_stop)
           return diff;
       }
-
       while (!phy_inst_layout_rdesc.empty())
       {
         PhysicalInstLayoutDesc& front = phy_inst_layout_rdesc.front();
@@ -2764,7 +2890,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void LegionProfiler::add_partition_request(
         Realm::ProfilingRequestSet& requests, Operation* op,
-        DepPartOpKind part_op, LgEvent critical)
+        DepPartOpKind part_op, LgEvent critical, LargeNameClosure* closure)
     //--------------------------------------------------------------------------
     {
       increment_total_outstanding_requests(LEGION_PROF_PARTITION);
@@ -2772,6 +2898,9 @@ namespace Legion {
       // Pass the part_op as the ID
       info.id = part_op;
       info.critical = critical;
+      info.extra.closure = closure;
+      if (closure != nullptr)
+        closure->add_reference();
       Realm::ProfilingRequest& req = requests.add_request(
           (target_proc.exists()) ? target_proc :
                                    Processor::get_executing_processor(),
@@ -2888,13 +3017,16 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void LegionProfiler::add_partition_request(
         Realm::ProfilingRequestSet& requests, UniqueID uid,
-        DepPartOpKind part_op, LgEvent critical)
+        DepPartOpKind part_op, LgEvent critical, LargeNameClosure* closure)
     //--------------------------------------------------------------------------
     {
       increment_total_outstanding_requests(LEGION_PROF_PARTITION);
       ProfilingInfo info(this, LEGION_PROF_PARTITION, uid);
       // Pass the partition op kind as the ID
       info.id = part_op;
+      info.extra.closure = closure;
+      if (closure != nullptr)
+        closure->add_reference();
       info.critical = critical;
       Realm::ProfilingRequest& req = requests.add_request(
           target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),

@@ -2900,11 +2900,11 @@ namespace Legion {
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
         {
-          SmallNameClosure<1>* closure = new SmallNameClosure<1>();
+          SmallNameClosure<1>* closure = new SmallNameClosure<1>(nullptr);
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
-          closure->record_instance_name(dst_inst, inst_event);
+          closure->record_instance_name(dst_inst, inst_event, 0 /*full*/);
 #else
-          closure->record_instance_name(dst_inst, unique_event);
+          closure->record_instance_name(dst_inst, unique_event, 0 /*full*/);
 #endif
           runtime->profiler->add_fill_request(
               requests, closure, op, precondition);
@@ -2975,13 +2975,14 @@ namespace Legion {
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
         {
-          SmallNameClosure<2>* closure = new SmallNameClosure<2>();
+          SmallNameClosure<2>* closure = new SmallNameClosure<2>(nullptr);
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
-          closure->record_instance_name(src_inst, src_event);
-          closure->record_instance_name(dst_inst, dst_event);
+          closure->record_instance_name(src_inst, src_event, 0 /*full*/);
+          closure->record_instance_name(dst_inst, dst_event, 0 /*full*/);
 #else
-          closure->record_instance_name(src_inst, source->unique_event);
-          closure->record_instance_name(dst_inst, unique_event);
+          closure->record_instance_name(
+              src_inst, source->unique_event, 0 /*full*/);
+          closure->record_instance_name(dst_inst, unique_event, 0 /*full*/);
 #endif
           runtime->profiler->add_copy_request(
               requests, closure, uid, precondition);
@@ -3059,13 +3060,15 @@ namespace Legion {
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
         {
-          SmallNameClosure<2>* closure = new SmallNameClosure<2>();
+          SmallNameClosure<2>* closure =
+              new SmallNameClosure<2>(nullptr, redop_id);
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
-          closure->record_instance_name(src_inst, src_event);
-          closure->record_instance_name(dst_inst, dst_event);
+          closure->record_instance_name(src_inst, src_event, 0 /*full*/);
+          closure->record_instance_name(dst_inst, dst_event, 0 /*full*/);
 #else
-          closure->record_instance_name(src_inst, source->unique_event);
-          closure->record_instance_name(dst_inst, unique_event);
+          closure->record_instance_name(
+              src_inst, source->unique_event, 0 /*full*/);
+          closure->record_instance_name(dst_inst, unique_event, 0 /*full*/);
 #endif
           runtime->profiler->add_copy_request(
               requests, closure, op, precondition);

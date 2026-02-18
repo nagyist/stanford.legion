@@ -99,7 +99,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalRegion MapOp::initialize(
         InnerContext* ctx, const InlineLauncher& launcher,
-        Provenance* provenance)
+        Provenance* provenance, unsigned requirement_index)
     //--------------------------------------------------------------------------
     {
       parent_task = ctx->get_task();
@@ -113,7 +113,7 @@ namespace Legion {
           requirement, get_mapped_event(), ready_event, term_event,
           true /*mapped*/, ctx, map_id, tag, false /*leaf*/,
           false /*virtual mapped*/, true /*collective for replication*/,
-          ctx->get_next_blocking_index()));
+          ctx->get_next_blocking_index(), requirement_index));
       termination_event = term_event;
       grants = launcher.grants;
       // Register ourselves with all the grants

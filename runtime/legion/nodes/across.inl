@@ -62,7 +62,7 @@ namespace Legion {
         IndexSpaceExpression* e, const DomainT<DIM, T>& domain, ApEvent ready,
         const std::map<Reservation, bool>& rsrvs, const bool preimages,
         const bool shadow)
-      : CopyAcrossUnstructured(preimages, rsrvs), expr(e), copy_domain(domain),
+      : CopyAcrossUnstructured(e, preimages, rsrvs), copy_domain(domain),
         copy_domain_ready(ready), shadow_indirections(shadow),
         shadow_layout(nullptr), need_src_indirect_precondition(true),
         need_dst_indirect_precondition(true),

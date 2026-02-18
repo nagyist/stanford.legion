@@ -67,7 +67,7 @@ namespace Legion {
     public:
       PhysicalRegion initialize(
           InnerContext* ctx, const InlineLauncher& launcher,
-          Provenance* provenance);
+          Provenance* provenance, unsigned requirement_index);
       void initialize(
           InnerContext* ctx, const PhysicalRegion& region,
           Provenance* provenance);

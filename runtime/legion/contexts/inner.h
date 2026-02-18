@@ -1143,6 +1143,7 @@ namespace Legion {
       // unordered detach operations can touch it without synchronizing
       // with the executing task
       ctx::list<PhysicalRegion> inline_regions;
+      unsigned physical_region_count = 0;
     protected:
       mutable LocalLock child_op_lock;
       // Track whether this task has finished executing

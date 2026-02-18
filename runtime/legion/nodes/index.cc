@@ -2212,7 +2212,8 @@ namespace Legion {
               result->get_domain_point_color());
           if (implicit_profiler != nullptr)
             implicit_profiler->register_index_subspace(
-                handle.get_id(), is.get_id(), result->get_domain_point_color());
+                handle.get_id(false /*filter*/), is.get_id(),
+                result->get_domain_point_color());
           return result;
         }
       }

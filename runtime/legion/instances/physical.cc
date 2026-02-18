@@ -34,7 +34,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalManager::PhysicalManager(
         DistributedID did, MemoryManager* memory, PhysicalInstance inst,
-        IndexSpaceExpression* instance_domain, const void* pl, size_t pl_size,
+        IndexSpaceExpression* inst_domain, const void* pl, size_t pl_size,
         FieldSpaceNode* node, RegionTreeID tree_id, LayoutDescription* layout,
         ReductionOpID redop_id, bool register_now, size_t footprint,
         ApEvent u_event, LgEvent unique, InstanceKind k,
@@ -51,8 +51,8 @@ namespace Legion {
             // On remote nodes we'll already have it from the owner
             (runtime->determine_owner(did) == runtime->address_space) &&
                     (k != UNBOUND_INSTANCE_KIND) ?
-                instance_domain->create_layout_expression(pl, pl_size) :
-                instance_domain,
+                inst_domain->create_layout_expression(pl, pl_size) :
+                inst_domain,
             tree_id, register_now, mapping),
         memory_manager(memory), unique_event(unique),
         instance_footprint(footprint),
@@ -76,6 +76,19 @@ namespace Legion {
         legion_assert(instance.exists());
         Runtime::trigger_event_untraced(
             use_event, fetch_metadata(instance, u_event));
+        if (is_owner() && (runtime->profiler != nullptr))
+          implicit_profiler->register_physical_instance_spaces(
+              unique_event, inst_domain->record_profiler_expression(),
+              (pl_size > 0) ? instance_domain->record_profiler_expression() :
+                              0);
+        if (spy_logging_level > NO_SPY_LOGGING)
+        {
+          legion_assert(unique_event.exists());
+          LegionSpy::log_physical_instance(
+              unique_event, inst.id, memory->memory.id, inst_domain->expr_id,
+              field_space_node->handle, tree_id, redop);
+          layout->log_instance_layout(unique_event);
+        }
       }
       else  // add a resource reference to remove once this manager is set
         add_base_valid_ref(PENDING_UNBOUND_REF);
@@ -93,15 +106,6 @@ namespace Legion {
           LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space, inst.id,
           memory->memory.id);
 #endif
-      if ((kind != UNBOUND_INSTANCE_KIND) &&
-          (spy_logging_level > NO_SPY_LOGGING))
-      {
-        legion_assert(unique_event.exists());
-        LegionSpy::log_physical_instance(
-            unique_event, inst.id, memory->memory.id, instance_domain->expr_id,
-            field_space_node->handle, tree_id, redop);
-        layout->log_instance_layout(unique_event);
-      }
     }
 
     //--------------------------------------------------------------------------
@@ -2465,16 +2469,25 @@ namespace Legion {
         AutoLock lock(inst_lock);
         legion_assert(kind == UNBOUND_INSTANCE_KIND);
         legion_assert(instance_footprint == -1U);
+        legion_assert(piece_list_size == 0);
         instance = new_instance;
         kind = INTERNAL_INSTANCE_KIND;
         instance_footprint = new_footprint;
 
         Runtime::trigger_event(instance_ready, ready);
 
-        LegionSpy::log_physical_instance(
-            unique_event, instance.id, memory_manager->memory.id,
-            instance_domain->expr_id, field_space_node->handle, tree_id, redop);
-        layout->log_instance_layout(unique_event);
+        if (spy_logging_level > NO_SPY_LOGGING)
+        {
+          LegionSpy::log_physical_instance(
+              unique_event, instance.id, memory_manager->memory.id,
+              instance_domain->expr_id, field_space_node->handle, tree_id,
+              redop);
+          layout->log_instance_layout(unique_event);
+        }
+        if (is_owner() && (runtime->profiler != nullptr))
+          implicit_profiler->register_physical_instance_spaces(
+              unique_event, instance_domain->record_profiler_expression(),
+              0 /*no pieces*/);
 
         if (is_owner() && has_remote_instances())
           broadcast_manager_update();

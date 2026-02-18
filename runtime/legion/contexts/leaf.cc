@@ -862,7 +862,7 @@ namespace Legion {
           req, RtEvent::NO_RT_EVENT, ApEvent::NO_AP_EVENT,
           ApUserEvent::NO_AP_USER_EVENT, mapped, this, mid, tag,
           true /*leaf region*/, virtual_mapped, false /*collective*/,
-          InnerContext::NO_BLOCKING_INDEX);
+          InnerContext::NO_BLOCKING_INDEX, physical_regions.size());
       physical_regions.emplace_back(PhysicalRegion(impl));
       if (mapped)
         impl->set_references(physical_instances, true /*safe*/);
@@ -2047,6 +2047,13 @@ namespace Legion {
           runtime->end_concurrent_task(executing_processor);
       }
       // No need to unmap the physical regions, they never had events
+      // but still need to ask the physical regions to report their
+      // region usage if they had any in the case we're profiling
+      if (runtime->profiler != nullptr)
+      {
+        for (const PhysicalRegion& region : physical_regions)
+          region.impl->report_usage(true /*escaped*/);
+      }
       TaskContext::end_task(
           res, res_size, owned, deferred_result_instance, callback_functor,
           resource, freefunc, metadataptr, metadatasize, effects);
